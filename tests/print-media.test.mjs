@@ -2,7 +2,17 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {pdfMediaCss} from '../tools/print-media.mjs';
 import * as sass from 'sass';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
+
+test('Arabic print typography uses the bundled Tajawal Google Font',()=>{
+ const source=readFileSync('bunood_theme/public/scss/print/print.scss','utf8');
+ assert.match(source,/font-family: "Tajawal"/);
+ assert.match(source,/"Tajawal", "Bunood Riyal", "Cairo"/);
+ for (const weight of ['Regular', 'Medium', 'Bold', 'ExtraBold']) {
+  assert.ok(existsSync(`bunood_theme/public/fonts/tajawal/Tajawal-${weight}.ttf`));
+ }
+ assert.ok(existsSync('bunood_theme/public/fonts/tajawal/OFL.txt'));
+});
 
 test('grand total rule uses the document brand, never the interactive blue accent',()=>{
  const source=readFileSync('bunood_theme/public/scss/print/print.scss','utf8');

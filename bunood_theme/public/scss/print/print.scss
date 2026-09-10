@@ -145,8 +145,33 @@
 // ══════════════════════════════════════════════════════════════════════════
 
 /* Brand fonts, self-hosted TTF (wkhtmltopdf's WebKit cannot read woff2).
-   Fetched over HTTP by the PDF engine; fontconfig on the PDF host is the
-   safety net the legacy README documents. */
+   Tajawal is Bunood's Arabic print face: a modern Google Font with quieter
+   geometry than Cairo at invoice-title weights. Fetched over HTTP by the PDF
+   engine; fontconfig on the PDF host is the deterministic safety net. */
+@font-face {
+	font-family: "Tajawal";
+	src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-Regular.ttf") format("truetype");
+	font-weight: 400;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Tajawal";
+	src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-Medium.ttf") format("truetype");
+	font-weight: 500 600;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Tajawal";
+	src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-Bold.ttf") format("truetype");
+	font-weight: 700;
+	font-display: swap;
+}
+@font-face {
+	font-family: "Tajawal";
+	src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-ExtraBold.ttf") format("truetype");
+	font-weight: 800 900;
+	font-display: swap;
+}
 @font-face {
 	font-family: "Cairo";
 	src: url("/assets/bunood_theme/fonts/cairo/Cairo-Variable.ttf") format("truetype");
@@ -198,7 +223,7 @@
    below stays bnd-p-namespaced so third-party formats are never touched
    structurally. */
 .print-format {
-	font-family: "Bunood Riyal", "Cairo", "Amiri", "Tajawal", "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
+	font-family: "Tajawal", "Bunood Riyal", "Cairo", "Noto Sans Arabic", sans-serif;
 	color: var(--bnd-ink);
 	font-size: 12px;
 	line-height: 1.55;
@@ -220,7 +245,7 @@
 }
 .bnd-p-title__ar {
 	font-size: 19px;
-	font-weight: 800;
+	font-weight: 700;
 	color: var(--bnd-brand-ink);
 }
 .bnd-p-title__en {
@@ -479,7 +504,7 @@
    Arabic glyphs: Cairo/Noto shape the Arabic, digits stay monospaced. Pure
    black for the same hardware reason as thermal. ===== */
 .bnd-p--matrix {
-	font-family: "Bunood Riyal", "Courier New", "Cairo", "Noto Naskh Arabic", monospace;
+	font-family: "Tajawal", "Bunood Riyal", "Courier New", "Cairo", monospace;
 	font-size: 11px;
 	color: #000;
 }

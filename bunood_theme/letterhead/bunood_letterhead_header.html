@@ -68,7 +68,7 @@
 </table>{% endif %}
 {%- endmacro %}
 <!--BND lh=split-->
-<div dir="{{ _dir }}" class="bnd-lh-split" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
+<div dir="{{ _dir }}" class="bnd-lh-split" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
   <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; border-collapse:collapse; table-layout:fixed;">
     <tr>
       <td style="width:{{ '72%' if logo else '100%' }}; text-align:{{ _start }}; vertical-align:middle; line-height:1.45;">
@@ -85,7 +85,7 @@
 </div>
 <!--BND-END-->
 <!--BND lh=center-->
-<div dir="{{ _dir }}" class="bnd-lh-center" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
+<div dir="{{ _dir }}" class="bnd-lh-center" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
   {% if logo %}<div><img src="{{ logo | e }}" alt="{{ name_en | e }}" style="max-height:44px;"></div>{% endif %}
   {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700; line-height:1.4;">{{ display_name | e }}</div>{% endif %}
   {{ identity_numbers() }}
@@ -97,7 +97,7 @@
    and survive wkhtmltopdf's isolated header. Long real names may wrap within
    their cell rather than getting clipped or shrinking the whole document. #}
 {% if display_name or logo or vat or cr %}
-<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" class="bnd-lh-minimal" style="font-family:'Noto Naskh Arabic','DejaVu Sans',sans-serif; color:var(--bnd-ink); padding:4px 0 0;">
+<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" class="bnd-lh-minimal" style="font-family:'Tajawal','Noto Sans Arabic','DejaVu Sans',sans-serif; color:var(--bnd-ink); padding:4px 0 0;">
   <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; table-layout:fixed; border-collapse:collapse; margin:0;">
     <tr>
       <td class="bnd-lh-identity" style="width:{{ '30%' if vat and cr else ('60%' if vat or cr else '100%') }}; text-align:{{ _start }}; vertical-align:middle; padding:0;">

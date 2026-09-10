@@ -48,7 +48,7 @@
 {%- endif -%}
 {%- set address = _parts | join("، ") -%}
 {%- if address or phone or email or website or privacy -%}
-<div dir="rtl" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
+<div dir="rtl" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
   {% if address %}<div>{{ address | e }}</div>{% endif %}
   {% if phone or email or website %}
   <div>

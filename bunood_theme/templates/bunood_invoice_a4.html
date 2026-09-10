@@ -70,5 +70,5 @@
   </div>
   {% if doc.get("terms") %}<div class="bnd-inv-terms">{{ label("Terms and conditions", "الشروط والأحكام") }}<div dir="auto">{{ doc.terms }}</div></div>{% endif %}
   {% if bunood_zatca_qr_src is defined %}{% set qr = bunood_zatca_qr_src(doc) %}{% if qr %}<div class="bnd-inv-qr"><img src="{{ qr | e }}" alt="{{ 'رمز الفاتورة' if rtl else 'Invoice QR' }}" width="100" height="100"></div>{% endif %}{% endif %}
-  {% if not no_letterhead and footer %}<div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}><div class="letter-head-footer">{{ footer }}</div><div class="bnd-inv-page" dir="{{ direction }}" style="font-family:'Noto Naskh Arabic','DejaVu Sans',sans-serif;">{{ "صفحة" if rtl else "Page" }} <span dir="ltr"><span class="page"></span> / <span class="topage"></span></span></div></div>{% endif %}
+  {% if not no_letterhead and footer %}<div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}><div class="letter-head-footer">{{ footer }}</div><div class="bnd-inv-page" dir="{{ direction }}" style="font-family:'Tajawal','Noto Sans Arabic','DejaVu Sans',sans-serif;">{{ "صفحة" if rtl else "Page" }} <span dir="ltr"><span class="page"></span> / <span class="topage"></span></span></div></div>{% endif %}
 </div>

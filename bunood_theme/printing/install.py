@@ -105,11 +105,17 @@ def sync_print_theme():
 # sites volume so every container that renders a PDF sees the same directory;
 # see bunood_erpnext/compose.yaml. (Merged from the parallel session.)
 FONT_SUBDIR = os.path.join(".local", "share", "fonts")
-RIYAL_OTF = os.path.join("public", "fonts", "riyal", "bunood-riyal.otf")
+PRINT_FONT_FILES = (
+    os.path.join("public", "fonts", "riyal", "bunood-riyal.otf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-Regular.ttf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-Medium.ttf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-Bold.ttf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-ExtraBold.ttf"),
+)
 
 
-def _install_riyal_font():
-    """Register the riyal face with fontconfig for the wkhtmltopdf path.
+def _install_print_fonts():
+    """Register the Bunood print faces with fontconfig for wkhtmltopdf.
 
     chrome takes the woff2 from the @font-face and needs none of this. Under
     wkhtmltopdf no @font-face can work at all: frappe injects
@@ -122,27 +128,32 @@ def _install_riyal_font():
     the riyal as a missing glyph under wkhtmltopdf -- exactly the old
     behaviour.
     """
-    src = os.path.join(os.path.dirname(BASE), RIYAL_OTF)
-    if not os.path.exists(src):
-        return
     dest_dir = os.path.join(frappe.utils.get_bench_path(), "sites", FONT_SUBDIR)
-    dest = os.path.join(dest_dir, os.path.basename(src))
     try:
-        with open(src, "rb") as fh:
-            want = fh.read()
-        if os.path.exists(dest):
-            with open(dest, "rb") as fh:
-                if fh.read() == want:
-                    return  # already current; keep this a true no-op
         os.makedirs(dest_dir, exist_ok=True)
-        with open(dest, "wb") as fh:
-            fh.write(want)
+        changed = False
+        for relative_path in PRINT_FONT_FILES:
+            src = os.path.join(os.path.dirname(BASE), relative_path)
+            if not os.path.exists(src):
+                continue
+            with open(src, "rb") as fh:
+                want = fh.read()
+            dest = os.path.join(dest_dir, os.path.basename(src))
+            if os.path.exists(dest):
+                with open(dest, "rb") as fh:
+                    if fh.read() == want:
+                        continue
+            with open(dest, "wb") as fh:
+                fh.write(want)
+            changed = True
+        if not changed:
+            return
         # Best effort: fontconfig rescans a stale directory on its own, so a
         # missing fc-cache costs a little startup time, not correctness.
         subprocess.run(["fc-cache", "-f", dest_dir], capture_output=True, timeout=60)
     except Exception:
         frappe.log_error(
-            title="bunood_theme: riyal font not registered with fontconfig",
+            title="bunood_theme: print fonts not registered with fontconfig",
             message=frappe.get_traceback(),
         )
 
@@ -198,7 +209,7 @@ def adopt_sales_invoice_print_format() -> None:
 def _sync_style(settings=None):
     from bunood_theme.printing.sheet import print_css
 
-    _install_riyal_font()
+    _install_print_fonts()
     css = print_css(settings)
     if not css:
         # Stand-down: sheet.print_css already logged why. Never write emptiness

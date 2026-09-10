@@ -22,6 +22,25 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.7] — 2026-09-10 — Tajawal invoice typography (patch)
+
+### Changed
+
+- Replaced Cairo as the primary Arabic invoice face with the Tajawal family from
+  Google Fonts. The official OFL-licensed Regular, Medium, Bold, and ExtraBold TTFs
+  are self-hosted so wkhtmltopdf works without external network access.
+- Applied Tajawal to managed invoice formats, letter heads, footers, and page labels.
+  The Arabic document title now uses weight 700 for a cleaner, less bulbous heading.
+- Registered Tajawal with the shared fontconfig directory alongside the dedicated
+  Saudi riyal face. A generated PDF proves both Tajawal Medium/Bold and Bunood Riyal
+  are embedded.
+
+### Checks
+
+Print/font regression plus Sales Bill and simplified-form suites: **76/76 passed**.
+Fresh `exact.bunood.test` PDF: one page, embedded `Tajawal-Medium`, `Tajawal-Bold`,
+and `BunoodRiyal-Regular`; visually checked in the browser.
+
 ## [0.44.2] — 2026-09-08 — The switch offers what you chose; the pane stays on All Apps (patch)
 
 **Two more asks from the user, the same day.** "Language switch should only list languages
