@@ -282,6 +282,39 @@ def after_install() -> None:
     print("→ Configure at /app/theme-settings\n")
 
 
+def after_setup_wizard(_args=None) -> None:
+    """Re-apply Bunood print defaults after ERPNext creates the company.
+
+    ERPNext's setup wizard writes its stock ``Redesign`` print style after app
+    installation, which can displace the one-time choice made by
+    :func:`after_install`. This hook runs once at the end of that wizard: it
+    refreshes the branded style and letterhead, then replaces only a Frappe
+    stock/default style. A later administrator choice remains untouched.
+    """
+    sync_print_theme()
+    try:
+        from bunood_theme.printing.install import (
+            STYLE_NAME,
+            _is_displaceable,
+            adopt_sales_invoice_print_format,
+        )
+
+        if not frappe.db.exists("Print Style", STYLE_NAME):
+            return
+        settings = frappe.get_single("Print Settings")
+        if settings.meta.has_field("print_style") and _is_displaceable(
+            settings.get("print_style")
+        ):
+            settings.print_style = STYLE_NAME
+            settings.save(ignore_permissions=True)
+        adopt_sales_invoice_print_format()
+    except Exception:
+        frappe.log_error(
+            title="bunood_theme: post-setup print default failed"[:140],
+            message=frappe.get_traceback(),
+        )
+
+
 #: Languages written right-to-left, per CLDR. A fact table about the world,
 #: like ``registry.REGION_LABELS`` — NOT a copy of Frappe's ``is_rtl`` list,
 #: which is the four-element subset under indictment here. The smoke suite

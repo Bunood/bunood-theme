@@ -38,6 +38,7 @@ bunood_theme.patches.v0_15_0.rename_icon_fields
 # ongoing claim for fresh installs is the widened STOCK_STYLES in
 # printing/install.py. The honest cost is in the patch's docstring.
 bunood_theme.patches.v0_35_0.claim_print_style
+bunood_theme.patches.v0_44_6.adopt_sales_invoice_print
 # Item 36: the two axis-field renames build.mjs's KNOWN VIOLATIONS block had
 # promised to "the component rework's patch" since the rework itself
 # (enable_command_palette -> palette_enabled, default_density ->

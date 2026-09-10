@@ -2,6 +2,14 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {pdfMediaCss} from '../tools/print-media.mjs';
 import * as sass from 'sass';
+import {readFileSync} from 'node:fs';
+
+test('grand total rule uses the document brand, never the interactive blue accent',()=>{
+ const source=readFileSync('bunood_theme/public/scss/print/print.scss','utf8');
+ const rule=source.match(/\.bnd-p-totals \.g td \{([\s\S]*?)\n\}/)[1];
+ assert.match(rule,/border-top: 2px solid var\(--bnd-brand-solid\)/);
+ assert.doesNotMatch(rule,/--bnd-accent/);
+});
 
 test('screen-only layout cannot hide the following PDF rule',()=>{
  const css='@media screen { .x {display:flex;content:"} @media screen {";} @supports (display:grid) {.y{display:grid}} } @media print {.x{display:grid}}';

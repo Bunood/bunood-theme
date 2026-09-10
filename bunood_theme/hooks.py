@@ -128,6 +128,7 @@ pdf_footer_html = "bunood_theme.printing.pdf_direction.pdf_footer_html"
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
 after_install = "bunood_theme.setup.after_install"
+setup_wizard_complete = "bunood_theme.setup.after_setup_wizard"
 before_migrate = "bunood_theme.upstream.assert_compatible"
 after_migrate = "bunood_theme.setup.after_migrate"
 

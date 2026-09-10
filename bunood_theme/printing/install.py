@@ -33,6 +33,7 @@ from bunood_theme import zatca
 
 STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
+DEFAULT_SALES_FORMAT = "بونود - فاتورة ضريبية (A4)"
 # Company has tax_id for VAT but nothing for the commercial registration;
 # this app adds the dedicated field so the letter head has one to read.
 # (Merged from the parallel session, 2026-08-26.)
@@ -161,6 +162,37 @@ def _is_displaceable(current):
     if not frappe.db.exists("Print Style", current):
         return True
     return bool(frappe.db.get_value("Print Style", current, "standard"))
+
+
+def adopt_sales_invoice_print_format() -> None:
+    """Use Bunood's A4 invoice when ERPNext still owns the default choice.
+
+    The setup wizard installs a system-generated Property Setter pointing to
+    ``Sales Invoice with Item Image``. Replacing that stock setter is safe;
+    any administrator-created (non-system) setter is preserved.
+    """
+    if not frappe.db.exists("Print Format", DEFAULT_SALES_FORMAT):
+        return
+    setter = frappe.db.get_value(
+        "Property Setter",
+        {"doc_type": "Sales Invoice", "property": "default_print_format"},
+        ["name", "value", "is_system_generated"],
+        as_dict=True,
+    )
+    if setter and not setter.is_system_generated:
+        return
+    if setter and setter.value == DEFAULT_SALES_FORMAT:
+        return
+    frappe.make_property_setter(
+        {
+            "doctype": "Sales Invoice",
+            "property": "default_print_format",
+            "value": DEFAULT_SALES_FORMAT,
+            "property_type": "Data",
+        },
+        is_system_generated=True,
+    )
+    frappe.clear_cache(doctype="Sales Invoice")
 
 
 def _sync_style(settings=None):
