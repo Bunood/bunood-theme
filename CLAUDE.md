@@ -262,6 +262,19 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   The standing advice survives the fix: before assuming a red suite is your change,
   **stash, redeploy and re-run at HEAD**; after any sweep, diff Theme Settings
   against `setup.SHIPPED`.
+- **A measurement taken inside a HIDDEN container is a lie, and a SHARED store carries
+  that lie outward.** Frappe caches an outgoing page `display:none`, so a composer frame
+  that navigated into one booted 0px wide; `frappe.is_mobile()` is `innerWidth < 768`, the
+  frame concluded it was a phone, and it wrote `sidebar-expanded=false` into the
+  localStorage it SHARES with the desk (same origin). Every later fresh load of the real
+  desk then came up with a collapsed pane, and five checks failed sixty tests later reading
+  like five unrelated bugs — the settings map in a rail menu, a pane head with no name,
+  seven pane links with no text, link-name growing 1→8, two pane zones at the same pixel.
+  Nothing in any of them named a frame. Two rules: never let a frame or a measurement run
+  inside a container that is hidden (gate on `getClientRects().length`, and use the
+  vendor's own `show` to resume), and when a defect's symptoms are scattered and none names
+  a cause, look for something WRITTEN once and READ by everything — browser storage, a
+  cache, a Single row. Related in shape: *Clearing a cache BEFORE committing the write*.
 - **A fallback that WIDENS scope hides an argument that was never passed.** The settings
   sweep's per-section scan read `document.querySelector(section) || document` — and the
   section key was never passed into `page.evaluate`, so `k` was undefined on every pass
