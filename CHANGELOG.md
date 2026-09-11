@@ -22,6 +22,13 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.12] — 2026-09-11 — Spreadsheet Link controls (patch)
+
+- Preserve Frappe's native Link query function in synthetic Sales and Purchase
+  Invoice spreadsheet rows, restoring populated Warehouse autocomplete choices.
+- Align acceptance readiness with the permanent Dock/rail navigation design and
+  current-form ownership without relaxing the product behavior being tested.
+
 ## [0.44.11] — 2026-09-11 — Navigation ownership cleanup (patch)
 
 ### Fixed

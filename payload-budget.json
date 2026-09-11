@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-09-11 INVOICE LINK-QUERY DECISION: desk JS ceiling 154000 -> 154200 gzip bytes. Measured JS is 154095 (+95 over the prior ceiling) for preserving Frappe ControlLink's native query function in synthetic spreadsheet bill rows. The previous unconditional assignment replaced it with undefined, leaving Warehouse inputs visible but their suggestion list permanently empty. No dependency, endpoint, calculation, or duplicate control was added.",
 		"2026-09-10 PAGE-HEAD SIDEBAR CONTROL DECISION: desk JS ceiling 153700 -> 154000 gzip bytes. Measured JS is 153857 (+157 over the prior ceiling) for one persistent control mounted in flow beside the workspace/Home icon, stateful double-chevron markup, and logical start/end state mirrored by CSS in RTL. It replaces the pane-edge and optional-topbar affordances; no dependency or duplicate navigation controller was added.",
 		"2026-09-07 MERGE DECISION (overhaul-v2 + the readiness line): desk JS ceiling 153100 -> 153700 and web_css_gzip 4500 -> 4600. The two lines were merged with the readiness commits winning every source conflict, which overwrote this file wholesale and silently dropped four of overhaul-v2 entries and LOWERED web_css_gzip from 4600 to 4500 -- below what overhaul-v2 own code measures (4513). This file is a decision LOG, so the resolution is the UNION: their entries restored below, ceilings at max(ours, theirs), then raised once for the merged bundle. Merged JS measures 153553 (overhaul-v2 language switch + Appearance button + rail foot band, plus the readiness rail hover trigger, switcher dedupe and dashboard currency fix). No dependency added.",
 		"AND web_css_gzip TO 4600 (2026-09-05, the workspace menu + place-row icon): +4 gzip.",
@@ -176,7 +177,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 32000,
-		"js_gzip": 154000,
+		"js_gzip": 154200,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
 		"auth_js_gzip": 1000,
@@ -455,6 +456,25 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +9855b, js +47208b, studio_js 25557b gzip (new), web_css +647b, auth_js 682b gzip (new), email_css +0b, print_css +126b gzip vs v0.40.0"
+		},
+		{
+			"version": "v0.44.12",
+			"date": "2026-09-11",
+			"web_css_raw": 30917,
+			"web_css_gzip": 4513,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 24554,
+			"print_css_gzip": 6938,
+			"css_raw": 244130,
+			"css_gzip": 31742,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 500333,
+			"js_gzip": 154095,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +193b, js +238b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.8"
 		}
 	]
 }

@@ -536,7 +536,7 @@ function boundWorkbench(nativeSet) {
     const input=element(), wrapper=element(); let value=doc[df.fieldname];
     input.handlers = {};
     input.setAttribute('aria-describedby','native-help');
-    const c={df,$input:{0:input,val(v){if(arguments.length)value=v;return value;},attr(k,v){input.setAttribute(k,v);},on(event,fn){input.handlers[event]=fn;}},
+    const c={df,get_query(){return 'native-link-query';},$input:{0:input,val(v){if(arguments.length)value=v;return value;},attr(k,v){input.setAttribute(k,v);},on(event,fn){input.handlers[event]=fn;}},
       $wrapper:{0:wrapper,addClass:k=>wrapper.classList.add(k),removeClass:k=>wrapper.classList.remove(k)},
       get_status:df.get_status, refresh(){value=doc[df.fieldname];}, set_input(v){value=v;},
       get_value(){return Number(value);}, get_model_value(){return doc[df.fieldname];},
@@ -549,6 +549,15 @@ function boundWorkbench(nativeSet) {
   const bind = name => workbench.bindControl(element(),{df:{fieldname:name,label:name}},row,true);
   return {workbench,row,bind};
 }
+test('synthetic row controls preserve the native Link query unless a real override exists', () => {
+  const {workbench,row}=boundWorkbench();
+  const native=workbench.bindControl(element(),{df:{fieldname:'warehouse',label:'Warehouse'}},row,true);
+  assert.equal(native.get_query(),'native-link-query');
+  const override=()=> 'configured-query';
+  const configured=workbench.bindControl(element(),{df:{fieldname:'warehouse',label:'Warehouse'},get_query:override},row,true);
+  assert.equal(configured.get_query,override);
+  assert.equal(configured.get_query(),'configured-query');
+});
 test('rejected input gets an associated plain-text inline error; clearing to native value removes only owned help', async () => {
   const {workbench,row,bind}=boundWorkbench(), control=bind('discount_percentage');
   control.$input.val('10'); await control.set_model_value(10);

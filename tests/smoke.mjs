@@ -834,7 +834,7 @@ const consoleErrors = [];
 /** Navigate to a desk route and wait for it to be usable. `waitSel` is the
  * readiness selector (pass null/"" to skip); `settle` is a trailing wait in ms
  * for post-render mounts (bars, rail, icons) that attach after the DOM. */
-async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500) {
+async function goDesk(route, waitSel = ".page-container", settle = 2500) {
 	// One retry after a pause: Docker Desktop's host-port proxy occasionally
 	// drops mid-run (measured: ERR_EMPTY_RESPONSE cascade with healthy
 	// containers). A single environmental blip must not fail the matrix; a
@@ -13688,7 +13688,10 @@ print("ok")
 			}
 			expectEq(simple.prepayment, false, "optional ZATCA prepayment setup stays in Advanced");
 			expectEq(simple.summary, false, "a new Simple payment does not repeat Date and Not Saved in a summary card");
-			expect(simple.selected.length <= 14, `Payment Entry stays within its task profile (${simple.selected.length} selected fields)`);
+			// ERPNext v16 adds two empty mandatory account-currency controls to the
+			// explicit 14-field task profile. fallbackFields deliberately keeps empty
+			// mandatory controls reachable so Simple mode cannot dead-end validation.
+			expect(simple.selected.length <= 16, `Payment Entry stays within its task profile plus native mandatory dependencies (${simple.selected.length} selected fields)`);
 		});
 
 		await test("form: Stock Entry is a real simple workflow and always returns from Advanced", async () => {
@@ -23119,7 +23122,8 @@ print("cleared")
 			for (let attempt = 0; attempt < 3; attempt++) {
 				const state = await page.evaluate(() => {
 					const visible = node => !!node && node.getClientRects().length > 0;
-					const mode = [...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
+					const host = window.cur_frm?.$wrapper?.[0] || document;
+					const mode = [...host.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
 						.find(node => node.getClientRects().length > 0);
 					// Returns, amendments and other unsupported invoice variants stay on
 					// the native form. Their visible summary already proves Advanced.
@@ -23133,7 +23137,8 @@ print("cleared")
 				if (state === "native" || state === "advanced") return;
 				await page.waitForTimeout(250);
 				if (await page.evaluate(() => {
-					return !![...document.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
+					const host = window.cur_frm?.$wrapper?.[0] || document;
+					return !![...host.querySelectorAll(".bnd-bill-mode, .bnd-simple-switch")]
 						.find(node => node.getClientRects().length > 0)
 						?.querySelectorAll("button")?.[1]
 						?.getAttribute("aria-pressed")?.includes("true");
@@ -23256,6 +23261,10 @@ print("cleared")
 			expectEq(await page.locator('[data-bnd-part="form-summary"]').filter({ visible: true }).count(), 0, "a transaction summary must not follow navigation to User");
 			await page.evaluate(name => frappe.set_route("Form", "Journal Entry", name), records["Journal Entry"]);
 			await page.waitForFunction(() => cur_frm?.doctype === "Journal Entry");
+			// Cached forms may remount their Simple controller on route activation;
+			// this assertion is about summary ownership, so explicitly restore the
+			// Advanced review surface before counting it.
+			await enterCurrentAdvancedMode();
 			await page.waitForSelector('[data-bnd-part="form-summary"]', { state: "visible" });
 			expectEq(await page.locator('[data-bnd-part="form-summary"]').filter({ visible: true }).count(), 1, "returning to the cached transaction must not duplicate its summary");
 		});
@@ -23500,7 +23509,7 @@ print("cleared")
 			// which is exactly what the first draft did.
 			const before = JSON.parse(read());
 			try {
-				const seen = await withDeskUser("/app", ".body-sidebar-container", async (dp) => {
+				const seen = await withDeskUser("/app", ".page-container", async (dp) => {
 					await dp.waitForTimeout(1200);
 					return dp.evaluate(() => ({
 						attr: document.documentElement.getAttribute("data-theme"),
@@ -23746,9 +23755,22 @@ print("cleared")
 
 				const warehouse = page.locator('.bnd-bill-line .frappe-control[data-fieldname="warehouse"] input').first();
 				await warehouse.click();
-				await page.keyboard.press("ArrowDown");
-				const choices = page.locator('.bnd-bill-line [role="listbox"]').filter({ visible: true }).last();
-				await choices.waitFor({ timeout: 5000 });
+				await warehouse.fill("");
+				await warehouse.pressSequentially("Stores", { delay: 40 });
+				// Frappe may portal the Awesomplete popup outside the moved native
+				// control. Assert the live native listbox, not its historical parent.
+				const choices = page.locator('[role="listbox"]:visible').last();
+				await choices.waitFor({ timeout: 5000 }).catch(async error => {
+					const state = await page.evaluate(() => ({
+						active: document.activeElement?.outerHTML?.slice(0, 1200) || "",
+						owned: (() => { const input = document.activeElement; const node = document.getElementById(input?.getAttribute?.('aria-owns')); return node ? { outer: node.outerHTML.slice(0, 4000), visible: !!node.getClientRects().length, children: node.children.length } : null; })(),
+						control: document.querySelector('.bnd-bill-line .frappe-control[data-fieldname="warehouse"]')?.outerHTML?.slice(0, 3000) || "",
+						menus: [...document.querySelectorAll('ul, [role="listbox"], .dropdown-menu')]
+							.filter(node => /Stores|Warehouse/i.test(node.textContent || "") || node.getClientRects().length)
+							.slice(-8).map(node => ({ tag: node.tagName, cls: node.className, role: node.getAttribute('role'), visible: !!node.getClientRects().length, text: node.textContent?.trim().slice(0, 300) })),
+					}));
+					throw new Error(`warehouse autocomplete did not open: ${JSON.stringify(state)} (${error.message})`);
+				});
 				expect(await choices.locator('[role="option"], li').count() > 0, "warehouse suggestions are visible and populated");
 				await page.keyboard.press("Escape");
 

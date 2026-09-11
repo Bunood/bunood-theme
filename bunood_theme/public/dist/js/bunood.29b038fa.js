@@ -10257,7 +10257,12 @@ function sb_zone_anchor(pane, zone, node) {
 				doctype: doc.doctype || frm.doctype, docname: doc.name, doc,
 				df: { ...source.df, get_status: allowed },
 			});
-			control.get_query = source.get_query;
+			// A synthetic spreadsheet-row source carries only its DocField. Do not
+			// erase ControlLink's native query method with `undefined`: that leaves a
+			// perfectly rendered Warehouse input whose Awesomplete list is always
+			// empty. Real form controls may still provide an explicit query override.
+			const sourceQuery = source.get_query || source.df?.get_query;
+			if (typeof sourceQuery === "function") control.get_query = sourceQuery;
 			const nativeSet = control.set_model_value.bind(control);
 			const key = `${doc.name}:${name}`;
 			const nativeValidate = control.validate_and_set_in_model.bind(control);
