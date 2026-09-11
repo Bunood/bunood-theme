@@ -332,7 +332,18 @@ function benchPy(code, preConnect = "") {
 				.filter((l) => !noise.test(l))
 				.join("\n")
 				.trim();
-			if (attempt === 1 && /\b1020\b/.test(stderr) && /tabSingles/.test(stderr)) {
+			// AND MySQL 1305, `SAVEPOINT <name> does not exist`, which is the same
+			// conflict seen from the other end. Frappe wraps a write in a savepoint
+			// and rolls back to it when the statement fails; if the transaction has
+			// already gone, the rollback itself raises 1305 and the ORIGINAL error —
+			// the lock-wait or the optimistic-lock conflict — never reaches the
+			// caller. Measured twice on 2026-09-10, both times on the same check and
+			// once on a backend freshly restarted to 140 MiB, which is what ruled
+			// out memory pressure as the cause. Retried on the same terms as 1020:
+			// once, with a pause, and nothing else widened — a blanket retry is
+			// still how a real defect gets papered over.
+			const transient = (/\b1020\b/.test(stderr) && /tabSingles/.test(stderr)) || /\b1305\b/.test(stderr);
+			if (attempt === 1 && transient) {
 				// Synchronous pause — benchPy is sync throughout, and its callers
 				// depend on that.
 				Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1500);
