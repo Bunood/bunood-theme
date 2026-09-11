@@ -22,6 +22,23 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.11] — 2026-09-11 — Navigation ownership cleanup (patch)
+
+### Fixed
+
+- Removed Frappe's obsolete pane-edge collapse chevrons while retaining the
+  invisible resize strip, keyboard sizing, and the page-head toggle as the one
+  visible desktop owner.
+- Confined Home, Notifications, and Profile mobile captions to the four-cell
+  phone navigation so Arabic labels cannot wrap below top-bar icons or overlap
+  adjacent controls. The intentionally labelled All Apps return remains.
+
+### Checks
+
+The theme bundle and syntax gates pass. Focused Arabic/English navigation
+acceptance passes; complete browser acceptance is reserved for the immutable
+release image.
+
 ## [0.44.10] — 2026-09-10 — Production-candidate acceptance repairs (patch)
 
 ### Fixed
