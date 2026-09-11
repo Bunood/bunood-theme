@@ -645,33 +645,6 @@ html[data-bnd-sb-color] .bnd-ph-show {
   }
 }
 
-// The way out of the pane, at the brand row's inline end. RESTORED after the
-// overhaul merge (2026-09-05) dropped it; the brand row is a <button> in that
-// overhaul, so this is a positioned SIBLING -- a button cannot contain one --
-// and the row keeps room for it. The rail hides it (rest-state rule below).
-html[data-bnd-sb-color] .bnd-sb-brand-hide {
-  position: absolute;
-  inset-block-start: var(--bnd-sp-3);
-  inset-inline-end: var(--bnd-sp-3);
-  display: grid;
-  place-items: center;
-  inline-size: 28px;
-  block-size: var(--bnd-sb-tile);
-  color: var(--bnd-sb-ink-muted);
-
-  &:hover {
-    color: var(--bnd-sb-ink);
-  }
-
-  .es-icon {
-    inline-size: 16px;
-    block-size: 16px;
-  }
-}
-
-html[data-bnd-sb-color] .body-sidebar > .bnd-sb-brand {
-  padding-inline-end: calc(var(--bnd-sp-3) + 28px + var(--bnd-sp-2));
-}
 html[data-bnd-sb-panestate="open"] .body-sidebar-container {
   flex-shrink: 0;
   // THE FLOOR'S OTHER HALF (item 40). A flex item's implicit

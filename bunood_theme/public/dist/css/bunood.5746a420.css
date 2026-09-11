@@ -1756,7 +1756,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 }
 
 html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
-.bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-ph-home, .bnd-ph-show, .bnd-sb-brand-hide,
+.bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-ph-home, .bnd-ph-show,
 .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
 .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
 .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank):focus-visible {
@@ -2216,7 +2216,7 @@ html.bunood[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) .main-section
   z-index: calc(var(--bnd-z-flyout) + 1);
 }
 
-html.bunood[data-bnd-own~=panetoggle] .body-sidebar .collapse-sidebar-link {
+html.bunood[data-bnd-sidepane][data-bnd-own~=panetoggle]:not([data-bnd-narrow]) .body-sidebar-container .collapse-sidebar-link {
   display: none;
 }
 
@@ -2617,28 +2617,6 @@ html[data-bnd-sb-color] .bnd-ph-show {
 }
 html[data-bnd-sb-color] .bnd-ph-show:hover {
   color: var(--bnd-sb-ink);
-}
-
-html[data-bnd-sb-color] .bnd-sb-brand-hide {
-  position: absolute;
-  inset-block-start: var(--bnd-sp-3);
-  inset-inline-end: var(--bnd-sp-3);
-  display: grid;
-  place-items: center;
-  inline-size: 28px;
-  block-size: var(--bnd-sb-tile);
-  color: var(--bnd-sb-ink-muted);
-}
-html[data-bnd-sb-color] .bnd-sb-brand-hide:hover {
-  color: var(--bnd-sb-ink);
-}
-html[data-bnd-sb-color] .bnd-sb-brand-hide .es-icon {
-  inline-size: 16px;
-  block-size: 16px;
-}
-
-html[data-bnd-sb-color] .body-sidebar > .bnd-sb-brand {
-  padding-inline-end: calc(var(--bnd-sp-3) + 28px + var(--bnd-sp-2));
 }
 
 html[data-bnd-sb-panestate=open] .body-sidebar-container {
@@ -7909,6 +7887,17 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
   color: var(--bnd-critical);
 }
 
+.bnd-bill-action-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.bnd-bill-action-icon :is(.icon, .es-icon) {
+  inline-size: 1.125rem;
+  block-size: 1.125rem;
+}
+
 .bnd-bill-action kbd {
   display: none;
   align-items: center;
@@ -8018,6 +8007,10 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
 .bnd-bill-tools-body .bnd-bill-action {
   justify-content: space-between;
   text-align: start;
+}
+
+.bnd-bill-tools-body .bnd-bill-action-label {
+  flex: 1;
 }
 
 .bnd-bill-tools-body kbd {
@@ -8220,6 +8213,7 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
 }
 
 .bnd-bill-line {
+  --bnd-bill-line-label-h: 3rem;
   display: grid;
   grid-template-columns: minmax(10rem, 2fr) repeat(4, minmax(5rem, 1fr)) minmax(8rem, 1.3fr) minmax(6rem, 1fr) 4rem;
   min-inline-size: 52rem;
@@ -8249,6 +8243,7 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
   grid-column: 1;
   grid-row: 1;
   display: grid;
+  grid-template-rows: var(--bnd-bill-line-label-h) auto;
   gap: var(--bnd-sp-1);
   min-inline-size: 0;
   overflow-wrap: anywhere;
@@ -8291,12 +8286,37 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
   min-inline-size: 0;
 }
 
+.bnd-bill-cell > .frappe-control,
+.bnd-bill-cell > .frappe-control > .form-group {
+  display: grid;
+  grid-template-rows: var(--bnd-bill-line-label-h) auto;
+  align-content: start;
+  min-block-size: 0;
+}
+
 .bnd-bill-cell .control-label,
 .bnd-bill-line-total > .bnd-bill-hint {
   display: flex;
-  align-items: end;
-  min-block-size: 1.5rem;
+  align-items: start;
+  min-block-size: var(--bnd-bill-line-label-h);
   margin: 0;
+  padding-block-start: 0.125rem;
+  line-height: 1.25;
+}
+
+.bnd-bill-line .frappe-control :is(input:not([type=checkbox]), select, .control-value) {
+  box-sizing: border-box;
+  block-size: var(--bnd-control-h);
+  min-block-size: var(--bnd-control-h);
+}
+
+.bnd-bill-line .frappe-control .control-value {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .bnd-bill-cell-warehouse {
@@ -8306,9 +8326,10 @@ html[data-bnd-ws] .onb-panel .onb-step-text {
 .bnd-bill-line-total {
   grid-column: 7;
   display: grid;
+  grid-template-rows: var(--bnd-bill-line-label-h) auto;
   align-content: start;
   justify-items: end;
-  gap: var(--bnd-sp-2);
+  gap: var(--bnd-sp-1);
   font-weight: 600;
 }
 

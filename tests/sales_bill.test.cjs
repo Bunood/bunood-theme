@@ -165,6 +165,17 @@ test('invoice sheet puts identity before actions and marks draft-only editing af
   assert.match(css, /\[data-bnd-draft="false"\] \.bnd-bill-draft-only/);
   assert.doesNotMatch(css, /\.bnd-bill-toolbar \{ flex-wrap: nowrap; overflow-x: auto;/);
 });
+test('invoice tool actions use bundled, labelled Frappe icons', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
+  for (const icon of ['user','delete','printer','credit-card','percent','rotate-ccw','search']) {
+    assert.match(source,new RegExp(`this\\.action\\([^\\n]+"${icon}"`));
+  }
+  assert.match(source,/frappe\.utils\.icon\(icon, "sm"\)/);
+  assert.match(source,/bnd-bill-action-icon[^\n]+aria-hidden/);
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(scss,/\.bnd-bill-action-icon[^}]*place-items:\s*center/);
+  assert.match(scss,/\.bnd-bill-tools-body \.bnd-bill-action-label \{ flex: 1; \}/);
+});
 
 // Verbatim methods from the installed, already-pinned Frappe form/layout.js.
 // The upstream gate checks the full file; this runs its actual global-select branch.
@@ -704,6 +715,15 @@ test('inline error growth does not bottom-align neighboring invoice controls', (
   const line=scss.match(/\.bnd-bill-line \{([^}]+)\}/)[1];
   assert.match(line,/align-items: stretch/);
   assert.match(scss,/bnd-bill-line-total.*align-content: start/);
+});
+test('spreadsheet row gives every label and control a shared vertical track', () => {
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(scss,/--bnd-bill-line-label-h:\s*3rem/);
+  assert.match(scss,/\.bnd-bill-cell > \.frappe-control[\s\S]*?grid-template-rows:\s*var\(--bnd-bill-line-label-h\) auto/);
+  assert.match(scss,/\.bnd-bill-item[^}]*grid-template-rows:\s*var\(--bnd-bill-line-label-h\) auto/);
+  assert.match(scss,/\.bnd-bill-line-total[^}]*grid-template-rows:\s*var\(--bnd-bill-line-label-h\) auto/);
+  assert.match(scss,/\.bnd-bill-line \.frappe-control :is\([^}]*block-size:\s*var\(--bnd-control-h\)/);
+  assert.match(scss,/\.bnd-bill-line \.frappe-control \.control-value[^}]*white-space:\s*nowrap/);
 });
 
 // Disabling a containing fieldset removes browser focus. Model that side effect,

@@ -83,8 +83,10 @@ html.bunood[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) {
   }
 }
 
-// Retire the edge toggle only when our wired, visible topbar control owns it.
-html.bunood[data-bnd-own~="panetoggle"] .body-sidebar .collapse-sidebar-link {
+// The desktop page head is the sole owner of pane collapse. JavaScript removes
+// live copies; this ownership-gated rule also catches a copy Frappe inserts
+// between route remounts without hiding the native fallback if our mount fails.
+html.bunood[data-bnd-sidepane][data-bnd-own~="panetoggle"]:not([data-bnd-narrow]) .body-sidebar-container .collapse-sidebar-link {
   display: none;
 }
 

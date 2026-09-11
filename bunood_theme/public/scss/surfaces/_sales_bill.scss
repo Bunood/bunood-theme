@@ -72,6 +72,8 @@
 }
 .bnd-bill-toolbar .bnd-bill-action-save:hover { color: var(--bnd-on-brand); background: var(--bnd-brand-solid); filter: brightness(.96); }
 .bnd-bill-toolbar .bnd-bill-action-danger { color: var(--bnd-critical); }
+.bnd-bill-action-icon { display: grid; place-items: center; flex: none; }
+.bnd-bill-action-icon :is(.icon,.es-icon) { inline-size: 1.125rem; block-size: 1.125rem; }
 .bnd-bill-action kbd {
   display: none; align-items: center; justify-content: center;
   box-sizing: border-box; min-inline-size: var(--bnd-sp-7); block-size: var(--bnd-sp-5);
@@ -102,6 +104,7 @@
 .bnd-bill-tools-body { position: absolute; z-index: 10; inset-inline-end: 0; inset-block-start: 100%; inline-size: 15rem; max-inline-size: 75vw; padding: var(--bnd-sp-2); background: var(--bnd-surface); border: var(--bnd-line) solid var(--bnd-border); box-shadow: var(--bnd-shadow-sm); }
 .bnd-bill-tools-body .bnd-bill-action-group { display: grid; margin: 0; }
 .bnd-bill-tools-body .bnd-bill-action { justify-content: space-between; text-align: start; }
+.bnd-bill-tools-body .bnd-bill-action-label { flex: 1; }
 .bnd-bill-tools-body kbd { display: inline-flex; box-shadow: none; border: 0; background: transparent; }
 .bnd-bill-status { padding-block: var(--bnd-sp-3); min-block-size: var(--bnd-sp-6); }
 .bnd-bill-status:empty { padding: 0; min-block-size: 0; }
@@ -141,6 +144,7 @@
 .bnd-bill-empty { text-align: start; padding: var(--bnd-sp-5); background: var(--bnd-raised); border: var(--bnd-line) dashed var(--bnd-border); border-radius: var(--bnd-radius-md); }
 .bnd-bill-empty strong { display: block; margin-block-end: var(--bnd-sp-2); }
 .bnd-bill-line {
+  --bnd-bill-line-label-h: 3rem;
   display: grid;
   grid-template-columns: minmax(10rem,2fr) repeat(4,minmax(5rem,1fr)) minmax(8rem,1.3fr) minmax(6rem,1fr) 4rem;
   min-inline-size: 52rem;
@@ -150,7 +154,7 @@
 .bnd-bill-line:nth-child(even) { background: var(--bnd-raised); }
 .bnd-bill-line:focus-within { background: var(--bnd-hover); }
 .bnd-bill-line > div { padding: var(--bnd-sp-2); border-inline-end: var(--bnd-line) solid var(--bnd-border); }
-.bnd-bill-item { grid-column: 1; grid-row: 1; display: grid; gap: var(--bnd-sp-1); min-inline-size: 0; overflow-wrap: anywhere; }
+.bnd-bill-item { grid-column: 1; grid-row: 1; display: grid; grid-template-rows: var(--bnd-bill-line-label-h) auto; gap: var(--bnd-sp-1); min-inline-size: 0; overflow-wrap: anywhere; }
 .bnd-bill-item strong { font-size: var(--bnd-text-sm); }
 .bnd-bill-item-label { display: block; }
 .bnd-bill-item-value {
@@ -163,13 +167,35 @@
 }
 .bnd-bill-item-value .bnd-bill-hint { min-inline-size: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bnd-bill-cell { min-inline-size: 0; }
+.bnd-bill-cell > .frappe-control,
+.bnd-bill-cell > .frappe-control > .form-group {
+  display: grid;
+  grid-template-rows: var(--bnd-bill-line-label-h) auto;
+  align-content: start;
+  min-block-size: 0;
+}
 .bnd-bill-cell .control-label,
 .bnd-bill-line-total > .bnd-bill-hint {
-  display: flex; align-items: end; min-block-size: 1.5rem;
+  display: flex; align-items: start; min-block-size: var(--bnd-bill-line-label-h);
   margin: 0;
+  padding-block-start: .125rem;
+  line-height: 1.25;
+}
+.bnd-bill-line .frappe-control :is(input:not([type=checkbox]), select, .control-value) {
+  box-sizing: border-box;
+  block-size: var(--bnd-control-h);
+  min-block-size: var(--bnd-control-h);
+}
+.bnd-bill-line .frappe-control .control-value {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 .bnd-bill-cell-warehouse { grid-column: 6; }
-.bnd-bill-line-total { grid-column: 7; display: grid; align-content: start; justify-items: end; gap: var(--bnd-sp-2); font-weight: 600; }
+.bnd-bill-line-total { grid-column: 7; display: grid; grid-template-rows: var(--bnd-bill-line-label-h) auto; align-content: start; justify-items: end; gap: var(--bnd-sp-1); font-weight: 600; }
 .bnd-bill-line:not(:first-child) :is(.control-label,.bnd-bill-item-label,.bnd-bill-line-total > .bnd-bill-hint) { position: absolute; inline-size: 1px; block-size: 1px; min-block-size: 0; overflow: hidden; clip-path: inset(50%); }
 .bnd-bill-line .frappe-control input:not([type=checkbox]) { border-radius: 0; background: transparent; }
 .bnd-bill-line-remove {

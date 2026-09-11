@@ -7082,18 +7082,6 @@ function sb_zone_anchor(pane, zone, node) {
 			brand.appendChild(company);
 			brand.addEventListener("click", go_home);
 			sidebar.insertBefore(brand, sidebar.firstChild);
-			// The way out (v0.42.1). A sibling, not a child: the brand row is a button.
-			const hide = el("button", "bnd-icon-btn bnd-sb-brand-hide", {
-				type: "button",
-				title: __("Hide the side pane"),
-				"aria-label": __("Hide the side pane"),
-			});
-			hide.appendChild(sprite_icon("es-line-sidebar-expand"));
-			hide.addEventListener("click", (e) => {
-				e.stopPropagation();
-				bunood.pane_state("Hidden");
-			});
-			brand.insertAdjacentElement("afterend", hide);
 		}
 		if (!sidebar.querySelector(".bnd-sb-head")) {
 			const head = el("button", "bnd-sb-head", {
@@ -7169,8 +7157,11 @@ function sb_zone_anchor(pane, zone, node) {
 		const page = (window.frappe && frappe.container && frappe.container.page) || null;
 		const title = page && page.querySelector(".page-head .page-title");
 		if (!title) return false;
-		for (const node of document.querySelectorAll(".bnd-pagehead-sidebar-toggle")) {
-			if (!title.contains(node)) node.remove();
+		// Frappe may recreate this legacy edge control with a new sidebar on a
+		// route change. Once the page-head replacement is available it is both
+		// redundant and a second focus target, so retire every live copy.
+		for (const n of document.querySelectorAll(".bnd-pagehead-sidebar-toggle, .body-sidebar-container .collapse-sidebar-link")) {
+			if (!title.contains(n)) n.remove();
 		}
 		let button = title.querySelector(":scope > .bnd-pagehead-sidebar-toggle");
 		if (!button) {
@@ -8229,7 +8220,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Remove the head. */
 	function sb_teardown_head() {
-		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand, .bnd-sb-brand-hide")) n.remove();
+		for (const n of document.querySelectorAll(".bnd-sb-head, .bnd-sb-brand")) n.remove();
 		claim_panehead();
 	}
 
@@ -10011,22 +10002,22 @@ function sb_zone_anchor(pane, zone, node) {
 			documentActions.setAttribute("role", "group"); documentActions.setAttribute("aria-label", __("Invoice actions"));
 			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolBody);
 			utilityActions.setAttribute("role", "group"); utilityActions.setAttribute("aria-label", __("Invoice tools"));
-			this.newButton = this.action(commitActions, __("New"), "F1", () => this.newDocument());
+			this.newButton = this.action(commitActions, __("New"), "F1", null, () => this.newDocument());
 			this.newButton.classList.add("bnd-bill-action-new");
-			this.saveButton = this.action(commitActions, __("Save draft"), "F2", () => this.save(), true);
+			this.saveButton = this.action(commitActions, __("Save draft"), "F2", null, () => this.save(), true);
 			this.saveButton.classList.add("bnd-bill-action-save");
 			this.saveButton.dataset.bndAction = "save";
-			this.submitButton = this.action(commitActions, __("Submit document"), null, () => this.submit(), true);
+			this.submitButton = this.action(commitActions, __("Submit document"), null, null, () => this.submit(), true);
 			this.submitButton.classList.add("bnd-bill-action-save");
 			this.submitButton.dataset.bndAction = "submit";
-			this.partyButton = this.action(documentActions, __(this.profile.partyDoctype), "F3", () => this.partyControl?.set_focus());
-			this.deleteButton = this.action(documentActions, __("Delete"), "F4", () => this.removeDocument());
+			this.partyButton = this.action(documentActions, __(this.profile.partyDoctype), "F3", "user", () => this.partyControl?.set_focus());
+			this.deleteButton = this.action(documentActions, __("Delete"), "F4", "delete", () => this.removeDocument());
 			this.deleteButton.classList.add("bnd-bill-action-danger");
-			this.printButton = this.action(documentActions, __("Print"), "F6", () => this.print());
-			this.paymentButton = this.action(documentActions, __("Payment"), "F7", () => this.payment());
-			this.discountButton = this.action(documentActions, __("Discount"), "F10", () => { this.discount.open = !this.discount.open; this.discount.scrollIntoView({ block: "nearest" }); });
-			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", () => this.restore());
-			this.searchButton = this.action(utilityActions, __("Find item"), "F12", () => this.picker?.set_focus());
+			this.printButton = this.action(documentActions, __("Print"), "F6", "printer", () => this.print());
+			this.paymentButton = this.action(documentActions, __("Payment"), "F7", "credit-card", () => this.payment());
+			this.discountButton = this.action(documentActions, __("Discount"), "F10", "percent", () => { this.discount.open = !this.discount.open; this.discount.scrollIntoView({ block: "nearest" }); });
+			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", "rotate-ccw", () => this.restore());
+			this.searchButton = this.action(utilityActions, __("Find item"), "F12", "search", () => this.picker?.set_focus());
 			this.status = node("p", "bnd-bill-status", "", this.root);
 			this.status.setAttribute("role", "status");
 			this.revertButton = button(__("Revert invalid edits"), this.root, () => { for (const key of this.invalid.keys()) this.pending.delete(key); this.invalid.clear(); this.render(); this.message(__("Changes stay in this invoice when you close this view.")); });
@@ -10106,8 +10097,9 @@ function sb_zone_anchor(pane, zone, node) {
 			});
 			this.setMode(true); this.render(); this.applyDefaultTax();
 		}
-		action(parent, label, key, handler, primary = false) {
+		action(parent, label, key, icon, handler, primary = false) {
 			const b = button("", parent, handler, primary); b.classList.add("bnd-bill-action");
+			if (icon) { const i = node("span", "bnd-bill-action-icon", null, b); i.innerHTML = frappe.utils.icon(icon, "sm"); i.setAttribute("aria-hidden", "true"); }
 			node("span", "bnd-bill-action-label", label, b);
 			if (key) { node("kbd", "", key, b); b.setAttribute("aria-keyshortcuts", key); }
 			return b;

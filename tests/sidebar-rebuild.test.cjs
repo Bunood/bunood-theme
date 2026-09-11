@@ -118,6 +118,14 @@ test('sidebar toggle is anchored in flow beside the workspace icon', () => {
   assert.match(js,/workspace\.insertAdjacentElement\("afterend", button\)/);
   assert.match(js,/data-bnd-part": "panetoggle"/);
 });
+test('page-head ownership permanently retires the duplicate native edge toggle', () => {
+  const layout=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_sidebar-layout.scss'),'utf8');
+  assert.match(layout,/data-bnd-sidepane[^\n]*data-bnd-own~="panetoggle"[^\n]*not\(\[data-bnd-narrow\]\)[^\n]*\.body-sidebar-container \.collapse-sidebar-link/);
+  const source=js.match(/function sb_mount_pagehead_toggle\(\) \{([\s\S]*?)\n\t\}/)[0];
+  assert.match(source,/querySelectorAll\("\.bnd-pagehead-sidebar-toggle, \.body-sidebar-container \.collapse-sidebar-link"\)/);
+  assert.match(source,/n\.remove\(\)/);
+  assert.doesNotMatch(js,/bnd-sb-brand-hide|Hide the side pane/);
+});
 test('Escape returns focus from an expanded child to its compact section trigger', () => {
   let keydown,focused=0;
   const classes=new Set(['bnd-rail-open']);
