@@ -37,6 +37,11 @@ test("notification labels use consistent Arabic product wording", () => {
 	assert.equal(translations.get("Notifications Placement"), "موضع الإشعارات");
 });
 
+test("Purchase Invoice does not inherit the incorrect outstanding translation", () => {
+	const translations = readTranslations(fileURLToPath(new URL("../bunood_theme/translations/ar.csv", import.meta.url)));
+	assert.equal(translations.get("Update Outstanding for Self"), "تحديث المتبقي على هذا المستند");
+});
+
 test("Home actions can wrap inside their available width", () => {
 	const source = readFileSync(new URL("../bunood_theme/public/scss/surfaces/_home.scss", import.meta.url), "utf8");
 	const rule = source.match(/\.bnd-home-intro-actions\s*\{([^}]+)\}/)?.[1] || "";

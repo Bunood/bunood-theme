@@ -7409,3 +7409,7 @@ msgstr "افتح النموذج المتقدم لإنشاء هذه الدفعة.
 #, fuzzy
 msgid "Percentage discounts need an item price in the selected price list. Choose a priced item or price list, or set Discount (%) to 0 and use Net unit price."
 msgstr "يتطلب الخصم بالنسبة المئوية سعرًا للصنف في قائمة الأسعار المحددة. اختر صنفًا أو قائمة أسعار بسعر محدد، أو اضبط الخصم (%) على 0 وأدخل صافي سعر الوحدة."
+
+#. src: observed Purchase Invoice PDF, reviewed 2026-09-11
+msgid "Update Outstanding for Self"
+msgstr "تحديث المتبقي على هذا المستند"
