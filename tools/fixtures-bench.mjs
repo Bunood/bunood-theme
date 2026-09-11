@@ -320,6 +320,7 @@ function ledger() {
  */
 function formFixture() {
 	return py(
+		`C = ${JSON.stringify(COMPANY)}\n` +
 		`if not frappe.db.exists("Item", "BND-TEST-001"):\n` +
 			`    d = frappe.new_doc("Item")\n` +
 			`    d.item_code = "BND-TEST-001"\n` +
@@ -336,6 +337,9 @@ function formFixture() {
 			`        if len(d.uoms) >= 2:\n` +
 			`            break\n` +
 			`    d.save(ignore_permissions=True)\n` +
+			`warehouse = frappe.db.get_value("Warehouse", {"company": C, "is_group": 0, "disabled": 0}, "name")\n` +
+			`if warehouse and not frappe.db.exists("Bin", {"item_code": d.name, "warehouse": warehouse}):\n` +
+			`    frappe.get_doc({"doctype": "Bin", "item_code": d.name, "warehouse": warehouse}).insert(ignore_permissions=True)\n` +
 			`frappe.db.commit()\n` +
 			`print("form fixture: BND-TEST-001 with %d uom rows" % len(frappe.get_doc("Item", "BND-TEST-001").uoms))\n`
 	);

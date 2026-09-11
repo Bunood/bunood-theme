@@ -10257,10 +10257,9 @@ function sb_zone_anchor(pane, zone, node) {
 				doctype: doc.doctype || frm.doctype, docname: doc.name, doc,
 				df: { ...source.df, get_status: allowed },
 			});
-			// A synthetic spreadsheet-row source carries only its DocField. Do not
-			// erase ControlLink's native query method with `undefined`: that leaves a
-			// perfectly rendered Warehouse input whose Awesomplete list is always
-			// empty. Real form controls may still provide an explicit query override.
+			// Child-table Link queries live on grid.fieldinfo, not on the DocField.
+			// Forward that configured query when the spreadsheet creates its own
+			// control; otherwise Warehouse renders correctly but returns no choices.
 			const sourceQuery = source.get_query || source.df?.get_query;
 			if (typeof sourceQuery === "function") control.get_query = sourceQuery;
 			const nativeSet = control.set_model_value.bind(control);
@@ -10297,7 +10296,7 @@ function sb_zone_anchor(pane, zone, node) {
 				this.pending.set(key, control.$input.val());
 				// Keep the total current while entering numbers, using the native
 				// parser and triggers. Link fields retain native selection/validation.
-				if (rowField) {
+				if (rowField && !["Link", "Dynamic Link"].includes(control.df.fieldtype)) {
 					clearTimeout(this.editTimers.get(key));
 					this.editTimers.set(key, setTimeout(() => {
 						this.editTimers.delete(key);
@@ -10522,7 +10521,10 @@ function sb_zone_anchor(pane, zone, node) {
 				for (const name of this.profile.lineFields) {
 					const cell = node("div", `bnd-bill-cell bnd-bill-cell-${name}`, null, line);
 					const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
-					if (df) this.bindControl(cell, { df: { ...df, label: LINE_LABELS[name]?.() || __(df.label) } }, row, true);
+					if (df) this.bindControl(cell, {
+						df: { ...df, label: LINE_LABELS[name]?.() || __(df.label) },
+						get_query: grid.get_field(name)?.get_query,
+					}, row, true);
 				}
 				const amount = node("div", "bnd-bill-line-total", null, line);
 					view = { line, info, amount }; this.rowViews.set(row.name, view);

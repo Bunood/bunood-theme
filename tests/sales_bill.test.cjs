@@ -549,14 +549,17 @@ function boundWorkbench(nativeSet) {
   const bind = name => workbench.bindControl(element(),{df:{fieldname:name,label:name}},row,true);
   return {workbench,row,bind};
 }
-test('synthetic row controls preserve the native Link query unless a real override exists', () => {
+test('synthetic row controls preserve a native fallback and forward the grid Link query', () => {
   const {workbench,row}=boundWorkbench();
-  const native=workbench.bindControl(element(),{df:{fieldname:'warehouse',label:'Warehouse'}},row,true);
+  const native=workbench.bindControl(element(),{df:{fieldname:'warehouse',label:'Warehouse',fieldtype:'Link'}},row,true);
   assert.equal(native.get_query(),'native-link-query');
   const override=()=> 'configured-query';
-  const configured=workbench.bindControl(element(),{df:{fieldname:'warehouse',label:'Warehouse'},get_query:override},row,true);
+  const configured=workbench.bindControl(element(),{df:{fieldname:'warehouse',label:'Warehouse',fieldtype:'Link'},get_query:override},row,true);
   assert.equal(configured.get_query,override);
   assert.equal(configured.get_query(),'configured-query');
+  configured.$input.val('Stores');
+  configured.$input[0].handlers['input.bnd-bill']();
+  assert.equal(workbench.editTimers.size,0,'Link typing must reach native autocomplete before validation');
 });
 test('rejected input gets an associated plain-text inline error; clearing to native value removes only owned help', async () => {
   const {workbench,row,bind}=boundWorkbench(), control=bind('discount_percentage');

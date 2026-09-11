@@ -23701,7 +23701,7 @@ print("cleared")
 			expect(searchGeometry.spread <= 2, `item search actions share the input baseline (${searchGeometry.spread}px spread)`);
 			const fixture = await page.evaluate(async () => {
 				const [customer] = await frappe.db.get_list("Customer", { fields: ["name"], limit: 1 });
-				const [item] = await frappe.db.get_list("Item", { fields: ["name"], filters: { disabled: 0, is_sales_item: 1 }, limit: 1 });
+				const [item] = await frappe.db.get_list("Item", { fields: ["name"], filters: { name: "BND-TEST-001", disabled: 0, is_sales_item: 1 }, limit: 1 });
 				if (!customer || !item) return { error: "verification site needs one customer and one sales item" };
 				await cur_frm.set_value("customer", customer.name);
 				// Keep the company's valid default VAT template. This is the normal
@@ -23754,6 +23754,10 @@ print("cleared")
 				}
 
 				const warehouse = page.locator('.bnd-bill-line .frappe-control[data-fieldname="warehouse"] input').first();
+				const warehouseRequests = [];
+				page.on("request", request => {
+					if (/frappe\.desk\.search\.search_link|frappe\.client\.validate_link_and_fetch/.test(request.url())) warehouseRequests.push({ method: request.method(), data: request.postData(), url: request.url() });
+				});
 				await warehouse.click();
 				await warehouse.fill("");
 				await warehouse.pressSequentially("Stores", { delay: 40 });
@@ -23762,6 +23766,12 @@ print("cleared")
 				const choices = page.locator('[role="listbox"]:visible').last();
 				await choices.waitFor({ timeout: 5000 }).catch(async error => {
 					const state = await page.evaluate(() => ({
+						events: (() => { const input = document.activeElement; return Object.keys(window.jQuery?._data?.(input, "events") || {}); })(),
+						gridQuery: (() => {
+							const query = cur_frm?.fields_dict?.items?.grid?.get_field("warehouse")?.get_query;
+							try { return { type: typeof query, result: typeof query === "function" ? query(cur_frm.doc, "Sales Invoice Item", cur_frm.doc.items?.[0]?.name) : null }; }
+							catch (error) { return { type: typeof query, error: error.message }; }
+						})(),
 						active: document.activeElement?.outerHTML?.slice(0, 1200) || "",
 						owned: (() => { const input = document.activeElement; const node = document.getElementById(input?.getAttribute?.('aria-owns')); return node ? { outer: node.outerHTML.slice(0, 4000), visible: !!node.getClientRects().length, children: node.children.length } : null; })(),
 						control: document.querySelector('.bnd-bill-line .frappe-control[data-fieldname="warehouse"]')?.outerHTML?.slice(0, 3000) || "",
@@ -23769,7 +23779,8 @@ print("cleared")
 							.filter(node => /Stores|Warehouse/i.test(node.textContent || "") || node.getClientRects().length)
 							.slice(-8).map(node => ({ tag: node.tagName, cls: node.className, role: node.getAttribute('role'), visible: !!node.getClientRects().length, text: node.textContent?.trim().slice(0, 300) })),
 					}));
-					throw new Error(`warehouse autocomplete did not open: ${JSON.stringify(state)} (${error.message})`);
+					const loaded = await page.evaluate(() => [...document.scripts].map(script => script.src).filter(src => /bunood\.[a-f0-9]+\.js/.test(src)));
+					throw new Error(`warehouse autocomplete did not open: loaded=${JSON.stringify(loaded)}; requests=${JSON.stringify(warehouseRequests.slice(-4))}; console=${JSON.stringify(consoleErrors.slice(-6))}; state=${JSON.stringify(state)} (${error.message})`);
 				});
 				expect(await choices.locator('[role="option"], li').count() > 0, "warehouse suggestions are visible and populated");
 				await page.keyboard.press("Escape");
