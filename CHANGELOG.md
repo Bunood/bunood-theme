@@ -223,19 +223,32 @@ it was touched, and four did not survive that: our band pill is not swept by Fra
 handler, the composer's frames write no Route History, the `_body.scss` token reads need no
 fallback because that block is attribute-gated, and Frappe's cell classes are refused rather
 than ported because their padding would double our own.
-Full run at the release candidate: **523/526**, and the three are all older than this item.
-Two are bench debts this line has carried since it moved to frappe 16.33 — frappe's
-`templates/emails/standard.html` has changed and wants a re-read, a port and a re-pin, and
-their `get_email_html` no longer crashes without an outgoing account, so `api.email_preview`
-can be simplified. The third is one recurrence, in 526 checks, of the frappe-charts
-`removeChild` race that v0.42.1 diagnosed; both its mitigations are intact (`retire()` calls
-the vendor's `destroy()`, and the `makeChartArea` wrap puts the real svg back), and it
-arrived with no caller because the failure printer cuts a message at 300 characters — which
-is exactly what the four-frame capture exists to carry. The budget prints its evidence to
-the log now instead of throwing it, so the next recurrence names its caller; that repair is
-a commit after the run, and touches no shipped code. `node tools/shots.mjs` was read in all
-five pane states, and the composer sweep applied and saved all 71 of its options and
-restored the site row for row.
+The first run at the release candidate read **523/526**, and all three failures turned out to
+be worth chasing rather than carrying. Two were the email bench debts this line had held
+since it moved to frappe 16.33, and they are paid: the forked wrapper was re-read at 16.33
+and re-pinned, with two changes ported (the container width keys on `header or
+with_container`; `{{ content }}` sits in a `<div>` rather than the `<p>` it cannot legally
+contain, which was splitting the wrapper on every message with block content) and three
+refused on measurement rather than taste — 16.33's four cell classes carry padding this fork
+exists to relocate, its `text-muted` is `color: … !important` and would beat the fitted
+footer ink the AA check guards, and its new `brand_name` key resolves to the string "Frappe"
+on a site that has set neither app name. The preview's tripwire is retired and the answer it
+waited for is no: `api.email_preview` keeps its `email_account` stub, which reads as a crash
+workaround and is really suppressing a logo the settings did not choose.
+
+The third was the frappe-charts `removeChild` race, and it is fixed. Printing the budget's
+stack frames named its caller for the first time; the composer then made it reproducible at
+last — four scaled desks animating charts while the host resizes their clips throws eight
+times, and viewport churn on a dashboard once. The wrap that was supposed to stop it had
+never been installed: `frappe.Chart` is a factory and does not own `makeChartArea`, so the
+patch's own `typeof === "function"` guard declined and it has been dead since it was
+written, which is why the race was diagnosed twice and returned a third time. The guard
+walks a real instance's prototype chain now. Eleven throws became zero.
+
+`npm run contrast` covers 9,464 pairs over 27 seeds and both modes, one of them a pair the
+gate had no row for. `node tools/shots.mjs` was read in all five pane states, and the
+composer sweep applied and saved all 71 of its options and restored the site row for row.
+Full run after every fix above: **529/529**, on a bench running frappe 16.33.0 and erpnext 16.34.1.
 
 ## [0.44.2] — 2026-09-08 — The switch offers what you chose; the pane stays on All Apps (patch)
 

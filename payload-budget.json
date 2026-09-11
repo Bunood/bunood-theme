@@ -438,18 +438,18 @@
 		},
 		{
 			"version": "v0.45.0",
-			"date": "2026-09-10",
-			"web_css_raw": 29670,
-			"web_css_gzip": 4181,
+			"date": "2026-09-11",
+			"web_css_raw": 29698,
+			"web_css_gzip": 4190,
 			"email_css_raw": 2778,
 			"email_css_gzip": 550,
 			"print_css_raw": 23754,
 			"print_css_gzip": 6812,
-			"css_raw": 215743,
-			"css_gzip": 27469,
-			"js_raw": 399111,
-			"js_gzip": 125892,
-			"note": "css +5775b, js +19243b, web_css +315b, email_css +0b, print_css +0b gzip vs v0.40.0"
+			"css_raw": 216150,
+			"css_gzip": 27525,
+			"js_raw": 402090,
+			"js_gzip": 126843,
+			"note": "css +5831b, js +20194b, web_css +324b, email_css +0b, print_css +0b gzip vs v0.40.0"
 		}
 	]
 }

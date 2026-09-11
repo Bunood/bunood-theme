@@ -36,6 +36,19 @@ another field's name).
   `removeChild`. It needs a chart to have died first — no isolated probe reproduces it,
   four consecutive full runs did. `retire()` in the chart kit unbinds it; the pageerror
   capture keeps four frames now so a recurrence names its caller.
+  **SETTLED 2026-09-10, and the guard had never been installed.** The four frames finally
+  reached the log (the console budget PRINTS its evidence now — the failure printer cuts
+  any thrown message at 300 characters, which had been silently truncating the frames off
+  the end of the string built to carry them), and they named
+  `ResizeObserver.boundDrawFn -> draw -> makeChartArea`. Reproduced at last, two arms:
+  viewport churn on `/desk/dashboard-view/*` throws once, and the composer's compare strip
+  over a dashboard — four scaled desks animating charts while the host resizes their clips
+  — throws eight times. Then the real finding: `frappe.Chart` is a FACTORY and does not own
+  `makeChartArea`, so `NativeChart.prototype.makeChartArea` read `undefined`, the patch's
+  own `typeof === "function"` guard declined, and the wrap was dead from the day it was
+  written. `guard_chart_area` walks a real instance's prototype chain instead. Eleven
+  throws became zero. **The lesson generalises: a guard whose branch is false is UNTESTED,
+  not working — and that applies to a patch's INSTALLER as much as to the patched code.**
 - **Icon inference precedence was backwards** (doctype map and keyword pass both outranked
   the row's own icon); a `Workspace Sidebar Item.icon` is a BARE v16 sprite name, not a fa
   class, and `sprite_for_fa` answered None for every one silently. 407 rows resolved →
@@ -2410,6 +2423,21 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 
 ### Design rules that are load-bearing
 
+- **A section head's inline padding is the COLUMN's, plus whatever the style bleeds.**
+  Every field sits inside a `.form-column` at `--bnd-form-col-pad` (15px, Bootstrap's)
+  from the section's content box, and Frappe's own `.section-head` carries the same 15px
+  so the title lines up with the labels under it. Item 43 A3 replaced that padding with a
+  bleed token only Tinted Heads declares, and on the other six styles the title hung 15px
+  inside its own fields — on every form page, both directions, until the release review.
+  A head that bleeds does it by moving the inset OFF THE SECTION (section padding to zero,
+  head spans it, body takes the bleed), never by a negative margin: the vendor sets
+  `margin: auto !important` on that exact element and no specificity beats it.
+- **A stripe is a REST state and its selector has to say so.** `:nth-child(even)` carrying
+  the kit's attribute out-weighs the row hover and ties-and-wins over the checked-row wash,
+  so half the rows of every child table stopped answering the pointer and stopped showing
+  they were selected. The three interactive states are excluded from the stripe rather than
+  re-weighted, because they must keep applying under `Original`, where the stripe rule does
+  not exist at all.
 - **The brand is three tokens**, because it does three jobs with three different
   contrast requirements: `--bnd-brand` (washes, exactly the seed),
   `--bnd-brand-solid` + `--bnd-on-brand` (fills and their labels),
