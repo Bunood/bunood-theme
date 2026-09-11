@@ -13807,7 +13807,48 @@ print("ok")
 			const g = await measure();
 			expect(g.headCaps === "uppercase" && g.headSize < g.rowSize, `the head is an eyebrow (${g.headCaps}, ${g.headSize} < ${g.rowSize})`);
 			expect(g.pillBg === "rgba(0, 0, 0, 0)", `the status pill's box is gone (${g.pillBg})`);
-			expect(g.dotW >= 6 && g.dotBg === g.pillInk, `a dot in the status ink leads the word (${g.dotW}px, ${g.dotBg} vs ${g.pillInk})`);
+			expect(g.dotW >= 6, `a dot leads the word (${g.dotW}px)`);
+			// THE DOT CARRIES THE HUE; THE WORD CARRIES OUR INK. It used to be one
+			// colour for both — Frappe's `--text-on-<hue>`, which is fitted against
+			// `--bg-<hue>`, a pale tint. This rule makes the pill transparent, so
+			// the word was landing on `--bnd-surface` instead: a pair nothing
+			// measured, and two hues failed it. Asserted as RATIOS over every hue
+			// the list actually paints, because a colour identity check is what let
+			// it through — `dotBg === pillInk` was true and told you nothing about
+			// either against the surface behind them.
+			expect(g.dotBg !== g.pillInk, `the dot's hue is not the word's ink (${g.dotBg} vs ${g.pillInk})`);
+			for (const mode of ["light", "dark"]) {
+				await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+				await page.waitForTimeout(500);
+				const hues = await page.evaluate(() => {
+					const lum = (rgb) => {
+						const p = (String(rgb).match(/[\d.]+/g) || []).slice(0, 3).map(Number).map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+						return p.length === 3 ? 0.2126 * p[0] + 0.7152 * p[1] + 0.0722 * p[2] : null;
+					};
+					const ratio = (a, b) => { const x = lum(a), y = lum(b); if (x === null || y === null) return null; const [hi, lo] = x > y ? [x, y] : [y, x]; return (hi + 0.05) / (lo + 0.05); };
+					// The EFFECTIVE background, walked: a transparent parent parses as
+					// black and would report a fantasy ratio (CLAUDE.md).
+					const effective = (el) => { let bg = "rgba(0, 0, 0, 0)", n = el; while (n && (bg === "rgba(0, 0, 0, 0)" || bg === "transparent")) { bg = getComputedStyle(n).backgroundColor; n = n.parentElement; } return bg; };
+					const out = [];
+					for (const pill of document.querySelectorAll(".result .list-row .indicator-pill")) {
+						if (pill.getBoundingClientRect().width < 1) continue;
+						const bg = effective(pill);
+						out.push({
+							hue: [...pill.classList].find((c) => /^(blue|cyan|gray|grey|green|light-blue|orange|pink|purple|red|yellow|darkgrey)$/.test(c)) || "(none)",
+							word: ratio(getComputedStyle(pill).color, bg),
+							dot: ratio(getComputedStyle(pill, "::before").backgroundColor, bg),
+						});
+					}
+					return out;
+				});
+				expect(hues.length > 0, `${mode}: some status pills to measure`);
+				const badWord = hues.filter((h) => h.word !== null && h.word < 4.5);
+				const badDot = hues.filter((h) => h.dot !== null && h.dot < 3);
+				expectEq(badWord.map((h) => `${h.hue} ${h.word.toFixed(2)}`).join(", "), "", `${mode}: every status WORD clears AA text`);
+				expectEq(badDot.map((h) => `${h.hue} ${h.dot.toFixed(2)}`).join(", "), "", `${mode}: every status DOT clears non-text 3:1`);
+			}
+			await page.evaluate(() => document.documentElement.removeAttribute("data-theme"));
+			await page.waitForTimeout(300);
 			expect(Math.abs(g.rowH - g.floor) <= 1, `the row sits on the density floor (${g.rowH} vs --bnd-row-h ${g.floor})`);
 			expect(g.rowH <= 36, `and reads dense (${g.rowH} <= 36)`);
 			expect(g.headAlign.length && g.headAlign.join() === g.rowAlign.join(), `every head cell shares its body cell's alignment (${g.headAlign.join(",")} vs ${g.rowAlign.join(",")})`);
@@ -14114,6 +14155,48 @@ print("ok")
 				headInset: Math.round(headR.left - secR.left), headW: Math.round(headR.width), secW: Math.round(secR.width),
 			};
 		});
+		await test("form: hovering a head's collapse control darkens the head it sits on", async () => {
+			// A HOVER MUST MOVE TOWARDS THE INK, NOT AWAY FROM IT. `--bnd-hover` is
+			// a wash over the SURFACE, so on Tinted Heads — whose band is already a
+			// 10% brand mix — it came out LIGHTER than its own host: measured band
+			// rgb(236,242,237) against a hover of rgb(241,246,243), a move of four
+			// or five channels in the wrong direction, which reads as nothing
+			// happening or as an inversion. Found by the release review's CSS lens.
+			//
+			// ASSERTED AS A DIRECTION, not a value: the brand seed decides the
+			// band, so the only stable claim is "darker than what it sits on".
+			// THE PANE STATE IS PART OF THE PREMISE. This is a POINTER check, and
+			// the pane's width decides where the indicator lands — it sits at the
+			// head's inline end, so a Rail or Hidden pane moves it far enough that
+			// `hover()` can put the cursor under something else and paint nothing.
+			// Left to inherit, it read `rgba(0,0,0,0)` and looked like a CSS defect.
+			setSettings({ form_style: "Tinted Heads", sidebar_enabled: 1, sidebar_pane_state: "Open" });
+			await goDesk(FORM_ROUTE, ".form-layout", 3000);
+			const sel = ".std-form-layout .section-head.collapsible .collapse-indicator";
+			const el = await page.$(sel);
+			expect(el, "a collapsible section head to hover");
+			await el.scrollIntoViewIfNeeded();
+			await el.hover();
+			// Mutate and read in different evaluates, and let the fill settle: a
+			// read on the hovering tick serves the rest value.
+			await page.waitForTimeout(600);
+			const g = await page.evaluate((s) => {
+				const lum = (rgb) => {
+					const p = (String(rgb).match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+					// `color(srgb r g b)` reports 0-1; rgb() reports 0-255.
+					const v = p.map((x) => (x <= 1.0001 && p.every((y) => y <= 1.0001) ? x : x / 255)).map((x) => (x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)));
+					return v.length === 3 ? 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2] : null;
+				};
+				const i = document.querySelector(s);
+				const head = i && i.closest(".section-head");
+				return { ind: getComputedStyle(i).backgroundColor, head: getComputedStyle(head).backgroundColor, indL: lum(getComputedStyle(i).backgroundColor), headL: lum(getComputedStyle(head).backgroundColor) };
+			}, sel);
+			expect(g.ind !== "rgba(0, 0, 0, 0)" && g.ind !== "transparent", `the hover paints something (${g.ind})`);
+			expect(g.indL !== null && g.headL !== null, `both fills parse (${g.ind}, ${g.head})`);
+			expect(g.indL < g.headL, `and it is DARKER than the band it sits on (${g.ind} on ${g.head})`);
+			await page.mouse.move(5, 5);
+		});
+
 		await test("form: a section title starts where its own fields start, in every style", async () => {
 			// THE ONE THING A HEAD MUST DO. A3 gave every style the same head
 			// anatomy and set `padding-inline` from a bleed token that only Tinted

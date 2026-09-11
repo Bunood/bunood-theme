@@ -261,7 +261,13 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   prints the doc.save() repair recipe instead (`set_single_value` fires no hooks).
   The standing advice survives the fix: before assuming a red suite is your change,
   **stash, redeploy and re-run at HEAD**; after any sweep, diff Theme Settings
-  against `setup.SHIPPED`.
+  against `setup.SHIPPED`. **Widen "after any sweep" to after any RUN OR PROBE**
+  (2026-09-10): an ad-hoc probe left `brand_color` on a preset's red seed, two
+  writes nine seconds apart, and nothing shouted — the verified-restore checks
+  cover the checks that write seeds, and a probe has no such contract. The seeds
+  sit outside `MUTABLE_FIELDS` by design, so the suite's own snapshot will not
+  put them back either. `settingsDrift()` is one call and it is the whole
+  defence.
 - **A measurement taken inside a HIDDEN container is a lie, and a SHARED store carries
   that lie outward.** Frappe caches an outgoing page `display:none`, so a composer frame
   that navigated into one booted 0px wide; `frappe.is_mobile()` is `innerWidth < 768`, the

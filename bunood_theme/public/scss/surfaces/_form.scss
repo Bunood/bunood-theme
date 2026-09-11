@@ -208,6 +208,10 @@ html[data-bnd-form="tinted"] {
   --bnd-form-content-pad: var(--bnd-sp-3);
   --bnd-form-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
   --bnd-form-head-ink: var(--bnd-ink);
+  // A step FURTHER into the brand than the band, so hovering the collapse
+  // control darkens its own host rather than lightening it. `--bnd-hover` is a
+  // wash over the surface and is lighter than this band.
+  --bnd-form-head-hover: color-mix(in srgb, var(--bnd-brand) 20%, var(--bnd-surface));
   --bnd-form-head-bleed: var(--bnd-sp-4);
   --bnd-form-grid-head-bg: var(--bnd-raised);
 }
@@ -765,8 +769,14 @@ html[data-bnd-form] .form-layout .form-section .section-head .collapse-indicator
   border-radius: var(--bnd-radius-sm);
   color: var(--bnd-ink-muted);
 }
+// THE HOVER HAS TO DARKEN WHATEVER THE HEAD IS PAINTED ON. `--bnd-hover` is a
+// wash over the SURFACE, so on a head band that is already a 10% brand mix it
+// is LIGHTER than its own host — measured under Tinted Heads: band rgb(236,242,
+// 237), hover rgb(241,246,243), a five-channel move in the wrong direction, so
+// the control read as doing nothing or as inverting. Each style that paints a
+// head supplies its own hover; the default stays the surface wash.
 html[data-bnd-form] .form-layout .form-section .section-head.collapsible:hover .collapse-indicator {
-  background: var(--bnd-hover);
+  background: var(--bnd-form-head-hover, var(--bnd-hover));
   color: var(--bnd-ink);
 }
 

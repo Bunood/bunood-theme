@@ -300,9 +300,24 @@ html[data-bnd-list="table"] .list-row-head {
   font-weight: var(--bnd-weight-semibold);
   text-transform: uppercase;
 }
-// Status: the pill's box goes, its ink stays (Frappe's --text-on-<hue>, the
-// pair the vendor's own dot indicator uses over plain surfaces), and a dot in
-// that ink leads the word.
+// Status: the pill's box goes and the hue moves to the DOT, where the hue's job
+// actually is. The word takes our own fitted ink.
+//
+// THE FIRST CUT KEPT FRAPPE'S `--text-on-<hue>` AS THE WORD'S COLOUR, on the
+// reasoning that it is "the pair the vendor's own dot indicator uses over plain
+// surfaces". It is not: those inks are fitted against `--bg-<hue>`, a pale
+// tint, and this rule had just made the pill transparent — so the word was
+// landing on `--bnd-surface`, a pair nobody had measured. Measured now, over
+// every hue the list can paint: `yellow` 4.03:1 and `light-blue` 4.07:1 against
+// AA's 4.5, on the shipped surface in light mode. Dark was never at risk (6.63
+// at worst). That is the "re-point one half of a pair" regression this repo has
+// measured twice before, arriving as a half-repointed pair rather than a wrong
+// value.
+//
+// So: the WORD is `--bnd-ink`, which is fitted and gated; the DOT keeps the
+// vendor's hue and is non-text, which asks 3:1 — and the worst hue clears that
+// at 4.03. The hue has to be named per class because the dot took it through
+// `currentColor`, and currentColor cannot survive the word changing colour.
 html[data-bnd-list="table"] .result .list-row .indicator-pill {
   display: inline-flex;
   align-items: center;
@@ -311,6 +326,7 @@ html[data-bnd-list="table"] .result .list-row .indicator-pill {
   block-size: auto;
   line-height: inherit;
   background: transparent;
+  color: var(--bnd-ink);
   font-weight: var(--bnd-weight-medium);
 }
 html[data-bnd-list="table"] .result .list-row .indicator-pill::before {
@@ -319,7 +335,16 @@ html[data-bnd-list="table"] .result .list-row .indicator-pill::before {
   inline-size: var(--bnd-sp-2);
   block-size: var(--bnd-sp-2);
   border-radius: var(--bnd-radius-pill);
-  background: currentColor;
+  // The fallback is the ink, so a hue this list has never seen still draws a
+  // dot rather than nothing.
+  background: var(--bnd-list-status-dot, currentColor);
+}
+// Quoted for the same reason the kanban block quotes them: unquoted `cyan` and
+// `gray` are Sass COLOUR values and interpolating one can rename the var.
+@each $c in "blue", "cyan", "gray", "grey", "green", "light-blue", "orange", "pink", "purple", "red", "yellow", "darkgrey" {
+  html[data-bnd-list="table"] .result .list-row .indicator-pill.#{$c} {
+    --bnd-list-status-dot: var(--text-on-#{$c});
+  }
 }
 // The meta column (modified, comments, assignees) recedes.
 html[data-bnd-list="table"] .result .list-row .level-right {

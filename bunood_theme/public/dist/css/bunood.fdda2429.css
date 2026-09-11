@@ -5107,6 +5107,7 @@ html[data-bnd-list=table] .result .list-row .indicator-pill {
   block-size: auto;
   line-height: inherit;
   background: transparent;
+  color: var(--bnd-ink);
   font-weight: var(--bnd-weight-medium);
 }
 
@@ -5116,7 +5117,55 @@ html[data-bnd-list=table] .result .list-row .indicator-pill::before {
   inline-size: var(--bnd-sp-2);
   block-size: var(--bnd-sp-2);
   border-radius: var(--bnd-radius-pill);
-  background: currentColor;
+  background: var(--bnd-list-status-dot, currentColor);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.blue {
+  --bnd-list-status-dot: var(--text-on-blue);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.cyan {
+  --bnd-list-status-dot: var(--text-on-cyan);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.gray {
+  --bnd-list-status-dot: var(--text-on-gray);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.grey {
+  --bnd-list-status-dot: var(--text-on-grey);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.green {
+  --bnd-list-status-dot: var(--text-on-green);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.light-blue {
+  --bnd-list-status-dot: var(--text-on-light-blue);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.orange {
+  --bnd-list-status-dot: var(--text-on-orange);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.pink {
+  --bnd-list-status-dot: var(--text-on-pink);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.purple {
+  --bnd-list-status-dot: var(--text-on-purple);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.red {
+  --bnd-list-status-dot: var(--text-on-red);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.yellow {
+  --bnd-list-status-dot: var(--text-on-yellow);
+}
+
+html[data-bnd-list=table] .result .list-row .indicator-pill.darkgrey {
+  --bnd-list-status-dot: var(--text-on-darkgrey);
 }
 
 html[data-bnd-list=table] .result .list-row .level-right {
@@ -5407,6 +5456,7 @@ html[data-bnd-form=tinted] {
   --bnd-form-content-pad: var(--bnd-sp-3);
   --bnd-form-head-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
   --bnd-form-head-ink: var(--bnd-ink);
+  --bnd-form-head-hover: color-mix(in srgb, var(--bnd-brand) 20%, var(--bnd-surface));
   --bnd-form-head-bleed: var(--bnd-sp-4);
   --bnd-form-grid-head-bg: var(--bnd-raised);
 }
@@ -5842,7 +5892,7 @@ html[data-bnd-form] .form-layout .form-section .section-head .collapse-indicator
 }
 
 html[data-bnd-form] .form-layout .form-section .section-head.collapsible:hover .collapse-indicator {
-  background: var(--bnd-hover);
+  background: var(--bnd-form-head-hover, var(--bnd-hover));
   color: var(--bnd-ink);
 }
 
