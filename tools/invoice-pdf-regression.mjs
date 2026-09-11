@@ -1,4 +1,4 @@
-// Generates real wkhtmltopdf output plus unsaved pagination/tax/return specimens.
+// Generates real release-engine output plus unsaved pagination/tax/return specimens.
 // Uses the local demo invoices by default; never saves or submits a document.
 import {writeFileSync,mkdirSync} from 'node:fs';
 import {resolve,join} from 'node:path';
@@ -89,7 +89,7 @@ if case.startswith('specimen-'):
   doc.in_words='SAR Negative Seventy Only'
 with print_language(${JSON.stringify(language)}):
  html=frappe.get_print(doc.doctype,doc.name,${JSON.stringify(format)},doc=doc,no_letterhead=0)
- pdf=frappe.get_print(doc.doctype,doc.name,${JSON.stringify(format)},doc=doc,no_letterhead=0,as_pdf=True,pdf_generator='wkhtmltopdf')
+ pdf=frappe.get_print(doc.doctype,doc.name,${JSON.stringify(format)},doc=doc,no_letterhead=0,as_pdf=True,pdf_generator='chrome')
 assert frappe.get_doc(doc.doctype,original_name).as_json()==before
 print(json.dumps(dict(html=html,pdf=base64.b64encode(pdf).decode())))
 `);

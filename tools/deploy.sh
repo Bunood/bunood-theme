@@ -33,7 +33,16 @@ cd "$ROOT"
 SITE="${BND_SITE:-demo.bunood.test}"
 BACKEND="${BND_BACKEND:-bunood-backend-1}"
 FRONTEND="${BND_FRONTEND:-bunood-frontend-1}"
-APP_CONTAINERS=(bunood-backend-1 bunood-queue-long-1 bunood-queue-short-1 bunood-scheduler-1)
+# Derive the sibling services from the selected backend so the same verified
+# deploy path can target a disposable candidate stack. The old hard-coded list
+# silently skipped every worker when BND_BACKEND pointed at another project.
+STACK_PREFIX="${BND_STACK_PREFIX:-${BACKEND%-backend-1}}"
+APP_CONTAINERS=(
+	"$BACKEND"
+	"${STACK_PREFIX}-queue-long-1"
+	"${STACK_PREFIX}-queue-short-1"
+	"${STACK_PREFIX}-scheduler-1"
+)
 # Where the app lives inside the frontend image — a different tree from the
 # backend's, which is why assets 404 on the frontend if only the backend is fed.
 FRONTEND_ASSETS="/home/frappe/frappe-bench/assets/bunood_theme/dist"

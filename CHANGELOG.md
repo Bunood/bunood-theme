@@ -22,6 +22,38 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.15] — 2026-09-11 — Production PDF engine repair (patch)
+
+### Fixed
+
+- Pin every managed format and the site-wide fallback to the Chromium engine
+  that the immutable release image actually provides, eliminating the invoice
+  PDF 500 caused by wkhtmltopdf's unreachable tenant-host fetch.
+- Keep the branded letterhead in the body flow because Frappe v16's separate
+  Chrome header merger clips its top; the full company identity and footer now
+  render on the candidate invoice.
+- Make the deploy helper derive all worker names from the selected Compose
+  project so a disposable candidate receives the same source as its backend.
+- Move all real PDF regression helpers onto the release engine.
+
+### Checks
+
+Focused PDF/deploy/UI regressions pass **80/80**. A real candidate invoice with
+15% VAT renders through Chromium with the full letterhead, branded totals,
+embedded riyal glyph and a decoded Phase-1 QR whose seller, VAT number, total
+and tax match the source invoice. Full immutable-image acceptance remains the
+release gate.
+
+## [0.44.14] — 2026-09-11 — Invoice alignment and sidebar ownership (patch)
+
+- Aligned synthetic invoice inputs to one spreadsheet row track and removed
+  the remaining duplicate legacy sidebar toggle.
+
+## [0.44.13] — 2026-09-11 — Link autocomplete ownership (patch)
+
+- Preserved continued typing and native Link autocomplete while invoice row
+  mutations are in flight.
+
 ## [0.44.12] — 2026-09-11 — Spreadsheet Link controls (patch)
 
 - Preserve Frappe's native Link query function in synthetic Sales and Purchase

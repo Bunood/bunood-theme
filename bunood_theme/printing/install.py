@@ -76,6 +76,13 @@ def _read(*parts, base=BASE):
 def sync_print_theme():
     """Create/refresh the Bunood Print Style + Print Formats + Letter Head."""
     try:
+        _sync_pdf_generator()
+    except Exception:
+        frappe.log_error(
+            title="bunood_theme: PDF generator sync failed"[:140],
+            message=frappe.get_traceback(),
+        )
+    try:
         _sync_style()
     except Exception:
         frappe.log_error(
@@ -412,16 +419,11 @@ def _sync_format(spec):
         "html": html,
         "disabled": 0,
         "default_print_language": "ar",
-        # Engine is resolved PER PRINT FORMAT by print_utils.get_print, never
-        # from Print Settings, and frappe ships a patch that stamps every
-        # format with "wkhtmltopdf" -- so this field is the only place the
-        # choice takes effect, and it is managed here so it self-heals on
-        # migrate. (Merged from the parallel session, which measured the
-        # chrome generator DROPPING the page footer on the same invoice --
-        # stock "Standard" loses its footer under chrome too, the control
-        # that settles it -- so chrome means no address, phone or email on
-        # any printout. wkhtmltopdf it is.)
-        "pdf_generator": "wkhtmltopdf",
+        # A Print Format overrides Print Settings, so each managed format must
+        # repeat the release engine explicitly. The production image includes
+        # Chromium and publishes chromium_path; wkhtmltopdf cannot resolve the
+        # tenant host inside the isolated backend container and fails downloads.
+        "pdf_generator": "chrome",
     }
     if frappe.db.exists("Module Def", MODULE):
         values["module"] = MODULE
@@ -436,6 +438,27 @@ def _sync_format(spec):
     else:
         pf = frappe.get_doc({"doctype": "Print Format", "name": spec["name"], **values})
         pf.insert(ignore_permissions=True, ignore_if_duplicate=True)
+
+
+def _sync_pdf_generator():
+    """Keep the site-wide fallback aligned with the release PDF engine.
+
+    Frappe uses this value for Standard and for every format without its own
+    engine selection. This stack deliberately ships Chromium only; allowing the
+    wkhtmltopdf default to survive makes an otherwise valid Print action fail at
+    the network-fetch stage. Frappe v16's separate Chrome header merger clips
+    the top of the managed letterhead, so the header stays in the body flow.
+    """
+    settings = frappe.get_single("Print Settings")
+    changed = False
+    if settings.meta.has_field("pdf_generator") and settings.pdf_generator != "chrome":
+        settings.pdf_generator = "chrome"
+        changed = True
+    if settings.meta.has_field("repeat_header_footer") and settings.repeat_header_footer:
+        settings.repeat_header_footer = 0
+        changed = True
+    if changed:
+        settings.save(ignore_permissions=True)
 
 
 def resync_print_brand(settings=None):

@@ -44,7 +44,7 @@ try:
  frappe.get_doc=fixture_get_doc
  with print_language(language):
   html=frappe.get_print(doc.doctype,doc.name,'Bunood Purchase Invoice (A4)',doc=doc,no_letterhead=0)
-  pdf=frappe.get_print(doc.doctype,doc.name,'Bunood Purchase Invoice (A4)',doc=doc,no_letterhead=0,as_pdf=True,pdf_generator='wkhtmltopdf')
+  pdf=frappe.get_print(doc.doctype,doc.name,'Bunood Purchase Invoice (A4)',doc=doc,no_letterhead=0,as_pdf=True,pdf_generator='chrome')
 finally:
  frappe.get_doc=original_get_doc
 assert frappe.get_doc('Company',doc.company).as_json()==company_before

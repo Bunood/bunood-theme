@@ -86,7 +86,7 @@ with print_language(${JSON.stringify(language)}):
  frappe.local.jenv_restricted=None
  frappe.local.jenv_unrestricted=None
  get_jenv().cache.clear()
- pdf=frappe.get_print(doc.doctype,doc.name,fmt,doc=doc,no_letterhead=0,as_pdf=True,pdf_generator='wkhtmltopdf')
+ pdf=frappe.get_print(doc.doctype,doc.name,fmt,doc=doc,no_letterhead=0,as_pdf=True,pdf_generator='chrome')
 assert frappe.get_doc(${JSON.stringify(doctype)},${JSON.stringify(name)}).as_json()==before, 'Original invoice changed'
 frappe.db.rollback()
 print(json.dumps(dict(words=words,format=fmt,original_document_unchanged=True,pdf_sha256=hashlib.sha256(pdf).hexdigest(),html=html,pdf=base64.b64encode(pdf).decode())))
