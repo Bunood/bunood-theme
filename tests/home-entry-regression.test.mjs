@@ -44,3 +44,21 @@ test("Home actions can wrap inside their available width", () => {
 	assert.match(rule, /max-inline-size:\s*100%\s*;/);
 	// This guards the source rule only. Real clipping is checked in the browser.
 });
+
+test("a personal workspace route runs before the Bunood Home fallback", () => {
+	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
+	const personal = source.indexOf("if (!apply_home_route()) land_on_home();");
+	assert.notEqual(personal, -1, "mount must give the personal route first refusal");
+	const mount = source.indexOf("function mount_chrome()");
+	const router = source.indexOf('frappe.router.on("change"', mount);
+	assert.ok(personal > mount && personal < router, "the ordering guard belongs to initial mount");
+	assert.match(source, /frappe\.after_ajax\(\(\) => frappe\.set_route\("Workspaces", home\)\);\s*return true;/);
+});
+
+test("Frappe's missing RTL shortcut arrow receives a verified local alias", () => {
+	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
+	assert.match(source, /target = "es-line-arrow-up-left"/);
+	assert.match(source, /getElementById\("icon-arrow-up-left"\)/);
+	assert.match(source, /source\.parentNode\.appendChild\(alias\)/);
+	assert.match(source, /if \(!theme_active\(\)\) return;\s*ensure_vendor_symbols\(\);/);
+});

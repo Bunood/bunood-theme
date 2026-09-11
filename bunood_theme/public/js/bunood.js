@@ -1212,15 +1212,20 @@
 	 */
 	let home_routed = false;
 	function apply_home_route() {
-		if (home_routed) return;
+		if (home_routed) return false;
 		home_routed = true;
 		const home = (frappe.boot && frappe.boot.bnd_personal && frappe.boot.bnd_personal.home) || "";
-		if (!home) return;
-		if (location.search || location.hash) return;
-		if (!/^\/(app|desk)\/?$/.test(location.pathname)) return;
+		if (!home) return false;
+		if (location.search || location.hash) return false;
+		if (!/^\/(app|desk)\/?$/.test(location.pathname)) return false;
 		const known = (frappe.boot.allowed_workspaces || []).map((w) => w.name || w);
-		if (known.length && !known.includes(home)) return;
-		frappe.set_route("Workspaces", home);
+		if (known.length && !known.includes(home)) return false;
+		// Initial Desk routing is still painting its Desktop page while chrome
+		// mounts. Changing the route inside that transaction updates the URL but
+		// intermittently leaves Desktop rendered underneath it. Frappe's own
+		// post-request queue is the first point where the initial render is done.
+		frappe.after_ajax(() => frappe.set_route("Workspaces", home));
+		return true;
 	}
 
 	function stamp_appearance_route() {
@@ -1755,6 +1760,17 @@
 		use.setAttribute("href", "#" + symbol);
 		svg.appendChild(use);
 		return svg;
+	}
+
+	/** Fill the one RTL shortcut symbol Frappe v16 emits but does not ship. */
+	function ensure_vendor_symbols() {
+		const target = "es-line-arrow-up-left";
+		if (document.getElementById(target)) return;
+		const source = document.getElementById("icon-arrow-up-left");
+		if (!source || !source.parentNode) return;
+		const alias = source.cloneNode(true);
+		alias.id = target;
+		source.parentNode.appendChild(alias);
 	}
 
 	/**
@@ -9602,6 +9618,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// empty means boot failed or the theme is inactive, and a stock desk
 		// must be left exactly as Frappe built it.
 		if (!theme_active()) return;
+		ensure_vendor_symbols();
 
 		// allowed_workspaces is populated later than app_include_js on this v16
 		// build. Prepare Home at the first desk mount and let Frappe render the
@@ -9629,7 +9646,11 @@ function sb_zone_anchor(pane, zone, node) {
 		// Same reason: the router handler never fires for the route the desk
 		// LOADS on, and a fresh login lands on exactly the empty route this
 		// sends to the home.
-		land_on_home();
+		// A person's selected workspace owns the bare route. Only when there is
+		// no valid selection may the site-wide Bunood Home fallback claim it.
+		// Running the fallback first changes the pathname to /desk/home and makes
+		// apply_home_route deliberately stand down, so the order is contractual.
+		if (!apply_home_route()) land_on_home();
 		decorate_crumbs();
 
 		// Native update rebuilds the trail, including on form refresh. Decorate
@@ -9716,8 +9737,6 @@ function sb_zone_anchor(pane, zone, node) {
 		// The notification kit owns the bell (and the badge Frappe lacks).
 		mount_inbox();
 		stamp_appearance_route();
-		apply_home_route();
-
 		try_for(() => mount_home_dashboard(), 40, 150);
 
 		if (frappe.router && frappe.router.on) {

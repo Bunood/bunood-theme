@@ -1,5 +1,7 @@
 {
 	"_readme": [
+		"2026-09-11 RTL SHORTCUT ICON DECISION: desk JS ceiling 154500 -> 154650 gzip bytes. Measured JS is 154593 (+93 over the prior ceiling) for cloning the verified local icon-arrow-up-left symbol to the es-line-arrow-up-left ID that Frappe's RTL shortcut widget emits but its v16 Espresso sprite does not contain. This repairs the two empty shortcut glyphs without overriding frappe.utils.icon, fetching an asset, or adding a dependency.",
+		"2026-09-11 ROLE-LANDING DECISION: desk JS ceiling 154200 -> 154500 gzip bytes. Measured JS is 154442 (+242 over the prior ceiling) for making the existing per-user workspace choice win the bare Desk route before the Bunood Home fallback, then deferring it through Frappe's post-AJAX queue so the initial Desktop render cannot overwrite the selected workspace. The previous order changed the pathname to /desk/home first; an immediate reordered call then changed the URL while intermittently leaving Desktop rendered. No endpoint, dependency or new routing preference was added.",
 		"2026-09-11 INVOICE LINK-QUERY DECISION: desk JS ceiling 154000 -> 154200 gzip bytes. Measured JS is 154095 (+95 over the prior ceiling) for preserving Frappe ControlLink's native query function in synthetic spreadsheet bill rows. The previous unconditional assignment replaced it with undefined, leaving Warehouse inputs visible but their suggestion list permanently empty. No dependency, endpoint, calculation, or duplicate control was added.",
 		"2026-09-10 PAGE-HEAD SIDEBAR CONTROL DECISION: desk JS ceiling 153700 -> 154000 gzip bytes. Measured JS is 153857 (+157 over the prior ceiling) for one persistent control mounted in flow beside the workspace/Home icon, stateful double-chevron markup, and logical start/end state mirrored by CSS in RTL. It replaces the pane-edge and optional-topbar affordances; no dependency or duplicate navigation controller was added.",
 		"2026-09-07 MERGE DECISION (overhaul-v2 + the readiness line): desk JS ceiling 153100 -> 153700 and web_css_gzip 4500 -> 4600. The two lines were merged with the readiness commits winning every source conflict, which overwrote this file wholesale and silently dropped four of overhaul-v2 entries and LOWERED web_css_gzip from 4600 to 4500 -- below what overhaul-v2 own code measures (4513). This file is a decision LOG, so the resolution is the UNION: their entries restored below, ceilings at max(ours, theirs), then raised once for the merged bundle. Merged JS measures 153553 (overhaul-v2 language switch + Appearance button + rail foot band, plus the readiness rail hover trigger, switcher dedupe and dashboard currency fix). No dependency added.",
@@ -177,7 +179,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 32000,
-		"js_gzip": 154200,
+		"js_gzip": 154650,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
 		"auth_js_gzip": 1000,
