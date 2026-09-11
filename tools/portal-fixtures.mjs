@@ -103,6 +103,12 @@ function create() {
 			`if not items:
     raise SystemExit("portal-fixtures: no sales items match " + ${JSON.stringify(FIXTURE.itemPrefix)} + "* — this site is not the one this tool was written for")
 
+# Keep User -> Contact creation synchronous inside this disposable fixture
+# process. Two after-commit create_contact jobs previously raced on Contact
+# naming when the Desk fixture was created beside this one.
+was_in_test = frappe.in_test
+frappe.in_test = True
+
 # 1. THE USER. A Website User, because a System User would be redirected to /desk
 #    by the same guard that made item 32's kit unpreviewable, and would also read
 #    every Customer through the permission branch rather than the portal one.
@@ -127,6 +133,8 @@ if not frappe.db.exists("Has Role", {"parent": USER, "parenttype": "User", "role
     u = frappe.get_doc("User", USER)
     u.append("roles", {"role": "Customer"})
     u.save(ignore_permissions=True)
+
+frappe.in_test = was_in_test
 
 # 3. THE CUSTOMER, carrying the Portal User row that is the other half.
 if not frappe.db.exists("Customer", CUST):

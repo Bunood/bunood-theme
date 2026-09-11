@@ -174,7 +174,15 @@ print("BND_STATE=" + json.dumps(state, default=str))
 function create() {
 	const out = benchPy(
 		PRELUDE +
-			`# A SYSTEM USER WITH NO ROLES. Both halves matter — see the file header.
+			`# Fixture Contacts must complete in this one process. Frappe otherwise
+# enqueues create_contact after every User save; creating the portal and Desk
+# users close together made those jobs race on Contact naming and left failed
+# RQ jobs on the candidate. This process is itself a test fixture, so use the
+# framework's native synchronous test path and restore the flag before commit.
+was_in_test = frappe.in_test
+frappe.in_test = True
+
+# A SYSTEM USER WITH NO ROLES. Both halves matter — see the file header.
 if not frappe.db.exists("User", USER):
     u = frappe.new_doc("User")
     u.email = USER
@@ -204,6 +212,7 @@ if extra or not has_role:
     u.save(ignore_permissions=True)
     frappe.clear_cache(user=USER)
 
+frappe.in_test = was_in_test
 frappe.db.commit()
 u.reload()
 print("BND_CREATED=" + json.dumps(

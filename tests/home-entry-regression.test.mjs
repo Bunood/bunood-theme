@@ -42,6 +42,14 @@ test("Purchase Invoice does not inherit the incorrect outstanding translation", 
 	assert.equal(translations.get("Update Outstanding for Self"), "تحديث المتبقي على هذا المستند");
 });
 
+test("browser fixture users cannot leave asynchronous Contact jobs behind", () => {
+	for (const path of ["../tools/desk-fixture.mjs", "../tools/portal-fixtures.mjs"]) {
+		const source = readFileSync(new URL(path, import.meta.url), "utf8");
+		assert.match(source, /was_in_test = frappe\.in_test\s+frappe\.in_test = True/);
+		assert.match(source, /frappe\.in_test = was_in_test/);
+	}
+});
+
 test("Home actions can wrap inside their available width", () => {
 	const source = readFileSync(new URL("../bunood_theme/public/scss/surfaces/_home.scss", import.meta.url), "utf8");
 	const rule = source.match(/\.bnd-home-intro-actions\s*\{([^}]+)\}/)?.[1] || "";
