@@ -3250,6 +3250,11 @@ function sb_zone_anchor(pane, zone, node) {
 			// A bar can survive a breakpoint crossing. Reconcile the user control's
 			// mobile Account semantics even when it did not need rebuilding.
 			if (tenant === "user") existing.forEach(sync_user_button);
+			// The page-head pane toggle is the sole recovery control while Hidden.
+			if (tenant === "start" && sb_pane_hidden()) {
+				for (const node of existing) node.remove();
+				continue;
+			}
 
 			// Asked for a region this desk does not have: leave whatever is
 			// already there exactly where it is, and keep claiming it if it is
@@ -3286,6 +3291,18 @@ function sb_zone_anchor(pane, zone, node) {
 					bnd_own(token);
 					stamp("bottombar");
 					continue;
+				}
+				// Native pane controls need a temporary home while the pane is hidden.
+				if (!existing.length && sb_pane_hidden()) {
+					const fallback = host_for("pagehead", "end");
+					if (fallback) {
+						const node = build();
+						node.setAttribute("data-bnd-zone", "end");
+						fallback.appendChild(node);
+						bnd_own(token);
+						stamp("pagehead");
+						continue;
+					}
 				}
 				if (existing.length && !native_pane_usable(tenant)) {
 					// Releasing brought nothing back, so keep ONE of ours and
@@ -3409,6 +3426,18 @@ function sb_zone_anchor(pane, zone, node) {
 			sync_start_toggle(b, away);
 		}
 	};
+
+	// Frappe caches page heads and may replace their own listeners while keeping
+	// our node. One capture-phase shell handler survives every such reconciliation
+	// and runs before a page-header listener can swallow the action.
+	function on_pagehead_sidebar_toggle(event) {
+		const button = event.target?.closest?.(".bnd-pagehead-sidebar-toggle");
+		if (!button) return;
+		event.preventDefault();
+		event.stopImmediatePropagation();
+		bunood.pane_toggle();
+	}
+	document.addEventListener("click", on_pagehead_sidebar_toggle, true);
 
 	function build_bell() {
 		const bell = el("button", "bnd-icon-btn bnd-bell", {
@@ -7200,11 +7229,6 @@ function sb_zone_anchor(pane, zone, node) {
 			button = el("button", "bnd-pagehead-sidebar-toggle bnd-sidebar-toggle", {
 				type: "button",
 				"data-bnd-part": "panetoggle",
-			});
-			button.addEventListener("click", (event) => {
-				event.preventDefault();
-				event.stopPropagation();
-				bunood.pane_toggle();
 			});
 			const workspace = title.querySelector(":scope > .sidebar-toggle-btn");
 			if (workspace) workspace.insertAdjacentElement("afterend", button);

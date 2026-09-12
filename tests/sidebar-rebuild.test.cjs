@@ -118,6 +118,21 @@ test('sidebar toggle is anchored in flow beside the workspace icon', () => {
   assert.match(js,/workspace\.insertAdjacentElement\("afterend", button\)/);
   assert.match(js,/data-bnd-part": "panetoggle"/);
 });
+test('retained page-head toggles use one capture-phase shell handler', () => {
+  const source=js.match(/function on_pagehead_sidebar_toggle\(event\) \{([\s\S]*?)\n\t\}/)[0];
+  assert.match(source,/closest\?\.\("\.bnd-pagehead-sidebar-toggle"\)/);
+  assert.match(source,/event\.stopImmediatePropagation\(\)/);
+  assert.match(source,/bunood\.pane_toggle\(\)/);
+  assert.match(js,/document\.addEventListener\("click", on_pagehead_sidebar_toggle, true\)/);
+  const mount=js.match(/function sb_mount_pagehead_toggle\(\) \{([\s\S]*?)\n\t\}/)[0];
+  assert.doesNotMatch(mount,/onclick|addEventListener\("click"/);
+});
+test('hidden pane lends disabled native tenants to the page head', () => {
+  assert.match(js,/if \(!existing\.length && sb_pane_hidden\(\)\) \{[\s\S]*?host_for\("pagehead", "end"\)[\s\S]*?stamp\("pagehead"\)/);
+});
+test('hidden pane keeps one page-head recovery control', () => {
+  assert.match(js,/tenant === "start" && sb_pane_hidden\(\)[\s\S]*?for \(const node of existing\) node\.remove\(\)[\s\S]*?continue/);
+});
 test('page-head ownership permanently retires the duplicate native edge toggle', () => {
   const layout=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_sidebar-layout.scss'),'utf8');
   assert.match(layout,/data-bnd-sidepane[^\n]*data-bnd-own~="panetoggle"[^\n]*not\(\[data-bnd-narrow\]\)[^\n]*\.body-sidebar-container \.collapse-sidebar-link/);

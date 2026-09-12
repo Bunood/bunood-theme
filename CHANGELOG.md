@@ -22,6 +22,12 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.21] — 2026-09-12 — Cached sidebar toggle rebinding (patch)
+
+- Rebind the page-head sidebar toggle during every cached-page reconciliation,
+  so the visible control always opens and closes the pane after Frappe restores
+  a retained page header.
+
 ## [0.44.20] — 2026-09-12 — All Apps Home route restoration (patch)
 
 ### Fixed
