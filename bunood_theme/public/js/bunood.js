@@ -10061,6 +10061,21 @@ function sb_zone_anchor(pane, zone, node) {
 	 * slice 2c every container answers for itself and a layout is a preset that
 	 * wrote those settings at the moment it was picked.
 	 */
+	let report_workbench_loading = null;
+
+	/** Load the seven-report enhancement only when Frappe enters query-report. */
+	function load_report_workbench() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		if (route[0] !== "query-report") return false;
+		if (bunood.report_workbench_loaded || report_workbench_loading) return true;
+		const source = frappe.boot?.bnd_report_js;
+		if (!source || typeof frappe.require !== "function") return false;
+		report_workbench_loading = frappe.require(source).then(() => {
+			report_workbench_loading = null;
+		});
+		return true;
+	}
+
 	function mount_chrome() {
 		// Not "which containers", and since item 37 not the attribute either:
 		// empty means boot failed or the theme is inactive, and a stock desk
@@ -10084,6 +10099,7 @@ function sb_zone_anchor(pane, zone, node) {
 		observe_sidebar_width();
 		observe_list_accessibility();
 		try_for(install_list_recovery, 40, 150);
+		load_report_workbench();
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
 		observe_bottom_reserve();
@@ -10219,6 +10235,7 @@ function sb_zone_anchor(pane, zone, node) {
 				stamp_appearance_route();
 				try_for(enhance_onboarding_refresh, 40, 150);
 				try_for(install_list_recovery, 40, 150);
+				load_report_workbench();
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();
 				// The ONE container that has to remount per route: page heads

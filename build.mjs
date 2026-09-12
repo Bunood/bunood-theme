@@ -1947,6 +1947,10 @@ async function buildEntry({ key, src, pyid }) {
  */
 const JS_ENTRIES = [
 	{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" },
+	// The production report workbench activates on seven reports and is fetched
+	// only after entering query-report. Keep it out of every other Desk page and
+	// expose its immutable URL in boot, like Report Studio.
+	{ key: "bnd-report", src: "report_workbench.js", pyid: "REPORT_JS" },
 	// Report Studio is page-scoped: its route loads this hashed asset on demand.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
 	// Loaded only by _auth_context. It keeps the public login bilingual without

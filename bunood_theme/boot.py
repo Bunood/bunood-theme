@@ -247,6 +247,13 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_studio_js = STUDIO_JS
 
+        # Frappe's query-report controller is a preloaded standard page, so its
+        # Page record hook is never fetched on route entry. Expose the separately
+        # hashed enhancement here; bunood.js requests it only for query-report.
+        from bunood_theme.assets import REPORT_JS
+
+        bootinfo.bnd_report_js = REPORT_JS
+
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them

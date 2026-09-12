@@ -1,3 +1,5 @@
+@use "../breakpoints" as bp;
+
 // Copyright (c) 2026, Bunood and contributors
 // ============================================================================
 // REPORT VIEW / DATATABLE — checklist item 26. The fourth SURFACE partial.
@@ -233,13 +235,122 @@ html[data-bnd-report] [id="page-query-report"] .report-summary {
 // the summary an inline gutter but leaves the filter and chart full bleed,
 // which produces three unrelated left edges (and is especially conspicuous in
 // RTL). Own the gutter and frame here so every report has one durable geometry.
-html[data-bnd-report] [id="page-query-report"] :is(.page-form, .report-summary, .chart-wrapper) {
+html[data-bnd-report] [id="page-query-report"] :is(.page-form, .report-summary, .chart-wrapper, .bnd-report-scope, .bnd-report-recovery) {
   box-sizing: border-box;
   inline-size: calc(100% - 32px) !important;
   margin-inline: 16px !important;
   border: 1px solid var(--bnd-border);
   border-radius: var(--bnd-radius-md);
   background: var(--bnd-surface);
+}
+
+// The seven production reports keep Frappe's native filter controls and add a
+// compact, read-only statement of the scope actually in force. Values use bdi
+// because company/party identifiers routinely mix Arabic, Latin and digits.
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2) var(--bnd-sp-3);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope__title {
+  color: var(--bnd-ink);
+  white-space: nowrap;
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope__items {
+  display: flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-1);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-scope__item, .bnd-report-scope__more) {
+  display: inline-flex;
+  align-items: baseline;
+  min-inline-size: 0;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-page);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope__value {
+  max-inline-size: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bnd-ink);
+}
+
+// A request error must outlive Frappe's transient toast. Retry calls the exact
+// throttled native refresh and therefore preserves current filters, prepared
+// report flags, sort order and the export model.
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-recovery {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding: var(--bnd-sp-3);
+  border-color: var(--bnd-critical);
+  background: color-mix(in srgb, var(--bnd-critical) 7%, var(--bnd-surface));
+  color: var(--bnd-ink);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-recovery__message {
+  flex: 1 1 auto;
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-retry, .bnd-report-empty-action) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-1);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-retry, .bnd-report-empty-action):focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-empty-action {
+  margin-block-start: var(--bnd-sp-3);
+}
+
+// Keep monetary and quantity strings LTR as atomic units while alignment still
+// follows the sheet's reading direction. Header labels remain in the locale's
+// direction; only values and totals receive this class.
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.dt-scrollable, .dt-footer) .bnd-report-number .dt-cell__content {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: end;
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .dt-scrollable .dt-row.bnd-report-total-row {
+  --bnd-rep-row-bg: var(--bnd-raised);
+  font-weight: 700;
+  border-block-start: var(--bnd-line-strong) solid var(--bnd-border-strong);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .dt-scrollable .dt-row.bnd-report-section-row {
+  --bnd-rep-row-bg: var(--bnd-page);
+  font-weight: 600;
+}
+
+@media (width < bp.bnd-bp(sm)) {
+  html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-scope, .bnd-report-recovery) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-retry {
+    inline-size: 100%;
+  }
 }
 
 html[data-bnd-report] [id="page-query-report"] .report-summary {

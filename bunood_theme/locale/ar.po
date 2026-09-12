@@ -7642,6 +7642,26 @@ msgstr "المهام الفاشلة اليوم"
 msgid "Error logs today"
 msgstr "سجلات الأخطاء اليوم"
 
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Report scope"
+msgstr "نطاق التقرير"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Could not refresh this report. Check your connection and try again."
+msgstr "تعذّر تحديث هذا التقرير. تحقّق من اتصالك ثم حاول مرة أخرى."
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Review filters"
+msgstr "مراجعة عوامل التصفية"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Retrying…"
+msgstr "جارٍ إعادة المحاولة…"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "{0} more filters"
+msgstr "{0} عوامل تصفية إضافية"
+
 #. src: human review — operational role homes 2026-09-12
 msgid "No setup actions are available for this role"
 msgstr "لا توجد إجراءات إعداد متاحة لهذا الدور"

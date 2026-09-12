@@ -54,6 +54,14 @@ html[data-bnd-form] .point-of-sale-app {
   }
   .item-price, .grand-total, .total-amount { font-variant-numeric: var(--bnd-numeric); unicode-bidi: isolate; }
 }
+// Frappe leaves the container position:static when the current layout does not
+// claim Bunood's sidepane chrome. The absolutely positioned onboarding child
+// would then use the viewport as its containing block: visually transparent,
+// but intercepting every pointer event across the page. A relative containing
+// block does not move the sidebar; it only bounds that existing child to it.
+html[data-bnd-ws] .body-sidebar-container {
+  position: relative;
+}
 html[data-bnd-ws] .body-sidebar-container .user-onboarding {
   position: absolute;
   inset: 0;

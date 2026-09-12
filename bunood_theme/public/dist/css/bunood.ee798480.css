@@ -6509,7 +6509,7 @@ html[data-bnd-report] [id=page-query-report] .report-summary {
   font-variant-numeric: var(--bnd-numeric);
 }
 
-html[data-bnd-report] [id=page-query-report] :is(.page-form, .report-summary, .chart-wrapper) {
+html[data-bnd-report] [id=page-query-report] :is(.page-form, .report-summary, .chart-wrapper, .bnd-report-scope, .bnd-report-recovery) {
   box-sizing: border-box;
   inline-size: calc(100% - 32px) !important;
   margin-inline: 16px !important;
@@ -6518,6 +6518,104 @@ html[data-bnd-report] [id=page-query-report] :is(.page-form, .report-summary, .c
   background: var(--bnd-surface);
 }
 
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2) var(--bnd-sp-3);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-scope__title {
+  color: var(--bnd-ink);
+  white-space: nowrap;
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-scope__items {
+  display: flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-1);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] :is(.bnd-report-scope__item, .bnd-report-scope__more) {
+  display: inline-flex;
+  align-items: baseline;
+  min-inline-size: 0;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-page);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-scope__value {
+  max-inline-size: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bnd-ink);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-recovery {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding: var(--bnd-sp-3);
+  border-color: var(--bnd-critical);
+  background: color-mix(in srgb, var(--bnd-critical) 7%, var(--bnd-surface));
+  color: var(--bnd-ink);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-recovery__message {
+  flex: 1 1 auto;
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] :is(.bnd-report-retry, .bnd-report-empty-action) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-1);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] :is(.bnd-report-retry, .bnd-report-empty-action):focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-empty-action {
+  margin-block-start: var(--bnd-sp-3);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] :is(.dt-scrollable, .dt-footer) .bnd-report-number .dt-cell__content {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: end;
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .dt-scrollable .dt-row.bnd-report-total-row {
+  --bnd-rep-row-bg: var(--bnd-raised);
+  font-weight: 700;
+  border-block-start: var(--bnd-line-strong) solid var(--bnd-border-strong);
+}
+
+html[data-theme] [id=page-query-report][data-bnd-report-workbench] .dt-scrollable .dt-row.bnd-report-section-row {
+  --bnd-rep-row-bg: var(--bnd-page);
+  font-weight: 600;
+}
+
+@media (width < 576px) {
+  html[data-theme] [id=page-query-report][data-bnd-report-workbench] :is(.bnd-report-scope, .bnd-report-recovery) {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  html[data-theme] [id=page-query-report][data-bnd-report-workbench] .bnd-report-retry {
+    inline-size: 100%;
+  }
+}
 html[data-bnd-report] [id=page-query-report] .report-summary {
   display: flex;
   flex-wrap: wrap;
@@ -7933,6 +8031,10 @@ html[data-bnd-form] .point-of-sale-app .pos-card, html[data-bnd-form] .point-of-
 html[data-bnd-form] .point-of-sale-app .item-price, html[data-bnd-form] .point-of-sale-app .grand-total, html[data-bnd-form] .point-of-sale-app .total-amount {
   font-variant-numeric: var(--bnd-numeric);
   unicode-bidi: isolate;
+}
+
+html[data-bnd-ws] .body-sidebar-container {
+  position: relative;
 }
 
 html[data-bnd-ws] .body-sidebar-container .user-onboarding {
