@@ -18,7 +18,8 @@ The Sales and Purchase profiles share one controller and vary only their native
 party, price-list, mapped-source and document-option fields. The workbench includes:
 
 * New, Save draft, party focus, Delete, Print, Payment, Discount, Reload and item
-  search actions with F1/F2/F3/F4/F6/F7/F10/F11/F12 shortcuts.
+  search actions with F1/F2/F3/F4/F6/F7/F10/F11 shortcuts and the
+  browser-safe Alt+I item-search shortcut.
 * native Customer/Supplier Quick Entry when the current user may create the party;
 * native Item Link search, barcode text entry, and camera scanning where Frappe's
   scanner is available;

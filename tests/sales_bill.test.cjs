@@ -67,11 +67,20 @@ test('phone invoices use one expanded line card and a persistent action total', 
 });
 test('spreadsheet keyboard flow commits a cell and advances without stealing open picker arrows', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /this\.doc\.__islocal && !this\.doc\[this\.profile\.party\][\s\S]*?this\.partyControl\?\.set_focus\(\)/);
+  assert.match(source, /window\.addEventListener\?\.\("keydown", e => \{[\s\S]*?instances\.get\(frm\)[\s\S]*?workbench\?\.shortcut\(e\)/);
+  assert.match(source, /this\.root\.addEventListener\("keydown", e => this\.shortcut\(e, true\), true\)/);
+  assert.match(source, /shortcut\(e, local = false\) \{[\s\S]*?!this\.simple \|\| \(!local && !this\.active\(\)\)[\s\S]*?e\.target\?\.closest\?\.\("\.modal"\)/);
+  assert.match(source, /this\.action\(utilityActions, __\("Find item"\), "Alt\+I", "search"/);
+  assert.match(source, /const findItem = e\.altKey && e\.key\.toLowerCase\(\) === "i"/);
   assert.match(source, /focusNextLineControl\(control\)/);
   assert.match(source, /e\.key !== "Enter" \|\| e\.isComposing/);
   assert.match(source, /\.awesomplete > ul:not\(\[hidden\]\)/);
   assert.match(source, /awesomplete-selectcomplete\.bnd-bill-nav/);
   assert.match(source, /Promise\.resolve\(\)[\s\S]*?control\.set_value\(control\.get_value\(\)\)[\s\S]*?focusNextLineControl\(control\)/);
+  assert.match(source, /document\.activeElement === inputElement[\s\S]*?focusNextLineControl\(control\)/);
+  assert.match(source, /const focus = document\.activeElement;[\s\S]*?this\.render\(\);[\s\S]*?focus\.focus\(\{ preventScroll: true \}\)/);
+  assert.match(source, /async addItem\(\) \{[\s\S]*?if \(this\.queue\.count\) await this\.queue\.tail;[\s\S]*?if \(!this\.active\(\)\) return;/);
 });
 test('removing a populated bill row requires explicit confirmation', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');

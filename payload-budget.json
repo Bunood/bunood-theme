@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-09-12 KEYBOARD FOCUS SAFETY DECISION: desk JS ceiling 157300 -> 157450 gzip bytes. The measured bundle is 157355 bytes. The 55-byte overage makes deferred native invoice calculations preserve the operator's latest focused control, prevents an earlier Enter transition from stealing focus after the operator has moved to item search, and honors Add Item after an existing native update finishes. This closes rapid keyboard entry for both shared Sales and Purchase bill workbenches; no dependency, calculation, posting endpoint or duplicate form model was added.",
 		"2026-09-12 RESPONSIVE BILL WORKBENCH DECISION: desk CSS ceiling 32100 -> 32800 and JS ceiling 156200 -> 157300 gzip bytes. Final measured bundles are 32727 CSS and 157167 JS. The growth replaces the label-heavy line layout with one sticky spreadsheet header, row numbering, compact customer/supplier context with native Tax ID, a wider sticky totals rail, and phone line cards with one explicitly expanded editor plus a persistent action total. It also commits Enter before advancing through editable cells, preserves native autocomplete ownership, and confirms populated-row removal. Sales and Purchase continue sharing one native-control adapter; no calculation engine, posting endpoint, UI dependency or duplicate document model was added.",
 		"2026-09-12 ONBOARDING TRUTH DECISION: desk CSS ceiling 32000 -> 32100 and JS ceiling 155550 -> 156200 gzip bytes. Measured bundles are 32055 CSS and 156154 JS. The growth replaces Frappe's stale manual step flags for Create Entry onboarding actions with permission-aware persisted-record truth, while preserving native role checks, data shape and manual report/settings steps. A contained, keyboard-labelled refresh control reuses Frappe's native setup_onboarding path and exposes loading, success and recoverable-error states without deriving progress from the DOM. No dependency, parallel onboarding model or document mutation was added.",
 		"2026-09-12 NATIVE MENU CORRECTNESS DECISION: desk JS ceiling 155200 -> 155550 gzip bytes. Measured JS is 155529 (+363 over the preceding 155166 measurement) for a guarded compatibility backport around the locked Frappe v16 SidebarHeader renderer. The native renderer parsed separators and iconless Navbar Settings actions as img src=undefined, creating a 404 on every Desk page and ambiguous duplicate item identities; the patch emits semantic separators, supplies stable identities and uses a bundled fallback icon. Newer Frappe has no affected add_app_item method, so the patch stands down; no dependency, router or replacement menu was added.",
@@ -185,7 +186,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 32800,
-		"js_gzip": 157300,
+		"js_gzip": 157450,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
 		"auth_js_gzip": 1000,
@@ -559,6 +560,25 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +672b, js +1013b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.22"
+		},
+		{
+			"version": "v0.44.24",
+			"date": "2026-09-12",
+			"web_css_raw": 30917,
+			"web_css_gzip": 4513,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 24554,
+			"print_css_gzip": 6938,
+			"css_raw": 252391,
+			"css_gzip": 32727,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 512167,
+			"js_gzip": 157355,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +0b, js +188b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.23"
 		}
 	]
 }

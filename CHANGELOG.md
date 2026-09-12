@@ -22,6 +22,29 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.24] — 2026-09-12 — Keyboard transaction acceptance (patch)
+
+### Fixed
+
+- Give fresh Sales and Purchase bills a deterministic party-field focus and
+  route shared keyboard commands even while Frappe is replacing form objects.
+- Replace browser-reserved F12 item search with visible `Alt+I`.
+- Preserve the operator's latest focus when a deferred native calculation
+  renders, prevent late Enter handlers from stealing focus, and honor Add Item
+  after an existing invoice update finishes.
+
+### Checks
+
+- Focused Sales/Purchase bill contracts pass 68/68.
+- A least-privilege user with Sales User, Purchase User and Accounts User
+  entered three distinct items, edited quantities to 2/3/4, saved and submitted
+  both invoices without a mouse. Sales reached Submit in four Tabs; Purchase in
+  48. Reloaded documents retained all lines and reconciled native totals/taxes.
+- The acceptance reported zero browser errors and removed its submitted
+  invoices and temporary user during teardown.
+- Final payloads remain inside the recorded ceilings: 32,727-byte CSS gzip and
+  157,355-byte JavaScript gzip, with no new runtime dependency or data model.
+
 ## [0.44.23] — 2026-09-12 — Responsive transaction workbench (patch)
 
 ### Changed

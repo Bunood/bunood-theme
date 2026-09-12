@@ -10165,7 +10165,7 @@ function sb_zone_anchor(pane, zone, node) {
 			this.paymentButton = this.action(documentActions, __("Payment"), "F7", "credit-card", () => this.payment());
 			this.discountButton = this.action(documentActions, __("Discount"), "F10", "percent", () => { this.discount.open = !this.discount.open; this.discount.scrollIntoView({ block: "nearest" }); });
 			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", "rotate-ccw", () => this.restore());
-			this.searchButton = this.action(utilityActions, __("Find item"), "F12", "search", () => this.picker?.set_focus());
+			this.searchButton = this.action(utilityActions, __("Find item"), "Alt+I", "search", () => this.picker?.set_focus());
 			this.status = node("p", "bnd-bill-status", "", this.root);
 			this.status.setAttribute("role", "status");
 			this.revertButton = button(__("Revert invalid edits"), this.root, () => { for (const key of this.invalid.keys()) this.pending.delete(key); this.invalid.clear(); this.render(); this.message(__("Changes stay in this invoice when you close this view.")); });
@@ -10247,12 +10247,14 @@ function sb_zone_anchor(pane, zone, node) {
 			let popupWasOpen = false;
 			this.root.addEventListener("keydown", e => { if (e.key === "Escape") popupWasOpen = !!this.root.querySelector('[aria-expanded="true"]'); }, true);
 			this.root.addEventListener("keydown", e => {
-				const keys = { F1: () => this.newDocument(), F2: () => this.save(), F3: () => this.partyControl?.set_focus(), F4: () => this.removeDocument(), F6: () => this.print(), F7: () => this.payment(), F10: () => this.discountButton.click(), F11: () => this.restore(), F12: () => this.picker?.set_focus() };
-				if (keys[e.key]) { e.preventDefault(); e.stopPropagation(); keys[e.key](); }
-				if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); e.stopPropagation(); this.save(); }
 				if (e.key === "Escape" && !popupWasOpen) { e.preventDefault(); this.fullInvoice(); }
 			});
+			this.root.addEventListener("keydown", e => this.shortcut(e, true), true);
 			this.setMode(true); this.render(); this.applyDefaultTax();
+			frappe.after_ajax(() => {
+				if (this.active() && this.doc.__islocal && !this.doc[this.profile.party] &&
+					!this.root.contains(document.activeElement)) this.partyControl?.set_focus();
+			});
 		}
 		action(parent, label, key, icon, handler, primary = false) {
 			const b = button("", parent, handler, primary); b.classList.add("bnd-bill-action");
@@ -10260,6 +10262,15 @@ function sb_zone_anchor(pane, zone, node) {
 			node("span", "bnd-bill-action-label", label, b);
 			if (key) { node("kbd", "", key, b); b.setAttribute("aria-keyshortcuts", key); }
 			return b;
+		}
+		shortcut(e, local = false) {
+			if (!this.simple || (!local && !this.active()) || e.target?.closest?.(".modal")) return;
+			const keys = { F1: () => this.newDocument(), F2: () => this.save(), F3: () => this.partyControl?.set_focus(), F4: () => this.removeDocument(), F6: () => this.print(), F7: () => this.payment(), F10: () => this.discountButton.click(), F11: () => this.restore() };
+			const save = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s";
+			const findItem = e.altKey && e.key.toLowerCase() === "i";
+			if (!keys[e.key] && !save && !findItem) return;
+			e.preventDefault(); e.stopImmediatePropagation();
+			if (save) this.save(); else if (findItem) this.picker?.set_focus(); else keys[e.key]();
 		}
 		setMode(simple) {
 			this.simple = simple; this.root.hidden = !simple; if (this.native) this.native.hidden = simple;
@@ -10364,7 +10375,11 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 		async change(action) {
 			this.message(__("Updating invoice…"));
-			try { await this.queue.run(action); if (this.active()) { if (!this.flushing) this.render(); this.message(__("Changes stay in this invoice when you close this view.")); } }
+			try { await this.queue.run(action); if (this.active()) { if (!this.flushing) {
+				const focus = document.activeElement;
+				this.render();
+				if (this.root?.contains?.(focus) && focus?.isConnected && document.activeElement !== focus) focus.focus({ preventScroll: true });
+			} this.message(__("Changes stay in this invoice when you close this view.")); } }
 			catch (e) { this.message(e.message || __("Could not update the invoice. Open the full invoice to review."), true); throw e; }
 		}
 		renderControl(control, key, refresh = false) {
@@ -10457,19 +10472,19 @@ function sb_zone_anchor(pane, zone, node) {
 				const inputElement = control.$input?.[0];
 				inputElement?.addEventListener?.("keydown", e => {
 					if (e.key !== "Enter" || e.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
-					// An open native Link picker owns Enter and the arrow keys.
 					if (control.$wrapper.find(".awesomplete > ul:not([hidden])").length) return;
 					e.preventDefault();
 					e.stopImmediatePropagation();
 					Promise.resolve()
 						.then(() => control.set_value(control.get_value()))
-						.then(() => { if (!this.invalid.has(key)) this.focusNextLineControl(control); })
+						.then(() => { if (!this.invalid.has(key) && document.activeElement === inputElement) this.focusNextLineControl(control); })
 						.catch(error => this.message(error.message, true));
 				}, true);
 				if (["Link", "Dynamic Link"].includes(control.df.fieldtype)) {
 					control.$input?.on("awesomplete-selectcomplete.bnd-bill-nav", () => {
 						frappe.after_ajax(() => {
-							if (this.active() && !this.invalid.has(key)) this.focusNextLineControl(control);
+							if (this.active() && !this.invalid.has(key) &&
+								document.activeElement === inputElement) this.focusNextLineControl(control);
 						});
 					});
 				}
@@ -10490,7 +10505,9 @@ function sb_zone_anchor(pane, zone, node) {
 			next.control.set_focus();
 		}
 		async addItem() {
-			if (this.queue.count || this.saving) return;
+			if (this.saving) return;
+			if (this.queue.count) await this.queue.tail;
+			if (!this.active()) return;
 			const code = this.picker.get_value();
 			if (!this.frm.doc[this.profile.party]) { this.message(__("Choose the party before adding items."), true); return; }
 			if (!code) { this.message(__("Choose an item from the search results."), true); this.picker.set_focus(); return; }
@@ -10883,6 +10900,12 @@ function sb_zone_anchor(pane, zone, node) {
 	function newInvoice() {
 		return frappe.new_doc("Sales Invoice");
 	}
+	window.addEventListener?.("keydown", e => {
+		const frm = window.cur_frm;
+		let workbench = instances.get(frm);
+		if (workbench && !workbench.syncDocument()) workbench = instances.get(frm);
+		workbench?.shortcut(e);
+	}, true);
 	api.sales_bill = { open, newInvoice, eligible, supports, actionState, SerialChanges, saveDraft, totalField, rowFieldStatus, setLineValue, makePaymentEntry, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
