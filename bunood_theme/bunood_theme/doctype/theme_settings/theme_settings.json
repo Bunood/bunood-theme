@@ -1386,13 +1386,13 @@
    "label": "Desk Body Picker"
   },
   {
-   "default": "Full Bleed",
-   "description": "Set by the picker above. How wide the body runs: Frappe's own 900px cap, a measured column, or the whole page.",
+   "default": "Balanced",
+   "description": "How wide the body is allowed to be. Every value carries two measures: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a child table. Compact 900/1200 · Balanced 1040/1400 · Roomy 1120/1600 · Full lifts both. Original leaves Frappe's own 900px cap.",
    "fieldname": "desk_width",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Desk Width",
-   "options": "Original\nMeasured Column\nNarrow Column\nFull Bleed"
+   "options": "Original\nCompact\nBalanced\nRoomy\nFull"
   },
   {
    "default": "Standard 14",

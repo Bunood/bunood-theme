@@ -163,10 +163,28 @@
   // workspace `.layout-main` at ITS variable `--page-max-width` (900px) and
   // centres them; `_bridge.scss` feeds that variable from these under
   // `data-bnd-body-width` — never a second width on our card, which is how
-  // item 43's census found a 1126px card around a 900px body. Original leaves
-  // the vendor's 900; Full Bleed is `none`.
-  --bnd-content-w: 1120px;
-  --bnd-content-w-narrow: 1040px;
+  // item 43's census found a 1126px card around a 900px body.
+  //
+  // TWO EDGES, NOT ONE (item 45). One measure cannot serve a form and a table:
+  // a form is READ and wants a reading column, a table is SCANNED and wants
+  // room. Item 43 shipped one number reaching two of seven surface families,
+  // and the measurement that settled it is worth keeping — at 1920 the spread
+  // between the widest and narrowest surface was 305px with the setting OFF
+  // and 513px with it ON, because it pulled two surfaces in and left five
+  // alone. A setting that makes the desk less consistent when used is a defect
+  // in the WIRING, not in the number.
+  //
+  // So every value of `desk_width` carries a pair, declared together in
+  // surfaces/_body.scss: `--bnd-content-w` for what you read, `--bnd-wide-w`
+  // for what you scan. Every surface is assigned to one and none to neither —
+  // asserted by `body: every surface lands on one of the two edges`. The values
+  // here are Balanced, the shipped default. The attribute blocks restate all
+  // four pairs rather than deriving three from one, because a ratio would tie
+  // the reading column to the monitor and the reading column is a constant of
+  // human vision: WordPress has held its content measure between 620 and 650
+  // for five years while its wide measure grew 34%.
+  --bnd-content-w: 1040px;
+  --bnd-wide-w: 1400px;
   // Property Rows' label column (item 43 A2): wide enough for the longest
   // shipped ERPNext label at the 14 set in English and Arabic, measured in A2.
   --bnd-label-w: 160px;

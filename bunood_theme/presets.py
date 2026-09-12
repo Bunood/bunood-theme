@@ -505,9 +505,14 @@ DESK_FIELDS = [
 ]
 
 #: The shipped body — the user's pick from the item-43 composer (Bunood Console,
-#: 2026-09-08): full bleed, the 14 set, the brand fill.
+#: 2026-09-08): the 14 set and the brand fill. The WIDTH moved to Balanced in
+#: item 45 at the user's decision: full bleed stretched a read form to the
+#: monitor, and the width setting only reached two of seven surface families,
+#: so using it made the desk LESS consistent (measured at 1920: 305px of spread
+#: between surfaces became 513px). Every value now carries two measures — a
+#: reading edge and a wide edge — and every surface sits on one of them.
 DESK_DEFAULTS = {
-    "desk_width": "Full Bleed",
+    "desk_width": "Balanced",
     "desk_scale": "Standard 14",
     "desk_primary": "Brand",
 }

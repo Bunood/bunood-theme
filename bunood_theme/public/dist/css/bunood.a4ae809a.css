@@ -46,8 +46,8 @@
   --bnd-leading-tight: 1.25;
   --bnd-leading-base: 1.5;
   --bnd-numeric: tabular-nums;
-  --bnd-content-w: 1120px;
-  --bnd-content-w-narrow: 1040px;
+  --bnd-content-w: 1040px;
+  --bnd-wide-w: 1400px;
   --bnd-label-w: 160px;
   --bnd-form-indicator: 20px;
   --bnd-form-col-pad: 15px;
@@ -428,16 +428,8 @@ html[data-bnd-sb-panestate=open]:not([data-bnd-narrow]) .body-sidebar-container 
   --sidebar-width: var(--bnd-sb-w);
 }
 
-html[data-bnd-body-width=full] {
-  --page-max-width: none;
-}
-
-html[data-bnd-body-width=measured] {
+html[data-bnd-body-width] {
   --page-max-width: var(--bnd-content-w);
-}
-
-html[data-bnd-body-width=narrow] {
-  --page-max-width: var(--bnd-content-w-narrow);
 }
 
 html[data-bnd-body-primary=brand] {
@@ -3644,6 +3636,20 @@ html[data-theme] .bnd-cbp-oname {
   font-weight: 600;
   margin-block-start: 2px;
 }
+html[data-theme] .bnd-cbp-osub {
+  display: block;
+  margin-block-start: 1px;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-normal);
+  font-variant-numeric: var(--bnd-numeric);
+  white-space: nowrap;
+}
+html[data-theme] .bnd-cbp-opt:has(.bnd-cbp-osub) {
+  inline-size: auto;
+  min-inline-size: 96px;
+  padding-inline: var(--bnd-sp-3);
+}
 html[data-theme] .bnd-cbp-reset {
   border: none;
   background: transparent;
@@ -6224,18 +6230,59 @@ html[data-bnd-own~=docfoot] body[data-route^=Form] .page-actions .primary-action
   display: none;
 }
 
-html[data-bnd-body-width=measured] body:not(.full-width) .form-layout .form-section,
-html[data-bnd-body-width=measured] body:not(.full-width) .form-layout .form-dashboard-section,
-html[data-bnd-body-width=measured] body:not(.full-width) .form-layout .form-tabs-list {
+html[data-bnd-body-width=compact] {
+  --bnd-content-w: 900px;
+  --bnd-wide-w: 1200px;
+}
+
+html[data-bnd-body-width=balanced] {
+  --bnd-content-w: 1040px;
+  --bnd-wide-w: 1400px;
+}
+
+html[data-bnd-body-width=roomy] {
+  --bnd-content-w: 1120px;
+  --bnd-wide-w: 1600px;
+}
+
+html[data-bnd-body-width=full] {
+  --bnd-content-w: none;
+  --bnd-wide-w: none;
+}
+
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section,
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-dashboard-section,
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-tabs-list {
   max-inline-size: var(--bnd-content-w);
   margin-inline: auto;
 }
 
-html[data-bnd-body-width=narrow] body:not(.full-width) .form-layout .form-section,
-html[data-bnd-body-width=narrow] body:not(.full-width) .form-layout .form-dashboard-section,
-html[data-bnd-body-width=narrow] body:not(.full-width) .form-layout .form-tabs-list {
-  max-inline-size: var(--bnd-content-w-narrow);
+html[data-bnd-body-width] body:not(.full-width) .frappe-list,
+html[data-bnd-body-width] body:not(.full-width) .layout-main-section.layout-main-list,
+html[data-bnd-body-width] body:not(.full-width) [data-page-route=query-report] .layout-main-section,
+html[data-bnd-body-width] body:not(.full-width) [data-page-route=report] .layout-main-section,
+html[data-bnd-body-width] body:not(.full-width) [data-page-route=dashboard-view] .layout-main-section,
+html[data-bnd-body-width] body:not(.full-width) .layout-main-section > .dashboard-graph,
+html[data-bnd-body-width] body:not(.full-width) .kanban,
+html[data-bnd-body-width] body:not(.full-width) .fc,
+html[data-bnd-body-width] body:not(.full-width) .gallery-view {
+  max-inline-size: var(--bnd-wide-w);
   margin-inline: auto;
+}
+
+html[data-bnd-body-width] body:not(.full-width) [data-page-route=Workspaces] .layout-main {
+  max-inline-size: var(--bnd-wide-w);
+  margin-inline: auto;
+}
+
+html[data-bnd-body-width] body:not(.full-width) .layout-main-section > .bnd-dochead {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
+}
+
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.frappe-control[data-fieldtype=Table]),
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.form-grid) {
+  max-inline-size: var(--bnd-wide-w);
 }
 
 html[data-bnd-body-scale] .form-layout .section-head {

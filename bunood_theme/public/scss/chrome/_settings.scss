@@ -365,6 +365,32 @@ html[data-theme] {
     margin-block-start: 2px;
   }
 
+  // A chip's optional second line: the value the NAME cannot carry, such as the
+  // two measures behind "Balanced". Muted and a step down, so the name still
+  // leads and the row's rhythm is unchanged for every chip that has none.
+  // Numerals are tabular because these line up in a row and drift reads as
+  // sloppiness — the same reason the grid's Currency cells are.
+  .bnd-cbp-osub {
+    display: block;
+    margin-block-start: 1px;
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+    font-weight: var(--bnd-weight-normal);
+    font-variant-numeric: var(--bnd-numeric);
+    white-space: nowrap;
+  }
+
+  // A chip carrying a second line sizes to its CONTENT. The base chip is a
+  // fixed 96px, chosen for one word, and a second line does not fit it — the
+  // first cut clipped "Reading: 1040 · Wid" mid-word. Scoped to chips that
+  // actually have a sub, so every other row keeps the fixed width that makes a
+  // chip row read as a set.
+  .bnd-cbp-opt:has(.bnd-cbp-osub) {
+    inline-size: auto;
+    min-inline-size: 96px;
+    padding-inline: var(--bnd-sp-3);
+  }
+
   .bnd-cbp-reset {
     border: none;
     background: transparent;

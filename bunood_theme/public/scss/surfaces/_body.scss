@@ -49,17 +49,86 @@
 // `.section-body` to `none` while our card stayed pinned at the token, so the
 // menu item silently did nothing — the item-40 shape again, a control governing
 // a box while something else governs the box inside it.
-html[data-bnd-body-width="measured"] body:not(.full-width) .form-layout .form-section,
-html[data-bnd-body-width="measured"] body:not(.full-width) .form-layout .form-dashboard-section,
-html[data-bnd-body-width="measured"] body:not(.full-width) .form-layout .form-tabs-list {
+// THE FOUR PAIRS (item 45). Each value of `desk_width` names a reading edge and
+// a wide edge; everything downstream reads the tokens and never a literal, so
+// re-pricing a value is one line here. Restated per value rather than derived
+// from a ratio — see the argument at the tokens.
+html[data-bnd-body-width="compact"]  { --bnd-content-w: 900px;  --bnd-wide-w: 1200px; }
+html[data-bnd-body-width="balanced"] { --bnd-content-w: 1040px; --bnd-wide-w: 1400px; }
+html[data-bnd-body-width="roomy"]    { --bnd-content-w: 1120px; --bnd-wide-w: 1600px; }
+// Full is the ABSENCE of both, not a third pair — the same shape WordPress
+// uses, where `full` is `max-width: none` rather than a measurement.
+html[data-bnd-body-width="full"]     { --bnd-content-w: none;   --bnd-wide-w: none; }
+
+// ── The READING edge: what you read ─────────────────────────────────────────
+// The vendor already caps `.section-body`, `.form-footer` and the section
+// description from `--page-max-width`, which the bridge points at this token.
+// These three are OURS: the card, the tabs bar and the connections dashboard
+// take the same width, so there is nothing beside the body for the eye to read
+// as a second edge.
+// `body:not(.full-width)`, because EVERY vendor reader of `--page-max-width`
+// carries that guard (census §1) and Frappe's own Toggle Full Width is how a
+// user lifts the cap. Without it the vendor lifted `.section-body` to `none`
+// while our card stayed pinned, so the menu item silently did nothing — the
+// item-40 shape again, a control governing a box while something else governs
+// the box inside it.
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section,
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-dashboard-section,
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-tabs-list {
   max-inline-size: var(--bnd-content-w);
   margin-inline: auto;
 }
-html[data-bnd-body-width="narrow"] body:not(.full-width) .form-layout .form-section,
-html[data-bnd-body-width="narrow"] body:not(.full-width) .form-layout .form-dashboard-section,
-html[data-bnd-body-width="narrow"] body:not(.full-width) .form-layout .form-tabs-list {
-  max-inline-size: var(--bnd-content-w-narrow);
+
+// ── The WIDE edge: what you scan ────────────────────────────────────────────
+// The five families item 43 left unwired. Each is capped at the wide edge and
+// centred, so the desk has TWO edges rather than one edge and four accidents.
+//
+// `.frappe-list` is the list's own box and already owns a horizontal scroller
+// inside it (`.result` carries `overflow-x: auto`, measured: 1356px of rows in
+// a 1120px column) — so capping the list narrows the VIEWPORT onto the rows and
+// never clips them. That is the mechanic three other products converged on
+// independently, and it is why capping a data surface is safe here at all.
+html[data-bnd-body-width] body:not(.full-width) .frappe-list,
+html[data-bnd-body-width] body:not(.full-width) .layout-main-section.layout-main-list,
+html[data-bnd-body-width] body:not(.full-width) [data-page-route="query-report"] .layout-main-section,
+html[data-bnd-body-width] body:not(.full-width) [data-page-route="report"] .layout-main-section,
+html[data-bnd-body-width] body:not(.full-width) [data-page-route="dashboard-view"] .layout-main-section,
+html[data-bnd-body-width] body:not(.full-width) .layout-main-section > .dashboard-graph,
+html[data-bnd-body-width] body:not(.full-width) .kanban,
+html[data-bnd-body-width] body:not(.full-width) .fc,
+html[data-bnd-body-width] body:not(.full-width) .gallery-view {
+  max-inline-size: var(--bnd-wide-w);
   margin-inline: auto;
+}
+
+// The workspace is a landing page of cards, so it scans rather than reads — it
+// takes the wide edge even though the vendor points it at `--page-max-width`
+// with everything you read. Stated here because it is the one surface whose
+// vendor wiring and whose job disagree.
+html[data-bnd-body-width] body:not(.full-width) [data-page-route="Workspaces"] .layout-main {
+  max-inline-size: var(--bnd-wide-w);
+  margin-inline: auto;
+}
+
+// THE DOCUMENT BAND IS PART OF THE RECORD AND SITS ON ITS EDGE. It mounts as
+// the first child of `.layout-main-section`, OUTSIDE `.form-layout`, so the
+// form rules above do not reach it — and a picture showed the cost immediately:
+// at 1920 the band spanned 1320px above a 1040px card, two edges that do not
+// line up, which is the exact complaint this item exists to answer. The checks
+// were green; only the screenshot said so.
+html[data-bnd-body-width] body:not(.full-width) .layout-main-section > .bnd-dochead {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
+}
+
+// A SECTION THAT HOLDS A CHILD TABLE TAKES THE WIDE EDGE, and it says so by
+// what it CONTAINS — there is no per-doctype setting and nothing to configure.
+// A grid with eight columns in a reading column is the case the whole two-edge
+// idea exists for. `:has()` degrades to "no rule" where unsupported, which
+// leaves the section on the reading edge: narrower, never broken.
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.frappe-control[data-fieldtype="Table"]),
+html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.form-grid) {
+  max-inline-size: var(--bnd-wide-w);
 }
 
 // ── Type: the set the body renders in ────────────────────────────────────────

@@ -9251,9 +9251,11 @@ print("ok")
 				// A8b the Stage path group (2): 8 cards, 26 options.
 				// A8c the Pinned foot group (2): 8 cards, 28 options.
 				form_picker: { cards: 8, toggles: 1, opts: 28 },
-				// Desk body (item 43 A1): no cards — three option groups (width 4,
-				// type scale 4, primary button 2) over the desk diagram.
-				desk_picker: { cards: 0, toggles: 0, opts: 10 },
+				// Desk body (item 43 A1): no cards — three option groups over the desk
+				// diagram. Item 45 took width from 4 to 5 (Original plus the four
+				// paired values, Compact/Balanced/Roomy/Full), so 5 + 4 type scale +
+				// 2 primary button.
+				desk_picker: { cards: 0, toggles: 0, opts: 11 },
 				// Workspace tile kit (item 25): 7 style cards (Original + 6), two
 				// option groups (5 metric + 3 rows = 8 opts), one menu toggle.
 				workspace_picker: { cards: 7, toggles: 1, opts: 8 },
@@ -13978,8 +13980,79 @@ print("ok")
 			return out;
 		}, [bg, ink]);
 
-		await test("body: Full Bleed makes the card and the section body one width", async () => {
-			setSettings({ desk_width: "Full Bleed" });
+		await test("body: every surface lands on one of the two edges the setting names", async () => {
+			// THE WHOLE POINT OF THE SETTING, ASSERTED ACROSS THE PRODUCT. The width
+			// control shipped reaching TWO of seven surface families: forms and the
+			// workspace read Frappe's `--page-max-width`, and lists, reports,
+			// dashboards, alternate views and the settings page had no width rule at
+			// all. Measured at 1920 before this check existed: turning the setting ON
+			// took the spread between the widest and narrowest surface from 305px to
+			// 513px, because it pulled two surfaces in and left five where they were.
+			// A setting that makes the desk LESS consistent when you use it is the
+			// defect, not the number it holds.
+			//
+			// So each value carries TWO measures — a reading edge for what you read
+			// and a wide edge for what you scan — and every surface is asserted to sit
+			// on one of them. Nothing is allowed to sit on neither.
+			const before = getSettings(["desk_width", "sidebar_enabled", "sidebar_pane_state"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
+				// 1920 so both edges bind: at 1440 a 1400px wide edge never engages and
+				// the check would pass on a desk that ignores it.
+				await page.setViewportSize({ width: 1920, height: 900 });
+				for (const [value, reading, wide] of [
+					["Compact", 900, 1200],
+					["Balanced", 1040, 1400],
+					["Roomy", 1120, 1600],
+				]) {
+					setSettings({ desk_width: value });
+					const seen = {};
+					for (const [name, route, wait, sel, edge] of [
+						// THE CARD, NOT THE BODY INSIDE IT. The edge a reader sees is the
+						// section's own outer box; `.section-body` sits inside the card's
+						// padding and measures 32px narrower, which is the card working,
+						// not the cap failing. Measuring the inner box compares a form's
+						// content box against a list's border box — two different
+						// questions, and the mismatch reads as an off-by-32 defect.
+						["form", "/desk/item/BND-TEST-001", ".form-layout", ".std-form-layout .form-section", "reading"],
+						["settings", "/desk/theme-settings?compare=0", ".bnd-cbp", ".std-form-layout .form-section", "reading"],
+						["list", "/desk/item", ".frappe-list", ".frappe-list", "wide"],
+						["report", "/app/query-report/General%20Ledger", ".page-head", ".layout-main-section", "wide"],
+						["workspace", "/desk/selling", ".layout-main", ".layout-main", "wide"],
+					]) {
+						await goDesk(route, wait, 2600);
+						const w = await page.evaluate((s) => {
+							const el = [...document.querySelectorAll(s)].find((n) => n.getBoundingClientRect().width > 0);
+							return el ? Math.round(el.getBoundingClientRect().width) : null;
+						}, sel);
+						seen[name] = { w, edge, want: edge === "reading" ? reading : wide };
+					}
+					// Each surface within 2px of ITS edge — the edge it is assigned to,
+					// not merely "some cap exists".
+					const wrong = Object.entries(seen).filter(([, v]) => v.w === null || Math.abs(v.w - v.want) > 2);
+					expectEq(
+						wrong.map(([n, v]) => `${n} ${v.w} wanted ${v.want} (${v.edge})`).join("; "),
+						"",
+						`${value}: every surface on its own edge`
+					);
+					// And the spread is exactly the distance between the two edges —
+					// the desk has two widths, not five.
+					const widths = [...new Set(Object.values(seen).map((v) => v.w))].sort((a, b) => a - b);
+					expectEq(widths.length, 2, `${value}: exactly two distinct widths across the desk (${widths.join(", ")})`);
+				}
+				// Full removes both caps — every surface fills its column again.
+				setSettings({ desk_width: "Full" });
+				await goDesk("/desk/item", ".frappe-list", 2600);
+				const uncapped = await page.evaluate(() => getComputedStyle(document.querySelector(".frappe-list")).maxInlineSize);
+				expectEq(uncapped, "none", "Full lifts the wide edge too");
+			} finally {
+				await page.setViewportSize({ width: 1440, height: 900 });
+				setSettings(before);
+			}
+		});
+
+		await test("body: Full makes the card and the section body one width", async () => {
+			setSettings({ desk_width: "Full" });
 			await goDesk(BODY_ROUTE, ".form-section", 3000);
 			expectEq(await attr("data-bnd-body-width"), "full", "width attribute");
 			const w = await bodyWidths();
@@ -14004,7 +14077,10 @@ print("ok")
 			expectEq(lifted, "none", "body.full-width still lifts the cap");
 		});
 		await test("body: the workspace column follows the same width", async () => {
-			setSettings({ desk_width: "Full Bleed" });
+			// Under Full there is no cap anywhere, which is what this asserts. The
+			// workspace's assignment to the WIDE edge at every other value is
+			// asserted by "every surface lands on one of the two edges".
+			setSettings({ desk_width: "Full" });
 			await goDesk("/desk/selling", ".layout-main", 3000);
 			const w = await page.evaluate(() => ({
 				main: document.querySelector(".layout-main").getBoundingClientRect().width,
@@ -14061,7 +14137,7 @@ print("ok")
 			const got = await page.evaluate(() => getComputedStyle(document.querySelector(".page-actions .btn-primary")).backgroundColor);
 			expectEq(got, want.bg, "the vendor's --gray-900");
 			// Back to the shipped body for everything that follows.
-			setSettings({ desk_width: "Full Bleed", desk_scale: "Standard 14", desk_primary: "Brand" });
+			setSettings({ desk_width: "Balanced", desk_scale: "Standard 14", desk_primary: "Brand" });
 		});
 
 		// ── Item 43 A2: field anatomy ─────────────────────────────────────────
@@ -14458,22 +14534,41 @@ print("ok")
 			}
 		});
 
-		await test("workspace: the workspace column and the form column share the width token", async () => {
-			setSettings({ desk_width: "Measured Column" });
+		await test("workspace: the workspace column takes the wide edge and the form the reading one", async () => {
+			// THIS CHECK USED TO ASSERT THEY WERE EQUAL. Item 45 separated them on
+			// purpose: a workspace is a landing page of cards, so it scans and takes
+			// the wide edge, while a form is read and takes the reading edge. Both
+			// still come from one setting, which is what keeps the desk coherent —
+			// but "the same number" is no longer the right claim.
+			setSettings({ desk_width: "Roomy" });
+			// 1920, because Roomy's wide edge is 1600 and the default 1440 window
+			// leaves a column of about 1430 — the cap never binds, the workspace
+			// simply fills, and the check would be asserting the viewport.
+			await page.setViewportSize({ width: 1920, height: 900 });
 			await goDesk("/desk/selling", ".layout-main", 4000);
 			const ws = await page.evaluate(() => Math.round(document.querySelector(".layout-main").getBoundingClientRect().width));
 			await goDesk("/desk/item/new", ".form-section", 4000);
 			// The card (.form-section) is what the cap sizes on the form; its
 			// .section-body sits inside the card's padding (measured 1088 in 1120).
 			const form = await page.evaluate(() => Math.round(document.querySelector(".std-form-layout .form-section").getBoundingClientRect().width));
-			expect(Math.abs(ws - form) <= 2, `Measured Column: workspace ${ws} == form ${form}`);
-			expect(ws >= 1100 && ws <= 1140, `and it is the measured 1120 (${ws})`);
-			// PUT IT BACK. `Measured Column` is not what this theme ships, and
-			// roughly 250 checks run after this one — every workspace, chart,
-			// report, view and overlay check was measuring a desk at a width the
-			// product does not use. It cost nothing visible here, which is exactly
-			// how the drag-resize leftover went unnoticed for two runs.
-			setSettings({ desk_width: "Full Bleed" });
+			// Roomy is 1120 reading · 1600 wide. Both numbers are read from the
+			// tokens rather than written here, so re-pricing a value in _body.scss
+			// cannot leave this check asserting last month's pixels.
+			const edges = await page.evaluate(() => {
+				const cs = getComputedStyle(document.documentElement);
+				return { reading: parseFloat(cs.getPropertyValue("--bnd-content-w")), wide: parseFloat(cs.getPropertyValue("--bnd-wide-w")) };
+			});
+			expect(edges.reading > 0 && edges.wide > edges.reading, `two edges, wide the larger (${JSON.stringify(edges)})`);
+			expect(Math.abs(form - edges.reading) <= 2, `the form sits on the reading edge (${form} vs ${edges.reading})`);
+			expect(Math.abs(ws - edges.wide) <= 2, `the workspace sits on the wide edge (${ws} vs ${edges.wide})`);
+			expect(ws > form, `and they are deliberately different (${ws} vs ${form})`);
+			// PUT IT BACK. Roomy is not what this theme ships, and roughly 250
+			// checks run after this one — every workspace, chart, report, view and
+			// overlay check was measuring a desk at a width the product does not
+			// use. It cost nothing visible here, which is exactly how the
+			// drag-resize leftover went unnoticed for two runs.
+			await page.setViewportSize({ width: 1440, height: 900 });
+			setSettings({ desk_width: "Balanced" });
 		});
 
 		const WS_STYLE_SLUG = {

@@ -119,4 +119,11 @@ bunood_theme.patches.v0_42_1.retire_shortcuts
 # shape, same limits. The ten new axes need nothing: no row is the new default.
 bunood_theme.patches.v0_45_0.console_defaults
 
+# Item 45: desk_width is a RENAME, not a moved default. A v0.45 row holds a
+# Select value the options no longer contain, so the kit's value map has no
+# entry, `data-bnd-body-width` is never stamped, and the site silently loses
+# EVERY width rule — worse than the state it replaces. Must run wherever
+# v0.45 landed.
+bunood_theme.patches.v0_46_0.width_two_edges
+
 bunood_theme.patches.v0_11_0.heal_unknown_placements

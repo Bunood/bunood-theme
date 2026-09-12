@@ -1383,7 +1383,7 @@
 			attr: "body", boot: "bnd_body",
 			anchor: null,
 			axes: [
-				["width", "desk_width", { "Original": "", "Measured Column": "measured", "Narrow Column": "narrow", "Full Bleed": "full" }],
+				["width", "desk_width", { "Original": "", "Compact": "compact", "Balanced": "balanced", "Roomy": "roomy", "Full": "full" }],
 				["scale", "desk_scale", { "Original": "", "Compact 13": "13", "Standard 14": "14", "Touch 16": "16" }],
 				["primary", "desk_primary", { "Black": "", "Brand": "brand" }],
 			],

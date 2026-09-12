@@ -7406,3 +7406,33 @@ msgstr "تنبيه"
 #, fuzzy
 msgid "Use this: {0}"
 msgstr "استخدم هذا: {0}"
+
+#. In theme_settings.js
+#. src: item45
+msgid "Roomy"
+msgstr "فسيح"
+
+#. In theme_settings.js
+#. src: item45
+msgid "Full"
+msgstr "كامل"
+
+#. In theme_settings.js
+#. src: item45
+msgid "Frappe's own 900px cap"
+msgstr "حد فرابي الأصلي 900 بكسل"
+
+#. In theme_settings.js
+#. src: item45
+msgid "No limit on either edge"
+msgstr "بلا حد على أي من الحافتين"
+
+#. In theme_settings.js
+#. src: item45
+msgid "How wide the body runs. Each value sets TWO edges: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a table."
+msgstr "عرض متن الصفحة. كل قيمة تحدد حافتين: حافة القراءة للنماذج والإعدادات، وحافة العرض للقوائم والتقارير واللوحات وأي قسم يحتوي جدولًا."
+
+#. In theme_settings.js
+#. src: item45
+msgid "How wide the body is allowed to be. Every value carries two measures: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a child table. Compact 900/1200 · Balanced 1040/1400 · Roomy 1120/1600 · Full lifts both. Original leaves Frappe's own 900px cap."
+msgstr "العرض المسموح به لمتن الصفحة. كل قيمة تحمل مقياسين: حافة قراءة للنماذج والإعدادات، وحافة عريضة للقوائم والتقارير واللوحات وأي قسم يحتوي جدولًا فرعيًا. مُحكم 900/1200 · متوازن 1040/1400 · فسيح 1120/1600 · كامل يرفع الحدّين. الأصلي يترك حد فرابي 900 بكسل."

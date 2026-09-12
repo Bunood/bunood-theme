@@ -108,7 +108,15 @@ const P = {
 
 	/**
 	 * A row of small chips — the second-tier choice inside a group.
-	 * @param {Array<{value:string|number, name:string, glyph?:string, reason?:string}>} items
+	 *
+	 * `sub` is an OPTIONAL second line, and it exists for one reason: a value
+	 * whose name cannot carry its own meaning. "Balanced" says nothing about
+	 * 1040; the number has to be shown, and it has to be shown as a DERIVED
+	 * value rather than spelled into the label, or the label becomes a second
+	 * copy of the measure and the copy that goes stale is always the label.
+	 * Gutenberg's width menu reaches the same answer — "Wide width, max 1340px".
+	 * Every existing caller passes none and renders exactly as before.
+	 * @param {Array<{value:string|number, name:string, glyph?:string, reason?:string, sub?:string}>} items
 	 */
 	options(items, opts) {
 		return (
@@ -124,6 +132,7 @@ const P = {
 						(i.reason ? ' title="' + bnd_esc(i.reason) + '" disabled' : "") + ">" +
 						(i.glyph ? '<span class="bnd-cbp-glyph">' + i.glyph + "</span>" : "") +
 						'<span class="bnd-cbp-oname">' + bnd_esc(i.name) + "</span>" +
+						(i.sub ? '<span class="bnd-cbp-osub">' + bnd_esc(i.sub) + "</span>" : "") +
 						"</button>"
 					);
 				})
@@ -5444,7 +5453,7 @@ const BND_DESK_FIELDS = ["desk_width", "desk_scale", "desk_primary"];
 
 /** Client mirror of presets.DESK_DEFAULTS — keep in sync. */
 const BND_DESK_DEFAULTS = {
-	desk_width: "Full Bleed",
+	desk_width: "Balanced",
 	desk_scale: "Standard 14",
 	desk_primary: "Brand",
 };
@@ -5454,16 +5463,36 @@ const BND_DESK_DEFAULTS = {
  * down alone, so each row offers its own "Original" — the vendor's 900px cap,
  * the vendor's flat type, the vendor's black button — beside the theme's values.
  */
+/**
+ * The two measures as a bare pair — "1040 · 1400", reading edge first.
+ *
+ * NOT LABELLED, and both halves of that are deliberate. The group's own
+ * description already says which edge is which, in that order, so a label on
+ * every chip repeats it four times; and the first cut DID label them, which
+ * overflowed a 96px chip and clipped to "Reading: 1040 · Wid" — the screenshot
+ * caught it, nothing else could have. Digits carry no grammar, so this also
+ * sidesteps the plural guard that refused "{0} reading" outright.
+ */
+function bnd_width_blurb(reading, wide) {
+	return reading + " · " + wide;
+}
+
 const BND_DESK_GROUPS = [
 	{
 		field: "desk_width",
 		title: () => __("Width"),
-		desc: () => __("How wide the body runs. Frappe caps forms, footers and workspaces at 900px and centres them; the theme's card used to span the whole column around that."),
+		desc: () => __("How wide the body runs. Each value sets TWO edges: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a table."),
+		// THE NUMBERS ARE SHOWN, NOT ENCODED IN THE NAME. A label that says
+		// "Balanced" and a measure that says 1040 are the same fact twice, and the
+		// copy that goes stale is always the name. Gutenberg reached the same
+		// answer — its width menu reads "Wide width · Max 1340px wide", deriving
+		// the number from the setting rather than spelling it in the label.
 		options: [
-			{ value: "Original", name: () => __("Original") },
-			{ value: "Measured Column", name: () => __("Measured Column") },
-			{ value: "Narrow Column", name: () => __("Narrow Column") },
-			{ value: "Full Bleed", name: () => __("Full Bleed") },
+			{ value: "Original", name: () => __("Original"), blurb: () => __("Frappe's own 900px cap") },
+			{ value: "Compact", name: () => __("Compact"), blurb: () => bnd_width_blurb(900, 1200) },
+			{ value: "Balanced", name: () => __("Balanced"), blurb: () => bnd_width_blurb(1040, 1400) },
+			{ value: "Roomy", name: () => __("Roomy"), blurb: () => bnd_width_blurb(1120, 1600) },
+			{ value: "Full", name: () => __("Full"), blurb: () => __("No limit on either edge") },
 		],
 	},
 	{
@@ -5502,7 +5531,13 @@ function bnd_render_desk_picker(frm, host) {
 			desc: g.desc(),
 			field: g.field,
 			body: P.options(
-				g.options.filter((o) => offered.includes(o.value)).map((o) => ({ value: o.value, name: o.name() })),
+				// The blurb carries the MEASURES, resolved here rather than spelled into
+				// the label — see the width group's comment.
+				// The measures ride as the chip's second line — resolved here, never
+				// spelled into the name. See `P.options`.
+				g.options
+					.filter((o) => offered.includes(o.value))
+					.map((o) => ({ value: o.value, name: o.name(), ...(o.blurb ? { sub: o.blurb() } : {}) })),
 				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_DESK_DEFAULTS[g.field]) }
 			),
 		});

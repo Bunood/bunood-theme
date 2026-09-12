@@ -178,14 +178,15 @@ html[data-bnd-sb-panestate="open"]:not([data-bnd-narrow]) .body-sidebar-containe
 // card. Declared on `html`, where the vendor's own `:root` declares it, at one
 // attribute more weight; `body.full-width` (Frappe's own toggle) never read
 // the variable and keeps working. Absent attribute = the vendor's 900.
-html[data-bnd-body-width="full"] {
-  --page-max-width: none;
-}
-html[data-bnd-body-width="measured"] {
+//
+// ONE RULE NOW, NOT ONE PER VALUE (item 45): the pair of measures is declared
+// per value in surfaces/_body.scss, so the bridge only has to say WHICH of the
+// two the vendor's variable follows. It follows the READING edge, because the
+// three things Frappe caps with it — the section body, the form footer and the
+// section description — are all things you read. The workspace also reads it
+// and is re-pointed at the wide edge in _body.scss, where that argument lives.
+html[data-bnd-body-width] {
   --page-max-width: var(--bnd-content-w);
-}
-html[data-bnd-body-width="narrow"] {
-  --page-max-width: var(--bnd-content-w-narrow);
 }
 
 // ── The primary button (item 43 A1). Frappe's `.btn.btn-primary` reads

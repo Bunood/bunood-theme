@@ -45,8 +45,8 @@
   --bnd-leading-tight: 1.25;
   --bnd-leading-base: 1.5;
   --bnd-numeric: tabular-nums;
-  --bnd-content-w: 1120px;
-  --bnd-content-w-narrow: 1040px;
+  --bnd-content-w: 1040px;
+  --bnd-wide-w: 1400px;
   --bnd-label-w: 160px;
   --bnd-form-indicator: 20px;
   --bnd-form-col-pad: 15px;
