@@ -24,6 +24,71 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — the desk's width, made one decision (item 45)
+
+**The user, 2026-09-11:** *"there is a dissonance with the width, some things use full width,
+some modules use full width in some places and some use only wide width or just enough for the
+section. I want consistency, i prefer not using full wide width, but distinct sections in the
+body."* Measured before anything was drawn: the width setting reached **two of seven** surface
+families. Forms and the workspace read Frappe's `--page-max-width`; lists, reports, dashboards,
+alternate views and the settings page had no width rule at all. So turning the setting on made
+the desk *less* consistent — at a 1920 window the spread between the widest and narrowest
+surface went from **305px to 513px**, because it pulled two surfaces in and left five alone.
+
+Nine strategies were drawn as wireframes and put to the user, grounded in source read from
+Discourse, Directus, frappe-ui and shadcn, and in WordPress, Ghost, Polaris and Primer read from
+their own repositories. The user chose the tiered model and asked for all four values with
+Balanced as the default.
+
+### Changed — one setting, two edges
+
+- **Every value of `desk_width` carries a pair**, because one measure cannot serve a form and a
+  table: a form is read and wants a reading column, a table is scanned and wants room.
+  **Compact** 900/1200 · **Balanced** 1040/1400 (shipped) · **Roomy** 1120/1600 · **Full** lifts
+  both. `Original` stays as the stand-down pole every kit has, leaving the vendor's 900 alone.
+- **Every surface is assigned to one edge and none to neither.** Reading: forms, the settings
+  page, the document band. Wide: lists, reports, dashboards, charts, kanban, calendar, gallery,
+  the workspace, and any section holding a child table — which asks for it by what it CONTAINS,
+  so there is nothing to configure per doctype.
+- **The shipped default moves from Full Bleed to Balanced**, at the user's decision.
+- **The picker shows each value's two measures** under its name, derived from the tokens rather
+  than spelled into the label. `P.options` gains an optional second line; every existing caller
+  passes none.
+
+### Why capping a data surface is safe here
+
+The objection that would otherwise sink this is the wide table, and it is already answered:
+Frappe's list owns a horizontal scroller inside itself — measured, 1356px of rows inside a
+1120px column, with `.result` carrying the overflow. Capping narrows the viewport onto the rows
+and never clips them. shadcn wraps every table the same way and Discourse states it as doctrine.
+
+### Migration
+
+`v0_46_0.width_two_edges`, and it is not optional: this is a RENAME. A v0.45 row holds a Select
+value the options no longer contain, so the kit's value map has no entry, `data-bnd-body-width`
+is never stamped, and the site silently loses **every** width rule — worse than the state it
+replaces. The patch maps the three renamed values and leaves `Original` alone.
+
+### Two defects only the screenshots caught
+
+Both after the checks were green, which is why this repo looks. The document band mounts outside
+`.form-layout`, so it still spanned 1320px above a 1040px card — two edges that do not line up,
+the exact complaint the work answers. And the picker's measures clipped to "Reading: 1040 · Wid"
+inside a fixed 96px chip.
+
+### Checks
+
+A new one drives all three finite values at 1920, where both edges bind, and asserts each
+surface sits within 2px of ITS edge and that the desk shows exactly two distinct widths. It
+failed first for the right reason. The workspace/form check was retargeted — it used to assert
+they were EQUAL, which this item separates on purpose — and reads both numbers from the tokens,
+so re-pricing a value cannot leave it asserting last month's pixels. Fingerprint regenerated
+deliberately with drift empty: one picker moved, 41 nodes to 48. `benchPy` now retries MySQL
+1020 on any table, not only `tabSingles` — a full run lost a check to 1020 on `tabUser`, and the
+narrowing had recorded where it had been seen rather than a principle.
+
+---
+
 ## [0.45.0] — 2026-09-10 — The body, rebuilt: anatomy over frame, and a composer for it (item 43)
 
 **The user's brief (2026-09-03):** "ERPNext is good, but the visual body is poorly done; the

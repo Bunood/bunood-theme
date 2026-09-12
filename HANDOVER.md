@@ -2423,6 +2423,16 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 
 ### Design rules that are load-bearing
 
+- **The desk has TWO edges, and every surface sits on one of them.** `desk_width` is not one
+  measure with four names — each value carries a reading edge (`--bnd-content-w`) and a wide edge
+  (`--bnd-wide-w`), because a form is read and a table is scanned and one number cannot serve
+  both. Reading: forms, the settings page, the document band. Wide: lists, reports, dashboards,
+  charts, kanban, calendar, gallery, the workspace, and any section holding a child table.
+  **Adding a surface means assigning it an edge** — a surface on neither is the defect this
+  replaced, and `body: every surface lands on one of the two edges` fails if one appears.
+  The reason it was worth doing: item 43 shipped a width setting that reached two of seven
+  families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
+  A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
 - **A section head's inline padding is the COLUMN's, plus whatever the style bleeds.**
   Every field sits inside a `.form-column` at `--bnd-form-col-pad` (15px, Bootstrap's)
   from the section's content box, and Frappe's own `.section-head` carries the same 15px

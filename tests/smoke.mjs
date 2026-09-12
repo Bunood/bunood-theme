@@ -302,7 +302,7 @@ function benchPy(code, preConnect = "") {
 		`frappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\n` +
 		`frappe.connect()\n` +
 		code;
-	// ONE retry, and only for MySQL 1020 on tabSingles. That error is an
+	// ONE retry, and only for MySQL 1020 and 1305. That error is an
 	// optimistic-lock conflict whose own text says "try restarting
 	// transaction" — Frappe retries it in request handling for the same
 	// reason. It became a startup-killer once the apps.json set was installed:
@@ -342,7 +342,17 @@ function benchPy(code, preConnect = "") {
 			// out memory pressure as the cause. Retried on the same terms as 1020:
 			// once, with a pause, and nothing else widened — a blanket retry is
 			// still how a real defect gets papered over.
-			const transient = (/\b1020\b/.test(stderr) && /tabSingles/.test(stderr)) || /\b1305\b/.test(stderr);
+			// 1020 ON ANY TABLE, not only tabSingles. The narrowing was a record of
+			// where it had been SEEN, never a principle — and on 2026-09-12 a full
+			// run lost `direction:` to 1020 on **tabUser**, because the language
+			// checks write `User.language` while the desk's own requests touch the
+			// same row. The sidepane check already carries a private five-try loop
+			// for exactly that, which is the tell that the predicate was too narrow
+			// rather than the checks too fragile. 1020's own text says "try
+			// restarting transaction" and Frappe retries it in request handling;
+			// the table it names does not change what it is. Still ONE retry, and
+			// still only these two codes.
+			const transient = /\b1020\b/.test(stderr) || /\b1305\b/.test(stderr);
 			if (attempt === 1 && transient) {
 				// Synchronous pause — benchPy is sync throughout, and its callers
 				// depend on that.
