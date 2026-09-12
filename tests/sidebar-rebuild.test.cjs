@@ -5,6 +5,43 @@ const vm = require('node:vm');
 const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const js = fs.readFileSync(path.join(root, 'bunood_theme/public/js/bunood.js'), 'utf8');
+test('locked Frappe sidebar menu never parses undefined image sources', () => {
+  const start=js.indexOf('function install_sidebar_header_menu_compat()');
+  const end=js.indexOf('\n\tinstall_sidebar_header_menu_compat();',start);
+  assert.ok(start>0 && end>start,'compatibility installer is present and invoked at boot');
+  const source=js.slice(start,end);
+  const nativeCalls=[]; const appended=[];
+  function SidebarHeader(){}
+  SidebarHeader.prototype.add_app_item=function(item){nativeCalls.push(item);return item;};
+  const document={
+    createElement(tag){
+      return {
+        tagName:tag.toUpperCase(),className:'',attrs:{},
+        setAttribute(name,value){this.attrs[name]=value;},
+      };
+    },
+  };
+  const context={frappe:{ui:{SidebarHeader}},document};
+  vm.runInNewContext(source+'\ninstall_sidebar_header_menu_compat();',context);
+  const first=SidebarHeader.prototype.add_app_item;
+  const owner={dropdown_menu:{append(node){appended.push(node);}}};
+  const separator=first.call(owner,{is_divider:true});
+  assert.equal(separator.className,'dropdown-divider');
+  assert.equal(separator.attrs.role,'separator');
+  assert.equal(nativeCalls.length,0);
+  first.call(owner,{item_label:'Custom action',label:'Custom action'});
+  assert.equal(nativeCalls[0].icon,'circle');
+  assert.equal(nativeCalls[0].name,'Custom action');
+  assert.equal(nativeCalls[0].route,'');
+  assert.equal(nativeCalls[0].icon_url,undefined);
+  vm.runInNewContext(source+'\ninstall_sidebar_header_menu_compat();',context);
+  assert.equal(SidebarHeader.prototype.add_app_item,first,'installer is idempotent');
+});
+test('Appearance action seeds a real icon for Frappe native menus', () => {
+  const setup=fs.readFileSync(path.join(root,'bunood_theme/setup.py'),'utf8');
+  assert.match(setup,/NAVBAR_APPEARANCE_ICON = "palette"/);
+  assert.match(setup,/"icon": NAVBAR_APPEARANCE_ICON/);
+});
 test('All Apps in workspace menu opens the native desktop grid', () => {
   let destination;
   const source = js.match(/function sb_head_menu\(\) \{([\s\S]*?)\n\t\}/)[0];

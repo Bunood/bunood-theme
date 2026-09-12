@@ -9,12 +9,14 @@ import { readTranslations } from "../tools/i18n.mjs";
 // pretending the general catalogue gate sees every dynamically supplied label.
 const required = [
 	"New sales invoice", "Record a purchase", "Receive payment", "Stock entry", "New customer",
-	"Your business at a glance", "Financial summary", "Cash and bank balance",
-	"Available across cash and bank accounts", "Sales this month", "Outstanding receivables",
+	"Your business at a glance", "Financial summary", "Outstanding receivables",
+	"Orders", "Booked value", "Invoiced value", "Average order value", "Month to date", "As of today",
 	"Outstanding payables", "Needs your attention", "What to deal with today", "Overdue invoices",
 	"Bills to pay", "Drafts to finish", "Nothing needs your attention", "No documents you can create yet",
 	"Recent activity", "Latest invoices", "No recent activity", "Sales trend", "Last six months",
 	"Invoice status", "Current sales invoices", "No invoice data yet", "Could not load dashboard data",
+	"Refresh progress", "Refreshing progress", "Progress refreshed", "Setup is complete",
+	"Could not refresh progress. Try again.",
 	"Sales bill", "Who are you billing?", "What are you selling?",
 	"Purchase bill", "Who are you buying from?", "What are you buying?",
 	"Notification", "Notifications", "Notification Picker", "Notification Style",

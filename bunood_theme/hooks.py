@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.44.21"
+app_version = "0.44.22"
 
 required_apps = []
 
@@ -46,6 +46,14 @@ app_include_css = [THEME_CSS]
 # Density override applier + user-menu toggle (checklist item 4). Hashed by
 # build.mjs like the CSS.
 app_include_js = [THEME_JS]
+
+# Task-first invoice list columns. These scripts are appended after ERPNext's
+# native list controllers, retain their bulk actions, and use ListView's column
+# API so phone rows expose amount + document ID without rewriting rendered DOM.
+doctype_list_js = {
+    "Sales Invoice": "public/js/sales_invoice_list.js",
+    "Purchase Invoice": "public/js/purchase_invoice_list.js",
+}
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
@@ -95,6 +103,8 @@ override_whitelisted_methods = {
     "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
     "frappe.desk.query_report.run": "bunood_theme.report_compat.run",
     "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
+    "frappe.desk.desktop.get_onboarding_data": "bunood_theme.onboarding.get_onboarding_data",
+    "frappe.desk.doctype.onboarding_step.onboarding_step.get_onboarding_steps": "bunood_theme.onboarding.get_onboarding_steps",
 }
 
 # Frappe v16's XLSX exporter asks every standard Query Report for an optional

@@ -1,5 +1,8 @@
 {
 	"_readme": [
+		"2026-09-12 ONBOARDING TRUTH DECISION: desk CSS ceiling 32000 -> 32100 and JS ceiling 155550 -> 156200 gzip bytes. Measured bundles are 32055 CSS and 156154 JS. The growth replaces Frappe's stale manual step flags for Create Entry onboarding actions with permission-aware persisted-record truth, while preserving native role checks, data shape and manual report/settings steps. A contained, keyboard-labelled refresh control reuses Frappe's native setup_onboarding path and exposes loading, success and recoverable-error states without deriving progress from the DOM. No dependency, parallel onboarding model or document mutation was added.",
+		"2026-09-12 NATIVE MENU CORRECTNESS DECISION: desk JS ceiling 155200 -> 155550 gzip bytes. Measured JS is 155529 (+363 over the preceding 155166 measurement) for a guarded compatibility backport around the locked Frappe v16 SidebarHeader renderer. The native renderer parsed separators and iconless Navbar Settings actions as img src=undefined, creating a 404 on every Desk page and ambiguous duplicate item identities; the patch emits semantic separators, supplies stable identities and uses a bundled fallback icon. Newer Frappe has no affected add_app_item method, so the patch stands down; no dependency, router or replacement menu was added.",
+		"2026-09-12 ACCESSIBLE BILL TOOLS DECISION: desk JS ceiling 155050 -> 155200 gzip bytes. Measured JS is 155166 (+116 over the prior ceiling) for explicit disclosure state and control association on the Invoice Tools summary, plus suppressing misleading server/sync labels while ZATCA is not operational. The controls, native document actions and connector boundary are unchanged; no dependency or duplicate workflow was added.",
 		"2026-09-12 SIDEBAR TOGGLE DECISION: desk JS ceiling 154800 -> 155050 gzip bytes. Measured JS is 155008 (+208 over the prior ceiling) for one capture-phase Desk-shell handler plus a page-head fallback for critical native controls while their pane is hidden. This stops Frappe header listeners swallowing the action and prevents the safety guard immediately reopening the pane; no dependency or duplicate persistent control was added.",
 		"2026-09-12 ALL APPS HOME DECISION: desk JS ceiling 154650 -> 154800 gzip bytes. Measured JS is 154745 (+95 over the prior ceiling) for reconciling one labelled Home control into Frappe's native All Apps navbar when every Bunood bar is disabled. The control reuses the existing quick-link builder and is removed whenever a Bunood shell owns navigation, so this closes a navigation dead end without adding a dependency or duplicate route.",
 		"2026-09-11 RTL SHORTCUT ICON DECISION: desk JS ceiling 154500 -> 154650 gzip bytes. Measured JS is 154593 (+93 over the prior ceiling) for cloning the verified local icon-arrow-up-left symbol to the es-line-arrow-up-left ID that Frappe's RTL shortcut widget emits but its v16 Espresso sprite does not contain. This repairs the two empty shortcut glyphs without overriding frappe.utils.icon, fetching an asset, or adding a dependency.",
@@ -180,8 +183,8 @@
 		"2026-09-06 INVOICE SELECTION DECISION: independently reviewed JS ceiling 151024 -> 151536 gzip bytes. Actual JS grows 150853 -> 151359 (+506) for an ownership-safe per-layout predicate adapter that prevents native refresh from selecting Simple invoice input text. It preserves the user's caret or selection, native Advanced behavior and other writers; no focus restoration, global patch or dependency. First typing candidate failed real-key acceptance and was rolled back. Other ceilings and release history remain unchanged; new real-key acceptance is required."
 	],
 	"ceiling": {
-		"css_gzip": 32000,
-		"js_gzip": 155050,
+		"css_gzip": 32100,
+		"js_gzip": 156200,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
 		"auth_js_gzip": 1000,
@@ -517,6 +520,25 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +104b, js +860b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.14"
+		},
+		{
+			"version": "v0.44.22",
+			"date": "2026-09-12",
+			"web_css_raw": 30917,
+			"web_css_gzip": 4513,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 24554,
+			"print_css_gzip": 6938,
+			"css_raw": 247418,
+			"css_gzip": 32055,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 506840,
+			"js_gzip": 156154,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +143b, js +1105b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.21"
 		}
 	]
 }

@@ -32,6 +32,8 @@ See ARCHITECTURE.md section 10.
 import frappe
 from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, nowdate
 
+from bunood_theme.home_metrics import build_home_kpis, home_metric_contract
+
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
 CACHE_WS_MAP = "bnd_doctype_workspace_map"
@@ -143,12 +145,24 @@ def get_home_dashboard(company: str | None = None) -> dict:
             "from_date": six_month_start.isoformat(),
             "as_of": today.isoformat(),
         },
+        "kpis": [],
         "trend": [],
         "recent": [],
     }
     if not selected:
         return result
 
+    metric_contract = home_metric_contract(
+        company=selected,
+        month_start=month_start,
+        as_of=today,
+    )
+    orders = _dashboard_rows(
+        "Sales Order",
+        filters=metric_contract[0]["filters"],
+        fields=["base_grand_total"],
+        limit=0,
+    )
     sales = _dashboard_rows(
         "Sales Invoice",
         filters={"company": selected, "docstatus": 1, "posting_date": [">=", six_month_start]},
@@ -224,6 +238,12 @@ def get_home_dashboard(company: str | None = None) -> dict:
     )
     result["metrics"]["payables"] = sum(
         _base_outstanding(row, currency) for row in purchase_rows
+    )
+    result["kpis"] = build_home_kpis(
+        metric_contract,
+        order_rows=orders,
+        invoice_rows=[row for row in sales if getdate(row.posting_date) >= month_start],
+        outstanding_value=result["metrics"]["receivables"],
     )
     result["trend"] = list(month_totals.values())
 

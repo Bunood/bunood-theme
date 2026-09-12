@@ -266,6 +266,15 @@ Frappe's own settings dropdown is rendered by every shape, and a Navbar Settings
 Frappe owns the rendering.
 """
 
+NAVBAR_APPEARANCE_ICON = "palette"
+"""Bundled Frappe icon for the Appearance action.
+
+The locked v16 SidebarHeader falls back to an image when a Navbar Settings row
+has no icon. An absent image URL becomes the literal relative request
+/undefined. Seeding the semantic icon makes the record complete for both the
+locked renderer and the newer Dropdown implementation.
+"""
+
 
 def after_install() -> None:
     """Seed defaults, the navbar toggle, the first brand stylesheet, and print."""
@@ -480,7 +489,26 @@ def _seed_navbar_appearance_item() -> None:
     """
     try:
         ns = frappe.get_doc("Navbar Settings")
-        if any((r.item_label or "") == NAVBAR_APPEARANCE_LABEL for r in ns.settings_dropdown):
+        existing = next(
+            (
+                row
+                for row in ns.settings_dropdown
+                if (row.item_label or "") == NAVBAR_APPEARANCE_LABEL
+            ),
+            None,
+        )
+        if existing:
+            # Heal rows seeded before the icon field was supplied. Only update
+            # the Bunood-owned action; a tenant's unrelated row with the same
+            # visible label remains theirs.
+            if (
+                existing.item_type == "Action"
+                and existing.action == "bunood_theme.appearance()"
+                and existing.icon != NAVBAR_APPEARANCE_ICON
+            ):
+                existing.icon = NAVBAR_APPEARANCE_ICON
+                ns.save(ignore_permissions=True)
+                frappe.db.commit()
             return
         ns.append(
             "settings_dropdown",
@@ -491,6 +519,7 @@ def _seed_navbar_appearance_item() -> None:
                 "action": "bunood_theme.appearance()",
                 "is_standard": 0,
                 "hidden": 0,
+                "icon": NAVBAR_APPEARANCE_ICON,
             },
         )
         ns.save(ignore_permissions=True)

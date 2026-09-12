@@ -24,6 +24,10 @@ test('redesigned bill keeps essential native controls visible without duplicatin
   assert.match(source, /toolsTrigger\.focus\(\)/);
   assert.match(source, /tools\.open = false/);
   assert.match(source, /tools\.addEventListener\("click", e => \{[\s\S]*?toolsTrigger\.focus\(\);[\s\S]*?\}, true\)/);
+  assert.match(source, /toolsTrigger\.setAttribute\("role", "button"\)/);
+  assert.match(source, /toolsTrigger\.setAttribute\("aria-haspopup", "true"\)/);
+  assert.match(source, /toolsTrigger\.setAttribute\("aria-controls", toolBody\.id\)/);
+  assert.match(source, /tools\.addEventListener\("toggle", \(\) => toolsTrigger\.setAttribute\("aria-expanded", String\(tools\.open\)\)\)/);
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
   assert.match(css, /container-type: inline-size/);
   assert.match(source, /bnd-bill-panel bnd-bill-party", null, main/);
@@ -40,6 +44,7 @@ const context = {
   $: () => ({ on() {} }),
   __: (s, args = []) => args.reduce((text, value, index) => text.replace(`{${index}}`, value), s),
   setTimeout,
+  clearTimeout,
 };
 // Expose the existing class only inside the test VM, without a new public API.
 vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8').replace('api.sales_bill = {', 'api.sales_bill = { BillWorkbench, instances,'), context);
@@ -175,6 +180,23 @@ test('invoice tool actions use bundled, labelled Frappe icons', () => {
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
   assert.match(scss,/\.bnd-bill-action-icon[^}]*place-items:\s*center/);
   assert.match(scss,/\.bnd-bill-tools-body \.bnd-bill-action-label \{ flex: 1; \}/);
+});
+
+test('ZATCA setup states do not present inactive server and sync labels as live status', () => {
+  const proto=context.window.bunood_theme.sales_bill.BillWorkbench.prototype;
+  const render=(state, extra={})=>{
+    const w=Object.create(proto);
+    w.zatcaData={state,settings:{server:'Sandbox',sync:'Live'},invoice:{integration_status:'Queued'},...extra};
+    w.zatcaStatus={classList:{toggle(){}},textContent:''};
+    w.zatcaMeta={textContent:''}; w.zatcaButton={textContent:'',hidden:false};
+    w.busy=()=>{}; w.zatcaTimer=null;
+    proto.renderZatca.call(w);
+    return w.zatcaMeta.textContent;
+  };
+  for (const state of ['missing_app','needs_settings','disabled','needs_onboarding','needs_csid']) {
+    assert.equal(render(state),'',state);
+  }
+  assert.equal(render('ready_to_send'),'Sandbox · Live · Queued');
 });
 
 // Verbatim methods from the installed, already-pinned Frappe form/layout.js.

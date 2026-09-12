@@ -22,6 +22,44 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.22] — 2026-09-12 — Production-candidate stabilization (patch)
+
+### Fixed
+
+- Prevent locked Frappe v16's native SidebarHeader from generating
+  `/desk/undefined` requests for separators and iconless Navbar actions;
+  seed a bundled Appearance icon for fresh sites and upgrades.
+- Replace stale Create Entry onboarding flags with permission-aware
+  persisted-record progress while preserving native role checks, manual steps,
+  panel shape and completion behavior.
+- Keep onboarding contained inside the sidebar and add one accessible native
+  refresh control with loading, success and recoverable-error states.
+- Give Invoice Tools complete disclosure semantics, Escape/focus restoration
+  and stable control association.
+- Hide inactive ZATCA server/sync metadata until the connector is operational.
+- Prioritize amount and document identity in Sales and Purchase invoice lists
+  without replacing native actions or overriding saved user layouts.
+
+### Changed
+
+- Define the five Home KPIs on the server with explicit company, period,
+  currency, docstatus and drill-down filters. Counts, booked value, invoiced
+  value, outstanding receivables and average order value now share auditable
+  populations.
+- Render those metrics as keyboard-operable drill-down controls with visible
+  periods and Arabic coverage.
+
+### Checks
+
+- Focused patch regressions pass 100/100; server contracts pass 7/7.
+- Arabic coverage is complete for 1,213 source strings, all 47 emitted icon IDs
+  exist, all 9,184 contrast pairs pass WCAG 2.2 AA, and the asset/payload build
+  passes.
+- Live local evidence records zero undefined routes on the named route matrix,
+  exact KPI reconciliation, truthful Selling onboarding at 4/6, refresh
+  recovery with zero console errors, and an authenticated websocket event
+  delivered over the websocket transport.
+
 ## [0.44.21] — 2026-09-12 — Cached sidebar toggle rebinding (patch)
 
 - Rebind the page-head sidebar toggle during every cached-page reconciliation,

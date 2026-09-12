@@ -24,7 +24,6 @@ html[data-theme] .bnd-home-dashboard {
 .bnd-home-intro,
 .bnd-home-panel-head,
 .bnd-home-metric-top,
-.bnd-home-balance-top,
 .bnd-home-status-line,
 .bnd-home-recent {
   display: flex;
@@ -145,65 +144,20 @@ html[data-theme] .bnd-home-dashboard {
 
 .bnd-home-summary {
   display: grid;
-  grid-template-columns: minmax(280px, 1.55fr) repeat(3, minmax(175px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--bnd-sp-4);
   margin-block-end: var(--bnd-sp-4);
 }
 
-.bnd-home-balance,
 .bnd-home-metric,
 .bnd-home-panel {
   border-radius: var(--bnd-radius-xl);
   box-shadow: var(--bnd-shadow-sm);
 }
 
-.bnd-home-balance {
-  display: flex;
-  min-block-size: 172px;
-  flex-direction: column;
-  justify-content: space-between;
-  padding: var(--bnd-sp-5);
-  color: var(--bnd-on-brand);
-  background: var(--bnd-brand-solid);
-  border: var(--bnd-line) solid var(--bnd-brand-solid);
-}
-
-.bnd-home-balance-top {
-  gap: var(--bnd-sp-3);
-}
-
-.bnd-home-balance-icon {
-  display: grid;
-  inline-size: 42px;
-  block-size: 42px;
-  place-items: center;
-  background: color-mix(in srgb, var(--bnd-on-brand) 18%, transparent);
-  border-radius: var(--bnd-radius-md);
-  // WHITE GLYPH, GREEN WELL — in BOTH modes.
-  //
-  // The well inherited `--bnd-on-brand`, which is white in light mode but
-  // #16181d in dark (where the card flips to the lighter #68a370 and dark ink
-  // is what clears 4.5:1 for the LABEL). The glyph inherited that ink too, so
-  // the same card showed a white wallet in light and a charcoal one in dark.
-  //
-  // A glyph is a non-text graphic, so its bar is 3:1, not 4.5:1. The well's
-  // 18% ink wash darkens #68a370 to ~#598a61, and white on that is ~3.5:1 —
-  // it clears the graphic bar with room. So the icon is pinned to white here
-  // while the label and value keep `--bnd-on-brand` and their text contrast
-  // untouched. Overriding the card's ink wholesale would have failed the gate.
-  color: var(--bnd-ink-inverse);
-}
-
-.bnd-home-balance-icon > svg {
-  inline-size: var(--bnd-sp-5);
-  block-size: var(--bnd-sp-5);
-}
-
 // Home owns its icon wells rather than using Frappe's native .widget-icon.
-// Paint every sprite from the well's active ink so the balance icon is white
-// on brand green and the metric icons retain their categorical color.
+// Paint every sprite from the well's active ink.
 .bnd-home-dashboard :is(
-    .bnd-home-balance-icon,
     .bnd-home-icon,
     .bnd-home-action-icon,
     .bnd-home-panel-mark
@@ -213,7 +167,6 @@ html[data-theme] .bnd-home-dashboard {
 }
 
 .bnd-home-dashboard :is(
-    .bnd-home-balance-icon,
     .bnd-home-icon,
     .bnd-home-action-icon,
     .bnd-home-panel-mark
@@ -223,41 +176,51 @@ html[data-theme] .bnd-home-dashboard {
   stroke: none !important;
 }
 
-.bnd-home-balance-label {
-  font-weight: 650;
-}
-
-.bnd-home-balance-value {
-  margin-block: var(--bnd-sp-4) var(--bnd-sp-2);
-  font-size: clamp(var(--bnd-text-2xl), 3vw, 2.4rem);
-  font-weight: 780;
-  line-height: 1.2;
-  unicode-bidi: plaintext;
-}
-
-.bnd-home-balance-note {
-  color: color-mix(in srgb, var(--bnd-on-brand) 78%, transparent);
-  font-size: var(--bnd-text-xs);
-}
-
 .bnd-home-metric {
   --bnd-home-tone: var(--bnd-cat-1);
+  appearance: none;
   display: flex;
   min-block-size: 172px;
   flex-direction: column;
   justify-content: space-between;
   padding: var(--bnd-sp-5);
+  color: inherit;
   background: var(--bnd-surface);
   border: var(--bnd-line) solid var(--bnd-border);
   border-block-start: 4px solid var(--bnd-home-tone);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--bnd-dur-fast) var(--bnd-ease),
+    background var(--bnd-dur-fast) var(--bnd-ease),
+    transform var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+.bnd-home-metric:is(:hover, :focus-visible) {
+  background: var(--bnd-hover);
+  border-color: var(--bnd-home-tone);
+  transform: translateY(-1px);
+}
+
+.bnd-home-metric:focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-line-2);
 }
 
 .bnd-home-metric.is-teal {
   --bnd-home-tone: var(--bnd-cat-3);
 }
 
+.bnd-home-metric.is-brand {
+  --bnd-home-tone: var(--bnd-brand-solid);
+}
+
 .bnd-home-metric.is-gold {
   --bnd-home-tone: var(--bnd-cat-4);
+}
+
+.bnd-home-metric.is-violet {
+  --bnd-home-tone: var(--bnd-cat-2);
 }
 
 .bnd-home-metric-top {
@@ -294,6 +257,14 @@ html[data-theme] .bnd-home-dashboard {
   font-weight: 760;
   line-height: 1.25;
   unicode-bidi: plaintext;
+}
+
+.bnd-home-metric-period {
+  display: block;
+  margin-block-start: var(--bnd-sp-2);
+  color: var(--bnd-ink-subtle);
+  font-size: var(--bnd-text-xs);
+  line-height: var(--bnd-leading-base);
 }
 
 .bnd-home-grid {
@@ -696,10 +667,6 @@ html[data-theme] :is(.bnd-home-attn-row, .bnd-home-recent):focus-visible {
   .bnd-home-summary {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
-
-  .bnd-home-balance {
-    grid-column: 1 / -1;
-  }
 }
 
 @include bnd-until(lg) {
@@ -740,7 +707,6 @@ html[data-theme] :is(.bnd-home-attn-row, .bnd-home-recent):focus-visible {
     grid-template-columns: 1fr;
   }
 
-  .bnd-home-balance,
   .bnd-home-metric {
     grid-column: auto;
     min-block-size: 150px;

@@ -54,7 +54,21 @@ html[data-bnd-form] .point-of-sale-app {
   }
   .item-price, .grand-total, .total-amount { font-variant-numeric: var(--bnd-numeric); unicode-bidi: isolate; }
 }
-html[data-bnd-ws] .onb-panel {
+html[data-bnd-ws] .body-sidebar-container .user-onboarding {
+  position: absolute;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
+  min-block-size: 0;
+  z-index: var(--bnd-z-panel);
+}
+html[data-bnd-ws] .body-sidebar-container .user-onboarding .onb-panel {
+  position: static;
+  inline-size: 100%;
+  max-inline-size: 100%;
+  block-size: 100%;
+  max-block-size: 100%;
+  overflow-y: auto;
   background: var(--bnd-surface);
   color: var(--bnd-ink);
   border: var(--bnd-line-strong) solid var(--bnd-border-strong);
@@ -64,4 +78,40 @@ html[data-bnd-ws] .onb-panel {
   .onb-steps { gap: var(--bnd-sp-3); }
   .onb-group { padding-block: var(--bnd-sp-3); border-radius: var(--bnd-radius-md); }
   .onb-step-text { overflow-wrap: anywhere; }
+  .bnd-onboarding-refresh {
+    display: grid;
+    inline-size: var(--bnd-control-h);
+    block-size: var(--bnd-control-h);
+    place-items: center;
+    padding: 0;
+    color: var(--bnd-ink-muted);
+    background: transparent;
+    border: var(--bnd-line) solid transparent;
+    border-radius: var(--bnd-radius-sm);
+    cursor: pointer;
+  }
+  .bnd-onboarding-refresh:is(:hover, :focus-visible) {
+    color: var(--bnd-brand-ink);
+    background: var(--bnd-hover);
+    border-color: var(--bnd-border-strong);
+  }
+  .bnd-onboarding-refresh:focus-visible {
+    outline: var(--bnd-line-2) solid var(--bnd-accent);
+    outline-offset: var(--bnd-line);
+  }
+  .bnd-onboarding-refresh-icon,
+  .bnd-onboarding-refresh-icon > svg {
+    inline-size: var(--bnd-sp-4);
+    block-size: var(--bnd-sp-4);
+  }
+  .bnd-onboarding-status {
+    margin: 0;
+    padding: var(--bnd-sp-2) var(--bnd-sp-3);
+    color: var(--bnd-ink-muted);
+    background: var(--bnd-hover);
+    border-radius: var(--bnd-radius-sm);
+    font-size: var(--bnd-text-xs);
+  }
+  .bnd-onboarding-status:empty { display: none; }
 }
+html[data-bnd-ws] .body-sidebar-container:has(> .user-onboarding .onb-panel) > .overlay { display: none; }

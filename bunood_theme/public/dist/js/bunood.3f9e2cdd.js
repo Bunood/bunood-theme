@@ -118,6 +118,34 @@
 	// leaves the standard Workspace Sidebar document untouched for upgrades.
 	prepare_home_sidebar();
 
+	// Locked v16 parses separators and iconless Navbar rows as images whose
+	// source is "undefined". Newer Frappe has no add_app_item(), so this stands down.
+	function install_sidebar_header_menu_compat() {
+		const Header = typeof frappe !== "undefined" && frappe.ui && frappe.ui.SidebarHeader;
+		const prototype = Header && Header.prototype;
+		const native = prototype && prototype.add_app_item;
+		if (typeof native !== "function" || native._bnd_safe_menu) return false;
+
+		prototype.add_app_item = function (item) {
+			if (!item) return undefined;
+			if (item.is_divider) {
+				const separator = document.createElement("div");
+				separator.className = "dropdown-divider";
+				separator.setAttribute("role", "separator");
+				const menu = this.dropdown_menu && (this.dropdown_menu[0] || this.dropdown_menu);
+				if (menu && typeof menu.append === "function") menu.append(separator);
+				return separator;
+			}
+			item.name = item.name || item.item_label || item.label || "navbar-item";
+			item.route = item.route || "";
+			if (!item.icon && !item.icon_url) item.icon = "circle";
+			return native.call(this, item);
+		};
+		prototype.add_app_item._bnd_safe_menu = true;
+		return true;
+	}
+	install_sidebar_header_menu_compat();
+
 	// ════════════════════════════════════════════════════════════════════════
 	// Density (item 4) — unchanged behaviour, see git history for the decision.
 	// ════════════════════════════════════════════════════════════════════════
@@ -1237,6 +1265,52 @@
 		// Getting Started rides the same measure (item 42) — see _layouts.scss.
 		if (document.querySelector(".bnd-avatar-btn")) bnd_own("onboard");
 		else bnd_disown("onboard");
+	}
+
+	function enhance_onboarding_refresh() {
+		const panel = document.querySelector(".user-onboarding .onb-panel");
+		const header = panel && panel.querySelector(".onb-header-main");
+		const actions = header && header.querySelector(".onb-header-actions");
+		if (!actions) return false;
+		if (actions.querySelector(".bnd-onboarding-refresh")) return true;
+		const label = __("Refresh progress");
+		const button = el("button", "bnd-onboarding-refresh", {
+			type: "button", title: label, "aria-label": label,
+		});
+		button.appendChild(home_icon("icon-refresh-cw", "bnd-onboarding-refresh-icon"));
+		const status = el("p", "bnd-onboarding-status", {
+			role: "status", "aria-live": "polite",
+		});
+		header.after(status);
+		actions.prepend(button);
+		button.addEventListener("click", async () => {
+			const sidebar = frappe.app && frappe.app.sidebar;
+			const module = sidebar && sidebar.sidebar_data && sidebar.sidebar_data.module_onboarding;
+			if (!module || !sidebar.setup_onboarding) return;
+			button.disabled = true;
+			button.setAttribute("aria-busy", "true");
+			status.textContent = __("Refreshing progress");
+			try {
+				const data = await frappe.xcall("frappe.desk.desktop.get_onboarding_data", { module });
+				const errors = (data || []).flatMap(row => row.bnd_progress_errors || []);
+				if (errors.length) throw new Error(errors.join(", "));
+				delete sidebar.onboarding_widget[module];
+				await sidebar.setup_onboarding();
+				frappe.show_alert({
+					message: __(data && data.length ? "Progress refreshed" : "Setup is complete"),
+					indicator: "green",
+				});
+				if (data && data.length) try_for(enhance_onboarding_refresh, 20, 150);
+			} catch (e) {
+				status.textContent = __("Could not refresh progress. Try again.");
+			} finally {
+				if (button.isConnected) {
+					button.disabled = false;
+					button.removeAttribute("aria-busy");
+				}
+			}
+		});
+		return true;
 	}
 
 	/** Release an affordance back to Frappe's own control. */
@@ -8936,7 +9010,6 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	let home_sign = { code: "", symbol: "", right: false };
 
-	/** Record the site's currency sign from a dashboard payload. */
 	function home_sign_from(data) {
 		home_sign = {
 			code: data.currency || "",
@@ -8955,18 +9028,22 @@ function sb_zone_anchor(pane, zone, node) {
 	 * on the same site already read "⃁ 1,000.00". The sign is a fact on the
 	 * `Currency` record, so it is fetched. `Intl` still formats the NUMBER.
 	 */
-	function home_money(value, currency) {
+	function home_number(value) {
 		const amount = Number(value) || 0;
 		const language = document.documentElement.lang || "ar";
-		let text;
 		try {
-			text = new Intl.NumberFormat(language, {
+			return new Intl.NumberFormat(language, {
 				maximumFractionDigits: 0,
 				numberingSystem: BND_NUMERALS,
 			}).format(amount);
 		} catch (e) {
-			text = amount.toLocaleString();
+			return amount.toLocaleString();
 		}
+	}
+
+	function home_money(value, currency) {
+		const text = home_number(value);
+		const language = document.documentElement.lang || "ar";
 		const code = currency || home_sign.code;
 		if (!code) return text;
 		const known = code === home_sign.code && home_sign.symbol;
@@ -9092,16 +9169,33 @@ function sb_zone_anchor(pane, zone, node) {
 		return { panel, head };
 	}
 
-	function home_metric(label, value, currency, symbol, tone) {
-		const card = el("article", `bnd-home-metric is-${tone}`);
+	const HOME_KPI_VISUALS = {
+		order_count: ["icon-shopping-cart", "blue"],
+		booked_value: ["icon-chart-no-axes-column-increasing", "teal"],
+		invoiced_value: ["icon-invoice", "brand"],
+		outstanding_value: ["icon-receipt-text", "gold"],
+		average_order_value: ["icon-chart-column", "violet"],
+	};
+
+	function home_metric(metric, currency) {
+		const visual = HOME_KPI_VISUALS[metric.key] || ["icon-chart-column", "blue"];
+		const card = el("button", "bnd-home-metric is-" + visual[1], { type: "button" });
 		const top = el("div", "bnd-home-metric-top");
-		top.appendChild(home_icon(symbol));
+		top.appendChild(home_icon(visual[0]));
 		const caption = el("span", "bnd-home-metric-label");
-		caption.textContent = home_text(label);
+		caption.textContent = home_text(metric.label);
 		top.appendChild(caption);
 		const amount = el("strong", "bnd-home-metric-value");
-		amount.textContent = home_money(value, currency);
-		card.append(top, amount);
+		amount.textContent = metric.value_type === "count"
+			? home_number(metric.value)
+			: home_money(metric.value, currency);
+		const period = el("span", "bnd-home-metric-period");
+		period.textContent = home_text(metric.period_label);
+		card.append(top, amount, period);
+		card.addEventListener("click", () =>
+			frappe.set_route("List", metric.doctype, metric.filters));
+		card.setAttribute("aria-label",
+			[caption.textContent, amount.textContent, period.textContent].filter(Boolean).join(" · "));
 		return card;
 	}
 
@@ -9233,7 +9327,6 @@ function sb_zone_anchor(pane, zone, node) {
 		root.replaceChildren();
 		// Before anything formats money: every home_money() below reads this.
 		home_sign_from(data);
-		const metrics = data.metrics || {};
 		const currency = data.currency || "SAR";
 
 		const intro = el("header", "bnd-home-intro");
@@ -9251,23 +9344,7 @@ function sb_zone_anchor(pane, zone, node) {
 		root.appendChild(intro);
 
 		const summary = el("section", "bnd-home-summary", { "aria-label": home_text("Financial summary") });
-		const hero = el("article", "bnd-home-balance");
-		const hero_top = el("div", "bnd-home-balance-top");
-		hero_top.appendChild(home_icon("icon-wallet", "bnd-home-balance-icon"));
-		const hero_label = el("span", "bnd-home-balance-label");
-		hero_label.textContent = home_text("Cash and bank balance");
-		hero_top.appendChild(hero_label);
-		const hero_value = el("strong", "bnd-home-balance-value");
-		hero_value.textContent = home_money(metrics.cash_balance, currency);
-		const hero_note = el("span", "bnd-home-balance-note");
-		hero_note.textContent = home_text("Available across cash and bank accounts");
-		hero.append(hero_top, hero_value, hero_note);
-		summary.append(
-			hero,
-			home_metric("Sales this month", metrics.sales_month, currency, "icon-chart-no-axes-column-increasing", "blue"),
-			home_metric("Outstanding receivables", metrics.receivables, currency, "icon-receipt-text", "teal"),
-			home_metric("Outstanding payables", metrics.payables, currency, "icon-credit-card", "gold")
-		);
+		for (const metric of data.kpis || []) summary.appendChild(home_metric(metric, currency));
 		root.appendChild(summary);
 
 		const grid = el("div", "bnd-home-grid");
@@ -9777,6 +9854,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// The notification kit owns the bell (and the badge Frappe lacks).
 		mount_inbox();
 		stamp_appearance_route();
+		try_for(enhance_onboarding_refresh, 40, 150);
 		try_for(() => mount_home_dashboard(), 40, 150);
 
 		if (frappe.router && frappe.router.on) {
@@ -9806,6 +9884,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// routes to Appearance — so the claim on Frappe's Display item is
 				// re-measured rather than assumed (item 38).
 				stamp_appearance_route();
+				try_for(enhance_onboarding_refresh, 40, 150);
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();
 				// The ONE container that has to remount per route: page heads
@@ -9860,6 +9939,7 @@ function sb_zone_anchor(pane, zone, node) {
 	const api = window.bunood_theme = window.bunood_theme || {};
 	const instances = new WeakMap();
 	let errorId = 0;
+	let controlId = 0;
 	const PROFILES = {
 		"Sales Invoice": {
 			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
@@ -10050,13 +10130,19 @@ function sb_zone_anchor(pane, zone, node) {
 			commitActions.setAttribute("role", "group"); commitActions.setAttribute("aria-label", __("Draft actions"));
 			const tools = node("details", "bnd-bill-tools", null, toolbar);
 			const toolsTrigger = node("summary", "", __("Invoice tools"), tools);
+			const toolBody = node("div", "bnd-bill-tools-body", null, tools);
+			toolBody.id = `bnd-bill-tools-${++controlId}`;
+			toolsTrigger.setAttribute("role", "button");
+			toolsTrigger.setAttribute("aria-haspopup", "true");
+			toolsTrigger.setAttribute("aria-controls", toolBody.id);
+			toolsTrigger.setAttribute("aria-expanded", String(tools.open));
+			tools.addEventListener("toggle", () => toolsTrigger.setAttribute("aria-expanded", String(tools.open)));
 			tools.addEventListener("keydown", e => {
 				if (e.key === "Escape" && tools.open) { e.preventDefault(); e.stopPropagation(); tools.open = false; toolsTrigger.focus(); }
 			});
 			tools.addEventListener("click", e => {
 				if (e.target.closest("button")) { const restoreFocus = tools.contains(document.activeElement); tools.open = false; if (restoreFocus) toolsTrigger.focus(); }
 			}, true);
-			const toolBody = node("div", "bnd-bill-tools-body", null, tools);
 			const documentActions = node("div", "bnd-bill-action-group bnd-bill-action-group-document", null, toolBody);
 			documentActions.setAttribute("role", "group"); documentActions.setAttribute("aria-label", __("Invoice actions"));
 			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolBody);
@@ -10503,7 +10589,9 @@ function sb_zone_anchor(pane, zone, node) {
 			this.zatcaStatus.classList.toggle("bnd-bill-error", state === "rejected" || state === "missing_app");
 			this.zatcaStatus.textContent = messages[state] || __("ZATCA status is temporarily unavailable.");
 			const settings = data.settings || {}, invoice = data.invoice || {};
-			this.zatcaMeta.textContent = [settings.server, settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ");
+			const operational = ["ready", "preparing", "ready_to_send", "accepted", "accepted_with_warnings", "rejected", "clearance_off"].includes(state);
+			this.zatcaMeta.textContent = operational ?
+				[settings.server, settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
 			let label = "";
 			if (["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"].includes(state)) label = __("ZATCA settings");
 			else if (state === "preparing") label = __("Refresh status");

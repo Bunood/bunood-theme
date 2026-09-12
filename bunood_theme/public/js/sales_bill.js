@@ -8,6 +8,7 @@
 	const api = window.bunood_theme = window.bunood_theme || {};
 	const instances = new WeakMap();
 	let errorId = 0;
+	let controlId = 0;
 	const PROFILES = {
 		"Sales Invoice": {
 			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
@@ -198,13 +199,19 @@
 			commitActions.setAttribute("role", "group"); commitActions.setAttribute("aria-label", __("Draft actions"));
 			const tools = node("details", "bnd-bill-tools", null, toolbar);
 			const toolsTrigger = node("summary", "", __("Invoice tools"), tools);
+			const toolBody = node("div", "bnd-bill-tools-body", null, tools);
+			toolBody.id = `bnd-bill-tools-${++controlId}`;
+			toolsTrigger.setAttribute("role", "button");
+			toolsTrigger.setAttribute("aria-haspopup", "true");
+			toolsTrigger.setAttribute("aria-controls", toolBody.id);
+			toolsTrigger.setAttribute("aria-expanded", String(tools.open));
+			tools.addEventListener("toggle", () => toolsTrigger.setAttribute("aria-expanded", String(tools.open)));
 			tools.addEventListener("keydown", e => {
 				if (e.key === "Escape" && tools.open) { e.preventDefault(); e.stopPropagation(); tools.open = false; toolsTrigger.focus(); }
 			});
 			tools.addEventListener("click", e => {
 				if (e.target.closest("button")) { const restoreFocus = tools.contains(document.activeElement); tools.open = false; if (restoreFocus) toolsTrigger.focus(); }
 			}, true);
-			const toolBody = node("div", "bnd-bill-tools-body", null, tools);
 			const documentActions = node("div", "bnd-bill-action-group bnd-bill-action-group-document", null, toolBody);
 			documentActions.setAttribute("role", "group"); documentActions.setAttribute("aria-label", __("Invoice actions"));
 			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolBody);
@@ -651,7 +658,9 @@
 			this.zatcaStatus.classList.toggle("bnd-bill-error", state === "rejected" || state === "missing_app");
 			this.zatcaStatus.textContent = messages[state] || __("ZATCA status is temporarily unavailable.");
 			const settings = data.settings || {}, invoice = data.invoice || {};
-			this.zatcaMeta.textContent = [settings.server, settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ");
+			const operational = ["ready", "preparing", "ready_to_send", "accepted", "accepted_with_warnings", "rejected", "clearance_off"].includes(state);
+			this.zatcaMeta.textContent = operational ?
+				[settings.server, settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
 			let label = "";
 			if (["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"].includes(state)) label = __("ZATCA settings");
 			else if (state === "preparing") label = __("Refresh status");

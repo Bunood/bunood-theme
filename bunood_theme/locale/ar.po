@@ -7413,3 +7413,47 @@ msgstr "يتطلب الخصم بالنسبة المئوية سعرًا للصن�
 #. src: observed Purchase Invoice PDF, reviewed 2026-09-11
 msgid "Update Outstanding for Self"
 msgstr "تحديث المتبقي على هذا المستند"
+
+#. src: ai — Home KPI contract reviewed 2026-09-12
+msgid "As of today"
+msgstr "حتى اليوم"
+
+#. src: ai — Home KPI contract reviewed 2026-09-12
+msgid "Average order value"
+msgstr "متوسط قيمة أمر البيع"
+
+#. src: ai — Home KPI contract reviewed 2026-09-12
+msgid "Booked value"
+msgstr "قيمة أوامر البيع"
+
+#. src: ai — Home KPI contract reviewed 2026-09-12
+msgid "Invoiced value"
+msgstr "القيمة المفوترة"
+
+#. src: ai — Home KPI contract reviewed 2026-09-12
+msgid "Month to date"
+msgstr "منذ بداية الشهر"
+
+#. src: ai — Home KPI contract reviewed 2026-09-12
+msgid "Orders"
+msgstr "أوامر البيع"
+
+#. src: ai — onboarding progress contract reviewed 2026-09-12
+msgid "Could not refresh progress. Try again."
+msgstr "تعذّر تحديث التقدم. حاول مرة أخرى."
+
+#. src: ai — onboarding progress contract reviewed 2026-09-12
+msgid "Progress refreshed"
+msgstr "تم تحديث التقدم."
+
+#. src: ai — onboarding progress contract reviewed 2026-09-12
+msgid "Refresh progress"
+msgstr "تحديث التقدم"
+
+#. src: ai — onboarding progress contract reviewed 2026-09-12
+msgid "Refreshing progress"
+msgstr "جارٍ تحديث التقدم"
+
+#. src: ai — onboarding progress contract reviewed 2026-09-12
+msgid "Setup is complete"
+msgstr "اكتمل الإعداد"
