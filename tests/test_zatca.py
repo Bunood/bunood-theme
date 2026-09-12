@@ -78,6 +78,31 @@ class ZatcaStateTests(unittest.TestCase):
             ["integration_status", "invoice_xml"],
         )
 
+    def test_only_accounts_or_system_managers_can_queue(self):
+        original_roles = getattr(self.zatca.frappe, "get_roles", None)
+        original_throw = getattr(self.zatca.frappe, "throw", None)
+
+        def deny(message, exception):
+            raise exception(message)
+
+        try:
+            self.zatca.frappe.throw = deny
+            self.zatca.frappe.get_roles = lambda: ["Sales User", "Accounts User"]
+            with self.assertRaisesRegex(PermissionError, "Only an Accounts Manager"):
+                self.zatca._require_submit_role()
+            for role in ("Accounts Manager", "System Manager"):
+                self.zatca.frappe.get_roles = lambda role=role: [role]
+                self.zatca._require_submit_role()
+        finally:
+            if original_roles is None:
+                delattr(self.zatca.frappe, "get_roles")
+            else:
+                self.zatca.frappe.get_roles = original_roles
+            if original_throw is None:
+                delattr(self.zatca.frappe, "throw")
+            else:
+                self.zatca.frappe.throw = original_throw
+
 
 if __name__ == "__main__":
     unittest.main()

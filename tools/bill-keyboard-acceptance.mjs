@@ -118,14 +118,25 @@ async function focusByTab(page, fieldname, limit = 120) {
 }
 
 async function configurePurchaseReference(page, stamp) {
+	const reference = "BND-KBD-" + stamp;
 	await focusByTab(page, "bill_no");
 	await page.keyboard.press("Control+A");
-	await page.keyboard.type("BND-KBD-" + stamp);
+	await page.keyboard.type(reference);
 	const postingDate = await page.locator('.bnd-bill-party [data-fieldname="posting_date"] input').inputValue();
+	const modelDate = await page.evaluate(() => cur_frm.doc.posting_date);
 	await focusByTab(page, "bill_date");
 	await page.keyboard.press("Control+A");
 	await page.keyboard.type(postingDate);
 	await page.keyboard.press("Tab");
+	await page.waitForFunction(
+		expected => cur_frm.doc.bill_no === expected.reference &&
+			cur_frm.doc.bill_date === expected.modelDate,
+		{ reference, modelDate },
+		{ timeout: 20000 },
+	);
+	await page.waitForFunction(() =>
+		cur_frm.$wrapper[0].querySelector(".bnd-bill")?.getAttribute("aria-busy") === "false",
+	null, { timeout: 20000 });
 }
 
 async function addThreeLines(page, items) {
@@ -168,6 +179,47 @@ async function addThreeLines(page, items) {
 		);
 	}
 	return quantities;
+}
+
+async function totalsSnapshot(page) {
+	await page.waitForFunction(() =>
+		cur_frm?.$wrapper?.[0]?.querySelector(".bnd-bill")?.getAttribute("aria-busy") === "false");
+	const snapshot = await page.evaluate(() => {
+		const frm = cur_frm;
+		const doc = frm.doc;
+		const api = window.bunood_theme.sales_bill;
+		const root = frm.$wrapper[0].querySelector(".bnd-bill:not([hidden])");
+		const names = ["net_total", "discount_amount", "total_taxes_and_charges", "rounding_adjustment"]
+			.filter(name => {
+				const field = frm.fields_dict[name];
+				return field && field.get_status() !== "None" && api.showSummary(name, doc);
+			});
+		const totalName = api.totalField(frm);
+		if (frm.fields_dict[totalName]?.get_status() !== "None") names.push(totalName);
+		const format = name => {
+			const field = frm.fields_dict[name];
+			return window.format_number(
+				doc[name] || 0,
+				window.get_number_format(doc.currency),
+				frappe.meta.get_field_precision(field.df, doc),
+			);
+		};
+		return {
+			names,
+			expected: names.map(format),
+			rendered: [...root.querySelectorAll(".bnd-bill-totals > div")]
+				.map(pair => pair.querySelector("bdi")?.textContent?.trim() || ""),
+			mobile: root.querySelector(".bnd-bill-mobile-total bdi")?.textContent?.trim() || "",
+			docstatus: Number(doc.docstatus),
+		};
+	});
+	assert(snapshot.rendered.length === snapshot.expected.length,
+		"totals rail field count differs from the native document: " + JSON.stringify(snapshot));
+	assert(snapshot.rendered.every((value, index) => value === snapshot.expected[index]),
+		"totals rail differs from the native document: " + JSON.stringify(snapshot));
+	assert(snapshot.mobile === snapshot.expected.at(-1),
+		"mobile total differs from the native document: " + JSON.stringify(snapshot));
+	return snapshot;
 }
 
 async function focusSubmitByTab(page, limit = 240) {
@@ -219,6 +271,7 @@ async function runBill(page, fixture, spec) {
 		await configurePurchaseReference(page, Date.now().toString(36).toUpperCase());
 	}
 	const quantities = await addThreeLines(page, fixture.items);
+	const draftTotals = await totalsSnapshot(page);
 	await page.keyboard.press("F2");
 	await page.waitForFunction(
 		() => !cur_frm.doc.__islocal && !cur_frm.is_dirty(),
@@ -227,6 +280,7 @@ async function runBill(page, fixture, spec) {
 	);
 	const name = await page.evaluate(() => cur_frm.doc.name);
 	const tabsToSubmit = await submitWithKeyboard(page);
+	const submittedTotals = await totalsSnapshot(page);
 	const saved = await page.evaluate(async ({ doctype, name }) => {
 		const doc = await frappe.xcall("frappe.client.get", { doctype, name });
 		return {
@@ -246,7 +300,60 @@ async function runBill(page, fixture, spec) {
 	assert(saved.items.every((row, index) =>
 		row.item_code === fixture.items[index] && row.qty === quantities[index]),
 	spec.doctype + " line data changed after submit");
-	return { ...saved, tabsToSubmit };
+	return { ...saved, tabsToSubmit, draftTotals, submittedTotals };
+}
+
+async function zatcaAcceptance(page, invoiceName) {
+	await page.goto(URL_BASE + "/desk/sales-invoice/" + encodeURIComponent(invoiceName),
+		{ waitUntil: "domcontentloaded", timeout: 60000 });
+	await page.waitForFunction(() =>
+		cur_frm?.doctype === "Sales Invoice" && cur_frm.doc?.docstatus === 1 &&
+		!!cur_frm.$wrapper?.[0]?.querySelector('[data-bnd-part="zatca-status"]'),
+	null, { timeout: 30000 });
+	await page.waitForFunction(() => {
+		const text = cur_frm.$wrapper[0].querySelector('[data-bnd-part="zatca-status"] p')?.textContent || "";
+		return text && !text.includes("Checking");
+	}, null, { timeout: 30000 });
+	const result = await page.evaluate(async name => {
+		const statusResponse = await fetch(
+			"/api/method/bunood_theme.zatca.status.get_status?invoice_name=" + encodeURIComponent(name));
+		const statusBody = await statusResponse.text();
+		let status = {};
+		try { status = JSON.parse(statusBody).message || {}; } catch (_) { /* asserted below */ }
+		const keys = [];
+		const collect = value => {
+			if (!value || typeof value !== "object") return;
+			for (const [key, child] of Object.entries(value)) { keys.push(key); collect(child); }
+		};
+		collect(status);
+		const root = cur_frm.$wrapper[0].querySelector(".bnd-bill:not([hidden])");
+		return {
+			state: status.state,
+			statusStatus: statusResponse.status,
+			statusBody: statusResponse.ok ? "" : statusBody.slice(0, 1000),
+			keys,
+			zatcaMeta: root.querySelector('[data-bnd-part="zatca-status"] .bnd-bill-hint + .bnd-bill-hint')?.textContent?.trim() || "",
+		};
+	}, invoiceName);
+	const csrf = await page.evaluate(() => frappe.csrf_token);
+	const denial = await page.context().request.post(
+		URL_BASE + "/api/method/bunood_theme.zatca.status.queue_invoice", {
+			headers: { "X-Frappe-CSRF-Token": csrf },
+			data: { invoice_name: invoiceName },
+		});
+	result.queueStatus = denial.status();
+	result.queueBody = await denial.text();
+	assert(result.statusStatus === 200 && result.state,
+		"ordinary user could not read credential-free ZATCA status: " + JSON.stringify(result));
+	for (const forbidden of ["secret", "security_token", "production_secret", "production_security_token"]) {
+		assert(!result.keys.includes(forbidden), "ZATCA status exposed credential key " + forbidden);
+	}
+	assert(!/Sandbox|Production|Live/i.test(result.zatcaMeta),
+		"ordinary user saw technical ZATCA environment metadata: " + result.zatcaMeta);
+	assert(result.queueStatus >= 400 && /Only an Accounts Manager or System Manager/.test(result.queueBody),
+		"ordinary user was not denied ZATCA send: " + JSON.stringify(result));
+	delete result.queueBody;
+	return result;
 }
 
 let browser;
@@ -281,12 +388,14 @@ try {
 		partyField: "supplier",
 		fixtureField: "supplier",
 	});
+	const zatca = await zatcaAcceptance(page, sales.name);
 	assert(errors.length === 0, "browser errors: " + errors.join(" | "));
 	console.log(JSON.stringify({
 		user: USER,
 		roles: ["Sales User", "Purchase User", "Accounts User"],
 		sales,
 		purchase,
+		zatca,
 		errors,
 	}, null, 2));
 } finally {

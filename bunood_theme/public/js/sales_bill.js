@@ -339,7 +339,17 @@
 			const findItem = e.altKey && e.key.toLowerCase() === "i";
 			if (!keys[e.key] && !save && !findItem) return;
 			e.preventDefault(); e.stopImmediatePropagation();
-			if (save) this.save(); else if (findItem) this.picker?.set_focus(); else keys[e.key]();
+			if (save) this.save(); else if (findItem) {
+				const focus = () => setTimeout(() => frappe.after_ajax().then(() => {
+					const workbench = instances.get(window.cur_frm);
+					if (workbench?.active()) workbench.picker?.set_focus();
+				}), 0);
+				const settle = () => {
+					document.activeElement?.blur?.();
+					setTimeout(() => { if (this.queue.count) this.queue.tail.then(focus); else focus(); }, 0);
+				};
+				if (this.queue.count) this.queue.tail.then(settle); else settle();
+			} else keys[e.key]();
 		}
 		setMode(simple) {
 			this.simple = simple; this.root.hidden = !simple; if (this.native) this.native.hidden = simple;
@@ -734,8 +744,9 @@
 			this.zatcaStatus.textContent = messages[state] || __("ZATCA status is temporarily unavailable.");
 			const settings = data.settings || {}, invoice = data.invoice || {};
 			const operational = ["ready", "preparing", "ready_to_send", "accepted", "accepted_with_warnings", "rejected", "clearance_off"].includes(state);
+			const technical = (frappe.boot?.user?.roles || []).some(role => ["Accounts Manager", "System Manager"].includes(role));
 			this.zatcaMeta.textContent = operational ?
-				[settings.server, settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
+				[technical && settings.server, technical && settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
 			let label = "";
 			if (["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"].includes(state)) label = __("ZATCA settings");
 			else if (state === "preparing") label = __("Refresh status");

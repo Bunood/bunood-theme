@@ -73,6 +73,9 @@ test('spreadsheet keyboard flow commits a cell and advances without stealing ope
   assert.match(source, /shortcut\(e, local = false\) \{[\s\S]*?!this\.simple \|\| \(!local && !this\.active\(\)\)[\s\S]*?e\.target\?\.closest\?\.\("\.modal"\)/);
   assert.match(source, /this\.action\(utilityActions, __\("Find item"\), "Alt\+I", "search"/);
   assert.match(source, /const findItem = e\.altKey && e\.key\.toLowerCase\(\) === "i"/);
+  assert.match(source, /const focus = \(\) => setTimeout\(\(\) => frappe\.after_ajax\(\)\.then/);
+  assert.match(source, /document\.activeElement\?\.blur\?\.\(\);[\s\S]*?this\.queue\.tail\.then\(focus\)/);
+  assert.match(source, /if \(this\.queue\.count\) this\.queue\.tail\.then\(settle\); else settle\(\)/);
   assert.match(source, /focusNextLineControl\(control\)/);
   assert.match(source, /e\.key !== "Enter" \|\| e\.isComposing/);
   assert.match(source, /\.awesomplete > ul:not\(\[hidden\]\)/);
@@ -232,21 +235,49 @@ test('invoice tool actions use bundled, labelled Frappe icons', () => {
   assert.match(scss,/\.bnd-bill-tools-body \.bnd-bill-action-label \{ flex: 1; \}/);
 });
 
-test('ZATCA setup states do not present inactive server and sync labels as live status', () => {
+test('ZATCA states are actionable and technical metadata is manager-only', () => {
   const proto=context.window.bunood_theme.sales_bill.BillWorkbench.prototype;
-  const render=(state, extra={})=>{
+  const render=(state, extra={}, roles=['Sales User'])=>{
+    context.frappe.boot={user:{roles}};
     const w=Object.create(proto);
-    w.zatcaData={state,settings:{server:'Sandbox',sync:'Live'},invoice:{integration_status:'Queued'},...extra};
-    w.zatcaStatus={classList:{toggle(){}},textContent:''};
+    w.zatcaData={state,settings:{server:'Sandbox',sync:'Live'},invoice:{},...extra};
+    let error=false;
+    w.zatcaStatus={classList:{toggle(_name,value){error=value;}},textContent:''};
     w.zatcaMeta={textContent:''}; w.zatcaButton={textContent:'',hidden:false};
-    w.busy=()=>{}; w.zatcaTimer=null;
+    w.busy=()=>{}; w.loadZatca=()=>{}; w.zatcaTimer=null;
     proto.renderZatca.call(w);
-    return w.zatcaMeta.textContent;
+    clearTimeout(w.zatcaTimer);
+    return {status:w.zatcaStatus.textContent,meta:w.zatcaMeta.textContent,
+      action:w.zatcaButton.textContent,hidden:w.zatcaButton.hidden,error};
   };
-  for (const state of ['missing_app','needs_settings','disabled','needs_onboarding','needs_csid']) {
-    assert.equal(render(state),'',state);
+  const setup={
+    missing_app:['The ZATCA connector is not installed on this site.','',true,true],
+    needs_settings:['Create ZATCA Business Settings for this company.','ZATCA settings',false,false],
+    disabled:['ZATCA integration is disabled for this company.','ZATCA settings',false,false],
+    needs_onboarding:['Complete device onboarding with the OTP from Fatoora.','ZATCA settings',false,false],
+    needs_csid:['Run compliance checks, then obtain the production CSID.','ZATCA settings',false,false],
+    ready:['ZATCA is ready. This invoice will be prepared when it is submitted.','ZATCA settings',false,false],
+    preparing:['The signed invoice is being prepared for ZATCA.','Refresh status',false,false],
+  };
+  for (const [state,[status,action,hidden,error]] of Object.entries(setup)) {
+    const view=render(state);
+    assert.deepEqual([view.status,view.action,view.hidden,view.error],[status,action,hidden,error],state);
+    assert.equal(view.meta,'',state);
   }
-  assert.equal(render('ready_to_send'),'Sandbox · Live · Queued');
+  const invoice={name:'ZATCA-1',integration_status:'Queued'};
+  const sendable=render('ready_to_send',{can_queue:true,invoice});
+  assert.equal(sendable.action,'Send to ZATCA');
+  assert.equal(sendable.meta,'Queued');
+  assert.equal(render('ready_to_send',{can_queue:true,invoice},['Accounts Manager']).meta,'Sandbox · Live · Queued');
+  for (const [state,status,error] of [
+    ['accepted','ZATCA accepted this invoice.',false],
+    ['accepted_with_warnings','ZATCA accepted this invoice with warnings.',false],
+    ['rejected','ZATCA rejected this invoice. Open the validation record before correcting it.',true],
+    ['clearance_off','ZATCA clearance is switched off. Review the validation record and company settings.',false],
+  ]) {
+    const view=render(state,{invoice});
+    assert.deepEqual([view.status,view.action,view.error],[status,'View ZATCA record',error],state);
+  }
 });
 
 // Verbatim methods from the installed, already-pinned Frappe form/layout.js.

@@ -22,6 +22,29 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.25] — 2026-09-12 — Role-safe totals and ZATCA states (patch)
+
+### Fixed
+
+- Restrict ZATCA server/environment and synchronization metadata to Accounts
+  Managers and System Managers while retaining understandable invoice status
+  and actions for ordinary users.
+- Settle the active native Purchase reference field and its mutation queue
+  before the browser-safe `Alt+I` item search receives focus.
+
+### Checks
+
+- All 68 focused Sales/Purchase client contracts and all four server ZATCA
+  classification/role contracts pass.
+- A least-privilege Sales/Purchase/Accounts user completed both three-line
+  invoices without a mouse. Every visible totals-rail and mobile-total value
+  matched the native document at both draft and submitted states.
+- The same user received a credential-free `needs_settings` response, saw no
+  technical environment metadata, and received HTTP 403 when attempting to
+  queue the submitted Sales Invoice. The browser reported zero errors.
+- Final payloads remain inside the recorded ceilings: 32,727-byte CSS gzip and
+  157,528-byte JavaScript gzip, with no new runtime dependency or data model.
+
 ## [0.44.24] — 2026-09-12 — Keyboard transaction acceptance (patch)
 
 ### Fixed
