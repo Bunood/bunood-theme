@@ -2152,10 +2152,99 @@
 		if (list_a11y_observer || typeof MutationObserver === "undefined" || !document.body) return;
 		list_a11y_observer = new MutationObserver(records => {
 			for (const record of records) for (const added of record.addedNodes) {
-				if (added.nodeType === Node.ELEMENT_NODE) label_list_checkboxes(added);
+				if (added.nodeType !== Node.ELEMENT_NODE) continue;
+				label_list_checkboxes(added);
+				// List modules are lazy-loaded after the Desk shell. The list node is
+				// the first lifecycle signal that cur_list must now exist; install at
+				// that boundary so the initial one-time chrome mount is not a race.
+				if (added.matches?.(".frappe-list") || added.querySelector?.(".frappe-list"))
+					install_list_recovery();
 			}
 		});
 		list_a11y_observer.observe(document.body, { childList: true, subtree: true });
+	}
+
+	/**
+	 * Give a failed native list refresh a recoverable, in-context state.
+	 *
+	 * Frappe v16's ListView.refresh() returns the complete native refresh Promise
+	 * (including BaseList's server call) and keeps
+	 * filters, saved view, paging and the last rendered rows on rejection, but it
+	 * has no list-owned error UI. This adapter observes only that Promise. It
+	 * never changes the request, response, render or permission path; Retry calls
+	 * the original method through the wrapper after clearing `last_args`, whose
+	 * no-change throttle would otherwise suppress the exact failed request.
+	 */
+	function clear_list_recovery(list) {
+		list?.$frappe_list?.[0]?.querySelector(":scope > .bnd-list-recovery")?.remove();
+	}
+
+	function render_list_recovery(list) {
+		const host = list?.$frappe_list?.[0];
+		if (!host?.isConnected) return;
+		clear_list_recovery(list);
+		if (typeof list.freeze === "function") list.freeze(false);
+		// BaseList.no_change() records the arguments before the request settles.
+		// A rejected request must remain retryable with the same filters.
+		list.last_args = null;
+		const state = el("div", "bnd-list-recovery", {
+			role: "alert",
+			"aria-live": "assertive",
+		});
+		const icon = el("span", "bnd-list-recovery-icon", { "aria-hidden": "true" });
+		icon.appendChild(sprite_icon("icon-circle-alert"));
+		const message = el("p", "bnd-list-recovery-message");
+		message.textContent = __("Could not refresh this list. Check your connection and try again.");
+		const retry = el("button", "btn btn-default btn-sm bnd-list-retry", { type: "button" });
+		const retryIcon = el("span", "bnd-list-retry-icon", { "aria-hidden": "true" });
+		retryIcon.appendChild(sprite_icon("icon-refresh-cw"));
+		retry.append(retryIcon, document.createTextNode(__("Retry")));
+		retry.addEventListener("click", () => {
+			retry.disabled = true;
+			retry.setAttribute("aria-busy", "true");
+			clear_list_recovery(list);
+			list.last_args = null;
+			// The wrapper has already rendered any second failure. Consume it here
+			// so a click handler never creates an unhandled rejection.
+			Promise.resolve(list.refresh()).catch(() => {});
+		});
+		state.append(icon, message, retry);
+		host.insertBefore(state, host.firstChild);
+	}
+
+	function install_list_recovery() {
+		// Frappe's page factory assigns a bound own `refresh` function to each
+		// live list instance, shadowing ListView.prototype. Patch that exact
+		// function: it is the request path users and native controls invoke.
+		const list = window.cur_list;
+		if (!list?.$frappe_list?.[0]?.isConnected || typeof list.refresh !== "function") return false;
+		if (list.refresh._bnd_list_recovery) return true;
+		const nativeRefresh = list.refresh;
+		function bndRefresh(...args) {
+			clear_list_recovery(this);
+			let request;
+			try {
+				request = bndRefresh._bnd_native.apply(this, args);
+			} catch (error) {
+				render_list_recovery(this);
+				throw error;
+			}
+			if (!request || typeof request.then !== "function") return request;
+			return Promise.resolve(request).then(
+				value => {
+					clear_list_recovery(this);
+					return value;
+				},
+				error => {
+					render_list_recovery(this);
+					throw error;
+				}
+			);
+		}
+		bndRefresh._bnd_list_recovery = true;
+		bndRefresh._bnd_native = nativeRefresh;
+		list.refresh = bndRefresh;
+		return true;
 	}
 
 	/**
@@ -9994,6 +10083,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 		observe_sidebar_width();
 		observe_list_accessibility();
+		try_for(install_list_recovery, 40, 150);
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
 		observe_bottom_reserve();
@@ -10128,6 +10218,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// re-measured rather than assumed (item 38).
 				stamp_appearance_route();
 				try_for(enhance_onboarding_refresh, 40, 150);
+				try_for(install_list_recovery, 40, 150);
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();
 				// The ONE container that has to remount per route: page heads
