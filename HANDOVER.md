@@ -2433,6 +2433,30 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   The reason it was worth doing: item 43 shipped a width setting that reached two of seven
   families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
   A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
+- **The local stack's socket.io never connected, and the local convenience is why.**
+  `realtime/middlewares/authenticate.js` refuses a connection unless
+  `hostname(Host) == hostname(Origin)`; the frontend image's nginx template pins
+  `Origin` to `FRAPPE_SITE_NAME_HEADER` and lets `Host` follow the browser, and
+  `compose.local.yaml` pins that header to `demo.bunood.test` *so that plain
+  `http://localhost:8080` works without a hosts entry*. They agree only if you browse
+  AT the site name. Past that check there is a second fault that is invisible until the
+  first is fixed: `realtime/utils.js` `get_url()` calls the site back at the origin it
+  was handed — `http://demo.bunood.test`, port 80, which nothing here serves
+  (ECONNREFUSED) and which does not resolve inside the compose network. The fix is a
+  local template (Host pinned to the site name, Origin carrying `$server_port`) plus a
+  `demo.bunood.test` network alias on the frontend; either alone still fails. **The
+  suite had never once run with a working socket** — so anything realtime governs
+  (Frappe 16 does not redraw a timeline in place without the channel) was untested here.
+- **`nginx -t` or `-s reload` run as ROOT creates nginx's temp directories owned by
+  `nobody`, and the workers then cannot write them.** nginx running as root defaults its
+  worker user to `nobody`; these containers run as `frappe` (uid 1000). The symptom is
+  narrow and misleading: only a request whose body outgrows `client_body_buffer_size`
+  (16K) has to spill to disk, so everything works until one big POST — the print page's
+  `get_html_and_style`, which sends a whole doc — gets **nginx's own HTML 500**, which
+  the browser reports as `SyntaxError: Unexpected token '<'` and the console-error
+  budget reports against whichever check was running. Nothing reaches the Error Log,
+  the bench logs or gunicorn, because the request never reached Frappe. Reload as the
+  container's own user, and give nginx temp paths it creates itself.
 - **A check that drives a documented FAILURE path is writing to a store, and the Error Log
   is a store.** 345 of this site's 560 unseen rows were the suite's own: the print sheet's
   two sabotage probes and the SVG-logo check, whose `/files/mark.png` has no file behind it
