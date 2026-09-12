@@ -3995,7 +3995,7 @@ const BND_LIST_FIELDS = ["list_style", "list_hover", "list_selection", "list_che
 
 /** Client mirror of presets.LIST_DEFAULTS — keep in sync. */
 const BND_LIST_DEFAULTS = {
-	list_style: "Floating Cards",
+	list_style: "Hairline Rows",
 	list_hover: "Edge Rail",
 	list_selection: "Bold Bar",
 	list_checkbox_reveal: 1,

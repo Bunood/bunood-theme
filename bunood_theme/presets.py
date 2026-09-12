@@ -412,12 +412,10 @@ LIST_FIELDS = [
     "list_checkbox_reveal",
 ]
 
-#: The shipped list defaults — the user's own picks from the item-16 wireframe
-#: round (2026-08-09): 1C Floating Cards, 2B Edge Rail, 3C Bold Bar, 4A reveal.
-#: The bolder option each time, consistent with the sidebar re-choice the day
-#: before. "Original" stays one click away for anyone who wants stock rows.
+#: The shipped list defaults. Dense, separated rows are the operational ERP
+#: baseline; cards remain available for users who prefer a softer catalogue.
 LIST_DEFAULTS = {
-    "list_style": "Floating Cards",
+    "list_style": "Hairline Rows",
     "list_hover": "Edge Rail",
     # One treatment for checked rows AND the bulk header: they are one state,
     # and splitting them is how a solid brand bar ends up over neutral rows.

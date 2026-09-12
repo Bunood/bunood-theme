@@ -47,9 +47,9 @@
 //     indifferent to. Shadows appear on hover only, so overflow-y: hidden
 //     clips nothing at rest.
 //
-// DESIGN RECORD (item-16 wireframe round, 2026-08-09): defaults are the
-// user's picks 1C Floating Cards · 2B Edge Rail · 3C Bold Bar · 4A reveal.
-// "Open Rows" joined in the market-survey round (the Linear/Notion look).
+// DESIGN RECORD: Hairline Rows is the dense operational default; Floating
+// Cards remains a selectable catalogue treatment. Edge Rail, Bold Bar and
+// checkbox reveal continue to compose independently.
 // References: frappe-ui ListRow (hover/selected precedence), Directus tabular
 // (checkbox reveal), Directus _list-interface.scss (the working-set shape),
 // Discourse _topic-list.scss (zebra/hairline coexistence).
@@ -174,6 +174,17 @@ html[data-bnd-list="cards"] .result .list-row-container:hover {
 // ── Hover ───────────────────────────────────────────────────────────────────
 html[data-bnd-list] .result .list-row-container:hover {
   background: var(--bnd-list-hover-bg);
+}
+// Native Frappe paints focus with the same inner-row wash as hover. Keep that
+// inner paint transparent and give keyboard focus its own inset boundary, so
+// hover, focus and checked selection remain three distinct states even inside
+// the list's clipped scrolling viewport.
+html[data-bnd-list] .result .list-row-container:has(:focus-visible) {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: calc(-1 * var(--bnd-line-2));
+}
+html[data-bnd-list] .result .list-row-container:has(:focus-visible) > .list-row {
+  background: transparent;
 }
 // The rail: an absolutely positioned ::before, because box-shadow has no
 // logical variant and a border would shift content. inset-inline-start

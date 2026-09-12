@@ -6253,6 +6253,15 @@ html[data-bnd-list] .result .list-row-container:hover {
   background: var(--bnd-list-hover-bg);
 }
 
+html[data-bnd-list] .result .list-row-container:has(:focus-visible) {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: calc(-1 * var(--bnd-line-2));
+}
+
+html[data-bnd-list] .result .list-row-container:has(:focus-visible) > .list-row {
+  background: transparent;
+}
+
 html[data-bnd-list] .result .list-row-container::before {
   content: "";
   position: absolute;

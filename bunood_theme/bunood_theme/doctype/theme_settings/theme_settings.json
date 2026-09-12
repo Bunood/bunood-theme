@@ -1256,7 +1256,7 @@
    "label": "List Picker"
   },
   {
-   "default": "Floating Cards",
+   "default": "Hairline Rows",
    "description": "Set by the picker above. How rows draw their boundaries.",
    "fieldname": "list_style",
    "fieldtype": "Select",
