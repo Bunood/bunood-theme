@@ -38,8 +38,8 @@ html.bunood[data-theme][data-bnd-overlay-menu="plain"] .awesomplete > [role="lis
 }
 
 html.bunood[data-theme] .saved-filter-item .dropdown-item:focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
   box-shadow: 0 0 0 4px var(--bnd-on-brand);
 }
 

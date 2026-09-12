@@ -35,6 +35,24 @@ test('profiles preserve task fields and required fallback fields', () => {
   assert.equal(selected.has('internal_note'),false);
   assert.ok(Object.keys(profiles).length >= 20);
 });
+test('real-estate masters and lease use explicit task-ordered profiles', () => {
+  const expected = {
+    Property: ['property_name', 'company', 'property_kind', 'usage_type', 'status', 'floor_plan', 'deeds', 'ownership_shares'],
+    'Real Estate Unit': ['unit_name', 'property', 'unit_kind', 'is_leasable', 'status', 'area'],
+    Lease: ['company', 'property', 'contract_type', 'our_role', 'tenant', 'start_date', 'end_date', 'renewal_mode', 'tenancies'],
+  };
+  for (const [doctype, fields] of Object.entries(expected)) {
+    assert.ok(Array.isArray(profiles[doctype]), `${doctype} must not use metadata-only fallback`);
+    let previous = -1;
+    for (const field of fields) {
+      const index = profiles[doctype].indexOf(field);
+      assert.ok(index > previous, `${doctype}.${field} must exist in task order`);
+      previous = index;
+    }
+  }
+  for (const table of ['floor_plan', 'deeds', 'ownership_shares']) assert.ok(profiles.Property.includes(table));
+  assert.ok(profiles.Lease.includes('tenancies'));
+});
 test('explicit profiles exclude bold specialist add-ons but retain empty mandatory fields', () => {
   const payment=frm('Payment Entry');
   payment.doc.company='Bunood Demo';

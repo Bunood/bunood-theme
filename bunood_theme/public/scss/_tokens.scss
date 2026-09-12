@@ -122,6 +122,7 @@
   // `contrast_gate.py` exempts both on that evidence. Opt in per component.
   --bnd-line-strong: 1px;
   --bnd-line-2: 2px; // Visible keyboard focus boundary for owned navigation controls.
+  --bnd-focus-offset: 2px; // Keeps focus rings clear of the control boundary.
   // Usable form width before a split login composition adds its padding.
   --bnd-auth-form-min: 320px;
   --bnd-border: rgba(0, 0, 0, 0.09);

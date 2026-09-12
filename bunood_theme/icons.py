@@ -37,6 +37,22 @@ WHAT STAYS BOUNDED AND HAND-AUTHORED
     tag-index enrichment that would widen coverage is a later, build-time step.
 """
 
+#: Exact untranslated DocType name → distinct, verified sprite id. This is the
+#: semantic layer for the seven everyday records users must be able to tell
+#: apart at a glance. It intentionally keys on `link_to`, never the translated
+#: display label. `icon_for_item` checks it after a row's deliberately chosen
+#: icon but before the generic DocType icon map, whose legacy values collapse
+#: Supplier/Customer and Item/Warehouse onto the same symbols.
+EXACT_NAME_ICONS = {
+    "customer": "icon-customer",
+    "supplier": "icon-handshake",
+    "item": "icon-package",
+    "warehouse": "icon-warehouse",
+    "property": "icon-land-plot",
+    "real estate unit": "icon-building-2",
+    "lease": "icon-key-round",
+}
+
 #: `link_to` / DocType-name keyword → sprite id. Matched case-insensitively as a
 #: SUBSTRING, most specific first (the first hit wins). This is the shrunk
 #: descendant of bunood.js's 14-row SB_ICON_HINTS — every id here is confirmed
@@ -245,7 +261,10 @@ def sprite_for_name(name):
     display label."""
     if not name:
         return None
-    low = str(name).lower()
+    low = str(name).strip().casefold()
+    exact = EXACT_NAME_ICONS.get(low)
+    if exact:
+        return exact
     for words, symbol in NAME_HINTS:
         for w in words:
             if w in low:
@@ -262,9 +281,10 @@ def icon_for_item(item, doctype_icons=None, sprite_ids=None):
     strongest-first:
 
       1. The ROW'S OWN icon, wherever it resolves to a real sprite id.
-      2. The DocType's icon (168 doctypes carry one), reached for a DocType
+      2. An exact everyday-record semantic icon.
+      3. The DocType's icon (168 doctypes carry one), reached for a DocType
          link and for a Report via its `ref_doctype`.
-      3. A keyword hit on the untranslated `link_to`.
+      4. A keyword hit on the untranslated `link_to`.
 
     THE ORDER IS ITEM 42's, AND IT IS THE REVERSE OF WHAT SHIPPED. Inference
     used to run the doctype map first and the keyword pass second, overriding
@@ -311,7 +331,17 @@ def icon_for_item(item, doctype_icons=None, sprite_ids=None):
     if own:
         return own
 
-    # 2. The doctype's own icon.
+    # 2. Exact everyday-record semantics beat the legacy DocType icon map.
+    #    ERPNext maps Supplier to customer, Item to tag, and Warehouse to
+    #    organization on the pinned stack; treating those as authoritative
+    #    would make the exact layer unreachable in the real boot path.
+    if link_type == "DocType" and link_to:
+        exact = EXACT_NAME_ICONS.get(str(link_to).strip().casefold())
+        if exact:
+            return exact
+
+    # 3. The doctype's own icon. Reports retain their ref-DocType icon because
+    #    an exact record icon describes a record link, not the report itself.
     doctype = None
     if link_type == "DocType" and link_to:
         doctype = link_to
@@ -321,5 +351,5 @@ def icon_for_item(item, doctype_icons=None, sprite_ids=None):
     if doctype and doctype_icons and doctype in doctype_icons:
         return doctype_icons[doctype]
 
-    # 3. Keyword on the untranslated name.
+    # 4. Keyword on the untranslated name.
     return sprite_for_name(link_to or item.get("label"))

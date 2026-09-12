@@ -63,13 +63,30 @@ def check_ids_exist():
 
 def check_inference():
     """(2) Behaviour, including the language-independence that is the point."""
-    # Keyword inference keys off the untranslated name.
+    # The seven everyday DocTypes have exact, distinct semantics. These checks
+    # also prove every selected id is part of the shipped sprite snapshot via
+    # `check_ids_exist` above.
+    exact_cases = {
+        "Customer": "icon-customer",
+        "Supplier": "icon-handshake",
+        "Item": "icon-package",
+        "Warehouse": "icon-warehouse",
+        "Property": "icon-land-plot",
+        "Real Estate Unit": "icon-building-2",
+        "Lease": "icon-key-round",
+    }
+    assert len(set(exact_cases.values())) == len(exact_cases), \
+        "exact everyday DocType icons must be distinct"
+    for name, want in exact_cases.items():
+        got = icons.sprite_for_name(name)
+        assert got == want, f"sprite_for_name({name!r}) = {got!r}, wanted {want!r}"
+
+    # Keyword inference remains the long-tail fallback.
     cases = {
         "Sales Invoice": "icon-receipt",
         "Purchase Invoice": "icon-receipt",
         "Tax Template": "icon-percent",
         "Stock Entry": "icon-stock",
-        "Customer": "icon-users",
         "Journal Entry": "icon-file-text",
         "Purchase Order": "icon-buying",
         "Sales Order": "icon-shopping-cart",
@@ -86,27 +103,66 @@ def check_inference():
     assert icons.sprite_for_name("Sales Invoice") != icons.sprite_for_name("Tax Template"), \
         "invoice and tax must resolve to different icons"
 
-    # THE ARABIC PROOF. icon_for_item reads link_to, never label — so an Arabic
-    # display label resolves the same icon as the English desk. This is the one
-    # assertion the whole server-side design exists to make true.
+    # THE ARABIC PROOF. All exact semantic icons follow untranslated `link_to`,
+    # never the visible label, so translated desks resolve identically.
+    arabic_labels = {
+        "Customer": "عميل",
+        "Supplier": "مورد",
+        "Item": "صنف",
+        "Warehouse": "مستودع",
+        "Property": "عقار",
+        "Real Estate Unit": "وحدة عقارية",
+        "Lease": "عقد إيجار",
+    }
+    for link_to, label in arabic_labels.items():
+        got = icons.icon_for_item(
+            {"link_to": link_to, "link_type": "DocType", "label": label}
+        )
+        assert got == exact_cases[link_to], \
+            f"Arabic-label parity broken for {link_to!r}: {got!r}"
+
+    # The general untranslated-name contract still holds outside exact names.
     en = icons.icon_for_item({"link_to": "Stock Entry", "link_type": "DocType", "label": "Stock Entry"})
     ar = icons.icon_for_item({"link_to": "Stock Entry", "link_type": "DocType", "label": "قيد مخزون"})
     assert en == ar == "icon-stock", f"Arabic parity broken: en={en!r} ar={ar!r}"
 
-    # A doctype's OWN icon outranks the keyword pass.
-    dt_icons = {"Sales Invoice": "icon-receipt", "Warehouse": "icon-stock"}
+    # Runtime precedence is deliberate: row-owned icon, exact everyday record,
+    # explicit DocType/ref-DocType icon, then substring inference. The map
+    # below mirrors the generic values observed on the pinned local stack.
+    present = set(json.load(io.open(FIXTURE, encoding="utf-8"))["ids"])
+    dt_icons = {
+        "Sales Invoice": "icon-receipt",
+        "Customer": "icon-customer",
+        "Supplier": "icon-customer",
+        "Item": "icon-tag",
+        "Warehouse": "icon-organization",
+        "Property": "icon-organization",
+        "Real Estate Unit": "icon-organization",
+        "Lease": "icon-file-text",
+    }
     assert icons.icon_for_item(
-        {"link_to": "Warehouse", "link_type": "DocType"}, dt_icons
-    ) == "icon-stock"
+        {"link_to": "Warehouse", "link_type": "DocType", "icon": "home"},
+        dt_icons,
+        present,
+    ) == "icon-home", "row-owned icon must outrank exact and explicit mappings"
+    for name, want in exact_cases.items():
+        got = icons.icon_for_item(
+            {"link_to": name, "link_type": "DocType"}, dt_icons
+        )
+        assert got == want, \
+            f"runtime map bypassed exact semantic icon for {name!r}: {got!r}"
+
+    assert icons.icon_for_item(
+        {"link_to": "Sales Invoice", "link_type": "DocType"}, dt_icons
+    ) == "icon-receipt", "non-exact DocTypes retain their explicit icon"
 
     # A Report resolves through its ref_doctype.
     assert icons.icon_for_item(
         {"link_to": "Stock Ledger", "link_type": "Report", "report": {"ref_doctype": "Warehouse"}},
         dt_icons,
-    ) == "icon-stock"
+    ) == "icon-organization", "reports retain the explicit ref-DocType icon"
 
     # FontAwesome mapping: aliases and the direct path (guarded by the id set).
-    present = set(json.load(io.open(FIXTURE, encoding="utf-8"))["ids"])
     assert icons.sprite_for_fa("fa fa-cog") == "icon-setting-gear"
     assert icons.sprite_for_fa("fa fa-truck") == "icon-stock"
     assert icons.sprite_for_fa("fa fa-calendar", present) == "icon-calendar"  # direct

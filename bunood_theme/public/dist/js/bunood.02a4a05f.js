@@ -11173,9 +11173,7 @@ function sb_zone_anchor(pane, zone, node) {
 	});
 })();
 
-// Bunood Simple mode: progressive disclosure over the CURRENT native Frappe
-// form. It does not create controls, copy values, persist a second model, or
-// bypass native permissions. Advanced mode removes only Bunood's CSS classes.
+// Progressive disclosure over native Frappe controls; Advanced restores the original layout.
 /* global frappe, __, $ */
 (() => {
 	"use strict";
@@ -11218,6 +11216,9 @@ function sb_zone_anchor(pane, zone, node) {
 		Supplier: ["supplier_name", "supplier_group", "supplier_type", "country", "tax_id", "mobile_no", "email_id", "default_currency", "default_price_list"],
 		Item: ["item_code", "item_name", "item_group", "stock_uom", "is_stock_item", "is_sales_item", "is_purchase_item", "standard_rate", "valuation_rate", "description", "barcodes", "item_defaults"],
 		Warehouse: ["warehouse_name", "company", "is_group", "parent_warehouse", "warehouse_type", "account", "disabled"],
+		Property: ["property_name", "company", "property_kind", "usage_type", "status", "national_address", "address", "land_area", "floor_plan", "deeds", "ownership_shares"],
+		"Real Estate Unit": ["unit_name", "property", "parent_real_estate_unit", "unit_kind", "unit_type", "unit_number", "floor_number", "is_group", "is_leasable", "status", "area"],
+		Lease: ["company", "property", "contract_type", "contract_form", "our_role", "tenant_type", "tenant", "lessor_type", "lessor", "start_date", "end_date", "renewal_mode", "tenancies", "ejar_status", "ejar_contract_id", "terms_template"],
 		BOM: ["item", "company", "quantity", "uom", "is_active", "is_default", "with_operations", "operations", "items", "total_cost"],
 		"Work Order": ["production_item", "bom_no", "company", "qty", "planned_start_date", "planned_end_date", "source_warehouse", "wip_warehouse", "fg_warehouse", "operations", "required_items", "produced_qty"],
 		"Job Card": ["work_order", "operation", "company", "for_quantity", "workstation", "employee", "time_logs", "total_completed_qty"],
@@ -11262,8 +11263,7 @@ function sb_zone_anchor(pane, zone, node) {
 	function candidate(frm) {
 		const meta = frm?.meta;
 		if (!frm?.doc || !meta || meta.istable || meta.issingle || EXCLUDED_MODULES.has(meta.module)) return false;
-		// Ordinary invoices have the purpose-built bill workbench. Returns, POS,
-		// amendments and mapped invoices deliberately stay in native Advanced mode.
+		// Invoices use their purpose-built workbench; exceptional variants stay native.
 		return !["Sales Invoice", "Purchase Invoice"].includes(frm.doctype);
 	}
 	function fallbackFields(frm) {
@@ -11272,9 +11272,7 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const df of frm.meta.fields || []) {
 			if (!df.fieldname) continue;
 			if (profile) {
-				// Installed apps often mark specialist options bold. An explicit task
-				// profile stays explicit, but an empty mandatory field must remain
-				// reachable so native validation never becomes a dead end.
+				// Empty mandatory fields stay reachable so native validation cannot dead-end.
 				const control = frm.fields_dict?.[df.fieldname];
 				if (df.reqd && !df.hidden && control?.get_status?.() === "Write" && [null, undefined, ""].includes(frm.doc[df.fieldname])) fields.add(df.fieldname);
 			} else {

@@ -21,6 +21,7 @@
   --bnd-line: 0.5px;
   --bnd-line-strong: 1px;
   --bnd-line-2: 2px;
+  --bnd-focus-offset: 2px;
   --bnd-auth-form-min: 320px;
   --bnd-border: rgba(0, 0, 0, 0.09);
   --bnd-border-strong: rgba(0, 0, 0, 0.16);
@@ -590,8 +591,8 @@ html.bunood[data-theme][data-bnd-overlay-menu=plain] .awesomplete > [role=listbo
 }
 
 html.bunood[data-theme] .saved-filter-item .dropdown-item:focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
   box-shadow: 0 0 0 4px var(--bnd-on-brand);
 }
 
@@ -1378,7 +1379,9 @@ html[data-theme] .bnd-dock-divider {
 html[data-theme] .bnd-cluster {
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-1);
+  flex: 1;
+  gap: var(--bnd-sp-2);
+  position: relative;
 }
 
 html[data-theme] .bnd-icon-btn {
@@ -1751,8 +1754,8 @@ html[data-theme] .bnd-acct-company:focus-visible,
 html[data-theme] .bnd-acct-company-opt:focus-visible,
 html[data-theme] .bnd-acct-panel:focus-visible,
 html[data-theme] .bnd-dock-item:focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
 }
 
 html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
@@ -1760,16 +1763,8 @@ html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
 .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
 .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
 .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank):focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
-}
-
-html[data-theme] .bnd-cluster {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: var(--bnd-sp-2);
-  position: relative;
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
 }
 
 html[data-theme] .bnd-zone {

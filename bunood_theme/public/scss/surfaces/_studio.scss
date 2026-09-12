@@ -100,8 +100,8 @@ html[data-theme] .bnd-studio {
 	.bnd-studio__search:focus-visible,
 	.bnd-studio__caret:focus-visible,
 	.bnd-studio__picker-item:focus-visible {
-		outline: 2px solid var(--bnd-accent);
-		outline-offset: 2px;
+		outline: var(--bnd-line-2) solid var(--bnd-accent);
+		outline-offset: var(--bnd-focus-offset);
 	}
 
 	.bnd-studio__soon {
@@ -155,8 +155,8 @@ html[data-theme] .bnd-studio {
 		}
 
 		&:focus-visible {
-			outline: 2px solid var(--bnd-accent);
-			outline-offset: 2px;
+			outline: var(--bnd-line-2) solid var(--bnd-accent);
+			outline-offset: var(--bnd-focus-offset);
 		}
 
 		&.is-missing {
@@ -475,7 +475,7 @@ html[data-theme] .bnd-studio {
 		align-items: center;
 		gap: var(--bnd-sp-3);
 		padding: var(--bnd-sp-3);
-		border-block-end: 1px solid var(--bnd-line);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
 	}
 
 	.bnd-studio__search {
@@ -489,9 +489,9 @@ html[data-theme] .bnd-studio {
 		color: var(--bnd-ink);
 		font-size: var(--bnd-text-sm);
 
-		&:focus {
-			outline: 2px solid color-mix(in srgb, var(--bnd-accent) 55%, transparent);
-			outline-offset: 0;
+		&:focus-visible {
+			outline: var(--bnd-line-2) solid color-mix(in srgb, var(--bnd-accent) 55%, transparent);
+			outline-offset: var(--bnd-focus-offset);
 		}
 	}
 
@@ -532,7 +532,7 @@ html[data-theme] .bnd-studio {
 		}
 
 		tbody tr {
-			border-block-end: 1px solid var(--bnd-line);
+			border-block-end: var(--bnd-line) solid var(--bnd-border);
 			transition: background var(--bnd-dur-fast) var(--bnd-ease);
 
 			&:hover {
@@ -876,7 +876,7 @@ html[data-theme] .bnd-studio--present {
 			inset-block-end: 0;
 			inset-inline: 0;
 			padding-block-start: var(--bnd-sp-1);
-			border-block-start: 1px solid var(--bnd-line);
+			border-block-start: var(--bnd-line) solid var(--bnd-border);
 			color: var(--bnd-ink-muted);
 			font-size: var(--bnd-text-xs);
 			text-align: center;
@@ -916,7 +916,7 @@ html[data-theme] .bnd-studio--present {
 			th,
 			td {
 				white-space: normal;
-				border: 1px solid var(--bnd-line);
+				border: var(--bnd-line) solid var(--bnd-border);
 				padding-block: var(--bnd-sp-1);
 				padding-inline: var(--bnd-sp-2);
 			}

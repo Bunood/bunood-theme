@@ -24,7 +24,9 @@
 html[data-theme] .bnd-cluster {
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-1);
+  flex: 1;
+  gap: var(--bnd-sp-2);
+  position: relative;
 }
 
 // Icon buttons: bell, dock search, compact-layout search. 28px square — the
@@ -485,8 +487,8 @@ html[data-theme] .bnd-acct-company:focus-visible,
 html[data-theme] .bnd-acct-company-opt:focus-visible,
 html[data-theme] .bnd-acct-panel:focus-visible,
 html[data-theme] .bnd-dock-item:focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
 }
 
 // The rest of every control build.mjs's assertRingCoverage guard can see —
@@ -503,8 +505,8 @@ html[data-theme] :is(
   .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
   .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank
 ):focus-visible {
-  outline: 2px solid var(--bnd-accent);
-  outline-offset: 1px;
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
 }
 
 // ── Zones: start · centre · end, inside every container ─────────────────────
@@ -521,14 +523,6 @@ html[data-theme] :is(
 // and would also cancel the end zone's auto margin and drag it to the leading
 // edge. That regression shipped once already (item 14) and is why
 // `.bnd-search-center` works this way too.
-html[data-theme] .bnd-cluster {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  gap: var(--bnd-sp-2);
-  position: relative;
-}
-
 html[data-theme] .bnd-zone {
   display: flex;
   align-items: center;
