@@ -22,6 +22,21 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.20] — 2026-09-12 — All Apps Home route restoration (patch)
+
+### Fixed
+
+- Restore one labelled Home button in Frappe's native All Apps navbar when the
+  configured Bunood bars are disabled, so the module grid can always return to
+  `/desk/home` without editing the URL.
+- Remove the native fallback whenever a Bunood shell owns navigation, keeping
+  the global Home action singular in desktop, mobile, LTR and RTL layouts.
+
+### Checks
+
+The focused Home-entry regression and a real local All Apps navigation check
+cover the native-navbar fallback. No broad suite is repeated for this patch.
+
 ## [0.44.19] — 2026-09-12 — Reviewed Real Estate release pin (patch)
 
 ### Fixed

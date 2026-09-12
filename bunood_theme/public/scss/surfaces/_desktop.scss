@@ -47,6 +47,46 @@
 // on the rest, from one stylesheet. A tile is a tile wherever it sits.
 $desktop-item: ".desktop-icon";
 
+// Frappe's private All Apps navbar is the fail-open shell when the configured
+// Bunood bars are all disabled. Give that shell the one route it otherwise
+// lacks: a clear, labelled return to the operational Home dashboard. The
+// runtime removes this control as soon as a Bunood shell owns navigation, so
+// there is never a duplicate Home action.
+html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 40px;
+  margin-inline-start: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  gap: var(--bnd-sp-2);
+  color: var(--bnd-brand-ink);
+  background: var(--bnd-active);
+  border: 1px solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-lg);
+  font-weight: var(--bnd-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+
+  .bnd-mobile-nav-label {
+    display: block;
+  }
+
+  svg {
+    inline-size: 20px;
+    block-size: 20px;
+    flex: none;
+    --icon-stroke: currentColor;
+  }
+
+  &:is(:hover, :focus-visible) {
+    color: var(--bnd-brand-ink);
+    background: var(--bnd-hover);
+    border-color: var(--bnd-brand-solid);
+  }
+}
+
 html[data-bnd-desk] {
   .desktop-wrapper .icons {
     gap: clamp(var(--bnd-sp-4), 2vw, var(--bnd-sp-5));

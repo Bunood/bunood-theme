@@ -2171,6 +2171,21 @@
 		}
 	}
 
+	function sync_native_desktop_home(has_bunood_shell) {
+		const existing = document.querySelector(".desktop-navbar .bnd-desktop-native-home");
+		if (!on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []) || has_bunood_shell) {
+			if (existing) existing.remove();
+			return;
+		}
+
+		const brand = document.querySelector(".desktop-wrapper .desktop-navbar .navbar-home");
+		if (!brand || existing) return;
+
+		const button = build_quick_link("home", true);
+		button.classList.add("bnd-desktop-native-home");
+		brand.insertAdjacentElement("afterend", button);
+	}
+
 	/**
 	 * Make the All Apps page choose ONE global shell.
 	 *
@@ -2212,6 +2227,7 @@
 			"data-bnd-desktop-shell",
 			html.hasAttribute("data-bnd-desktop") && !!(mobile ? mobile_shell : desktop_shell)
 		);
+		sync_native_desktop_home(!!(mobile ? mobile_shell : desktop_shell));
 
 		// This is a workspace drawer opener, not a second Home/Apps destination.
 		// Name it by that job wherever Frappe remounts a page head.

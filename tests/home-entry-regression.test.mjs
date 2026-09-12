@@ -58,6 +58,19 @@ test("Home actions can wrap inside their available width", () => {
 	// This guards the source rule only. Real clipping is checked in the browser.
 });
 
+test("the native All Apps navbar receives one permanent Home route", () => {
+	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
+	assert.match(source, /function sync_native_desktop_home\(has_bunood_shell\)/);
+	assert.match(source, /\.desktop-navbar \.bnd-desktop-native-home/);
+	assert.match(source, /brand\.insertAdjacentElement\("afterend", button\)/);
+	assert.match(source, /build_quick_link\("home", true\)/);
+	const shell = source.slice(source.indexOf("function sync_desktop_shell()"), source.indexOf("function desktop_symbol"));
+	assert.ok(
+		shell.indexOf("sync_native_desktop_home") < shell.indexOf("if (!bar) return"),
+		"the native fallback must run even when no Bunood status bar exists",
+	);
+});
+
 test("a personal workspace route runs before the Bunood Home fallback", () => {
 	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
 	const personal = source.indexOf("if (!apply_home_route()) land_on_home();");
