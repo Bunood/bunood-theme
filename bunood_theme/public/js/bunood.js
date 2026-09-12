@@ -113,6 +113,12 @@
 		};
 	}
 
+	function allowed_report_names(boot = window.frappe?.boot) {
+		return new Set(Object.keys(boot?.allowed_reports || {}));
+	}
+
+	const HOME_ALLOWED_REPORTS = allowed_report_names();
+
 	function prepare_home_sidebar() {
 		const boot = window.frappe && frappe.boot;
 		const sidebars = boot && boot.workspace_sidebar_item;
@@ -2328,7 +2334,7 @@
 		// Home's drawer trigger stands down only after its complete replacement
 		// navigation exists. The ownership token makes a failed mobile mount fall
 		// back to Frappe's working hamburger instead of hiding the last route.
-		if (mobile_shell && on_home_route()) bnd_own("mobilehome");
+		if (mobile_shell && on_role_home_route()) bnd_own("mobilehome");
 		else bnd_disown("mobilehome");
 		html.toggleAttribute(
 			"data-bnd-desktop-shell",
@@ -8971,6 +8977,29 @@ function sb_zone_anchor(pane, zone, node) {
 		return typeof __ === "function" ? __(source) : source;
 	}
 
+	// Server payloads carry stable English labels so drill-down contracts remain
+	// language-neutral. This keyed catalogue makes every dynamic label visible
+	// to the extractor and supplies the localized UI copy at render time.
+	const HOME_COPY = {
+		active_properties: __("Active properties"),
+		available_units: __("Available units"),
+		active_leases: __("Active leases"),
+		billing_due: __("Billing due"),
+		overdue_collections: __("Overdue collections"),
+		sales_drafts: __("Sales drafts"),
+		purchase_drafts: __("Purchase drafts"),
+		overdue_receivables: __("Overdue receivables"),
+		payables_due: __("Payables due soon"),
+		stock_below_reorder: __("Stock below reorder"),
+		zatca_exceptions: __("VAT and ZATCA exceptions"),
+		setup_gaps: __("Setup gaps"),
+		leases_expiring: __("Leases expiring"),
+		collections_overdue: __("Collections overdue"),
+		deposits_action: __("Deposits needing action"),
+		ejar_exceptions: __("Ejar exceptions"),
+		owner_payouts: __("Owner payouts awaiting release"),
+	};
+
 	/** The greeting for a browser-local hour (or Date), exposed for regression tests. */
 	function home_greeting_text(hourOrDate) {
 		let hour;
@@ -8995,7 +9024,7 @@ function sb_zone_anchor(pane, zone, node) {
 	/** Update the cached Home page in place; navigation or a reload is unnecessary. */
 	function home_refresh_greeting(hourOrDate) {
 		const text = home_greeting_text(hourOrDate);
-		const host = on_home_route() ? home_host() : null;
+		const host = on_role_home_route() ? home_host() : null;
 		const title = host && host.querySelector(":scope > .bnd-home-dashboard .bnd-home-title");
 		if (title) title.textContent = text;
 		return text;
@@ -9005,7 +9034,7 @@ function sb_zone_anchor(pane, zone, node) {
 	/** Re-evaluate at the next local 05:00 / 12:00 / 17:00 / 22:00 boundary. */
 	function home_schedule_greeting() {
 		home_clear_greeting_timer();
-		if (!on_home_route()) return;
+		if (!on_role_home_route()) return;
 		const now = new Date();
 		let next = null;
 		for (const hour of [5, 12, 17, 22]) {
@@ -9030,7 +9059,7 @@ function sb_zone_anchor(pane, zone, node) {
 	bunood.home_schedule_greeting = home_schedule_greeting;
 
 	document.addEventListener("visibilitychange", () => {
-		if (document.visibilityState !== "visible" || !on_home_route()) return;
+		if (document.visibilityState !== "visible" || !on_role_home_route()) return;
 		home_refresh_greeting();
 		home_schedule_greeting();
 	});
@@ -9177,13 +9206,22 @@ function sb_zone_anchor(pane, zone, node) {
 	 * between Frappe versions; the first that exists wins and a miss costs a
 	 * glyph, not the button.
 	 */
-	const HOME_TASKS = [
-		["Sales Invoice", "New sales invoice", ["icon-invoice", "icon-file", "icon-plus"]],
-		["Purchase Invoice", "Record a purchase", ["icon-buying", "icon-shopping-cart", "icon-file"]],
-		["Payment Entry", "Receive payment", ["icon-money", "icon-money-coins-1", "icon-file"]],
-		["Stock Entry", "Stock entry", ["icon-stock", "icon-package", "icon-file"]],
-		["Customer", "New customer", ["icon-users", "icon-user", "icon-organization"]],
-	];
+	const HOME_TASKS = {
+		erp: [
+			["Sales Invoice", "New sales invoice", ["icon-invoice", "icon-file", "icon-plus"]],
+			["Purchase Invoice", "Record a purchase", ["icon-buying", "icon-shopping-cart", "icon-file"]],
+			["Payment Entry", "Receive payment", ["icon-money", "icon-money-coins-1", "icon-file"]],
+			["Stock Entry", "Stock entry", ["icon-stock", "icon-package", "icon-file"]],
+			["Customer", "New customer", ["icon-users", "icon-user", "icon-organization"]],
+		],
+		real_estate: [
+			["Property", __("New property"), ["icon-building", "icon-organization", "icon-plus"]],
+			["Real Estate Unit", __("New unit"), ["icon-grid", "icon-home", "icon-plus"]],
+			["Lease Wizard", __("Start a lease"), ["icon-file-plus", "icon-file", "icon-plus"]],
+			["Billing Claim", __("Prepare billing"), ["icon-invoice", "icon-receipt", "icon-file"]],
+			["Payment Entry", __("Record collection"), ["icon-money", "icon-money-coins-1", "icon-file"]],
+		],
+	};
 
 	/**
 	 * Build the task row, filtered to what this user may actually create.
@@ -9197,11 +9235,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 *
 	 * @param {HTMLElement} host - the actions container.
 	 */
-	function home_mount_tasks(host) {
+	function home_mount_tasks(host, profile) {
 		const can = ((window.frappe && frappe.boot && frappe.boot.user) || {}).can_create || [];
 		let primary = true;
-		for (const [doctype, label, symbols] of HOME_TASKS) {
-			if (can.length && can.indexOf(doctype) === -1) continue;
+		for (const [doctype, label, symbols] of HOME_TASKS[profile] || HOME_TASKS.erp) {
+			if (!Array.isArray(can) || !can.includes(doctype)) continue;
 			const symbol = sb_existing_symbol(symbols) || symbols[symbols.length - 1];
 			host.appendChild(
 				home_action(label, symbol, () => {
@@ -9253,6 +9291,11 @@ function sb_zone_anchor(pane, zone, node) {
 		invoiced_value: ["icon-invoice", "brand"],
 		outstanding_value: ["icon-receipt-text", "gold"],
 		average_order_value: ["icon-chart-column", "violet"],
+		active_properties: ["icon-building", "brand"],
+		available_units: ["icon-grid", "teal"],
+		active_leases: ["icon-file", "blue"],
+		billing_due: ["icon-invoice", "gold"],
+		overdue_collections: ["icon-triangle-alert", "violet"],
 	};
 
 	function home_metric(metric, currency) {
@@ -9261,7 +9304,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const top = el("div", "bnd-home-metric-top");
 		top.appendChild(home_icon(visual[0]));
 		const caption = el("span", "bnd-home-metric-label");
-		caption.textContent = home_text(metric.label);
+		caption.textContent = HOME_COPY[metric.key] || home_text(metric.label);
 		top.appendChild(caption);
 		const amount = el("strong", "bnd-home-metric-value");
 		amount.textContent = metric.value_type === "count"
@@ -9352,43 +9395,38 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function home_attention_panel(data) {
 		const currency = data.currency;
-		const metrics = data.metrics || {};
-		const status = data.invoice_status || {};
-		const drafts = data.drafts || {};
 		const attn = home_panel("Needs your attention", "What to deal with today", "bnd-home-attn-panel");
 		attn.head.appendChild(home_icon("icon-bell", "bnd-home-panel-mark"));
 		const list = el("div", "bnd-home-attn-list");
-
-		if (status.overdue) {
-			list.appendChild(
-				home_attention_row(
-					"Overdue invoices",
-					`${status.overdue} · ${home_money(metrics.overdue, currency)}`,
-					["icon-triangle-alert", "icon-alert-triangle", "es-line-alert-triangle", "icon-circle-alert"],
-					() => home_open_invoice_list(data, "overdue")
-				)
-			);
-		}
-		if (Number(metrics.payables) > 0) {
-			list.appendChild(
-				home_attention_row(
-					"Bills to pay",
-					home_money(metrics.payables, currency),
-					"icon-buying",
-					() => frappe.set_route("List", "Purchase Invoice", { status: "Unpaid" })
-				)
-			);
-		}
-		const draft_total = (Number(drafts.sales) || 0) + (Number(drafts.purchase) || 0);
-		if (draft_total) {
-			list.appendChild(
-				home_attention_row(
-					"Drafts to finish",
-					String(draft_total),
-					"icon-edit",
-					() => frappe.set_route("List", "Sales Invoice", { docstatus: 0 })
-				)
-			);
+		const icons = {
+			sales_drafts: "icon-edit",
+			purchase_drafts: "icon-edit",
+			overdue_receivables: ["icon-triangle-alert", "icon-circle-alert"],
+			payables_due: "icon-buying",
+			stock_below_reorder: ["icon-stock", "icon-package"],
+			zatca_exceptions: ["icon-shield-alert", "icon-circle-alert"],
+			setup_gaps: "icon-setting-gear",
+			leases_expiring: ["icon-clock", "icon-calendar"],
+			billing_due: ["icon-invoice", "icon-receipt"],
+			collections_overdue: ["icon-triangle-alert", "icon-circle-alert"],
+			deposits_action: ["icon-money", "icon-file"],
+			ejar_exceptions: ["icon-file-warning", "icon-circle-alert"],
+			owner_payouts: ["icon-money-coins-1", "icon-money"],
+		};
+		for (const queue of data.attention || []) {
+			if (!(Number(queue.count) > 0)) continue;
+			const count = home_number(queue.count);
+			const note = Number(queue.amount)
+				? `${count} · ${home_money(queue.amount, currency)}`
+				: count;
+			list.appendChild(home_attention_row(
+				HOME_COPY[queue.key] || home_text(queue.label),
+				note,
+				icons[queue.key] || "icon-circle-alert",
+				() => queue.route
+					? frappe.set_route(...queue.route)
+					: frappe.set_route("List", queue.doctype, queue.filters || {})
+			));
 		}
 
 		if (!list.children.length) {
@@ -9400,12 +9438,120 @@ function sb_zone_anchor(pane, zone, node) {
 		return attn.panel;
 	}
 
+	const HOME_LANES = {
+		erp: [
+			[__("Quote to cash"), ["Quotation", "Sales Order", "Delivery Note", "Sales Invoice", "Payment Entry"]],
+			[__("Procure to pay"), ["Material Request", "Request for Quotation", "Supplier Quotation", "Purchase Order", "Purchase Receipt", "Purchase Invoice"]],
+			[__("Stock control"), ["Item", "Warehouse", "Stock Entry", "Stock Reconciliation"]],
+			[__("Close and VAT"), ["Journal Entry", "Payment Reconciliation", "Period Closing Voucher"]],
+		],
+		real_estate: [
+			[__("Property and unit"), ["Property", "Real Estate Unit"]],
+			[__("Customer to lease"), ["Customer", "Lease Wizard", "Lease"]],
+			[__("Lease to collection"), ["Revenue Line", "Billing Claim", "Sales Invoice", "Payment Entry"]],
+			[__("Deposits"), ["Lease Security Deposit"]],
+			[__("Owner settlement"), ["Payout Run", "Owner Payout"]],
+			[__("Renewal and termination"), ["Lease Revision", "Lease"]],
+		],
+	};
+
+	function home_can_read(doctype) {
+		const can = ((window.frappe && frappe.boot && frappe.boot.user) || {}).can_read || [];
+		return Array.isArray(can) && can.includes(doctype);
+	}
+
+	function home_open_doctype(doctype) {
+		const singles = (window.frappe && frappe.boot && frappe.boot.single_types) || [];
+		frappe.set_route(singles.includes(doctype) ? "Form" : "List", doctype);
+	}
+
+	function home_process_panel(profile) {
+		const process = home_panel(__("Process lanes"), __("Continue work without hunting through modules"), "bnd-home-process-panel");
+		process.head.appendChild(home_icon("icon-workflow", "bnd-home-panel-mark"));
+		const lanes = el("div", "bnd-home-lanes");
+		for (const [label, steps] of HOME_LANES[profile] || HOME_LANES.erp) {
+			const lane = el("section", "bnd-home-lane");
+			const title = el("h3", "bnd-home-lane-title");
+			title.textContent = home_text(label);
+			const row = el("div", "bnd-home-lane-steps");
+			for (const doctype of steps.filter(home_can_read)) {
+				const step = el("button", "bnd-home-lane-step", { type: "button" });
+				step.textContent = home_text(doctype);
+				step.addEventListener("click", () => home_open_doctype(doctype));
+				row.appendChild(step);
+			}
+			if (!row.children.length) continue;
+			lane.append(title, row);
+			lanes.appendChild(lane);
+		}
+		if (!lanes.children.length) {
+			const empty = el("p", "bnd-home-empty");
+			empty.textContent = __("No workflows are available for this role");
+			lanes.appendChild(empty);
+		}
+		process.panel.appendChild(lanes);
+		return process.panel;
+	}
+
+	const HOME_REPORTS = {
+		erp: ["General Ledger", "Accounts Receivable", "Accounts Payable", "Trial Balance", "VAT Summary"],
+		real_estate: ["Rent Roll", "Expiring Leases", "Occupancy", "Owner Ledger", "VAT Summary"],
+	};
+
+	function home_report_allowed(report) {
+		return HOME_ALLOWED_REPORTS.has(report);
+	}
+
+	function home_report_actions(profile) {
+		const actions = el("div", "bnd-home-link-actions");
+		for (const report of (HOME_REPORTS[profile] || HOME_REPORTS.erp).filter(home_report_allowed)) {
+			actions.appendChild(home_action(report, "icon-table", () => frappe.set_route("query-report", report)));
+		}
+		if (!actions.children.length) {
+			const empty = el("p", "bnd-home-empty");
+			empty.textContent = __("No reports are available for this role");
+			actions.appendChild(empty);
+		}
+		return actions;
+	}
+
+	function home_setup_panel(data) {
+		const setup = home_panel(__("Setup and administration"), __("Configuration stays separate from daily work"), "bnd-home-setup-panel");
+		setup.head.appendChild(home_icon("icon-setting-gear", "bnd-home-panel-mark"));
+		const actions = el("div", "bnd-home-link-actions");
+		const profile = data.profile || "erp";
+		const targets = profile === "real_estate"
+			? [["Property Management Settings", "Property Management Settings"], ["Account Setup Centre", "Account Setup Centre"]]
+			: [["Company", "Company"], ["Accounts Settings", "Accounts Settings"]];
+		for (const [label, doctype] of targets) {
+			if (!home_can_read(doctype)) continue;
+			actions.appendChild(home_action(label, "icon-setting-gear", () => home_open_doctype(doctype)));
+		}
+		if (data.admin_health) {
+			const health = el("div", "bnd-home-health");
+			const copy = el("strong", "");
+			copy.textContent = __("System health");
+			const facts = el("span", "");
+			facts.textContent = `${__("Failed jobs today")}: ${home_number(data.admin_health.failed_jobs_today)} · ${__("Error logs today")}: ${home_number(data.admin_health.error_logs_today)}`;
+			health.append(copy, facts);
+			actions.appendChild(health);
+		}
+		if (!actions.children.length) {
+			const empty = el("p", "bnd-home-empty");
+			empty.textContent = __("No setup actions are available for this role");
+			actions.appendChild(empty);
+		}
+		setup.panel.appendChild(actions);
+		return setup.panel;
+	}
+
 	function home_render_dashboard(root, data) {
 		home_stop_status_alignment();
 		root.replaceChildren();
 		// Before anything formats money: every home_money() below reads this.
 		home_sign_from(data);
 		const currency = data.currency || "SAR";
+		const profile = data.profile || "erp";
 
 		const intro = el("header", "bnd-home-intro");
 		const intro_copy = el("div", "bnd-home-intro-copy");
@@ -9416,14 +9562,21 @@ function sb_zone_anchor(pane, zone, node) {
 		const subtitle = el("p", "bnd-home-subtitle");
 		subtitle.textContent = home_text("Your business at a glance");
 		intro_copy.append(eyebrow, title, subtitle);
-		const intro_actions = el("div", "bnd-home-intro-actions");
-		home_mount_tasks(intro_actions);
-		intro.append(intro_copy, intro_actions);
+		intro.appendChild(intro_copy);
 		root.appendChild(intro);
+
+		root.appendChild(home_attention_panel(data));
 
 		const summary = el("section", "bnd-home-summary", { "aria-label": home_text("Financial summary") });
 		for (const metric of data.kpis || []) summary.appendChild(home_metric(metric, currency));
 		root.appendChild(summary);
+		root.appendChild(home_process_panel(profile));
+
+		const tasks = home_panel(__("Frequent actions"), __("Start the work you do most often"), "bnd-home-actions-panel");
+		const task_actions = el("div", "bnd-home-intro-actions");
+		home_mount_tasks(task_actions, profile);
+		tasks.panel.appendChild(task_actions);
+		root.appendChild(tasks.panel);
 
 		const grid = el("div", "bnd-home-grid");
 		const trend = home_panel("Sales trend", "Last six months", "bnd-home-trend");
@@ -9483,7 +9636,11 @@ function sb_zone_anchor(pane, zone, node) {
 		status.panel.appendChild(status_body);
 		grid.appendChild(status.panel);
 
-		const recent = home_panel("Recent activity", "Latest invoices", "bnd-home-recent-panel");
+		const recent = home_panel(
+			"Recent activity",
+			profile === "real_estate" ? __("Latest real estate activity") : __("Latest invoices and bills"),
+			"bnd-home-recent-panel"
+		);
 		recent.head.appendChild(home_icon("icon-activity", "bnd-home-panel-mark"));
 		const recent_list = el("div", "bnd-home-recent-list");
 		for (const item of data.recent || []) {
@@ -9527,10 +9684,14 @@ function sb_zone_anchor(pane, zone, node) {
 		// reordering the construction keeps each panel's build next to the data
 		// it reads — and moving them changes the tab order with the visual
 		// order, which a CSS `order` would not have done.
-		const attention = home_attention_panel(data);
-		grid.prepend(attention);
-		attention.after(recent.panel);
-		root.appendChild(grid);
+		recent.panel.remove();
+		root.appendChild(recent.panel);
+
+		const reports = home_panel("Reports", __("Monitor performance and open the exact ledger"), "bnd-home-reports-panel");
+		reports.panel.appendChild(home_report_actions(profile));
+		if (profile === "erp") reports.panel.appendChild(grid);
+		root.appendChild(reports.panel);
+		root.appendChild(home_setup_panel(data));
 		home_schedule_greeting();
 
 		// Native workspaces, dashboards, reports and Home now share Frappe Charts.
@@ -9604,7 +9765,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function mount_home_dashboard(force) {
-		if (!on_home_route()) {
+		if (!on_role_home_route()) {
 			home_clear_greeting_timer();
 			home_stop_status_alignment();
 			for (const host of document.querySelectorAll(".bnd-home-host")) host.classList.remove("bnd-home-host");
@@ -9634,10 +9795,13 @@ function sb_zone_anchor(pane, zone, node) {
 		loading.appendChild(loading_copy);
 		root.appendChild(loading);
 		const request = ++home_request;
+		const profile = role_home_workspace() === "Real Estate" ? "real_estate" : "erp";
 		frappe.call({
-			method: "bunood_theme.api.get_home_dashboard",
+			method: profile === "real_estate"
+				? "bunood_real_estate.real_estate.home.get_operational_home"
+				: "bunood_theme.api.get_home_dashboard",
 			callback: (response) => {
-				if (request !== home_request || !root.isConnected || !on_home_route()) return;
+				if (request !== home_request || !root.isConnected || !on_role_home_route()) return;
 				home_render_dashboard(root, response.message || {});
 			},
 			error: () => {
@@ -9950,7 +10114,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// home route only, where the container is built asynchronously
 				// and a single synchronous mount lands before it exists.
 				mount_home_dashboard();
-				if (on_home_route()) try_for(() => mount_home_dashboard(), 40, 150);
+				if (on_role_home_route()) try_for(() => mount_home_dashboard(), 40, 150);
 				// AFTER update_desktop_mode, because that call is what stands
 				// the chrome down on route "" and brings it back — but on the
 				// NEXT frame, not in this handler. Measuring forces a

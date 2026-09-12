@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-09-12 OPERATIONAL ROLE HOMES DECISION: desk CSS ceiling 32800 -> 33100 and JS ceiling 158500 -> 160600 gzip bytes. Measured bundles are 32916 CSS and 160537 JS. The growth replaces a generic finance-only landing page with permission-filtered ERP and Real Estate operational homes: exact action queues, five drill-down KPIs, process lanes, role-specific creation actions and reports, and a System Manager-only health summary. The UI reuses Frappe routes and permissions; no chart engine, router, framework, dependency, posting endpoint, or infrastructure detail for ordinary users was added.",
 		"2026-09-12 ROLE HOME AND APPS DECISION: desk JS ceiling 157850 -> 158500 gzip bytes. The final measured bundle is 158452 bytes. The 651-byte growth resolves each ordinary user's validated bnd_home against permitted workspaces, sends the global Home action to the ERP or Real Estate role workspace, curates the switcher and All Apps grid to product workspaces, and leaves System Managers unrestricted. Stable workspace names and Frappe's module map drive filtering; no translated route, permission bypass, dependency or parallel router was added.",
 		"2026-09-12 PERSISTED SIDEBAR STATE DECISION: desk JS ceiling 157600 -> 157850 gzip bytes. The measured bundle is 157801 bytes. The 273-byte growth over v0.44.25 turns the single page-head control into the specified Open -> Rail -> Hidden -> Open desktop state machine and writes the settled choice through the existing validated bnd_pane_state user-default axis. Mobile stays on Frappe's independent binary drawer, state labels are translated, and no localStorage key, dependency, route or duplicate control was added.",
 		"2026-09-12 ZATCA ROLE-SAFE TOTALS DECISION: desk JS ceiling 157450 -> 157600 gzip bytes. The measured bundle is 157528 bytes. The 173-byte growth over v0.44.24 restricts Sandbox/Production and sync metadata to Accounts/System Managers, keeps invoice status actionable for ordinary users, and settles the active native field plus its mutation queue before Alt+I exposes item search. The live gate reconciles every visible draft/submitted total and denies ordinary-user ZATCA sends; no credential, dependency, calculation, posting endpoint or duplicate form model was added.",
@@ -188,8 +189,8 @@
 		"2026-09-06 INVOICE SELECTION DECISION: independently reviewed JS ceiling 151024 -> 151536 gzip bytes. Actual JS grows 150853 -> 151359 (+506) for an ownership-safe per-layout predicate adapter that prevents native refresh from selecting Simple invoice input text. It preserves the user's caret or selection, native Advanced behavior and other writers; no focus restoration, global patch or dependency. First typing candidate failed real-key acceptance and was rolled back. Other ceilings and release history remain unchanged; new real-key acceptance is required."
 	],
 	"ceiling": {
-		"css_gzip": 32800,
-		"js_gzip": 158500,
+		"css_gzip": 33100,
+		"js_gzip": 160600,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
 		"auth_js_gzip": 1000,
@@ -620,6 +621,25 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +0b, js +924b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.25"
+		},
+		{
+			"version": "v0.44.27",
+			"date": "2026-09-12",
+			"web_css_raw": 30917,
+			"web_css_gzip": 4513,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 24554,
+			"print_css_gzip": 6938,
+			"css_raw": 254354,
+			"css_gzip": 32916,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 523836,
+			"js_gzip": 160537,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +189b, js +2085b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.26"
 		}
 	]
 }

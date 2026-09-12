@@ -13,7 +13,7 @@ def _visible_record_exists(doctype: str) -> bool | None:
     try:
         if not frappe.db.exists("DocType", doctype) or not frappe.has_permission(doctype, "read"):
             return False
-        return bool(frappe.get_list(doctype, fields=["name"], limit_page_length=1))
+        return bool(frappe.get_list(doctype, fields=["name"], limit=1))
     except Exception:
         frappe.log_error(title=f"Bunood onboarding progress: {doctype}")
         return None

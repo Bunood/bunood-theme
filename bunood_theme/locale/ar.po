@@ -7465,3 +7465,207 @@ msgstr "هل تريد إزالة {0} من هذه الفاتورة؟"
 #. src: ai — bill row-removal safety reviewed 2026-09-12
 msgid "this item"
 msgstr "هذا الصنف"
+
+#. src: human review — role-home navigation 2026-09-12
+msgid "Use compact sidebar"
+msgstr "استخدام الشريط الجانبي المصغّر"
+
+#. src: human review — role-home navigation 2026-09-12
+msgid "Hide sidebar"
+msgstr "إخفاء الشريط الجانبي"
+
+#. src: human review — role-home navigation 2026-09-12
+msgid "Show sidebar"
+msgstr "إظهار الشريط الجانبي"
+
+#. src: human review — role-home navigation 2026-09-12
+msgid "The sidebar layout could not be saved."
+msgstr "تعذّر حفظ تخطيط الشريط الجانبي."
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Active properties"
+msgstr "العقارات النشطة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Available units"
+msgstr "الوحدات المتاحة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Active leases"
+msgstr "عقود الإيجار النشطة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Billing due"
+msgstr "مبالغ مستحقة للفوترة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Overdue collections"
+msgstr "تحصيلات متأخرة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Sales drafts"
+msgstr "مسودات المبيعات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Purchase drafts"
+msgstr "مسودات المشتريات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Overdue receivables"
+msgstr "ذمم مدينة متأخرة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Payables due soon"
+msgstr "مستحقات واجبة قريبًا"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Stock below reorder"
+msgstr "مخزون دون حد إعادة الطلب"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "VAT and ZATCA exceptions"
+msgstr "استثناءات الضريبة والفوترة الإلكترونية"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Setup gaps"
+msgstr "نواقص الإعداد"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Leases expiring"
+msgstr "عقود إيجار قاربت على الانتهاء"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Collections overdue"
+msgstr "تحصيلات متأخرة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Deposits needing action"
+msgstr "تأمينات تحتاج إلى إجراء"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Ejar exceptions"
+msgstr "استثناءات إيجار"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Owner payouts awaiting release"
+msgstr "مدفوعات المُلّاك بانتظار الصرف"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "New property"
+msgstr "عقار جديد"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "New unit"
+msgstr "وحدة جديدة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Start a lease"
+msgstr "بدء عقد إيجار"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Prepare billing"
+msgstr "تجهيز الفوترة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Record collection"
+msgstr "تسجيل تحصيل"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Quote to cash"
+msgstr "من عرض السعر إلى التحصيل"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Procure to pay"
+msgstr "من الشراء إلى السداد"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Stock control"
+msgstr "إدارة المخزون"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Close and VAT"
+msgstr "الإقفال والضريبة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Property and unit"
+msgstr "العقارات والوحدات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Customer to lease"
+msgstr "من العميل إلى عقد الإيجار"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Lease to collection"
+msgstr "من عقد الإيجار إلى التحصيل"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Deposits"
+msgstr "التأمينات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Owner settlement"
+msgstr "تسوية مستحقات المُلّاك"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Renewal and termination"
+msgstr "التجديد والإنهاء"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Process lanes"
+msgstr "مسارات العمل"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Continue work without hunting through modules"
+msgstr "تابع العمل دون البحث بين الوحدات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "No workflows are available for this role"
+msgstr "لا توجد مسارات عمل متاحة لهذا الدور"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Setup and administration"
+msgstr "الإعداد والإدارة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Configuration stays separate from daily work"
+msgstr "تبقى الإعدادات منفصلة عن العمل اليومي"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "System health"
+msgstr "صحة النظام"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Failed jobs today"
+msgstr "المهام الفاشلة اليوم"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Error logs today"
+msgstr "سجلات الأخطاء اليوم"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "No setup actions are available for this role"
+msgstr "لا توجد إجراءات إعداد متاحة لهذا الدور"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Frequent actions"
+msgstr "الإجراءات المتكررة"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Start the work you do most often"
+msgstr "ابدأ الأعمال الأكثر استخدامًا"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Latest real estate activity"
+msgstr "أحدث أنشطة العقارات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Latest invoices and bills"
+msgstr "أحدث فواتير المبيعات والمشتريات"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "Monitor performance and open the exact ledger"
+msgstr "راقب الأداء وافتح السجل المطابق"
+
+#. src: human review — operational role homes 2026-09-12
+msgid "No reports are available for this role"
+msgstr "لا توجد تقارير متاحة لهذا الدور"

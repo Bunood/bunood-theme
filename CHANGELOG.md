@@ -22,6 +22,41 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.27] — 2026-09-12 — Operational ERP and Real Estate homes (patch)
+
+### Added
+
+- Give ERP and Real Estate users separate permission-filtered operational
+  dashboards with exactly five drill-down KPIs and role-specific attention
+  queues.
+- Add process lanes, frequent creation actions, recent work, report entry
+  points, and configuration sections in one shared reading order.
+- Add a System Manager-only health summary; ordinary roles receive no
+  infrastructure counters.
+
+### Changed
+
+- Mount the Bunood dashboard on each user's resolved role home instead of only
+  the generic Home workspace.
+- Make attention rows open the exact DocType and filters counted by the server,
+  and give empty queues an explicit all-clear state.
+- Ship reviewed Arabic copy for all new dashboard labels and a responsive
+  single-column process layout at phone width.
+
+### Checks
+
+- ERP server contract passes 13/13, including native warehouse-group reorder
+  scope and missing-Bin behavior; Real Estate server contract passes 11/11,
+  including native due-date and row-permission regressions.
+- Focused Home/navigation contracts pass 38/38 and Arabic coverage is complete
+  at 1,262 source strings with eight documented exemptions.
+- The self-cleaning rendered gate passed ERP and Real Estate at 1440×900 and
+  Arabic Real Estate at 430×900 with exactly five KPIs, correct section order,
+  no horizontal overflow, no ordinary-user health counters, and zero browser
+  errors.
+- Built assets pass the recorded payload gate at 32,916 CSS and 160,537
+  JavaScript gzip bytes.
+
 ## [0.44.26] — 2026-09-12 — Role navigation and sidebar state (patch)
 
 ### Changed

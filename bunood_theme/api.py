@@ -29,7 +29,10 @@ THE RULE THIS FILE ENFORCES
 See ARCHITECTURE.md section 10.
 """
 
+from datetime import timedelta
+
 import frappe
+from frappe.model.db_query import DatabaseQuery
 from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, nowdate
 
 from bunood_theme.home_metrics import build_home_kpis, home_metric_contract
@@ -57,7 +60,7 @@ def _dashboard_rows(doctype: str, *, filters=None, fields=None, order_by=None, l
             filters=filters or {},
             fields=fields or ["name"],
             order_by=order_by,
-            limit_page_length=limit,
+            limit=limit,
         )
     except Exception:
         frappe.log_error(title=f"bunood_theme: home dashboard {doctype} query stood down")
@@ -82,6 +85,196 @@ def _base_outstanding(row, company_currency: str) -> float:
     if party_currency == company_currency:
         return amount
     return amount * flt(row.get("conversion_rate") or 1)
+
+
+def _stock_below_reorder_names(levels: list, warehouses: list, bins: list) -> list[str]:
+    """Return permission-visible Item names whose native reorder check triggers.
+
+    ERPNext's pinned ``reorder_item.py`` gives ``warehouse_group`` precedence
+    over the destination ``warehouse``. It rolls every descendant Bin's
+    ``projected_qty`` into that group and triggers at ``<=`` the reorder level.
+    The result is an Item drilldown rather than a Bin drilldown. That distinction
+    is necessary: ERPNext treats a missing Bin as projected quantity zero, so a
+    valid reorder can have no Bin record to link to. One affected Item remains a
+    real, permission-filtered record and deduplicates overlapping reorder rows.
+
+    ``levels`` belong only to Items that already passed ``frappe.get_list``;
+    ``warehouses`` and ``bins`` are permission-filtered too. The returned names
+    therefore never disclose an inaccessible Bin or Warehouse.
+    """
+    by_name = {row.name: row for row in warehouses}
+    children = {}
+    for warehouse in warehouses:
+        children.setdefault(warehouse.parent_warehouse or "", []).append(warehouse.name)
+
+    def leaf_descendants(group: str) -> list[str]:
+        pending = list(children.get(group, []))
+        visited = set()
+        leaves = []
+        while pending:
+            name = pending.pop()
+            if name in visited:
+                continue
+            visited.add(name)
+            row = by_name.get(name)
+            if row and not row.is_group:
+                leaves.append(name)
+            else:
+                # An intermediate group may itself be hidden by a User
+                # Permission while one of its leaves is visible. Traverse the
+                # parent names present on the already-authorized rows, but never
+                # return the hidden group or a Bin outside the visible inputs.
+                pending.extend(children.get(name, []))
+        return leaves
+
+    bins_by_item_warehouse = {}
+    for row in bins:
+        if row.warehouse not in by_name or by_name[row.warehouse].is_group:
+            continue
+        bins_by_item_warehouse.setdefault((row.item_code, row.warehouse), []).append(row)
+
+    flagged_items = set()
+    for level in levels:
+        reorder_level = flt(level.warehouse_reorder_level)
+        reorder_qty = flt(level.get("warehouse_reorder_qty"))
+        if not (reorder_level or reorder_qty):
+            continue
+
+        # Native precedence is load-bearing: warehouse is where a Material
+        # Request will deliver, warehouse_group is where availability is tested.
+        if level.warehouse_group:
+            if level.warehouse_group not in by_name:
+                # The configured stock scope is not visible to this user. Zero
+                # visible Bins is not evidence of zero stock in a hidden scope.
+                continue
+            scope = by_name[level.warehouse_group]
+            targets = leaf_descendants(level.warehouse_group) if scope.is_group else [scope.name]
+        elif level.warehouse and level.warehouse in by_name and not by_name[level.warehouse].is_group:
+            targets = [level.warehouse]
+        else:
+            # Apply the same rule to a direct scope. Native missing-Bin zero is
+            # valid only after the configured Warehouse itself is authorized.
+            continue
+
+        scoped_bins = [
+            row
+            for warehouse in targets
+            for row in bins_by_item_warehouse.get((level.parent, warehouse), [])
+        ]
+        projected_qty = sum(flt(row.projected_qty) for row in scoped_bins)
+        if projected_qty <= reorder_level:
+            flagged_items.add(level.parent)
+
+    return sorted(flagged_items)
+
+
+def _can_prove_complete_stock_scope() -> bool:
+    """Whether an empty stock query can honestly mean projected quantity zero.
+
+    Native reorder treats a missing Bin as zero. That is valid only when this
+    request can see the complete Warehouse tree and Bin population; otherwise
+    an empty/partial result may mean access denial. Inspect the match conditions
+    Frappe itself applies and fail closed without probing hidden records.
+    """
+    for doctype in ("Warehouse", "Bin"):
+        if not frappe.db.exists("DocType", doctype) or not frappe.has_permission(doctype, "read"):
+            return False
+        try:
+            match_conditions = DatabaseQuery(
+                doctype,
+                user=frappe.session.user,
+            ).build_match_conditions()
+        except Exception:
+            return False
+        if match_conditions:
+            return False
+    return True
+
+
+def _stock_bin_rows(company: str, item_names: list[str]) -> list | None:
+    """Return permission-filtered Bins, preserving failure versus empty.
+
+    A successful empty result means native projected quantity zero. A query
+    exception is indeterminate and must stand down rather than manufacture a
+    low-stock alert.
+    """
+    try:
+        return frappe.get_list(
+            "Bin",
+            filters={
+                "company": company,
+                "item_code": ["in", item_names],
+            },
+            fields=["name", "item_code", "warehouse", "projected_qty"],
+            limit=0,
+        )
+    except Exception:
+        frappe.log_error(title="bunood_theme: home dashboard Bin query stood down")
+        return None
+
+
+def _stock_below_reorder(company: str) -> tuple[list[str], dict]:
+    """Return exact, permission-filtered Item names under native reorder rules.
+
+    Item is permission-filtered first. Child reorder rows are then read only
+    through those already-authorized Item documents, and Warehouse and Bin are
+    permission-filtered independently. The returned Item filter is exactly the
+    set counted by the dashboard and still represents native missing-Bin checks.
+    """
+    if not _can_prove_complete_stock_scope():
+        return [], {"name": ["in", ["__none__"]]}
+
+    items = _dashboard_rows(
+        "Item",
+        filters={"disabled": 0, "is_stock_item": 1},
+        fields=["name"],
+        limit=0,
+    )
+    item_names = [row.name for row in items]
+    if not item_names:
+        return [], {"name": ["in", ["__none__"]]}
+
+    # Item Reorder is a child table and has no independent permission model.
+    # get_all is safe only because its parents are restricted to the
+    # permission-filtered Item names above; it avoids one get_doc query per item.
+    levels = frappe.get_all(
+        "Item Reorder",
+        filters={"parenttype": "Item", "parent": ["in", item_names]},
+        fields=[
+            "parent",
+            "warehouse",
+            "warehouse_group",
+            "warehouse_reorder_level",
+            "warehouse_reorder_qty",
+        ],
+    )
+    warehouses = _dashboard_rows(
+        "Warehouse",
+        filters={"company": company, "disabled": 0},
+        fields=["name", "parent_warehouse", "is_group"],
+        limit=0,
+    )
+    bins = _stock_bin_rows(company, item_names)
+    if bins is None:
+        return [], {"name": ["in", ["__none__"]]}
+    names = _stock_below_reorder_names(levels, warehouses, bins)
+    return names, {"name": ["in", names or ["__none__"]]}
+
+
+def _zatca_exceptions(company: str) -> tuple[list, dict]:
+    """Return visible rejected/resend ZATCA logs for visible company invoices."""
+    invoices = _dashboard_rows(
+        "Sales Invoice",
+        filters={"company": company, "docstatus": 1},
+        fields=["name"],
+        limit=0,
+    )
+    filters = {
+        "invoice_doctype": "Sales Invoice",
+        "invoice_reference": ["in", [row.name for row in invoices] or ["__none__"]],
+        "status": ["in", ["Rejected", "Resend"]],
+    }
+    return _dashboard_rows("ZATCA Integration Log", filters=filters, fields=["name"], limit=0), filters
 
 
 @frappe.whitelist()
@@ -116,6 +309,7 @@ def get_home_dashboard(company: str | None = None) -> dict:
     sign = frappe.db.get_value("Currency", currency, ["symbol", "symbol_on_right"], as_dict=True)
 
     result = {
+        "profile": "erp",
         "company": selected,
         "currency": currency,
         "currency_symbol": (sign or {}).get("symbol") or currency,
@@ -146,6 +340,7 @@ def get_home_dashboard(company: str | None = None) -> dict:
             "as_of": today.isoformat(),
         },
         "kpis": [],
+        "attention": [],
         "trend": [],
         "recent": [],
     }
@@ -260,6 +455,101 @@ def get_home_dashboard(company: str | None = None) -> dict:
                 limit=0,
             )
         )
+
+    due_soon_filters = {
+        "company": selected,
+        "docstatus": 1,
+        "outstanding_amount": [">", 0],
+        "due_date": ["between", [today.isoformat(), (today + timedelta(days=7)).isoformat()]],
+    }
+    due_soon = _dashboard_rows(
+        "Purchase Invoice",
+        filters=due_soon_filters,
+        fields=["name", "outstanding_amount", "conversion_rate", "party_account_currency"],
+        limit=0,
+    )
+    low_stock_names, low_stock_filters = _stock_below_reorder(selected)
+    zatca_rows, zatca_filters = _zatca_exceptions(selected)
+    overdue_filters = {
+        "company": selected,
+        "docstatus": 1,
+        "outstanding_amount": [">", 0],
+        "due_date": ["<", today.isoformat()],
+    }
+    overdue_rows = _dashboard_rows(
+        "Sales Invoice",
+        filters=overdue_filters,
+        fields=["name", "outstanding_amount", "conversion_rate", "party_account_currency"],
+        limit=0,
+    )
+    result["attention"] = [
+        {
+            "key": "sales_drafts",
+            "label": "Sales drafts",
+            "count": result["drafts"]["sales"],
+            "amount": 0,
+            "doctype": "Sales Invoice",
+            "filters": {"company": selected, "docstatus": 0},
+        },
+        {
+            "key": "purchase_drafts",
+            "label": "Purchase drafts",
+            "count": result["drafts"]["purchase"],
+            "amount": 0,
+            "doctype": "Purchase Invoice",
+            "filters": {"company": selected, "docstatus": 0},
+        },
+        {
+            "key": "overdue_receivables",
+            "label": "Overdue receivables",
+            "count": len(overdue_rows),
+            "amount": sum(_base_outstanding(row, currency) for row in overdue_rows),
+            "doctype": "Sales Invoice",
+            "filters": overdue_filters,
+        },
+        {
+            "key": "payables_due",
+            "label": "Payables due soon",
+            "count": len(due_soon),
+            "amount": sum(_base_outstanding(row, currency) for row in due_soon),
+            "doctype": "Purchase Invoice",
+            "filters": due_soon_filters,
+        },
+        {
+            "key": "stock_below_reorder",
+            "label": "Stock below reorder",
+            "count": len(low_stock_names),
+            "amount": 0,
+            "doctype": "Item",
+            "filters": low_stock_filters,
+        },
+        {
+            "key": "zatca_exceptions",
+            "label": "VAT and ZATCA exceptions",
+            "count": len(zatca_rows),
+            "amount": 0,
+            "doctype": "ZATCA Integration Log",
+            "filters": zatca_filters,
+        },
+    ]
+
+    if "System Manager" in frappe.get_roles():
+        failed_jobs = _dashboard_rows(
+            "Scheduled Job Log",
+            filters={"status": "Failed", "creation": [">=", today.isoformat()]},
+            fields=["name"],
+            limit=0,
+        )
+        errors = _dashboard_rows(
+            "Error Log",
+            filters={"creation": [">=", today.isoformat()]},
+            fields=["name"],
+            limit=0,
+        )
+        result["admin_health"] = {
+            "failed_jobs_today": len(failed_jobs),
+            "error_logs_today": len(errors),
+        }
 
     accounts = _dashboard_rows(
         "Account",
@@ -627,7 +917,7 @@ def _home_choices() -> tuple:
     """
     try:
         return tuple(
-            frappe.get_list("Workspace", pluck="name", order_by="sequence_id asc", limit_page_length=0)
+            frappe.get_list("Workspace", pluck="name", order_by="sequence_id asc", limit=0)
         )
     except Exception:
         # A landing preference is a convenience. Failing to enumerate it must
@@ -937,7 +1227,7 @@ def get_inbox(start: int = 0, limit: int = 0, unread_only: int = 0, kinds: str =
         filters=filters,
         order_by="creation desc",
         limit_start=start,
-        limit_page_length=limit + 1,
+        limit=limit + 1,
         ignore_permissions=False,
     )
     has_more = len(rows) > limit
