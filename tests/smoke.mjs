@@ -9372,12 +9372,13 @@ print("ok")
 				inbox_picker: { cards: 4, slots: 14, toggles: 4, opts: 8 },
 				user_picker: { cards: 0, slots: 14, opts: 1 },
 				search_picker: { cards: 0, slots: 6 },
-				// 7, not 8: `status_in_classic` was deleted when the status bar stopped
-				// being a property of the layout.
+				// 8: seven segment/behaviour switches plus item 45's width toggle,
+				// which joined density in the bar. It was 7 after `status_in_classic`
+				// was deleted (the status bar stopped being a property of the layout).
 				// 3, not 4: the "Off" style card is deleted — the option left the
 				// FIELD on 2026-08-06 and the surviving card wrote a value the
 				// Select refused, wedging every later save of the Single.
-				status_picker: { cards: 3, toggles: 7, opts: 7 },
+				status_picker: { cards: 3, toggles: 8, opts: 7 },
 				// List view kit (item 16): 5 style cards (Original + 4), two option
 				// groups (2 hover + 3 selection = 5 opts), one reveal toggle.
 				// Back-filled here with item 27 — the HANDOVER omission, closed.
