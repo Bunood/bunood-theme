@@ -10,6 +10,48 @@ html.bunood[data-theme] .frappe-control .control-value.like-disabled-input {
   min-block-size: var(--bnd-control-h);
 }
 
+// Native forms, Quick Entry and the reversible Simple composer share one
+// state vocabulary. Frappe keeps ownership of value, permission and
+// validation; these selectors consume only its real attributes/classes.
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control:not([type="checkbox"]):not([type="radio"]), select.form-control, textarea.form-control) {
+  background-color: var(--bnd-surface);
+  border-color: var(--bnd-border);
+  transition: background-color var(--bnd-dur-fast) var(--bnd-ease),
+    border-color var(--bnd-dur-fast) var(--bnd-ease), box-shadow var(--bnd-dur-fast) var(--bnd-ease);
+}
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control, select.form-control, textarea.form-control):not(:disabled):not([readonly]):hover {
+  background-color: var(--bnd-active);
+  border-color: var(--bnd-border-strong);
+}
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control, select.form-control, textarea.form-control):focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control.has-error
+  :is(input.form-control, select.form-control, textarea.form-control),
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control, select.form-control, textarea.form-control)[aria-invalid="true"] {
+  border-color: var(--bnd-critical);
+  box-shadow: 0 0 0 var(--bnd-line-2) color-mix(in srgb, var(--bnd-critical) 14%, transparent);
+}
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control, textarea.form-control)[readonly],
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control .control-value.like-disabled-input {
+  color: var(--bnd-ink-muted); background-color: var(--bnd-page); border-color: var(--bnd-border);
+}
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control, select.form-control, textarea.form-control):disabled {
+  color: var(--bnd-ink-muted); background-color: var(--bnd-page); border-color: var(--bnd-border);
+  cursor: not-allowed; opacity: 1;
+}
+html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+  :is(input.form-control, select.form-control, textarea.form-control)[aria-busy="true"] {
+  cursor: progress; box-shadow: inset 0 calc(-1 * var(--bnd-line-2)) 0 var(--bnd-accent);
+}
+
 html.bunood[data-theme] .page-form .frappe-control input:not([type="checkbox"]),
 html.bunood[data-theme] .page-form .frappe-control select,
 html.bunood[data-theme] .filter-area .filter-box .frappe-control input:not([type="checkbox"]),

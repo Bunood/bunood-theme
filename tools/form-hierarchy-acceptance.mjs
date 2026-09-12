@@ -19,7 +19,7 @@ try {
 			frappe.set_route("Form", dt, doc.name);
 		}, doctype);
 		await page.waitForFunction(dt => window.cur_frm?.doctype === dt, doctype, { timeout: 60000 });
-		await page.locator(".bnd-simple-composer:visible").waitFor();
+		await page.locator(".bnd-simple-composer:visible").waitFor({ timeout: 60000 });
 		const result = await page.evaluate(({ doctype, first, tax }) => {
 			const frm = window.cur_frm;
 			const shell = frm.$wrapper[0];
@@ -33,7 +33,21 @@ try {
 			const expected = window.bunood_theme.simple_forms.profiles[doctype]
 				.filter(name => wrappers[name] && visible(wrappers[name]));
 			const focusNode = root.querySelector("input:not([disabled]), textarea:not([disabled]), select:not([disabled])");
+			const colorProbe = document.createElement("span"); colorProbe.style.color = "var(--bnd-critical)"; root.append(colorProbe);
+			const critical = getComputedStyle(colorProbe).color; colorProbe.remove();
+			focusNode?.setAttribute("aria-invalid", "true");
+			const invalidStyle = focusNode && getComputedStyle(focusNode);
+			const invalidBorder = invalidStyle?.borderColor, invalidShadow = invalidStyle?.boxShadow;
+			const invalid = !focusNode || invalidBorder === critical || invalidShadow !== "none";
+			focusNode?.removeAttribute("aria-invalid");
+			if (focusNode) focusNode.disabled = true;
+			const disabled = !focusNode || getComputedStyle(focusNode).cursor === "not-allowed" && getComputedStyle(focusNode).opacity === "1";
+			if (focusNode) focusNode.disabled = false;
+			focusNode?.setAttribute("aria-busy", "true");
+			const busy = !focusNode || getComputedStyle(focusNode).cursor === "progress";
+			focusNode?.removeAttribute("aria-busy");
 			focusNode?.focus();
+			const focusRing = !focusNode || getComputedStyle(focusNode).outlineStyle === "solid";
 			shell.querySelector('.bnd-simple-switch button[aria-pressed="false"]').click();
 			const layout = shell.querySelector(".form-layout");
 			const advanced = visible(layout);
@@ -44,12 +58,13 @@ try {
 				tax: !tax || visible(wrappers[tax]), collapsed: [...root.querySelectorAll("details")].every(node => !node.open),
 				advanced, restored, sameNodes: Object.entries(wrappers).every(([name, node]) => frm.fields_dict[name].$wrapper[0] === node),
 				doc: JSON.stringify(frm.doc) === before, focus: !focusNode || document.activeElement === focusNode,
+				invalid, disabled, busy, focusRing, invalidInfo: `${invalidBorder}/${critical}/${invalidShadow}/${focusNode?.className}`,
 			};
 		}, { doctype, first, tax });
 		if (result.first !== first) fail(`${doctype}: first field ${result.first}, expected ${first}`);
 		if (result.rendered !== result.expected) fail(`${doctype}: rendered profile order differs`);
-		for (const key of ["tax", "collapsed", "advanced", "restored", "sameNodes", "doc", "focus"])
-			if (!result[key]) fail(`${doctype}: ${key} contract failed`);
+		for (const key of ["tax", "collapsed", "advanced", "restored", "sameNodes", "doc", "focus", "invalid", "disabled", "busy", "focusRing"])
+			if (!result[key]) fail(`${doctype}: ${key} contract failed (${result.invalidInfo})`);
 		console.log(`PASS ${doctype}: ordered, reversible, native controls preserved`);
 	}
 	if (errors.length) fail(`browser errors: ${errors.join(" | ")}`);
