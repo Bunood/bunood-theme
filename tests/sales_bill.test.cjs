@@ -642,7 +642,7 @@ function boundWorkbench(nativeSet) {
   const workbench = Object.create(BillWorkbench.prototype), frm = form();
   const row = { name:'row-06', doctype:'Sales Invoice Item', item_code:'TEST', qty:1, rate:100, price_list_rate:0, discount_percentage:0 };
   frm.doc.items = [row];
-  Object.assign(workbench, { frm, doc:frm.doc, controls:[], invalid:new Map(), pending:new Map(), editTimers:new Map(), revertButton:{hidden:true},
+  Object.assign(workbench, { frm, doc:frm.doc, controls:[], invalid:new Map(), pending:new Map(), editTimers:new Map(), rowViews:new Map(), revertButton:{hidden:true},
     active:()=>true, busy(){}, render(){ for(const c of this.controls) this.renderControl(c.control,c.key,true); }, message(text){this.lastMessage=text;} });
   workbench.queue = new SerialChanges(()=>true,()=>{});
   context.document.createElement = element;
@@ -655,6 +655,7 @@ function boundWorkbench(nativeSet) {
     const c={df,get_query(){return 'native-link-query';},$input:{0:input,val(v){if(arguments.length)value=v;return value;},attr(k,v){input.setAttribute(k,v);},on(event,fn){input.handlers[event]=fn;}},
       $wrapper:{0:wrapper,addClass:k=>wrapper.classList.add(k),removeClass:k=>wrapper.classList.remove(k)},
       get_status:df.get_status, refresh(){value=doc[df.fieldname];}, set_input(v){value=v;},
+      set_focus(){context.document.activeElement=input;},
       get_value(){return Number(value);}, get_model_value(){return doc[df.fieldname];},
       set_value(v){return this.validate_and_set_in_model(v);},
       async set_model_value(v){if(nativeSet)await nativeSet(df.fieldname,v);doc[df.fieldname]=v;},
@@ -750,16 +751,17 @@ test('row removal forgets errors/pending values without disturbing another row',
   assert.equal(workbench.invalid.size,1); assert.equal(workbench.pending.size,0);
   assert.equal(control.$wrapper[0].querySelector('.bnd-bill-field-error'),null);
 });
-test('invalid field errors block both native save and submit after flush', async () => {
-  const {workbench,row}=boundWorkbench();
+test('invalid field errors block save/submit and focus the first invalid native control', async () => {
+  const {workbench,row,bind}=boundWorkbench(), qty=bind('qty');
   workbench.invalid.set('row-06:qty',{raw:'0',message:'bad quantity'});
   workbench.doc.customer='TEST'; workbench.profile={party:'customer'};
   workbench.flush=async()=>{}; workbench.render=()=>{};
   workbench.frm.is_dirty=()=>false;
   workbench.frm.save=async()=>assert.fail('invalid draft reached save');
   let submitted=false; workbench.frm.savesubmit=async()=>{submitted=true;};
-  await workbench.save(); assert.match(workbench.lastMessage,/highlighted/);
-  await workbench.submit(); assert.equal(submitted,false); assert.match(workbench.lastMessage,/highlighted/);
+  await workbench.save(); assert.match(workbench.lastMessage,/highlighted/); assert.equal(context.document.activeElement,qty.$input[0]);
+  context.document.activeElement=null;
+  await workbench.submit(); assert.equal(submitted,false); assert.match(workbench.lastMessage,/highlighted/); assert.equal(context.document.activeElement,qty.$input[0]);
   assert.equal(row.qty,1);
 });
 test('Bunood errors never erase native required/invalid presentation or unrelated help', async () => {

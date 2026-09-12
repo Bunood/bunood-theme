@@ -10593,6 +10593,7 @@ function sb_zone_anchor(pane, zone, node) {
 			const visible = text === __("Changes stay in this invoice when you close this view.") ? "" : text;
 			this.status.replaceChildren(document.createTextNode(visible));
 			this.status.classList.toggle("bnd-bill-error", error);
+			this.status.setAttribute("role", error ? "alert" : "status");
 			if (action) {
 				const control = button(action.label, this.status, action.run);
 				control.classList.add("bnd-bill-status-action");
@@ -11082,7 +11083,7 @@ function sb_zone_anchor(pane, zone, node) {
 			try {
 				if (Number(this.doc.docstatus) === 0) await this.flush();
 				if (!this.active()) return;
-				if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); return; }
+				if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); this.focusInvalid(); return; }
 				this.setMode(false);
 			} catch (e) { this.message(e.message || __("Could not update the document. Open the advanced form to review."), true); }
 			finally { this.closing = false; this.busy(); }
@@ -11096,13 +11097,21 @@ function sb_zone_anchor(pane, zone, node) {
 			};
 			return null;
 		}
+		focusInvalid() {
+			const key = this.invalid.keys().next().value;
+			const entry = this.controls.find(control => control.key === key);
+			if (!entry) return;
+			if (entry.rowField) this.setExpandedLine(entry.doc.name);
+			entry.control.set_focus?.();
+			entry.control.$wrapper?.[0]?.scrollIntoView?.({ block: "center" });
+		}
 		async save() {
 			if (this.saving || this.closing) return;
 			let missing;
 			this.saving = true; this.busy();
 			try {
 				await this.flush();
-				if (this.invalid.size) throw Error(__("Correct the highlighted value before saving."));
+				if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); this.focusInvalid(); return; }
 				if (!this.active()) throw Error(__("This invoice is no longer active. Open it again to continue."));
 				missing = this.missingRequiredField();
 				if (missing) { this.message(missing.message, true); return; }
@@ -11120,7 +11129,7 @@ function sb_zone_anchor(pane, zone, node) {
 			try {
 				await this.flush();
 				if (!this.active()) return;
-				if (this.invalid.size) throw Error(__("Correct the highlighted value before saving."));
+				if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); this.focusInvalid(); return; }
 				missing = this.missingRequiredField();
 				if (missing) { this.message(missing.message, true); return; }
 				const taxIssue = taxConfigurationIssue(this.doc);
