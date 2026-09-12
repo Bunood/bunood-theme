@@ -6641,8 +6641,8 @@ msgstr "سجّل الدخول لتغيير لغتك."
 
 #. In api.py
 #. src: item44
-msgid "That language is not enabled on this site."
-msgstr "هذه اللغة غير مفعّلة في هذا الموقع."
+msgid "No language was chosen."
+msgstr "لم يتم اختيار أي لغة."
 
 #. In theme_settings.json
 #. src: item44

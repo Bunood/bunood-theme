@@ -4837,7 +4837,7 @@ print("ok")
 			// same strip, so a 4px latch decides which gesture happened. Under
 			// the latch a press is Frappe's collapse, untouched; over it the
 			// pane tracks the pointer and the collapse must NOT fire.
-			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_pane_width"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4849,7 +4849,15 @@ print("ok")
 `);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
+					// AND THE STOP IS PART OF THAT PREMISE. Item 43 made Bunood Console
+					// the shipped default, and it carries `sidebar_pane_width: "5"` —
+					// stop 5 is 280px, the clamp, and a drag that cannot widen is not a
+					// drag. This passed for a week on inherited state: the suite resets
+					// settings at startup, so it always began at the shipped stop, and
+					// only an earlier check leaving a narrower one made it green. Run
+					// alone, or first, it failed 280 -> 280. Measured stops: 200/220/240/
+					// 260/280 for 1..5, container and pane agreeing at every one.
+					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open", sidebar_pane_width: "2" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(() => !!document.querySelector(".sidebar-resize-handle"), null, { timeout: 20000 });
 					await sbEnsureExpanded();
@@ -4925,7 +4933,7 @@ print("ok")
 			// LEFT — decreasing clientX. Math that adds raw deltas reads that as
 			// shrinking, and the CSS logical-property gate gives zero protection
 			// here because this is JavaScript.
-			const before = getSettings(["sidebar_enabled", "sidebar_pane_state"]);
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_pane_width"]);
 			// A real drag PERSISTS the admin's personal pixel; state the premise
 			// (site width governs) and clear the leftover on the way out, or every
 			// later run starts from this run's last pixel — 280 is the clamp, and
@@ -4938,7 +4946,9 @@ print("ok")
 			benchPy(`frappe.db.set_value("User", "Administrator", "language", "ar")\nfrappe.db.commit()\nfrappe.clear_cache()\nprint("ok")\n`);
 			try {
 				await withPersonal(DESK_FIXTURE.user, { bnd_sb_width: "" }, async () => {
-					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
+					// Stop 2, not the shipped stop 5 — see the sibling check above: 5 is
+					// the clamp and nothing can widen from it.
+					setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open", sidebar_pane_width: "2" });
 					await goDesk("/app/selling", "body", 3000);
 					await page.waitForFunction(
 						() => (document.documentElement.getAttribute("dir") || document.dir) === "rtl" &&
@@ -5574,10 +5584,29 @@ print("ok")
 							});
 							return res.status;
 						};
-						return { disabled: await call("fr"), enabled: await call("ar") };
+						// The empty code too, with its MESSAGE — see the assertion below.
+						const res = await fetch("/api/method/bunood_theme.api.set_language", {
+							method: "POST", headers: { "Content-Type": "application/json", "X-Frappe-CSRF-Token": frappe.csrf_token },
+							body: JSON.stringify({ code: "" }),
+						});
+						const body = await res.text();
+						return { disabled: await call("fr"), enabled: await call("ar"), emptyStatus: res.status, emptyBody: body.slice(0, 600) };
 					});
 					expect(r.disabled >= 400, `a language that is enabled but not offered is refused (HTTP ${r.disabled})`);
 					expectEq(r.enabled, 200, `an enabled one is accepted (HTTP ${r.enabled})`);
+					// AND THE REFUSAL SAYS THE RIGHT THING. An empty code and a signed-out
+					// session were one guard with one message, so a signed-IN user whose
+					// switch sent nothing was told to "Sign in to change your language" —
+					// neither true nor actionable. Found by reading the site's Error Log,
+					// not by a check: nothing here asserted any refusal's TEXT, and a
+					// wrong-but-plausible message is invisible to a check that only looks
+					// at the status code.
+					expect(r.emptyStatus >= 400, `an empty code is refused (HTTP ${r.emptyStatus})`);
+					expectEq(
+						/sign in/i.test(r.emptyBody),
+						false,
+						`and a signed-in user is not told to sign in (${r.emptyBody.replace(/\s+/g, " ").slice(0, 180)})`
+					);
 				});
 				const stored = userLangGet(user);
 				expectEq(stored, "ar", `and written to the user (${stored})`);

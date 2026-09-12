@@ -1622,8 +1622,16 @@ def set_language(code: str = "") -> dict:
     apply can deliver.
     """
     code = (code or "").strip()
-    if not code or frappe.session.user == "Guest":
+    # TWO FAILURES, TWO MESSAGES. These were one guard, so a client that sent an
+    # empty code — a stale switch, a mis-wired handler — was told to SIGN IN,
+    # which is neither true nor actionable for someone already signed in. Found
+    # by walking the site's Error Log rather than by a check: nothing asserts the
+    # text of a refusal, and a wrong-but-plausible message is invisible to a
+    # suite that only asserts the exception TYPE.
+    if frappe.session.user == "Guest":
         frappe.throw(_("Sign in to change your language."), frappe.PermissionError)
+    if not code:
+        frappe.throw(_("No language was chosen."), frappe.ValidationError)
     from bunood_theme.language import offered_languages
 
     if code not in {row["code"] for row in offered_languages()}:
