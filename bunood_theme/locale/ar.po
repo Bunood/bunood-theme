@@ -7457,3 +7457,11 @@ msgstr "جارٍ تحديث التقدم"
 #. src: ai — onboarding progress contract reviewed 2026-09-12
 msgid "Setup is complete"
 msgstr "اكتمل الإعداد"
+
+#. src: ai — bill row-removal safety reviewed 2026-09-12
+msgid "Remove {0} from this invoice?"
+msgstr "هل تريد إزالة {0} من هذه الفاتورة؟"
+
+#. src: ai — bill row-removal safety reviewed 2026-09-12
+msgid "this item"
+msgstr "هذا الصنف"

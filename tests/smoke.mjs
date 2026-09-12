@@ -23749,6 +23749,53 @@ print("cleared")
 				expect(geometry.fits && geometry.removeFits && !geometry.removeOverlapsRail, "the line and Remove action must fit without clipping or colliding with the summary rail");
 				expect(geometry.spread <= 2, `line inputs share a baseline (${geometry.spread}px spread)`);
 				expect(geometry.rowSpread <= 2, `item identity and editable controls share one row (${geometry.rowSpread}px spread)`);
+				const quantity = page.locator('.bnd-bill-line .frappe-control[data-fieldname="qty"] input').first();
+				const expectedNextField = await page.evaluate(() => {
+					const inputs = [...document.querySelectorAll('.bnd-bill-line .frappe-control input')]
+						.filter(input => !input.disabled && !input.readOnly && input.type !== "hidden");
+					const quantity = document.querySelector('.bnd-bill-line .frappe-control[data-fieldname="qty"] input');
+					return inputs[inputs.indexOf(quantity) + 1]?.closest('.frappe-control')?.dataset.fieldname || "";
+				});
+				expect(expectedNextField, "the quantity cell has a following editable native cell");
+				await quantity.focus();
+				await quantity.press("Enter");
+				await page.waitForFunction(expected =>
+					document.activeElement?.closest('.frappe-control')?.dataset.fieldname === expected,
+					expectedNextField,
+					{ timeout: 8000 },
+				).catch(async error => {
+					const state = await page.evaluate(() => {
+						const active = document.activeElement;
+						const qty = document.querySelector('.bnd-bill-line .frappe-control[data-fieldname="qty"] input');
+						return {
+							activeField: active?.closest('.frappe-control')?.dataset.fieldname || active?.tagName,
+							qtyValue: qty?.value,
+							qtyEvents: Object.keys(window.jQuery?._data?.(qty, "events") || {}),
+							pickers: [...(qty?.closest('.frappe-control')?.querySelectorAll('.awesomplete > ul') || [])].map(node => ({
+								hidden: node.hasAttribute("hidden"),
+								display: getComputedStyle(node).display,
+								visible: !!node.getClientRects().length,
+							})),
+							lineControls: [...document.querySelectorAll('.bnd-bill-line .frappe-control')].map(node => node.dataset.fieldname),
+						};
+					});
+					throw new Error(`Enter did not advance the line cell: ${JSON.stringify(state)} (${error.message})`);
+				});
+				expectEq(
+					await page.evaluate(() => document.activeElement?.closest('.frappe-control')?.dataset.fieldname),
+					expectedNextField,
+					"Enter commits the current line cell and advances to the next editable cell",
+				);
+				const rowCount = await page.locator('.bnd-bill-line').count();
+				await page.locator('.bnd-bill-line-remove').first().click();
+				await page.locator('.modal.show').waitFor({ state: "visible" });
+				expect(
+					(await page.locator('.modal.show').textContent()).includes(fixture.item),
+					"row-removal confirmation identifies the populated item",
+				);
+				await page.locator('.modal.show .btn-modal-secondary').click();
+				await page.locator('.modal.show').waitFor({ state: "hidden" });
+				expectEq(await page.locator('.bnd-bill-line').count(), rowCount, "cancelling row removal preserves the populated row");
 				if (process.env.BND_UI_SCREENSHOTS) {
 					await page.screenshot({ path: `${process.env.BND_UI_SCREENSHOTS}/sales-invoice-item-row.png`, fullPage: true });
 				}

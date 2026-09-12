@@ -31,11 +31,52 @@ test('redesigned bill keeps essential native controls visible without duplicatin
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
   assert.match(css, /container-type: inline-size/);
   assert.match(source, /bnd-bill-panel bnd-bill-party", null, main/);
-  assert.match(css, /bnd-bill-line-remove \{\s*grid-column: 8; grid-row: 1/);
-  assert.match(css, /min-inline-size: 52rem/);
-  assert.match(css, /bnd-bill-lines.*overflow-x: auto/);
+  assert.match(css, /bnd-bill-line-remove \{\s*grid-column: 9; grid-row: 1/);
+  assert.match(css, /min-inline-size: 55rem/);
+  assert.match(css, /\.bnd-bill-lines \{[\s\S]*?overflow: auto/);
   assert.match(css, /@container.*bnd-cq\(bar-3\)/);
   assert.match(css, /bnd-bill-tools-body \{ position: static; inline-size: 100%/);
+});
+test('shared workbench makes party context compact and items spreadsheet-first', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.equal((source.match(/context: \["tax_id"/g) || []).length, 2);
+  assert.match(source, /bnd-bill-line-head/);
+  assert.match(source, /bnd-bill-row-number/);
+  assert.match(source, /bnd-bill-mobile-total/);
+  assert.match(css, /\.bnd-bill-line-head \{[\s\S]*?position: sticky/);
+  assert.match(css, /\.bnd-bill-essentials \{[\s\S]*?repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css, /\.bnd-bill-rail \{[\s\S]*?position: sticky/);
+  assert.match(css, /@container \(width < #\{bp\.bnd-cq\(bill-rail\)\}\)[\s\S]*?\.bnd-bill-layout \{ grid-template-columns: 1fr; \}/);
+});
+test('phone invoices use one expanded line card and a persistent action total', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(source, /bnd-bill-line-toggle/);
+  assert.match(source, /setExpandedLine\(name\)/);
+  assert.match(source, /this\.mobileExpanded = row\.name/);
+  assert.match(source, /newLineControl\?\.control\.set_focus\(\)/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-line-head \{ display: none; \}/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-essentials \{\s*grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-essentials > \.frappe-control:first-child \{ grid-column: 1 \/ -1; \}/);
+  assert.match(css, /\.bnd-bill-line:not\(\.is-expanded\) \.bnd-bill-line-body \{ display: none; \}/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-line-body \{\s*grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-mobile-total \{\s*display: flex;/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-toolbar \{[\s\S]*?inline-size: auto/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-line-total \{[^}]*gap: var\(--bnd-sp-2\)/);
+});
+test('spreadsheet keyboard flow commits a cell and advances without stealing open picker arrows', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /focusNextLineControl\(control\)/);
+  assert.match(source, /e\.key !== "Enter" \|\| e\.isComposing/);
+  assert.match(source, /\.awesomplete > ul:not\(\[hidden\]\)/);
+  assert.match(source, /awesomplete-selectcomplete\.bnd-bill-nav/);
+  assert.match(source, /Promise\.resolve\(\)[\s\S]*?control\.set_value\(control\.get_value\(\)\)[\s\S]*?focusNextLineControl\(control\)/);
+});
+test('removing a populated bill row requires explicit confirmation', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /removeItem\(row\)[\s\S]*?frappe\.confirm\(\s*__\("Remove \{0\} from this invoice\?"/);
+  assert.match(source, /deleteItem\(row\)[\s\S]*?native\.remove\(\)/);
 });
 const context = {
   window: { bunood_theme: {} },
@@ -510,10 +551,12 @@ test('Simple mode rejects ambiguous VAT rows before native save', () => {
   assert.deepEqual(Array.from(conflict.rows), [2, 4]);
   assert.match(taxIssueMessage(conflict), /2, 4/);
 });
-test('the Remove action gets its own row so item identity aligns with field controls', () => {
+test('the Remove action gets its own spreadsheet column so item identity aligns with field controls', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
-  assert.match(source, /button\(__\("Remove"\), view\.line,/);
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(source, /button\(__\("Remove"\), view\.body,/);
   assert.match(source, /bnd-bill-item-label/);
+  assert.match(scss, /\.bnd-bill-line-remove \{\s*grid-column: 9; grid-row: 1/);
 });
 test('mutations run in order, recover after rejection, and reject stale work', async () => {
   let active = true, release; const order = [];
@@ -734,18 +777,18 @@ test('Read/None native refresh does not replay rejected raw values into the nati
 });
 test('inline error growth does not bottom-align neighboring invoice controls', () => {
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
-  const line=scss.match(/\.bnd-bill-line \{([^}]+)\}/)[1];
-  assert.match(line,/align-items: stretch/);
-  assert.match(scss,/bnd-bill-line-total.*align-content: start/);
+  assert.match(scss,/\.bnd-bill-line-body \{[\s\S]*?align-items: stretch/);
+  assert.match(scss,/\.bnd-bill-cell > \.frappe-control,[\s\S]*?display: block;[\s\S]*?min-block-size: 0/);
+  assert.match(scss,/\.bnd-bill-line \.frappe-control :is\([^}]*block-size:\s*var\(--bnd-control-h\)/);
 });
-test('spreadsheet row gives every label and control a shared vertical track', () => {
+test('spreadsheet rows use a shared sticky header and level control track', () => {
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
-  assert.match(scss,/--bnd-bill-line-label-h:\s*3rem/);
-  assert.match(scss,/\.bnd-bill-cell > \.frappe-control[\s\S]*?grid-template-rows:\s*var\(--bnd-bill-line-label-h\) auto/);
-  assert.match(scss,/\.bnd-bill-item[^}]*grid-template-rows:\s*var\(--bnd-bill-line-label-h\) auto/);
-  assert.match(scss,/\.bnd-bill-line-total[^}]*grid-template-rows:\s*var\(--bnd-bill-line-label-h\) auto/);
+  assert.match(scss,/--bnd-bill-grid:\s*3rem minmax\(14rem,2\.5fr\) repeat\(4,minmax\(4\.5rem,\.8fr\)\) minmax\(7rem,1fr\) minmax\(6\.5rem,1fr\) 4\.5rem/);
+  assert.match(scss,/\.bnd-bill-line-head,[\s\S]*?grid-template-columns:\s*var\(--bnd-bill-grid\)/);
+  assert.match(scss,/\.bnd-bill-line-head \{[\s\S]*?position: sticky;[\s\S]*?inset-block-start: 0/);
   assert.match(scss,/\.bnd-bill-line \.frappe-control :is\([^}]*block-size:\s*var\(--bnd-control-h\)/);
   assert.match(scss,/\.bnd-bill-line \.frappe-control \.control-value[^}]*white-space:\s*nowrap/);
+  assert.match(scss,/@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-cell \.control-label,[\s\S]*?position: static/);
 });
 
 // Disabling a containing fieldset removes browser focus. Model that side effect,

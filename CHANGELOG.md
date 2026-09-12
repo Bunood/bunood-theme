@@ -22,6 +22,35 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.23] — 2026-09-12 — Responsive transaction workbench (patch)
+
+### Changed
+
+- Redesign the shared Sales and Purchase bill lines as a sticky-header
+  spreadsheet with row numbers, level native controls, a dominant item column
+  and a totals rail that moves below the grid before it can overlap.
+- Compact the Customer/Supplier strip and surface each party's native Tax ID
+  without introducing a duplicate field.
+- Render one expanded editable line card on phones, keep the current total and
+  primary action within thumb reach, and preserve every desktop-required field.
+- Commit Enter before advancing to the next writable native cell, leave open
+  Link pickers in control of arrows/selection, focus a new line's first writable
+  cell, and confirm removal of populated rows.
+
+### Checks
+
+- Focused bill contracts pass 68/68 and Arabic catalogue coverage is complete
+  for 1,213 Theme-owned source strings.
+- The canonical live bill acceptance passes against the isolated local stack:
+  aligned row controls, next-writable-cell keyboard flow, removal cancellation,
+  Warehouse autocomplete, VAT template presence and native draft save.
+- Customer and Supplier Quick Entry pass as a non-System-Manager operational
+  user with native `tax_id` save/reload and zero duplicate Custom Fields.
+- Three-line Sales/Purchase desktop and 390 px captures have zero page overflow;
+  a 100-line probe keeps the header sticky and the item sheet bounded.
+- Final payloads remain inside the recorded ceilings: 32,727-byte CSS gzip and
+  157,167-byte JavaScript gzip, with no new runtime dependency or data model.
+
 ## [0.44.22] — 2026-09-12 — Production-candidate stabilization (patch)
 
 ### Fixed
