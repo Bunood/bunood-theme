@@ -22,6 +22,18 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.19] — 2026-09-12 — Reviewed Real Estate release pin (patch)
+
+### Fixed
+
+- Advance the reviewed `bunood_real_estate` compatibility pin from 1.4.3 to
+  1.4.4 so the fail-closed pre-migration gate accepts the release-manifest app
+  upgrade while continuing to reject unreviewed upstream drift.
+
+### Checks
+
+The focused upstream-gate suite passes before the immutable image is rebuilt.
+
 ## [0.44.15] — 2026-09-11 — Production PDF engine repair (patch)
 
 ### Fixed
