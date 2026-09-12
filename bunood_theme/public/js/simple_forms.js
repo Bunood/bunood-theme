@@ -39,6 +39,7 @@
 		"Journal Entry": ["voucher_type", "company", "posting_date", "finance_book", "cheque_no", "cheque_date", "accounts", "total_debit", "total_credit", "difference"],
 		Customer: ["customer_name", "customer_type", "customer_group", "territory", "tax_id", "mobile_no", "email_id", "default_currency", "default_price_list"],
 		Supplier: ["supplier_name", "supplier_group", "supplier_type", "country", "tax_id", "mobile_no", "email_id", "default_currency", "default_price_list"],
+		Company: ["company_name", "abbr", "default_currency", "country", "tax_id", "default_letter_head"],
 		Item: ["item_code", "item_name", "item_group", "stock_uom", "is_stock_item", "is_sales_item", "is_purchase_item", "standard_rate", "valuation_rate", "description", "barcodes", "item_defaults"],
 		Warehouse: ["warehouse_name", "company", "is_group", "parent_warehouse", "warehouse_type", "account", "disabled"],
 		Property: ["property_name", "company", "property_kind", "usage_type", "status", "national_address", "address", "land_area", "floor_plan", "deeds", "ownership_shares"],
@@ -52,6 +53,17 @@
 		Task: ["subject", "project", "status", "priority", "exp_start_date", "exp_end_date", "progress", "description", "depends_on"],
 		Timesheet: ["company", "employee", "parent_project", "start_date", "end_date", "time_logs", "total_hours", "total_billable_hours", "total_billed_hours"],
 		"Expense Claim": ["employee", "company", "posting_date", "approval_status", "expenses", "total_claimed_amount", "total_sanctioned_amount", "payable_account"],
+	};
+	// [title, start, end, collapsed]. Indices slice the matching profile, so one
+	// field list owns both visibility and the order users actually see.
+	const COMPOSITIONS = {
+		Customer: [["Essentials", 0, 4], ["Contact and tax", 4, 7], ["Defaults", 7, 99, 1]],
+		Supplier: [["Essentials", 0, 4], ["Contact and tax", 4, 7], ["Defaults", 7, 99, 1]],
+		Company: [["Essentials", 0, 4], ["Tax and branding", 4, 99]],
+		Item: [["Essentials", 0, 4], ["Sales and purchasing", 4, 9], ["Description and defaults", 9, 99, 1]],
+		Property: [["Essentials", 0, 5], ["Address and area", 5, 8], ["Plans and ownership", 8, 99, 1]],
+		"Real Estate Unit": [["Essentials", 0, 5], ["Leasing and status", 5, 10], ["Area", 10, 99]],
+		Lease: [["Agreement", 0, 5], ["Parties", 5, 9], ["Term", 9, 13], ["Compliance", 13, 99, 1]],
 	};
 	const GUIDANCE = {
 		"Payment Entry": () => [__("Record a payment"), __("Choose whether money came in, went out, or moved between accounts. Then select the party, amount, accounts, and invoices that apply.")],
@@ -128,17 +140,16 @@
 		move(name, target) {
 			const node = this.frm.fields_dict?.[name]?.$wrapper?.[0];
 			if (!node) return;
-			const stored = this.locations.get(name);
-			if (!stored || stored.node !== node) {
-				this.locations.set(name, { node, parent: node.parentNode, next: node.nextSibling });
+			let stored = this.locations.get(name);
+			if (stored?.node !== node) {
+				stored?.marker?.replaceWith(stored.node);
+				const marker = document.createComment(`bnd:${name}`);
+				node.before(marker); stored = { node, marker }; this.locations.set(name, stored);
 			}
 			if (node.parentNode !== target) target.append(node);
 		}
 		restore() {
-			for (const { node, parent, next } of this.locations.values()) {
-				if (!parent?.isConnected) continue;
-				if (next?.parentNode === parent) parent.insertBefore(node, next); else parent.append(node);
-			}
+			for (const { node, marker } of this.locations.values()) if (marker?.isConnected) marker.replaceWith(node);
 			this.locations.clear();
 		}
 		format(value, fieldname, fallbackType = "Currency", currency = this.frm.doc.company_currency) {
@@ -149,6 +160,34 @@
 					? { minimumFractionDigits: 2, maximumFractionDigits: 2 } : undefined;
 				return Number(value || 0).toLocaleString(undefined, options);
 			}
+		}
+	}
+	class GroupedWorkbench extends SimpleDocumentWorkbench {
+		constructor(frm, spec) {
+			super(frm); this.spec = spec;
+			this.root = create("section", "bnd-simple-composer", null, null);
+			this.root.setAttribute("aria-label", __(frm.meta.name));
+			this.groups = spec.map(([title, from, to, collapsed]) => {
+				const card = create(collapsed ? "details" : "section", "bnd-simple-group", null, this.root);
+				create(collapsed ? "summary" : "h3", "", __(title), card);
+				return { from, to, fields: create("div", "bnd-simple-group-fields", null, card) };
+			});
+			this.required = create("section", "bnd-simple-group bnd-simple-required", null, this.root);
+			create("h3", "", __("Required to save"), this.required);
+			this.requiredFields = create("div", "bnd-simple-group-fields", null, this.required);
+		}
+		refresh(active, selected) {
+			if (!active) { this.restore(); this.root.hidden = true; return; }
+			this.root.hidden = false;
+			const profile = PROFILES[this.frm.doctype] || [];
+			const placed = new Set();
+			for (const group of this.groups) for (const name of profile.slice(group.from, group.to)) {
+				if (!selected.has(name)) continue;
+				this.move(name, group.fields); placed.add(name);
+			}
+			let required = 0;
+			for (const name of selected) if (!placed.has(name)) { this.move(name, this.requiredFields); required++; }
+			this.required.hidden = !required;
 		}
 	}
 
@@ -252,7 +291,8 @@
 			this.submitButton = this.action(__("Submit"), "F8", () => this.frm.savesubmit());
 			this.workbench = frm.doctype === "Stock Entry"
 				? new StockEntryWorkbench(frm)
-				: frm.doctype === "Delivery Note" ? new DeliveryNoteWorkbench(frm) : null;
+				: frm.doctype === "Delivery Note" ? new DeliveryNoteWorkbench(frm)
+					: COMPOSITIONS[frm.doctype] ? new GroupedWorkbench(frm, COMPOSITIONS[frm.doctype]) : null;
 			this.ensureMounted();
 			this.keyHandler = event => {
 				if (!this.simple || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -298,10 +338,14 @@
 			}
 			this.header.hidden = false;
 			this.header.classList.toggle("bnd-simple-form-head-advanced", !this.simple);
-			this.frm.$wrapper?.toggleClass("bnd-generic-simple", this.simple);
-			this.frm.$wrapper?.toggleClass("bnd-stock-simple-active", this.simple && this.frm.doctype === "Stock Entry");
-			this.frm.$wrapper?.toggleClass("bnd-delivery-simple-active", this.simple && this.frm.doctype === "Delivery Note");
-			this.workbench?.refresh(this.simple);
+			const setLayout = active => {
+				this.frm.$wrapper?.toggleClass("bnd-generic-simple", active);
+				this.frm.$wrapper?.toggleClass("bnd-stock-simple-active", active && this.frm.doctype === "Stock Entry");
+				this.frm.$wrapper?.toggleClass("bnd-delivery-simple-active", active && this.frm.doctype === "Delivery Note");
+				this.frm.$wrapper?.toggleClass("bnd-composed-simple-active", active && !!COMPOSITIONS[this.frm.doctype]);
+			};
+			if (this.simple) { this.workbench?.refresh(true, this.selected); setLayout(true); }
+			else { setLayout(false); this.workbench?.refresh(false, this.selected); }
 			this.simpleButton.setAttribute("aria-pressed", String(this.simple));
 			this.advancedButton.setAttribute("aria-pressed", String(!this.simple));
 			this.simpleButton.classList.toggle("bnd-bill-primary", this.simple);
@@ -313,7 +357,14 @@
 			this.submitButton.hidden = status !== 0 || local || this.frm.is_dirty() || !this.frm.meta.is_submittable;
 		}
 		setMode(simple) {
+			const active = document.activeElement;
+			const keep = active?.matches?.("input, textarea, select") && this.frm.$wrapper?.[0]?.contains(active);
+			const selection = keep && "selectionStart" in active ? [active.selectionStart, active.selectionEnd, active.selectionDirection] : null;
 			this.simple = simple; this.refresh();
+			if (keep && active.isConnected) {
+				active.focus({ preventScroll: true });
+				if (selection?.[0] != null) active.setSelectionRange(...selection);
+			}
 		}
 	}
 	function mount(frm) {
@@ -322,7 +373,7 @@
 		if (current) current.refresh(); else controllers.set(frm, new SimpleForm(frm));
 		return true;
 	}
-	api.simple_forms = { mount, candidate, profiles: PROFILES, fallbackFields };
+	api.simple_forms = { mount, candidate, profiles: PROFILES, compositions: COMPOSITIONS, fallbackFields, GroupedWorkbench };
 	// Refresh presentation after native field handlers and their requests finish.
 	// Do not calculate values here or return an AJAX wait into a native trigger.
 	if (frappe.ui?.form?.on) {

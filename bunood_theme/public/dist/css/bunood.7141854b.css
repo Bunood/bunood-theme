@@ -8738,12 +8738,81 @@ html[data-theme] .bnd-generic-simple .form-tab-content > .tab-pane:not(:has(.bnd
   display: none !important;
 }
 
+html[data-theme] .bnd-composed-simple-active .form-layout {
+  display: none !important;
+}
+
 html[data-theme] .bnd-stock-simple-active .form-layout {
   display: none !important;
 }
 
 html[data-theme] .bnd-delivery-simple-active .form-layout {
   display: none !important;
+}
+
+.bnd-simple-composer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bnd-sp-4);
+  margin-block: 0 var(--bnd-sp-5);
+  color: var(--bnd-ink);
+}
+
+.bnd-simple-composer[hidden] {
+  display: none !important;
+}
+
+.bnd-simple-group {
+  min-inline-size: 0;
+  padding: var(--bnd-sp-5);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-xl);
+}
+
+.bnd-simple-group:first-child {
+  grid-column: 1/-1;
+  border-block-start: var(--bnd-sp-1) solid var(--bnd-brand-solid);
+}
+
+.bnd-simple-group h3 {
+  margin: 0 0 var(--bnd-sp-4);
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-md);
+}
+
+.bnd-simple-group summary {
+  cursor: pointer;
+  color: var(--bnd-brand-ink);
+  font-weight: 700;
+}
+
+.bnd-simple-group[open] summary {
+  margin-block-end: var(--bnd-sp-4);
+}
+
+.bnd-simple-group-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bnd-sp-3);
+}
+
+.bnd-simple-group-fields > .frappe-control {
+  display: block !important;
+  inline-size: 100% !important;
+  max-inline-size: none !important;
+  padding: 0 !important;
+}
+
+.bnd-simple-group-fields > [data-fieldtype=Table],
+.bnd-simple-group-fields > [data-fieldtype="Text Editor"] {
+  grid-column: 1/-1;
+}
+
+.bnd-simple-required {
+  grid-column: 1/-1;
+  border-color: var(--bnd-warn);
+  background: color-mix(in srgb, var(--bnd-warn) 8%, var(--bnd-surface));
 }
 
 .bnd-stock-simple {
@@ -8935,6 +9004,9 @@ html[data-theme] .bnd-delivery-simple-active .form-layout {
   }
 }
 @media (width < 768px) {
+  .bnd-simple-composer, .bnd-simple-group-fields {
+    grid-template-columns: 1fr;
+  }
   .bnd-bill {
     padding: var(--bnd-sp-3);
     padding-block-end: calc(var(--bnd-control-h) + var(--bnd-sp-7));

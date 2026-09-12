@@ -149,7 +149,8 @@ export function mintSid(user = "Administrator") {
 export async function openDesk({ width = 1440, height = 900, user = "Administrator" } = {}) {
 	const { chromium } = require("playwright");
 	const sid = mintSid(user);
-	const browser = await chromium.launch();
+	const executablePath = process.env.BND_BROWSER_EXECUTABLE;
+	const browser = await chromium.launch(executablePath ? { executablePath } : {});
 	const context = await browser.newContext({ viewport: { width, height } });
 	await context.addCookies([
 		// The cookie must belong to the host BND_URL names: a "localhost" cookie is never

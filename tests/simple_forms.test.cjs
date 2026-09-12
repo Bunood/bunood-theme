@@ -53,6 +53,14 @@ test('real-estate masters and lease use explicit task-ordered profiles', () => {
   for (const table of ['floor_plan', 'deeds', 'ownership_shares']) assert.ok(profiles.Property.includes(table));
   assert.ok(profiles.Lease.includes('tenancies'));
 });
+test('daily masters have structured compositions and Company keeps native tax ID', () => {
+  const { compositions }=context.window.bunood_theme.simple_forms;
+  for (const doctype of ['Customer','Supplier','Item','Property','Real Estate Unit','Lease','Company']) {
+    assert.ok(compositions[doctype]?.length >= 2, `${doctype} needs progressive-disclosure groups`);
+  }
+  assert.deepEqual(Array.from(profiles.Company), ['company_name','abbr','default_currency','country','tax_id','default_letter_head']);
+  assert.equal(fallbackFields({...frm('Company'),doc:{doctype:'Company',tax_id:null}}).has('tax_id'),true);
+});
 test('explicit profiles exclude bold specialist add-ons but retain empty mandatory fields', () => {
   const payment=frm('Payment Entry');
   payment.doc.company='Bunood Demo';
@@ -81,7 +89,7 @@ test('Stock Entry has a task-focused workbench over native controls', () => {
   for (const field of ['stock_entry_type','from_warehouse','to_warehouse','items']) {
     assert.match(source, new RegExp(`this\\.move\\("${field}"`), field);
   }
-  assert.match(source, /this\.workbench\?\.refresh\(this\.simple\)/);
+  assert.match(source, /this\.workbench\?\.refresh\(true, this\.selected\)/);
   assert.match(source, /restore\(\)/);
 });
 test('Delivery Note has its own three-step workbench and scoped active state', () => {
@@ -92,7 +100,7 @@ test('Delivery Note has its own three-step workbench and scoped active state', (
   }
   assert.match(source, /\[__\("Customer"\), __\("Fulfilment"\), __\("Items"\)\]/);
   assert.match(source, /bnd-delivery-simple-active/);
-  assert.match(source, /bnd-stock-simple-active", this\.simple && this\.frm\.doctype === "Stock Entry"/);
+  assert.match(source, /bnd-stock-simple-active", active && this\.frm\.doctype === "Stock Entry"/);
 });
 test('BOM compatibility passes the current document when ERPNext omits it', () => {
   class BomController {}
