@@ -22,6 +22,33 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.44.26] — 2026-09-12 — Role navigation and sidebar state (patch)
+
+### Changed
+
+- Make the single page-head sidebar control cycle Open, Rail and Hidden on
+  desktop, persist the settled per-user state through Frappe's validated
+  preference axis, and leave the mobile drawer independent.
+- Route Home to each user's permitted ERP or Real Estate workspace, curate
+  ordinary-user workspace switchers and All Apps tiles, and keep System
+  Managers unrestricted.
+- Restore the permanent Home action whenever the cached All Apps page no
+  longer has another visible Bunood Home owner, preserving browser history.
+
+### Checks
+
+- Focused navigation contracts pass 34/34 and Theme-owned translation coverage
+  is complete at 1,215 strings with eight documented exemptions.
+- The self-cleaning live gate passed Open → Rail → Hidden → Open in LTR and
+  RTL at 1440×900, 1024×800 and 430×900; Apps/Home history and persisted Rail
+  state remained correct with zero browser errors.
+- Separate ERP and Real Estate users reached five daily destinations in no
+  more than two clicks. Six Real Estate groups rendered in English and Arabic
+  without truncation; ordinary Apps stayed curated and Administrator retained
+  Framework and Real Estate.
+- The asset build and payload gate pass at 32,727-byte CSS gzip and
+  158,452-byte JavaScript gzip, with no dependency or data-model change.
+
 ## [0.44.25] — 2026-09-12 — Role-safe totals and ZATCA states (patch)
 
 ### Fixed

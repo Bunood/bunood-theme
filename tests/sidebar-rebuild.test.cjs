@@ -62,6 +62,37 @@ test('legacy /apps address redirects to the native desktop grid', () => {
   assert.equal(redirect(), true);
   assert.equal(destination, 'desktop');
 });
+function roleModel() {
+  const start=js.indexOf('\tconst ROLE_WORKSPACES =');
+  const end=js.indexOf('\n\tfunction home_sidebar_item',start);
+  assert.ok(start>0 && end>start,'role workspace model is declared before sidebar preparation');
+  return vm.runInNewContext(js.slice(start,end)+'\n({role_home_workspace,role_workspace_names})',{
+    window:{frappe:{}},
+  });
+}
+test('explicit personal workspace selects separate ERP and real-estate homes', () => {
+  const {role_home_workspace}=roleModel();
+  const rows=[{name:'Home'},{name:'Selling'},{name:'Real Estate'}];
+  assert.equal(role_home_workspace({allowed_workspaces:rows,bnd_personal:{home:'Selling'}},['Sales User']),'Selling');
+  assert.equal(role_home_workspace({allowed_workspaces:rows,bnd_personal:{home:'Real Estate'}},['Accounts Manager']),'Real Estate');
+  assert.equal(role_home_workspace({allowed_workspaces:rows,bnd_personal:{home:'Missing'}},['Sales User']),'Home');
+});
+test('ordinary role maps exclude technical workspaces while System Manager remains unrestricted', () => {
+  const {role_workspace_names}=roleModel();
+  const rows=[{name:'Home'},{name:'Selling'},{name:'Buying'},{name:'Real Estate'},{name:'Build'},{name:'Users'}];
+  const erp=role_workspace_names({allowed_workspaces:rows,bnd_personal:{home:'Selling'}},['Sales User']);
+  const realEstate=role_workspace_names({allowed_workspaces:rows,bnd_personal:{home:'Real Estate'}},['Accounts Manager']);
+  assert.ok(erp.includes('Selling') && !erp.includes('Real Estate') && !erp.includes('Build'));
+  assert.ok(realEstate.includes('Real Estate') && !realEstate.includes('Selling') && !realEstate.includes('Users'));
+  assert.equal(role_workspace_names({allowed_workspaces:rows},['System Manager']),null);
+});
+test('Home control routes through the stable role workspace resolver', () => {
+  const source=js.match(/function go_home\(\) \{([\s\S]*?)\n\t\}/)[0];
+  assert.match(source,/frappe\.set_route\(ws_route\(role_home_workspace\(\)\)\)/);
+  const desktop=js.match(/function mount_desktop_icons\(\) \{([\s\S]*?)\n\t\}/)[0];
+  assert.match(desktop,/tile\.hidden = !permitted/);
+  assert.match(desktop,/module_wise_workspaces/);
+});
 test('filled workspace header chevron uses on-brand contrast', () => {
   const css=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_sidebar.scss'),'utf8');
   const rule=css.match(/\.bnd-sb-head-chev \{([\s\S]*?)\n  \}/)[1];
@@ -139,13 +170,31 @@ test('existing rail without a topbar delegates toggle ownership to the page head
   vm.runInNewContext(source+'\nsb_mount_rail();',context);
   assert.equal(owned,true); assert.equal(mounted,1);
 });
-test('page-head toggle arrows mirror expanded state and writing direction', () => {
-  const source=js.match(/function sidebar_toggle_direction\(expanded\) \{[\s\S]*?\n\t\}/)[0];
+test('page-head toggle arrows mirror pane state and writing direction', () => {
+  const source=js.match(/function sidebar_toggle_direction\(state\) \{[\s\S]*?\n\t\}/)[0];
   const direction=vm.runInNewContext('('+source+')');
-  assert.equal(direction(true),'start');
-  assert.equal(direction(false),'end');
+  assert.equal(direction('open'),'start');
+  assert.equal(direction('rail'),'start');
+  assert.equal(direction('hidden'),'end');
   const css=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_breadcrumbs.scss'),'utf8');
   assert.match(css,/html\[dir="rtl"\][\s\S]*?transform:\s*scaleX\(-1\)/);
+});
+test('desktop page-head toggle cycles all three states while mobile stays binary', () => {
+  const source=js.match(/function next_pane_state\(current, narrow = is_narrow\(\)\) \{[\s\S]*?\n\t\}/)[0];
+  const next=vm.runInNewContext('('+source+')',{is_narrow:()=>false});
+  assert.deepEqual(['open','rail','hidden'].map(state=>next(state,false)),['Rail','Hidden','Open']);
+  assert.equal(next('open',true),'Hidden');
+  assert.equal(next('rail',true),'Open');
+  assert.equal(next('hidden',true),'Open');
+});
+test('desktop cycle persists through the declared per-user pane axis', () => {
+  const toggle=js.match(/bunood\.pane_toggle = function \(\) \{([\s\S]*?)\n\t\};/)[0];
+  const persist=js.match(/function persist_pane_state\(value\) \{([\s\S]*?)\n\t\}/)[0];
+  assert.match(toggle,/next_pane_state\(current, narrow\)/);
+  assert.match(toggle,/bunood\.pane_state\(next, \{ persist: !narrow \}\)/);
+  assert.match(persist,/bunood_theme\.api\.set_personal/);
+  assert.match(persist,/bnd_pane_state: value/);
+  assert.doesNotMatch(persist,/localStorage/);
 });
 test('sidebar toggle is anchored in flow beside the workspace icon', () => {
   const css=fs.readFileSync(path.join(root,'bunood_theme/public/scss/chrome/_breadcrumbs.scss'),'utf8');

@@ -60,6 +60,36 @@
 		["Setup", "setting-gear", true, ["ERPNext Settings"]],
 	];
 
+	const ROLE_WORKSPACES = {
+		erp: ["Home", "Selling", "Buying", "Stock", "Invoicing", "Financial Reports", "Reports", "ERPNext Settings"],
+		real_estate: ["Home", "Real Estate", "Invoicing", "Financial Reports", "Reports"],
+	};
+
+	function role_home_workspace(boot = window.frappe?.boot, roles = window.frappe?.user_roles || []) {
+		const allowed = (boot?.allowed_workspaces || []).map(row => row?.name).filter(Boolean);
+		const personal = String(boot?.bnd_personal?.home || "");
+		if (personal && allowed.includes(personal)) return personal;
+		if (!roles.includes("System Manager") && allowed.includes("Real Estate") &&
+			roles.includes("Accounts Manager") && !roles.some(role => ["Sales User", "Purchase User", "Stock User"].includes(role))) {
+			return "Real Estate";
+		}
+		return allowed.includes("Home") ? "Home" : (allowed[0] || "Home");
+	}
+
+	function role_workspace_names(boot = window.frappe?.boot, roles = window.frappe?.user_roles || []) {
+		if (roles.includes("System Manager") || boot?.user?.name === "Administrator" ||
+			boot?.user?.email === "Administrator") return null;
+		const profile = role_home_workspace(boot, roles) === "Real Estate" ? "real_estate" : "erp";
+		return ROLE_WORKSPACES[profile];
+	}
+
+	function product_workspaces() {
+		const boot = window.frappe?.boot;
+		const rows = boot?.allowed_workspaces || [];
+		const names = role_workspace_names(boot);
+		return names ? rows.filter(row => names.includes(row?.name)) : rows;
+	}
+
 	function home_sidebar_item(label, { type = "Link", link_to = null, icon = null, child = 0, keep_closed = 0 } = {}) {
 		return {
 			// These rows are assembled after boot rather than loaded from a
@@ -86,14 +116,15 @@
 	function prepare_home_sidebar() {
 		const boot = window.frappe && frappe.boot;
 		const sidebars = boot && boot.workspace_sidebar_item;
-		const allowed_rows = (boot && boot.allowed_workspaces) || [];
+		const allowed_rows = product_workspaces();
 		if (!sidebars || !allowed_rows.length) return false;
-		const home_key = Object.keys(sidebars).find((key) => key.toLowerCase() === "home");
+		const role_home = role_home_workspace(boot);
+		const home_key = Object.keys(sidebars).find((key) => key.toLowerCase() === role_home.toLowerCase());
 		if (!home_key || !sidebars[home_key]) return false;
 		if (sidebars[home_key]._bnd_module_navigation) return false;
 		const allowed = new Map(allowed_rows.filter((row) => row && row.name).map((row) => [row.name, row]));
-		const home = allowed.get("Home");
-		const items = home ? [home_sidebar_item("Home", { link_to: "Home", icon: home.icon || "home" })] : [];
+		const home = allowed.get(role_home);
+		const items = home ? [home_sidebar_item("Home", { link_to: role_home, icon: home.icon || "home" })] : [];
 		for (const [label, icon, closed, names] of HOME_NAVIGATION_GROUPS) {
 			const visible = names.filter((name) => allowed.has(name));
 			if (!visible.length) continue;
@@ -110,7 +141,7 @@
 		if (items.length < 2) return false;
 		sidebars[home_key].items = items;
 		sidebars[home_key]._bnd_module_navigation = true;
-		return true;
+		return home_key;
 	}
 
 	// app_include_js executes after frappe.boot is assigned and before the desk
@@ -2245,9 +2276,11 @@
 		}
 	}
 
-	function sync_native_desktop_home(has_bunood_shell) {
+	function sync_native_desktop_home() {
 		const existing = document.querySelector(".desktop-navbar .bnd-desktop-native-home");
-		if (!on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []) || has_bunood_shell) {
+		const owned_home = [...document.querySelectorAll('[data-bnd-part="home"]:not(.bnd-desktop-native-home)')]
+			.some(node => node.offsetParent !== null);
+		if (!on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []) || owned_home) {
 			if (existing) existing.remove();
 			return;
 		}
@@ -2301,7 +2334,7 @@
 			"data-bnd-desktop-shell",
 			html.hasAttribute("data-bnd-desktop") && !!(mobile ? mobile_shell : desktop_shell)
 		);
-		sync_native_desktop_home(!!(mobile ? mobile_shell : desktop_shell));
+		sync_native_desktop_home();
 
 		// This is a workspace drawer opener, not a second Home/Apps destination.
 		// Name it by that job wherever Frappe remounts a page head.
@@ -2383,7 +2416,14 @@
 	function mount_desktop_icons() {
 		const tiles = document.querySelectorAll(".desktop-wrapper .desktop-icon");
 		if (!tiles.length) return false;
+		const visible = role_workspace_names();
+		const modules = (window.frappe?.boot?.module_wise_workspaces) || {};
 		for (const tile of tiles) {
+			const id = String(tile.getAttribute("data-id") || "");
+			const permitted = !visible || visible.includes(id) ||
+				(Array.isArray(modules[id]) && modules[id].some(name => visible.includes(name)));
+			tile.hidden = !permitted;
+			if (!permitted) continue;
 			const host = tile.querySelector(".icon-container");
 			if (!host || host.querySelector(".bnd-deskicon")) continue;
 			const caption = tile.querySelector(".icon-title, .icon-caption");
@@ -2409,7 +2449,7 @@
 	 * that self-redirects forever when a brand chip sends the user there.
 	 */
 	function go_home() {
-		frappe.set_route("home");
+		frappe.set_route(ws_route(role_home_workspace()));
 	}
 
 	// A desk language change needs new translations and the matching RTL/LTR
@@ -3448,12 +3488,18 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function sync_start_toggle(button, expanded) {
 		if (!button) return;
-		const label = expanded ? __("Retract sidebar") : __("Expand sidebar");
+		const state = document.documentElement.getAttribute("data-bnd-sb-panestate") || "open";
+		const label =
+			state === "open"
+				? __("Use compact sidebar")
+				: state === "rail"
+					? __("Hide sidebar")
+					: __("Show sidebar");
 		button.setAttribute("aria-expanded", expanded ? "true" : "false");
 		button.setAttribute("aria-label", label);
 		button.title = label;
 		if (button.classList.contains("bnd-pagehead-sidebar-toggle")) {
-			const direction = sidebar_toggle_direction(expanded);
+			const direction = sidebar_toggle_direction(state);
 			button.dataset.bndArrow = direction;
 			button.innerHTML = direction === "start" ? BND_DOUBLE_START_SVG : BND_DOUBLE_END_SVG;
 		}
@@ -3483,22 +3529,44 @@ function sb_zone_anchor(pane, zone, node) {
 		return btn;
 	}
 
-	/** Open the pane if it is away, put it back if it is not. */
+	/** The next desktop pane state. Mobile owns a separate native drawer. */
+	function next_pane_state(current, narrow = is_narrow()) {
+		if (narrow) return current === "open" ? "Hidden" : "Open";
+		if (current === "open") return "Rail";
+		if (current === "rail") return "Hidden";
+		return "Open";
+	}
+
+	let pane_state_save_timer = 0;
+
+	/** Persist a desktop comfort choice through the existing per-user axis. */
+	function persist_pane_state(value) {
+		const personal = frappe.boot && frappe.boot.bnd_personal;
+		if (!personal || personal.open?.bnd_pane_state === 0) return;
+		window.clearTimeout(pane_state_save_timer);
+		pane_state_save_timer = window.setTimeout(() => {
+			frappe
+				.xcall("bunood_theme.api.set_personal", { values: { bnd_pane_state: value } })
+				.then(() => {
+					if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.pane_state = value;
+				})
+				.catch(() => {
+					frappe.show_alert({
+						message: __("The sidebar layout could not be saved."),
+						indicator: "orange",
+					});
+				});
+		}, 250);
+	}
+
+	/** Cycle Open → Rail → Hidden → Open and remember the desktop choice. */
 	bunood.pane_toggle = function () {
 		if (!sb_state) return;
 		const html = document.documentElement;
-		const container = document.querySelector(".body-sidebar-container");
-		// In Rail, the bar's Menu control is the rail control. Reuse it instead
-		// of creating a second button or changing the saved pane state.
-		if (html.getAttribute("data-bnd-sb-panestate") === "rail" && !is_narrow() && container?._bnd_toggle_rail) {
-			container._bnd_toggle_rail();
-			return;
-		}
-		const away = html.getAttribute("data-bnd-sb-panestate") !== "open";
-		bunood.pane_state(away ? "Open" : "Hidden");
-		for (const b of document.querySelectorAll(".bnd-sb-start")) {
-			sync_start_toggle(b, away);
-		}
+		const current = html.getAttribute("data-bnd-sb-panestate") || "open";
+		const narrow = is_narrow();
+		const next = next_pane_state(current, narrow);
+		bunood.pane_state(next, { persist: !narrow });
 	};
 
 	// Frappe caches page heads and may replace their own listeners while keeping
@@ -6984,7 +7052,7 @@ function sb_zone_anchor(pane, zone, node) {
 			frappe.router && frappe.router.slug
 				? frappe.router.slug(name)
 				: String(name).toLowerCase().replace(/ /g, "-");
-		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
+		const roots = product_workspaces().filter(
 			(w) => w.public && !w.parent_page
 		);
 
@@ -7272,7 +7340,7 @@ function sb_zone_anchor(pane, zone, node) {
 			"aria-label": __("Show the side pane"),
 		});
 		show.appendChild(sprite_icon("es-line-sidebar-collapse"));
-		show.addEventListener("click", () => bunood.pane_state("Open"));
+		show.addEventListener("click", () => bunood.pane_state("Open", { persist: !is_narrow() }));
 		wrap.appendChild(show);
 		title.insertBefore(wrap, title.firstChild);
 	}
@@ -7327,7 +7395,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	/** The pane's state, page-locally — argument in _sidebar.scss. */
-	bunood.pane_state = function (value) {
+	bunood.pane_state = function (value, options = {}) {
 		if (!sb_state) return;
 
 		bunood.sb_apply({ sidebar_pane_state: value });
@@ -7342,6 +7410,7 @@ function sb_zone_anchor(pane, zone, node) {
 			sb_mount_pagehead_toggle();
 			sb_mount_pagehead_brand();
 		}
+		if (options.persist) persist_pane_state(value);
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -7516,7 +7585,7 @@ function sb_zone_anchor(pane, zone, node) {
 			);
 			label.textContent = is_narrow() ? (is_home ? __("Home") : __("Apps")) : title;
 			btn.appendChild(label);
-			if (is_home && on_home_route()) {
+			if (is_home && on_role_home_route()) {
 				btn.classList.add("is-current");
 				btn.setAttribute("aria-current", "page");
 			} else if (!is_home && on_desktop) {
@@ -7688,8 +7757,8 @@ function sb_zone_anchor(pane, zone, node) {
 		'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
 		'<path d="M11 6l6 6-6 6"/><path d="M5 6l6 6-6 6"/></svg>';
 
-	function sidebar_toggle_direction(expanded) {
-		return expanded ? "start" : "end";
+	function sidebar_toggle_direction(state) {
+		return state === "hidden" ? "end" : "start";
 	}
 
 
@@ -8991,6 +9060,15 @@ function sb_zone_anchor(pane, zone, node) {
 		return slug === HOME_ROUTE;
 	}
 
+	function on_role_home_route() {
+		const route = (window.frappe && frappe.get_route ? frappe.get_route() : null) || [];
+		const head = String(route[0] || "").toLowerCase();
+		const workspace = head === "workspaces"
+			? route[1] === "private" ? route[2] : route[1]
+			: route[0];
+		return ws_route(workspace || "") === ws_route(role_home_workspace());
+	}
+
 	function home_host() {
 		let page = frappe.container && frappe.container.page;
 		if (page && page.jquery) page = page[0];
@@ -9740,8 +9818,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// allowed_workspaces is populated later than app_include_js on this v16
 		// build. Prepare Home at the first desk mount and let Frappe render the
 		// changed native payload once if its sparse shipped list already painted.
-		if (prepare_home_sidebar() && on_home_route() && frappe.app?.sidebar?.setup) {
-			frappe.app.sidebar.setup("Home");
+		const prepared_home = prepare_home_sidebar();
+		if (prepared_home && on_role_home_route() && frappe.app?.sidebar?.setup) {
+			frappe.app.sidebar.setup(prepared_home);
 		}
 
 		// Re-stamp the viewport attributes now the desk is up: the module-scope

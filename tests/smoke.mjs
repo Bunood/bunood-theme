@@ -676,6 +676,12 @@ function setSettings(values) {
 		`        frappe.db.set_single_value("Theme Settings", f, v)\n` +
 		`for f, v in vals.items():\n` +
 		`    frappe.db.set_single_value("Theme Settings", f, v)\n` +
+		// The real page-head gesture now saves bnd_pane_state per user. Site-state
+		// checks deliberately drive Theme Settings, so remove the Administrator
+		// override whenever this helper establishes a pane state. main() snapshots
+		// and restores the operator's original preference around the whole suite.
+		`if "sidebar_pane_state" in vals or (pick and "sidebar_pane_state" in layout_settings(pick)):\n` +
+		`    frappe.defaults.clear_default("bnd_pane_state", parent="Administrator")\n` +
 		// REGENERATE THE BRAND SHEET WHEN WE HAVE WRITTEN ONE OF ITS INPUTS.
 		//
 		// `set_single_value` does not fire `on_update`, so `write_brand_css` never
@@ -1625,6 +1631,9 @@ async function main() {
 
 	const sid = process.env.BND_SID || mintSid();
 	const snapshot = getSettings(MUTABLE_FIELDS);
+	const paneStateSnapshot = benchPy(
+		"print(frappe.defaults.get_user_default('bnd_pane_state', 'Administrator') or '')\n"
+	).trim().split(/\r?\n/).pop();
 	// Language is snapshotted like the settings are, and for the same reason —
 	// but it is FORCED to LANG_DEFAULT before the run rather than merely
 	// restored after. Restoring protects the operator; forcing protects the run.
@@ -3862,7 +3871,7 @@ async function main() {
 			expect(compactTargets.length >= 5, `compact rail exposes the permitted top-level destinations (${JSON.stringify(compactTargets)})`);
 			expect(compactTargets.every(target => target.width >= 80 && target.height >= 48 && target.title && target.icon && target.label), `compact rail targets are consistently sized, illustrated and labelled (${JSON.stringify(compactTargets)})`);
 
-			await page.click(".page-head .bnd-pagehead-sidebar-toggle");
+			await page.locator(".bnd-compact-nav button.bnd-rail-entry").first().evaluate(node => node.click());
 			await page.waitForTimeout(300);
 			const open = await page.evaluate(() => {
 				const rail = document.querySelector(".body-sidebar-container");
@@ -3941,7 +3950,7 @@ async function main() {
 			expect(state.open && state.width >= 200 && state.labelVisible, `section icon reveals the complete navigation (${JSON.stringify(state)})`);
 		});
 
-		await test("rail: exactly one page-head toggle opens and closes", async () => {
+		await test("rail: exactly one page-head toggle cycles Rail, Hidden and Open", async () => {
 			setSettings(presets["Bunood Light"]);
 			await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
 			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
@@ -3988,7 +3997,7 @@ async function main() {
 			expect(collapsed.width >= 32 && collapsed.width <= 40, `page-head toggle is a quiet compact target (${collapsed.width}px)`);
 			expect(Math.abs(collapsed.buttonCenterY - collapsed.barCenterY) <= 1, `page-head toggle is vertically centred (${JSON.stringify(collapsed)})`);
 			expect(collapsed.outsidePane && collapsed.besideHome, `page-head toggle is beside Home and outside the sidebar (${JSON.stringify(collapsed)})`);
-			expectEq(collapsed.arrow, "end", `collapsed control points toward logical end (${JSON.stringify(collapsed)})`);
+			expectEq(collapsed.arrow, "start", `Rail control points toward logical start (${JSON.stringify(collapsed)})`);
 			await page.mouse.move(1, 500);
 			await page.waitForTimeout(300);
 			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "hover alone does not open the sidebar");
@@ -4002,10 +4011,20 @@ async function main() {
 			expect(new Set(positions.map(String)).size === 1, `page-head toggle is visually anchored (${JSON.stringify(positions)})`);
 			await page.locator(".page-head .bnd-pagehead-sidebar-toggle").click({ force: true });
 			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "opens from page-head toggle");
+			const hidden = await page.evaluate(() => ({
+				state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+				visible: getComputedStyle(document.querySelector(".body-sidebar-container")).display !== "none",
+				expanded: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").getAttribute("aria-expanded"),
+				arrow: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").dataset.bndArrow,
+			}));
+			expectEq(hidden.state, "hidden", `Rail advances to Hidden (${JSON.stringify(hidden)})`);
+			expect(!hidden.visible && hidden.expanded === "false" && hidden.arrow === "end",
+				`Hidden releases the pane and points back toward logical end (${JSON.stringify(hidden)})`);
 			if (process.env.BND_SIDEBAR_SCREENSHOTS) {
-				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-expanded.png` });
+				await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-hidden.png` });
 			}
+			await page.locator(".page-head .bnd-pagehead-sidebar-toggle").click({ force: true });
+			await page.waitForTimeout(300);
 			const expanded = await page.locator('.page-head .bnd-pagehead-sidebar-toggle').evaluate(button => {
 				const rect = button.getBoundingClientRect();
 				return {
@@ -4013,13 +4032,21 @@ async function main() {
 					expanded: button.getAttribute('aria-expanded'),
 					viewportInset: Math.round(rect.left),
 					arrow: button.dataset.bndArrow,
+					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 				};
 			});
-			expect(expanded.label && expanded.label !== collapsed.label && expanded.expanded === 'true', `open button exposes its retract name and state (${JSON.stringify(expanded)})`);
-			expectEq(expanded.arrow, "start", `expanded control reverses toward logical start (${JSON.stringify(expanded)})`);
+			expect(expanded.label && expanded.label !== collapsed.label && expanded.expanded === 'true' && expanded.state === "open",
+				`Hidden advances to a named Open state (${JSON.stringify(expanded)})`);
+			expectEq(expanded.arrow, "start", `Open control points toward logical start (${JSON.stringify(expanded)})`);
 			await page.locator(".page-head .bnd-pagehead-sidebar-toggle").click({ force: true });
 			await page.waitForTimeout(300);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes from page-head toggle");
+			const railAgain = await page.evaluate(() => ({
+				state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+				expanded: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").getAttribute("aria-expanded"),
+				arrow: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").dataset.bndArrow,
+			}));
+			expect(railAgain.state === "rail" && railAgain.expanded === "false" && railAgain.arrow === "start",
+				`Open advances back to Rail (${JSON.stringify(railAgain)})`);
 		});
 
 		await test("rail: page-head toggle mirrors cleanly in Arabic dark mode", async () => {
@@ -4057,7 +4084,7 @@ async function main() {
 					if (process.env.BND_SIDEBAR_SCREENSHOTS) {
 						await page.screenshot({ path: `${process.env.BND_SIDEBAR_SCREENSHOTS}/topbar-toggle-ar-dark-collapsed.png` });
 					}
-					await page.click(".page-head .bnd-pagehead-sidebar-toggle");
+					await page.locator(".bnd-compact-nav button.bnd-rail-entry").first().evaluate(node => node.click());
 					await page.waitForTimeout(300);
 					const open = await page.evaluate(() => {
 						const rail = document.querySelector(".body-sidebar-container").getBoundingClientRect();
@@ -4071,7 +4098,7 @@ async function main() {
 							expanded: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle").getAttribute("aria-expanded"),
 						};
 					});
-					expectEq(open.expanded, "true", `Arabic toggle exposes its open state (${JSON.stringify(open)})`);
+					expectEq(open.expanded, "true", `Arabic page-head control exposes the transient expanded Rail state (${JSON.stringify(open)})`);
 					expect(open.railWidth >= 200, `Arabic sidebar reserves its expanded column (${JSON.stringify(open)})`);
 					expect(open.mainOverlap <= 1, `Arabic sidebar does not cover the main workspace (${JSON.stringify(open)})`);
 					expect(open.paneTop >= open.barBottom, `Arabic pane begins below the top bar (${JSON.stringify(open)})`);
@@ -4092,7 +4119,7 @@ async function main() {
 			await page.setViewportSize({ width: 1440, height: 900 });
 			try {
 				await goDesk("/desk/home", ".page-head .bnd-pagehead-sidebar-toggle", 3000);
-				await page.click(".page-head .bnd-pagehead-sidebar-toggle");
+				await page.locator(".bnd-compact-nav button.bnd-rail-entry").first().evaluate(node => node.click());
 				await page.waitForTimeout(300);
 				expect(await page.locator(".body-sidebar-container").evaluate(node => node.classList.contains("bnd-rail-open")), "desktop sidebar starts expanded");
 
@@ -7371,9 +7398,16 @@ print("ok")
 				await page.click('.page-head .bnd-pagehead-sidebar-toggle');
 				await page.waitForTimeout(700);
 				const c2 = await snap();
-				expectEq(c2.state, "hidden", "the next click takes it away again");
-				expectEq(c2.pane, false, "and it really goes");
-				expectEq(c2.aria, "false", "and the button says that too");
+				expectEq(c2.state, "rail", "the next click compacts the pane into its rail");
+				expectEq(c2.pane, true, "and the compact navigation remains available");
+				expectEq(c2.aria, "false", "and the control announces the compact state");
+
+				await page.click('.page-head .bnd-pagehead-sidebar-toggle');
+				await page.waitForTimeout(700);
+				const d2 = await snap();
+				expectEq(d2.state, "hidden", "the third click takes the pane away");
+				expectEq(d2.pane, false, "and it really goes");
+				expectEq(d2.aria, "false", "and the button says that too");
 
 				// OFF IS OFF, and costs no route: the pane keeps its own handle.
 				setSettings({ start_placement: "Off" });
@@ -24041,6 +24075,18 @@ print("cleared")
 			setLang(langSnapshot);
 		} catch (e) {
 			console.error("WARNING: language restore failed — check System Settings manually.", e.message);
+		}
+		try {
+			benchPy(
+				`value = ${JSON.stringify(paneStateSnapshot)}\n` +
+				"frappe.defaults.clear_default('bnd_pane_state', parent='Administrator')\n" +
+				"if value:\n" +
+				"    frappe.defaults.set_default('bnd_pane_state', value, parent='Administrator')\n" +
+				"frappe.db.commit()\n" +
+				"frappe.clear_cache(user='Administrator')\n"
+			);
+		} catch (e) {
+			console.error("WARNING: Administrator pane preference restore failed.", e.message);
 		}
 		await browser.close();
 	}

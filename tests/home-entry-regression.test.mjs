@@ -62,8 +62,9 @@ test("Home actions can wrap inside their available width", () => {
 
 test("the native All Apps navbar receives one permanent Home route", () => {
 	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
-	assert.match(source, /function sync_native_desktop_home\(has_bunood_shell\)/);
+	assert.match(source, /function sync_native_desktop_home\(\)/);
 	assert.match(source, /\.desktop-navbar \.bnd-desktop-native-home/);
+	assert.match(source, /data-bnd-part="home".*not\(\.bnd-desktop-native-home\)/);
 	assert.match(source, /brand\.insertAdjacentElement\("afterend", button\)/);
 	assert.match(source, /build_quick_link\("home", true\)/);
 	const shell = source.slice(source.indexOf("function sync_desktop_shell()"), source.indexOf("function desktop_symbol"));

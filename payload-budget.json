@@ -1,5 +1,7 @@
 {
 	"_readme": [
+		"2026-09-12 ROLE HOME AND APPS DECISION: desk JS ceiling 157850 -> 158500 gzip bytes. The final measured bundle is 158452 bytes. The 651-byte growth resolves each ordinary user's validated bnd_home against permitted workspaces, sends the global Home action to the ERP or Real Estate role workspace, curates the switcher and All Apps grid to product workspaces, and leaves System Managers unrestricted. Stable workspace names and Frappe's module map drive filtering; no translated route, permission bypass, dependency or parallel router was added.",
+		"2026-09-12 PERSISTED SIDEBAR STATE DECISION: desk JS ceiling 157600 -> 157850 gzip bytes. The measured bundle is 157801 bytes. The 273-byte growth over v0.44.25 turns the single page-head control into the specified Open -> Rail -> Hidden -> Open desktop state machine and writes the settled choice through the existing validated bnd_pane_state user-default axis. Mobile stays on Frappe's independent binary drawer, state labels are translated, and no localStorage key, dependency, route or duplicate control was added.",
 		"2026-09-12 ZATCA ROLE-SAFE TOTALS DECISION: desk JS ceiling 157450 -> 157600 gzip bytes. The measured bundle is 157528 bytes. The 173-byte growth over v0.44.24 restricts Sandbox/Production and sync metadata to Accounts/System Managers, keeps invoice status actionable for ordinary users, and settles the active native field plus its mutation queue before Alt+I exposes item search. The live gate reconciles every visible draft/submitted total and denies ordinary-user ZATCA sends; no credential, dependency, calculation, posting endpoint or duplicate form model was added.",
 		"2026-09-12 KEYBOARD FOCUS SAFETY DECISION: desk JS ceiling 157300 -> 157450 gzip bytes. The measured bundle is 157355 bytes. The 55-byte overage makes deferred native invoice calculations preserve the operator's latest focused control, prevents an earlier Enter transition from stealing focus after the operator has moved to item search, and honors Add Item after an existing native update finishes. This closes rapid keyboard entry for both shared Sales and Purchase bill workbenches; no dependency, calculation, posting endpoint or duplicate form model was added.",
 		"2026-09-12 RESPONSIVE BILL WORKBENCH DECISION: desk CSS ceiling 32100 -> 32800 and JS ceiling 156200 -> 157300 gzip bytes. Final measured bundles are 32727 CSS and 157167 JS. The growth replaces the label-heavy line layout with one sticky spreadsheet header, row numbering, compact customer/supplier context with native Tax ID, a wider sticky totals rail, and phone line cards with one explicitly expanded editor plus a persistent action total. It also commits Enter before advancing through editable cells, preserves native autocomplete ownership, and confirms populated-row removal. Sales and Purchase continue sharing one native-control adapter; no calculation engine, posting endpoint, UI dependency or duplicate document model was added.",
@@ -187,7 +189,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 32800,
-		"js_gzip": 157600,
+		"js_gzip": 158500,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
 		"auth_js_gzip": 1000,
@@ -599,6 +601,25 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +0b, js +173b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.24"
+		},
+		{
+			"version": "v0.44.26",
+			"date": "2026-09-12",
+			"web_css_raw": 30917,
+			"web_css_gzip": 4513,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 24554,
+			"print_css_gzip": 6938,
+			"css_raw": 252391,
+			"css_gzip": 32727,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 516032,
+			"js_gzip": 158452,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +0b, js +924b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.25"
 		}
 	]
 }
