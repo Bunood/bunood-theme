@@ -297,6 +297,7 @@ STATUS_FIELDS = [
     "status_segments_scheduler",
     "status_segments_connection",
     "status_segments_density",
+    "status_segments_width",
     "status_clock",
     "status_interval",
     "status_freshness",
@@ -326,6 +327,10 @@ STATUS_DEFAULTS = {
     "status_segments_scheduler": 1,
     "status_segments_connection": 1,
     "status_segments_density": 1,
+    # Item 45. Ships ON beside density: the two answer the same question
+    # (how much fits on my screen) and a control nobody can find is the
+    # same as no control.
+    "status_segments_width": 1,
     "status_freshness": 1,
     "status_escalate": 0,
 }
@@ -503,6 +508,21 @@ DESK_FIELDS = [
     "desk_scale",
     "desk_primary",
 ]
+
+#: The widths the body kit names, in order, narrowest first.
+#:
+#: THE TABLE, so that a fifth width costs one tuple entry. Its consumers are the
+#: doctype's ``desk_width`` Select, the client's slug map in ``bunood.js`` and
+#: the per-user ``bnd_body_width`` axis, and ``assertBodyWidths`` in build.mjs
+#: holds all three to it — the ``SB_PANE_STOPS`` shape, for the same reason.
+#:
+#: ``Original`` is NOT here and that is the point: it stands the kit down and
+#: leaves Frappe's own 900px cap alone, which is an administrator's answer to
+#: "does this theme govern width at all". Every member below is a reading edge
+#: and a wide edge, which is a person's answer to "how much do I want on
+#: screen" — so the Select offers ``Original`` plus these, and the personal
+#: axis offers only these.
+DESK_WIDTHS = ("Compact", "Balanced", "Roomy", "Full")
 
 #: The shipped body — the user's pick from the item-43 composer (Bunood Console,
 #: 2026-09-08): the 14 set and the brand fill. The WIDTH moved to Balanced in

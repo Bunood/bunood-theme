@@ -125,6 +125,7 @@
   "status_segments_scheduler": 1,
   "status_segments_connection": 1,
   "status_segments_density": 1,
+  "status_segments_width": 1,
   "status_freshness": 1,
   "status_escalate": 0,
   "topbar_enabled": 0,
@@ -1297,9 +1298,9 @@
    ]
   },
   "status_picker": {
-   "n": 109,
+   "n": 115,
    "svgs": 3,
-   "text": 1124,
+   "text": 1248,
    "seq": [
     "div.bnd-cbp.bnd-stp",
     "section.bnd-cbp-zone",
@@ -1368,6 +1369,12 @@
     "h4.bnd-cbp-zone-title",
     "div.bnd-cbp-group",
     "div.bnd-cbp-switches",
+    "button.bnd-cbp-toggle.bnd-stp-toggle",
+    "span.bnd-cbp-knob.bnd-cbp-knob-on",
+    "span.",
+    "b.",
+    "br.",
+    "span.bnd-cbp-blurb",
     "button.bnd-cbp-toggle.bnd-stp-toggle",
     "span.bnd-cbp-knob.bnd-cbp-knob-on",
     "span.",

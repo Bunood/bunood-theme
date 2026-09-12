@@ -137,6 +137,7 @@
   "status_segments_scheduler",
   "status_segments_connection",
   "status_segments_density",
+  "status_segments_width",
   "status_freshness",
   "status_escalate",
   "section_mobile",
@@ -1244,6 +1245,13 @@
    "fieldname": "status_segments_density",
    "fieldtype": "Check",
    "label": "Density Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_width",
+   "fieldtype": "Check",
+   "label": "Width Segment",
    "default": "1",
    "hidden": 1
   },

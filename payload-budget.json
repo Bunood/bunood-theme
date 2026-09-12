@@ -173,11 +173,12 @@
 		"fifth full run; reproducing it showed the wrap was never installed at all,",
 		"because frappe.Chart is a factory and does not own makeChartArea. The guard",
 		"walks a real instance s prototype chain instead. 43 gzip bytes after the",
-		"argument moved to surfaces/_charts.scss, which Sass strips."
+		"argument moved to surfaces/_charts.scss, which Sass strips.",
+		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager."
 	],
 	"ceiling": {
 		"css_gzip": 28500,
-		"js_gzip": 127100,
+		"js_gzip": 128700,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

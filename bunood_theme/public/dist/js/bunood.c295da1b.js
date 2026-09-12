@@ -1509,6 +1509,78 @@
 		};
 	}
 
+	// ── Body width, per person (item 45) ────────────────────────────────────
+	// THE LAYER IS FORCED BY WHO CAN REACH THE CONTROL: the status bar is on
+	// every desk, so an icon there that wrote Theme Settings would throw for
+	// everyone but a System Manager and, for the System Manager, re-lay every
+	// colleague's desk. `personal.bnd_body_width` carries it under the
+	// `personal_comfort` lock density rides; `resolve_for_user` overlays it
+	// onto `desk_width` last.
+
+	/** The cycle: follow-the-site, then each width narrowest first. Derived
+	 *  from the kit's own slug map — `presets.DESK_WIDTHS` is the server's copy
+	 *  and `assertBodyWidths` holds both to the doctype Select. `Original`
+	 *  stands the kit down, which is the site's call, not a reader's. */
+	function width_cycle() {
+		return [""].concat(
+			Object.keys(bnd_axis_slugs("body", "width")).filter((n) => n !== "Original")
+		);
+	}
+
+	/** The person's stored intent, and what "follow the site" resolves to. */
+	function width_state() {
+		const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+		return { mine: p.body_width || "", site: p.site_body_width || "" };
+	}
+
+	/**
+	 * Persist a width and apply it now — `set_density`'s shape exactly, down to
+	 * the rollback, so the visible state never lies. `{save:false}` previews.
+	 * @param {string} value - one of `width_cycle()`. Empty follows the site.
+	 * @param {{save?: boolean}} [opts]
+	 * @returns {Promise<void>}
+	 */
+	bunood.set_body_width = function (value, opts) {
+		const was = width_state();
+		bunood.body_apply({ desk_width: value || was.site });
+		if (opts && opts.save === false) return Promise.resolve();
+		return frappe
+			.xcall("bunood_theme.api.set_personal", { values: { bnd_body_width: value } })
+			.then(() => {
+				if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = value;
+				refresh_width_label();
+				frappe.show_alert({
+					message: value ? __("Width: {0}", [__(value)]) : __("Width: following site default"),
+					indicator: "green",
+				});
+			})
+			.catch(() => {
+				bunood.body_apply({ desk_width: was.mine || was.site });
+				refresh_width_label();
+				frappe.show_alert({
+					message: __("Could not save width preference"),
+					indicator: "red",
+				});
+			});
+	};
+
+	/** Advance to the next width in the cycle. Wired to the status segment. */
+	bunood.cycle_body_width = function () {
+		const list = width_cycle();
+		const at = list.indexOf(width_state().mine);
+		bunood.set_body_width(list[(at + 1) % list.length]);
+	};
+
+	/** Reflect the stored width override on the status bar label. */
+	function refresh_width_label() {
+		if (!status_refs.width) return;
+		const mine = width_state().mine;
+		const label = __("Width: {0}", [mine ? __(mine) : __("Auto")]);
+		// The glyph stays; the words go to AT and to the tooltip, as density's do.
+		status_refs.width.setAttribute("aria-label", label);
+		status_refs.width.title = label;
+	}
+
 	// ════════════════════════════════════════════════════════════════════════
 	// Activity drawer (item 43 A6) — the form kit's one JS mount before the band
 	//
@@ -4610,7 +4682,7 @@ function sb_zone_anchor(pane, zone, node) {
 	// ── Status bar / bottom bar ─────────────────────────────────────────────
 
 	/** Live references the status bar updates after mount. */
-	const status_refs = { conn: null, conn_label: null, density: null, clock: null };
+	const status_refs = { conn: null, conn_label: null, density: null, width: null, clock: null };
 
 	/**
 	 * Mount the fixed bottom strip.
@@ -4712,6 +4784,27 @@ function sb_zone_anchor(pane, zone, node) {
 			fresh.addEventListener("click", () => status_poll(true));
 			bar.appendChild(fresh);
 			status_refs.fresh = fresh;
+		}
+
+		// Width: the same treatment, immediately BEFORE density — item 42's call
+		// was that density ends the bar. Gated on the LOCK as well as the
+		// segment: on a site that closed personal comfort the icon would
+		// otherwise be present and throw on every click.
+		const comfort_open = !!(
+			frappe.boot.bnd_personal &&
+			frappe.boot.bnd_personal.open &&
+			frappe.boot.bnd_personal.open.bnd_body_width
+		);
+		if (status_on("status_segments_width") && comfort_open) {
+			const width = el("button", "bnd-status-item bnd-status-width", {
+				type: "button",
+				"data-bnd-prio": "2",
+			});
+			width.appendChild(sprite_icon("icon-move-horizontal"));
+			width.addEventListener("click", () => bunood.cycle_body_width());
+			bar.appendChild(width);
+			status_refs.width = width;
+			refresh_width_label();
 		}
 
 		// Density: an icon at the trailing edge (item 42); words in the label.
@@ -8733,6 +8826,7 @@ function sb_zone_anchor(pane, zone, node) {
 					bnd_look: st.look || "",
 					bnd_shape: st.shape || "",
 					bnd_density: st.density || "",
+					bnd_body_width: st.body_width || "",
 					bnd_motion: st.motion || "",
 					bnd_home: st.home || "",
 					mode: document.documentElement.getAttribute("data-theme-mode") || "light",
@@ -8773,6 +8867,8 @@ function sb_zone_anchor(pane, zone, node) {
 					);
 				const density_values =
 					(data.axes || []).find((a) => a.key === "bnd_density") || { values: [] };
+				const width_values =
+					(data.axes || []).find((a) => a.key === "bnd_body_width") || { values: [] };
 
 				const body =
 					`<div class="bnd-cbp" data-bnd-part="appearance">` +
@@ -8784,6 +8880,10 @@ function sb_zone_anchor(pane, zone, node) {
 						{ value: "automatic", label: __("Automatic") },
 					], !open_for("bnd_density")) +
 					row("bnd_density", __("Density"), named(density_values.values, data.site.density), !open_for("bnd_density")) +
+					// Item 45: the same question as density, asked of the page. The
+					// site's own width comes from `site_values`, which already
+					// carries it — `desk_width` is a LOOK field.
+					row("bnd_body_width", __("Body width"), named(width_values.values, (data.site_values || {}).desk_width || ""), !open_for("bnd_body_width")) +
 					// No lock on motion, ever — see personal.UNLOCKABLE. It is an
 					// accessibility floor, not a taste, and the one pole reduces.
 					row("bnd_motion", __("Motion"), [
@@ -8819,6 +8919,7 @@ function sb_zone_anchor(pane, zone, node) {
 					if (axis === "bnd_look") show_look(value);
 					else if (axis === "bnd_shape") show_shape(value);
 					else if (axis === "bnd_density") bunood.set_density(value, { save: false });
+					else if (axis === "bnd_body_width") bunood.set_body_width(value, { save: false });
 					else if (axis === "bnd_motion") bunood.set_motion(value, { save: false });
 					else if (axis === "mode") show_mode(value);
 					// bnd_home has nothing to preview — it decides where the NEXT
@@ -8847,6 +8948,7 @@ function sb_zone_anchor(pane, zone, node) {
 					show_look(opened.bnd_look);
 					show_shape(opened.bnd_shape);
 					bunood.set_density(opened.bnd_density, { save: false });
+					bunood.set_body_width(opened.bnd_body_width, { save: false });
 					bunood.set_motion(opened.bnd_motion, { save: false });
 					show_mode(opened.mode);
 				});
@@ -8858,6 +8960,7 @@ function sb_zone_anchor(pane, zone, node) {
 								bnd_look: pick.bnd_look,
 								bnd_shape: pick.bnd_shape,
 								bnd_density: pick.bnd_density,
+								bnd_body_width: pick.bnd_body_width,
 								bnd_motion: pick.bnd_motion,
 								bnd_home: pick.bnd_home,
 							},
@@ -8878,6 +8981,14 @@ function sb_zone_anchor(pane, zone, node) {
 					Promise.all(calls)
 						.then(() => {
 							saved = true;
+							// Boot is the seed both status-bar cycles read to decide their
+							// NEXT value, so a save that left it stale made the following
+							// icon click jump to the wrong stop. Density had this before
+							// width existed; half a repair is a regression.
+							frappe.boot.bnd_density = pick.bnd_density;
+							if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = pick.bnd_body_width;
+							refresh_density_label();
+							refresh_width_label();
 							dialog.hide();
 							frappe.show_alert({ message: __("Appearance saved"), indicator: "green" });
 						})

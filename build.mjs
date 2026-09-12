@@ -1235,6 +1235,69 @@ function assertPaneStops(presetsSrc, sidebarScss, doctypeJson, pickerSrc) {
 	}
 }
 
+/**
+ * Body-width guard (item 45) — `presets.DESK_WIDTHS` is THE catalogue, and this
+ * holds its three consumers to it: the doctype's `desk_width` Select, the
+ * client's slug map in bunood.js, and the per-user `bnd_body_width` axis that
+ * resolves through it.
+ *
+ * THE CONSUMER THIS EXISTS FOR is the last one. `desk_width` is a SITE field
+ * with a stand-down pole (`Original`) and `bnd_body_width` is a PERSON'S
+ * override without one — two lists that are nearly the same list, which is the
+ * shape every "same fact in two places" defect in this repo has had. The
+ * subtraction is asserted, not assumed: `Original` must be in the Select and
+ * must NOT be in the table, because a person standing the site's width kit
+ * down from a status-bar icon is not what the control means.
+ *
+ * @param {string} presetsSrc - presets.py text
+ * @param {object} doctypeJson - the parsed Theme Settings doctype
+ * @param {string} deskJs - bunood.js text
+ * @param {string} personalPy - personal.py text
+ */
+function assertBodyWidths(presetsSrc, doctypeJson, deskJs, personalPy) {
+	const problems = [];
+	const table = presetsSrc.match(/DESK_WIDTHS\s*=\s*\(([^)]*)\)/);
+	if (!table) throw new Error("Body-width guard: presets.DESK_WIDTHS not found");
+	const widths = [...table[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+	if (widths.length < 2) problems.push(`DESK_WIDTHS parsed to ${widths.length} entries`);
+	if (widths.includes("Original")) {
+		problems.push("DESK_WIDTHS carries Original — that pole stands the kit down and is the site's alone");
+	}
+
+	const field = (doctypeJson.fields || []).find((f) => f.fieldname === "desk_width");
+	const options = field ? String(field.options || "").split("\n").filter(Boolean) : [];
+	if (options.join(",") !== ["Original"].concat(widths).join(",")) {
+		problems.push(
+			`desk_width options (${options.join(",")}) are not Original plus DESK_WIDTHS ` +
+				`(${widths.join(",")})`
+		);
+	}
+
+	// The client's one copy: the body kit's width axis row.
+	const row = deskJs.match(/\["width",\s*"desk_width",\s*\{([^}]*)\}\]/);
+	if (!row) problems.push("bunood.js has no body-kit width axis row to check");
+	else {
+		const labels = [...row[1].matchAll(/"([^"]+)":\s*"/g)].map((m) => m[1]);
+		if (labels.join(",") !== options.join(",")) {
+			problems.push(
+				`bunood.js's width slug map (${labels.join(",")}) disagrees with the Select ` +
+					`(${options.join(",")}) — a label with no slug renders the site's width silently`
+			);
+		}
+	}
+
+	// The personal axis must RESOLVE the table rather than restate it.
+	const axis = personalPy.match(/"key":\s*"bnd_body_width"[\s\S]*?\n\s{4}\},/);
+	if (!axis) problems.push("personal.py declares no bnd_body_width axis");
+	else if (!/"catalogue":\s*"DESK_WIDTHS"/.test(axis[0])) {
+		problems.push("bnd_body_width does not resolve DESK_WIDTHS — it is restating the list");
+	}
+
+	if (problems.length) {
+		throw new Error("Body-width guard:\n  " + problems.join("\n  "));
+	}
+}
+
 function assertFieldMirrors(presetsSrc, jsSrc) {
 	const families = (src, re) => {
 		const out = {};
@@ -2074,6 +2137,17 @@ async function main() {
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
 		)
+	);
+	assertBodyWidths(
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		),
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/personal.py", import.meta.url), "utf8")
 	);
 	assertLogicalPlacementArgs(
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")

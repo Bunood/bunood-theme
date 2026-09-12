@@ -7836,6 +7836,7 @@ function bnd_print_set(frm, field, value) {
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
+	"status_segments_width",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
 ];
 
@@ -7846,7 +7847,7 @@ const BND_STATUS_DEFAULTS = {
 	search_placement: "Side Pane Start", status_style: "Quiet", status_clock: "Off",
 	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
 	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
-	status_freshness: 1, status_escalate: 0,
+	status_segments_width: 1, status_freshness: 1, status_escalate: 0,
 };
 
 /**
@@ -8546,6 +8547,7 @@ const BND_STATUS_TOGGLES = [
 	{ field: "status_segments_scheduler", name: () => __("Scheduler"), desc: () => __("Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only.") },
 	{ field: "status_segments_connection", name: () => __("Live updates"), desc: () => __("Says when the realtime connection is down. The desk still works — what stops is anything updating on its own.") },
 	{ field: "status_segments_density", name: () => __("Density toggle"), desc: () => __("Click to cycle row density.") },
+	{ field: "status_segments_width", name: () => __("Width toggle"), desc: () => __("Click to cycle how wide the body runs. Each person sets their own; the site width below is what they start from.") },
 	{ field: "status_freshness", name: () => __("Freshness stamp"), desc: () => __("How old the counts are, and a button to refresh them now.") },
 	{ field: "status_escalate", name: () => __("Recolour the bar on failure"), desc: () => __("Tints the whole strip when something has failed. Off by default — a bar that shouts gets ignored.") },
 ];

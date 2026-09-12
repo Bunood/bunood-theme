@@ -2433,6 +2433,38 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   The reason it was worth doing: item 43 shipped a width setting that reached two of seven
   families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
   A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
+- **A check that drives a documented FAILURE path is writing to a store, and the Error Log
+  is a store.** 345 of this site's 560 unseen rows were the suite's own: the print sheet's
+  two sabotage probes and the SVG-logo check, whose `/files/mark.png` has no file behind it
+  so Frappe's `attach_files_to_document` fails on every save of that field. Four per run,
+  forever — and the desk's status bar counts UNSEEN rows, so the tenant's own desk read
+  **Errors: 560** on every page. The product behaviour was right in both cases; the test was
+  leaving residue on the site it tests. `ERRLOG_MARK` + `errlogSweep(methods)` bracket the
+  gesture and delete only rows of the named methods created after the mark, so an unrelated
+  error in the same window stays visible. **The general rule: before adding a check that
+  provokes a logged failure, ask where the log goes and who reads it.** And the diagnostic
+  lesson is the older one — the user reported "errors every time I change a setting", three
+  console captures and a 58-change walk found nothing, and a SCREENSHOT found it in one
+  look, at the bottom of the page.
+- **A chrome control's LAYER is decided by who can reach it, not by where the value lives.**
+  The status bar is on every desk, so an icon there may only write per-user storage: a site
+  Single behind it would throw for everyone who is not a System Manager and, for the one who
+  is, silently re-lay every colleague's desk from a glyph. Item 45's width segment is therefore
+  `personal.bnd_body_width` under the existing `personal_comfort` lock, overlaid onto
+  `desk_width` in `resolve_for_user` LAST — the `bnd_pane_state` shape: one field, narrower and
+  more recent than a look, so a personal look that carries a width does not beat it. Two
+  corollaries that are easy to miss. (a) **Gate the control on the lock as well as on its own
+  switch** — a control that is present and always fails is worse than one that is absent.
+  (b) **The overlay destroys the site's own value**, so `bnd_body.desk_width` is the EFFECTIVE
+  width and nothing client-side can find its way back to "follow the site"; `bnd_personal`
+  carries `site_body_width` beside the intent, read in the same function that does the overlay
+  so the pair cannot drift.
+- **"Next to X" in a flex bar is an `order` question, not a DOM one.** Both the width and
+  density segments sort past the cluster slot, whose auto margin pushes everything after it to
+  the trailing edge — so appending width before density in the DOM would still have left the
+  whole bar between them. They are adjacent because their `order` values are 999 and 1000, and
+  the check reads adjacency as a side-agnostic index over visible children sorted by position,
+  never as `nextElementSibling` and never by naming a side (RTL passes the same assertion).
 - **A section head's inline padding is the COLUMN's, plus whatever the style bleeds.**
   Every field sits inside a `.form-column` at `--bnd-form-col-pad` (15px, Bootstrap's)
   from the section's content box, and Frappe's own `.section-head` carries the same 15px

@@ -222,6 +222,35 @@ AXES = (
         ),
     },
     {
+        "key": "bnd_body_width",
+        "kind": PREFERENCE,
+        "label": "Body width",
+        # THE CATALOGUE, not a copy of it — presets.DESK_WIDTHS is the table and
+        # build.mjs's assertBodyWidths holds the doctype Select and the client's
+        # slug map to it too. `Original` is deliberately absent: it stands the
+        # width kit down, which is the site's call about whether the theme
+        # governs width at all, not a reader's call about working room.
+        "values": None,  # resolved by values_for() — see below
+        "catalogue": "DESK_WIDTHS",
+        # COMFORT, exactly as bnd_density and bnd_pane_state are. How much of the
+        # screen a record is allowed to span is the same kind of question as how
+        # tall its rows are, and this file's rule for that family is
+        # `personal_comfort`. It is also why the chrome control may exist at all:
+        # a desk-wide icon that wrote the site Single would 403 for everyone but
+        # a System Manager and, for the System Manager, would re-lay every
+        # colleague's desk from the status bar.
+        "lock": "personal_comfort",
+        "boot": "bnd_personal.body_width",
+        "empty": "follow the site's desk_width",
+        "since": "item 45",
+        "note": (
+            "Applied in resolve_for_user as one field over the resolved map, last "
+            "and narrowest, the way bnd_pane_state is — a look may carry a width "
+            "(desk_width is in LOOK_FIELDS) and this still wins, because it is "
+            "the more recent and more specific statement about the same desk."
+        ),
+    },
+    {
         "key": "bnd_sidebar_preset",
         "kind": PREFERENCE,
         "label": "Side pane look",
@@ -537,6 +566,10 @@ def values_for(key: str) -> tuple | None:
         return tuple(THEME_PRESETS)
     if catalogue == "LAYOUT_CHROME":
         return tuple(LAYOUT_CHROME)
+    if catalogue == "DESK_WIDTHS":
+        from bunood_theme.presets import DESK_WIDTHS
+
+        return tuple(DESK_WIDTHS)
     if catalogue == "WORKSPACES":
         # Resolved per person, per request, so it cannot live here: this module
         # imports nothing from frappe on purpose. The caller that has a session

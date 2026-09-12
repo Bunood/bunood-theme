@@ -7436,3 +7436,45 @@ msgstr "عرض متن الصفحة. كل قيمة تحدد حافتين: حاف�
 #. src: item45
 msgid "How wide the body is allowed to be. Every value carries two measures: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a child table. Compact 900/1200 · Balanced 1040/1400 · Roomy 1120/1600 · Full lifts both. Original leaves Frappe's own 900px cap."
 msgstr "العرض المسموح به لمتن الصفحة. كل قيمة تحمل مقياسين: حافة قراءة للنماذج والإعدادات، وحافة عريضة للقوائم والتقارير واللوحات وأي قسم يحتوي جدولًا فرعيًا. مُحكم 900/1200 · متوازن 1040/1400 · فسيح 1120/1600 · كامل يرفع الحدّين. الأصلي يترك حد فرابي 900 بكسل."
+
+#. Label of a Check field in DocType 'Theme Settings'
+#. src: item45
+#, fuzzy
+msgid "Width Segment"
+msgstr "مقطع العرض"
+
+#. In theme_settings.js
+#. src: item45
+#, fuzzy
+msgid "Width toggle"
+msgstr "مبدّل العرض"
+
+#. In theme_settings.js
+#. src: item45
+#, fuzzy
+msgid "Click to cycle how wide the body runs. Each person sets their own; the site width below is what they start from."
+msgstr "انقر لتدوير عرض متن الصفحة. كل شخص يضبط عرضه الخاص، وعرض الموقع أدناه هو ما يبدأ منه."
+
+#. In bunood.js
+#. src: item45
+#, fuzzy
+msgid "Body width"
+msgstr "عرض المتن"
+
+#. In bunood.js
+#. src: item45
+#, fuzzy
+msgid "Width: {0}"
+msgstr "العرض: {0}"
+
+#. In bunood.js
+#. src: item45
+#, fuzzy
+msgid "Width: following site default"
+msgstr "العرض: بحسب افتراضي الموقع"
+
+#. In bunood.js
+#. src: item45
+#, fuzzy
+msgid "Could not save width preference"
+msgstr "تعذر حفظ تفضيل العرض"

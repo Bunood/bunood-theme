@@ -137,6 +137,7 @@ def resolve_for_user(site) -> tuple:
     pane_state = frappe.defaults.get_user_default("bnd_pane_state") or ""
     motion = frappe.defaults.get_user_default("bnd_motion") or ""
     home = frappe.defaults.get_user_default("bnd_home") or ""
+    body_width = frappe.defaults.get_user_default("bnd_body_width") or ""
 
     # THE LOOK. A whole named look, filtered to the fields a look is allowed to
     # carry — never the colour seeds, never the shape, and never the four
@@ -171,6 +172,17 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_pane_state") and pane_state in ("Open", "Rail", "Hidden"):
         resolved["sidebar_pane_state"] = pane_state
 
+    # THE BODY WIDTH. One field, last, for the same reason the pane state is: a
+    # look MAY carry a width (`desk_width` is in LOOK_FIELDS) and this still
+    # wins, because it is the narrower and more recent statement about the same
+    # desk. The catalogue is `presets.DESK_WIDTHS` and never a tuple restated
+    # here — `Original` is not in it on purpose, so a person cannot use their
+    # own comfort setting to stand the site's width kit down.
+    if is_open("bnd_body_width") and body_width in (
+        personal_axes.values_for("bnd_body_width") or ()
+    ):
+        resolved["desk_width"] = body_width
+
     return resolved, {
         "look": look,
         "shape": shape,
@@ -181,6 +193,15 @@ def resolve_for_user(site) -> tuple:
         "pane_state": pane_state,
         "motion": motion,
         "home": home,
+        "body_width": body_width,
+        # WHAT "FOLLOW THE SITE" RESOLVES TO, carried because the overlay two
+        # lines up DESTROYS it: `bnd_body.desk_width` is the effective width,
+        # so a client that has just cycled away from the site's value has no way
+        # back to it without a reload. Read here, in the one function that does
+        # the overlay, so the pair cannot drift. (The Appearance dialog gets the
+        # same fact from `get_personal_presets`'s `site_values`, which serves a
+        # different consumer — a whole look's ~100 fields for its preview.)
+        "site_body_width": site.get("desk_width") or "",
         "locks": {
             name: 1 if personal_axes.lock_open(name, site.get(name)) else 0
             for name in personal_axes.LOCKS

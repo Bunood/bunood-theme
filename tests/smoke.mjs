@@ -576,6 +576,35 @@ async function withBranding(values, fn) {
  * than aliased, so this table stays two rows long. An unknown pick THROWS in
  * setSettings rather than silently driving whatever was on before.
  */
+/**
+ * Bracket a check that deliberately drives a documented FAILURE path, so the
+ * Error Log rows ITS OWN gesture writes do not outlive it.
+ *
+ * WHY THIS EXISTS, measured 2026-09-12 on the dev site: 345 of 560 unseen Error
+ * Log rows were written by this suite — 191 by the print sheet's two sabotage
+ * probes (a garbage seed, an unoffered pole) and 154 by the SVG-logo note check,
+ * whose `/files/mark.png` has no file behind it, so Frappe's `attach_files_to_document`
+ * fails on every save of that field. Four rows per run, forever. The desk's
+ * status bar counts UNSEEN rows, so the user's own desk read **Errors: 560** on
+ * every page, and the number only ever went up.
+ *
+ * THE PRODUCT BEHAVIOUR IS RIGHT IN BOTH CASES and is not what changes here: a
+ * pole with no compiled block and a logo pointing at a missing file both deserve
+ * a row on a real site. What is wrong is a TEST leaving residue on the site it
+ * tests — the same rule `withPersonal` and the sweep's verified restore already
+ * obey, applied to the one store nobody had thought of as state.
+ *
+ * NARROW ON PURPOSE: only rows of the NAMED methods, only rows created after the
+ * mark. An unrelated error raised inside the same window survives and stays
+ * visible, which is the whole point of the segment that counts them.
+ */
+const ERRLOG_MARK = 'BND_ERRMARK = frappe.utils.now()\n';
+const errlogSweep = (methods) =>
+	`for _n in frappe.get_all("Error Log", filters={"creation": [">=", BND_ERRMARK], ` +
+	`"method": ["in", ${JSON.stringify(methods)}]}, pluck="name"):\n` +
+	`    frappe.db.delete("Error Log", {"name": _n})\n` +
+	`frappe.db.commit()\n`;
+
 const LEGACY_LAYOUTS = {
 	Compact: { pick: "Unified Side Pane", values: { pagehead_enabled: 1, inbox_placement: "Page Header End", user_placement: "Page Header End" } },
 	Classic: { pick: "Unified Side Pane", values: { inbox_placement: "Off", user_placement: "Off" } },
@@ -1454,6 +1483,7 @@ const MUTABLE_FIELDS = [
 	"language_placement", "language_style", "language_choices", "appearance_placement",
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
+	"status_segments_width",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
 	// Slice 2c, the container split: each container gets its own on/off, so
 	// `desk_layout` can become a preset that writes them and then stops
@@ -1690,13 +1720,22 @@ async function main() {
 			// NOT auto-cleared: on this dev site Administrator is also a human,
 			// and deleting a person's preference silently is worse than a red
 			// check that says exactly what to run.
+			// BOTH WIDTHS, and the second one matters more. `bnd_body_width`
+			// (item 45) governs SEVEN surface families through `desk_width`, so a
+			// stranded row does not degrade one pane — it makes every later width
+			// assertion measure the person's width instead of the site's, and the
+			// failures read as a body kit that stopped working. Keyed by axis so a
+			// third personal width joins by name.
+			const WIDTH_AXES = ["bnd_sb_width", "bnd_body_width"];
 			const rows = JSON.parse(
 				benchPy(
 					`import json
 ` +
 						`users = ["Administrator", ${JSON.stringify(DESK_FIXTURE.user)}]
 ` +
-						`print("BND" + json.dumps({u: (frappe.defaults.get_user_default("bnd_sb_width", u) or "") for u in users}))
+						`axes = ${JSON.stringify(WIDTH_AXES)}
+` +
+						`print("BND" + json.dumps({u + "/" + k: (frappe.defaults.get_user_default(k, u) or "") for u in users for k in axes}))
 `
 				).split("BND")[1].trim()
 			);
@@ -1705,9 +1744,9 @@ async function main() {
 				!dirty.length,
 				"personal width leftovers — a prior run died mid-check. Repair: " +
 					dirty
-						.map(([u, v]) => `bnd_sb_width=${v} for ${u}`)
+						.map(([k, v]) => `${k.split("/")[1]}=${v} for ${k.split("/")[0]}`)
 						.join(", ") +
-					" — clear with: bench --site demo.bunood.test execute frappe.defaults.clear_default --kwargs \"{'key':'bnd_sb_width','parent':'<user>'}\""
+					" — clear each with: bench --site demo.bunood.test execute frappe.defaults.clear_default --kwargs \"{'key':'<axis>','parent':'<user>'}\""
 			);
 		});
 
@@ -2711,6 +2750,100 @@ async function main() {
 				const after = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-density"));
 				expect(after !== m.before, `a click still cycles the density (${m.before} -> ${after})`);
 			});
+		});
+
+		// ── Item 45: the width control beside density ─────────────────────────
+		// Named `body:` because they belong to the width kit's family and its
+		// --only filter; placed HERE because their premise is the status bar the
+		// density check just set up, and a segment's neighbour is the one thing
+		// that cannot be asserted from the body block.
+		await test("body: the width segment sits beside density and cycles the reader's own width", async () => {
+			// WHY IT IS PER-USER AND NOT THE SITE SETTING. An icon every desk
+			// shows that wrote the Theme Settings Single would 403 for everyone
+			// but a System Manager, and for the System Manager it would silently
+			// re-lay every colleague's desk from the status bar. The layer is
+			// forced by who can see the control, not chosen.
+			//
+			// Watched failing before: no `.bnd-status-width` in the bar at all.
+			await withPersonal("Administrator", { bnd_body_width: "" }, async () => {
+				setSettings({
+					desk_layout: "Top Taskbar", status_style: "Always On",
+					status_segments_width: 1, status_segments_density: 1,
+					desk_width: "Balanced", personal_comfort: 1,
+				});
+				await goDesk("/desk/item", ".bnd-statusbar", 3000);
+				const m = await page.evaluate(() => {
+					const bar = document.querySelector(".bnd-statusbar");
+					const w = bar && bar.querySelector(".bnd-status-width");
+					const d = bar && bar.querySelector(".bnd-status-density");
+					if (!w || !d) return null;
+					return {
+						hasSvg: !!w.querySelector("svg"),
+						text: (w.textContent || "").trim(),
+						label: w.getAttribute("aria-label") || "",
+						title: w.title,
+						// ADJACENCY IS VISUAL, NOT DOM. Both segments sort past the
+						// cluster slot on `order`, so DOM neighbours would prove
+						// nothing: read as a side-agnostic index so RTL passes the
+						// same assertion.
+						beside: (() => {
+							const vis = [...bar.children]
+								.filter((k) => getComputedStyle(k).display !== "none" && k.getBoundingClientRect().width > 0)
+								.sort((x, y) => x.getBoundingClientRect().left - y.getBoundingClientRect().left);
+							return Math.abs(vis.indexOf(w) - vis.indexOf(d)) === 1;
+						})(),
+						before: document.documentElement.getAttribute("data-bnd-body-width"),
+					};
+				});
+				expect(m, "the width segment mounts, and so does the density one");
+				expect(m.hasSvg && m.text === "", `icon only, no text run (${JSON.stringify(m.text)})`);
+				expect(/Width/.test(m.label) && m.title === m.label, `named for AT and the tooltip (${JSON.stringify(m.label)} / ${JSON.stringify(m.title)})`);
+				expect(m.beside, "the two segments are visual neighbours — density keeps the trailing edge item 42 gave it");
+				expectEq(m.before, "balanced", "it starts on the site's width");
+				await page.click(".bnd-statusbar .bnd-status-width");
+				await page.waitForTimeout(900);
+				const after = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-body-width"));
+				expect(after && after !== m.before, `a click moves the width (${m.before} -> ${after})`);
+				// THE SITE IS UNTOUCHED — the whole reason the axis is per-user.
+				const rows = JSON.parse(
+					benchPy(
+						'print("BND" + json.dumps({"site": frappe.db.get_single_value("Theme Settings", "desk_width"), ' +
+							'"mine": frappe.defaults.get_user_default("bnd_body_width", "Administrator") or ""}))'
+					).split("BND")[1].trim()
+				);
+				expectEq(rows.site, "Balanced", "the site's own width did not move");
+				expect(rows.mine && rows.mine !== "Balanced", `the reader's own row carries the new width (${JSON.stringify(rows.mine)})`);
+			});
+		});
+
+		await test("body: a personal width wins over the site's, and clearing it follows the site again", async () => {
+			// The boot resolve, not the chrome: one field, applied last, exactly
+			// as `sidebar_pane_state` is. Sabotage: drop the overlay in
+			// `resolve_for_user` and the first half reads "balanced".
+			setSettings({ desk_width: "Balanced" });
+			await withPersonal("Administrator", { bnd_body_width: "Roomy" }, async () => {
+				await goDesk("/desk/item/new", ".form-section", 3000);
+				expectEq(await attr("data-bnd-body-width"), "roomy", "the reader's width, not the site's");
+			});
+			await goDesk("/desk/item/new", ".form-section", 3000);
+			expectEq(await attr("data-bnd-body-width"), "balanced", "cleared, the site's width is back");
+		});
+
+		await test("body: the width segment stands down when the site closes personal comfort", async () => {
+			// A control that is always present and always fails is worse than one
+			// that is absent: `personal_comfort` is the site's answer to "may
+			// people set their own comfort", and width rides it as density does.
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Always On", status_segments_width: 1, personal_comfort: 0 });
+			await goDesk("/desk/item", ".bnd-statusbar", 3000);
+			expectEq(await page.evaluate(() => document.querySelectorAll(".bnd-statusbar .bnd-status-width").length), 0, "no width segment while comfort is locked");
+			setSettings({ personal_comfort: 1 });
+		});
+
+		await test("body: the width segment is absent when the site switches the segment off", async () => {
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Always On", status_segments_width: 0, personal_comfort: 1 });
+			await goDesk("/desk/item", ".bnd-statusbar", 3000);
+			expectEq(await page.evaluate(() => document.querySelectorAll(".bnd-statusbar .bnd-status-width").length), 0, "nothing mounts");
+			setSettings({ status_segments_width: 1 });
 		});
 
 		await test("status: the cluster stays at the bar's trailing edge", async () => {
@@ -21465,6 +21598,7 @@ print("cleared")
 				const out = benchPy(
 					"import json\n" +
 						"keep = frappe.db.get_single_value('Theme Settings', 'logo')\n" +
+					ERRLOG_MARK +
 						"try:\n" +
 						"    doc = frappe.get_doc('Theme Settings')\n" +
 						`    doc.logo = ${JSON.stringify(logo)}\n` +
@@ -21476,7 +21610,11 @@ print("cleared")
 						"    back.logo = keep\n" +
 						"    back.save(ignore_permissions=True)\n" +
 						"    frappe.db.commit()\n" +
-						"print('BND_MSG' + json.dumps(msgs))\n"
+						"print('BND_MSG' + json.dumps(msgs))\n" +
+						// `/files/mark.png` has no file behind it, so Frappe's
+						// `attach_files_to_document` fails on `on_update` and logs a
+						// row — two per run, 154 on this site before anyone counted.
+						errlogSweep(["Error Attaching File"])
 				);
 				const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_MSG"));
 				if (!line) throw new Error("logo-note probe produced no JSON: " + String(out).slice(-300));
@@ -22558,9 +22696,13 @@ print("cleared")
 			const out = benchPy(
 				"import json\n" +
 					"from bunood_theme.printing.sheet import print_css\n" +
+					ERRLOG_MARK +
 					"good = print_css()\n" +
 					"bad = print_css(settings=frappe._dict(brand_color='#nope', accent_color='#nope'))\n" +
-					"print('BND_SD' + json.dumps({'good': len(good), 'good_var': 'var(' in good, 'bad': bad}))\n"
+					"print('BND_SD' + json.dumps({'good': len(good), 'good_var': 'var(' in good, 'bad': bad}))\n" +
+					// The garbage seed above is a DOCUMENTED failure path and logs a
+					// real Error Log row. Ours to write, ours to take away.
+					errlogSweep(["bunood_theme: print stylesheet stood down"])
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_SD"));
 			if (!line) throw new Error("stand-down probe produced no JSON: " + String(out).slice(-300));
@@ -22585,6 +22727,7 @@ print("cleared")
 				"import json\n" +
 					"from bunood_theme.printing.sheet import print_css\n" +
 					"from bunood_theme.presets import PRINT_DEFAULTS\n" +
+					ERRLOG_MARK +
 					"base = dict(PRINT_DEFAULTS)\n" +
 					"def css_for(**over):\n" +
 					"    d = dict(base); d.update(over)\n" +
@@ -22602,7 +22745,10 @@ print("cleared")
 					"        and ('bnd-tt-' not in neutral) and ('bnd-hg-' not in neutral),\n" +
 					"    'neutral_contracts': '.text-muted' in neutral,\n" +
 					"    'zebra_has': 'nth-child' in zebra,\n" +
-					"    'bogus': bogus}))\n"
+					"    'bogus': bogus}))\n" +
+					// `No Such Pole` is a sabotage, and the stand-down it proves logs
+					// a row. Swept, so the tenant's Errors badge does not count it.
+					errlogSweep(["bunood_theme: print stylesheet stood down"])
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_ASM"));
 			if (!line) throw new Error("assembly probe produced no JSON: " + String(out).slice(-300));

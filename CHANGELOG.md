@@ -76,7 +76,80 @@ Both after the checks were green, which is why this repo looks. The document ban
 the exact complaint the work answers. And the picker's measures clipped to "Reading: 1040 · Wid"
 inside a fixed 96px chip.
 
+### Added — the width control beside density
+
+**The user, 2026-09-12:** *"add an icon for it next to density."*
+
+- **A width segment in the status bar**, one place to the leading side of density and sorting
+  past the cluster on `order` exactly as density does. One click cycles
+  follow-the-site → Compact → Balanced → Roomy → Full; the words live in `aria-label` and the
+  tooltip, as the density glyph's do. `status_segments_width`, a new Check beside its siblings,
+  ships on.
+- **What it writes is the reader's own row, never the site's.** `personal.bnd_body_width` under
+  the existing `personal_comfort` lock, overlaid onto `desk_width` in `resolve_for_user` last —
+  the `bnd_pane_state` shape: one field, narrower and more recent than any look, so a personal
+  look carrying a width does not beat it. **The layer is forced, not chosen**: the status bar is
+  on every desk, so an icon there that wrote Theme Settings would throw for everyone who is not
+  a System Manager and, for the one who is, silently re-lay every colleague's desk.
+- **The catalogue is `presets.DESK_WIDTHS`**, with a new build guard (`assertBodyWidths`) holding
+  its three consumers to it — the doctype Select, the client's slug map, and the personal axis —
+  in the `SB_PANE_STOPS` shape. `Original` is asserted to be in the Select and *out* of the
+  table: standing the kit down is the site's call about whether the theme governs width at all,
+  not a reader's call about working room.
+- **The Appearance dialog gains the row**, under Density, with live preview, cancel-restore, and
+  "Follow the site (Balanced)" naming the site's own value — read from the `site_values` the
+  endpoint already serves, because `desk_width` is a LOOK field.
+- **The segment stands down when `personal_comfort` is closed.** A control that is present and
+  always fails is worse than one that is absent.
+- **Fixed in the same gesture:** an Appearance save left `frappe.boot` holding the pre-save seed,
+  so the *next* status-bar click read a stale value and jumped to the wrong stop. Density had
+  this before width existed; both are written back, because repairing half a pair is a
+  regression.
+- **The glyph was drawn before it was chosen** — thirteen candidates rendered in the real bar at
+  their real 14px beside the neighbours they have to live with. `icon-move-horizontal` is the
+  only one that reads as a *measure* rather than a layout tool, and the only one that does not
+  compete with the density stack next to it.
+
+### Fixed — the suite was writing the tenant's error badge
+
+**The user, 2026-09-12:** *"the errors that keep appearing every time i change a settings."*
+Found by looking at the desk rather than at a log: the status bar read **"Running: 36 ·
+Errors: 560"** on every page, in red, and the number only ever went up.
+
+Measured: **345 of those 560 unseen rows were written by this suite.** 191 by the print
+sheet's two sabotage probes (a garbage seed, an unoffered pole — both drive a documented
+stand-down, and a stand-down logs a row) and 154 by the SVG-logo note check, whose
+`/files/mark.png` has no file behind it, so Frappe's `attach_files_to_document` fails on
+`on_update` and logs one. Four rows per run, every run, since the checks were written.
+
+**The product behaviour is right in both cases and does not change.** A pole with no
+compiled block and a logo pointing at a missing file both deserve a row on a real site.
+What was wrong is a TEST leaving residue on the site it tests — the rule `withPersonal`
+and the sweep's verified restore already obey, applied to the one store nobody had counted
+as state. `ERRLOG_MARK` / `errlogSweep` bracket each gesture and delete only rows of the
+NAMED methods created after the mark, so an unrelated error raised in the same window
+survives and stays visible. Proved by measurement: the three checks together now grow the
+Error Log by **0**.
+
+Changing a setting was ruled out as the cause first, not assumed: 58 picker changes driven
+through the real form wrote zero rows, and a `doc.save()` of Theme Settings writes none
+either. The errors were never *caused* by a settings change — they were *displayed* on
+every page, and the settings page is where the user was looking.
+
+Housekeeping on the dev site, stated because it is someone's data: the 345 rows the suite
+wrote were **deleted** (test residue, provably ours by method); the remaining 216 were
+**marked seen** — Frappe's own "somebody has looked at this" flag, which is what the badge
+counts — and every one of them is still readable in the Error Log list. 36 jobs queued on a
+stack with no queue workers were purged. A `tagline` scratch value from a killed run was
+cleared.
+
 ### Checks
+
+- **The personal-width preamble covers both widths now.** It watched `bnd_sb_width` only,
+  and `bnd_body_width` has the same crash-path risk with a worse blast radius: it governs
+  seven surface families through `desk_width`, so one stranded row makes every later width
+  assertion measure the person's width instead of the site's, and the failures read as a
+  body kit that stopped working rather than as a leftover.
 
 A new one drives all three finite values at 1920, where both edges bind, and asserts each
 surface sits within 2px of ITS edge and that the desk shows exactly two distinct widths. It

@@ -715,13 +715,18 @@ html[data-theme] .bnd-statusbar button.bnd-status-item:hover {
   color: var(--bnd-ink);
   text-decoration: none;
 }
+html[data-theme] .bnd-statusbar .bnd-status-width,
 html[data-theme] .bnd-statusbar .bnd-status-density {
   order: 1000;
   margin-inline-start: var(--bnd-sp-2);
 }
+html[data-theme] .bnd-statusbar .bnd-status-width svg,
 html[data-theme] .bnd-statusbar .bnd-status-density svg {
   inline-size: 14px;
   block-size: 14px;
+}
+html[data-theme] .bnd-statusbar .bnd-status-width {
+  order: 999;
 }
 html[data-theme] .bnd-statusbar .bnd-conn-dot {
   inline-size: 7px;
