@@ -2433,6 +2433,13 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   The reason it was worth doing: item 43 shipped a width setting that reached two of seven
   families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
   A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
+- **The bottom reserve keeps CONTENT clear of our bars; it cannot reach a `position:
+  fixed` vendor panel.** Frappe's onboarding card is fixed at `z-index: 1000` against our
+  bottom chrome's 990, so it sat on the status bar (with the pinned foot off entirely) and
+  on the foot's primary action. **Lift the panel, never raise our bar past 1000** — the
+  vendor's modals and dropdowns live in that band. And when a vendor element is only
+  sometimes laid out, assert **computed style**, which resolves for a zero-rect element,
+  rather than geometry: two geometry drafts passed while the defect was live.
 - **A per-user override makes the site setting look broken to the administrator, who is
   exactly the person changing it.** "the width doesnt change" (the user, 2026-09-12) was not
   the kit and not the setting: `bnd_body_width` wins over `desk_width` in

@@ -2917,6 +2917,74 @@ async function main() {
 			expectEq(String(r.density_off_row_already), "1", "a row that already exists is a choice, and is left alone");
 		});
 
+		await test("body: Frappe's onboarding panel is lifted clear of our bottom chrome", async () => {
+			// MEASURED, and OLDER than the bar that made it obvious. `.onb-panel` is
+			// the vendor's own card (OnboardingPanel.vue) at `position: fixed;
+			// z-index: 1000; bottom: 24px`, its CSS inlined by
+			// user_onboarding.bundle.js. Shrinking `.main-section` keeps CONTENT
+			// clear of our bottom bars; a FIXED panel is in no scroller, so the
+			// reserve never reached it — at 1600x1000 it sat on the STATUS BAR with
+			// the pinned foot switched off entirely, and on the foot's primary
+			// action when it was on (a click at Save's own centre resolved to
+			// `div.onb-panel`). Lifted rather than out-stacked: raising our foot
+			// past 1000 would put it over the vendor's modals and dropdowns.
+			//
+			// ASSERTED ON COMPUTED STYLE, NOT GEOMETRY, and that is the whole reason
+			// this check works. The panel is in the DOM on every desk but is only
+			// LAID OUT on some — zero rect under this suite, a real box in a fresh
+			// context — so a rectangle test is at the mercy of when Frappe decides to
+			// show it, and two earlier drafts passed while the defect was live for
+			// exactly that reason. Computed style resolves for an unlaid-out element,
+			// so it proves our rule reached the vendor's element and carries the
+			// MEASURED reserve. The geometry claim is kept as a second arm that runs
+			// only when there is a box to measure.
+			//
+			// Watched failing before: inset-block-end 24px, the vendor's own.
+			setSettings({ form_foot: "Pinned Bar", status_style: "Always On" });
+			try {
+				await goDesk("/desk/item/BND-TEST-001", ".bnd-docfoot", 4000);
+				const m = await page.evaluate(() => {
+					const panel = document.querySelector(".onb-panel");
+					if (!panel) return { panel: false };
+					const px = (v) => parseFloat(v) || 0;
+					const reserve = px(getComputedStyle(document.documentElement).getPropertyValue("--bnd-bottom-reserve"));
+					const inset = px(getComputedStyle(panel).insetBlockEnd);
+					const box = (s) => {
+						const n = document.querySelector(s);
+						if (!n || !n.getBoundingClientRect().width) return null;
+						const r = n.getBoundingClientRect();
+						return { x: Math.round(r.left), y: Math.round(r.top), r: Math.round(r.right), b: Math.round(r.bottom) };
+					};
+					const pb = box(".onb-panel");
+					const hit = (b) => (pb && b ? pb.x < b.r && pb.r > b.x && pb.y < b.b && pb.b > b.y : false);
+					return {
+						panel: true,
+						laidOut: !!pb,
+						inset,
+						reserve,
+						position: getComputedStyle(panel).position,
+						onStatusbar: hit(box(".bnd-statusbar")),
+						onFoot: hit(box(".bnd-docfoot")),
+					};
+				});
+				// THE VENDOR'S ELEMENT IS THE SUBJECT. If Frappe renames the class this
+				// fails loudly instead of quietly asserting nothing — the difference
+				// between a guard and a comment.
+				expect(m.panel, "precondition: Frappe still renders .onb-panel on this desk");
+				expect(m.reserve > 0, `precondition: our bottom chrome is measured (${JSON.stringify(m)})`);
+				expect(
+					m.inset > m.reserve,
+					`the panel's inset clears the reserve, not the vendor's bare 24px (${JSON.stringify(m)})`
+				);
+				if (m.laidOut) {
+					expect(!m.onStatusbar, `laid out, it clears the status bar (${JSON.stringify(m)})`);
+					expect(!m.onFoot, `laid out, it clears the pinned foot (${JSON.stringify(m)})`);
+				}
+			} finally {
+				setSettings({ form_foot: "Off" });
+			}
+		});
+
 		await test("status: the cluster stays at the bar's trailing edge", async () => {
 			// The centre search slot must not flex: flexible lengths resolve
 			// before auto margins, so a flexing sibling cancels the trailing

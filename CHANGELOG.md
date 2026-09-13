@@ -24,6 +24,41 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.2] — 2026-09-13 — The vendor's onboarding card, off our bottom bars (patch)
+
+### Fixed — a fixed panel the reserve could never reach
+
+Frappe's onboarding card (`OnboardingPanel.vue`, `.onb-panel`) is
+`position: fixed; z-index: 1000; bottom: 24px` at the trailing corner, its CSS inlined by
+`user_onboarding.bundle.js`. Shrinking `.main-section` keeps *content* clear of our bottom
+chrome; a fixed panel sits in no scroller, so `--bnd-bottom-reserve` never applied to it —
+and 1000 beats our bars' 990.
+
+**Older than the bar that made it obvious.** Measured at 1600×1000: the panel overlaps the
+**status bar** with the pinned foot switched off entirely, and the foot's primary action
+when it is on — a click at Save's own centre resolved to `div.onb-panel`. Item 45's foot is
+what put a primary action under it; the overlap predates it.
+
+Lifted, not out-stacked: raising our foot past 1000 would put it over the vendor's modals
+and dropdowns, which share that band. The panel now carries
+`calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5))`, preserving the vendor's own 24px gap
+and tracking the chrome — measured after: inset 24 → 106 with the foot on, 24 → 50 with it
+off, both overlaps gone.
+
+### The check, on the third attempt
+
+The first two passed while the defect was live, and both failures are worth keeping. A
+one-pixel `elementFromPoint` sample said nothing about the rest of the control; a rectangle
+test compared against `document.querySelector(".onb-steps")` when the page renders more
+than one, so it measured an element that was not in the way — this repo's oldest trap in a
+new place. The panel is also only *laid out* on some desks (a real box in a fresh context,
+a zero rect under the suite), so geometry alone is at the mercy of when Frappe shows it.
+
+The check asserts **computed style**, which resolves for an unlaid-out element and proves
+our rule reached the vendor's element carrying the measured reserve; the geometry claim is
+a second arm that runs only when there is a box. Sabotaged to confirm it fails —
+`inset: 24, reserve: 82`.
+
 ## [0.46.1] — 2026-09-13 — What a real tenant's settings said before it shipped (patch)
 
 Cut before v0.46.0 reached production, from reading the live tenant's own Theme Settings

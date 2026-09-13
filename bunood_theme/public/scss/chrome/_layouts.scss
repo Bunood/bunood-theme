@@ -220,6 +220,35 @@ html[data-bnd-desk] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve));
 }
 
+// The ONE thing the reserve above cannot reach: a FIXED vendor panel.
+//
+// Frappe's onboarding panel (`OnboardingPanel.vue`, `.onb-panel`) is
+// `position: fixed; z-index: 1000; bottom: 24px` at the trailing corner, with
+// its CSS inlined by `user_onboarding.bundle.js`. Shrinking `.main-section`
+// keeps CONTENT clear of the bars; a fixed panel is in no scroller, so the
+// reserve never applied to it, and 1000 beats our bottom chrome's 990.
+//
+// MEASURED, and older than the bar that made it obvious: at 1600x1000 the panel
+// sits on the STATUS BAR with the pinned foot switched off entirely, and on the
+// foot's primary action when it is on — a click at Save's own centre resolves to
+// `div.onb-panel`. So this is not item 45's doing; item 45's foot is what put a
+// primary action under it.
+//
+// LIFTED, NOT RE-STACKED. Raising our foot above 1000 would put it over the
+// vendor's modals and dropdowns, which live in the same band; the panel is
+// page-level furniture and our bars own the bottom edge, so the panel moves.
+// The vendor's own 24px gap is preserved by adding the reserve to it rather
+// than replacing it — `--bnd-sp-5` is that 24px at the shipped root size, and
+// naming a token keeps the raw-px guard satisfied and the gap in one system.
+//
+// Scoped to `html[data-bnd-desk]` like the reserve itself: a desk with no
+// bottom chrome measures 0px and this resolves to the vendor's own inset. No
+// fallback on the reserve — it is declared unconditionally in _tokens.scss, and
+// the phantom-token guard refuses a second copy of a value that cannot be missing.
+html[data-bnd-desk] .onb-panel {
+  inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5));
+}
+
 // The ONE box that shrinking the scroll container does not fix by itself.
 //
 // Frappe sizes the form's sidebar to the viewport and makes it sticky

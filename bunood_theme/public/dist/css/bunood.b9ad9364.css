@@ -496,6 +496,10 @@ html[data-bnd-desk] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve));
 }
 
+html[data-bnd-desk] .onb-panel {
+  inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5));
+}
+
 html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section {
   display: none;
 }
