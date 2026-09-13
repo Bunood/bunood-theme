@@ -10063,6 +10063,274 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	let report_workbench_loading = null;
 
+	// Frappe v16 deliberately removes Bootstrap's document-level focus guard
+	// when a modal opens. That leaves keyboard users able to tab into the desk
+	// behind Quick Entry, confirmations and server-error dialogs. Keep the
+	// native Dialog lifecycle and business actions intact; this layer restores
+	// only the dialog semantics and focus contract promised by aria-modal.
+	let interaction_accessibility_installed = false;
+	let dialog_title_id = 0;
+	let dialog_label_id = 0;
+	let interaction_last_focus = null;
+	let interaction_input_mode = "pointer";
+	let filter_popover_id = 0;
+
+	function interaction_focusables(root) {
+		if (!root) return [];
+		return [...root.querySelectorAll(
+			'a[href], button, input, select, textarea, summary, [contenteditable="true"], [tabindex]'
+		)].filter((node) =>
+			!node.disabled &&
+			node.tabIndex >= 0 &&
+			node.getAttribute("aria-hidden") !== "true" &&
+			node.getClientRects().length
+		);
+	}
+
+	function top_dialog() {
+		const dialogs = [...document.querySelectorAll(".modal.show")];
+		return dialogs[dialogs.length - 1] || null;
+	}
+
+	function interaction_initial_focus(modal) {
+		return modal.querySelector(
+			'[autofocus], .modal-body input:not([type="hidden"]):not([disabled]), .modal-body select:not([disabled]), .modal-body textarea:not([disabled]), .modal-footer .btn-primary'
+		) || interaction_focusables(modal)[0] || modal;
+	}
+
+	function mark_dialog_feedback(modal) {
+		for (const node of modal.querySelectorAll(".modal-message, .msgprint, .alert")) {
+			if (!node.hasAttribute("role")) node.setAttribute("role", "alert");
+			if (!node.hasAttribute("aria-live")) node.setAttribute("aria-live", "assertive");
+		}
+	}
+
+	function label_dialog_controls(modal) {
+		for (const button of modal.querySelectorAll("button")) {
+			if (button.textContent.trim() || button.getAttribute("aria-label") || button.getAttribute("aria-labelledby")) continue;
+			const label = button.classList.contains("btn-modal-close")
+				? __("Close")
+				: button.classList.contains("btn-modal-minimize") ? __("Minimize") : button.title;
+			if (label) button.setAttribute("aria-label", label);
+		}
+		for (const control of modal.querySelectorAll("input:not([type='hidden']), select, textarea")) {
+			if (control.getAttribute("aria-label") || control.getAttribute("aria-labelledby") || control.title) continue;
+			const wrapper = control.closest(".frappe-control, .form-group");
+			const visible_label = wrapper?.querySelector(".control-label, label");
+			if (visible_label?.textContent.trim()) {
+				if (!visible_label.id) visible_label.id = `bnd-dialog-label-${++dialog_label_id}`;
+				control.setAttribute("aria-labelledby", visible_label.id);
+				continue;
+			}
+			const fieldname = control.dataset.fieldname;
+			const doctype = control.dataset.doctype;
+			let label = "";
+			try {
+				label = frappe.meta?.get_docfield?.(doctype, fieldname)?.label || "";
+			} catch (_error) {
+				// A synthetic Quick Entry field may have no DocField; use its stable
+				// field name rather than leaving the control unnamed.
+			}
+			if (!label && fieldname) label = fieldname.replaceAll("_", " ").replace(/^./, char => char.toUpperCase());
+			if (label) control.setAttribute("aria-label", __(label));
+		}
+	}
+
+	function enhance_interaction_dialog_content(modal) {
+		mark_dialog_feedback(modal);
+		label_dialog_controls(modal);
+	}
+
+	function enhance_interaction_dialog(modal) {
+		const active = document.activeElement;
+		if (!modal._bnd_opener) {
+			modal._bnd_opener = active && !modal.contains(active) ? active : interaction_last_focus;
+		}
+		modal.setAttribute("role", "dialog");
+		modal.setAttribute("aria-modal", "true");
+		const title = modal.querySelector(".modal-title");
+		if (title) {
+			if (!title.id) title.id = `bnd-dialog-title-${++dialog_title_id}`;
+			modal.setAttribute("aria-labelledby", title.id);
+		}
+		enhance_interaction_dialog_content(modal);
+		if (!modal.contains(document.activeElement)) {
+			const target = interaction_initial_focus(modal);
+			if (target === modal) modal.tabIndex = -1;
+			requestAnimationFrame(() => target.focus({ preventScroll: true }));
+		}
+	}
+
+	function restore_interaction_dialog(modal) {
+		const remaining = top_dialog();
+		const target = remaining
+			? interaction_initial_focus(remaining)
+			: modal._bnd_opener;
+		if (target?.isConnected && typeof target.focus === "function") {
+			requestAnimationFrame(() => target.focus({ preventScroll: true }));
+		}
+	}
+
+	function sync_interaction_dialogs() {
+		for (const modal of document.querySelectorAll(".modal")) {
+			const open = modal.classList.contains("show") && modal.getClientRects().length > 0;
+			if (open && !modal._bnd_open) {
+				modal._bnd_open = true;
+				enhance_interaction_dialog(modal);
+			} else if (open) {
+				enhance_interaction_dialog_content(modal);
+			} else if (modal._bnd_open) {
+				modal._bnd_open = false;
+				restore_interaction_dialog(modal);
+			}
+		}
+	}
+
+	function visible_filter_popovers() {
+		return [...document.querySelectorAll(".filter-popover")].filter(node => node.getClientRects().length);
+	}
+
+	function sync_filter_popovers() {
+		const active_triggers = new Set();
+		for (const popover of visible_filter_popovers()) {
+			if (!popover.id) popover.id = `bnd-filter-popover-${++filter_popover_id}`;
+			const trigger = [...document.querySelectorAll(".filter-button")].find(
+				button => button.getAttribute("aria-describedby") === popover.id
+			) || (interaction_last_focus?.matches?.(".filter-button") ? interaction_last_focus : null);
+			if (trigger) {
+				popover._bnd_trigger = trigger;
+				active_triggers.add(trigger);
+				trigger.setAttribute("aria-haspopup", "dialog");
+				trigger.setAttribute("aria-expanded", "true");
+				trigger.setAttribute("aria-controls", popover.id);
+			}
+			popover.setAttribute("role", "dialog");
+			popover.setAttribute("aria-label", __("Filters"));
+			label_dialog_controls(popover);
+			for (const row of popover.querySelectorAll(".filter-box")) {
+				for (const [selector, label] of [
+					[".fieldname-select-area input, .fieldname-select-area select", __("Field")],
+					["select.condition", __("Condition")],
+					[".filter-field input:not([type='hidden']), .filter-field select, .filter-field textarea", __("Value")],
+				]) {
+					for (const control of row.querySelectorAll(selector)) {
+						control.removeAttribute("aria-labelledby");
+						control.setAttribute("aria-label", label);
+					}
+				}
+				for (const remove of row.querySelectorAll(".remove-filter")) {
+					remove.setAttribute("role", "button");
+					remove.tabIndex = 0;
+					remove.setAttribute("aria-label", __("Remove filter"));
+					if (!remove._bnd_key) {
+						remove._bnd_key = true;
+						remove.addEventListener("keydown", event => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								remove.click();
+							}
+						});
+					}
+				}
+			}
+			if (!popover._bnd_open) {
+				popover._bnd_open = true;
+				if (interaction_input_mode === "keyboard") interaction_initial_focus(popover).focus({ preventScroll: true });
+			}
+		}
+		for (const trigger of document.querySelectorAll(".filter-button[aria-expanded]")) {
+			if (active_triggers.has(trigger)) continue;
+			trigger.setAttribute("aria-expanded", "false");
+			trigger.removeAttribute("aria-controls");
+		}
+	}
+
+	function sync_interaction_overlays() {
+		sync_interaction_dialogs();
+		sync_filter_popovers();
+	}
+
+	function install_interaction_dialog_show() {
+		if (!frappe.ui?.Dialog) return false;
+		const proto = frappe.ui.Dialog.prototype;
+		if (!proto.show._bnd_native) {
+			const native_show = proto.show;
+			const accessible_show = function (...args) {
+				const modal = this.$wrapper?.[0];
+				const active = document.activeElement;
+				if (modal && active && !modal.contains(active)) modal._bnd_opener = active;
+				return native_show.apply(this, args);
+			};
+			accessible_show._bnd_native = native_show;
+			proto.show = accessible_show;
+		}
+		return true;
+	}
+
+	function install_interaction_accessibility() {
+		if (interaction_accessibility_installed) return true;
+		if (!document.body) return false;
+		interaction_accessibility_installed = true;
+		try_for(install_interaction_dialog_show, 40, 150);
+
+		const dialog_observer = new MutationObserver(sync_interaction_overlays);
+		dialog_observer.observe(document.body, {
+			attributes: true,
+			attributeFilter: ["class"],
+			childList: true,
+			subtree: true,
+		});
+		sync_interaction_overlays();
+		document.addEventListener("pointerdown", () => { interaction_input_mode = "pointer"; }, true);
+
+		document.addEventListener("keydown", (event) => {
+			interaction_input_mode = "keyboard";
+			if (event.key === "Escape") {
+				const popover = visible_filter_popovers().at(-1);
+				const trigger = popover?._bnd_trigger;
+				if (popover && trigger && window.jQuery) {
+					event.preventDefault();
+					event.stopPropagation();
+					window.jQuery(trigger).popover("hide");
+					requestAnimationFrame(() => trigger.focus({ preventScroll: true }));
+					return;
+				}
+			}
+			if (event.key !== "Tab") return;
+			const modal = top_dialog();
+			if (!modal) return;
+			const nodes = interaction_focusables(modal);
+			if (!nodes.length) {
+				event.preventDefault();
+				modal.tabIndex = -1;
+				modal.focus({ preventScroll: true });
+				return;
+			}
+			const index = nodes.indexOf(document.activeElement);
+			if (event.shiftKey && index <= 0) {
+				event.preventDefault();
+				nodes[nodes.length - 1].focus();
+			} else if (!event.shiftKey && (index < 0 || index === nodes.length - 1)) {
+				event.preventDefault();
+				nodes[0].focus();
+			}
+		}, true);
+
+		document.addEventListener("focusin", (event) => {
+			const modal = top_dialog();
+			if (!modal) {
+				interaction_last_focus = event.target;
+				return;
+			}
+			if (modal.contains(event.target)) return;
+			const target = interaction_initial_focus(modal);
+			if (target === modal) modal.tabIndex = -1;
+			queueMicrotask(() => target.focus({ preventScroll: true }));
+		}, true);
+
+		return true;
+	}
+
 	/** Load the seven-report enhancement only when Frappe enters query-report. */
 	function load_report_workbench() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
@@ -10099,6 +10367,7 @@ function sb_zone_anchor(pane, zone, node) {
 		observe_sidebar_width();
 		observe_list_accessibility();
 		try_for(install_list_recovery, 40, 150);
+		try_for(install_interaction_accessibility, 40, 150);
 		load_report_workbench();
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
@@ -10235,6 +10504,7 @@ function sb_zone_anchor(pane, zone, node) {
 				stamp_appearance_route();
 				try_for(enhance_onboarding_refresh, 40, 150);
 				try_for(install_list_recovery, 40, 150);
+				try_for(install_interaction_dialog_show, 40, 150);
 				load_report_workbench();
 				sb_resolve_workspace_from_route();
 				decorate_crumbs();

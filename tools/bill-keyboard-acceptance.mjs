@@ -103,7 +103,44 @@ async function chooseActiveLink(page, shortcut, fieldname, value) {
 		}));
 		throw new Error("Link choices did not open for " + value + ": " + JSON.stringify(state) + " (" + error.message + ")");
 	});
-	await page.keyboard.press("ArrowDown");
+	const match = await page.waitForFunction(expected => {
+		const visible = [...document.querySelectorAll('[role="listbox"], .awesomplete > ul')]
+			.filter(list => list.getClientRects().length);
+		const items = [...(visible.at(-1)?.querySelectorAll('[role="option"], li') || [])]
+			.filter(item => item.getClientRects().length && item.getAttribute("aria-disabled") !== "true");
+		const index = items.findIndex(item => (item.textContent || "").includes(expected));
+		const selected = items.findIndex(item =>
+			item.getAttribute("aria-selected") === "true" || item.classList.contains("active"));
+		return index >= 0 ? {
+			index, selected, count: items.length,
+			options: items.map(item => item.textContent?.trim()),
+		} : false;
+	}, value, { timeout: 10000 }).then(handle => handle.jsonValue()).catch(async error => {
+		const diagnostic = await page.evaluate(async ({ fieldname, value }) => {
+			const doctype = { customer: "Customer", supplier: "Supplier", quick_bill_item: "Item" }[fieldname];
+			let search = [];
+			let searchError = "";
+			try {
+				search = await frappe.xcall("frappe.desk.search.search_link", {
+					doctype, txt: value, page_length: 20,
+				});
+			} catch (failure) {
+				searchError = failure?.message || String(failure);
+			}
+			return {
+				lists: [...document.querySelectorAll('[role="listbox"], .awesomplete > ul')]
+					.map(list => ({ visible: Boolean(list.getClientRects().length), html: list.outerHTML.slice(0, 1200) })),
+				search,
+				searchError,
+			};
+		}, { fieldname, value });
+		throw new Error("Permitted link option did not appear for " + value + ": " +
+			JSON.stringify(diagnostic) + " (" + error.message + ")");
+	});
+	const steps = match.selected >= 0
+		? (match.index - match.selected + match.count) % match.count
+		: match.index + 1;
+	for (let index = 0; index < steps; index++) await page.keyboard.press("ArrowDown");
 	await page.keyboard.press("Enter");
 }
 
@@ -223,13 +260,56 @@ async function totalsSnapshot(page) {
 }
 
 async function focusSubmitByTab(page, limit = 240) {
+	const visited = [];
 	for (let tabs = 0; tabs <= limit; tabs++) {
-		const submit = await page.evaluate(() =>
-			document.activeElement?.closest('[data-bnd-action="submit"]')?.dataset.bndAction === "submit");
+		const state = await page.evaluate(() => ({
+			submit: document.activeElement?.closest('[data-bnd-action="submit"]')?.dataset.bndAction === "submit",
+			active: document.activeElement?.outerHTML?.slice(0, 220) || "",
+		}));
+		if (tabs < 12 || tabs % 25 === 0) visited.push(state.active);
+		const submit = state.submit;
 		if (submit) return tabs;
 		await page.keyboard.press("Tab");
 	}
-	throw new Error("Tab did not reach Submit document");
+	const diagnostic = await page.evaluate(() => {
+		const submit = document.querySelector('[data-bnd-action="submit"]');
+		return {
+			doctype: cur_frm?.doctype,
+			name: cur_frm?.doc?.name,
+			dirty: cur_frm?.is_dirty?.(),
+			docstatus: cur_frm?.doc?.docstatus,
+			submit: submit && {
+				hidden: submit.hidden,
+				disabled: submit.disabled,
+				tabIndex: submit.tabIndex,
+				visible: Boolean(submit.getClientRects().length),
+				text: submit.textContent.trim(),
+			},
+			modal: [...document.querySelectorAll(".modal.show")].map(node => ({ visible: Boolean(node.getClientRects().length), text: node.textContent.trim().slice(0, 120) })),
+			active: document.activeElement?.outerHTML?.slice(0, 300) || "",
+		};
+	});
+	throw new Error("Tab did not reach Submit document: " + JSON.stringify({ diagnostic, visited }));
+}
+
+async function dismissKnownSaveNotice(page) {
+	const notices = [];
+	for (let index = 0; index < 8; index++) {
+		const modal = page.locator(".modal.show").last();
+		if (!await modal.count()) return notices;
+		const notice = await modal.evaluate(node => ({
+			title: node.querySelector(".modal-title")?.textContent?.trim() || "",
+			body: node.querySelector(".modal-body")?.textContent?.trim().replace(/\s+/g, " ").slice(0, 240) || "",
+			confirm: !!window.cur_dialog?.confirm_dialog,
+		}));
+		if (notice.confirm || !/Expense Head Changed/i.test(notice.title + " " + notice.body)) {
+			throw new Error("unexpected dialog after draft save: " + JSON.stringify(notice));
+		}
+		await modal.locator(".btn-modal-close").press("Enter");
+		notices.push(notice.title || "Expense Head Changed");
+		await page.waitForTimeout(350);
+	}
+	throw new Error("more than eight Expense Head Changed notices followed one draft save");
 }
 
 async function submitWithKeyboard(page) {
@@ -266,7 +346,20 @@ async function runBill(page, fixture, spec) {
 		({ field, value }) => cur_frm.doc[field] === value,
 		{ field: spec.partyField, value: fixture[spec.fixtureField] },
 		{ timeout: 20000 },
-	);
+	).catch(async error => {
+		const state = await page.evaluate(field => ({
+			doctype: cur_frm?.doctype,
+			model: cur_frm?.doc?.[field],
+			activeField: document.activeElement?.closest(".frappe-control")?.dataset.fieldname || "",
+			activeValue: document.activeElement?.value || "",
+			status: document.querySelector(".bnd-bill-status")?.textContent?.trim() || "",
+			choices: [...document.querySelectorAll('[role="listbox"] li, .awesomplete > ul > li')]
+				.filter(node => node.getClientRects().length)
+				.map(node => node.textContent?.trim()).slice(0, 8),
+		}), spec.partyField);
+		throw new Error(`${spec.doctype} party selection did not reach the model: ` +
+			JSON.stringify(state) + ` (${error.message})`);
+	});
 	if (spec.doctype === "Purchase Invoice") {
 		await configurePurchaseReference(page, Date.now().toString(36).toUpperCase());
 	}
@@ -278,6 +371,7 @@ async function runBill(page, fixture, spec) {
 		null,
 		{ timeout: 30000 },
 	);
+	const saveNotice = await dismissKnownSaveNotice(page);
 	const name = await page.evaluate(() => cur_frm.doc.name);
 	const tabsToSubmit = await submitWithKeyboard(page);
 	const submittedTotals = await totalsSnapshot(page);
@@ -300,7 +394,7 @@ async function runBill(page, fixture, spec) {
 	assert(saved.items.every((row, index) =>
 		row.item_code === fixture.items[index] && row.qty === quantities[index]),
 	spec.doctype + " line data changed after submit");
-	return { ...saved, tabsToSubmit, draftTotals, submittedTotals };
+	return { ...saved, tabsToSubmit, saveNotice, draftTotals, submittedTotals };
 }
 
 async function zatcaAcceptance(page, invoiceName) {
