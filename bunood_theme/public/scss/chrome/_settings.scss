@@ -1666,3 +1666,27 @@ html[data-theme] .bnd-cmp-compare:focus-visible {
 	outline: 2px solid var(--bnd-accent);
 	outline-offset: 1px;
 }
+
+// The reader's own width, overriding the site's (item 45.1). It appears only
+// while an override is in force, so it is a NOTICE and not furniture: a tinted
+// row under the width chips carrying the fact and the way out.
+.bnd-dkp-mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-block-start: var(--bnd-sp-2);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-pane);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+
+  // The button is a `.bnd-cbp-opt` so it inherits the picker's focus ring; it
+  // only needs to stop being a full-width chip inside this row.
+  .bnd-dkp-mine-clear {
+    flex: none;
+    margin-inline-start: auto;
+  }
+}

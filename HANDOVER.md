@@ -2433,6 +2433,34 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   The reason it was worth doing: item 43 shipped a width setting that reached two of seven
   families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
   A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
+- **A per-user override makes the site setting look broken to the administrator, who is
+  exactly the person changing it.** "the width doesnt change" (the user, 2026-09-12) was not
+  the kit and not the setting: `bnd_body_width` wins over `desk_width` in
+  `resolve_for_user`, and the settings page's own preview applies the FORM's values straight
+  to `<html>`, past the overlay — so the change appears to work on the page where it is made
+  and is gone on the next page. Found as a live stranded row. **Any axis with both a site
+  field and a personal twin needs the picker to SAY when the twin is winning**, while it is
+  winning — density and the pane state are the other two, and their site fields carry only
+  prose, which is false for almost every reader. The note goes through the setter
+  (`set_body_width("")`), never the stored row, so intent, attribute and boot seed move
+  together.
+- **Read a real tenant's settings before shipping a default-on Check.** Production runs
+  `status_style: Minimal` with every segment off; `status_segments_width` shipped default 1
+  with no row there, and `_seed_defaults` seeds default-on Checks exactly where no row
+  exists — so a new control would have appeared on a bar its owner had emptied, beside a
+  density icon they had switched off. `v0_46_1.width_follows_density` asks the neighbour.
+  The general rule: **a new default-on Check is a change to every existing site**, and the
+  only way to know what it does there is to read one.
+- **Frappe's onboarding card is painted over the pinned foot's primary action** at 1600×1000
+  in a fresh browser (`div.onb-steps`, reproduced twice). NOT repaired, and NOT covered by a
+  check, because the premise is state the suite does not own — under the suite the card is
+  not on screen and any check for it passes while the defect is live. Three measurement
+  mistakes are worth carrying: the screenshot read as an EMPTY foot (the button was behind
+  the card); the collision read as RTL-specific (it is the trailing bottom corner in either
+  direction, and it reproduces in LTR); and both a one-pixel `elementFromPoint` sample and a
+  rectangle test against `document.querySelector(".onb-steps")` passed — the page renders
+  more than one, so the second measured the wrong element, which is this repo's oldest
+  recorded trap arriving in a new place.
 - **The local stack's socket.io never connected, and the local convenience is why.**
   `realtime/middlewares/authenticate.js` refuses a connection unless
   `hostname(Host) == hostname(Origin)`; the frontend image's nginx template pins

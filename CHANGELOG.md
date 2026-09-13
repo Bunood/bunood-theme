@@ -24,6 +24,55 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.1] — 2026-09-13 — What a real tenant's settings said before it shipped (patch)
+
+Cut before v0.46.0 reached production, from reading the live tenant's own Theme Settings
+rather than a test site's. No customer data was copied to do it: 144 stored rows were read,
+the post-migrate state was computed by running the real patch code and `_seed_defaults`
+over that snapshot, and the result was applied to a local desk in Arabic and looked at.
+
+### Fixed — "the width doesnt change"
+
+**The user, 2026-09-12.** The kit was not the cause and neither was the setting.
+`bnd_body_width` — item 45's own per-user control — wins over `desk_width` in
+`resolve_for_user`, so anyone who has ever clicked the status-bar icon changes the site
+setting, watches the settings page's preview move (`bnd_desk_preview` applies the FORM's
+values straight to `<html>`, past the overlay), and finds the old width back on the next
+page they open. Nothing said who was winning. **Found as a live stranded row on this
+site**: Administrator on Compact against a site on Balanced.
+
+The width group now carries a note while — and only while — an override is in force: it
+names the reader's own value and offers the one gesture that clears it, through
+`set_body_width("")` so the stored intent, the attribute and the boot seed all move
+together. A permanent "each person can override this" line was rejected: it is false for
+almost everyone who reads it, and the one person it is true for still has to work out that
+it is about them.
+
+### Fixed — a new control on a bar its owner had emptied
+
+Production runs `status_style: Minimal` with **every** segment off — jobs, errors,
+scheduler, connection, density, freshness. `status_segments_width` is new, its shipped
+default is 1, and an existing site has no row for a field that did not exist, so
+`_seed_defaults` would have seeded it ON and put a width icon beside a density icon that
+tenant had deliberately switched off.
+
+`v0_46_1.width_follows_density` asks the neighbour it sits beside: density off means this
+site did not ask for width either, so write 0; density on writes nothing and the default
+seeds it. A site that already has a row has lived with a value and is not rewritten, and a
+NEW site is untouched, so the shipped default still ships.
+
+### Looked at, measured, and NOT fixed
+
+Frappe's onboarding card is painted over the pinned foot's primary action at 1600×1000 in a
+fresh browser — reproduced twice. It is filed rather than repaired because the premise is
+state this suite does not own: under the suite the card is not on screen, so a check for it
+cannot fail, and a check that cannot fail is worse than none. Two wrong readings are
+recorded with it, because both were the plausible ones — the screenshot looked like an
+EMPTY foot (the button was behind the card), and the collision looked RTL-specific (it is
+the trailing bottom corner in either direction). Point-sampling one pixel passed; comparing
+rectangles against `document.querySelector(".onb-steps")` also passed, because the page
+renders more than one and that measured the wrong element.
+
 ## [0.46.0] — 2026-09-12 — The desk's width, made one decision, and a control for it (item 45)
 
 **The user, 2026-09-11:** *"there is a dissonance with the width, some things use full width,

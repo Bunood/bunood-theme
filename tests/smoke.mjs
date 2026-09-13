@@ -2846,6 +2846,77 @@ async function main() {
 			setSettings({ status_segments_width: 1 });
 		});
 
+		await test("body: the width picker says when the reader's own width is overriding the site's", async () => {
+			// THE USER, 2026-09-12: "the width doesnt change". The kit was not the
+			// cause. `bnd_body_width` wins over `desk_width` in resolve_for_user,
+			// so an administrator who has ever touched the status-bar control
+			// changes this setting, watches the settings page's own preview move
+			// — `bnd_desk_preview` applies the FORM's values straight to <html>,
+			// past the overlay — and then finds the old width back on the next
+			// page. Nothing on the page said why. Found on this site as a real
+			// stranded row (Administrator = Compact against a site on Balanced).
+			await withPersonal("Administrator", { bnd_body_width: "Roomy" }, async () => {
+				setSettings({ desk_width: "Balanced" });
+				await goDesk("/desk/theme-settings", ".bnd-dkp", 3500);
+				const m = await page.evaluate(() => {
+					const note = document.querySelector(".bnd-dkp-mine");
+					if (!note) return null;
+					return {
+						text: note.textContent.trim(),
+						button: !!note.querySelector("button"),
+						inWidthGroup: !!note.closest(".bnd-cbp-group") &&
+							!!note.closest(".bnd-cbp-group").querySelector('[data-field="desk_width"]'),
+					};
+				});
+				expect(m, "the width group carries a note when a personal width is overriding it");
+				expect(/Roomy/.test(m.text), `the note names the reader's own value (${JSON.stringify(m.text)})`);
+				expect(m.button, "and offers the one gesture that undoes it");
+				expect(m.inWidthGroup, "the note belongs to the width group, not to scale or primary");
+			});
+			// And says nothing when nothing is overriding — a permanent notice
+			// would be worse than none: it would be false for almost everyone.
+			await goDesk("/desk/theme-settings", ".bnd-dkp", 3500);
+			expectEq(
+				await page.evaluate(() => document.querySelectorAll(".bnd-dkp-mine").length),
+				0,
+				"silent when the reader has no width of their own"
+			);
+		});
+
+		await test("body: an existing site's width segment follows the density segment it sits beside", async () => {
+			// Found by reading production's own settings before shipping: it runs
+			// status_style Minimal with EVERY segment off, and `status_segments_width`
+			// is a new field whose default is 1 with no row there — so
+			// `_seed_defaults` would seed it ON and put a width icon on a bar its
+			// owner had deliberately emptied. The patch asks the neighbour: if you
+			// turned density off, you did not ask for width either. A NEW site is
+			// untouched and gets both, which is the shipped default.
+			const out = benchPy(
+				"import json\n" +
+					"from bunood_theme.patches.v0_46_1 import width_follows_density as P\n" +
+					"def state(density, width):\n" +
+					"    frappe.db.set_single_value('Theme Settings', 'status_segments_density', density)\n" +
+					"    frappe.db.sql(\"delete from tabSingles where doctype='Theme Settings' and field='status_segments_width'\")\n" +
+					"    if width is not None:\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'status_segments_width', width)\n" +
+					"def read():\n" +
+					"    rows = {f for f, in frappe.db.sql(\"select field from tabSingles where doctype='Theme Settings' and field='status_segments_width'\")}\n" +
+					"    return frappe.db.get_single_value('Theme Settings', 'status_segments_width') if rows else None\n" +
+					"res = {}\n" +
+					"state(0, None); P.execute(); res['density_off_no_row'] = read()\n" +
+					"state(1, None); P.execute(); res['density_on_no_row'] = read()\n" +
+					"state(0, 1);    P.execute(); res['density_off_row_already'] = read()\n" +
+					"frappe.db.rollback()\n" +
+					"print('BND_WFD' + json.dumps(res, default=str))\n"
+			);
+			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_WFD"));
+			if (!line) throw new Error("width-follows-density probe produced no JSON: " + String(out).slice(-400));
+			const r = JSON.parse(line.slice("BND_WFD".length));
+			expectEq(String(r.density_off_no_row), "0", "density off and no width row: the patch writes 0");
+			expectEq(r.density_on_no_row, null, "density on: the patch writes nothing, so the default seeds it ON");
+			expectEq(String(r.density_off_row_already), "1", "a row that already exists is a choice, and is left alone");
+		});
+
 		await test("status: the cluster stays at the bar's trailing edge", async () => {
 			// The centre search slot must not flex: flexible lengths resolve
 			// before auto margins, so a flexing sibling cancels the trailing

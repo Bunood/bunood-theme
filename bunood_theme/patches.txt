@@ -127,3 +127,9 @@ bunood_theme.patches.v0_45_0.console_defaults
 bunood_theme.patches.v0_46_0.width_two_edges
 
 bunood_theme.patches.v0_11_0.heal_unknown_placements
+
+# Item 45.1: the width segment must not appear on a bar its owner emptied.
+# Found by reading a real tenant's settings before shipping — every segment
+# off, and a new default-on Check would have put one back. Asks the neighbour
+# it sits beside: density off means this site did not ask for width either.
+bunood_theme.patches.v0_46_1.width_follows_density

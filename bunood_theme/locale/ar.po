@@ -7478,3 +7478,9 @@ msgstr "العرض: بحسب افتراضي الموقع"
 #, fuzzy
 msgid "Could not save width preference"
 msgstr "تعذر حفظ تفضيل العرض"
+
+#. In theme_settings.js
+#. src: item45
+#, fuzzy
+msgid "Your own width ({0}) is overriding this on your desk."
+msgstr "عرضك الخاص ({0}) يتجاوز هذا الإعداد على مكتبك."

@@ -5518,6 +5518,42 @@ const BND_DESK_GROUPS = [
 ];
 
 /** Render the desk body picker. */
+/**
+ * The reader's OWN width, when it is overriding the site's.
+ *
+ * THE USER, 2026-09-12: "the width doesnt change" — and the kit was not the
+ * cause. `bnd_body_width` (item 45's status-bar control) wins over
+ * `desk_width` in `resolve_for_user`, so an administrator who has ever
+ * touched that icon changes this setting, watches the page's own preview move —
+ * `bnd_desk_preview` applies the FORM's values straight to <html>, past the
+ * overlay — and then finds the old width back on the next page they open. The
+ * setting was working; nothing said who was beating it.
+ *
+ * A LIVE NOTE, NOT PROSE IN THE DESCRIPTION: a permanent "each person can
+ * override this" line is false for almost everyone who reads it, and the one
+ * person it is true for still has to work out that it is about them. This
+ * appears only while an override is actually in force, names the value, and
+ * carries the single gesture that clears it.
+ */
+function bnd_desk_mine_note(mine) {
+	return (
+		'<div class="bnd-dkp-mine">' +
+		"<span>" +
+		bnd_esc(__("Your own width ({0}) is overriding this on your desk.", [__(mine)])) +
+		"</span>" +
+		'<button type="button" class="bnd-cbp-opt bnd-dkp-mine-clear">' +
+		bnd_esc(__("Follow the site")) +
+		"</button>" +
+		"</div>"
+	);
+}
+
+/** The width this reader has chosen for themselves, or "" for none. */
+function bnd_desk_mine() {
+	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+	return p.body_width || "";
+}
+
 function bnd_render_desk_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "desk_picker", host);
 	if (!$host) return;
@@ -5530,16 +5566,20 @@ function bnd_render_desk_picker(frm, host) {
 			title: g.title(),
 			desc: g.desc(),
 			field: g.field,
-			body: P.options(
-				// The blurb carries the MEASURES, resolved here rather than spelled into
-				// the label — see the width group's comment.
-				// The measures ride as the chip's second line — resolved here, never
-				// spelled into the name. See `P.options`.
-				g.options
-					.filter((o) => offered.includes(o.value))
-					.map((o) => ({ value: o.value, name: o.name(), ...(o.blurb ? { sub: o.blurb() } : {}) })),
-				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_DESK_DEFAULTS[g.field]) }
-			),
+			body:
+				P.options(
+					// The blurb carries the MEASURES, resolved here rather than spelled into
+					// the label — see the width group's comment.
+					// The measures ride as the chip's second line — resolved here, never
+					// spelled into the name. See `P.options`.
+					g.options
+						.filter((o) => offered.includes(o.value))
+						.map((o) => ({ value: o.value, name: o.name(), ...(o.blurb ? { sub: o.blurb() } : {}) })),
+					{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_DESK_DEFAULTS[g.field]) }
+				) +
+				// Width is the one body axis with a per-user twin, so it is the one
+				// that can be silently overridden. Scale and primary have none.
+				(g.field === "desk_width" && bnd_desk_mine() ? bnd_desk_mine_note(bnd_desk_mine()) : ""),
 		});
 	}).join("");
 
@@ -5553,6 +5593,14 @@ function bnd_render_desk_picker(frm, host) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
 		bnd_desk_set(frm, f, bnd_default_of(f, BND_DESK_DEFAULTS[f]));
+	});
+	$host.find(".bnd-dkp-mine-clear").on("click", function () {
+		const engine = window.bunood_theme;
+		if (!engine || !engine.set_body_width) return;
+		// Through the setter, never the row: it clears the stored intent, puts the
+		// site's width back on <html> and updates the boot seed both status-bar
+		// cycles read. Re-render so the note goes with it.
+		Promise.resolve(engine.set_body_width("")).then(() => bnd_render_desk_picker(frm));
 	});
 }
 
