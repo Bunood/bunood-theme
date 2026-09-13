@@ -37,6 +37,9 @@ class UpgradeGateTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "versions.erpnext"):
                 upstream.assert_compatible()
 
+    def test_release_contract_accepts_reviewed_real_estate_1_5_0(self):
+        self.assertEqual(self.pins["versions"]["bunood_real_estate"], "1.5.0")
+
     def test_missing_dependency_is_rejected(self):
         changed = copy.deepcopy(self.pins)
         del changed["field_order"]

@@ -17,6 +17,23 @@ inside a release named for item 29. That commit predates the decision, so its
 version files still read 0.20.0. The invariant resumes at v0.30.0. This is
 written down rather than left to be rediscovered as a bug.
 
+## [0.44.29] — 2026-09-13 — Real Estate 1.5 compatibility (patch)
+
+### Fixed
+
+- Accept the reviewed `bunood_real_estate` v1.5.0 release in the fail-closed
+  pre-migration compatibility contract. The v1.5.0 change updates integration
+  coverage for the installed KSA compliance app without changing the Theme's
+  pinned Frappe, ERPNext, Setup or compliance versions.
+
+### Checks
+
+- The upstream compatibility unit gate includes an explicit v1.5.0 release
+  contract and still rejects unreviewed version drift before schema migration.
+- The immutable v0.44.28 candidate exposed the stale v1.4.4 pin during its
+  first clean migration; v0.44.29 exists so the published v0.44.28 tag remains
+  immutable.
+
 ## [0.44.28] — 2026-09-13 — Operational surfaces and production invoices (patch)
 
 ### Added
