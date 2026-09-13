@@ -49,7 +49,7 @@
     <tbody>{% for row in doc.items %}<tr>
       <td class="bnd-inv-num" dir="ltr">{{ loop.index }}</td>
       <td><div class="bnd-inv-item-name" dir="auto">{{ row.item_name | e }}</div>{% if row.get("item_code") and row.item_code != row.item_name %}<div class="bnd-inv-item-code" dir="ltr">{{ row.item_code | e }}</div>{% endif %}{% if row.get("description") and (row.description | striptags | trim) != row.item_name %}<div class="bnd-inv-description" dir="auto">{{ row.description | striptags | e }}</div>{% endif %}</td>
-      <td class="bnd-inv-num" dir="ltr">{{ row.get_formatted("qty") }}</td><td dir="auto">{{ (("ياردة" if rtl else "Yard") if row.get("uom") == "Yard" else _(row.get("uom") or "")) | e }}</td>
+      <td class="bnd-inv-num" dir="ltr">{{ row.get_formatted("qty") }}</td><td dir="auto">{% if rtl and row.get("uom") == "Nos" %}عدد{% elif row.get("uom") == "Yard" %}{{ "ياردة" if rtl else "Yard" }}{% else %}{{ _(row.get("uom") or "") | e }}{% endif %}</td>
       <td class="bnd-inv-num" dir="ltr">{{ money(row.rate, row.precision("rate")) }}</td><td class="bnd-inv-num" dir="ltr">{{ money(row.amount, row.precision("amount")) }}</td>
     </tr>{% endfor %}</tbody>
   </table>
@@ -70,5 +70,9 @@
   </div>
   {% if doc.get("terms") %}<div class="bnd-inv-terms">{{ label("Terms and conditions", "الشروط والأحكام") }}<div dir="auto">{{ doc.terms }}</div></div>{% endif %}
   {% if bunood_zatca_qr_src is defined %}{% set qr = bunood_zatca_qr_src(doc) %}{% if qr %}<div class="bnd-inv-qr"><img src="{{ qr | e }}" alt="{{ 'رمز الفاتورة' if rtl else 'Invoice QR' }}" width="100" height="100"></div>{% endif %}{% endif %}
-  {% if not no_letterhead and footer %}<div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}><div class="letter-head-footer">{{ footer }}</div><div class="bnd-inv-page" dir="{{ direction }}" style="font-family:'Tajawal','Noto Sans Arabic','DejaVu Sans',sans-serif;">{{ "صفحة" if rtl else "Page" }} <span dir="ltr"><span class="page"></span> / <span class="topage"></span></span></div></div>{% endif %}
+  {# Frappe v16's Chromium path drops mixed contact/page-number footers on
+     later pages once .page/.topage marks the overlay dynamic. Keep this
+     managed footer static: Frappe then renders it once and merges the same
+     complete, branded contact band onto every physical page. #}
+  {% if not no_letterhead and footer %}<div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}><div class="letter-head-footer">{{ footer }}</div></div>{% endif %}
 </div>

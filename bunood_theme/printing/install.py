@@ -56,6 +56,13 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 STOCK_STYLES = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome")
 
 FORMATS = [
+    # Shared bilingual A4 formats. These records were removed when the old main
+    # branch did not ship their include target; the template is now part of the
+    # app again, and both the release PDF matrix and finance verification use
+    # these stable names. Keep the Arabic ZATCA formats below as additional
+    # legal/POS choices rather than making Purchase Invoice fall back to stock.
+    {"name": "Bunood Purchase Invoice (A4)", "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html"},
+    {"name": "Bunood Sales Invoice (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_a4.html"},
     {"name": "بونود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
     {"name": "بونود - فاتورة ضريبية مبسطة (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html"},
     {"name": "بونود - فاتورة ضريبية (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
@@ -288,9 +295,10 @@ def _sync_letterhead(settings=None):
     this returns before touching anything.
     """
     from bunood_theme.email import RASTER_SUFFIXES, substitute, tokens
+    from bunood_theme.presets import PRINT_DEFAULTS
 
     doc = settings or frappe.get_cached_doc("Theme Settings")
-    pole = doc.get("print_letterhead") or "Bilingual Split"
+    pole = doc.get("print_letterhead") or PRINT_DEFAULTS["print_letterhead"]
     if pole not in LETTERHEAD_SLUGS:
         # "Frappe's own" — and any future value this table does not know reads
         # as a stand-down rather than a guess, the assembly doctrine.
@@ -446,16 +454,17 @@ def _sync_pdf_generator():
     Frappe uses this value for Standard and for every format without its own
     engine selection. This stack deliberately ships Chromium only; allowing the
     wkhtmltopdf default to survive makes an otherwise valid Print action fail at
-    the network-fetch stage. Frappe v16's separate Chrome header merger clips
-    the top of the managed letterhead, so the header stays in the body flow.
+    the network-fetch stage. The compact managed letterhead cancels Frappe
+    v16's negative isolated-header margin, so the supported repeat mode can
+    carry the identity and page footer across every A4 page.
     """
     settings = frappe.get_single("Print Settings")
     changed = False
     if settings.meta.has_field("pdf_generator") and settings.pdf_generator != "chrome":
         settings.pdf_generator = "chrome"
         changed = True
-    if settings.meta.has_field("repeat_header_footer") and settings.repeat_header_footer:
-        settings.repeat_header_footer = 0
+    if settings.meta.has_field("repeat_header_footer") and not settings.repeat_header_footer:
+        settings.repeat_header_footer = 1
         changed = True
     if changed:
         settings.save(ignore_permissions=True)

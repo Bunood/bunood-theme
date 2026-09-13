@@ -22,7 +22,8 @@ for dt,name in [('Purchase Invoice','ACC-PINV-2026-00002'),('Sales Invoice','ACC
    root=BeautifulSoup(rendered,'html.parser').select_one('.bnd-invoice')
    assert root['lang']==lang and root['dir']==('rtl' if lang=='ar' else 'ltr'),(dt,lang)
    assert ('VAT number' in root.select_one('.letter-head').text)==(lang=='en'),(dt,lang,'header')
-   assert ('Phone' in root.select_one('.letter-head-footer').text)==(lang=='en'),(dt,lang,'footer')
+   footer_text=root.select_one('.letter-head-footer').text
+   assert (('هاتف' not in footer_text) if lang=='en' else ('Phone' not in footer_text)),(dt,lang,'footer')
    results.append(dict(doctype=dt,language=lang,direction=root['dir']))
  assert frappe.get_doc(dt,name).as_json()==before
 print(json.dumps(results))

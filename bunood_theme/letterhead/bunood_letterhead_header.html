@@ -61,6 +61,15 @@
 {%- set _start = "right" if _rtl else "left" -%}
 {%- set _end = "left" if _rtl else "right" -%}
 {%- set display_name = (name_ar or name_en) if _rtl else (name_en or name_ar) -%}
+<style>
+@media print {
+  /* Frappe v16's isolated Chromium template applies -12mm to both wrappers.
+     This managed header is already compact; cancelling that offset prevents
+     clipping while preserving the supported repeated header/footer path. */
+  .letter-head,
+  .letter-head-footer { margin-top: 0 !important; }
+}
+</style>
 {% macro identity_numbers(compact=False) -%}
 {% if vat or cr %}<table dir="{{ _dir }}" style="direction:{{ _dir }}; width:auto; margin-top:{{ '0' if compact else '4px' }}; border-collapse:collapse; font-size:10px; line-height:1.4; color:var(--bnd-ink-muted);">
   {% if vat %}<tr><td style="text-align:{{ _start }}; padding:2px 6px;">{{ "الرقم الضريبي" if _rtl else "VAT number" }}</td><td dir="ltr" style="text-align:{{ _end }}; padding:2px 0; vertical-align:middle; white-space:nowrap;">{{ vat | e }}</td></tr>{% endif %}

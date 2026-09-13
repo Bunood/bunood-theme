@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from jinja2 import Environment, StrictUndefined
 
 SOURCE = Path(__file__).resolve().parents[1] / "bunood_theme/letterhead/bunood_letterhead_header.html"
+FOOTER_SOURCE = Path(__file__).resolve().parents[1] / "bunood_theme/letterhead/bunood_letterhead_footer.html"
 BLOCK = re.compile(r"<!--BND lh=([\w-]+)-->(.*?)<!--BND-END-->", re.S)
 
 
@@ -28,7 +29,61 @@ def render(slug, language="en", **overrides):
     return BeautifulSoup(html, "html.parser")
 
 
+def render_footer(language="en"):
+    company = Company(name="Fixture", company_name="Bunood & Partners",
+                      phone_no="+966 11 000 0000", email="hello@bunood.test",
+                      website="https://bunood.test",
+                      custom_privacy_policy="https://bunood.test/privacy")
+    address = Company(address_line1="King Fahd Road", city="Riyadh", pincode="12271",
+                      country="Saudi Arabia")
+
+    def get_doc(doctype, _name):
+        return company if doctype == "Company" else address
+
+    frappe = SimpleNamespace(
+        get_doc=get_doc,
+        db=SimpleNamespace(
+            exists=lambda *_: True,
+            get_value=lambda doctype, *_args, **_kwargs: "Fixture Address" if doctype == "Dynamic Link" else None,
+        ),
+    )
+    template = Environment(undefined=StrictUndefined).from_string(FOOTER_SOURCE.read_text(encoding="utf-8"))
+    html = template.render(doc=Company(company="Fixture"), frappe=frappe,
+                           bunood_print_language=lambda: language)
+    return BeautifulSoup(html, "html.parser")
+
+
 class LetterheadTest(unittest.TestCase):
+    def test_managed_header_cancels_frappe_chromes_negative_merge_margin(self):
+        header = render("minimal", "en")
+        style = header.select_one("style")
+        self.assertIsNotNone(style)
+        self.assertIn("@media print", style.get_text())
+        self.assertRegex(style.get_text(), r"\.letter-head,\s*\.letter-head-footer")
+        self.assertIn("margin-top: 0 !important", style.get_text())
+
+    def test_managed_footer_cancels_frappe_chromes_negative_merge_margin(self):
+        footer = render_footer("en")
+        style = footer.select_one("style")
+        self.assertIsNotNone(style)
+        self.assertIn("@media print", style.get_text())
+        self.assertIn(".letter-head-footer", style.get_text())
+        self.assertIn("margin-top: 0 !important", style.get_text())
+
+    def test_footer_reserves_chromes_unmeasured_one_mm_inset(self):
+        footer = render_footer("en")
+        band = footer.select_one("[lang]")
+        self.assertIsNotNone(band)
+        self.assertIn("padding:6px 6px 6px", band["style"])
+
+    def test_footer_neutralizes_chromes_isolated_page_scaffolding(self):
+        footer = render_footer("en")
+        css = footer.select_one("style").get_text()
+        self.assertIn("body:has(.letter-head-footer)", css)
+        self.assertIn("body:has(.letter-head-footer) .wrapper", css)
+        self.assertIn("padding-top: 0 !important", css)
+        self.assertIn("page-break-after: auto !important", css)
+
     def test_one_brand_rule_and_no_accent_stripe(self):
         for slug in ("split", "center", "minimal"):
             for language in ("ar", "en"):
@@ -67,6 +122,24 @@ class LetterheadTest(unittest.TestCase):
             self.assertNotIn("VAT number", header.get_text())
             self.assertNotIn("Commercial registration", header.get_text())
             self.assertIn("Long <company> & partners", header.get_text())
+
+    def test_footer_uses_the_requested_print_language(self):
+        english = render_footer("en")
+        arabic = render_footer("ar")
+
+        self.assertEqual(english.select_one("[lang]")["dir"], "ltr")
+        self.assertIn("Phone:", english.get_text(" "))
+        self.assertIn("Email:", english.get_text(" "))
+        self.assertIn("Privacy policy:", english.get_text(" "))
+        self.assertNotIn("هاتف", english.get_text(" "))
+        self.assertIn("King Fahd Road, Riyadh, 12271, Saudi Arabia", english.get_text(" "))
+
+        self.assertEqual(arabic.select_one("[lang]")["dir"], "rtl")
+        self.assertIn("هاتف:", arabic.get_text(" "))
+        self.assertIn("البريد الإلكتروني:", arabic.get_text(" "))
+        self.assertIn("سياسة الخصوصية:", arabic.get_text(" "))
+        self.assertNotIn("Phone", arabic.get_text(" "))
+        self.assertIn("King Fahd Road، Riyadh، 12271، Saudi Arabia", arabic.get_text(" "))
 
 
 if __name__ == "__main__":

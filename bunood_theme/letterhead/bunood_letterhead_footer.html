@@ -28,11 +28,29 @@
     deleted record, a specimen doc, any doctype whose company field is free
     text) and a crashed print is worse than an empty identity — found by the
     print suite's dangling-company specimen after the merge. -#}
+{#- Chromium renders this footer in an isolated document. Frappe v16 applies
+    margin-top:-12mm !important there, which makes its height probe crop every
+    contact line after the first. Keep the correction with the footer itself;
+    relying on a style carried by the separately extracted header is unstable. -#}
+<style>
+@media print {
+  .letter-head-footer { margin-top: 0 !important; }
+  body:has(.letter-head-footer) { padding-top: 0 !important; }
+  body:has(.letter-head-footer) .wrapper {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    page-break-after: auto !important;
+  }
+}
+</style>
 {%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set phone = (_c.get("phone_no") if _c else "") -%}
 {%- set email = (_c.get("email") if _c else "") -%}
 {%- set website = (_c.get("website") if _c else "") -%}
 {%- set privacy = (_c.get("custom_privacy_policy") if _c else "") or (_c.get("custom_privacy_policy_url") if _c else "") -%}
+{%- set _rtl = bunood_print_language() == "ar" -%}
+{%- set _dir = "rtl" if _rtl else "ltr" -%}
+{%- set _separator = "، " if _rtl else ", " -%}
 {#- Address lives in its own doctype, joined by Dynamic Link. Prefer the one the
     company flagged primary; fall back to any linked address. -#}
 {%- set _addr_name = (frappe.db.get_value("Dynamic Link",
@@ -46,19 +64,21 @@
     {%- if v -%}{%- set _ = _parts.append(v) -%}{%- endif -%}
   {%- endfor -%}
 {%- endif -%}
-{%- set address = _parts | join("، ") -%}
+{%- set address = _parts | join(_separator) -%}
 {%- if address or phone or email or website or privacy -%}
-<div dir="rtl" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 2px; border-top:1px solid var(--bnd-border);">
-  {% if address %}<div>{{ address | e }}</div>{% endif %}
+{#- The 6px trailing inset safely exceeds Chrome's unmeasured 1mm body inset.
+    Without it the final contact line is moved to a discarded overlay page. -#}
+<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 6px; border-top:1px solid var(--bnd-border);">
+  {% if address %}<div dir="auto">{{ address | e }}</div>{% endif %}
   {% if phone or email or website %}
   <div>
-    {% if phone %}<span>هاتف: <span dir="ltr">{{ phone | e }}</span></span>{% endif %}
+    {% if phone %}<span>{{ "هاتف" if _rtl else "Phone" }}: <span dir="ltr">{{ phone | e }}</span></span>{% endif %}
     {% if phone and (email or website) %}<span> &middot; </span>{% endif %}
-    {% if email %}<span>البريد: <span dir="ltr">{{ email | e }}</span></span>{% endif %}
+    {% if email %}<span>{{ "البريد الإلكتروني" if _rtl else "Email" }}: <span dir="ltr">{{ email | e }}</span></span>{% endif %}
     {% if email and website %}<span> &middot; </span>{% endif %}
     {% if website %}<span dir="ltr">{{ website | e }}</span>{% endif %}
   </div>
   {% endif %}
-  {% if privacy %}<div style="margin-top:3px;">سياسة الخصوصية: <span dir="ltr">{{ privacy | e }}</span></div>{% endif %}
+  {% if privacy %}<div style="margin-top:3px;">{{ "سياسة الخصوصية" if _rtl else "Privacy policy" }}: <span dir="ltr">{{ privacy | e }}</span></div>{% endif %}
 </div>
 {%- endif -%}

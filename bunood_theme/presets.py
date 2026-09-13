@@ -1016,13 +1016,13 @@ PRINT_DEFAULTS = {
     # THE LETTERHEAD COMPOSITION — selected at SYNC time: the Letter Head
     # record a site stores carries one concrete layout, recomposed from the
     # marked blocks in letterhead/bunood_letterhead_header.html whenever the
-    # axis or the seeds change. `Bilingual Split` is the user's pick and the
-    # legacy convention kept: Arabic name right, mark centre, English left —
-    # deliberately physical, a bilingual-letterhead convention, not RTL.
+    # axis or the seeds change. `Hairline Minimal` is the production default:
+    # one compact, direction-aware identity row carries the company, VAT and
+    # commercial registration without pushing invoice content down the page.
     # `Frappe's own` is the TRUE stand-down: the sync does not touch the
     # record at all, so a tenant's hand-made letterhead survives every save
     # (proved by a sentinel in the suite).
-    "print_letterhead": "Bilingual Split",
+    "print_letterhead": "Hairline Minimal",
     # THE PER-SECTION SWITCHES (the user's second-pass direction: every element
     # its own control). Read AT RENDER by the macros — no sync step, no second
     # copy — so the neutral defaults below are exactly today's behaviour, and

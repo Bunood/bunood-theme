@@ -21,6 +21,25 @@ test('grand total rule uses the document brand, never the interactive blue accen
  assert.doesNotMatch(rule,/--bnd-accent/);
 });
 
+test('managed A4 invoices carry the shared branded table and summary contract',()=>{
+ const source=readFileSync('bunood_theme/public/scss/print/print.scss','utf8');
+ assert.match(source,/\.print-format \.bnd-invoice \{/);
+ assert.match(source,/\.bnd-invoice \.bnd-inv-items thead \{\s*display: table-header-group;/);
+ const header=source.match(/\.bnd-invoice \.bnd-inv-items th \{([\s\S]*?)\n\}/)[1];
+ assert.match(header,/background: var\(--bnd-brand-solid\)/);
+ assert.match(header,/color: var\(--bnd-on-brand\)/);
+ assert.doesNotMatch(header,/--bnd-accent/);
+ const grand=source.match(/\.bnd-invoice \.bnd-inv-grand th,[\s\S]*?\.bnd-invoice \.bnd-inv-grand td \{([\s\S]*?)\n\}/)[1];
+ assert.match(grand,/border-top: 2px solid var\(--bnd-brand-solid\)/);
+ assert.doesNotMatch(grand,/--bnd-accent/);
+ assert.match(source,/\.bnd-invoice \.bnd-inv-summary \{\s*page-break-inside: avoid;\s*break-inside: avoid;/);
+});
+
+test('Arabic invoice units do not translate ERPNext Nos as the word no',()=>{
+ const source=readFileSync('bunood_theme/templates/bunood_invoice_a4.html','utf8');
+ assert.match(source,/row\.get\("uom"\) == "Nos" %\}عدد/);
+});
+
 test('screen-only layout cannot hide the following PDF rule',()=>{
  const css='@media screen { .x {display:flex;content:"} @media screen {";} @supports (display:grid) {.y{display:grid}} } @media print {.x{display:grid}}';
  assert.equal(pdfMediaCss(css).trim(),'@media print {.x{display:grid}}');

@@ -23,12 +23,22 @@ for lang in ('en', 'ar'):
                 else:
                     assert cr['x1'] < vat['x0'] < company['x0'], (key, 'header must mirror in Arabic')
                 header_bottom = max(company['bottom'], vat['bottom'], cr['bottom'])
-                # wkhtmltopdf paints CSS borders as filled thin rectangles.
+                # A compact identity can sit over either the Hairline divider
+                # or the shipped Wash Card header surface. Chromium may merge
+                # a rounded panel as a curve rather than a rectangle, so check
+                # the physical branded primitive that encloses/follows the
+                # identity row instead of assuming one PDF object type.
                 rules = [line for line in page.rects if line['height'] <= 1.5 and line['width'] > page.width * .75 and header_bottom <= line['top'] < header_bottom + 20]
-                assert rules, (key, 'missing compact full-width divider')
-                for line in rules:
-                    colour = line.get('non_stroking_color') or ()
-                    assert len(colour) == 3 and colour[1] > colour[0] and colour[1] > colour[2], (key, 'divider must be green')
+                header_top = min(company['top'], vat['top'], cr['top'])
+                panels = [panel for panel in page.curves
+                          if panel['width'] > page.width * .75
+                          and panel['top'] <= header_top
+                          and panel['bottom'] >= header_bottom]
+                branded = rules or panels
+                assert branded, (key, 'missing compact branded header treatment')
+                for shape in branded:
+                    colour = shape.get('non_stroking_color') or shape.get('stroking_color') or ()
+                    assert len(colour) == 3 and colour[1] > colour[0] and colour[1] > colour[2], (key, 'header treatment must be green')
                 results[key + ':' + str(page_no)] = {'company_size': round(company['size'], 2), 'id_size': round(vat['size'], 2), 'direction': lang, 'header_height': round(header_bottom - min(company['top'], vat['top']), 2)}
 (root / 'letterhead-verification.json').write_text(json.dumps(results, indent=2), encoding='utf-8')
 print(f'Balanced letterhead: {len(results)} rendered pages passed.')
