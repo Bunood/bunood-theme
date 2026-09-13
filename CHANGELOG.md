@@ -24,7 +24,7 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — the desk's width, made one decision (item 45)
+## [0.46.0] — 2026-09-12 — The desk's width, made one decision, and a control for it (item 45)
 
 **The user, 2026-09-11:** *"there is a dissonance with the width, some things use full width,
 some modules use full width in some places and some use only wide width or just enough for the

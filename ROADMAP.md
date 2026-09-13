@@ -1610,6 +1610,26 @@ only its Arabic strings crossed.
   was still awaiting its picks; this took the next number, which is why 43 ships as v0.45.0.
   The account in CHANGELOG `[0.44.0]`.
 
+- `[x]` **45 · The desk's width, made one decision** *(opened and built 2026-09-11/12;
+  releases as v0.46.0 — 45 is taken as a MINOR by item 43's v0.45.0, so this takes the
+  next number)*. Asked for after the user saw the body disagree with itself: "there is
+  a dissonance with the width… I prefer not using full wide width, but distinct sections
+  in the body." **Measured first:** `desk_width` reached two of seven surface families,
+  so turning it on widened the spread between the widest and narrowest surface from
+  305px to 513px at 1920 — using the setting made the desk LESS consistent. Nine
+  strategies were drawn and put to the user, who chose the tiered model and asked for
+  all four values with Balanced shipped. **Built:** every value carries TWO measures — a
+  reading edge for forms, settings and the document band, a wide edge for lists,
+  reports, dashboards, charts, kanban, calendar, gallery, the workspace and any section
+  holding a child table, which asks for it by what it CONTAINS. Then, at the user's ask,
+  a width control in the status bar beside density: per-user (`bnd_body_width`, under
+  the existing `personal_comfort` lock), because a control every desk shows may not
+  write a site Single — it would throw for everyone but a System Manager and, for the
+  one who is, re-lay every colleague's desk. Two things the work turned up on the way,
+  both recorded in HANDOVER: this suite had been writing 345 of the site's 560 unseen
+  Error Log rows through its own sabotage checks, and the local stack's socket.io had
+  never once connected. The account in CHANGELOG `[0.46.0]`.
+
 ---
 
 ## Open, unnumbered threads
