@@ -7,6 +7,25 @@ const CASES = [
 ];
 const fail = message => { throw new Error(message); };
 const { page, errors, close } = await openDesk({ width: 1440, height: 900 });
+async function waitForComposer(doctype) {
+	try {
+		await page.locator(".bnd-simple-composer:visible").waitFor({ timeout: 60000 });
+	} catch (error) {
+		const state = await page.evaluate(() => ({
+			route: window.frappe?.get_route?.(),
+			doctype: window.cur_frm?.doctype,
+			isLocal: window.cur_frm?.doc?.__islocal,
+			candidate: window.bunood_theme?.simple_forms?.candidate?.(window.cur_frm),
+			hasApi: !!window.bunood_theme?.simple_forms,
+			composerCount: document.querySelectorAll(".bnd-simple-composer").length,
+			visibleComposerCount: [...document.querySelectorAll(".bnd-simple-composer")]
+				.filter(node => !node.hidden && node.getClientRects().length).length,
+			formLayoutCount: window.cur_frm?.$wrapper?.find?.(".form-layout")?.length,
+			assetSources: [...document.scripts].map(node => node.src).filter(src => /bunood/i.test(src)),
+		})).catch(probeError => ({ probeError: String(probeError) }));
+		fail(`${doctype}: composer did not mount; state=${JSON.stringify(state)}; browser=${errors.join(" | ") || "none"}; wait=${error.message}`);
+	}
+}
 try {
 	await page.goto(`${process.env.BND_URL || "http://localhost:8080"}/desk/customer`, { waitUntil: "domcontentloaded" });
 	await page.waitForFunction(() => window.frappe?.model && window.frappe?.set_route, null, { timeout: 60000 });
@@ -19,7 +38,7 @@ try {
 			frappe.set_route("Form", dt, doc.name);
 		}, doctype);
 		await page.waitForFunction(dt => window.cur_frm?.doctype === dt, doctype, { timeout: 60000 });
-		await page.locator(".bnd-simple-composer:visible").waitFor({ timeout: 60000 });
+		await waitForComposer(doctype);
 		const result = await page.evaluate(({ doctype, first, tax }) => {
 			const frm = window.cur_frm;
 			const shell = frm.$wrapper[0];
