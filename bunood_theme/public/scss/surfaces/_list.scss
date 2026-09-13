@@ -194,47 +194,7 @@ html[data-bnd-list] .result .list-row-container:has(:focus-visible) > .list-row 
 // missing recovery action. The JS adapter owns lifecycle and calls native
 // the live list's native refresh(); this file owns presentation only.
 html[data-bnd-list] .bnd-list-recovery {
-  display: flex;
-  align-items: center;
-  gap: var(--bnd-sp-3);
   margin: var(--bnd-sp-3);
-  padding: var(--bnd-sp-3) var(--bnd-sp-4);
-  border: var(--bnd-line) solid color-mix(in srgb, var(--bnd-critical) 35%, var(--bnd-border));
-  border-radius: var(--bnd-radius-md);
-  background: color-mix(in srgb, var(--bnd-critical) 8%, var(--bnd-surface));
-  color: var(--bnd-ink);
-}
-html[data-bnd-list] .bnd-list-recovery-icon {
-  display: inline-flex;
-  flex: 0 0 auto;
-  color: var(--bnd-critical);
-}
-html[data-bnd-list] .bnd-list-recovery-message {
-  flex: 1 1 auto;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-html[data-bnd-list] .bnd-list-retry {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--bnd-sp-2);
-  flex: 0 0 auto;
-}
-html[data-bnd-list] .bnd-list-retry-icon {
-  display: inline-flex;
-}
-html[data-theme] .bnd-list-retry:focus-visible {
-  outline: var(--bnd-line-2) solid var(--bnd-accent);
-  outline-offset: var(--bnd-focus-offset);
-}
-@include bnd-until(md) {
-  html[data-bnd-list] .bnd-list-recovery {
-    align-items: flex-start;
-    flex-wrap: wrap;
-  }
-  html[data-bnd-list] .bnd-list-retry {
-    margin-inline-start: auto;
-  }
 }
 // The rail: an absolutely positioned ::before, because box-shadow has no
 // logical variant and a border would shift content. inset-inline-start

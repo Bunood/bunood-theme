@@ -97,6 +97,13 @@ html[data-theme] .bnd-statusbar {
   .bnd-conn[data-state="offline"] .bnd-conn-dot {
     background: var(--bnd-critical);
   }
+  .bnd-conn-icon {
+    display: inline-flex;
+    color: var(--bnd-critical);
+  }
+  .bnd-conn-icon[hidden] {
+    display: none;
+  }
 
   .bnd-clock {
     font-variant-numeric: var(--bnd-numeric);

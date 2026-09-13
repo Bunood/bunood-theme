@@ -714,8 +714,7 @@ html[data-theme] :is(.bnd-home-attn-row, .bnd-home-recent):focus-visible {
   font-size: var(--bnd-text-sm);
 }
 
-.bnd-home-empty,
-.bnd-home-state {
+.bnd-home-empty {
   color: var(--bnd-ink-muted);
   text-align: center;
 }
@@ -726,31 +725,9 @@ html[data-theme] :is(.bnd-home-attn-row, .bnd-home-recent):focus-visible {
 }
 
 .bnd-home-state {
-  display: grid;
   min-block-size: 420px;
-  place-content: center;
-  justify-items: center;
-  gap: var(--bnd-sp-3);
-}
-
-.bnd-home-state-icon {
-  --bnd-home-tone: var(--bnd-brand-solid);
-}
-
-.bnd-home-state.is-loading .bnd-home-state-icon {
-  animation: bnd-home-spin var(--bnd-dur-slow) linear infinite;
-}
-
-@keyframes bnd-home-spin {
-  to {
-    transform: rotate(1turn);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bnd-home-state.is-loading .bnd-home-state-icon {
-    animation: none;
-  }
+  align-content: center;
+  margin-inline: auto;
 }
 
 @include bnd-until(xl) {

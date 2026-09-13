@@ -235,7 +235,7 @@ html[data-bnd-report] [id="page-query-report"] .report-summary {
 // the summary an inline gutter but leaves the filter and chart full bleed,
 // which produces three unrelated left edges (and is especially conspicuous in
 // RTL). Own the gutter and frame here so every report has one durable geometry.
-html[data-bnd-report] [id="page-query-report"] :is(.page-form, .report-summary, .chart-wrapper, .bnd-report-scope, .bnd-report-recovery) {
+html[data-bnd-report] [id="page-query-report"] :is(.page-form, .report-summary, .chart-wrapper, .bnd-report-scope) {
   box-sizing: border-box;
   inline-size: calc(100% - 32px) !important;
   margin-inline: 16px !important;
@@ -292,27 +292,18 @@ html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report
 // throttled native refresh and therefore preserves current filters, prepared
 // report flags, sort order and the export model.
 html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-recovery {
-  display: flex;
-  align-items: center;
-  gap: var(--bnd-sp-2);
-  padding: var(--bnd-sp-3);
-  border-color: var(--bnd-critical);
-  background: color-mix(in srgb, var(--bnd-critical) 7%, var(--bnd-surface));
-  color: var(--bnd-ink);
+  inline-size: calc(100% - 32px);
+  margin-inline: 16px;
 }
 
-html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-recovery__message {
-  flex: 1 1 auto;
-}
-
-html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-retry, .bnd-report-empty-action) {
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-empty-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--bnd-sp-1);
 }
 
-html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-retry, .bnd-report-empty-action):focus-visible {
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-empty-action:focus-visible {
   outline: var(--bnd-line-2) solid var(--bnd-accent);
   outline-offset: var(--bnd-focus-offset);
 }
@@ -343,14 +334,11 @@ html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .dt-scrolla
 }
 
 @media (width < bp.bnd-bp(sm)) {
-  html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-scope, .bnd-report-recovery) {
+  html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope {
     align-items: stretch;
     flex-direction: column;
   }
 
-  html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-retry {
-    inline-size: 100%;
-  }
 }
 
 html[data-bnd-report] [id="page-query-report"] .report-summary {

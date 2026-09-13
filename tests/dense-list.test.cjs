@@ -6,6 +6,7 @@ const py=fs.readFileSync('bunood_theme/presets.py','utf8');
 const js=fs.readFileSync('bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js','utf8');
 const json=JSON.parse(fs.readFileSync('bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json','utf8'));
 const css=fs.readFileSync('bunood_theme/public/scss/surfaces/_list.scss','utf8');
+const states=fs.readFileSync('bunood_theme/public/scss/components/_states.scss','utf8');
 const desk=fs.readFileSync('bunood_theme/public/js/bunood.js','utf8');
 
 test('all authoritative settings mirrors ship Hairline Rows',()=>{
@@ -29,10 +30,11 @@ test('failed native refresh exposes one retry without replacing list semantics',
   assert.match(desk,/const nativeRefresh = list\.refresh/);
   assert.match(desk,/request = bndRefresh\._bnd_native\.apply\(this, args\)/);
   assert.match(desk,/list\.last_args = null/);
-  assert.match(desk,/role: "alert"/);
-  assert.match(desk,/Promise\.resolve\(list\.refresh\(\)\)\.catch\(\(\) => \{\}\)/);
+  assert.match(desk,/kind: "recoverable-error",\s*compact: true,\s*className: "bnd-list-recovery"/);
+  assert.match(desk,/return Promise\.resolve\(list\.refresh\(\)\)\.catch\(\(\) => \{\}\)/);
   assert.match(desk,/bndRefresh\._bnd_list_recovery = true/);
   assert.match(desk,/list\.refresh = bndRefresh/);
   assert.match(css,/\.bnd-list-recovery\s*\{/);
-  assert.match(css,/background:\s*color-mix\(in srgb, var\(--bnd-critical\) 8%, var\(--bnd-surface\)\)/);
+  assert.match(states,/\.bnd-system-state\.is-recoverable-error/);
+  assert.match(states,/--bnd-state-tone:\s*var\(--bnd-critical\)/);
 });

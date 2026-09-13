@@ -1873,6 +1873,110 @@
 		return svg;
 	}
 
+	// ── Shared system-state component ──────────────────────────────────────
+	// One semantic and visual contract for every Bunood-owned surface. The
+	// caller supplies surface-specific copy and a recovery callback; this
+	// primitive owns structure, verified icon fallbacks, live-region behavior,
+	// busy handling and the invariant that a state exposes at most one action.
+	const SYSTEM_STATE_VARIANTS = Object.freeze({
+		loading: {
+			icons: ["icon-loader-circle"], role: "status", live: "polite",
+			title: () => __("Loading…"),
+		},
+		"configured-empty": {
+			icons: ["icon-inbox", "icon-folder-normal"], role: "status", live: "polite",
+			title: () => __("Nothing here yet"),
+		},
+		"setup-incomplete": {
+			icons: ["icon-setting-gear"], role: "status", live: "polite",
+			title: () => __("Setup required"),
+		},
+		"permission-denied": {
+			icons: ["icon-lock"], role: "alert", live: "assertive",
+			title: () => __("Access required"),
+		},
+		"recoverable-error": {
+			icons: ["icon-circle-alert"], role: "alert", live: "assertive",
+			title: () => __("Something went wrong"),
+		},
+		"offline-delayed-integration": {
+			icons: ["icon-wifi-off", "icon-cloud-off", "icon-circle-alert"], role: "status", live: "polite",
+			title: () => __("Updates are delayed"),
+		},
+	});
+
+	function system_state(options) {
+		const config = options || {};
+		const kind = SYSTEM_STATE_VARIANTS[config.kind] ? config.kind : "recoverable-error";
+		const preset = SYSTEM_STATE_VARIANTS[kind];
+		const state = el("section", [
+			"bnd-system-state",
+			`is-${kind}`,
+			config.compact ? "is-compact" : "",
+			config.className || "",
+		].filter(Boolean).join(" "), {
+			"data-bnd-state": kind,
+			role: config.role || preset.role,
+			"aria-live": config.live || preset.live,
+			"aria-atomic": "true",
+		});
+		if (kind === "loading") state.setAttribute("aria-busy", "true");
+
+		const mark = el("span", "bnd-system-state__icon", { "aria-hidden": "true" });
+		const candidates = config.icons || preset.icons;
+		const symbol = sb_existing_symbol(candidates) || candidates[candidates.length - 1];
+		mark.appendChild(sprite_icon(symbol));
+		state.appendChild(mark);
+
+		const copy = el("div", "bnd-system-state__copy");
+		const title = el(config.heading ? "h2" : "strong", "bnd-system-state__title");
+		title.textContent = config.title || preset.title();
+		copy.appendChild(title);
+		if (config.message) {
+			const message = el("p", "bnd-system-state__message");
+			message.textContent = config.message;
+			copy.appendChild(message);
+		}
+		state.appendChild(copy);
+
+		if (config.action && config.action.label && typeof config.action.run === "function") {
+			const action = el("button", [
+				"btn btn-primary bnd-system-state__action",
+				config.action.className || "",
+			].filter(Boolean).join(" "), { type: "button" });
+			const actionIcons = config.action.icons || [config.action.icon || "icon-refresh-cw"];
+			const actionSymbol = sb_existing_symbol(actionIcons) || actionIcons[actionIcons.length - 1];
+			const actionMark = el("span", "bnd-system-state__action-icon", { "aria-hidden": "true" });
+			actionMark.appendChild(sprite_icon(actionSymbol));
+			action.append(actionMark, document.createTextNode(config.action.label));
+			action.addEventListener("click", () => {
+				if (action.disabled) return;
+				action.disabled = true;
+				action.setAttribute("aria-busy", "true");
+				let result;
+				try {
+					result = config.action.run();
+				} catch (error) {
+					action.disabled = false;
+					action.removeAttribute("aria-busy");
+					return;
+				}
+				Promise.resolve(result).catch(() => {}).finally(() => {
+					if (!action.isConnected) return;
+					action.disabled = false;
+					action.removeAttribute("aria-busy");
+				});
+			});
+			state.appendChild(action);
+		}
+		return state;
+	}
+
+	bunood.system_state = Object.freeze({
+		create: system_state,
+		variants: Object.freeze(Object.keys(SYSTEM_STATE_VARIANTS)),
+	});
+
 	/** Fill the one RTL shortcut symbol Frappe v16 emits but does not ship. */
 	function ensure_vendor_symbols() {
 		const target = "es-line-arrow-up-left";
@@ -2187,28 +2291,25 @@
 		// BaseList.no_change() records the arguments before the request settles.
 		// A rejected request must remain retryable with the same filters.
 		list.last_args = null;
-		const state = el("div", "bnd-list-recovery", {
-			role: "alert",
-			"aria-live": "assertive",
+		const state = system_state({
+			kind: "recoverable-error",
+			compact: true,
+			className: "bnd-list-recovery",
+			title: __("Could not refresh this list"),
+			message: __("Check your connection and try again."),
+			action: {
+				label: __("Retry"),
+				icon: "icon-refresh-cw",
+				className: "bnd-list-retry",
+				run: () => {
+					clear_list_recovery(list);
+					list.last_args = null;
+					// The wrapper has already rendered any second failure. Consume it
+					// here so a click handler never creates an unhandled rejection.
+					return Promise.resolve(list.refresh()).catch(() => {});
+				},
+			},
 		});
-		const icon = el("span", "bnd-list-recovery-icon", { "aria-hidden": "true" });
-		icon.appendChild(sprite_icon("icon-circle-alert"));
-		const message = el("p", "bnd-list-recovery-message");
-		message.textContent = __("Could not refresh this list. Check your connection and try again.");
-		const retry = el("button", "btn btn-default btn-sm bnd-list-retry", { type: "button" });
-		const retryIcon = el("span", "bnd-list-retry-icon", { "aria-hidden": "true" });
-		retryIcon.appendChild(sprite_icon("icon-refresh-cw"));
-		retry.append(retryIcon, document.createTextNode(__("Retry")));
-		retry.addEventListener("click", () => {
-			retry.disabled = true;
-			retry.setAttribute("aria-busy", "true");
-			clear_list_recovery(list);
-			list.last_args = null;
-			// The wrapper has already rendered any second failure. Consume it here
-			// so a click handler never creates an unhandled rejection.
-			Promise.resolve(list.refresh()).catch(() => {});
-		});
-		state.append(icon, message, retry);
 		host.insertBefore(state, host.firstChild);
 	}
 
@@ -4692,10 +4793,14 @@ function sb_zone_anchor(pane, zone, node) {
 			// here would state a fact nobody had checked yet.
 			const conn = el("span", "bnd-status-item bnd-conn", { "data-state": "online", hidden: "" });
 			conn.appendChild(el("span", "bnd-conn-dot"));
+			const conn_icon = el("span", "bnd-conn-icon", { "aria-hidden": "true", hidden: "" });
+			conn_icon.appendChild(sprite_icon("icon-wifi-off"));
+			conn.appendChild(conn_icon);
 			const conn_label = el("span");
 			conn.appendChild(conn_label);
 			bar.appendChild(conn);
 			status_refs.conn = conn;
+			status_refs.conn_icon = conn_icon;
 			status_refs.conn_label = conn_label;
 			bind_connection_state();
 		}
@@ -4842,6 +4947,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!conn || !status_refs.conn_label) return;
 		conn.setAttribute("data-state", up ? "online" : "offline");
 		status_refs.conn_label.textContent = up ? __("Live") : __("No live updates");
+		status_refs.conn_icon?.toggleAttribute("hidden", up);
 		// Quiet keeps its promise here too: a working socket is not news.
 		if (up && status_style() === "quiet") conn.setAttribute("hidden", "");
 		else conn.removeAttribute("hidden");
@@ -9845,11 +9951,14 @@ function sb_zone_anchor(pane, zone, node) {
 	function home_render_error(root) {
 		home_clear_greeting_timer();
 		root.replaceChildren();
-		const state = el("div", "bnd-home-state");
-		state.appendChild(home_icon("icon-circle-alert", "bnd-home-state-icon"));
-		const message = el("p", "bnd-home-state-message");
-		message.textContent = home_text("Could not load dashboard data");
-		state.append(message, home_action("Retry", "icon-refresh-cw", () => mount_home_dashboard(true), true));
+		const state = system_state({
+			kind: "recoverable-error",
+			className: "bnd-home-state",
+			heading: true,
+			title: home_text("Could not load dashboard data"),
+			message: home_text("Check your connection and try again."),
+			action: { label: home_text("Retry"), icon: "icon-refresh-cw", run: () => mount_home_dashboard(true) },
+		});
 		root.appendChild(state);
 	}
 
@@ -9877,11 +9986,12 @@ function sb_zone_anchor(pane, zone, node) {
 		home_stop_status_alignment();
 		home_clear_greeting_timer();
 		root.replaceChildren();
-		const loading = el("div", "bnd-home-state is-loading");
-		loading.appendChild(home_icon("icon-loader-circle", "bnd-home-state-icon"));
-		const loading_copy = el("p", "bnd-home-state-message");
-		loading_copy.textContent = home_text("Loading dashboard");
-		loading.appendChild(loading_copy);
+		const loading = system_state({
+			kind: "loading",
+			className: "bnd-home-state",
+			heading: true,
+			title: home_text("Loading dashboard"),
+		});
 		root.appendChild(loading);
 		const request = ++home_request;
 		const profile = role_home_workspace() === "Real Estate" ? "real_estate" : "erp";

@@ -129,26 +129,25 @@
 	function showFailure(report, root) {
 		if (!activeReport(report) || !root) return;
 		removeFailure(root);
-		const state = document.createElement("div");
-		state.className = "bnd-report-recovery";
-		state.setAttribute("role", "alert");
-		state.setAttribute("aria-live", "assertive");
-		const message = document.createElement("span");
-		message.className = "bnd-report-recovery__message";
-		message.textContent = __("Could not refresh this report. Check your connection and try again.");
-		const retry = document.createElement("button");
-		retry.type = "button";
-		retry.className = "btn btn-secondary bnd-report-retry";
-		retry.append(icon("refresh-cw"), document.createTextNode(__("Retry")));
-		retry.addEventListener("click", () => {
-			retry.disabled = true;
-			state.setAttribute("aria-busy", "true");
-			message.textContent = __("Retrying…");
-			const args = report.refresh?._bnd_last_args || [];
-			const result = report.refresh?.apply(report, args);
-			if (result && typeof result.catch === "function") result.catch(() => {});
+		const state = window.bunood_theme.system_state.create({
+			kind: "recoverable-error",
+			compact: true,
+			className: "bnd-report-recovery",
+			title: __("Could not refresh this report"),
+			message: __("Check your connection and try again."),
+			action: {
+				label: __("Retry"),
+				icon: "icon-refresh-cw",
+				className: "bnd-report-retry",
+				run: () => {
+					state.querySelector(".bnd-system-state__message").textContent = __("Retrying…");
+					const args = report.refresh?._bnd_last_args || [];
+					const result = report.refresh?.apply(report, args);
+					if (result && typeof result.catch === "function") result.catch(() => {});
+					return result;
+				},
+			},
 		});
-		state.append(icon("alert-triangle"), message, retry);
 		const anchor = root.querySelector(".bnd-report-scope") || root.querySelector(".page-form");
 		anchor?.insertAdjacentElement("afterend", state);
 	}

@@ -35,8 +35,9 @@ test("refresh recovery delegates to the exact live native method", () => {
 	assert.match(js, /result\.then\(\(\) => afterSuccess\(this\)/);
 	assert.match(js, /status === "abort"/);
 	assert.match(js, /report\.refresh\?\.apply\(report, args\)/);
-	assert.match(js, /setAttribute\("role", "alert"\)/);
-	assert.match(js, /setAttribute\("aria-live", "assertive"\)/);
+	assert.match(js, /window\.bunood_theme\.system_state\.create/);
+	assert.match(js, /kind: "recoverable-error"/);
+	assert.match(desk, /role: "alert", live: "assertive"/);
 });
 
 test("scope, empty, numeric and semantic-row states are explicit", () => {
