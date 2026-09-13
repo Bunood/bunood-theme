@@ -647,6 +647,27 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +189b, js +2085b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.26"
+		},
+		{
+			"version": "v0.44.28",
+			"date": "2026-09-13",
+			"web_css_raw": 30944,
+			"web_css_gzip": 4516,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 30254,
+			"print_css_gzip": 7748,
+			"css_raw": 265237,
+			"css_gzip": 34143,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 545796,
+			"js_gzip": 166382,
+			"report_js_raw": 10642,
+			"report_js_gzip": 3462,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +1227b, js +5845b, report_js 3462b gzip (new), studio_js +0b, web_css +3b, auth_js +0b, email_css +0b, print_css +810b gzip vs v0.44.27"
 		}
 	]
 }

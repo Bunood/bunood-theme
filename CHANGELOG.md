@@ -17,6 +17,51 @@ inside a release named for item 29. That commit predates the decision, so its
 version files still read 0.20.0. The invariant resumes at v0.30.0. This is
 written down rather than left to be rediscovered as a bug.
 
+## [0.44.28] — 2026-09-13 — Operational surfaces and production invoices (patch)
+
+### Added
+
+- Add dense, recoverable operational layouts across seven daily lists, seven
+  record forms and seven report workbenches, with role-safe actions and clear
+  empty, loading, success and failure states.
+- Add keyboard-complete dialogs, menus, toolbars and invoice utilities, with
+  visible icon-and-label actions and deterministic focus recovery.
+- Ship managed bilingual A4 Sales Invoice and Purchase Invoice formats with a
+  shared branded item table, compact party identity, native tax IDs, official
+  Saudi-riyal glyph and Tajawal Arabic typography.
+
+### Changed
+
+- Make operational forms and tables denser and more spreadsheet-like while
+  retaining the reversible simplified/advanced invoice workflow.
+- Use Hairline Minimal as the production letterhead default and repeat the
+  complete branded identity/contact bands across every Chromium PDF page.
+- Keep long-invoice footers on Frappe's reliable static overlay path; the
+  framework's open v16 dynamic-footer defect can no longer drop company data
+  or leave incomplete page-number placeholders.
+
+### Fixed
+
+- Focus the first invalid sales or purchase invoice control on validation and
+  make list refresh/retry actions recover without a page reload.
+- Remove the legacy blue print accent, restore high-contrast branded table
+  headers and totals, mirror Arabic columns, and prevent long item codes from
+  crossing their table cells.
+- Preserve all company footer contact lines despite Frappe v16's unmeasured
+  isolated-footer inset and forced wrapper page break.
+
+### Checks
+
+- Focused UI acceptance covers seven lists, seven forms, seven reports, five
+  interaction families, 72 status/recovery states and 18 curated Apps icons in
+  English, Arabic, dark mode and desktop/mobile layouts.
+- Print contracts pass 17 Python and nine stylesheet tests; ten bilingual PDF
+  variants pass value, geometry, RTL, Tajawal, riyal and pagination checks,
+  including two five-page specimens and 18 verified letterhead pages.
+- Eight repeated print-language switches preserve invoice data; translation
+  coverage is complete at 1,275 source strings with eight documented
+  exemptions, and the production asset build passes.
+
 **Item numbers below are as of the release date.** `ROADMAP.md` items were renumbered
 to work order on 2026-08-13; entries here keep the numbers that were current when they
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
