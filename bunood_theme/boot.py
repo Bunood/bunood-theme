@@ -731,6 +731,7 @@ def extend_bootinfo(bootinfo):
         from bunood_theme.presets import (
             APPEARANCE_DEFAULTS,
             LANGUAGE_DEFAULTS,
+            PANEHEAD_DEFAULTS,
             LINKS_DEFAULTS,
             START_DEFAULTS,
             USER_DEFAULTS,
@@ -770,6 +771,12 @@ def extend_bootinfo(bootinfo):
             # The admin's list (Theme Settings), not Frappe's install-time flag - see
             # bunood_theme/language.py for why the first cut was the wrong fact.
             "languages": offered_languages(settings),
+        }
+
+        # The pane head's quick links (2026-09-14): how many rows a module's
+        # flyout carries, or Off for the module list alone.
+        bootinfo.bnd_panehead = {
+            "quick_links": settings.get("panehead_quick_links") or PANEHEAD_DEFAULTS["panehead_quick_links"],
         }
 
         bootinfo.bnd_inbox = {

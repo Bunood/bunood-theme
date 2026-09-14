@@ -409,6 +409,13 @@ LANGUAGE_DEFAULTS = {
     "language_choices": "ar,en",
 }
 LANGUAGE_FIELDS = ["language_style", "language_choices"]
+
+#: The pane head's quick links (2026-09-14): the flyouts on the head menu's module
+#: rows. Off keeps the module list alone; Brief / Standard / Full say how many
+#: "New …" and report rows a module's flyout carries (3+2 · 6+4 · 12+8) before
+#: "Go to <module>". Policy, not a look — outside THEME_AXES like `language_choices`.
+PANEHEAD_DEFAULTS = {"panehead_quick_links": "Standard"}
+PANEHEAD_FIELDS = ["panehead_quick_links"]
 APPEARANCE_DEFAULTS = {"appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs

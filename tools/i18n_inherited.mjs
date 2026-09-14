@@ -43,39 +43,13 @@ const DRY = process.argv.includes("--dry");
  * fix for each is either a rename (done for "Operator") or our own row.
  * This list is small and argued; it is not a place to park anything awkward.
  */
-const REJECT = new Map([
-	["Count", "upstream عد is the VERB 'to count'; ours is a badge count (noun)"],
-	["More", "upstream أكثر is the comparative 'more than'; a More button is المزيد"],
-	["Full", "upstream ممتلئ means 'filled up'; ours is full intensity"],
-	["Center", "upstream مركز is a hub (cost centre), not centre alignment"],
-	["Mention", "upstream أشير is a verb; ours is a noun — but it is Frappe's own notification type, so we ship no row either"],
-	["Mentions", "upstream يذكر is a verb; ours is a noun"],
-	["Action", "helpdesk حدث is an EVENT/occurrence; ours is a thing the user does — إجراء"],
-	["Apply", "crm تقديم is submitting an application; ours applies a setting — تطبيق"],
-	["Filter", "frappe منقي is a purifier; a filter control is تصفية"],
-	["Display", "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it"],
-	["Translations", "frappe ترجمة is singular; our nav section is plural — الترجمات"],
-	["Queued", "frappe قائمة الانتظار is the queue (a noun); ours is a STATUS — في قائمة الانتظار"],
-	// The 2026-09-10 regeneration read nine apps instead of three and proposed
-	// 99 more; these are the ones whose upstream sense is wrong for ours.
-	["Automatic", "frappe معادلة is a formula; ours is the colour mode that follows the OS — تلقائي"],
-	["Both", "erpnext على حد سواء is 'alike'; ours is both halves of a title / both gridlines — كلاهما"],
-	["Clear", "frappe واضح is 'obvious'; ours is the action that clears a field — مسح"],
-	["Light", "frappe ضوء is a lamp's light (noun); the colour mode is فاتح"],
-	["Dark", "frappe مظلم is 'gloomy'; kept with Light so the colour-mode pair agrees — داكن"],
-	["Link", "frappe حلقة الوصل is a liaison; a hyperlink is رابط"],
-	["List View", "frappe عرض منسدل is a DROPDOWN view; the list view is عرض القائمة"],
-	["Original", "frappe إبداعي is 'creative'; our stand-down pole is the stock look — الأصلي"],
-	["Records", "erpnext تسجيل is 'recording' (singular verbal noun); ours is the plural noun — سجلات"],
-	["Saved Filters", "frappe حفظ الفلاتر is the imperative 'save the filters'; ours is a heading — المحفوظة"],
-	["Show", "frappe تبين is 'it turns out'; the pair with Hide (إخفاء) is إظهار"],
-	["Solid", "frappe صلب is 'rigid'; the pane material is opaque — معتم"],
-	["Split", "erpnext انشق، مزق is 'tore apart'; the two-pane login layout is مُقسَّم"],
-	["Subtle", "frappe دقيق is 'precise'; a subtle wash is faint — خفيفة"],
-	["Theme", "frappe موضوع is a topic; a visual theme is السمة (the ar.po note already says so)"],
-	["Letter", "frappe رسالة is a message; the email style shaped like a formal letter is خطاب"],
-	["Ledger", "erpnext دفتر الأستاذ is the general-ledger account book; the Ledger look is a ruled page — دفتر"],
-]);
+// The argued list lives in locale/false_friends.json, shared with the migrate
+// defense (bunood_theme.setup._defend_false_friends) that makes it EFFECTIVE:
+// refusing to inherit a false friend is half the job; the other half is the
+// later app's row overwriting ours in the merge, which only a Translation row
+// outranks. One file, two readers.
+const FALSE_FRIENDS = JSON.parse(readFileSync(join(APP, "locale", "false_friends.json"), "utf8"));
+const REJECT = new Map(Object.entries(FALSE_FRIENDS.entries).map(([msgid, e]) => [msgid, e.reason]));
 
 /**
  * Every app installed on the site, in `installed_apps` order — asked, not

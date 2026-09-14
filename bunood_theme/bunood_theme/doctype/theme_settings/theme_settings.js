@@ -926,6 +926,9 @@ frappe.ui.form.on("Theme Settings", {
 	language_choices(frm) {
 		bnd_render_language_picker(frm);
 	},
+	panehead_quick_links(frm) {
+		bnd_panehead_preview(frm);
+	},
 	language_placement(frm) {
 		bnd_render_placement_board(frm);
 	},
@@ -1342,7 +1345,8 @@ let bnd_layout_slots = null;
 const BND_SETTINGS_OWNS = {
 	topbar: { prefixes: ["topbar_"] },
 	pagehead: { prefixes: ["pagehead_"] },
-	sidepane: { prefixes: ["sidebar_"] },
+	// The pane head's quick links (2026-09-14) sit in the side pane band.
+	sidepane: { prefixes: ["sidebar_", "panehead_"] },
 	dock: { prefixes: ["dock_"] },
 	// The bell and the user menu are separate components sharing one picker, so
 	// this entry owns the inbox prefix plus the user menu's placement field.
@@ -2058,6 +2062,7 @@ function bnd_composer_push_frame(frm, frame) {
 		E.shape_apply(values, shape === "Custom" ? "" : shape);
 	}
 	if (typeof E.language_apply === "function") E.language_apply({ language_style: frm.doc.language_style });
+	if (typeof E.panehead_apply === "function") E.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
 	if (typeof E.mobile_apply === "function") {
 		E.mobile_apply({ mobile_inbox: frm.doc.mobile_inbox, mobile_user: frm.doc.mobile_user, mobile_apps: frm.doc.mobile_apps });
 	}
@@ -4566,6 +4571,10 @@ const BND_LANGUAGE_FIELDS = ["language_style", "language_choices"];
 // guard pairs every BND_<X>_FIELDS with a BND_<X>_DEFAULTS).
 const BND_LANGUAGE_DEFAULTS = { language_style: "Globe", language_choices: "ar,en" };
 
+/** Client mirror of presets.PANEHEAD_FIELDS / PANEHEAD_DEFAULTS (2026-09-14). */
+const BND_PANEHEAD_FIELDS = ["panehead_quick_links"];
+const BND_PANEHEAD_DEFAULTS = { panehead_quick_links: "Standard" };
+
 /** The enabled Language rows, fetched once per form: what the picker may offer. */
 let bnd_language_rows = null;
 
@@ -4624,6 +4633,12 @@ function bnd_render_language_picker(frm, host) {
 function bnd_language_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.language_apply) return;
 	engine.language_apply({ language_style: frm.doc.language_style });
+}
+
+/** LIVE PREVIEW (2026-09-14): the head menu's next open reads the new caps. */
+function bnd_panehead_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.panehead_apply) return;
+	engine.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
 }
 
 const BND_INBOX_FIELDS = [
@@ -8965,7 +8980,7 @@ function bnd_theme_keys() {
 		// dropped them kept the target's start button, globe and Appearance button
 		// while counting them applied (item 43's review).
 		"start_placement", "language_placement", "appearance_placement",
-	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_DESK_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_PANEHEAD_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_DESK_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 
 /**

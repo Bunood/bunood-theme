@@ -227,7 +227,9 @@ COMPONENTS = [
         # the dock and page-head clusters carry. Naming only the field made
         # the matrix report Dock as having no search at all.
         "selector": ".bnd-search-field, .bnd-search-icon",
-        "native": ".body-sidebar .navbar-search-bar",
+        # The pane's row, and the search the desk page (/app) draws in its own
+        # navbar beside the pane (2026-09-14) — the pane's bar answers Ctrl+K there.
+        "native": ".body-sidebar .navbar-search-bar, .desktop-navbar .desktop-search-wrapper",
         "regions": REGIONS,
         "toggle": None,
         "offable": False,
@@ -658,7 +660,8 @@ MARKS = [
         "selector": ".bnd-sb-head",
         # Hiding this native is legal ONLY from data-bnd-own~="panehead",
         # stamped after the head is in the pane (claim_panehead measures).
-        "native": ".body-sidebar .sidebar-header",
+        # ...and the desk page's own logo tile: our brand row carries the brand.
+        "native": ".body-sidebar .sidebar-header, .desktop-navbar .navbar-home",
         "regions": (),
         "toggle": None,
         "critical": False,

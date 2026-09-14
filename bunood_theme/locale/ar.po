@@ -7484,3 +7484,18 @@ msgstr "تعذر حفظ تفضيل العرض"
 #, fuzzy
 msgid "Your own width ({0}) is overriding this on your desk."
 msgstr "عرضك الخاص ({0}) يتجاوز هذا الإعداد على مكتبك."
+
+#. In theme_settings.json — the field's label
+#. src: quick-links
+msgid "Quick Links"
+msgstr "روابط سريعة"
+
+#. In theme_settings.json — an option of panehead_quick_links
+#. src: quick-links
+msgid "Brief"
+msgstr "موجز"
+
+#. In theme_settings.json — the field's description
+#. src: quick-links
+msgid "Quick links in the pane head's menu: each module row opens a flyout of New … rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone."
+msgstr "روابط سريعة في قائمة رأس اللوحة: كل صف وحدة يفتح قائمة جانبية بصفوف «جديد» لما يمكنك إنشاؤه، وتقارير الوحدة، و«اذهب إلى». موجز 3+2، أساسي 6+4، كامل 12+8 صفًا؛ «معطَّل» يبقي قائمة الوحدات وحدها."

@@ -8,7 +8,7 @@
 # Regenerate with: npm run i18n:inherited      (read from bunood-backend-1, lang=ar)
 # False friends are rejected in the script's REJECT map, with a reason each.
 #
-# 124 inherited, from frappe + erpnext + telephony + hrms + payments + crm + helpdesk + ksa_compliance + bunood_real_estate.
+# 125 inherited, from frappe + erpnext + telephony + hrms + payments + crm + helpdesk + ksa_compliance + bunood_real_estate.
 
 API Keys	frappe: مفاتيح واجهة برمجة التطبيقات
 Accepted	frappe: مقبول
@@ -115,6 +115,7 @@ Shared	frappe: مشتركة
 Sidebar	frappe: الشريط الجانبي
 Small	erpnext: صغير
 Source Text	frappe: النص المصدر
+Standard	frappe: اساسي
 Start	frappe: بداية
 Started At	frappe: بدأ في
 Status	frappe: الحالة

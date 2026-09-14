@@ -120,6 +120,7 @@
   "sidebar_pane_width",
   "sidebar_badges",
   "sidebar_filter",
+  "panehead_quick_links",
   "section_topbar",
   "topbar_enabled",
   "section_pagehead",
@@ -550,6 +551,14 @@
    "fieldtype": "Check",
    "hidden": 1,
    "label": "Workspace Filter"
+  },
+  {
+   "default": "Standard",
+   "description": "Quick links in the pane head's menu: each module row opens a flyout of New \u2026 rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone.",
+   "fieldname": "panehead_quick_links",
+   "fieldtype": "Select",
+   "label": "Quick Links",
+   "options": "Off\nBrief\nStandard\nFull"
   },
   {
    "fieldname": "palette_enabled",

@@ -1455,6 +1455,8 @@ const MUTABLE_FIELDS = [
 	"sidebar_rail_button",
 	"sidebar_pane_width",
 	"sidebar_badges", "sidebar_filter",
+	// The pane head's quick links (2026-09-14): policy, outside the look catalogue.
+	"panehead_quick_links",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
 	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
 	// Personalization locks (item 38). Here for the ordinary reason and one of
@@ -6048,7 +6050,7 @@ print("ok")
 			//
 			// Watched failing before the fix: deskBell=true, deskAvatar=true with both
 			// tokens stamped.
-			const before = getSettings(["inbox_placement", "user_placement", "sidebar_pane_state", "sidebar_enabled"]);
+			const before = getSettings(["inbox_placement", "user_placement", "search_placement", "sidebar_pane_state", "sidebar_enabled"]);
 			const read = () =>
 				page.evaluate(() => {
 					const vis = (sel) => {
@@ -6061,6 +6063,8 @@ print("ok")
 					return {
 						own: document.documentElement.getAttribute("data-bnd-own") || "",
 						navbar: vis(".desktop-navbar"),
+						deskSearch: vis(".desktop-navbar .desktop-search-wrapper"),
+						deskLogo: vis(".desktop-navbar .navbar-home"),
 						deskBell: vis(".desktop-navbar .desktop-notifications"),
 						deskAvatar: vis(".desktop-navbar .desktop-avatar"),
 						ourBell: vis('.body-sidebar .bnd-sb-band [data-bnd-part="bell"]'),
@@ -6073,16 +6077,21 @@ print("ok")
 				await page.waitForTimeout(800);
 			};
 			try {
-				setSettings({ inbox_placement: "Side Pane End", user_placement: "Side Pane End", sidebar_pane_state: "Open", sidebar_enabled: 1 });
+				setSettings({ inbox_placement: "Side Pane End", user_placement: "Side Pane End", search_placement: "Side Pane Start", sidebar_pane_state: "Open", sidebar_enabled: 1 });
 				await goDesk("/app/desktop", "body", 3500);
 				await settle();
 				await page.waitForFunction(() => document.querySelector('.body-sidebar .bnd-sb-band [data-bnd-part="user"]'), null, { timeout: 15000 }).catch(() => {});
 				const a = await read();
-				expect(a.navbar, `Frappe's desktop navbar is on this page (${JSON.stringify(a)})`);
 				expect(a.ourBell && a.ourUser, `ours sit in the pane's foot (${JSON.stringify(a)})`);
-				expect(/\bbell\b/.test(a.own) && /\buser\b/.test(a.own), `both tokens are stamped (${a.own})`);
+				expect(/\bbell\b/.test(a.own) && /\buser\b/.test(a.own) && /\bsearch\b/.test(a.own) && /\bpanehead\b/.test(a.own), `all four tokens are stamped (${a.own})`);
 				expectEq(a.deskBell, false, "so the desktop navbar's bell stands down");
 				expectEq(a.deskAvatar, false, "and its avatar menu with it");
+				// ...and the rest of that strip (2026-09-14, "what else"): its search for
+				// the pane's bar, its logo tile for our brand row — and with every piece
+				// ours, the emptied strip itself.
+				expectEq(a.deskSearch, false, "its search stands down for the pane's");
+				expectEq(a.deskLogo, false, "its logo tile for our brand row");
+				expectEq(a.navbar, false, "and the emptied strip goes with them");
 				// And ours is a live route to identity on this page, not a picture of one.
 				await page.click('.body-sidebar .bnd-sb-band [data-bnd-part="user"]');
 				await page.waitForSelector('.bnd-acct-panel[role="dialog"]', { timeout: 10000 });
@@ -6094,8 +6103,10 @@ print("ok")
 				await settle();
 				const b = await read();
 				expect(!/\bbell\b/.test(b.own) && !/\buser\b/.test(b.own), `Off releases both tokens (${b.own})`);
+				expectEq(b.navbar, true, "the strip is back the moment a piece of it is not ours");
 				expectEq(b.deskBell, true, "and the desktop navbar's bell is visible again");
 				expectEq(b.deskAvatar, true, "as is its avatar");
+				expectEq(b.deskSearch, false, "while its search, still ours, stays down");
 			} finally {
 				setSettings(before);
 			}
@@ -7461,6 +7472,56 @@ print("ok")
 				});
 			} finally {
 				await page.evaluate(() => document.documentElement.setAttribute("dir", "ltr")).catch(() => {});
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the quick-links setting sizes the flyouts, and Off removes them", async () => {
+			// THE USER (2026-09-14, "what else"): a setting for the caps. Four honest
+			// options that render four ways: Off keeps the module list alone, Brief /
+			// Standard / Full cap the New rows and the reports at 3+2 / 6+4 / 12+8.
+			// Selling on this desk has 31 creatable DocTypes and 20 reports for the
+			// Administrator, so every cap binds. Watched failing before the field
+			// existed (set_single_value refused the fieldname).
+			const before = getSettings(["panehead_quick_links", "sidebar_pane_state", "sidebar_enabled"]);
+			const flyout = async () => {
+				await goDesk("/app/selling", ".body-sidebar .bnd-sb-head", 3000);
+				await page.click(".body-sidebar .bnd-sb-head");
+				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
+				const row = await page.evaluate(() => {
+					const b = [...document.querySelectorAll(".bnd-menu:not(.bnd-menu-fly) .bnd-menu-item")].find(
+						(x) => (x.querySelector(".bnd-menu-label") || x).textContent.trim() === "Selling"
+					);
+					if (!b) return null;
+					b.focus();
+					return { sub: b.getAttribute("aria-haspopup") };
+				});
+				if (!row || !row.sub) return { row, news: 0, reports: 0 };
+				await page.keyboard.press("ArrowRight");
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				const counts = await page.evaluate(() => {
+					const items = [...document.querySelectorAll(".bnd-menu-fly .bnd-menu-item")].map((b) => (b.querySelector(".bnd-menu-label") || b).textContent.trim());
+					return { news: items.filter((l) => /^New /.test(l)).length, reports: items.length - items.filter((l) => /^New /.test(l)).length - 1 };
+				});
+				await page.keyboard.press("Escape");
+				return { row, ...counts };
+			};
+			try {
+				setSettings({ sidebar_pane_state: "Open", sidebar_enabled: 1, panehead_quick_links: "Brief" });
+				const brief = await flyout();
+				expectEq(brief.row && brief.row.sub, "menu", "Brief: the module row still carries a flyout");
+				expectEq(brief.news, 3, `Brief: three New rows (${JSON.stringify(brief)})`);
+				expectEq(brief.reports, 2, "Brief: two reports");
+				setSettings({ panehead_quick_links: "Full" });
+				const full = await flyout();
+				expectEq(full.news, 12, `Full: twelve New rows (${JSON.stringify(full)})`);
+				expectEq(full.reports, 8, "Full: eight reports");
+				setSettings({ panehead_quick_links: "Off" });
+				const off = await flyout();
+				expect(off.row && !off.row.sub, `Off: the module row is plain again (${JSON.stringify(off.row)})`);
+				expectEq(await page.evaluate(() => document.querySelectorAll(".bnd-menu:not(.bnd-menu-fly) .bnd-menu-item[aria-haspopup]").length), 0, "Off: no row anywhere announces a submenu");
+				await page.keyboard.press("Escape");
+			} finally {
 				setSettings(before);
 			}
 		});
@@ -11878,6 +11939,32 @@ print("ok")
 		// two things only a runtime CAN know: that the merged dictionary the
 		// server ships actually carries the decisions, and that what the desk
 		// paints agrees with them where we looked.
+
+		await test("i18n: every defended false friend wins the merged dictionary", async () => {
+			// THE OTHER HALF of refusing to inherit a false friend (2026-09-14, "what
+			// else"): the runtime dictionary is one flat merge in install order and
+			// this app sits third of ten, so a later app's row overwrote ours for 17
+			// of the 29 argued strings — Filter rendered منقي (a purifier) on every
+			// Arabic desk while our file said تصفية. locale/false_friends.json is one
+			// file with two readers; the migrate hook asserts each `defend: true`
+			// entry through a Translation row, and this reads what the desk will.
+			// Watched failing before the hook: Filter -> منقي.
+			const out = benchPy(
+				"import json\n" +
+				"from frappe.translate import get_all_translations, get_translation_dict_from_file\n" +
+				"entries = json.load(open(frappe.get_app_path('bunood_theme', 'locale', 'false_friends.json'), encoding='utf-8'))['entries']\n" +
+				"ours = get_translation_dict_from_file(frappe.get_app_path('bunood_theme', 'translations', 'ar.csv'), 'ar', 'bunood_theme')\n" +
+				"merged = get_all_translations('ar')\n" +
+				"lost = [m for m, e in entries.items() if e.get('defend') and ours.get(m) and merged.get(m) != ours[m]]\n" +
+				"print('BND' + json.dumps({'defended': sum(1 for m, e in entries.items() if e.get('defend') and ours.get(m)), 'lost': lost, 'filter': merged.get('Filter')}))\n"
+			);
+			const line = String(out).split("\n").find((l) => l.startsWith("BND"));
+			expect(line, `the bench answered (${String(out).slice(-200)})`);
+			const r = JSON.parse(line.slice(3));
+			expect(r.defended >= 10, `the list defends a real set (${r.defended})`);
+			expectEq(r.lost.length, 0, `every defended false friend reaches the desk as ours (lost: ${r.lost.join(", ")})`);
+			expectEq(r.filter, "تصفية", `Filter is a filter, not a purifier (${r.filter})`);
+		});
 
 		await test("i18n: the merged dict serves every decision, none as itself", async () => {
 			const shipped = readTranslations("bunood_theme/translations/ar.csv");

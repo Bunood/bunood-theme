@@ -7819,7 +7819,24 @@ function sb_zone_anchor(pane, zone, node) {
 	/** A module's quick links from its OWN sidebar, in its order: New … for the
 	 *  DocTypes this person may create (six), its reports (four), the way in.
 	 *  [] when it offers neither. Argument: _cluster.scss (the flyout). */
+	/** panehead_quick_links → [creates, reports] caps, or null for Off. */
+	const QUICK_LINK_CAPS = { Off: null, Brief: [3, 2], Standard: [6, 4], Full: [12, 8] };
+	function quick_links_caps() {
+		const b = (window.frappe && frappe.boot && frappe.boot.bnd_panehead) || {};
+		const v = String(b.quick_links || "Standard");
+		return Object.prototype.hasOwnProperty.call(QUICK_LINK_CAPS, v) ? QUICK_LINK_CAPS[v] : QUICK_LINK_CAPS.Standard;
+	}
+
+	/** Live apply from the settings form: the next open reads the new caps. */
+	bunood.panehead_apply = function (vals) {
+		if (!vals || !window.frappe || !frappe.boot) return;
+		frappe.boot.bnd_panehead = Object.assign({}, frappe.boot.bnd_panehead || {}, { quick_links: vals.panehead_quick_links });
+	};
+
 	function sb_quick_links(w) {
+		const caps = quick_links_caps();
+		if (!caps) return [];
+		const [max_new, max_reports] = caps;
 		const title = w.title || w.name;
 		const map = (frappe.boot && frappe.boot.workspace_sidebar_item) || {};
 		const sb = map[String(title).toLowerCase()] || map[String(w.name).toLowerCase()];
@@ -7837,10 +7854,10 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const it of rows) {
 			if (!it || it.type !== "Link" || !it.link_to) continue;
 			if (it.link_type === "DocType") {
-				if (creates.length >= 6 || singles.has(it.link_to) || creates.includes(it.link_to) || !can_create(it.link_to)) continue;
+				if (creates.length >= max_new || singles.has(it.link_to) || creates.includes(it.link_to) || !can_create(it.link_to)) continue;
 				creates.push(it.link_to);
 			} else if (it.link_type === "Report" && it.report) {
-				if (reports.length >= 4 || reports.some((r) => r.name === it.link_to)) continue;
+				if (reports.length >= max_reports || reports.some((r) => r.name === it.link_to)) continue;
 				reports.push({ name: it.link_to, label: it.label || it.link_to, report: it.report });
 			}
 		}

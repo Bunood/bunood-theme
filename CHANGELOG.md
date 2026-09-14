@@ -24,6 +24,58 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.5] — 2026-09-14 — "What else": the desk page's whole strip, the false friends made effective, a quick-links setting (patch)
+
+**The user, after v0.46.4's report listed what was still open: *"do all of these."*** Four
+of the five had code in them; the fifth (re-pinning Frappe to production's 16.33.1) had
+nothing left to pin — `upstream-pins.json` left the tree with the pins gate in v0.42.4, so
+the drift is a note, not an errand.
+
+### Fixed
+
+- **The desk page's own strip stands down piece by piece, and then as a whole.** v0.46.4
+  owned its bell and avatar; its search now stands down for the pane's bar (the `search`
+  token; Ctrl+K still opens the same Awesome Bar) and its logo tile for our brand row (the
+  `panehead` token) — both listed as natives on the registry rows, comma-joined. With every
+  piece ours the empty 50px band goes too, keyed on all four tokens at once, and any piece
+  released brings the strip back with it.
+- **The argued false friends reach the desk.** `tools/i18n_inherited.mjs` refused to
+  inherit 29 strings another app translates in the wrong sense (frappe's *Filter* is a
+  purifier, its *Theme* a topic, its *Dark* gloomy) and the theme shipped its own rows —
+  and 17 of those rows never reached any desk, because the runtime dictionary is one flat
+  merge in install order and this app sits third of ten: the later app's row overwrote
+  ours (measured). The list moved to `locale/false_friends.json`, one file with two
+  readers: the generator (which still refuses the inheritance) and a new migrate defense,
+  `setup._defend_false_friends`, which asserts every `defend: true` entry through a
+  `Translation` row — the one layer that outranks every app file — with the identity
+  defense's upsert/release discipline. Three entries stay `defend: false` because the
+  upstream sense is right on its own screens (erpnext's *Ledger*, *Center*, frappe's
+  *Display*); those belong to a translation context at our call sites, listed as owed.
+
+### Added
+
+- **`panehead_quick_links`** — *Quick Links* in the side pane band: **Off** keeps the head
+  menu's module list alone; **Brief / Standard / Full** cap a module's flyout at 3+2 /
+  6+4 / 12+8 New rows and reports before *Go to*. Standard is the shipped value and what
+  v0.46.4 drew. Policy, not a look — outside the theme axes like `language_choices` —
+  with its own `PANEHEAD_DEFAULTS`, a boot blob, a live apply, mirrors and the reset chip.
+
+### Checks
+
+`sidepane: the desk page's own bell and avatar stand down for ours` grew the search, the
+logo and the strip (both arms) · `sidepane: the quick-links setting sizes the flyouts, and
+Off removes them` (Brief 3+2, Full 12+8, Off no submenu anywhere; failed before the field
+existed) · `i18n: every defended false friend wins the merged dictionary` (Filter is تصفية;
+failed before the hook ran). Full run on this build: **543/544**; the one miss was the axe baseline on the settings page,
+which the new Select grew by one `select-name` and one `color-contrast` finding — Frappe's own
+form-control class, the same as the five and twenty-five already baselined — regenerated
+deliberately, and green on re-run. The picker-shape fixture was regenerated for the new field.
+
+### Payload and words
+
+js_gzip 130,503 → 130,812 (ceiling 130,600 → 131,000: the caps and the live apply). Three
+Arabic rows: the field's label, its description and *Brief*; *Standard* is inherited.
+
 ## [0.46.4] — 2026-09-14 — Four reports from the desk: its own pair owned, the rail's edge, the start pill, quick links (patch)
 
 **The user, with a screenshot of the All Apps page in Arabic (2026-09-14), four things at

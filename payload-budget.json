@@ -178,7 +178,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 28500,
-		"js_gzip": 130600,
+		"js_gzip": 131000,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
@@ -526,6 +526,21 @@
 			"js_raw": 413603,
 			"js_gzip": 130503,
 			"note": "css +150b, js +2052b, web_css +0b, email_css +0b, print_css +0b gzip vs v0.46.3"
+		},
+		{
+			"version": "v0.46.5",
+			"date": "2026-09-14",
+			"web_css_raw": 29688,
+			"web_css_gzip": 4189,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 23754,
+			"print_css_gzip": 6812,
+			"css_raw": 222749,
+			"css_gzip": 28276,
+			"js_raw": 414461,
+			"js_gzip": 130812,
+			"note": "css +50b, js +309b, web_css +0b, email_css +0b, print_css +0b gzip vs v0.46.4"
 		}
 	]
 }

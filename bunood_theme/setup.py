@@ -58,6 +58,7 @@ from bunood_theme.presets import (
     START_DEFAULTS,
     LANGUAGE_DEFAULTS,
     APPEARANCE_DEFAULTS,
+    PANEHEAD_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
 )
@@ -101,6 +102,7 @@ CHECK_DEFAULTS = {
         START_DEFAULTS,
         LANGUAGE_DEFAULTS,
         APPEARANCE_DEFAULTS,
+        PANEHEAD_DEFAULTS,
         CHROME_DEFAULTS,
         MOBILE_DEFAULTS,
     )
@@ -205,6 +207,7 @@ DEFAULTS = {
     **{f: v for f, v in START_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in LANGUAGE_DEFAULTS.items() if not isinstance(v, int)},
     **{f: v for f, v in APPEARANCE_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in PANEHEAD_DEFAULTS.items() if not isinstance(v, int)},
     # Icon system (item 23): the relocated sidebar/crumb fields plus the new
     # axes, all Selects — a fresh install seeds these; existing sites keep their
     # own via the v0_15_0 patch.
@@ -359,16 +362,19 @@ def _defend_identity_overrides(lang: str = "ar") -> None:
         # on alternate migrates for exactly that reason. The files are where
         # the hole lives, so the files are what gets asked.
         files = get_translations_from_apps(lang)
+        # Rows the FALSE-FRIENDS defense below owns are not this one's to
+        # release: they carry exactly our value with no identity hole, which is
+        # the shape this loop would otherwise read as "hole closed" and delete —
+        # measured 2026-09-14: this released 16 rows the next hook re-created,
+        # every migrate, with a window in between.
+        defended = _defended_false_friends()
 
         healed, released = 0, 0
         for msgid, our_value in ours.items():
             hole = files.get(msgid) == msgid and our_value != msgid
-            existing = frappe.db.get_value(
-                "Translation",
-                {"language": lang, "source_text": msgid, "contributed": 0},
-                ["name", "translated_text"],
-                as_dict=True,
-            )
+            existing = _own_translation_row(lang, msgid)
+            if not hole and msgid in defended:
+                continue
             if hole:
                 if existing:
                     if existing.translated_text != our_value:
@@ -405,6 +411,122 @@ def _defend_identity_overrides(lang: str = "ar") -> None:
         frappe.log_error("bunood_theme: _defend_identity_overrides failed")
 
 
+def _own_translation_row(lang: str, msgid: str):
+    """The non-contributed ``Translation`` row for EXACTLY this source text, or None.
+
+    A ``=`` filter on a Data column is case-insensitive under MariaDB's
+    collation, so ``get_value`` for ``List view`` (the views kit's msgid)
+    answered with the ``List View`` row (the false friend's) — and the identity
+    defense, finding "its" row carrying our value with no hole, released the
+    other defense's row on every migrate (measured 2026-09-14: one row flipping
+    between the two hooks, forever). The suite already knew the class
+    (``upsert_translation does not merge across a case collision``); the
+    defenses now match in Python, exactly.
+    """
+    rows = frappe.get_all(
+        "Translation",
+        filters={"language": lang, "source_text": msgid, "contributed": 0},
+        fields=["name", "source_text", "translated_text"],
+    )
+    for row in rows:
+        if row.source_text == msgid:
+            return row
+    return None
+
+
+def _defended_false_friends() -> set:
+    """The msgids ``locale/false_friends.json`` defends — the set both defenses share."""
+    try:
+        import json
+
+        path = frappe.get_app_path("bunood_theme", "locale", "false_friends.json")
+        with open(path, encoding="utf-8") as fh:
+            entries = json.load(fh).get("entries", {})
+        return {m for m, e in entries.items() if e.get("defend")}
+    except Exception:
+        return set()
+
+
+def _defend_false_friends(lang: str = "ar") -> None:
+    """Assert our rows for the argued FALSE FRIENDS site-wide.
+
+    ``locale/false_friends.json`` (one file, two readers — the inherited-list
+    generator is the other) names msgids another app translates in a sense that
+    is wrong on a desk: frappe's ``Filter`` is a purifier, its ``Theme`` a topic,
+    its ``Dark`` gloomy. Refusing to inherit those is half the job. The runtime
+    dictionary is one flat merge in ``installed_apps`` order and this app sits
+    third of ten, so the later app's row overwrites ours before any desk sees
+    it — measured 2026-09-14: 17 of 29 lost, ``Filter`` rendering منقي on every
+    Arabic desk while our file said تصفية. A ``Translation`` row outranks every
+    app file, so each ``defend: true`` entry whose file-layer value is not ours
+    gets one; ``defend: false`` entries (the upstream sense is right on ITS
+    screens — erpnext's ``Ledger``) are left alone and belong to a context at
+    our call sites instead. Same upsert/release discipline as the identity
+    defense above, and for the same reason: N rows for one (language, source)
+    make the winner arbitrary, and a defense that outlives its defect is a
+    stale override.
+    """
+    try:
+        import json
+
+        path = frappe.get_app_path("bunood_theme", "locale", "false_friends.json")
+        with open(path, encoding="utf-8") as fh:
+            entries = json.load(fh).get("entries", {})
+        from frappe.translate import get_translations_from_apps, get_translation_dict_from_file
+
+        ours = get_translation_dict_from_file(
+            frappe.get_app_path("bunood_theme", "translations", f"{lang}.csv"),
+            lang,
+            "bunood_theme",
+        )
+        # THE FILE LAYER, not the merged dict — see _defend_identity_overrides.
+        files = get_translations_from_apps(lang)
+        # ...and the other apps' layer alone, to recognise a Translation row that
+        # merely ECHOES an upstream false friend (a test's save, a copied row):
+        # that row is corrected; a row carrying a human's own wording, matching
+        # no app file, is theirs and stays.
+        others = get_translations_from_apps(
+            lang, [a for a in frappe.get_installed_apps() if a != "bunood_theme"]
+        )
+        healed, released = 0, 0
+        for msgid, entry in entries.items():
+            our_value = ours.get(msgid)
+            if not our_value:
+                continue
+            existing = _own_translation_row(lang, msgid)
+            echoes =bool(existing) and existing.translated_text != our_value and existing.translated_text == others.get(msgid)
+            lost = bool(entry.get("defend")) and (files.get(msgid) not in (None, our_value) or echoes)
+            if lost:
+                if existing:
+                    if existing.translated_text != our_value:
+                        frappe.db.set_value("Translation", existing.name, "translated_text", our_value)
+                        healed += 1
+                else:
+                    frappe.get_doc(
+                        {
+                            "doctype": "Translation",
+                            "language": lang,
+                            "source_text": msgid,
+                            "translated_text": our_value,
+                        }
+                    ).insert(ignore_permissions=True)
+                    healed += 1
+            elif existing and existing.translated_text == our_value and files.get(msgid) == our_value:
+                # Our row already wins in the files; the defensive row is stale.
+                # Only a row carrying exactly OUR value is ours to release.
+                frappe.delete_doc("Translation", existing.name, ignore_permissions=True, force=True)
+                released += 1
+        if healed or released:
+            frappe.db.commit()
+            frappe.translate.clear_cache()
+            print(
+                "bunood_theme: defended %d false friend(s) a later app had overwritten; "
+                "released %d no longer contested" % (healed, released)
+            )
+    except Exception:
+        frappe.log_error("bunood_theme: _defend_false_friends failed")
+
+
 def after_migrate() -> None:
     """Re-seed newly added fields and regenerate the brand stylesheet.
 
@@ -425,6 +547,7 @@ def after_migrate() -> None:
     # is_rtl() above) — a language that used to trigger this warning now
     # renders correctly, so warning about it would be noise, not signal.
     _defend_identity_overrides()
+    _defend_false_friends()
 
 
 def _seed_navbar_appearance_item() -> None:

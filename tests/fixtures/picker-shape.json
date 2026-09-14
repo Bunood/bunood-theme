@@ -97,6 +97,7 @@
   "language_style": "Globe",
   "language_choices": "ar,en",
   "appearance_placement": "Bottom Bar End",
+  "panehead_quick_links": "Standard",
   "icon_style": "Filled Color",
   "icon_weight": "1.5",
   "icon_source": "Smart",

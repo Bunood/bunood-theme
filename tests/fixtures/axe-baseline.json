@@ -14,10 +14,10 @@
 		"listitem": 11
 	},
 	"/desk/theme-settings": {
-		"color-contrast": 25,
+		"color-contrast": 26,
 		"label": 2,
 		"link-name": 1,
-		"select-name": 5
+		"select-name": 6
 	},
 	"/desk/theme-settings?compose&compare=0": {
 		"link-name": 1

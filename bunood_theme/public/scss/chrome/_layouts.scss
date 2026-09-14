@@ -62,10 +62,19 @@
 // bell is not our bell"). Same tokens, same polarity: registry.py lists both
 // selectors on the tenant's `native`, comma-joined.
 html[data-bnd-own~="search"] .body-sidebar .navbar-search-bar,
+html[data-bnd-own~="search"] .desktop-navbar .desktop-search-wrapper,
 html[data-bnd-own~="bell"] .body-sidebar .sidebar-notification,
 html[data-bnd-own~="bell"] .desktop-navbar .desktop-notifications,
 html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button,
 html[data-bnd-own~="user"] .desktop-navbar .desktop-avatar {
+  display: none;
+}
+
+// ...AND THE STRIP ITSELF, once every piece of it is ours — search, brand (the
+// logo tile, below with the pane header), bell, avatar. An empty 50px band
+// over the desk page is not a native affordance, it is the space one used to
+// take. Any piece released brings the strip back with it.
+html[data-bnd-own~="search"][data-bnd-own~="panehead"][data-bnd-own~="bell"][data-bnd-own~="user"] .desktop-navbar {
   display: none;
 }
 
@@ -130,7 +139,8 @@ html[data-bnd-own~="onboard"] .body-sidebar p:has(> .onboarding-sidebar) {
 // ceiling. Sass strips `//` before anything reaches the wire, and this is where
 // the polarity contract already lives, so the constraint moved the prose to the
 // file that should always have held it.
-html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header {
+html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header,
+html[data-bnd-own~="panehead"] .desktop-navbar .navbar-home {
   display: none;
 }
 

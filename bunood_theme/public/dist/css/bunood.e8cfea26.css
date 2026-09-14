@@ -467,10 +467,15 @@ html[data-theme] .bnd-crumb-chip {
 }
 
 html[data-bnd-own~=search] .body-sidebar .navbar-search-bar,
+html[data-bnd-own~=search] .desktop-navbar .desktop-search-wrapper,
 html[data-bnd-own~=bell] .body-sidebar .sidebar-notification,
 html[data-bnd-own~=bell] .desktop-navbar .desktop-notifications,
 html[data-bnd-own~=user] .body-sidebar .sidebar-user-button,
 html[data-bnd-own~=user] .desktop-navbar .desktop-avatar {
+  display: none;
+}
+
+html[data-bnd-own~=search][data-bnd-own~=panehead][data-bnd-own~=bell][data-bnd-own~=user] .desktop-navbar {
   display: none;
 }
 
@@ -483,7 +488,8 @@ html[data-bnd-own~=onboard] .body-sidebar p:has(> .onboarding-sidebar) {
   display: none;
 }
 
-html[data-bnd-own~=panehead] .body-sidebar .sidebar-header {
+html[data-bnd-own~=panehead] .body-sidebar .sidebar-header,
+html[data-bnd-own~=panehead] .desktop-navbar .navbar-home {
   display: none;
 }
 
