@@ -468,7 +468,9 @@ html[data-theme] .bnd-crumb-chip {
 
 html[data-bnd-own~=search] .body-sidebar .navbar-search-bar,
 html[data-bnd-own~=bell] .body-sidebar .sidebar-notification,
-html[data-bnd-own~=user] .body-sidebar .sidebar-user-button {
+html[data-bnd-own~=bell] .desktop-navbar .desktop-notifications,
+html[data-bnd-own~=user] .body-sidebar .sidebar-user-button,
+html[data-bnd-own~=user] .desktop-navbar .desktop-avatar {
   display: none;
 }
 
@@ -1119,6 +1121,30 @@ html[data-theme] .bnd-menu .bnd-menu-divider {
   background: var(--bnd-border);
   margin-block: var(--bnd-sp-1);
   margin-inline: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-menu .bnd-menu-more {
+  display: grid;
+  place-items: center;
+  margin-inline-start: auto;
+  flex: none;
+}
+html[data-theme] .bnd-menu .bnd-menu-more svg {
+  inline-size: 14px;
+  block-size: 14px;
+}
+html[data-theme] .bnd-menu .bnd-menu-item[aria-expanded=true] {
+  background: var(--bnd-hover);
+}
+html[data-theme] .bnd-menu .bnd-menu-heading {
+  padding: var(--bnd-sp-2) var(--bnd-sp-3) var(--bnd-sp-1);
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-semibold);
+  text-transform: uppercase;
+  color: var(--bnd-ink-muted);
+}
+
+html[dir=rtl] .bnd-menu .bnd-menu-more svg {
+  transform: scaleX(-1);
 }
 
 html[data-theme] .bnd-acct-panel {
@@ -1860,21 +1886,46 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
   color: var(--bnd-sb-ink-muted);
 }
 
-html[data-theme] .bnd-sb-start {
-  inline-size: 28px;
+html[data-theme] .bnd-icon-btn.bnd-sb-start {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: auto;
+  min-inline-size: 28px;
   block-size: 28px;
-  padding: 0;
+  padding-block: 0;
+  padding-inline: var(--bnd-sp-1) var(--bnd-sp-2);
   border-radius: var(--bnd-radius-md);
-  overflow: hidden;
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  line-height: 1;
 }
-html[data-theme] .bnd-sb-start .bnd-sb-start-mark {
+html[data-theme] .bnd-icon-btn.bnd-sb-start .bnd-sb-brand-mark {
   display: grid;
   place-items: center;
   inline-size: 22px;
   block-size: 22px;
   border-radius: var(--bnd-radius-sm);
   overflow: hidden;
+  flex: none;
+}
+html[data-theme] .bnd-icon-btn.bnd-sb-start .bnd-sb-brand-logo {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: cover;
+}
+html[data-theme] .bnd-icon-btn.bnd-sb-start .bnd-sb-brand-initial {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
   font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-icon-btn.bnd-sb-start .bnd-sb-brand-name {
+  max-inline-size: 160px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 html[data-bnd-sb-panestate=hidden]:not([data-bnd-narrow]) .body-sidebar-container {
@@ -2549,6 +2600,9 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container .body-sidebar
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container .body-sidebar .sidebar-item-label {
   opacity: 0;
   transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container .body-sidebar-placeholder {
+  inline-size: var(--bnd-sb-rail-w);
 }
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container.bnd-rail-open .body-sidebar {
   inline-size: var(--bnd-sb-w);

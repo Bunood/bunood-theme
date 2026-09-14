@@ -454,37 +454,71 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
   color: var(--bnd-sb-ink-muted);
 }
 
-// ── The start button (item 42, slice 7) ────────────────────────────────────
-// What makes a taskbar a taskbar: the company's mark at the bar's leading edge,
-// and one click between the pane being there and not. It BUILDS NOTHING — it
-// moves the pane between the states slice 8 defined — so there is no second
-// pane to keep in agreement, no focus trap to get wrong, and every rule the
-// pane already has applies unchanged.
+// ── The start pill (item 42, slice 7; redrawn 2026-09-14) ──────────────────
+// What makes a taskbar a taskbar: the company's mark at the bar's leading edge.
+// It was a 28px square holding the mark alone, and a click toggled the pane —
+// and its mark carried a class no rule painted, so in a bar it rendered as a
+// bare letter. THE USER: "it is just a black B, not the brand pill that's in
+// the pane. make it the pill that is in the pane. when it is clicked it goes
+// to home." So this IS that pill — the same mark and name the pane's brand row
+// and the page head's pill draw, built by one function (brand_mark) — and the
+// click is the way home. The way BACK to a hidden pane is the page head's show
+// button, which mounts beside a start pill without repeating the brand.
 //
 // A TENANT, not a fixture: placed by `start_placement`, mounted by
 // `mount_placed_tenants`, sorted by `enforce_desk_order`, released like any
 // other. It replaces no native affordance, so switching it off costs the
-// shortcut and never the route — the pane keeps its own collapse handle and
-// Frappe's page-title toggle. That is why it is `offable` and not `critical`.
+// shortcut and never the route. That is why it is `offable` and not `critical`.
 //
 // Start-only on three regions, because "start button" names a position and a
 // picker whose options contradict its own label is the dishonest control this
 // vocabulary exists to abolish.
-html[data-theme] .bnd-sb-start {
-  inline-size: 28px;
+//
+// Two classes beat the icon-button rule's width by specificity (0,3,1) rather
+// than by order — the language pill's trick, made explicit.
+html[data-theme] .bnd-icon-btn.bnd-sb-start {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: auto;
+  min-inline-size: 28px;
   block-size: 28px;
-  padding: 0;
+  padding-block: 0;
+  padding-inline: var(--bnd-sp-1) var(--bnd-sp-2);
   border-radius: var(--bnd-radius-md);
-  overflow: hidden;
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  line-height: 1;
 
-  .bnd-sb-start-mark {
+  .bnd-sb-brand-mark {
     display: grid;
     place-items: center;
     inline-size: 22px;
     block-size: 22px;
     border-radius: var(--bnd-radius-sm);
     overflow: hidden;
+    flex: none;
+  }
+
+  .bnd-sb-brand-logo {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: cover;
+  }
+
+  .bnd-sb-brand-initial {
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
     font-size: var(--bnd-text-xs);
+    font-weight: var(--bnd-weight-semibold);
+  }
+
+  .bnd-sb-brand-name {
+    max-inline-size: 160px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
 
@@ -579,8 +613,9 @@ html[data-bnd-sb-panestate="hidden"]:not([data-bnd-narrow]) .body-sidebar-contai
 // instead (`placement_for` / `zone_for` / `HOSTS.pagehead` in bunood.js),
 // which reserves its cluster on demand whether or not the page-head
 // container is on. Identity stays reachable, the guard has nothing to catch,
-// and Hidden means hidden. A start button, where a layout places one, already
-// carries the mark and the way back, so the brand stands down beside it.
+// and Hidden means hidden. A start pill, where a layout places one, already
+// carries the brand and goes home, so beside it the head keeps only the way
+// back (2026-09-14; until then the start button toggled the pane itself).
 //
 // Mounted per page -- every page container has its own head -- from the
 // route hook, and only while the state is Hidden; teardown is total.
@@ -1777,6 +1812,19 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container {
       opacity: 0;
       transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
     }
+  }
+
+  // THE PLACEHOLDER FOLLOWS THE RAIL. Frappe keeps `.body-sidebar-placeholder`
+  // in flow at `--sidebar-width` (220px) so the main section stays put while
+  // the pane overlays it. This rail keeps the container's `.expanded` (the
+  // vendor styles collapse only by width) and narrows the CONTAINER by inline
+  // style — and the placeholder went on spanning 220px, invisible, inside the
+  // container, so every pointer that crossed it ENTERED the container and the
+  // flyout opened 90px out. THE USER (2026-09-14): "on hover rail flies out too
+  // early, at least 100 px before rail is hovered on." The flow reserve in rail
+  // mode IS the rail's width; the vendor's own variable is the content's.
+  .body-sidebar-placeholder {
+    inline-size: var(--bnd-sb-rail-w);
   }
 
   &.bnd-rail-open .body-sidebar {

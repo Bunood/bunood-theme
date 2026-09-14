@@ -3491,6 +3491,54 @@ async function main() {
 			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "closes after grace");
 		});
 
+		await test("rail: the flyout opens at the rail's edge, not a hundred pixels before it", async () => {
+			// THE USER (2026-09-14): "on hover rail flies out too early at least 100 px
+			// before rail is hovered on". Frappe's expanded sidebar keeps a PLACEHOLDER
+			// beside the pane, sized `--sidebar-width` (220px), so the main section stays
+			// put while the pane overlays it. The rail keeps the container's `.expanded`
+			// (the vendor styles collapse only by width) and narrows the container to 52px
+			// by inline style — but never the placeholder, which went on spanning 220px,
+			// invisible, inside the container; every pointer that crossed it entered the
+			// container. Measured before the fix: elementFromPoint found the placeholder
+			// 100px past the rail's edge, and a pointer sweep opened the flyout 90px out.
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover" });
+				await goDesk("/app/selling", ".page-head", 3500);
+				await page.waitForFunction(() => document.documentElement.getAttribute("data-bnd-sb-panestate") === "rail" && document.querySelector(".body-sidebar-container"), null, { timeout: 15000 });
+				const geo = await page.evaluate(() => {
+					const c = document.querySelector(".body-sidebar-container");
+					const r = c.getBoundingClientRect();
+					const y = Math.round(window.innerHeight / 2);
+					const inside = (dx) => {
+						const e = document.elementFromPoint(Math.round(r.right + dx), y);
+						return !!(e && c.contains(e));
+					};
+					return { width: Math.round(r.width), edge: r.right, at30: inside(30), at100: inside(100), at160: inside(160) };
+				});
+				expect(geo.width < 60, `the pane is a rail (${geo.width}px)`);
+				expectEq(geo.at30, false, `30px past the rail's edge is the page, not the pane (${JSON.stringify(geo)})`);
+				expectEq(geo.at100, false, "and so is 100px");
+				expectEq(geo.at160, false, "and 160px");
+				// The pointer, walking in from the page: the flyout may open only at the edge.
+				await page.mouse.move(geo.edge + 300, 450);
+				await page.waitForTimeout(500);
+				let openedAt = null;
+				for (let dx = 120; dx >= -6; dx -= 6) {
+					await page.mouse.move(geo.edge + dx, 450);
+					await page.waitForTimeout(150);
+					if (await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))) {
+						openedAt = dx;
+						break;
+					}
+				}
+				expect(openedAt !== null, "the rail still opens when the pointer reaches it");
+				expect(openedAt <= 6, `and only there — it opened ${openedAt}px out`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("rail: edge button pins open and unpins", async () => {
 			expect(await q(".bnd-railbtn.bnd-railbtn-edge"), "edge button mounted");
 			await page.click(".bnd-railbtn");
@@ -5989,6 +6037,70 @@ print("ok")
 			}
 		});
 
+		await test("sidepane: the desk page's own bell and avatar stand down for ours", async () => {
+			// THE USER (2026-09-14): "the user profile menu on desk is not our menu and
+			// bell is not our bell.. fix it and hide it". Frappe's desktop page (/app and
+			// /app/desktop) renders ITS OWN navbar — search, a bell with a dropdown, an
+			// avatar with a menu — beside the pane the kit dresses. The pane's rows were
+			// owned; these were not, so the desk carried two bells and two account menus,
+			// and the top pair was Frappe's. Same polarity as every native: hidden only
+			// under data-bnd-own, back the moment ours is Off.
+			//
+			// Watched failing before the fix: deskBell=true, deskAvatar=true with both
+			// tokens stamped.
+			const before = getSettings(["inbox_placement", "user_placement", "sidebar_pane_state", "sidebar_enabled"]);
+			const read = () =>
+				page.evaluate(() => {
+					const vis = (sel) => {
+						const el = document.querySelector(sel);
+						if (!el) return null;
+						const r = el.getBoundingClientRect();
+						const cs = getComputedStyle(el);
+						return cs.display !== "none" && cs.visibility !== "hidden" && r.width > 0 && r.height > 0;
+					};
+					return {
+						own: document.documentElement.getAttribute("data-bnd-own") || "",
+						navbar: vis(".desktop-navbar"),
+						deskBell: vis(".desktop-navbar .desktop-notifications"),
+						deskAvatar: vis(".desktop-navbar .desktop-avatar"),
+						ourBell: vis('.body-sidebar .bnd-sb-band [data-bnd-part="bell"]'),
+						ourUser: vis('.body-sidebar .bnd-sb-band [data-bnd-part="user"]'),
+					};
+				});
+			const settle = async () => {
+				// Frappe fills its navbar's avatar after the desktop data loads; wait for it.
+				await page.waitForFunction(() => window.bunood_theme && document.querySelector(".desktop-navbar .desktop-avatar .avatar"), null, { timeout: 30000 }).catch(() => {});
+				await page.waitForTimeout(800);
+			};
+			try {
+				setSettings({ inbox_placement: "Side Pane End", user_placement: "Side Pane End", sidebar_pane_state: "Open", sidebar_enabled: 1 });
+				await goDesk("/app/desktop", "body", 3500);
+				await settle();
+				await page.waitForFunction(() => document.querySelector('.body-sidebar .bnd-sb-band [data-bnd-part="user"]'), null, { timeout: 15000 }).catch(() => {});
+				const a = await read();
+				expect(a.navbar, `Frappe's desktop navbar is on this page (${JSON.stringify(a)})`);
+				expect(a.ourBell && a.ourUser, `ours sit in the pane's foot (${JSON.stringify(a)})`);
+				expect(/\bbell\b/.test(a.own) && /\buser\b/.test(a.own), `both tokens are stamped (${a.own})`);
+				expectEq(a.deskBell, false, "so the desktop navbar's bell stands down");
+				expectEq(a.deskAvatar, false, "and its avatar menu with it");
+				// And ours is a live route to identity on this page, not a picture of one.
+				await page.click('.body-sidebar .bnd-sb-band [data-bnd-part="user"]');
+				await page.waitForSelector('.bnd-acct-panel[role="dialog"]', { timeout: 10000 });
+				await page.keyboard.press("Escape");
+				await page.waitForTimeout(300);
+				// Released, Frappe's own come back — the polarity, not a deletion.
+				setSettings({ inbox_placement: "Off", user_placement: "Off" });
+				await goDesk("/app/desktop", "body", 3500);
+				await settle();
+				const b = await read();
+				expect(!/\bbell\b/.test(b.own) && !/\buser\b/.test(b.own), `Off releases both tokens (${b.own})`);
+				expectEq(b.deskBell, true, "and the desktop navbar's bell is visible again");
+				expectEq(b.deskAvatar, true, "as is its avatar");
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("appearance: the button opens the Appearance dialog", async () => {
 			const before = getSettings(LANG_FIELDS);
 			try {
@@ -7117,75 +7229,238 @@ print("ok")
 			}
 		});
 
-		await test("start: the taskbar button opens the pane, closes it, and says which", async () => {
-			// ITEM 42, SLICE 7. The control that makes a taskbar a taskbar. It builds
-			// no surface — it moves the pane between the states slice 8 defined — so
-			// the claim is a round trip plus the spoken state, and the spoken state is
-			// the half that was wrong first: built from a constant, the button
-			// announced a plainly open pane as collapsed until the first click, which
-			// is exactly when a screen-reader user has already been told otherwise.
+		await test("start: the bar's start pill is the brand, and it goes home", async () => {
+			// ITEM 42, SLICE 7, REDRAWN 2026-09-14 by the user: "the pane start button
+			// when in bottom bar or top bar is not rendered right, is just a black B, not
+			// the brand pill that's in the pane. make it the pill that is in the pane.
+			// when it is clicked it goes to home." So the tenant is the brand pill — the
+			// tile and the company's name, the pair the pane's head and the page head
+			// already carry — and a click is the way home, not a pane toggle. The way
+			// BACK to a hidden pane stays where every state has it: the page head's show
+			// button, which now mounts beside a start pill (without a second brand).
 			//
-			// Watched failing before the tenant existed: no node at all.
-			const before = getSettings(["start_placement", "sidebar_pane_state", "inbox_placement", "user_placement"]);
+			// Watched failing before the change: no name span, a transparent mark, and
+			// a click that toggled the pane instead of routing.
+			const before = getSettings(["start_placement", "sidebar_pane_state", "bottombar_enabled", "topbar_enabled"]);
+			const snap = () =>
+				page.evaluate(() => {
+					const b = document.querySelector('[data-bnd-part="start"]');
+					if (!b) return { btn: false };
+					const mark = b.querySelector(".bnd-sb-brand-mark");
+					const name = b.querySelector(".bnd-sb-brand-name");
+					const bg = (n) => (n ? getComputedStyle(n).backgroundColor : "");
+					const r = b.getBoundingClientRect();
+					return {
+						btn: true,
+						inBar: !!(b.closest(".bnd-statusbar") || b.closest(".bnd-topbar")),
+						zone: b.closest(".bnd-zone") && b.closest(".bnd-zone").getAttribute("data-zone"),
+						mark: !!mark,
+						markLogoOrInitial: !!mark && (!!mark.querySelector("img") || (mark.textContent || "").trim().length === 1),
+						markPainted: !!mark && !!mark.querySelector("img") || (bg(mark) !== "rgba(0, 0, 0, 0)" && bg(mark) !== "transparent"),
+						name: name ? name.textContent.trim() : null,
+						company: frappe.boot.bnd_company || "",
+						label: b.getAttribute("aria-label"),
+						expanded: b.getAttribute("aria-expanded"),
+						height: Math.round(r.height),
+						width: Math.round(r.width),
+						state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+						back: !!document.querySelector(".bnd-ph-show"),
+						dupBrand: !!document.querySelector(".bnd-ph-home"),
+					};
+				});
 			try {
-				setSettings({ desk_layout: "Taskbar" });
-				await goDesk("/app/selling", "body", 3500);
-				const snap = () =>
-					page.evaluate(() => {
-						const b = document.querySelector('[data-bnd-part="start"]');
-						const c = document.querySelector(".body-sidebar-container");
-						return {
-							btn: !!b,
-							inBar: !!(b && b.closest(".bnd-statusbar")),
-							zone: b && b.closest(".bnd-zone") && b.closest(".bnd-zone").getAttribute("data-zone"),
-							state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
-							pane: !!c && getComputedStyle(c).display !== "none",
-							aria: b && b.getAttribute("aria-expanded"),
-							label: b && b.getAttribute("aria-label"),
-						};
-					});
+				setSettings({ start_placement: "Bottom Bar Start", bottombar_enabled: 1, sidebar_pane_state: "Hidden" });
+				await goDesk("/app/selling", '[data-bnd-part="start"]', 3000);
 				const a = await snap();
-				expect(a.btn, "the Taskbar layout mounts a start button");
-				expect(a.inBar, "in the bottom bar the layout switches on");
-				expectEq(a.zone, "start", "at the bar's start — which is what its name claims");
-				expect((a.label || "").length > 0, "and it is named for AT");
-				// THE TASKBAR STARTS HIDDEN (slice 9): a Windows-style bar beside an
-				// already-open pane is not the shape this row draws, and the start button
-				// is the affordance that makes it a taskbar. So the round trip begins
-				// where the layout leaves it rather than where the old default did.
-				expectEq(a.state, "hidden", "the Taskbar row starts with the pane away");
-				expectEq(a.pane, false, "so there is nothing of it on screen");
-				expectEq(a.aria, "false", "and the button says collapsed BEFORE anybody clicks it");
-
+				expect(a.inBar, "the bottom bar mounts the start pill");
+				expectEq(a.zone, "start", "at the bar's start");
+				expect(a.mark && a.markLogoOrInitial, "it carries the brand mark — logo or initial");
+				expect(a.markPainted, "on a painted tile, not a bare letter");
+				expect(!!a.name && (a.company ? a.name === a.company : true), `and the company's name beside it (${a.name})`);
+				expectEq(a.label, a.name, "named for AT by that name");
+				expectEq(a.expanded, null, "it announces no popup and no pane — it is the way home");
+				expect(a.width > 40, `wide enough to be a pill (${a.width}px)`);
+				expectEq(a.state, "hidden", "the pane is Hidden on this desk");
+				expect(a.back, "so the page head carries the way back to the pane");
+				expectEq(a.dupBrand, false, "without a second brand beside the pill");
 				await page.click('[data-bnd-part="start"]');
-				await page.waitForTimeout(700);
-				const b2 = await snap();
-				expectEq(b2.state, "open", "one click brings the pane back");
-				expectEq(b2.pane, true, "and it really returns");
-				expectEq(b2.aria, "true", "and the button says so");
+				await page.waitForFunction(
+					() => {
+						const r = frappe.get_route().filter(Boolean);
+						return r.length === 0 || r[0] === "desktop" || r[0] === "home";
+					},
+					null,
+					{ timeout: 15000 }
+				);
+				expectEq(await page.evaluate(() => document.documentElement.getAttribute("data-bnd-sb-panestate")), "hidden", "a click goes home and leaves the pane where it was");
 
-				await page.click('[data-bnd-part="start"]');
-				await page.waitForTimeout(700);
-				const c2 = await snap();
-				expectEq(c2.state, "hidden", "the next click takes it away again");
-				expectEq(c2.pane, false, "and it really goes");
-				expectEq(c2.aria, "false", "and the button says that too");
+				setSettings({ start_placement: "Top Bar Start", topbar_enabled: 1, sidebar_pane_state: "Open" });
+				await goDesk("/app/selling", '[data-bnd-part="start"]', 3000);
+				const t = await snap();
+				expect(t.inBar && t.markPainted && !!t.name, `the top bar draws the same pill (${JSON.stringify({ inBar: t.inBar, painted: t.markPainted, name: t.name })})`);
+				expect(t.height <= 32, `and it fits the bar's row (${t.height}px)`);
+				expectEq(t.dupBrand, false, "and with the pane Open there is no brand in the page head either");
 
-				// OFF IS OFF, and costs no route: the pane keeps its own handle.
 				setSettings({ start_placement: "Off" });
-				await goDesk("/app/selling", "body", 3500);
-				const off = await snap();
-				expectEq(off.btn, false, "Off removes it");
-				// AND COSTS NO ROUTE: the pane is Hidden on this row, so "reachable" is
-				// about the CONTAINER still being on — Frappe's page-title toggle and the
-				// pane's own handle both act on it, and the pill's button is right there.
-				const route = await page.evaluate(() => ({
-					container: !!document.querySelector(".body-sidebar-container"),
-					// REVISED 2026-09-04: no pill. With the start button Off, the page head carries the way back.
-					back: !!document.querySelector(".bnd-ph-show"),
-				}));
-				expect(route.container && route.back, `the pane is still reachable without it — the page head carries the way back (${JSON.stringify(route)})`);
+				await goDesk("/app/selling", "body", 3000);
+				expectEq((await snap()).btn, false, "Off removes it");
 			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the head menu's modules carry flyouts of quick links", async () => {
+			// THE USER (2026-09-14): "the menu is taking on a modules menu items… it should
+			// include quick links such as new invoice from different modules, new report
+			// from different modules". The place row's chevron listed Home, All Apps and
+			// every root workspace — thirty-one rows on this desk, the All Apps grid again.
+			// The pick (drawn, A of three): the module rows stay and each grows a FLYOUT —
+			// New … for the DocTypes the person may create, the module's reports, then
+			// Open <module>. Derived from the workspace's own sidebar in its order, capped
+			// at six and four, permission-checked when the menu opens.
+			//
+			// Watched failing before the feature: no row carried aria-haspopup.
+			const before = getSettings(["sidebar_pane_state", "sidebar_enabled"]);
+			const rows = () =>
+				page.evaluate(() =>
+					[...document.querySelectorAll(".bnd-menu:not(.bnd-menu-fly) .bnd-menu-item")].map((b) => ({
+						label: (b.querySelector(".bnd-menu-label") || b).textContent.trim(),
+						sub: b.getAttribute("aria-haspopup"),
+						expanded: b.getAttribute("aria-expanded"),
+					}))
+				);
+			const fly = () =>
+				page.evaluate(() => {
+					const f = document.querySelector(".bnd-menu-fly");
+					if (!f) return null;
+					const root = document.querySelector(".bnd-menu:not(.bnd-menu-fly)");
+					const r = f.getBoundingClientRect();
+					const m = root.getBoundingClientRect();
+					const text = (b) => (b.querySelector(".bnd-menu-label") || b).textContent.trim();
+					const items = [...f.querySelectorAll(".bnd-menu-item")].map(text);
+					const ae = document.activeElement;
+					return {
+						items,
+						heading: ((f.querySelector(".bnd-menu-heading") || {}).textContent || "").trim(),
+						left: Math.round(r.left),
+						right: Math.round(r.right),
+						menuLeft: Math.round(m.left),
+						menuRight: Math.round(m.right),
+						inView: r.left >= 0 && r.right <= window.innerWidth && r.top >= 0 && r.bottom <= window.innerHeight,
+						focused: ae && ae.classList.contains("bnd-menu-item") ? text(ae) : null,
+						list: !!f.querySelector('[role="menu"]'),
+					};
+				});
+			const focusRow = (label) =>
+				page.evaluate((l) => {
+					const b = [...document.querySelectorAll(".bnd-menu:not(.bnd-menu-fly) .bnd-menu-item")].find(
+						(x) => (x.querySelector(".bnd-menu-label") || x).textContent.trim() === l
+					);
+					if (!b) return false;
+					b.focus();
+					return true;
+				}, label);
+			try {
+				setSettings({ sidebar_pane_state: "Open", sidebar_enabled: 1 });
+				await goDesk("/app/selling", ".body-sidebar .bnd-sb-head", 3000);
+				await page.click(".body-sidebar .bnd-sb-head");
+				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
+				const a = await rows();
+				const selling = a.find((r) => r.label === "Selling");
+				expect(selling, `the menu still lists the modules (${a.map((r) => r.label).slice(0, 6).join(", ")}…)`);
+				expectEq(selling && selling.sub, "menu", "and the Selling row announces a submenu");
+				expectEq(selling && selling.expanded, "false", "closed until asked");
+				const home = a.find((r) => r.label === "Home");
+				expect(home && !home.sub, "Home stays a plain row");
+
+				// Keyboard: the key toward the inline END opens the flyout and moves focus
+				// into it; the key toward the START closes it and comes back to the row.
+				expect(await focusRow("Selling"), "the row takes focus");
+				await page.keyboard.press("ArrowRight");
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				const f1 = await fly();
+				expect(f1, "ArrowRight opens the flyout");
+				expectEq(f1.heading, "Selling", "headed by the module's name");
+				expect(f1.list, "its rows live in their own role=menu list");
+				expect(f1.items.includes("New Sales Invoice"), `New Sales Invoice is offered (${f1.items.join(" | ")})`);
+				expect(f1.items.includes("New Quotation"), "and New Quotation — the sidebar's order, the sidebar's picks");
+				expect(f1.items.includes("Sales Register"), "then the module's reports");
+				expectEq(f1.items[f1.items.length - 1], "Go to Selling", "and the way into the module closes the list");
+				expect(f1.items.filter((l) => /^New /.test(l)).length <= 6, "at most six New rows");
+				expect(f1.left >= f1.menuRight - 2, `the flyout sits at the menu's end edge (flyout.left ${f1.left}, menu.right ${f1.menuRight})`);
+				expect(f1.inView, "and inside the viewport");
+				expectEq(f1.focused, f1.items[0], "focus moved to its first row");
+				expectEq((await rows()).find((r) => r.label === "Selling").expanded, "true", "the row says open");
+				await page.keyboard.press("ArrowLeft");
+				await page.waitForTimeout(250);
+				expectEq(await fly(), null, "ArrowLeft closes the flyout");
+				const back = await page.evaluate(() => (document.activeElement.querySelector(".bnd-menu-label") || document.activeElement).textContent.trim());
+				expectEq(back, "Selling", "and focus returns to the row");
+
+				// Hover opens it too, after the intent delay.
+				await page.hover('.bnd-menu:not(.bnd-menu-fly) .bnd-menu-item:has-text("Selling")');
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				expect((await fly()).items.includes("New Sales Invoice"), "hover opens the same flyout");
+				// A quick link goes where it says: a NEW Sales Invoice, every menu closed.
+				await page.click('.bnd-menu-fly .bnd-menu-item:has-text("New Sales Invoice")');
+				// A form route reads ["Form", doctype, name] from get_route(); the name of an
+		// unsaved document starts "new-".
+		await page.waitForFunction(
+			() => {
+				const r = frappe.get_route();
+				return r[0] === "Form" && r[1] === "Sales Invoice" && /^new-/.test(String(r[2] || ""));
+			},
+			null,
+			{ timeout: 15000 }
+		);
+				expectEq(await page.evaluate(() => !!document.querySelector(".bnd-menu")), false, "and every menu closed on the way");
+
+				// RTL: the flyout opens toward the inline END — the other side. The
+				// placement logic reads the document's direction; this arm flips it in
+				// place, which is the direction and nothing else.
+				await goDesk("/app/selling", ".body-sidebar .bnd-sb-head", 3000);
+				await page.evaluate(() => document.documentElement.setAttribute("dir", "rtl"));
+				await page.click(".body-sidebar .bnd-sb-head");
+				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
+				await focusRow("Selling");
+				await page.keyboard.press("ArrowLeft");
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				const f2 = await fly();
+				expect(f2.right <= f2.menuLeft + 2, `in RTL it sits at the menu's start edge, the left (flyout.right ${f2.right}, menu.left ${f2.menuLeft})`);
+				expect(f2.inView, "still inside the viewport");
+				await page.keyboard.press("ArrowRight");
+				await page.waitForTimeout(250);
+				expectEq(await fly(), null, "and ArrowRight closes it there");
+				await page.keyboard.press("Escape");
+				await page.evaluate(() => document.documentElement.setAttribute("dir", "ltr"));
+
+				// An ordinary employee is offered only what they may create: the fixture
+				// user cannot create a Sales Invoice, so no flyout may say "New Sales Invoice".
+				await withDeskUser("/app/todo", ".body-sidebar .bnd-sb-head", async (dp) => {
+					await dp.click(".body-sidebar .bnd-sb-head");
+					await dp.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
+					const seen = await dp.evaluate(async () => {
+						const can = new Set((frappe.boot.user && frappe.boot.user.can_create) || []);
+						const text = (b) => (b.querySelector(".bnd-menu-label") || b).textContent.trim();
+						const rows = [...document.querySelectorAll(".bnd-menu:not(.bnd-menu-fly) .bnd-menu-item[aria-haspopup]")];
+						const offered = [];
+						for (const row of rows) {
+							row.focus();
+							row.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }));
+							await new Promise((r) => setTimeout(r, 150));
+							const f = document.querySelector(".bnd-menu-fly");
+							if (f) for (const b of f.querySelectorAll(".bnd-menu-item")) if (/^New /.test(text(b))) offered.push(text(b));
+							(document.activeElement || row).dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true }));
+							await new Promise((r) => setTimeout(r, 80));
+						}
+						return { offered: [...new Set(offered)], canSalesInvoice: can.has("Sales Invoice"), rows: rows.length, canAll: [...new Set(offered)].every((l) => can.has(l.replace(/^New /, ""))) };
+					});
+					expectEq(seen.canSalesInvoice, false, "the fixture user cannot create a Sales Invoice — the premise");
+					expect(!seen.offered.includes("New Sales Invoice"), `so no flyout offers one (${seen.offered.join(" | ") || "none offered"})`);
+					expect(seen.canAll, `every New row names a DocType they may create (${seen.offered.join(" | ")})`);
+				});
+			} finally {
+				await page.evaluate(() => document.documentElement.setAttribute("dir", "ltr")).catch(() => {});
 				setSettings(before);
 			}
 		});
@@ -7255,8 +7530,10 @@ print("ok")
 				// placements make it impossible — so this drives the desk it belongs on.
 				setSettings({ desk_layout: "Top Taskbar" });
 				// REVISED 2026-09-04: no pill. Hidden keeps a WAY BACK -- the page
-				// head's brand-and-button, unless a start button already carries the
-				// mark (this layout has one), in which case the brand stands down.
+				// head's show button -- and the BRAND beside it unless a start pill
+				// already carries the brand (this layout has one), in which case only
+				// the button mounts (2026-09-14: the start pill is the brand and goes
+				// home, so the way back can no longer be the start button itself).
 				const want = {
 					Open:   { pane: true,  place: true },
 					// The rail keeps the place row's CHEVRON: that row carries the workspace
@@ -7280,7 +7557,7 @@ print("ok")
 							attr: document.documentElement.getAttribute("data-bnd-sb-panestate"),
 							pane: !!container && getComputedStyle(container).display !== "none",
 							place: vis(".bnd-sb-head"),
-							brand: vis(".bnd-ph-brand"),
+							brand: vis(".bnd-ph-home"),
 							show: vis(".bnd-ph-show"),
 							start: vis('[data-bnd-part="start"]'),
 							brandName: ((document.querySelector(".bnd-ph-brand .bnd-sb-brand-name") || {}).textContent || "").trim(),
@@ -7291,8 +7568,8 @@ print("ok")
 					expectEq(r.pane, expect_.pane, `${state}: the pane is ${expect_.pane ? "there" : "gone"}`);
 					expectEq(r.place, expect_.place, `${state}: the place row (and its menu) is ${expect_.place ? "reachable" : "gone"}`);
 					if (state === "Hidden") {
-						expect(r.show || r.start, `Hidden: a way back exists (${JSON.stringify(r)})`);
-						expectEq(r.brand, !r.start, "Hidden: the page-head brand appears exactly when no start button carries the mark");
+						expect(r.show, `Hidden: the way back — the page head's show button — is there, start pill or not (${JSON.stringify(r)})`);
+						expectEq(r.brand, !r.start, "Hidden: the page-head brand appears exactly when no start pill carries it");
 						if (r.brand) expect(r.brandTile && r.brandName.length > 0, `Hidden: the brand carries the tile and names the company (${JSON.stringify(r)})`);
 					} else {
 						expectEq(r.brand, false, `${state}: no page-head brand while the pane is there`);

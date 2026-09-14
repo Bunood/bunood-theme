@@ -6531,8 +6531,8 @@ msgstr "موضع زر البدء"
 
 #. Label of a Select field in DocType 'Theme Settings'
 #. src: item42
-msgid "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
-msgstr "زر بدء يفتح اللوحة الجانبية، مثل شريط المهام. معطَّل في المكتب الافتراضي، حيث اللوحة مفتوحة بالفعل."
+msgid "The brand pill at the bar's start — the tile and the company's name, as the pane's head draws them; a click goes home. Off on the shipped desk, where the pane's head already carries the brand."
+msgstr "شارة العلامة في بداية الشريط — المربّع واسم الشركة كما يرسمهما رأس اللوحة؛ النقر عليها يعود إلى الصفحة الرئيسية. معطَّلة في المكتب الافتراضي، حيث يحمل رأس اللوحة العلامة بالفعل."
 
 #. In theme_settings.js
 #. src: item42

@@ -1026,11 +1026,17 @@ const FIELD_EXCEPTIONS = new Set([
 function readOwnedNatives(registrySrc) {
 	const out = new Set();
 	for (const m of registrySrc.matchAll(/"native":\s*"([^"]+)"/g)) {
-		const classes = [...m[1].matchAll(/\.([A-Za-z_-][\w-]*)/g)].map((c) => c[1]);
-		if (!classes.length) {
-			throw new Error(`Ownership guard: registry.py native "${m[1]}" names no class`);
+		// A tenant may replace SEVERAL natives (the bell: the pane's row and the
+		// desk page's navbar bell, 2026-09-14), comma-joined as any selector list
+		// is. Each names its own last class; a list read as one string would keep
+		// only the final selector's and silently unguard the rest.
+		for (const sel of m[1].split(",")) {
+			const classes = [...sel.matchAll(/\.([A-Za-z_-][\w-]*)/g)].map((c) => c[1]);
+			if (!classes.length) {
+				throw new Error(`Ownership guard: registry.py native "${sel.trim()}" names no class`);
+			}
+			out.add(classes[classes.length - 1]);
 		}
-		out.add(classes[classes.length - 1]);
 	}
 	if (out.size < 3) {
 		throw new Error(

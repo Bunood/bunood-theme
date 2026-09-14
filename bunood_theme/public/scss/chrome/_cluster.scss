@@ -187,6 +187,75 @@ html[data-theme] .bnd-menu {
     margin-block: var(--bnd-sp-1);
     margin-inline: var(--bnd-sp-2);
   }
+
+  // ── Flyouts (2026-09-14) ─────────────────────────────────────────────────
+  // THE ARGUMENTS FOR THE RUNTIME LIVE HERE, because build.mjs copies bunood.js
+  // verbatim and every comment in it ships; Sass strips these. menu_list,
+  // menu_keys, open_fly_for, close_fly and sb_quick_links point at this block.
+  //
+  // WHAT: the place row's chevron listed Home, All Apps and every root
+  // workspace — thirty-one rows on the reference desk, the All Apps grid again.
+  // THE USER (2026-09-14): "it should include quick links such as new invoice
+  // from different modules, new report from different modules". Three shapes
+  // were drawn (flyouts per module · one grouped list with a filter · this
+  // place first) and the pick was the first: every module row keeps its click
+  // (go there) and grows a FLYOUT — New … for the DocTypes this person may
+  // create, then the module's reports, then Open <module>.
+  //
+  // DERIVED, NEVER CURATED. The rows are the workspace's own sidebar items
+  // (boot.workspace_sidebar_item, keyed by the sidebar's title) in the order
+  // the admin set in Frappe's sidebar editor, so changing a module's quick
+  // links is editing its sidebar, not a theme setting. The create check is
+  // Frappe's (boot.user.can_create) at the moment the menu opens; Singles have
+  // no "new"; a report opens the way the sidebar opens it (query report or
+  // report builder, by its type). Caps keep a menu a menu — six creates, four
+  // reports; the rest sit behind Open <module>. Labels are Frappe's own
+  // "New {0}" over the DocType's translated name, so Arabic needs no theme
+  // string (inherited.ar.txt carries the row).
+  //
+  // THE MECHANICS. A row with children announces a submenu (aria-haspopup,
+  // aria-expanded, the chevron below) and opens it on hover INTENT — 120ms,
+  // so a pointer crossing the list to reach a lower row opens nothing — or on
+  // the arrow key toward the inline END; the arrow toward the START closes it
+  // and returns focus to the row; Escape and Tab close everything, per the
+  // FOCUS CONTRACT on show_menu. Leaving a row closes nothing: the pointer is
+  // on its way to the flyout, which cancels the timer; entering another row
+  // swaps or closes. The flyout is a second .bnd-menu at the root menu's
+  // inline-end edge, level with its row, flipped to the other side when it
+  // would not fit and clamped to the viewport either way, in PHYSICAL
+  // coordinates like show_menu — the side follows the document's direction
+  // (getComputedStyle(html).direction), never the language, which is what
+  // the RTL arm of the check flips. Its heading is the flyout's OWN child, a
+  // sibling of its role="menu" list, and names that list: ARIA lets a menu
+  // hold only items, separators and groups, and the axe scan already caught
+  // a header inside one once (the identity header, item 40 8c).
+  .bnd-menu-more {
+    display: grid;
+    place-items: center;
+    margin-inline-start: auto;
+    flex: none;
+
+    svg {
+      inline-size: 14px;
+      block-size: 14px;
+    }
+  }
+
+  .bnd-menu-item[aria-expanded="true"] {
+    background: var(--bnd-hover);
+  }
+
+  .bnd-menu-heading {
+    padding: var(--bnd-sp-2) var(--bnd-sp-3) var(--bnd-sp-1);
+    font-size: var(--bnd-text-xs);
+    font-weight: var(--bnd-weight-semibold);
+    text-transform: uppercase;
+    color: var(--bnd-ink-muted);
+  }
+}
+// The chevron points toward the inline end, which in RTL is the left.
+html[dir="rtl"] .bnd-menu .bnd-menu-more svg {
+  transform: scaleX(-1);
 }
 
 // ── The account panel (item 40, 8c) ─────────────────────────────────────

@@ -262,7 +262,11 @@ COMPONENTS = [
         # The bell, NOT the badge inside it: the badge is the unread count and
         # is legitimately hidden on a quiet bench.
         "selector": ".bnd-bell",
-        "native": ".body-sidebar .sidebar-notification",
+        # Two natives, comma-joined: the pane's row, and the bell Frappe's own
+        # desk page (/app) draws in ITS navbar beside the pane (2026-09-14). The
+        # build guard reads the last class of each; _layouts.scss hides both
+        # from the same token.
+        "native": ".body-sidebar .sidebar-notification, .desktop-navbar .desktop-notifications",
         "regions": REGIONS,
         "toggle": None,
         "offable": True,
@@ -274,7 +278,8 @@ COMPONENTS = [
         "label": "User profile",
         "type": TENANT,
         "selector": ".bnd-avatar-btn",
-        "native": ".body-sidebar .sidebar-user-button",
+        # As the bell: the pane's row, and the desk page's own avatar menu.
+        "native": ".body-sidebar .sidebar-user-button, .desktop-navbar .desktop-avatar",
         "regions": REGIONS,
         "toggle": None,
         "offable": True,
@@ -315,17 +320,18 @@ COMPONENTS = [
         "part": "start",
         "label": "Start button",
         "type": TENANT,
-        # The taskbar layouts' way into the pane (item 42, slice 7). It does not
-        # BUILD anything: it puts Frappe's own pane into the open state the rail
-        # already drives, so there is no second pane to keep in agreement and
-        # every rule the pane has applies unchanged.
+        # The bar's brand pill (item 42, slice 7; redrawn 2026-09-14 by the
+        # user): the mark and the company's name, exactly as the pane's head
+        # draws them, and a click goes home. Until then it toggled the pane; the
+        # way back to a hidden pane is the page head's show button, which mounts
+        # beside this pill without repeating the brand.
         "selector": '[data-bnd-part="start"]',
         # Ours entirely; stock v16 has no such control, so a failed mount
         # releases nothing — the pane is still reachable by its own handle.
         "native": None,
-        # NOT the side pane: a button inside the pane that opens the pane is a
-        # control with nothing to do. The page header is out for the same reason
-        # search is — no slug exists there.
+        # NOT the side pane: its head already IS this pill. The page header is
+        # out for the same reason search is — no slug exists there — and, when
+        # the pane is Hidden, the head carries the brand of its own accord.
         "regions": ("topbar", "bottombar", "dock"),
         "toggle": None,
         # OFFABLE, and the taskbar layouts do not depend on it being on: the pane

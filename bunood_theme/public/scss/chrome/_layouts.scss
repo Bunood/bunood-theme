@@ -54,9 +54,18 @@
 //   contract (see NO LAYOUT ATTRIBUTE = CLASSIC above).
 //
 //   There is no "release path" to write either. Releasing is the default.
+// ...AND THE DESKTOP PAGE'S OWN PAIR. Frappe's desk page (/app, /app/desktop)
+// renders its own navbar — search, a bell with a dropdown, an avatar with a
+// menu — beside the pane; the pane's rows were owned and these were not, so
+// that page carried two bells and two account menus, the top pair the vendor's
+// (the user, 2026-09-14: "the user profile menu on desk is not our menu and
+// bell is not our bell"). Same tokens, same polarity: registry.py lists both
+// selectors on the tenant's `native`, comma-joined.
 html[data-bnd-own~="search"] .body-sidebar .navbar-search-bar,
 html[data-bnd-own~="bell"] .body-sidebar .sidebar-notification,
-html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
+html[data-bnd-own~="bell"] .desktop-navbar .desktop-notifications,
+html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button,
+html[data-bnd-own~="user"] .desktop-navbar .desktop-avatar {
   display: none;
 }
 

@@ -24,6 +24,83 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.4] — 2026-09-14 — Four reports from the desk: its own pair owned, the rail's edge, the start pill, quick links (patch)
+
+**The user, with a screenshot of the All Apps page in Arabic (2026-09-14), four things at
+once:** *"In desk, the menu is taking on a modules menu items… it should include quick links
+such as new invoice from different modules, new report from different modules, etc."* ·
+*"The user profile menu on desk is not our menu and bell is not our bell — fix it and hide
+it."* · *"On hover, rail flies out too early, at least 100 px before rail is hovered on."* ·
+*"The pane start button, when in bottom bar or top bar, is not rendered right — just a
+black B, not the brand pill that's in the pane. Make it the pill that is in the pane; when
+it is clicked it goes to home."* Each reproduced on the local desk with production's
+placements before anything was written.
+
+### Fixed
+
+- **The desk page's own bell and avatar stand down for ours.** Frappe's desktop page
+  (`/app`, `/app/desktop`) renders ITS OWN navbar — search, a bell with a dropdown, an
+  avatar with a menu — beside the pane the kit dresses. The pane's rows were owned; these
+  were not, so that page carried two bells and two account menus, the top pair the
+  vendor's. `registry.py` now lists both natives on the tenant, comma-joined
+  (`readOwnedNatives` reads the last class of EACH selector, where it had read one string
+  and would have unguarded the pane's row), and `_layouts.scss` hides the desktop pair from
+  the same `data-bnd-own` tokens — visible again the moment ours is Off, as every native is.
+- **The rail's flyout opens at the rail's edge.** Frappe keeps `.body-sidebar-placeholder`
+  in flow at `--sidebar-width` (220px) so the main section stays put while the pane overlays
+  it; the rail narrows the CONTAINER by inline style and never touched the placeholder,
+  which went on spanning 220px inside the container, invisible — every pointer that crossed
+  it entered the container. Measured: `elementFromPoint` found it 100px out, a pointer sweep
+  opened the flyout 90px out. The placeholder now follows the rail's width.
+- **The start pill is the brand, and goes home.** The start button was a 28px square
+  holding the brand mark alone, in a class no rule painted, so a bar drew a bare letter;
+  a click toggled the pane. It is now the pane head's own pill — the mark and the
+  company's name, built by one `brand_mark()` for the three places that draw it — and a
+  click is the way home. The way BACK to a Hidden pane stays where every state has it:
+  the page head's show button, which now mounts beside a start pill without repeating the
+  brand. The field's description says so; `bunood.pane_toggle` retired with the toggle.
+
+### Added
+
+- **Quick links in the pane's head menu, as flyouts per module.** The place row's chevron
+  listed Home, All Apps and every root workspace — thirty-one rows on the reference desk,
+  the All Apps grid again. Three shapes were drawn with this desk's real rows (flyouts per
+  module · one grouped list with a filter · the current place first) and the user picked
+  the first. Every module row keeps its click and grows a flyout: *New …* for the DocTypes
+  the person may create (six at most), the module's reports (four), then *Go to <module>*.
+  Derived, never curated — the rows are the workspace's OWN sidebar items in
+  the admin's order, so changing a module's quick links is editing its sidebar; the create
+  check is Frappe's (`boot.user.can_create`), Singles have no "new", a report opens the way
+  the sidebar opens it. Labels use Frappe's own *New {0}* over the DocType's translated
+  name; the module names are translated now (an Arabic desk read "Selling" in this menu).
+  The shared menu learned submenus: `aria-haspopup` / `aria-expanded` on the row, hover
+  intent (120ms), the arrow toward the inline end opens and toward the start closes
+  (mirrored in RTL), Escape and Tab close everything, the flyout sits at the menu's end edge
+  and flips when it would not fit; its heading is the flyout's own child, a sibling of the
+  `role="menu"` list. `_cluster.scss` carries the argument.
+
+### Checks
+
+`sidepane: the desk page's own bell and avatar stand down for ours` · `rail: the flyout
+opens at the rail's edge, not a hundred pixels before it` · `start: the bar's start pill is
+the brand, and it goes home` (replacing the start-toggle check) · `sidepane: the head menu's
+modules carry flyouts of quick links` (keyboard both ways, hover, the route a quick link
+takes, the RTL side, and an ordinary employee offered nothing they cannot create). All four
+watched failing on v0.46.3 before the code. Full run on this build: **533/542**; the nine misses were a personal width a prior run had left on
+Administrator (seven width checks, cleared with the check's own repair line), the picker-drift
+check reading a transient desk-picker state (the fixture regenerated byte-identical), and the
+pane-states check's own contract (it read the page-head wrap as the brand; updated) — all nine
+green on re-run.
+
+### Payload and words
+
+js_gzip 128,451 → 130,503 (ceiling 128,700 → 130,600: the flyout mechanics and the
+derivation are the growth; the arguments moved to the stylesheet, which Sass strips). One
+Arabic row, the field's description; *New {0}* and *Go to {0}* are inherited from Frappe. Not
+*Open {0}*: every app after ours in the install order translates that as the adjective, and
+the merged dictionary keeps the last writer's row (the standing merge debt, second example) —
+so the flyout's last row is *Go to {0}*, Frappe's alone and the verb.
+
 ## [0.46.3] — 2026-09-13 — The width reaches every screen, including the ones nothing hooked (patch)
 
 **The user:** *"where did you apply the screen width. is it on all screens"* — then, once the

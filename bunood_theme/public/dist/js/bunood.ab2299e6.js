@@ -2558,6 +2558,9 @@
 
 	/** The one open .bnd-menu, so opening another closes it first. */
 	let open_menu = null;
+	/** Its one open flyout — a row's submenu — and the hover-intent timer. */
+	let open_fly = null;
+	let fly_timer = null;
 
 	/**
 	 * Mark a trigger as ABLE to open a menu — knowable at build time, unlike
@@ -2581,7 +2584,11 @@
 	function close_menu() {
 		if (!open_menu) return;
 		const trigger = open_menu._trigger;
-		const had_focus = open_menu.contains(document.activeElement);
+		// Focus inside the FLYOUT counts as inside the menu: it is the menu's
+		// second surface, body-appended like the first.
+		const had_focus =
+			open_menu.contains(document.activeElement) || !!(open_fly && open_fly.contains(document.activeElement));
+		close_fly(false);
 		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "false");
 		open_menu.remove();
 		open_menu = null;
@@ -2596,7 +2603,7 @@
 	// (e2a4926). This pointerdown closer has no such conflict; it stays global
 	// because nothing inside the menu needs to see an outside click.
 	document.addEventListener("pointerdown", (e) => {
-		if (open_menu && !open_menu.contains(e.target)) close_menu();
+		if (open_menu && !open_menu.contains(e.target) && !(open_fly && open_fly.contains(e.target))) close_menu();
 	});
 	document.addEventListener("keydown", (e) => {
 		if (e.key === "Escape") close_menu();
@@ -2605,6 +2612,170 @@
 	/** The menu's own focusable items, in DOM order. */
 	function menu_items(menu) {
 		return [...menu.querySelectorAll(".bnd-menu-item")];
+	}
+
+	/** The document's direction, never the language — _cluster.scss. */
+	function menu_rtl() {
+		return getComputedStyle(document.documentElement).direction === "rtl";
+	}
+
+	/** A role="menu" list: "divider" | {label, icon?, image?, run?, danger?,
+	 *  checked?, children?}. A row with children opens a flyout; a {heading}
+	 *  is the flyout's title, lifted out of the list. Argument: _cluster.scss. */
+	function menu_list(items) {
+		const list = el("div", "bnd-menu-list", { role: "menu" });
+		for (const item of items) {
+			if (item === "divider") {
+				list.appendChild(el("div", "bnd-menu-divider", { role: "separator" }));
+				continue;
+			}
+			if (item.heading !== undefined) continue;
+			const btn = el("button", "bnd-menu-item" + (item.danger ? " bnd-danger" : ""), {
+				type: "button",
+				role: "menuitem",
+				tabindex: "-1",
+			});
+			// One 20px cell per row, image or sprite, so the labels share a column.
+			const ico = el("span", "bnd-menu-ico");
+			if (item.image) ico.appendChild(el("img", "bnd-menu-img", { src: item.image, alt: "" }));
+			else if (item.icon) ico.appendChild(sprite_icon(item.icon));
+			btn.appendChild(ico);
+			const label = el("span", "bnd-menu-label");
+			label.textContent = item.label;
+			btn.appendChild(label);
+			// A menu of choices (item 44's language list) marks the current one the
+			// ARIA way: menuitemradio + aria-checked, never a check glyph alone.
+			if (item.checked !== undefined) {
+				btn.setAttribute("role", "menuitemradio");
+				btn.setAttribute("aria-checked", item.checked ? "true" : "false");
+			}
+			if (item.children && item.children.length) {
+				btn._children = item.children;
+				btn.setAttribute("aria-haspopup", "menu");
+				btn.setAttribute("aria-expanded", "false");
+				const more = el("span", "bnd-menu-more");
+				more.appendChild(sprite_icon("icon-chevron-right"));
+				btn.appendChild(more);
+			}
+			// Hover intent; leaving a row closes nothing (_cluster.scss).
+			btn.addEventListener("pointerenter", () => {
+				clearTimeout(fly_timer);
+				fly_timer = setTimeout(() => {
+					if (btn._children) open_fly_for(btn);
+					else close_fly(false);
+				}, 120);
+			});
+			btn.addEventListener("pointerleave", () => clearTimeout(fly_timer));
+			btn.addEventListener("click", () => {
+				close_menu();
+				try {
+					item.run && item.run();
+				} catch (e) {
+					console.error("bunood_theme menu action failed", e); // eslint-disable-line no-console
+				}
+			});
+			list.appendChild(btn);
+		}
+		return list;
+	}
+
+	/** Keys shared by the menu and its flyout — the FOCUS CONTRACT on show_menu,
+	 *  plus the arrow toward the inline end (open) and start (close). */
+	function menu_keys(e, menu, hooks) {
+		if (e.key === "Escape") {
+			e.preventDefault();
+			e.stopPropagation(); // see the FOCUS CONTRACT note on show_menu
+			close_menu();
+			return;
+		}
+		if (e.key === "Tab") {
+			close_menu(); // NOT prevented — see the FOCUS CONTRACT note on show_menu
+			return;
+		}
+		const end_key = menu_rtl() ? "ArrowLeft" : "ArrowRight";
+		const start_key = menu_rtl() ? "ArrowRight" : "ArrowLeft";
+		if (e.key === end_key && hooks.end) {
+			e.preventDefault();
+			hooks.end();
+			return;
+		}
+		if (e.key === start_key && hooks.start) {
+			e.preventDefault();
+			hooks.start();
+			return;
+		}
+		const nodes = menu_items(menu);
+		if (!nodes.length) return;
+		const at = nodes.indexOf(document.activeElement);
+		let next = -1;
+		if (e.key === "ArrowDown") next = at < 0 ? 0 : (at + 1) % nodes.length;
+		else if (e.key === "ArrowUp") next = at < 0 ? nodes.length - 1 : (at - 1 + nodes.length) % nodes.length;
+		else if (e.key === "Home") next = 0;
+		else if (e.key === "End") next = nodes.length - 1;
+		if (next !== -1) {
+			e.preventDefault();
+			nodes[next].focus();
+		}
+	}
+
+	/** Close the open flyout; its row says closed and, when asked or when focus
+	 *  was inside, takes focus back. */
+	function close_fly(refocus) {
+		clearTimeout(fly_timer);
+		if (!open_fly) return;
+		const row = open_fly._row;
+		const had_focus = open_fly.contains(document.activeElement);
+		open_fly.remove();
+		open_fly = null;
+		if (row) row.setAttribute("aria-expanded", "false");
+		if ((had_focus || refocus) && row && row.focus) row.focus();
+	}
+
+	/** A row's flyout at the menu's inline-end edge, level with the row, flipped
+	 *  when it would not fit. Physical coordinates, like show_menu. */
+	function open_fly_for(row) {
+		if (open_fly && open_fly._row === row) return;
+		close_fly(false);
+		const items = row._children || [];
+		if (!items.length) return;
+		const fly = el("div", "bnd-menu bnd-menu-fly", { tabindex: "0" });
+		fly._row = row;
+		const heading = items.find((i) => i && i.heading !== undefined);
+		if (heading) {
+			const h = el("div", "bnd-menu-heading");
+			h.textContent = heading.heading;
+			fly.appendChild(h);
+		}
+		const list = menu_list(items);
+		if (heading) list.setAttribute("aria-label", heading.heading);
+		fly.appendChild(list);
+		fly.addEventListener("keydown", (e) => menu_keys(e, fly, { start: () => close_fly(true) }));
+		fly.addEventListener("pointerenter", () => clearTimeout(fly_timer));
+		document.body.appendChild(fly);
+		row.setAttribute("aria-expanded", "true");
+		const m = row.closest(".bnd-menu").getBoundingClientRect();
+		const r = row.getBoundingClientRect();
+		const fw = fly.offsetWidth;
+		const fh = fly.offsetHeight;
+		const gap = 2;
+		let left = menu_rtl() ? m.left - fw - gap : m.right + gap;
+		if (left + fw > window.innerWidth - 8) left = m.left - fw - gap;
+		if (left < 8) left = m.right + gap;
+		left = Math.max(8, Math.min(left, window.innerWidth - fw - 8));
+		let top = r.top - 6;
+		if (top + fh > window.innerHeight - 8) top = window.innerHeight - fh - 8;
+		fly.style.left = left + "px";
+		fly.style.top = Math.max(8, top) + "px";
+		open_fly = fly;
+	}
+
+	/** The keyboard's way into a flyout: from the focused row, if it has one. */
+	function fly_from_focus() {
+		const row = document.activeElement;
+		if (!row || !row._children) return;
+		open_fly_for(row);
+		const first = open_fly && menu_items(open_fly)[0];
+		if (first) first.focus();
 	}
 
 	/**
@@ -2642,8 +2813,9 @@
 	 * @param {HTMLElement} trigger - the button the menu hangs off. Should
 	 *   already carry aria-haspopup via menu_trigger() at build time.
 	 * @param {Array<Object|"divider">} items - "divider" or
-	 *   {label, icon?, run?, danger?, header?} where header items render the
-	 *   identity block instead of a button.
+	 *   {label, icon?, image?, run?, danger?, checked?, children?}; a row with
+	 *   `children` (the same shape, plus a leading {heading}) opens a flyout —
+	 *   menu_list() carries the contract.
 	 */
 	function show_menu(trigger, items) {
 		if (open_menu && open_menu._trigger === trigger) {
@@ -2657,71 +2829,12 @@
 		menu._trigger = trigger;
 		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "true");
 
-		const list = el("div", "bnd-menu-list", { role: "menu" });
-
-		for (const item of items) {
-			if (item === "divider") {
-				list.appendChild(el("div", "bnd-menu-divider", { role: "separator" }));
-				continue;
-			}
-			// The identity header moved into the account panel (8c) — no caller
-			// passes `header` any more, and the panel labels itself by the name.
-			const btn = el("button", "bnd-menu-item" + (item.danger ? " bnd-danger" : ""), {
-				type: "button",
-				role: "menuitem",
-				tabindex: "-1",
-			});
-			// One 20px cell per row, image or sprite, so the labels share a column.
-			const ico = el("span", "bnd-menu-ico");
-			if (item.image) ico.appendChild(el("img", "bnd-menu-img", { src: item.image, alt: "" }));
-			else if (item.icon) ico.appendChild(sprite_icon(item.icon));
-			btn.appendChild(ico);
-			const label = el("span", "bnd-menu-label");
-			label.textContent = item.label;
-			btn.appendChild(label);
-			// A menu of choices (item 44's language list) marks the current one the
-			// ARIA way: menuitemradio + aria-checked, never a check glyph alone.
-			if (item.checked !== undefined) {
-				btn.setAttribute("role", "menuitemradio");
-				btn.setAttribute("aria-checked", item.checked ? "true" : "false");
-			}
-			btn.addEventListener("click", () => {
-				close_menu();
-				try {
-					item.run && item.run();
-				} catch (e) {
-					console.error("bunood_theme menu action failed", e); // eslint-disable-line no-console
-				}
-			});
-			list.appendChild(btn);
-		}
-
-		menu.appendChild(list);
-
-		menu.addEventListener("keydown", (e) => {
-			if (e.key === "Escape") {
-				e.preventDefault();
-				e.stopPropagation(); // see the FOCUS CONTRACT note above
-				close_menu();
-				return;
-			}
-			if (e.key === "Tab") {
-				close_menu(); // NOT prevented — see the FOCUS CONTRACT note above
-				return;
-			}
-			const nodes = menu_items(menu);
-			if (!nodes.length) return;
-			const at = nodes.indexOf(document.activeElement);
-			let next = -1;
-			if (e.key === "ArrowDown") next = at < 0 ? 0 : (at + 1) % nodes.length;
-			else if (e.key === "ArrowUp") next = at < 0 ? nodes.length - 1 : (at - 1 + nodes.length) % nodes.length;
-			else if (e.key === "Home") next = 0;
-			else if (e.key === "End") next = nodes.length - 1;
-			if (next !== -1) {
-				e.preventDefault();
-				nodes[next].focus();
-			}
-		});
+		// The identity header moved into the account panel (8c) — no caller
+		// passes `header` any more, and the panel labels itself by the name.
+		// The rows, the keys and the flyouts are menu_list / menu_keys, shared
+		// with the flyout so the two surfaces cannot disagree.
+		menu.appendChild(menu_list(items));
+		menu.addEventListener("keydown", (e) => menu_keys(e, menu, { end: fly_from_focus }));
 
 		document.body.appendChild(menu);
 		open_menu = menu;
@@ -3540,45 +3653,39 @@ function sb_zone_anchor(pane, zone, node) {
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
-	/** The start button — argument in _sidebar.scss. */
-	function build_start() {
-		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
-			type: "button",
-			"data-bnd-part": "start",
-			"aria-label": __("Menu"),
-			title: __("Menu"),
-			// FROM THE LIVE STATE, not a constant. Built false, it announced a pane
-			// that was plainly open as collapsed until the first click corrected it —
-			// and the first click is exactly when a screen-reader user has already
-			// been told the wrong thing.
-			"aria-expanded":
-				document.documentElement.getAttribute("data-bnd-sb-panestate") === "open" ? "true" : "false",
-		});
-		const mark = el("span", "bnd-sb-start-mark");
+	/** The brand mark — logo, or the initial on the brand tile — for the pane's
+	 *  brand row, the page head's pill and the start pill. One builder; the
+	 *  third copy had drifted to a class no rule painted (_sidebar.scss). */
+	function brand_mark() {
+		const mark = el("span", "bnd-sb-brand-mark");
 		if (frappe.boot.bnd_logo) {
 			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
 		} else {
 			mark.classList.add("bnd-sb-brand-initial");
 			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
 		}
-		btn.appendChild(mark);
+		return mark;
+	}
+
+	/** The start pill — the brand, and the way home. Argument in _sidebar.scss. */
+	function build_start() {
+		const name = frappe.boot.bnd_company || __("Home");
+		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
+			type: "button",
+			"data-bnd-part": "start",
+			"aria-label": name,
+			title: __("Home"),
+		});
+		btn.appendChild(brand_mark());
+		const label = el("span", "bnd-sb-brand-name");
+		label.textContent = name;
+		btn.appendChild(label);
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			bunood.pane_toggle();
+			frappe.set_route("");
 		});
 		return btn;
 	}
-
-	/** Open the pane if it is away, put it back if it is not. */
-	bunood.pane_toggle = function () {
-		if (!sb_state) return;
-		const html = document.documentElement;
-		const away = html.getAttribute("data-bnd-sb-panestate") !== "open";
-		bunood.pane_state(away ? "Open" : "Hidden");
-		for (const b of document.querySelectorAll(".bnd-sb-start")) {
-			b.setAttribute("aria-expanded", away ? "true" : "false");
-		}
-	};
 
 	// ── The language switch and the Appearance button (item 44) ──────────
 	//
@@ -7311,14 +7418,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// Brand row, then place row (item 42) — argument in _sidebar.scss.
 		if (!sidebar.querySelector(".bnd-sb-brand")) {
 			const brand = el("div", "bnd-sb-brand");
-			const mark = el("span", "bnd-sb-brand-mark");
-			if (frappe.boot.bnd_logo) {
-				mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-			} else {
-				mark.classList.add("bnd-sb-brand-initial");
-				mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-			}
-			brand.appendChild(mark);
+			brand.appendChild(brand_mark());
 			const company = el("span", "bnd-sb-brand-name");
 			company.textContent = frappe.boot.bnd_company || __("Home");
 			brand.appendChild(company);
@@ -7613,28 +7713,27 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_mount_pagehead_brand() {
 		const page = (window.frappe && frappe.container && frappe.container.page) || null;
 		const title = page && page.querySelector(".page-head .page-title");
-		// A start button already carries the mark and the way back; two would be noise.
-		if (!title || !sb_pane_hidden() || document.querySelector('[data-bnd-part="start"]')) {
+		if (!title || !sb_pane_hidden()) {
 			sb_teardown_pagehead_brand();
 			return;
 		}
-		for (const n of document.querySelectorAll(".bnd-ph-brand")) if (!title.contains(n)) n.remove();
-		if (title.querySelector(".bnd-ph-brand")) return;
-		const wrap = el("div", "bnd-ph-brand");
-		const home = el("button", "bnd-ph-home", { type: "button", title: __("Home"), "aria-label": __("Home") });
-		const mark = el("span", "bnd-sb-brand-mark");
-		if (frappe.boot.bnd_logo) {
-			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-		} else {
-			mark.classList.add("bnd-sb-brand-initial");
-			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		// Beside a start pill the head keeps only the way back (_sidebar.scss);
+		// the wrap records its shape so a placement change rebuilds it.
+		const with_brand = document.querySelector('[data-bnd-part="start"]') ? "0" : "1";
+		for (const n of document.querySelectorAll(".bnd-ph-brand")) {
+			if (!title.contains(n) || n.getAttribute("data-bnd-brand") !== with_brand) n.remove();
 		}
-		home.appendChild(mark);
-		const name = el("span", "bnd-sb-brand-name");
-		name.textContent = frappe.boot.bnd_company || __("Home");
-		home.appendChild(name);
-		home.addEventListener("click", () => frappe.set_route(""));
-		wrap.appendChild(home);
+		if (title.querySelector(".bnd-ph-brand")) return;
+		const wrap = el("div", "bnd-ph-brand", { "data-bnd-brand": with_brand });
+		if (with_brand === "1") {
+			const home = el("button", "bnd-ph-home", { type: "button", title: __("Home"), "aria-label": __("Home") });
+			home.appendChild(brand_mark());
+			const name = el("span", "bnd-sb-brand-name");
+			name.textContent = frappe.boot.bnd_company || __("Home");
+			home.appendChild(name);
+			home.addEventListener("click", () => frappe.set_route(""));
+			wrap.appendChild(home);
+		}
 		const show = el("button", "bnd-icon-btn bnd-ph-show", {
 			type: "button",
 			title: __("Show the side pane"),
@@ -7717,9 +7816,72 @@ function sb_zone_anchor(pane, zone, node) {
 		// whenever the vendor actually writes it, however long that takes.
 	}
 
-	/** Home, All Apps and the workspace cascade. The cascade is an OBLIGATION of
-	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
-	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
+	/** A module's quick links from its OWN sidebar, in its order: New … for the
+	 *  DocTypes this person may create (six), its reports (four), the way in.
+	 *  [] when it offers neither. Argument: _cluster.scss (the flyout). */
+	function sb_quick_links(w) {
+		const title = w.title || w.name;
+		const map = (frappe.boot && frappe.boot.workspace_sidebar_item) || {};
+		const sb = map[String(title).toLowerCase()] || map[String(w.name).toLowerCase()];
+		const rows = (sb && sb.items) || [];
+		const singles = new Set((frappe.boot && frappe.boot.single_types) || []);
+		const can_create = (dt) => {
+			try {
+				return !!(frappe.model && frappe.model.can_create(dt));
+			} catch (e) {
+				return false;
+			}
+		};
+		const creates = [];
+		const reports = [];
+		for (const it of rows) {
+			if (!it || it.type !== "Link" || !it.link_to) continue;
+			if (it.link_type === "DocType") {
+				if (creates.length >= 6 || singles.has(it.link_to) || creates.includes(it.link_to) || !can_create(it.link_to)) continue;
+				creates.push(it.link_to);
+			} else if (it.link_type === "Report" && it.report) {
+				if (reports.length >= 4 || reports.some((r) => r.name === it.link_to)) continue;
+				reports.push({ name: it.link_to, label: it.label || it.link_to, report: it.report });
+			}
+		}
+		if (!creates.length && !reports.length) return [];
+		const items = [{ heading: __(title) }];
+		for (const dt of creates) {
+			items.push({ label: __("New {0}", [__(dt)]), icon: "icon-plus", run: () => frappe.new_doc(dt) });
+		}
+		if (creates.length && reports.length) items.push("divider");
+		for (const r of reports) {
+			items.push({
+				label: r.label,
+				icon: "icon-file",
+				run: () =>
+					frappe.set_route(
+						frappe.utils.generate_route({
+							type: "Report",
+							name: r.name,
+							is_query_report: r.report.report_type === "Query Report" || r.report.report_type === "Script Report",
+							report_ref_doctype: r.report.ref_doctype,
+						})
+					),
+			});
+		}
+		items.push("divider");
+		items.push({
+			// Not "Open {0}": every app after ours in the install order translates
+			// that msgid too, as the ADJECTIVE, and the merged dictionary keeps the
+			// last writer's row (the standing merge debt). "Go to {0}" is Frappe's
+			// alone and the verb — inherited, and the placeholder last.
+			label: __("Go to {0}", [__(title)]),
+			icon: ws_symbol(w.icon),
+			image: ws_original_icon(w),
+			run: () => frappe.set_route(ws_route(w.name)),
+		});
+		return items;
+	}
+
+	/** Home, All Apps and the workspace cascade, each module row with a flyout
+	 *  of its quick links. The cascade is an OBLIGATION of the "keep replacing"
+	 *  posture; roots only, no cap — _sidebar.scss carries why. */
 	function sb_head_menu() {
 		const items = [
 			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
@@ -7742,11 +7904,15 @@ function sb_zone_anchor(pane, zone, node) {
 		);
 		if (roots.length) items.push("divider");
 		for (const w of roots) {
+			const links = sb_quick_links(w);
 			items.push({
-				label: w.title || w.name,
+				// Translated, as Frappe's own header lists them — an Arabic desk read
+				// "Selling" here until 2026-09-14.
+				label: __(w.title || w.name),
 				icon: ws_symbol(w.icon),
 				image: ws_original_icon(w),
 				run: () => frappe.set_route(ws_route(w.name)),
+				children: links.length ? links : undefined,
 			});
 		}
 		// Collapse-all (2a), only when something is foldable.
