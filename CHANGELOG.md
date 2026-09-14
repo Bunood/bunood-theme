@@ -24,6 +24,48 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.3] — 2026-09-13 — The width reaches every screen, including the ones nothing hooked (patch)
+
+**The user:** *"where did you apply the screen width. is it on all screens"* — then, once the
+answer turned out to be no: *"make sure you apply it to all screens and views."*
+
+### The gap was not a view type
+
+All eleven view modes Frappe ships were already right, measured at 1920 with Balanced: list,
+report, list-dashboard, gantt, **kanban**, calendar, image, file manager and query report on the
+wide edge (1400), tree on the reading edge (1040). Kanban is now *tested* rather than assumed —
+it works through `.frappe-list`, and this site has a board to prove it on.
+
+**Desk pages were uncovered entirely.** Every `Page` rendered full bleed — 1910 on a 1920
+screen: the permission manager, the organizational chart, the sales funnel, stock balance,
+backups, team updates, and this theme's own inbox. Every width rule hooks a list or a form, and
+a Page is neither, so nothing reached them. That is the complaint item 45 exists to answer
+(*"some modules use full width"*) surviving in the one family nobody had measured. The print
+preview was uncapped too, at 1633.
+
+### What now covers them
+
+- **Desk pages take the wide edge**, because a desk page is a tool — tables, charts, trees,
+  filters — and belongs with the list and the report. The hook is the ROUTE'S SHAPE, not a list
+  of page names: a desk page's `body[data-route]` is a single segment (`backups`) while every
+  governed surface carries more (`List/Item/List`, `Form/…`, `Workspaces/…`, `print/…`), so
+  `:not([data-route*="/"])` selects exactly the pages and cannot go stale when an app adds one.
+  The alternative was a blocklist of route prefixes — the same fact in two places, wrong the
+  first time somebody ships a new view type.
+- **The print preview takes the reading edge.** It is the one desk surface whose content is
+  literally a page you read.
+- **Two immersive flows are left alone**, by name: the setup wizard and Point of Sale. A 1400px
+  column inside a 1920px screen is wrong for a full-screen flow. Neither renders on this bench,
+  so the exclusion is proved on the SELECTOR instead — swapping `data-route` releases the cap,
+  1400 → 1910 — which is the honest way to test a rule whose subject is absent.
+
+### Fixed — a selector that had never matched anything
+
+`.gallery-view` does not exist in Frappe. The image view renders `.image-view-container`, and
+the surface measured correctly only by luck: it sits inside `.frappe-list`, which the wide-edge
+rule does catch. Coverage on paper, not in the sheet — and it would have gone silently uncapped
+the day Frappe moved the image view out of that wrapper. Replaced with the real class.
+
 ## [0.46.2] — 2026-09-13 — The vendor's onboarding card, off our bottom bars (patch)
 
 ### Fixed — a fixed panel the reserve could never reach

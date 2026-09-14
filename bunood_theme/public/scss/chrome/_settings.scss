@@ -1683,10 +1683,30 @@ html[data-theme] .bnd-cmp-compare:focus-visible {
   color: var(--text-muted);
   font-size: var(--text-xs);
 
-  // The button is a `.bnd-cbp-opt` so it inherits the picker's focus ring; it
-  // only needs to stop being a full-width chip inside this row.
+  // An ACTION, not an option chip — so it carries its own styling and its own
+  // ring rather than borrowing `.bnd-cbp-opt`, whose contract includes an
+  // `aria-pressed` state this button does not have.
   .bnd-dkp-mine-clear {
     flex: none;
     margin-inline-start: auto;
+    padding: var(--bnd-sp-1) var(--bnd-sp-3);
+    border: 1px solid var(--bnd-border);
+    border-radius: var(--bnd-radius-sm);
+    background: var(--bnd-surface);
+    color: var(--text-color);
+    font-size: var(--text-xs);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--bnd-border-strong);
+    }
   }
+}
+
+// The override note's action gets the same ring every control this file builds
+// gets. Its own class, because it is not an option chip — see the docblock in
+// theme_settings.js for why borrowing `.bnd-cbp-opt` was wrong.
+html[data-theme] .bnd-dkp-mine-clear:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
 }

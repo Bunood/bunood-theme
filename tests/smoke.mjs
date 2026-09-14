@@ -14373,6 +14373,66 @@ print("ok")
 			expectEq(w.max, "none", "no cap on the workspace column");
 			expect(Math.abs(w.main - w.section) <= 1, `workspace column ${w.main} == section ${w.section}`);
 		});
+
+		await test("body: a desk page and the print preview land on an edge too", async () => {
+			// THE FAMILY THE STRUCTURE-BASED RULES CANNOT SEE. Every other width
+			// rule hooks a list or a form; a `Page` is neither, so none of them
+			// reached it. Measured at 1920 with Balanced before the fix: the
+			// permission manager, the org chart, the sales funnel, stock balance,
+			// backups, team updates and our own inbox ALL rendered at 1910 — full
+			// bleed — on a desk whose every other surface was capped. That is the
+			// original complaint ("some modules use full width") surviving in the
+			// one place nobody had measured.
+			//
+			// The hook is the ROUTE'S SHAPE: a desk page's `body[data-route]` is a
+			// single segment, every governed surface carries more. The two
+			// immersive flows are excluded by name, and because neither renders on
+			// this site the exclusion is proved by swapping the attribute — the
+			// selector is the subject, not the page.
+			//
+			// Watched failing before: backups 1910, print preview 1633.
+			setSettings({ desk_width: "Balanced" });
+			await page.setViewportSize({ width: 1920, height: 1080 });
+			try {
+				const edges = async () =>
+					page.evaluate(() => {
+						const r = getComputedStyle(document.documentElement);
+						return {
+							content: Math.round(parseFloat(r.getPropertyValue("--bnd-content-w"))),
+							wide: Math.round(parseFloat(r.getPropertyValue("--bnd-wide-w"))),
+						};
+					});
+
+				await goDesk("/desk/backups", ".layout-main-section", 3000);
+				const e = await edges();
+				const m = await page.evaluate(() => {
+					const sec = document.querySelector(".layout-main-section");
+					const w = () => Math.round(sec.getBoundingClientRect().width);
+					const orig = document.body.getAttribute("data-route");
+					const out = { route: orig, page: w() };
+					// The exclusions, proved on the selector rather than on pages
+					// this site cannot render: swapping the route must RELEASE the
+					// cap, or the `:not()` arms are decoration.
+					for (const [key, val] of [["setupWizard", "setup-wizard"], ["pos", "point-of-sale"]]) {
+						document.body.setAttribute("data-route", val);
+						out[key] = w();
+					}
+					document.body.setAttribute("data-route", orig);
+					return out;
+				});
+				expectEq(m.page, e.wide, `a desk page takes the wide edge (${JSON.stringify(m)})`);
+				expect(m.setupWizard > e.wide + 4, `the setup wizard is left alone (${m.setupWizard})`);
+				expect(m.pos > e.wide + 4, `Point of Sale is left alone (${m.pos})`);
+
+				await goDesk("/desk/print/Item/BND-TEST-001", ".print-preview-wrapper", 3500);
+				const p = await page.evaluate(() =>
+					Math.round(document.querySelector(".print-preview-wrapper").getBoundingClientRect().width)
+				);
+				expectEq(p, e.content, "the print preview is a document, so it reads");
+			} finally {
+				await page.setViewportSize({ width: 1440, height: 900 });
+			}
+		});
 		const BODY_SCALE = { "Compact 13": ["13", 13], "Standard 14": ["14", 14], "Touch 16": ["16", 16] };
 		for (const [label, [slug, px]] of Object.entries(BODY_SCALE)) {
 			await test(`body: ${label} leads with the section head`, async () => {

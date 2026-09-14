@@ -94,9 +94,15 @@ html[data-bnd-body-width] body:not(.full-width) [data-page-route="query-report"]
 html[data-bnd-body-width] body:not(.full-width) [data-page-route="report"] .layout-main-section,
 html[data-bnd-body-width] body:not(.full-width) [data-page-route="dashboard-view"] .layout-main-section,
 html[data-bnd-body-width] body:not(.full-width) .layout-main-section > .dashboard-graph,
+// `.kanban` and the image view both sit INSIDE `.frappe-list`, which the first
+// selector above already catches — measured at 1400 on both. They stay as
+// explicit arms so coverage does not depend on Frappe continuing to wrap them.
+// `.gallery-view` was replaced rather than kept: no such class exists in Frappe
+// (the image view renders `.image-view-container`), so that arm had never
+// matched anything and was coverage on paper only.
 html[data-bnd-body-width] body:not(.full-width) .kanban,
 html[data-bnd-body-width] body:not(.full-width) .fc,
-html[data-bnd-body-width] body:not(.full-width) .gallery-view {
+html[data-bnd-body-width] body:not(.full-width) .image-view-container {
   max-inline-size: var(--bnd-wide-w);
   margin-inline: auto;
 }
@@ -129,6 +135,47 @@ html[data-bnd-body-width] body:not(.full-width) .layout-main-section > .bnd-doch
 html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.frappe-control[data-fieldtype="Table"]),
 html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.form-grid) {
   max-inline-size: var(--bnd-wide-w);
+}
+
+// ── DESK PAGES: the family the structure-based rules cannot see ─────────────
+//
+// A `Page` is neither a list nor a form, so every rule above misses it by
+// construction. Measured at 1920 with Balanced: the permission manager, the org
+// chart, the sales funnel, stock balance, backups, team updates and our own
+// inbox all rendered at 1910 — full bleed — on a desk whose every other surface
+// was capped. That is the original complaint ("some modules use full width")
+// surviving in the one place nobody had measured.
+//
+// THE HOOK IS THE ROUTE'S SHAPE, not a list of page names. Frappe writes the
+// route to `body[data-route]`, and a desk page's route is a SINGLE segment
+// (`backups`) while every governed surface carries more (`List/Item/List`,
+// `Form/Item/…`, `Workspaces/Home`, `print/Item/…`). So `:not([data-route*="/"])`
+// selects exactly the pages and cannot go stale when an app adds one — the
+// alternative was a blocklist of route prefixes, which is the same fact in two
+// places and goes wrong the first time somebody ships a new view type.
+//
+// THE WIDE EDGE, because a desk page is a TOOL: tables, charts, trees, filters.
+// It belongs with the list and the report, not with the form.
+//
+// TWO PAGES ARE DELIBERATELY LEFT ALONE. The setup wizard and Point of Sale are
+// immersive full-screen flows, not desk surfaces — a 1400px column inside a
+// 1920px screen is wrong for both. Named rather than pattern-matched: there are
+// two, and a reader deserves to see which.
+html[data-bnd-body-width] body:not(.full-width)[data-route]:not([data-route*="/"]):not([data-route="setup-wizard"]):not([data-route="point-of-sale"]) .layout-main-section {
+  max-inline-size: var(--bnd-wide-w);
+  margin-inline: auto;
+}
+
+// ── The print preview is a DOCUMENT, so it reads ────────────────────────────
+//
+// `/desk/print/<doctype>/<name>` renders a paper sheet in a wrapper that took the
+// whole column (1633px at 1920, measured). It is the one desk surface whose
+// content is literally a page you read, so it takes the reading edge rather than
+// the wide one — the same call the form's own sections get. Its route has
+// segments, so the page rule above does not reach it; matched by prefix instead.
+html[data-bnd-body-width] body:not(.full-width)[data-route^="print/"] .print-preview-wrapper {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
 }
 
 // ── Type: the set the body renders in ────────────────────────────────────────

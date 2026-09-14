@@ -2433,6 +2433,26 @@ reproduces is not a transient. Probe the page for a modal before assuming.
   The reason it was worth doing: item 43 shipped a width setting that reached two of seven
   families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
   A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
+- **A width rule that hooks STRUCTURE cannot see a desk page, and desk pages are a whole
+  family.** Every rule in `_body.scss` keys on a list or a form; a `Page` is neither, so the
+  permission manager, the org chart, the sales funnel, stock balance, backups, team updates and
+  this theme's own inbox all rendered FULL BLEED (1910 at 1920) while every other surface was
+  capped — the exact complaint item 45 exists to answer, surviving in the one family nobody had
+  walked. **When you add a width rule, ask which families it cannot reach by construction**, not
+  only which selectors it names. The hook that does reach them is the route's SHAPE:
+  `body[data-route]` is a single segment for a desk page and carries more for every governed
+  surface, so `:not([data-route*="/"])` selects exactly the pages and cannot go stale when an
+  app ships a new one — a blocklist of route prefixes would have.
+- **Test a rule whose subject does not exist by testing the SELECTOR.** The setup wizard and
+  Point of Sale are excluded from the page cap by name, and neither renders on this bench. The
+  check swaps `body[data-route]` to each name and asserts the cap RELEASES (1400 → 1910). That
+  is honest coverage of the exclusion; asserting nothing because the page is absent would have
+  been a `:not()` nobody ever ran.
+- **`.gallery-view` never existed.** The image view renders `.image-view-container`. The rule
+  measured correctly anyway because the image view sits inside `.frappe-list`, which the
+  wide-edge rule catches — coverage on paper, and it would have gone silently uncapped the day
+  Frappe moved that wrapper. **A selector nothing matches is not a harmless line**; it is a
+  claim of coverage that no check was asking about.
 - **The bottom reserve keeps CONTENT clear of our bars; it cannot reach a `position:
   fixed` vendor panel.** Frappe's onboarding card is fixed at `z-index: 1000` against our
   bottom chrome's 990, so it sat on the status bar (with the pinned foot off entirely) and

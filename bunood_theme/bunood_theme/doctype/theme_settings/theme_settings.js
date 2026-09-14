@@ -5534,6 +5534,14 @@ const BND_DESK_GROUPS = [
  * person it is true for still has to work out that it is about them. This
  * appears only while an override is actually in force, names the value, and
  * carries the single gesture that clears it.
+ *
+ * THE BUTTON IS NOT A `.bnd-cbp-opt`, and the first cut made it one to borrow
+ * the picker's focus ring. That class is what the a11y check gathers when it
+ * requires `aria-pressed` on every option chip — correct for a chip, wrong
+ * here: this button has no pressed state, it performs an action and then stops
+ * existing. It carries its own class and its own ring instead. The defect hid
+ * through two full suites because the note only renders while an override is
+ * in force, and no run happened to have one.
  */
 function bnd_desk_mine_note(mine) {
 	return (
@@ -5541,7 +5549,7 @@ function bnd_desk_mine_note(mine) {
 		"<span>" +
 		bnd_esc(__("Your own width ({0}) is overriding this on your desk.", [__(mine)])) +
 		"</span>" +
-		'<button type="button" class="bnd-cbp-opt bnd-dkp-mine-clear">' +
+		'<button type="button" class="bnd-dkp-mine-clear">' +
 		bnd_esc(__("Follow the site")) +
 		"</button>" +
 		"</div>"
