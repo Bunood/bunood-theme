@@ -468,6 +468,7 @@ html[data-theme] .bnd-crumb-chip {
 
 html[data-bnd-own~=search] .body-sidebar .navbar-search-bar,
 html[data-bnd-own~=search] .desktop-navbar .desktop-search-wrapper,
+html[data-bnd-own~=panesearch] .desktop-navbar .desktop-search-wrapper,
 html[data-bnd-own~=bell] .body-sidebar .sidebar-notification,
 html[data-bnd-own~=bell] .desktop-navbar .desktop-notifications,
 html[data-bnd-own~=user] .body-sidebar .sidebar-user-button,
@@ -475,7 +476,8 @@ html[data-bnd-own~=user] .desktop-navbar .desktop-avatar {
   display: none;
 }
 
-html[data-bnd-own~=search][data-bnd-own~=panehead][data-bnd-own~=bell][data-bnd-own~=user] .desktop-navbar {
+html[data-bnd-own~=search][data-bnd-own~=panehead][data-bnd-own~=bell][data-bnd-own~=user] .desktop-navbar,
+html[data-bnd-own~=panesearch][data-bnd-own~=panehead][data-bnd-own~=bell][data-bnd-own~=user] .desktop-navbar {
   display: none;
 }
 

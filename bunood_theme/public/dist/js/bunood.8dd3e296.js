@@ -952,7 +952,7 @@
 		apply_chrome_off();
 
 		// `panehead` joins them (item 40); see _layouts.scss.
-		for (const token of ["search", "bell", "user", "panehead", "panetoggle"]) bnd_disown(token);
+		for (const token of ["search", "panesearch", "bell", "user", "panehead", "panetoggle"]) bnd_disown(token);
 
 		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
 			if (container_on(key)) continue;
@@ -2546,6 +2546,11 @@
 		// The kit skipped a pane that was hidden when it mounted (HOSTS.sidepane answers
 		// null then), so a pane shown here would stay undressed: dress it now. Idempotent.
 		if (typeof mount_sidebar_kit === "function") mount_sidebar_kit();
+		// ...and RE-RESOLVE search: resolved while the pane was hidden it lent itself
+		// to the page head, which this page keeps hidden — a search nobody could reach,
+		// and the pane's own row hidden under the token (measured 2026-09-14, once in
+		// twelve loads). Resolved again with the pane shown it is the pane's row.
+		if (typeof mount_search === "function") mount_search();
 	}
 
 	function update_desktop_mode() {
@@ -4700,6 +4705,30 @@ function sb_zone_anchor(pane, zone, node) {
 		}, 20 * 150 + 100);
 	}
 
+	/**
+	 * A pane-placed search is Frappe's own row, revealed — no `search` token, by
+	 * design (below). The desk page's strip carries a second search, and the
+	 * polarity rule needs an OUTCOME to hide it from: this token says the pane's
+	 * row is in the document and on screen, nothing more. A hidden pane releases
+	 * it and the strip's search is the desk page's again — _layouts.scss.
+	 */
+	function claim_panesearch() {
+		if (sb_pane_hidden()) {
+			bnd_disown("panesearch");
+			return;
+		}
+		try_for(() => {
+			if (sb_pane_hidden()) {
+				bnd_disown("panesearch");
+				return true;
+			}
+			const row = document.querySelector(".body-sidebar .navbar-search-bar");
+			if (!row || !row.getClientRects().length) return false;
+			bnd_own("panesearch");
+			return true;
+		}, 20);
+	}
+
 	/** Place the field (or reveal the native row) for a resolved slot. */
 	function mount_search_at(slot) {
 		const html = document.documentElement;
@@ -4712,6 +4741,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (slot === "sbtop" || slot === "sbbottom") {
 			for (const stray of document.querySelectorAll(".bnd-search-field, .bnd-search-icon")) stray.remove();
 			bnd_disown("search");
+			claim_panesearch();
 			return;
 		}
 
@@ -4726,6 +4756,7 @@ function sb_zone_anchor(pane, zone, node) {
 				host.insertBefore(build_search_icon(), host.firstChild);
 			}
 			bnd_own("search");
+			bnd_disown("panesearch");
 			return;
 		}
 		for (const stray of document.querySelectorAll(".bnd-search-icon")) stray.remove();
@@ -4752,6 +4783,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// that hides Frappe's own search row, so it must not run a moment
 		// earlier than the replacement actually existing.
 		bnd_own("search");
+		bnd_disown("panesearch");
 	}
 
 	// ── Top bar ─────────────────────────────────────────────────────────────

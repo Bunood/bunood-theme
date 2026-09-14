@@ -6064,6 +6064,7 @@ print("ok")
 						own: document.documentElement.getAttribute("data-bnd-own") || "",
 						navbar: vis(".desktop-navbar"),
 						deskSearch: vis(".desktop-navbar .desktop-search-wrapper"),
+				paneRow: vis(".body-sidebar .navbar-search-bar"),
 						deskLogo: vis(".desktop-navbar .navbar-home"),
 						deskBell: vis(".desktop-navbar .desktop-notifications"),
 						deskAvatar: vis(".desktop-navbar .desktop-avatar"),
@@ -6083,7 +6084,10 @@ print("ok")
 				await page.waitForFunction(() => document.querySelector('.body-sidebar .bnd-sb-band [data-bnd-part="user"]'), null, { timeout: 15000 }).catch(() => {});
 				const a = await read();
 				expect(a.ourBell && a.ourUser, `ours sit in the pane's foot (${JSON.stringify(a)})`);
-				expect(/\bbell\b/.test(a.own) && /\buser\b/.test(a.own) && /\bsearch\b/.test(a.own) && /\bpanehead\b/.test(a.own), `all four tokens are stamped (${a.own})`);
+				// Search placed in the pane is Frappe's OWN row, revealed — it owns no
+				// `search` token by design; `panesearch` says that row is on screen.
+				expect(/\bbell\b/.test(a.own) && /\buser\b/.test(a.own) && /\bpanesearch\b/.test(a.own) && /\bpanehead\b/.test(a.own), `all four tokens are stamped (${a.own})`);
+				expect(a.paneRow, "and the pane's search row is the search here — on screen, not lent to a hidden page head");
 				expectEq(a.deskBell, false, "so the desktop navbar's bell stands down");
 				expectEq(a.deskAvatar, false, "and its avatar menu with it");
 				// ...and the rest of that strip (2026-09-14, "what else"): its search for

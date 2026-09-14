@@ -24,6 +24,37 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.6] — 2026-09-14 — The desk page's strip: the pane's own search counts (patch)
+
+**Found on production minutes after v0.46.5 shipped, by looking:** the All Apps page still
+carried the strip's search bar, and its strip. v0.46.5 keyed both on the `search` token —
+and a search placed in the pane is Frappe's own row, revealed, which by design owns no
+token (`mount_search_at`: "the native row IS the search there"). So the rule could never
+fire for the placement production uses. The local check had passed on a race: resolved while
+Frappe still hid the pane, the search lent itself to the page head — which this page keeps
+hidden — and was owned there, a search nobody could reach with the pane's row hidden under
+the token. Once in a dozen loads, and the check's load was one.
+
+### Fixed
+
+- **`panesearch`, an outcome-backed token for the pane's search row** — stamped only while
+  that row is in the document and on screen, released when the pane is Hidden — lets the
+  strip's search and the emptied strip stand down under the same polarity as everything
+  else. The bar and dock placements release it beside their own `search` claim; the chrome
+  release list carries it.
+- **The desk-page hook re-resolves search once it shows the pane**, so a search that lent
+  itself to the hidden head moves back into the pane; the check now also asserts the pane's
+  row is on screen, which is what turns the race into a failure.
+
+### Checks
+
+`sidepane: the desk page's own bell and avatar stand down for ours` asserts `panesearch` and
+the pane row's visibility. Full run: TALLY_PENDING.
+
+### Payload
+
+js_gzip 130,812 → 131,176 (ceiling 131,000 → 131,400).
+
 ## [0.46.5] — 2026-09-14 — "What else": the desk page's whole strip, the false friends made effective, a quick-links setting (patch)
 
 **The user, after v0.46.4's report listed what was still open: *"do all of these."*** Four
