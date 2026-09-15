@@ -167,3 +167,45 @@ html[data-theme="dark"] {
 html[data-bnd-sb-panestate="open"]:not([data-bnd-narrow]) .body-sidebar-container {
   --sidebar-width: var(--bnd-sb-w);
 }
+
+// ── The second LENGTH, and it earns its place the same way (item 43 A1):
+// `--page-max-width` is FRAPPE'S name. It caps `.section-body`, `.form-footer`,
+// `.form-section-description` and the workspace `.layout-main` at 900px with
+// `margin: auto !important` (desk/form.scss:88-96, 464-468), while the theme's
+// section card spans the whole column — the census measured a 1126px card
+// around a 900px body, 97px of dead card each side. The item-40 lesson applies
+// one for one: FEED the vendor's variable, never set a second width on our
+// card. Declared on `html`, where the vendor's own `:root` declares it, at one
+// attribute more weight; `body.full-width` (Frappe's own toggle) never read
+// the variable and keeps working. Absent attribute = the vendor's 900.
+//
+// ONE RULE NOW, NOT ONE PER VALUE (item 45): the pair of measures is declared
+// per value in surfaces/_body.scss, so the bridge only has to say WHICH of the
+// two the vendor's variable follows. It follows the READING edge, because the
+// three things Frappe caps with it — the section body, the form footer and the
+// section description — are all things you read. The workspace also reads it
+// and is re-pointed at the wide edge in _body.scss, where that argument lives.
+html[data-bnd-body-width] {
+  --page-max-width: var(--bnd-content-w);
+}
+
+// ── The primary button (item 43 A1). Frappe's `.btn.btn-primary` reads
+// `--btn-primary` (common/css_variables.scss:99, `--gray-900`), which this
+// bridge deliberately left unmapped — "a branding gap, not a contrast one",
+// above. `desk_primary` closes it as a choice: under Brand the fill is the
+// gated `--bnd-brand-solid`, and surfaces/_body.scss paints the ink from its
+// pair token `--bnd-on-brand`, because the vendor's ink is `--neutral` — white
+// in light, near-black in dark — the wrong one in one mode for any fill but
+// theirs. Under Black the button stays the vendor's.
+html[data-bnd-body-primary="brand"] {
+  --btn-primary: var(--bnd-brand-solid);
+}
+
+// ── The form sidebar's image well (item 43 A5). `--form-sidebar-image-width`
+// is FRAPPE'S name (desk/form_sidebar.scss:3, declared on :root, 80px); it
+// sizes the photo AND the letter avatar. The inspector rail brings the well
+// down to a thumb on the name's row by feeding the variable, on the same
+// element at more weight — never a second width beside theirs.
+html[data-bnd-form][data-bnd-form-side="rail"] {
+  --form-sidebar-image-width: var(--bnd-form-thumb);
+}

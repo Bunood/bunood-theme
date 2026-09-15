@@ -15,7 +15,7 @@
 (slice 7) · `e2736cc` (slices 9/S/I/B) · `c3cfea1` (slices 10/11). The account is in
 CHANGELOG `[0.42.0]`; ROADMAP item 42 is `[x]`. What shipped, in one breath: five desk
 shapes with `LAYOUT_PANE` as the catalogue's third half; the three-state pane (Open ·
-Rail · Hidden) with its start button and floating pill — **v0.42.1 (2026-09-04) replaced the pill with the brand in the page head, lent a hidden pane's tenants to that head, made the rail an icon rail, drew search as a bar and removed Shortcuts; CHANGELOG `[0.42.1]`**; **v0.42.2 (2026-09-06) re-collected `upstream-pins.json` from the production image (frappe 16.33.0 / erpnext 16.34.1 / hrms / crm / helpdesk / telephony / payments / ksa_compliance 0.61.7 / bunood_real_estate 1.4.0), restored the pane's hide button after MrBrokenrightArm's overhaul merge, and made deploy.sh's worker containers optional; production (`Bunood/bunood_erpnext` on Coolify, root@91.98.27.11) had been down since 09-04 from an image-pull race and was restarted by hand — CHANGELOG `[0.42.2]`**; **v0.42.3 (2026-09-06): production's one-shot upgrade from v0.39.1 aborted in `v0_40_0.retire_manual_collapse` (`get_single_value` on the field item 42 removed) — both item-40 patches now read `tabSingles` with raw SQL; production migrated to completion after an in-place repair; the site runs frappe 16.33.0 / erpnext 16.34.1 with helpdesk installed at last — CHANGELOG `[0.42.3]`**; **v0.42.4 (2026-09-06): MAIN RETURNED TO THE v0.42.1 LINE — MrBrokenrightArm's overhaul (37 commits, 148 files; it had overridden the icon rail, doubled the pane toggle and painted the place row as a brand pill) is preserved intact on branch `overhaul-v2` (tip `9c6aea4`, with v0.42.2/v0.42.3 on top) for an integration item the next session plans; `61936fc` (menu alignment, the module's original icon in the place row), the deploy.sh worker hunk and the item-40 patch fixes were carried over; the pins gate left with the overhaul; the full suite at `9c6aea4` read 493/515 on the production-shaped bench (14 of 22 are the overhaul's checks on an unseeded site; the other eight are listed in CHANGELOG `[0.42.4]` and owed a look on this line); production redeployed on it the same night (image `5bc45a8…`, migrate clean, looked at) — CHANGELOG `[0.42.4]`**; **v0.44.0 (2026-09-06): ITEM 44 — the language switch (a globe by default; Code / Name / Globe + Code / Globe + Name; a toggle to the other language when two are enabled, a menu when more; `api.set_language` validates against Frappe's Enabled flag and the desk reloads) and the Appearance button, both placeable tenants defaulting to Bottom Bar End AFTER the avatar, beside the density segment the bar draws at its trailing edge; the avatar menu keeps a language entry; the rail FLYOUT's foot band fixed (its column keyed on the state alone — the user's Arabic screenshot); seven checks + one; drawn round at [Language Switch Round](https://claude.ai/code/artifact/e819c7ab-029b-4e14-8c13-32e3d23ceed4); full suite 479/485 at `02ec4a1` — two of the item's own fixed in the follow-up, four are frappe-16.33 bench debts (i18n merged dict, kanban tint, the forked email template's hash, the email preview's crash path) listed in CHANGELOG `[0.44.0]`; tagged and pushed 2026-09-07, production deployed the same morning (image `b511778…`, migrate clean, looked at; the bell/avatar/search sit in the pane there because the Administrator moved them from a browser at 03:53 site time, before the deploy) — CHANGELOG `[0.44.0]`**; **v0.44.1 (2026-09-08): the pane made to hold — a critical tenant whose region the desk lacks falls back to the pane's foot (or the page head when Hidden) instead of failing open to Frappe's own rows; loose rows share one headerless card under Cards; a section's collapsed state is mirrored under a language-independent key and re-applied after every list build; three checks, each watched failing on the user's own reproduction (the Users workspace, en + ar); the critical-reach guard's un-hide made durable for the session; a lend cluster's "Center" lands at its end (the switch matrix); the shell's live apply learned the two item-44 tenants — CHANGELOG `[0.44.1]`**; **v0.44.2 (2026-09-08): the switch offers the languages CHOSEN in Theme Settings (`language_choices`, a chip picker over the enabled Language list; shipped pair `ar,en`; `language.offered_languages` serves boot and validates the endpoint) instead of Frappe's install-time flag, and the pane stays on the All Apps desk page (the kit clears Frappe's `hide_sidebar` on page-change); three checks; full run 487/491 at the follow-up commit (484 at the release commit) — the four misses are bench debts on frappe 16.33; three suite repairs landed in the follow-up (the last-container contract, a `[lang]` exemption in the msgid guard, the cross-language check's User write under a short lock wait) — CHANGELOG `[0.44.2]`**; six pane surfaces and four icon
+Rail · Hidden) with its start button and floating pill — **v0.42.1 (2026-09-04) replaced the pill with the brand in the page head, lent a hidden pane's tenants to that head, made the rail an icon rail, drew search as a bar and removed Shortcuts; CHANGELOG `[0.42.1]`**; **v0.42.2 (2026-09-06) re-collected `upstream-pins.json` from the production image (frappe 16.33.0 / erpnext 16.34.1 / hrms / crm / helpdesk / telephony / payments / ksa_compliance 0.61.7 / bunood_real_estate 1.4.0), restored the pane's hide button after MrBrokenrightArm's overhaul merge, and made deploy.sh's worker containers optional; production (`Bunood/bunood_erpnext` on Coolify, root@91.98.27.11) had been down since 09-04 from an image-pull race and was restarted by hand — CHANGELOG `[0.42.2]`**; **v0.42.3 (2026-09-06): production's one-shot upgrade from v0.39.1 aborted in `v0_40_0.retire_manual_collapse` (`get_single_value` on the field item 42 removed) — both item-40 patches now read `tabSingles` with raw SQL; production migrated to completion after an in-place repair; the site runs frappe 16.33.0 / erpnext 16.34.1 with helpdesk installed at last — CHANGELOG `[0.42.3]`**; **v0.42.4 (2026-09-06): MAIN RETURNED TO THE v0.42.1 LINE — MrBrokenrightArm's overhaul (37 commits, 148 files; it had overridden the icon rail, doubled the pane toggle and painted the place row as a brand pill) is preserved intact on branch `overhaul-v2` (tip `9c6aea4`, with v0.42.2/v0.42.3 on top) for an integration item the next session plans; `61936fc` (menu alignment, the module's original icon in the place row), the deploy.sh worker hunk and the item-40 patch fixes were carried over; the pins gate left with the overhaul; the full suite at `9c6aea4` read 493/515 on the production-shaped bench (14 of 22 are the overhaul's checks on an unseeded site; the other eight are listed in CHANGELOG `[0.42.4]` and owed a look on this line); production redeployed on it the same night (image `5bc45a8…`, migrate clean, looked at) — CHANGELOG `[0.42.4]`**; **v0.44.0 (2026-09-06): ITEM 44 — the language switch (a globe by default; Code / Name / Globe + Code / Globe + Name; a toggle to the other language when two are enabled, a menu when more; `api.set_language` validates against Frappe's Enabled flag and the desk reloads) and the Appearance button, both placeable tenants defaulting to Bottom Bar End AFTER the avatar, beside the density segment the bar draws at its trailing edge; the avatar menu keeps a language entry; the rail FLYOUT's foot band fixed (its column keyed on the state alone — the user's Arabic screenshot); seven checks + one; drawn round at [Language Switch Round](https://claude.ai/code/artifact/e819c7ab-029b-4e14-8c13-32e3d23ceed4); full suite 479/485 at `02ec4a1` — two of the item's own fixed in the follow-up, four are frappe-16.33 bench debts (i18n merged dict, kanban tint, the forked email template's hash, the email preview's crash path) listed in CHANGELOG `[0.44.0]`; tagged and pushed 2026-09-07, production deployed the same morning (image `b511778…`, migrate clean, looked at; the bell/avatar/search sit in the pane there because the Administrator moved them from a browser at 03:53 site time, before the deploy) — CHANGELOG `[0.44.0]`**; **v0.44.1 (2026-09-08): the pane made to hold — a critical tenant whose region the desk lacks falls back to the pane's foot (or the page head when Hidden) instead of failing open to Frappe's own rows; loose rows share one headerless card under Cards; a section's collapsed state is mirrored under a language-independent key and re-applied after every list build; three checks, each watched failing on the user's own reproduction (the Users workspace, en + ar); the critical-reach guard's un-hide made durable for the session; a lend cluster's "Center" lands at its end (the switch matrix); the shell's live apply learned the two item-44 tenants — CHANGELOG `[0.44.1]`**; **v0.44.2 (2026-09-08): the switch offers the languages CHOSEN in Theme Settings (`language_choices`, a chip picker over the enabled Language list; shipped pair `ar,en`; `language.offered_languages` serves boot and validates the endpoint) instead of Frappe's install-time flag, and the pane stays on the All Apps desk page (the kit clears Frappe's `hide_sidebar` on page-change); three checks; full run 487/491 at the follow-up commit (484 at the release commit) — the four misses are bench debts on frappe 16.33; three suite repairs landed in the follow-up (the last-container contract, a `[lang]` exemption in the msgid guard, the cross-language check's User write under a short lock wait) — CHANGELOG `[0.44.2]`**; **v0.45.0 (item 43) and v0.46.0–v0.46.3 (item 45) are in CHANGELOG, not in this chain**; **v0.46.4 (2026-09-14): four reports from the desk — the desk page's own bell/avatar owned (Frappe's desktop navbar; natives comma-joined in the registry), the rail's placeholder sized to the rail (its 220px flow reserve had opened the flyout 90px out), the start pill = the brand and goes home (the page head keeps the way back beside it), and quick links as flyouts per module in the head menu (the pick of three drawn; derived from each workspace's sidebar, permission-checked) — CHANGELOG `[0.46.4]`**; **v0.46.5 (2026-09-14, "do all of these"): the desk page's whole navbar stands down piece by piece (search, logo, then the strip), the 29 argued false friends are DEFENDED on migrate through Translation rows from `locale/false_friends.json` (17 had been losing the install-order merge; Ledger/Center/Display stay undefended and owe a context), and `panehead_quick_links` (Off / Brief / Standard / Full) sizes the flyouts — CHANGELOG `[0.46.5]`**; **v0.46.6 (2026-09-14): the strip's search stands down from `panesearch`, a token stamped while the pane's own search row is on screen (a pane-placed search owns no `search` token by design, so v0.46.5's rule never fired on production), and the desk-page hook re-resolves search after showing the pane — CHANGELOG `[0.46.6]`**; six pane surfaces and four icon
 styles, both catalogues MEASURED rather than chosen; the Counts badge refitted; a Desk
 parts page on the settings Overview; the switch matrix over every layout × every switch
 × every pane state. Refused with a reason: Monogram (it is `icon_source: Letters` under
@@ -36,6 +36,19 @@ another field's name).
   `removeChild`. It needs a chart to have died first — no isolated probe reproduces it,
   four consecutive full runs did. `retire()` in the chart kit unbinds it; the pageerror
   capture keeps four frames now so a recurrence names its caller.
+  **SETTLED 2026-09-10, and the guard had never been installed.** The four frames finally
+  reached the log (the console budget PRINTS its evidence now — the failure printer cuts
+  any thrown message at 300 characters, which had been silently truncating the frames off
+  the end of the string built to carry them), and they named
+  `ResizeObserver.boundDrawFn -> draw -> makeChartArea`. Reproduced at last, two arms:
+  viewport churn on `/desk/dashboard-view/*` throws once, and the composer's compare strip
+  over a dashboard — four scaled desks animating charts while the host resizes their clips
+  — throws eight times. Then the real finding: `frappe.Chart` is a FACTORY and does not own
+  `makeChartArea`, so `NativeChart.prototype.makeChartArea` read `undefined`, the patch's
+  own `typeof === "function"` guard declined, and the wrap was dead from the day it was
+  written. `guard_chart_area` walks a real instance's prototype chain instead. Eleven
+  throws became zero. **The lesson generalises: a guard whose branch is false is UNTESTED,
+  not working — and that applies to a patch's INSTALLER as much as to the patched code.**
 - **Icon inference precedence was backwards** (doctype map and keyword pass both outranked
   the row's own icon); a `Workspace Sidebar Item.icon` is a BARE v16 sprite name, not a fa
   class, and `sprite_for_fa` answered None for every one silently. 407 rows resolved →
@@ -716,6 +729,15 @@ There is STILL no v0.33.0
   speculatively, proposed `Split` → `انشق، مزق` ("torn, ripped") for a login LAYOUT POLE
   and `Theme` → `موضوع` ("topic", not a visual theme). That ledger is curated against
   false friends; regenerating it wholesale is not the no-op its name suggests.
+  **Regenerated deliberately 2026-09-10 (item 43's release):** the stack had grown from
+  three apps to nine since the last run, and 82 of our authored rows were silently
+  overriding upstream desk-wide. 149 collisions, 27 rejected in the tool's `REJECT` map
+  with a reason each (17 new: Light, Dark, Theme, Split, Original, Records, Show, Solid…),
+  122 inherited. Two facts that took the day: **the inherited set is applied at EMIT
+  time** (`i18n_po.mjs emit` drops those msgids; the PO keeps every authored decision, so
+  a string upstream stops translating ships again by itself), and **frappe 16.33 carries
+  `Alert` only under a msgctxt**, which a bare `__("Alert")` cannot reach — our row is
+  back. The 17 new rejections were argued by the assistant; they await the user's eye.
 - **A `perl -0pi` WITH `\x{...}` RE-ENCODED A WHOLE FILE.** `theme_settings.js` came back
   with 2,578 mojibake sequences — every em-dash and ellipsis — and **`node --check` passed
   on it**, because it was still valid JavaScript. A parse check does not detect encoding
@@ -901,8 +923,9 @@ IN · four poles** (`Bare` drawn and dropped in the round). Facts worth keeping:
 - **`SETTINGS_PANE_KEYS` IS DERIVED NOW.** Item 31 found the hole in an adversarial review,
   back-filled its own key and left it open: measured here, the list still omitted
   `workspace`, `chart`, `report`, `views`, `overlay`, `empty` and `skeleton` — seven kits
-  never walked by the axe gate OR the accessible-name walk. The suite reads
-  `.bnd-shell-item[data-key]` off the shell.
+  never walked by the axe gate OR the accessible-name walk. The suite read
+  `.bnd-shell-item[data-key]` off the shell; since item 43 B1 it reads the rendered
+  `.form-section`s (`settingsSectionKeys`), the same hole closed from the other side.
 - **THREE TOOLS WOULD HAVE MISHANDLED A SECOND CSS FILE, SILENTLY.** `payload.mjs` took
   `find(f => f.startsWith("bunood."))` (one file per directory; `bunood-web.*` matched
   nothing, so it would have been measured by nothing) — now a bucket table with per-key
@@ -1430,7 +1453,7 @@ Shipped this session, all committed, all verified:
 | | what |
 |---|---|
 | **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,656 pairs over 11 seeds × 2 modes in CI (1,080 at this item's own release; item 22 added the sidebar pill/mark/stand-down rows) |
-| **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands |
+| **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands. *Retired in item 43 B1 (2026-09-08): the page is one scroll of cards in importance order, and the map lives in the desk's side pane — see §6* |
 | **Rework 1c step 3** | The shared desk diagram as the placement control, plus the Overview |
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
 | **Tooling** | `npm run deploy`, `npm run contrast`, `tools/session.mjs` |
@@ -1586,7 +1609,7 @@ What that work needed, kept for the next surface kit:
   suite family). Diff against whichever kit is closer; both headers carry the
   same five-block contract. Six more edits live outside that list and are
   easy to miss: `build.mjs` FIELD_PREFIXES, the sweep's CRUMBS_ONLY **and**
-  IMPLICIT, `bunood.scss`'s `@use`, the shell nav entry + `BND_SHELL_OWNS`
+  IMPLICIT, `bunood.scss`'s `@use`, the settings map entry (`BND_SETTINGS_GROUPS`) + `BND_SETTINGS_OWNS`
   prefix, the export **and** import field lists, and MUTABLE_FIELDS.
 * **Probe BEFORE designing, and probe the CASCADE too.** Item 15 (was 16) taught
   "probe the DOM"; item 16 (was 18) added "probe the rules". Both of its defects were
@@ -2033,7 +2056,7 @@ check that was verified by putting the defect back and watching it turn red.
   surfaces against surfaces; a contrast ratio between two near-neighbours has no floor
   anyone can calibrate.
 - **THE BUILDER IS IN THE `placement` PANE, NOT `layout`.** Guessing cost a run: the
-  shell keeps EVERY pane mounted and hides all but the current one, so
+  shell (retired in item 43 B1) kept EVERY pane mounted and hid all but the current one, so
   `waitForSelector(".bnd-bd-desk")` resolved it 33 times as hidden and then timed out.
   The check waits on `state: "visible"`. Watched to fail at exactly 4 channels with
   `--bnd-raised`.
@@ -2087,7 +2110,7 @@ probes before it existed; do not write a ninth.
 ```js
 import { openDesk, goto, benchPy, settingsDrift, setSettings } from "./tools/session.mjs";
 const { page, close, errors } = await openDesk();
-await goto(page, "/desk/theme-settings", ".bnd-shell");  // shell is the default
+await goto(page, "/desk/theme-settings", ".bnd-cbp");  // one scroll of cards; the map is in the side pane (item 43)
 ```
 
 | constant | value |
@@ -2381,18 +2404,182 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 - `tools/contrast_gate.py` + `tools/contrast.mjs` — the gate and its launcher.
 - `tools/deploy.sh` — the whole deploy, including the WSL mirror.
 - `tools/session.mjs` — stack constants + authenticated browser session.
-- `theme_settings.js` — the shell (`bnd_shell_*`), bands (`P.zone`, `bnd_bands`),
-  the desk diagram (`bnd_desk_diagram`, `BND_DESK_GEOM`, `BND_DESK_SLOTS`,
-  `bnd_region_blocker`), the Overview (`bnd_render_overview`).
+- `theme_settings.js` — the settings map's bands (`BND_SETTINGS_GROUPS`,
+  `bnd_settings_rows` → `bunood_theme.map_sync`; the map itself is `sb_mount_map` in
+  `bunood.js`), bands inside pickers (`P.zone`, `bnd_bands`), the desk diagram
+  (`bnd_desk_diagram`, `BND_DESK_GEOM`, `BND_DESK_SLOTS`, `bnd_region_blocker`), the
+  Overview (`bnd_render_overview`), the Compose card (`bnd_render_compose_picker`), and
+  the composer (item 43 C1–C4): the mode (`bnd_compose_wanted`, latched per document),
+  the rail (`BND_COMPOSER_ZONES` × `bnd_composer_catalogue()`, `bnd_composer_sync` on the
+  dirty tick), the stage (`bnd_composer_build_stage`, `bnd_composer_push_frame` — the seam
+  that hands a frame's engine the form's values), the strip (`BND_COMPOSER_FOCUS`,
+  `bnd_composer_touch`, cells loaded in turn) and the server's page list.
+  **A frame never boots inside a hidden page** (`bnd_composer_shown`): Frappe caches the
+  outgoing page `display:none`, a frame that navigates there is 0px wide, `frappe.is_mobile()`
+  reads that as a phone and writes `sidebar-expanded=false` into the storage the frames SHARE
+  with the desk — every later fresh load then boots with a collapsed pane. Navigation and the
+  cell queue refuse while hidden; Frappe's own `show` sends both back
+  (`api.composer_pages`).
 
 ### Design rules that are load-bearing
 
+- **The desk has TWO edges, and every surface sits on one of them.** `desk_width` is not one
+  measure with four names — each value carries a reading edge (`--bnd-content-w`) and a wide edge
+  (`--bnd-wide-w`), because a form is read and a table is scanned and one number cannot serve
+  both. Reading: forms, the settings page, the document band. Wide: lists, reports, dashboards,
+  charts, kanban, calendar, gallery, the workspace, and any section holding a child table.
+  **Adding a surface means assigning it an edge** — a surface on neither is the defect this
+  replaced, and `body: every surface lands on one of the two edges` fails if one appears.
+  The reason it was worth doing: item 43 shipped a width setting that reached two of seven
+  families, so *using* it widened the spread between surfaces from 305px to 513px at 1920.
+  A section asks for the wide edge by what it CONTAINS (`:has(.form-grid)`), never by a setting.
+- **A width rule that hooks STRUCTURE cannot see a desk page, and desk pages are a whole
+  family.** Every rule in `_body.scss` keys on a list or a form; a `Page` is neither, so the
+  permission manager, the org chart, the sales funnel, stock balance, backups, team updates and
+  this theme's own inbox all rendered FULL BLEED (1910 at 1920) while every other surface was
+  capped — the exact complaint item 45 exists to answer, surviving in the one family nobody had
+  walked. **When you add a width rule, ask which families it cannot reach by construction**, not
+  only which selectors it names. The hook that does reach them is the route's SHAPE:
+  `body[data-route]` is a single segment for a desk page and carries more for every governed
+  surface, so `:not([data-route*="/"])` selects exactly the pages and cannot go stale when an
+  app ships a new one — a blocklist of route prefixes would have.
+- **Test a rule whose subject does not exist by testing the SELECTOR.** The setup wizard and
+  Point of Sale are excluded from the page cap by name, and neither renders on this bench. The
+  check swaps `body[data-route]` to each name and asserts the cap RELEASES (1400 → 1910). That
+  is honest coverage of the exclusion; asserting nothing because the page is absent would have
+  been a `:not()` nobody ever ran.
+- **`.gallery-view` never existed.** The image view renders `.image-view-container`. The rule
+  measured correctly anyway because the image view sits inside `.frappe-list`, which the
+  wide-edge rule catches — coverage on paper, and it would have gone silently uncapped the day
+  Frappe moved that wrapper. **A selector nothing matches is not a harmless line**; it is a
+  claim of coverage that no check was asking about.
+- **The bottom reserve keeps CONTENT clear of our bars; it cannot reach a `position:
+  fixed` vendor panel.** Frappe's onboarding card is fixed at `z-index: 1000` against our
+  bottom chrome's 990, so it sat on the status bar (with the pinned foot off entirely) and
+  on the foot's primary action. **Lift the panel, never raise our bar past 1000** — the
+  vendor's modals and dropdowns live in that band. And when a vendor element is only
+  sometimes laid out, assert **computed style**, which resolves for a zero-rect element,
+  rather than geometry: two geometry drafts passed while the defect was live.
+- **A per-user override makes the site setting look broken to the administrator, who is
+  exactly the person changing it.** "the width doesnt change" (the user, 2026-09-12) was not
+  the kit and not the setting: `bnd_body_width` wins over `desk_width` in
+  `resolve_for_user`, and the settings page's own preview applies the FORM's values straight
+  to `<html>`, past the overlay — so the change appears to work on the page where it is made
+  and is gone on the next page. Found as a live stranded row. **Any axis with both a site
+  field and a personal twin needs the picker to SAY when the twin is winning**, while it is
+  winning — density and the pane state are the other two, and their site fields carry only
+  prose, which is false for almost every reader. The note goes through the setter
+  (`set_body_width("")`), never the stored row, so intent, attribute and boot seed move
+  together.
+- **Read a real tenant's settings before shipping a default-on Check.** Production runs
+  `status_style: Minimal` with every segment off; `status_segments_width` shipped default 1
+  with no row there, and `_seed_defaults` seeds default-on Checks exactly where no row
+  exists — so a new control would have appeared on a bar its owner had emptied, beside a
+  density icon they had switched off. `v0_46_1.width_follows_density` asks the neighbour.
+  The general rule: **a new default-on Check is a change to every existing site**, and the
+  only way to know what it does there is to read one.
+- **Frappe's onboarding card is painted over the pinned foot's primary action** at 1600×1000
+  in a fresh browser (`div.onb-steps`, reproduced twice). NOT repaired, and NOT covered by a
+  check, because the premise is state the suite does not own — under the suite the card is
+  not on screen and any check for it passes while the defect is live. Three measurement
+  mistakes are worth carrying: the screenshot read as an EMPTY foot (the button was behind
+  the card); the collision read as RTL-specific (it is the trailing bottom corner in either
+  direction, and it reproduces in LTR); and both a one-pixel `elementFromPoint` sample and a
+  rectangle test against `document.querySelector(".onb-steps")` passed — the page renders
+  more than one, so the second measured the wrong element, which is this repo's oldest
+  recorded trap arriving in a new place.
+- **The local stack's socket.io never connected, and the local convenience is why.**
+  `realtime/middlewares/authenticate.js` refuses a connection unless
+  `hostname(Host) == hostname(Origin)`; the frontend image's nginx template pins
+  `Origin` to `FRAPPE_SITE_NAME_HEADER` and lets `Host` follow the browser, and
+  `compose.local.yaml` pins that header to `demo.bunood.test` *so that plain
+  `http://localhost:8080` works without a hosts entry*. They agree only if you browse
+  AT the site name. Past that check there is a second fault that is invisible until the
+  first is fixed: `realtime/utils.js` `get_url()` calls the site back at the origin it
+  was handed — `http://demo.bunood.test`, port 80, which nothing here serves
+  (ECONNREFUSED) and which does not resolve inside the compose network. The fix is a
+  local template (Host pinned to the site name, Origin carrying `$server_port`) plus a
+  `demo.bunood.test` network alias on the frontend; either alone still fails. **The
+  suite had never once run with a working socket** — so anything realtime governs
+  (Frappe 16 does not redraw a timeline in place without the channel) was untested here.
+- **`nginx -t` or `-s reload` run as ROOT creates nginx's temp directories owned by
+  `nobody`, and the workers then cannot write them.** nginx running as root defaults its
+  worker user to `nobody`; these containers run as `frappe` (uid 1000). The symptom is
+  narrow and misleading: only a request whose body outgrows `client_body_buffer_size`
+  (16K) has to spill to disk, so everything works until one big POST — the print page's
+  `get_html_and_style`, which sends a whole doc — gets **nginx's own HTML 500**, which
+  the browser reports as `SyntaxError: Unexpected token '<'` and the console-error
+  budget reports against whichever check was running. Nothing reaches the Error Log,
+  the bench logs or gunicorn, because the request never reached Frappe. Reload as the
+  container's own user, and give nginx temp paths it creates itself.
+- **A check that drives a documented FAILURE path is writing to a store, and the Error Log
+  is a store.** 345 of this site's 560 unseen rows were the suite's own: the print sheet's
+  two sabotage probes and the SVG-logo check, whose `/files/mark.png` has no file behind it
+  so Frappe's `attach_files_to_document` fails on every save of that field. Four per run,
+  forever — and the desk's status bar counts UNSEEN rows, so the tenant's own desk read
+  **Errors: 560** on every page. The product behaviour was right in both cases; the test was
+  leaving residue on the site it tests. `ERRLOG_MARK` + `errlogSweep(methods)` bracket the
+  gesture and delete only rows of the named methods created after the mark, so an unrelated
+  error in the same window stays visible. **The general rule: before adding a check that
+  provokes a logged failure, ask where the log goes and who reads it.** And the diagnostic
+  lesson is the older one — the user reported "errors every time I change a setting", three
+  console captures and a 58-change walk found nothing, and a SCREENSHOT found it in one
+  look, at the bottom of the page.
+- **A chrome control's LAYER is decided by who can reach it, not by where the value lives.**
+  The status bar is on every desk, so an icon there may only write per-user storage: a site
+  Single behind it would throw for everyone who is not a System Manager and, for the one who
+  is, silently re-lay every colleague's desk from a glyph. Item 45's width segment is therefore
+  `personal.bnd_body_width` under the existing `personal_comfort` lock, overlaid onto
+  `desk_width` in `resolve_for_user` LAST — the `bnd_pane_state` shape: one field, narrower and
+  more recent than a look, so a personal look that carries a width does not beat it. Two
+  corollaries that are easy to miss. (a) **Gate the control on the lock as well as on its own
+  switch** — a control that is present and always fails is worse than one that is absent.
+  (b) **The overlay destroys the site's own value**, so `bnd_body.desk_width` is the EFFECTIVE
+  width and nothing client-side can find its way back to "follow the site"; `bnd_personal`
+  carries `site_body_width` beside the intent, read in the same function that does the overlay
+  so the pair cannot drift.
+- **"Next to X" in a flex bar is an `order` question, not a DOM one.** Both the width and
+  density segments sort past the cluster slot, whose auto margin pushes everything after it to
+  the trailing edge — so appending width before density in the DOM would still have left the
+  whole bar between them. They are adjacent because their `order` values are 999 and 1000, and
+  the check reads adjacency as a side-agnostic index over visible children sorted by position,
+  never as `nextElementSibling` and never by naming a side (RTL passes the same assertion).
+- **A section head's inline padding is the COLUMN's, plus whatever the style bleeds.**
+  Every field sits inside a `.form-column` at `--bnd-form-col-pad` (15px, Bootstrap's)
+  from the section's content box, and Frappe's own `.section-head` carries the same 15px
+  so the title lines up with the labels under it. Item 43 A3 replaced that padding with a
+  bleed token only Tinted Heads declares, and on the other six styles the title hung 15px
+  inside its own fields — on every form page, both directions, until the release review.
+  A head that bleeds does it by moving the inset OFF THE SECTION (section padding to zero,
+  head spans it, body takes the bleed), never by a negative margin: the vendor sets
+  `margin: auto !important` on that exact element and no specificity beats it.
+- **A stripe is a REST state and its selector has to say so.** `:nth-child(even)` carrying
+  the kit's attribute out-weighs the row hover and ties-and-wins over the checked-row wash,
+  so half the rows of every child table stopped answering the pointer and stopped showing
+  they were selected. The three interactive states are excluded from the stripe rather than
+  re-weighted, because they must keep applying under `Original`, where the stripe rule does
+  not exist at all.
 - **The brand is three tokens**, because it does three jobs with three different
   contrast requirements: `--bnd-brand` (washes, exactly the seed),
   `--bnd-brand-solid` + `--bnd-on-brand` (fills and their labels),
   `--bnd-brand-ink` (brand as text). **Never paint with the raw seed.**
-- **The shell relocates Frappe's DOM, never redraws it.** That is what makes
-  "only one surface exists" a property of the construction rather than a rule.
+- **The settings map is derived from the form's sections; order lives in the doctype.**
+  The side pane's map (item 43 B3) reads the rendered `.form-section`s on every refresh
+  and points at them; `field_order` is the only statement of order (the build refuses a
+  ghost, a repeat or an omission), and `BND_SETTINGS_GROUPS` contributes band membership
+  only — a band heads once, asserted. It replaced the shell, which relocated the sections
+  into a pane of its own so "only one surface exists" was a property of the construction;
+  the map keeps that property by moving nothing.
+- **The composer is a MODE of the settings form, and its frames are told, never
+  asked.** `?compose` is read once per document (a full navigation in and out — a
+  route change drops the query and a cached page must not flip); every rail click
+  goes through the kit's own setter so the cards, the desk and the rail cannot
+  disagree; highlights are derived from `frm.doc` on the dirty tick, never
+  remembered; and a stage or strip frame is handed the form's values through its
+  OWN `bunood_theme` (`bnd_all_previews(frm, engine)` + the shape, language, phone
+  bar and site density), because every kit apply is attribute-only and
+  module-scoped per document. Colour is the one thing a frame cannot be told: it
+  reloads onto the brand sheet a landed save wrote (`bnd:saved`).
 - **Bands live inside the picker output**, not at the form-section layer: 59 of
   92 fields are `hidden: 1` and every component section holds exactly one visible
   field — its picker. A heading appears only where a picker has more than one

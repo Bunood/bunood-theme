@@ -73,12 +73,21 @@ html[data-bnd-ws] {
 html[data-bnd-ws] {
   --ws-gutter-default: var(--bnd-sp-3);
 }
-html[data-bnd-ws] .codex-editor__redactor {
+// MEASURED (item 43 A9): none of this ever reached the workspace. The vendor
+// nests these rules under `.layout-main-section .codex-editor
+// .codex-editor__redactor …` (desktop.scss:990-1100) at (0,3,0), (0,4,0) and
+// (0,5,0), and the gutter the tiles actually showed was the 7px padding of
+// `.ce-block__content` on each side — 14px under every style, Hairline Grid
+// included, while the dashboard route's grid followed the token to 0. So the
+// selectors carry the vendor's chain to outweigh it by one attribute, and the
+// gutter lives where the vendor put theirs: on the block's content box. In
+// edit mode the vendor's padding stays (the tune controls sit in it), as the
+// grid's clip already stands down there.
+html[data-bnd-ws] .layout-main-section .codex-editor .codex-editor__redactor {
   margin-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / -2);
 }
-html[data-bnd-ws] .ce-block {
-  padding-inline: calc(var(--ws-gutter, var(--ws-gutter-default)) / 2);
-  padding-block-end: var(--ws-gutter, var(--ws-gutter-default));
+html[data-bnd-ws] .layout-main-section:not(.edit-mode) .codex-editor .codex-editor__redactor .ce-block .ce-block__content {
+  padding: calc(var(--ws-gutter, var(--ws-gutter-default)) / 2);
 }
 // DASHBOARD ROUTE: the grid is a real CSS grid (`.widget-group-body`, gap 15px by
 // default). The SAME token — so a gapless style is gapless on both routes, and

@@ -1508,6 +1508,7 @@ def get_shipped_defaults() -> dict:
         slots_for,
     )
     from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY
+    from bunood_theme.brand import BRAND_INPUTS
 
     # The shipped-EMPTY identity fields ride in as "" so the change dots can
     # compare against them (item 36) — `SHIPPED` itself stays a seeding fact
@@ -1526,6 +1527,9 @@ def get_shipped_defaults() -> dict:
     # asks twice can render a moment where it has one.
     return {
         "defaults": {**{f: "" for f in SHIPPED_EMPTY}, **SHIPPED},
+        # The fields whose save rewrites the brand sheet (item 43 C3): the composer
+        # reloads its frames on those, and brand.py is the one place that knows.
+        "brand_inputs": list(BRAND_INPUTS),
         "layout_chrome": LAYOUT_CHROME,
         "layout_tenants": LAYOUT_TENANTS,
         # ...and the pane's state, for the same reason (item 42, slice 9). A
@@ -2149,9 +2153,16 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
 def set_language(code: str = "") -> dict:
     """Switch the signed-in user's desk language to an administrator-offered choice."""
     code = (code or "").strip()
-    if not code or frappe.session.user == "Guest":
+    # TWO FAILURES, TWO MESSAGES. These were one guard, so a client that sent an
+    # empty code — a stale switch, a mis-wired handler — was told to SIGN IN,
+    # which is neither true nor actionable for someone already signed in. Found
+    # by walking the site's Error Log rather than by a check: nothing asserts the
+    # text of a refusal, and a wrong-but-plausible message is invisible to a
+    # suite that only asserts the exception TYPE.
+    if frappe.session.user == "Guest":
         frappe.throw(_("Sign in to change your language."), frappe.PermissionError)
-
+    if not code:
+        frappe.throw(_("No language was chosen."), frappe.ValidationError)
     from bunood_theme.language import offered_languages
 
     if code not in {row["code"] for row in offered_languages()}:
@@ -2159,3 +2170,78 @@ def set_language(code: str = "") -> dict:
     frappe.db.set_value("User", frappe.session.user, "language", code, update_modified=False)
     frappe.clear_cache(user=frappe.session.user)
     return {"language": code}
+
+
+@frappe.whitelist()
+def composer_pages() -> dict:
+    """The pages the composer's stage can show, resolved on the server (item 43 C3).
+
+    Ten desk pages that between them exercise every decision on the rail — a
+    workspace, a transaction form with lines, its list, a master with no lines,
+    a wide report, a dashboard, a Single, a Helpdesk ticket, a CRM deal. Each is
+    resolved HERE, from what this site actually has: the latest record of the
+    doctype (``frappe.get_list``, one row, newest first), the new-document route
+    when there is none, and a REASON instead of a route when the doctype itself
+    is absent — an app not installed, or a workspace this site never made. The
+    composer draws an absent page greyed with that reason, never hidden: the
+    form's own rule for options a site cannot honour.
+
+    System-Manager only, like every other settings-page endpoint; a page the
+    admin cannot open is still listed, because the reason is the information.
+    """
+    frappe.only_for("System Manager")
+    from urllib.parse import quote
+
+    def latest(doctype: str) -> str | None:
+        # get_all, not get_list: the answer is "which record exists", and a
+        # System Manager whose user permissions narrow the doctype would
+        # otherwise be told there is none and sent to a NEW record. The frame
+        # enforces permissions itself when it opens the route.
+        rows = frappe.get_all(doctype, fields=["name"], order_by="modified desc", limit=1)
+        return rows[0]["name"] if rows else None
+
+    def form_page(key: str, label: str, doctype: str, missing: str) -> dict:
+        if not frappe.db.exists("DocType", doctype):
+            return {"key": key, "label": label, "route": "", "reason": missing}
+        slug = frappe.scrub(doctype).replace("_", "-")
+        name = latest(doctype)
+        # A record name is data: "ACC-SINV-2026-00001" is safe, "Bunood / Riyadh"
+        # or a name with a space is not, and the frame navigates to this string.
+        route = f"/desk/{slug}/{quote(name, safe='')}" if name else f"/desk/{slug}/new"
+        return {"key": key, "label": label, "route": route, "reason": ""}
+
+    def list_page(key: str, label: str, doctype: str, missing: str) -> dict:
+        if not frappe.db.exists("DocType", doctype):
+            return {"key": key, "label": label, "route": "", "reason": missing}
+        return {"key": key, "label": label, "route": f"/desk/{frappe.scrub(doctype).replace('_', '-')}", "reason": ""}
+
+    def workspace_page(key: str, label: str, name: str) -> dict:
+        if not frappe.db.exists("Workspace", name):
+            return {"key": key, "label": label, "route": "", "reason": _("Workspace missing on this site: {0}").format(_(name))}
+        return {"key": key, "label": label, "route": f"/desk/{frappe.scrub(name).replace('_', '-')}", "reason": ""}
+
+    erp = _("ERPNext is not installed.")
+    pages = [
+        workspace_page("home", _("Home"), "Home"),
+        form_page("invoice", _("Sales Invoice"), "Sales Invoice", erp),
+        list_page("list", _("Invoice list"), "Sales Invoice", erp),
+        workspace_page("workspace", _("Selling"), "Selling"),
+        form_page("customer", _("Customer"), "Customer", erp),
+    ]
+    # The wide report: Accounts Receivable is ERPNext's and needs a company.
+    if frappe.db.exists("Report", "Accounts Receivable"):
+        pages.append({"key": "report", "label": _("Accounts Receivable"), "route": "/desk/query-report/" + quote("Accounts Receivable", safe=""), "reason": ""})
+    else:
+        pages.append({"key": "report", "label": _("Accounts Receivable"), "route": "", "reason": erp})
+    dashboard = latest("Dashboard") if frappe.db.exists("DocType", "Dashboard") else None
+    pages.append(
+        {"key": "dashboard", "label": _("Dashboard"), "route": f"/desk/dashboard-view/{quote(dashboard, safe='')}" if dashboard else "", "reason": "" if dashboard else _("No dashboard on this site.")}
+    )
+    pages.append(
+        {"key": "settings", "label": _("Selling Settings"), "route": "/desk/selling-settings", "reason": ""}
+        if frappe.db.exists("DocType", "Selling Settings")
+        else {"key": "settings", "label": _("Selling Settings"), "route": "", "reason": erp}
+    )
+    pages.append(form_page("ticket", _("Helpdesk ticket"), "HD Ticket", _("Helpdesk is not installed.")))
+    pages.append(form_page("crm", _("CRM deal"), "CRM Deal", _("CRM is not installed.")))
+    return {"pages": pages}

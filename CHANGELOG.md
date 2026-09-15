@@ -7,7 +7,9 @@ had drifted EIGHT behind the roadmap (0.20.0 was item 28) so that a version
 number told you nothing about what was in it. Releases before 0.29.0 keep the
 numbers they shipped under and are never renumbered: the jump from 0.20.0 to
 0.29.0 is this adoption, not eight lost releases. **v1.0.0 is reserved for the
-completion of all 38 coverage items.**
+completion of all 38 coverage items.** **A second recorded exception (2026-09-09): item 43
+shipped AFTER item 44 (v0.44.0–v0.44.2), so its MINOR could not be 43 without going backwards;
+it is v0.45.0, and the heading names the item.**
 
 Every release is an annotated git tag, and `app_version` in hooks.py matches
 the latest tag — with ONE recorded exception. `v0.29.0` is tagged at item 29's
@@ -17,440 +19,689 @@ inside a release named for item 29. That commit predates the decision, so its
 version files still read 0.20.0. The invariant resumes at v0.30.0. This is
 written down rather than left to be rediscovered as a bug.
 
-## [0.44.30] - 2026-09-15 - Candidate workflow and report correctness (patch)
-
-### Changed
-
-- Accept the reviewed `bunood_real_estate` v1.6.0 operational Home release in
-  the fail-closed migration contract.
-- Route the Real Estate frequent-action row through the writable Lease Wizard
-  Single DocType and the operator-facing Revenue Line workflow.
-- Render signed or all-zero accounting percentage datasets with Frappe's
-  native bar chart so credits remain visible without inventing percentages.
-
-### Fixed
-
-- Eliminate malformed and `NaN` SVG geometry from Accounts Receivable and
-  Accounts Payable reports while leaving report rows, calculations, filters
-  and export payloads unchanged.
-- Derive the expected branded PDF footer identity from the configured
-  letterhead instead of requiring a fixture-only email address.
-
-### Checks
-
-- Focused navigation, role-home, bill-keyboard, report-workbench and PDF gates
-  pass on RC20.
-- The report gate covers seven production reports, native failure recovery and
-  export; the system-state gate covers 72 language/theme/viewport states and
-  all 18 Apps icons with zero blocking accessibility findings.
-- The production asset build and payload budget pass.
-
-## [0.44.29] — 2026-09-13 — Real Estate 1.5 compatibility (patch)
-
-### Fixed
-
-- Accept the reviewed `bunood_real_estate` v1.5.0 release in the fail-closed
-  pre-migration compatibility contract. The v1.5.0 change updates integration
-  coverage for the installed KSA compliance app without changing the Theme's
-  pinned Frappe, ERPNext, Setup or compliance versions.
-
-### Checks
-
-- The upstream compatibility unit gate includes an explicit v1.5.0 release
-  contract and still rejects unreviewed version drift before schema migration.
-- The immutable v0.44.28 candidate exposed the stale v1.4.4 pin during its
-  first clean migration; v0.44.29 exists so the published v0.44.28 tag remains
-  immutable.
-
-## [0.44.28] — 2026-09-13 — Operational surfaces and production invoices (patch)
-
-### Added
-
-- Add dense, recoverable operational layouts across seven daily lists, seven
-  record forms and seven report workbenches, with role-safe actions and clear
-  empty, loading, success and failure states.
-- Add keyboard-complete dialogs, menus, toolbars and invoice utilities, with
-  visible icon-and-label actions and deterministic focus recovery.
-- Ship managed bilingual A4 Sales Invoice and Purchase Invoice formats with a
-  shared branded item table, compact party identity, native tax IDs, official
-  Saudi-riyal glyph and Tajawal Arabic typography.
-
-### Changed
-
-- Make operational forms and tables denser and more spreadsheet-like while
-  retaining the reversible simplified/advanced invoice workflow.
-- Use Hairline Minimal as the production letterhead default and repeat the
-  complete branded identity/contact bands across every Chromium PDF page.
-- Keep long-invoice footers on Frappe's reliable static overlay path; the
-  framework's open v16 dynamic-footer defect can no longer drop company data
-  or leave incomplete page-number placeholders.
-
-### Fixed
-
-- Focus the first invalid sales or purchase invoice control on validation and
-  make list refresh/retry actions recover without a page reload.
-- Remove the legacy blue print accent, restore high-contrast branded table
-  headers and totals, mirror Arabic columns, and prevent long item codes from
-  crossing their table cells.
-- Preserve all company footer contact lines despite Frappe v16's unmeasured
-  isolated-footer inset and forced wrapper page break.
-
-### Checks
-
-- Focused UI acceptance covers seven lists, seven forms, seven reports, five
-  interaction families, 72 status/recovery states and 18 curated Apps icons in
-  English, Arabic, dark mode and desktop/mobile layouts.
-- Print contracts pass 17 Python and nine stylesheet tests; ten bilingual PDF
-  variants pass value, geometry, RTL, Tajawal, riyal and pagination checks,
-  including two five-page specimens and 18 verified letterhead pages.
-- Eight repeated print-language switches preserve invoice data; translation
-  coverage is complete at 1,275 source strings with eight documented
-  exemptions, and the production asset build passes.
-
 **Item numbers below are as of the release date.** `ROADMAP.md` items were renumbered
 to work order on 2026-08-13; entries here keep the numbers that were current when they
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [0.44.27] — 2026-09-12 — Operational ERP and Real Estate homes (patch)
+## [0.46.7] — 2026-09-15 — Production UX integration and Home recovery (patch)
+
+### Integrated
+
+- Merged the production UX line with v0.46.6: role-based ERP and Real Estate homes,
+  simplified sales and purchase workflows, report recovery, system states, branded
+  PDFs, and the newer composer, body-width, quick-link and rail behavior now ship
+  from one source line.
+- Restored one reliable Bunood Home route on All Apps. The replacement mounts before
+  Frappe's self-linking cube is retired, responds to the asynchronous private navbar,
+  and hands ownership back to the configured shell without duplicate Home controls.
+- Kept the independent page-head sidebar control while adopting the branded Start
+  pill, language and appearance tenants, and the hover-expand rail from v0.46.6.
+- Rebuilt the Arabic catalogue from the installed stack, filled the previously
+  untranslated settings vocabulary, and defended «إشعارات» as Bunood's notification
+  wording.
+- Tightened fail-open ownership for the Desktop Home and simplified-form actions:
+  native controls are hidden only after their Bunood replacements are mounted.
+- Bounded unusually long legal names inside the fixed-height PDF identity band,
+  while preserving the full name in invoice party details; updated the physical
+  PDF gates for the shipped Wash Card header and optional registration data.
+
+### Payload decision
+
+The combined release contains two previously divergent, customer-facing feature
+sets. Measured gzip is 39,298 bytes of desk CSS, 184,523 bytes of desk JavaScript,
+and 4,816 bytes of web CSS. Their ceilings move to 40,000 / 187,000 / 4,900 bytes,
+respectively, leaving under two percent headroom while preventing unreviewed growth.
+
+## [0.46.6] — 2026-09-14 — The desk page's strip: the pane's own search counts (patch)
+
+**Found on production minutes after v0.46.5 shipped, by looking:** the All Apps page still
+carried the strip's search bar, and its strip. v0.46.5 keyed both on the `search` token —
+and a search placed in the pane is Frappe's own row, revealed, which by design owns no
+token (`mount_search_at`: "the native row IS the search there"). So the rule could never
+fire for the placement production uses. The local check had passed on a race: resolved while
+Frappe still hid the pane, the search lent itself to the page head — which this page keeps
+hidden — and was owned there, a search nobody could reach with the pane's row hidden under
+the token. Once in a dozen loads, and the check's load was one.
+
+### Fixed
+
+- **`panesearch`, an outcome-backed token for the pane's search row** — stamped only while
+  that row is in the document and on screen, released when the pane is Hidden — lets the
+  strip's search and the emptied strip stand down under the same polarity as everything
+  else. The bar and dock placements release it beside their own `search` claim; the chrome
+  release list carries it.
+- **The desk-page hook re-resolves search once it shows the pane**, so a search that lent
+  itself to the hidden head moves back into the pane; the check now also asserts the pane's
+  row is on screen, which is what turns the race into a failure.
+
+### Checks
+
+`sidepane: the desk page's own bell and avatar stand down for ours` asserts `panesearch` and
+the pane row's visibility. Full run: TALLY_PENDING.
+
+### Payload
+
+js_gzip 130,812 → 131,176 (ceiling 131,000 → 131,400).
+
+## [0.46.5] — 2026-09-14 — "What else": the desk page's whole strip, the false friends made effective, a quick-links setting (patch)
+
+**The user, after v0.46.4's report listed what was still open: *"do all of these."*** Four
+of the five had code in them; the fifth (re-pinning Frappe to production's 16.33.1) had
+nothing left to pin — `upstream-pins.json` left the tree with the pins gate in v0.42.4, so
+the drift is a note, not an errand.
+
+### Fixed
+
+- **The desk page's own strip stands down piece by piece, and then as a whole.** v0.46.4
+  owned its bell and avatar; its search now stands down for the pane's bar (the `search`
+  token; Ctrl+K still opens the same Awesome Bar) and its logo tile for our brand row (the
+  `panehead` token) — both listed as natives on the registry rows, comma-joined. With every
+  piece ours the empty 50px band goes too, keyed on all four tokens at once, and any piece
+  released brings the strip back with it.
+- **The argued false friends reach the desk.** `tools/i18n_inherited.mjs` refused to
+  inherit 29 strings another app translates in the wrong sense (frappe's *Filter* is a
+  purifier, its *Theme* a topic, its *Dark* gloomy) and the theme shipped its own rows —
+  and 17 of those rows never reached any desk, because the runtime dictionary is one flat
+  merge in install order and this app sits third of ten: the later app's row overwrote
+  ours (measured). The list moved to `locale/false_friends.json`, one file with two
+  readers: the generator (which still refuses the inheritance) and a new migrate defense,
+  `setup._defend_false_friends`, which asserts every `defend: true` entry through a
+  `Translation` row — the one layer that outranks every app file — with the identity
+  defense's upsert/release discipline. Three entries stay `defend: false` because the
+  upstream sense is right on its own screens (erpnext's *Ledger*, *Center*, frappe's
+  *Display*); those belong to a translation context at our call sites, listed as owed.
 
 ### Added
 
-- Give ERP and Real Estate users separate permission-filtered operational
-  dashboards with exactly five drill-down KPIs and role-specific attention
-  queues.
-- Add process lanes, frequent creation actions, recent work, report entry
-  points, and configuration sections in one shared reading order.
-- Add a System Manager-only health summary; ordinary roles receive no
-  infrastructure counters.
-
-### Changed
-
-- Mount the Bunood dashboard on each user's resolved role home instead of only
-  the generic Home workspace.
-- Make attention rows open the exact DocType and filters counted by the server,
-  and give empty queues an explicit all-clear state.
-- Ship reviewed Arabic copy for all new dashboard labels and a responsive
-  single-column process layout at phone width.
+- **`panehead_quick_links`** — *Quick Links* in the side pane band: **Off** keeps the head
+  menu's module list alone; **Brief / Standard / Full** cap a module's flyout at 3+2 /
+  6+4 / 12+8 New rows and reports before *Go to*. Standard is the shipped value and what
+  v0.46.4 drew. Policy, not a look — outside the theme axes like `language_choices` —
+  with its own `PANEHEAD_DEFAULTS`, a boot blob, a live apply, mirrors and the reset chip.
 
 ### Checks
 
-- ERP server contract passes 13/13, including native warehouse-group reorder
-  scope and missing-Bin behavior; Real Estate server contract passes 11/11,
-  including native due-date and row-permission regressions.
-- Focused Home/navigation contracts pass 38/38 and Arabic coverage is complete
-  at 1,262 source strings with eight documented exemptions.
-- The self-cleaning rendered gate passed ERP and Real Estate at 1440×900 and
-  Arabic Real Estate at 430×900 with exactly five KPIs, correct section order,
-  no horizontal overflow, no ordinary-user health counters, and zero browser
-  errors.
-- Built assets pass the recorded payload gate at 32,916 CSS and 160,537
-  JavaScript gzip bytes.
+`sidepane: the desk page's own bell and avatar stand down for ours` grew the search, the
+logo and the strip (both arms) · `sidepane: the quick-links setting sizes the flyouts, and
+Off removes them` (Brief 3+2, Full 12+8, Off no submenu anywhere; failed before the field
+existed) · `i18n: every defended false friend wins the merged dictionary` (Filter is تصفية;
+failed before the hook ran). Full run on this build: **543/544**; the one miss was the axe baseline on the settings page,
+which the new Select grew by one `select-name` and one `color-contrast` finding — Frappe's own
+form-control class, the same as the five and twenty-five already baselined — regenerated
+deliberately, and green on re-run. The picker-shape fixture was regenerated for the new field.
 
-## [0.44.26] — 2026-09-12 — Role navigation and sidebar state (patch)
+### Payload and words
 
-### Changed
+js_gzip 130,503 → 130,812 (ceiling 130,600 → 131,000: the caps and the live apply). Three
+Arabic rows: the field's label, its description and *Brief*; *Standard* is inherited.
 
-- Make the single page-head sidebar control cycle Open, Rail and Hidden on
-  desktop, persist the settled per-user state through Frappe's validated
-  preference axis, and leave the mobile drawer independent.
-- Route Home to each user's permitted ERP or Real Estate workspace, curate
-  ordinary-user workspace switchers and All Apps tiles, and keep System
-  Managers unrestricted.
-- Restore the permanent Home action whenever the cached All Apps page no
-  longer has another visible Bunood Home owner, preserving browser history.
+## [0.46.4] — 2026-09-14 — Four reports from the desk: its own pair owned, the rail's edge, the start pill, quick links (patch)
 
-### Checks
-
-- Focused navigation contracts pass 34/34 and Theme-owned translation coverage
-  is complete at 1,215 strings with eight documented exemptions.
-- The self-cleaning live gate passed Open → Rail → Hidden → Open in LTR and
-  RTL at 1440×900, 1024×800 and 430×900; Apps/Home history and persisted Rail
-  state remained correct with zero browser errors.
-- Separate ERP and Real Estate users reached five daily destinations in no
-  more than two clicks. Six Real Estate groups rendered in English and Arabic
-  without truncation; ordinary Apps stayed curated and Administrator retained
-  Framework and Real Estate.
-- The asset build and payload gate pass at 32,727-byte CSS gzip and
-  158,452-byte JavaScript gzip, with no dependency or data-model change.
-
-## [0.44.25] — 2026-09-12 — Role-safe totals and ZATCA states (patch)
+**The user, with a screenshot of the All Apps page in Arabic (2026-09-14), four things at
+once:** *"In desk, the menu is taking on a modules menu items… it should include quick links
+such as new invoice from different modules, new report from different modules, etc."* ·
+*"The user profile menu on desk is not our menu and bell is not our bell — fix it and hide
+it."* · *"On hover, rail flies out too early, at least 100 px before rail is hovered on."* ·
+*"The pane start button, when in bottom bar or top bar, is not rendered right — just a
+black B, not the brand pill that's in the pane. Make it the pill that is in the pane; when
+it is clicked it goes to home."* Each reproduced on the local desk with production's
+placements before anything was written.
 
 ### Fixed
 
-- Restrict ZATCA server/environment and synchronization metadata to Accounts
-  Managers and System Managers while retaining understandable invoice status
-  and actions for ordinary users.
-- Settle the active native Purchase reference field and its mutation queue
-  before the browser-safe `Alt+I` item search receives focus.
+- **The desk page's own bell and avatar stand down for ours.** Frappe's desktop page
+  (`/app`, `/app/desktop`) renders ITS OWN navbar — search, a bell with a dropdown, an
+  avatar with a menu — beside the pane the kit dresses. The pane's rows were owned; these
+  were not, so that page carried two bells and two account menus, the top pair the
+  vendor's. `registry.py` now lists both natives on the tenant, comma-joined
+  (`readOwnedNatives` reads the last class of EACH selector, where it had read one string
+  and would have unguarded the pane's row), and `_layouts.scss` hides the desktop pair from
+  the same `data-bnd-own` tokens — visible again the moment ours is Off, as every native is.
+- **The rail's flyout opens at the rail's edge.** Frappe keeps `.body-sidebar-placeholder`
+  in flow at `--sidebar-width` (220px) so the main section stays put while the pane overlays
+  it; the rail narrows the CONTAINER by inline style and never touched the placeholder,
+  which went on spanning 220px inside the container, invisible — every pointer that crossed
+  it entered the container. Measured: `elementFromPoint` found it 100px out, a pointer sweep
+  opened the flyout 90px out. The placeholder now follows the rail's width.
+- **The start pill is the brand, and goes home.** The start button was a 28px square
+  holding the brand mark alone, in a class no rule painted, so a bar drew a bare letter;
+  a click toggled the pane. It is now the pane head's own pill — the mark and the
+  company's name, built by one `brand_mark()` for the three places that draw it — and a
+  click is the way home. The way BACK to a Hidden pane stays where every state has it:
+  the page head's show button, which now mounts beside a start pill without repeating the
+  brand. The field's description says so; `bunood.pane_toggle` retired with the toggle.
+
+### Added
+
+- **Quick links in the pane's head menu, as flyouts per module.** The place row's chevron
+  listed Home, All Apps and every root workspace — thirty-one rows on the reference desk,
+  the All Apps grid again. Three shapes were drawn with this desk's real rows (flyouts per
+  module · one grouped list with a filter · the current place first) and the user picked
+  the first. Every module row keeps its click and grows a flyout: *New …* for the DocTypes
+  the person may create (six at most), the module's reports (four), then *Go to <module>*.
+  Derived, never curated — the rows are the workspace's OWN sidebar items in
+  the admin's order, so changing a module's quick links is editing its sidebar; the create
+  check is Frappe's (`boot.user.can_create`), Singles have no "new", a report opens the way
+  the sidebar opens it. Labels use Frappe's own *New {0}* over the DocType's translated
+  name; the module names are translated now (an Arabic desk read "Selling" in this menu).
+  The shared menu learned submenus: `aria-haspopup` / `aria-expanded` on the row, hover
+  intent (120ms), the arrow toward the inline end opens and toward the start closes
+  (mirrored in RTL), Escape and Tab close everything, the flyout sits at the menu's end edge
+  and flips when it would not fit; its heading is the flyout's own child, a sibling of the
+  `role="menu"` list. `_cluster.scss` carries the argument.
 
 ### Checks
 
-- All 68 focused Sales/Purchase client contracts and all four server ZATCA
-  classification/role contracts pass.
-- A least-privilege Sales/Purchase/Accounts user completed both three-line
-  invoices without a mouse. Every visible totals-rail and mobile-total value
-  matched the native document at both draft and submitted states.
-- The same user received a credential-free `needs_settings` response, saw no
-  technical environment metadata, and received HTTP 403 when attempting to
-  queue the submitted Sales Invoice. The browser reported zero errors.
-- Final payloads remain inside the recorded ceilings: 32,727-byte CSS gzip and
-  157,528-byte JavaScript gzip, with no new runtime dependency or data model.
+`sidepane: the desk page's own bell and avatar stand down for ours` · `rail: the flyout
+opens at the rail's edge, not a hundred pixels before it` · `start: the bar's start pill is
+the brand, and it goes home` (replacing the start-toggle check) · `sidepane: the head menu's
+modules carry flyouts of quick links` (keyboard both ways, hover, the route a quick link
+takes, the RTL side, and an ordinary employee offered nothing they cannot create). All four
+watched failing on v0.46.3 before the code. Full run on this build: **533/542**; the nine misses were a personal width a prior run had left on
+Administrator (seven width checks, cleared with the check's own repair line), the picker-drift
+check reading a transient desk-picker state (the fixture regenerated byte-identical), and the
+pane-states check's own contract (it read the page-head wrap as the brand; updated) — all nine
+green on re-run.
 
-## [0.44.24] — 2026-09-12 — Keyboard transaction acceptance (patch)
+### Payload and words
+
+js_gzip 128,451 → 130,503 (ceiling 128,700 → 130,600: the flyout mechanics and the
+derivation are the growth; the arguments moved to the stylesheet, which Sass strips). One
+Arabic row, the field's description; *New {0}* and *Go to {0}* are inherited from Frappe. Not
+*Open {0}*: every app after ours in the install order translates that as the adjective, and
+the merged dictionary keeps the last writer's row (the standing merge debt, second example) —
+so the flyout's last row is *Go to {0}*, Frappe's alone and the verb.
+
+## [0.46.3] — 2026-09-13 — The width reaches every screen, including the ones nothing hooked (patch)
+
+**The user:** *"where did you apply the screen width. is it on all screens"* — then, once the
+answer turned out to be no: *"make sure you apply it to all screens and views."*
+
+### The gap was not a view type
+
+All eleven view modes Frappe ships were already right, measured at 1920 with Balanced: list,
+report, list-dashboard, gantt, **kanban**, calendar, image, file manager and query report on the
+wide edge (1400), tree on the reading edge (1040). Kanban is now *tested* rather than assumed —
+it works through `.frappe-list`, and this site has a board to prove it on.
+
+**Desk pages were uncovered entirely.** Every `Page` rendered full bleed — 1910 on a 1920
+screen: the permission manager, the organizational chart, the sales funnel, stock balance,
+backups, team updates, and this theme's own inbox. Every width rule hooks a list or a form, and
+a Page is neither, so nothing reached them. That is the complaint item 45 exists to answer
+(*"some modules use full width"*) surviving in the one family nobody had measured. The print
+preview was uncapped too, at 1633.
+
+### What now covers them
+
+- **Desk pages take the wide edge**, because a desk page is a tool — tables, charts, trees,
+  filters — and belongs with the list and the report. The hook is the ROUTE'S SHAPE, not a list
+  of page names: a desk page's `body[data-route]` is a single segment (`backups`) while every
+  governed surface carries more (`List/Item/List`, `Form/…`, `Workspaces/…`, `print/…`), so
+  `:not([data-route*="/"])` selects exactly the pages and cannot go stale when an app adds one.
+  The alternative was a blocklist of route prefixes — the same fact in two places, wrong the
+  first time somebody ships a new view type.
+- **The print preview takes the reading edge.** It is the one desk surface whose content is
+  literally a page you read.
+- **Two immersive flows are left alone**, by name: the setup wizard and Point of Sale. A 1400px
+  column inside a 1920px screen is wrong for a full-screen flow. Neither renders on this bench,
+  so the exclusion is proved on the SELECTOR instead — swapping `data-route` releases the cap,
+  1400 → 1910 — which is the honest way to test a rule whose subject is absent.
+
+### Fixed — a selector that had never matched anything
+
+`.gallery-view` does not exist in Frappe. The image view renders `.image-view-container`, and
+the surface measured correctly only by luck: it sits inside `.frappe-list`, which the wide-edge
+rule does catch. Coverage on paper, not in the sheet — and it would have gone silently uncapped
+the day Frappe moved the image view out of that wrapper. Replaced with the real class.
+
+## [0.46.2] — 2026-09-13 — The vendor's onboarding card, off our bottom bars (patch)
+
+### Fixed — a fixed panel the reserve could never reach
+
+Frappe's onboarding card (`OnboardingPanel.vue`, `.onb-panel`) is
+`position: fixed; z-index: 1000; bottom: 24px` at the trailing corner, its CSS inlined by
+`user_onboarding.bundle.js`. Shrinking `.main-section` keeps *content* clear of our bottom
+chrome; a fixed panel sits in no scroller, so `--bnd-bottom-reserve` never applied to it —
+and 1000 beats our bars' 990.
+
+**Older than the bar that made it obvious.** Measured at 1600×1000: the panel overlaps the
+**status bar** with the pinned foot switched off entirely, and the foot's primary action
+when it is on — a click at Save's own centre resolved to `div.onb-panel`. Item 45's foot is
+what put a primary action under it; the overlap predates it.
+
+Lifted, not out-stacked: raising our foot past 1000 would put it over the vendor's modals
+and dropdowns, which share that band. The panel now carries
+`calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5))`, preserving the vendor's own 24px gap
+and tracking the chrome — measured after: inset 24 → 106 with the foot on, 24 → 50 with it
+off, both overlaps gone.
+
+### The check, on the third attempt
+
+The first two passed while the defect was live, and both failures are worth keeping. A
+one-pixel `elementFromPoint` sample said nothing about the rest of the control; a rectangle
+test compared against `document.querySelector(".onb-steps")` when the page renders more
+than one, so it measured an element that was not in the way — this repo's oldest trap in a
+new place. The panel is also only *laid out* on some desks (a real box in a fresh context,
+a zero rect under the suite), so geometry alone is at the mercy of when Frappe shows it.
+
+The check asserts **computed style**, which resolves for an unlaid-out element and proves
+our rule reached the vendor's element carrying the measured reserve; the geometry claim is
+a second arm that runs only when there is a box. Sabotaged to confirm it fails —
+`inset: 24, reserve: 82`.
+
+## [0.46.1] — 2026-09-13 — What a real tenant's settings said before it shipped (patch)
+
+Cut before v0.46.0 reached production, from reading the live tenant's own Theme Settings
+rather than a test site's. No customer data was copied to do it: 144 stored rows were read,
+the post-migrate state was computed by running the real patch code and `_seed_defaults`
+over that snapshot, and the result was applied to a local desk in Arabic and looked at.
+
+### Fixed — "the width doesnt change"
+
+**The user, 2026-09-12.** The kit was not the cause and neither was the setting.
+`bnd_body_width` — item 45's own per-user control — wins over `desk_width` in
+`resolve_for_user`, so anyone who has ever clicked the status-bar icon changes the site
+setting, watches the settings page's preview move (`bnd_desk_preview` applies the FORM's
+values straight to `<html>`, past the overlay), and finds the old width back on the next
+page they open. Nothing said who was winning. **Found as a live stranded row on this
+site**: Administrator on Compact against a site on Balanced.
+
+The width group now carries a note while — and only while — an override is in force: it
+names the reader's own value and offers the one gesture that clears it, through
+`set_body_width("")` so the stored intent, the attribute and the boot seed all move
+together. A permanent "each person can override this" line was rejected: it is false for
+almost everyone who reads it, and the one person it is true for still has to work out that
+it is about them.
+
+### Fixed — a new control on a bar its owner had emptied
+
+Production runs `status_style: Minimal` with **every** segment off — jobs, errors,
+scheduler, connection, density, freshness. `status_segments_width` is new, its shipped
+default is 1, and an existing site has no row for a field that did not exist, so
+`_seed_defaults` would have seeded it ON and put a width icon beside a density icon that
+tenant had deliberately switched off.
+
+`v0_46_1.width_follows_density` asks the neighbour it sits beside: density off means this
+site did not ask for width either, so write 0; density on writes nothing and the default
+seeds it. A site that already has a row has lived with a value and is not rewritten, and a
+NEW site is untouched, so the shipped default still ships.
+
+### Looked at, measured, and NOT fixed
+
+Frappe's onboarding card is painted over the pinned foot's primary action at 1600×1000 in a
+fresh browser — reproduced twice. It is filed rather than repaired because the premise is
+state this suite does not own: under the suite the card is not on screen, so a check for it
+cannot fail, and a check that cannot fail is worse than none. Two wrong readings are
+recorded with it, because both were the plausible ones — the screenshot looked like an
+EMPTY foot (the button was behind the card), and the collision looked RTL-specific (it is
+the trailing bottom corner in either direction). Point-sampling one pixel passed; comparing
+rectangles against `document.querySelector(".onb-steps")` also passed, because the page
+renders more than one and that measured the wrong element.
+
+## [0.46.0] — 2026-09-12 — The desk's width, made one decision, and a control for it (item 45)
+
+**The user, 2026-09-11:** *"there is a dissonance with the width, some things use full width,
+some modules use full width in some places and some use only wide width or just enough for the
+section. I want consistency, i prefer not using full wide width, but distinct sections in the
+body."* Measured before anything was drawn: the width setting reached **two of seven** surface
+families. Forms and the workspace read Frappe's `--page-max-width`; lists, reports, dashboards,
+alternate views and the settings page had no width rule at all. So turning the setting on made
+the desk *less* consistent — at a 1920 window the spread between the widest and narrowest
+surface went from **305px to 513px**, because it pulled two surfaces in and left five alone.
+
+Nine strategies were drawn as wireframes and put to the user, grounded in source read from
+Discourse, Directus, frappe-ui and shadcn, and in WordPress, Ghost, Polaris and Primer read from
+their own repositories. The user chose the tiered model and asked for all four values with
+Balanced as the default.
+
+### Changed — one setting, two edges
+
+- **Every value of `desk_width` carries a pair**, because one measure cannot serve a form and a
+  table: a form is read and wants a reading column, a table is scanned and wants room.
+  **Compact** 900/1200 · **Balanced** 1040/1400 (shipped) · **Roomy** 1120/1600 · **Full** lifts
+  both. `Original` stays as the stand-down pole every kit has, leaving the vendor's 900 alone.
+- **Every surface is assigned to one edge and none to neither.** Reading: forms, the settings
+  page, the document band. Wide: lists, reports, dashboards, charts, kanban, calendar, gallery,
+  the workspace, and any section holding a child table — which asks for it by what it CONTAINS,
+  so there is nothing to configure per doctype.
+- **The shipped default moves from Full Bleed to Balanced**, at the user's decision.
+- **The picker shows each value's two measures** under its name, derived from the tokens rather
+  than spelled into the label. `P.options` gains an optional second line; every existing caller
+  passes none.
+
+### Why capping a data surface is safe here
+
+The objection that would otherwise sink this is the wide table, and it is already answered:
+Frappe's list owns a horizontal scroller inside itself — measured, 1356px of rows inside a
+1120px column, with `.result` carrying the overflow. Capping narrows the viewport onto the rows
+and never clips them. shadcn wraps every table the same way and Discourse states it as doctrine.
+
+### Migration
+
+`v0_46_0.width_two_edges`, and it is not optional: this is a RENAME. A v0.45 row holds a Select
+value the options no longer contain, so the kit's value map has no entry, `data-bnd-body-width`
+is never stamped, and the site silently loses **every** width rule — worse than the state it
+replaces. The patch maps the three renamed values and leaves `Original` alone.
+
+### Two defects only the screenshots caught
+
+Both after the checks were green, which is why this repo looks. The document band mounts outside
+`.form-layout`, so it still spanned 1320px above a 1040px card — two edges that do not line up,
+the exact complaint the work answers. And the picker's measures clipped to "Reading: 1040 · Wid"
+inside a fixed 96px chip.
+
+### Added — the width control beside density
+
+**The user, 2026-09-12:** *"add an icon for it next to density."*
+
+- **A width segment in the status bar**, one place to the leading side of density and sorting
+  past the cluster on `order` exactly as density does. One click cycles
+  follow-the-site → Compact → Balanced → Roomy → Full; the words live in `aria-label` and the
+  tooltip, as the density glyph's do. `status_segments_width`, a new Check beside its siblings,
+  ships on.
+- **What it writes is the reader's own row, never the site's.** `personal.bnd_body_width` under
+  the existing `personal_comfort` lock, overlaid onto `desk_width` in `resolve_for_user` last —
+  the `bnd_pane_state` shape: one field, narrower and more recent than any look, so a personal
+  look carrying a width does not beat it. **The layer is forced, not chosen**: the status bar is
+  on every desk, so an icon there that wrote Theme Settings would throw for everyone who is not
+  a System Manager and, for the one who is, silently re-lay every colleague's desk.
+- **The catalogue is `presets.DESK_WIDTHS`**, with a new build guard (`assertBodyWidths`) holding
+  its three consumers to it — the doctype Select, the client's slug map, and the personal axis —
+  in the `SB_PANE_STOPS` shape. `Original` is asserted to be in the Select and *out* of the
+  table: standing the kit down is the site's call about whether the theme governs width at all,
+  not a reader's call about working room.
+- **The Appearance dialog gains the row**, under Density, with live preview, cancel-restore, and
+  "Follow the site (Balanced)" naming the site's own value — read from the `site_values` the
+  endpoint already serves, because `desk_width` is a LOOK field.
+- **The segment stands down when `personal_comfort` is closed.** A control that is present and
+  always fails is worse than one that is absent.
+- **Fixed in the same gesture:** an Appearance save left `frappe.boot` holding the pre-save seed,
+  so the *next* status-bar click read a stale value and jumped to the wrong stop. Density had
+  this before width existed; both are written back, because repairing half a pair is a
+  regression.
+- **The glyph was drawn before it was chosen** — thirteen candidates rendered in the real bar at
+  their real 14px beside the neighbours they have to live with. `icon-move-horizontal` is the
+  only one that reads as a *measure* rather than a layout tool, and the only one that does not
+  compete with the density stack next to it.
+
+### Fixed — the suite was writing the tenant's error badge
+
+**The user, 2026-09-12:** *"the errors that keep appearing every time i change a settings."*
+Found by looking at the desk rather than at a log: the status bar read **"Running: 36 ·
+Errors: 560"** on every page, in red, and the number only ever went up.
+
+Measured: **345 of those 560 unseen rows were written by this suite.** 191 by the print
+sheet's two sabotage probes (a garbage seed, an unoffered pole — both drive a documented
+stand-down, and a stand-down logs a row) and 154 by the SVG-logo note check, whose
+`/files/mark.png` has no file behind it, so Frappe's `attach_files_to_document` fails on
+`on_update` and logs one. Four rows per run, every run, since the checks were written.
+
+**The product behaviour is right in both cases and does not change.** A pole with no
+compiled block and a logo pointing at a missing file both deserve a row on a real site.
+What was wrong is a TEST leaving residue on the site it tests — the rule `withPersonal`
+and the sweep's verified restore already obey, applied to the one store nobody had counted
+as state. `ERRLOG_MARK` / `errlogSweep` bracket each gesture and delete only rows of the
+NAMED methods created after the mark, so an unrelated error raised in the same window
+survives and stays visible. Proved by measurement: the three checks together now grow the
+Error Log by **0**.
+
+Changing a setting was ruled out as the cause first, not assumed: 58 picker changes driven
+through the real form wrote zero rows, and a `doc.save()` of Theme Settings writes none
+either. The errors were never *caused* by a settings change — they were *displayed* on
+every page, and the settings page is where the user was looking.
+
+Housekeeping on the dev site, stated because it is someone's data: the 345 rows the suite
+wrote were **deleted** (test residue, provably ours by method); the remaining 216 were
+**marked seen** — Frappe's own "somebody has looked at this" flag, which is what the badge
+counts — and every one of them is still readable in the Error Log list. 36 jobs queued on a
+stack with no queue workers were purged. A `tagline` scratch value from a killed run was
+cleared.
+
+### Checks
+
+- **The personal-width preamble covers both widths now.** It watched `bnd_sb_width` only,
+  and `bnd_body_width` has the same crash-path risk with a worse blast radius: it governs
+  seven surface families through `desk_width`, so one stranded row makes every later width
+  assertion measure the person's width instead of the site's, and the failures read as a
+  body kit that stopped working rather than as a leftover.
+
+A new one drives all three finite values at 1920, where both edges bind, and asserts each
+surface sits within 2px of ITS edge and that the desk shows exactly two distinct widths. It
+failed first for the right reason. The workspace/form check was retargeted — it used to assert
+they were EQUAL, which this item separates on purpose — and reads both numbers from the tokens,
+so re-pricing a value cannot leave it asserting last month's pixels. Fingerprint regenerated
+deliberately with drift empty: one picker moved, 41 nodes to 48. `benchPy` now retries MySQL
+1020 on any table, not only `tabSingles` — a full run lost a check to 1020 on `tabUser`, and the
+narrowing had recorded where it had been seen rather than a principle.
+
+---
+
+## [0.45.0] — 2026-09-10 — The body, rebuilt: anatomy over frame, and a composer for it (item 43)
+
+**The user's brief (2026-09-03):** "ERPNext is good, but the visual body is poorly done; the
+previous items didn't really make it look better, especially the body of the program and the
+forms." Nine surface kits had dressed the body's FRAME — a card around a section, a pill on a
+tab — while the anatomy inside stayed stock: one type size everywhere, a field box at 1.02:1
+on its page, no document header, and two widths (Frappe's 900px cap inside the theme's
+full-width card). Thirty looks were drawn, a live composer was published, and the user picked
+**Bunood Console** (`from 09 Console · 1B 2B 3A 4D 5C 6B 7D 8C · 14 brand · +hero +stage
++pinned`); then asked for the composer INSIDE the theme and the settings page restructured.
+Three deliverables, one item, in that order.
+
+### Added — the body kits (A0–A10)
+
+- **The `body` kit**: `desk_width` (Original · Measured Column · Narrow Column · **Full
+  Bleed**) feeds Frappe's own `--page-max-width` where the vendor reads it — the item-40 lesson,
+  never a second width; `desk_scale` (Original · Compact 13 · **Standard 14** · Touch 16), a
+  site type set where the section head leads the label; `desk_primary` (Black · **Brand**).
+- **Field anatomy** `form_fields`: Original · **Stacked Outlined** · Property Rows (a 160px
+  label column, Check keeps its box first, wide types span) · Quiet Underline · Inline Text.
+- **Sections** `form_style` gains Headed Groups · Grouped Insets · Tinted Heads (a brand-wash
+  head, gated); every style carries a 20px collapse control.
+- **Line items** `form_grid`: Original · Hairline Ledger · **Ruled Sheet** — the row-height
+  density contract on every cell, tabular numerals end-aligned, Add row a full-width quiet
+  control.
+- **Inspector Rail** `form_sidebar` (the default): no card, a 40px thumb on the name's row,
+  eyebrow group titles, counts as chips.
+- **Activity** `form_activity`: Original · Beside (a 340px column at 2xl) · **Drawer** — the
+  stock `.form-footer` as an owned off-canvas panel, opened from the band, Escape closes, focus
+  returns.
+- **Dense Table** `list_style`, and **Zebra Stripes** becomes the shipped list default.
+- **The document header** `form_header`: Page Head · Title Block · Highlights Band · **Hero
+  Band** with `form_header_tone` Tinted · **Brand-dark** (the derived `--bnd-brand-deep` pair,
+  gated over 27 seeds × 2 modes); tiles from the doctype's first four list-view fields.
+- **The stage path** `form_stage`: the active Workflow's states, else Draft · Submitted ·
+  Cancelled on submittable doctypes; the native pill hidden only once owned.
+- **The pinned foot** `form_foot`: the primary action proxied, the Currency facts, lifted by
+  the measured chrome.
+- **The workspace gutter** reaches the workspace at the vendor's own nesting.
+- **Bunood Console** is the shipped preset (empty `values` — the rule: the default preset is
+  the one whose values are empty); every earlier preset is pinned to its pre-43 desk.
+
+### Changed — the settings page (B1–B4)
+
+- **The shell is retired** (B1): every card in one scroll with its heading, every Select at
+  its 273px, the placement board on its own named container.
+- **Importance order lives in the doctype** (B2): Compose → Look → Body → Shape → Beyond the
+  desk → Generated; every Section Break carries a one-line description; the Compose card
+  names the matched look and opens the composer.
+- **The settings map in the side pane** (B3): rows derived from the rendered sections, bands
+  from the doctype's order (a band heads once, asserted), scroll-spy with the last card pinned
+  at the bottom, a chip-and-menu in the rail, a Sections menu in the page head under Hidden,
+  a clicked card landing under the sticky head. `field_order` names every field exactly once,
+  build-guarded — it had named a ghost and omitted two Selects since before v0.44.2.
+
+### Added — the composer (C1–C5)
+
+- **`/desk/theme-settings?compose`**, a mode of the same form read once per document: a rail
+  of eighteen decisions in four bands, every row the kit's own option table through the kit's
+  own setter, highlights derived from the document on every dirty tick, a copy line; a
+  **stage** — a real desk page in a same-origin frame at 1440×900, scaled, sticky beside the
+  rail, ten pages resolved by the server (an absent one greyed with its reason), the frame told
+  the form's values through its own engine, its routing never touching the joint history,
+  reloading onto the brand sheet a landed save wrote; and a **compare strip** — one cell per
+  value of the decision last touched, each the form with that one field replaced, focused on
+  the element it governs, reused across decisions and loaded in turn. `?compare=0` keeps every
+  tool frame-free; frames park when the page hides.
 
 ### Fixed
 
-- Give fresh Sales and Purchase bills a deterministic party-field focus and
-  route shared keyboard commands even while Frappe is replacing form objects.
-- Replace browser-reserved F12 item search with visible `Alt+I`.
-- Preserve the operator's latest focus when a deferred native calculation
-  renders, prevent late Enter handlers from stealing focus, and honor Add Item
-  after an existing invoice update finishes.
+- **A hidden pane opened on every fresh load of a form or list.** `guard_critical_reach`
+  judged reach before Frappe had built the page head the tenants are lent to; it waits for
+  the head now, and `page-change` re-places them. Three placement checks had passed on the
+  defect and own their premise now.
+- **The settings sweep replayed the page 39 times.** Its per-section scan never received the
+  section key and fell back to the document — every kind reads from the section, a missing
+  section throws, and the tool honours `BND_URL`.
+- The contrast gate had been red since v0.44.0 on two placement fields (A3's commit).
+- **`language_choices` was a theme axis** (since v0.44.2): every theme card wrote `ar,en`
+  over a site's own language list, and a site offering a third read Custom on every card. It
+  is site policy outside the partition, the way `arabic_font` is (the release review).
+- **The two moved defaults get a patch** (`v0_45_0.console_defaults`): a row still holding
+  Floating Pane or Floating Cards moves to Inspector Rail or Zebra Stripes. Both are theme
+  axes, and the moved baseline would have read Custom on every card of every existing site —
+  the v0.40.0 quick-links precedent, limits included. The ten new axes need nothing: no row
+  is the new default.
+- **The inherited set caught up with the stack.** `inherited.ar.txt` was last regenerated over
+  three apps on 2026-08-31; over the nine installed today it proposes 149 collisions, 27 of
+  them false friends rejected with a reason each (Frappe's *Light* is a lamp's, its *Theme* a
+  topic, its *List View* a dropdown, its *Original* creative). The emit applies the set now —
+  85 authored rows stop shipping and stop overriding upstream desk-wide — and *Alert* is ours
+  again, because 16.33 carries it only under a context a bare `__()` cannot reach.
+- **A composer frame never boots inside a hidden page.** A save landing after the page hid
+  refreshed the cached form, its sync sent the parked stage back to Home, and that frame
+  booted 0px wide — Frappe read it as a phone and wrote `sidebar-expanded=false` into the
+  browser storage the frames share with the desk, so every later fresh load booted with its
+  pane collapsed: the map's rows in a rail menu, a pane head with no name, seven pane links
+  with no text, sixty checks later and none naming it (the full run of 2026-09-09; measured
+  at 2.4s). Navigation and the cell queue now refuse while the page is hidden, and Frappe's
+  `show` sends the stage and the strip back.
+- **Plain kanban columns were doing nothing** since this bench moved to frappe 16.33:
+  `kanban_column.html` now writes one neutral `--kanban-column-bg` inline where it wrote the
+  per-status `--bg-{indicator}`, so the vars Plain re-points were no longer the vars the
+  column reads. Carried as a bench debt for two releases; it is one line, and a shipped
+  control that does nothing is a defect wherever the cause lives.
+- **The composer's page list** resolves the latest record with `get_all` (a manager's user
+  permissions had been able to send the frame to a new record) and URL-quotes every name.
+- **Six findings in the form script** from the review: `ground_color` in the identity kit's
+  field list, the status kit's `search_placement` default, the pane state on the rail through
+  its own setter, builder items carrying their reason, the composer's value normalised through
+  the pane's packer, three placement keys in the theme's key set.
+
+### Fixed — the second review round, on the shipped default
+
+Three of the six adversarial lenses died on a model rate limit before the tag and were
+re-run afterwards. They found more than the three that reported, and four of the findings
+were on the path every site takes out of the box. Each was re-measured before it was
+touched, and the tag moved to include them.
+
+- **A striped row answered neither the pointer nor the selection.** The zebra carried one
+  attribute more than the row-hover rule and one source position more than the checked-row
+  wash, so on every EVEN row of every child table hovering did nothing and a selected row
+  looked unselected. Under Hairline Ledger the stripe is the surface colour, so the
+  selection wash disappeared outright. The three states are excluded from the stripe rather
+  than re-weighted, because they must keep applying under Original.
+- **Every section title hung 15 pixels inside its own fields.** The head's inline padding
+  came from a bleed token only Tinted Heads declares, so on the other six styles it
+  resolved to zero and beat Frappe's own 15px — the inset that exists because every field
+  sits in a column with the same 15px. Measured on the shipped default: title at 308, first
+  field at 323, on every form page in both directions.
+- **Tinted Heads never bled.** Its band was a floating chip inset inside the section it was
+  meant to span: the repair was a negative margin, and the vendor sets `margin: auto
+  !important` on that element, which no specificity beats. The inset moved off the section
+  instead.
+- **Frappe's own Toggle Full Width stopped working** under Measured Column and Narrow: our
+  card capped at the token with no `body:not(.full-width)` guard, while every vendor reader
+  of `--page-max-width` carries one.
+- **Four token reads had no fallback**, so under `desk_scale: Original` the inspector rail's
+  avatar letter fell to body size in a 40px thumb and Dense Table's eyebrow head vanished
+  into its own rows.
+- **The Appearance dialog never previewed the body kit.** `apply_look` named its appliers by
+  hand — its own docblock calls that a trap — so every look previewed with the page's width,
+  type scale, primary colour and language style left at the site's values, then snapped into
+  place on the next load. The list is derived from the kit registry now.
+- **Three ownership claims outlived their pages.** The path, the foot and the drawer released
+  only when no page in the document held their node, and Frappe caches one page per doctype
+  — so a cached form decided for the page on screen, hiding a head pill on a doctype with no
+  path and a Save button on the form the user was looking at.
+- **The unsaved state was disappearing.** The head pill is also Frappe's dirty flag; the band
+  is built on refresh only, so it read "Draft" while the stage path hid the live one. The
+  band follows the dirty tick now. No DOM class marks that state, which was measured rather
+  than assumed after a first repair invented one.
+- Also: the drawer's observer counted into a node the foot's stand-down had destroyed; a
+  landed brand save left every compare cell on the old sheet; and each push started another
+  focus-retry chain, so two of them wrote one frame's transform from rects taken at
+  different moments.
+
+### Accessibility — the review's reader pass
+
+- **Compare cells are pictures**: the clip is `inert` and its frame off the tab order; the
+  value's name and its control come BEFORE the picture (which also lifts the control out from
+  under a rising toast); every *Use this* names its value; spare cells are truly hidden.
+- **The stage frame** is skipped by Tab and titled for the page it shows.
+- **A cell's focus scrolls its own frame**, never the host page — `scrollIntoView` had
+  scrolled every ancestor frame, and the page jumped to the strip on every cell load. The
+  stage shows a fresh strip once per touch, only as far as its foot needs (at 1366×768 the
+  strip sat entirely under the fold), and in one column the rail follows the preview.
+- **The rail keeps names**: the map's chip and the pane head carry theirs on the button, where
+  the rail hides the label span. Smooth scrolls honour reduced motion — the OS preference and
+  the item-38 stamp. The keyboard gets the hover naming: an option under focus is named in
+  its row.
 
 ### Checks
 
-- Focused Sales/Purchase bill contracts pass 68/68.
-- A least-privilege user with Sales User, Purchase User and Accounts User
-  entered three distinct items, edited quantities to 2/3/4, saved and submitted
-  both invoices without a mouse. Sales reached Submit in four Tabs; Purchase in
-  48. Reloaded documents retained all lines and reconciled native totals/taxes.
-- The acceptance reported zero browser errors and removed its submitted
-  invoices and temporary user during teardown.
-- Final payloads remain inside the recorded ceilings: 32,727-byte CSS gzip and
-  157,355-byte JavaScript gzip, with no new runtime dependency or data model.
+Forty-odd new checks across the body kits, the map and the composer, each watched failing
+first; the picker-shape fixture and the axe baseline recaptured (byte-identical after B2 and
+B3; the composer's route added); `npm run contrast` over 9,408 pairs; the sweep's composer
+pass ends restored over an empty diff. The suite's own repairs: `withPersonal` commits before
+it clears (its cache-first order leaked a personal look for sixty checks and failed three of
+them, none naming it); a fourth placement check (`slots`) owns its Open premise; the chrome axe
+check scans the rail on the desk and on the settings route; the strip check asserts the reader
+pass; the map check asserts its head's name; the parking check leaves BEFORE the autosave's
+debounce, which is what makes the hidden-page case happen every run rather than on a slow
+machine, and reads Frappe's flag back afterwards. The second round added two checks and repaired four:
+a striped row answers the pointer and shows its selection; a section title starts where its
+fields start in every style, with the band's reach asserted as a box because its first
+repair was a rule that could not apply; Headed Groups asserted a border WIDTH every style
+carries instead of the colour only it sets; the two primary-button checks waited on a button
+the shipped foot hides; the stage path's docstatus arm was vacuous on a draft; the map's
+headline assertion read the same DOM on both sides; and the composer's focus arm was
+satisfied by any translate at all. `desk_width` is put back afterwards, which it was not for
+the 250 checks that follow it. Review: six adversarial lenses were launched and
+all six reported in the end — the form script's seams, the server side and accessibility
+before the tag; the JS mounts, the stylesheets and the check lens after it, when the three
+that had died on a model rate limit were re-run. Every finding was re-measured here before
+it was touched, and four did not survive that: our band pill is not swept by Frappe's dirty
+handler, the composer's frames write no Route History, the `_body.scss` token reads need no
+fallback because that block is attribute-gated, and Frappe's cell classes are refused rather
+than ported because their padding would double our own.
+The first run at the release candidate read **523/526**, and all three failures turned out to
+be worth chasing rather than carrying. Two were the email bench debts this line had held
+since it moved to frappe 16.33, and they are paid: the forked wrapper was re-read at 16.33
+and re-pinned, with two changes ported (the container width keys on `header or
+with_container`; `{{ content }}` sits in a `<div>` rather than the `<p>` it cannot legally
+contain, which was splitting the wrapper on every message with block content) and three
+refused on measurement rather than taste — 16.33's four cell classes carry padding this fork
+exists to relocate, its `text-muted` is `color: … !important` and would beat the fitted
+footer ink the AA check guards, and its new `brand_name` key resolves to the string "Frappe"
+on a site that has set neither app name. The preview's tripwire is retired and the answer it
+waited for is no: `api.email_preview` keeps its `email_account` stub, which reads as a crash
+workaround and is really suppressing a logo the settings did not choose.
 
-## [0.44.23] — 2026-09-12 — Responsive transaction workbench (patch)
+The third was the frappe-charts `removeChild` race, and it is fixed. Printing the budget's
+stack frames named its caller for the first time; the composer then made it reproducible at
+last — four scaled desks animating charts while the host resizes their clips throws eight
+times, and viewport churn on a dashboard once. The wrap that was supposed to stop it had
+never been installed: `frappe.Chart` is a factory and does not own `makeChartArea`, so the
+patch's own `typeof === "function"` guard declined and it has been dead since it was
+written, which is why the race was diagnosed twice and returned a third time. The guard
+walks a real instance's prototype chain now. Eleven throws became zero.
 
-### Changed
-
-- Redesign the shared Sales and Purchase bill lines as a sticky-header
-  spreadsheet with row numbers, level native controls, a dominant item column
-  and a totals rail that moves below the grid before it can overlap.
-- Compact the Customer/Supplier strip and surface each party's native Tax ID
-  without introducing a duplicate field.
-- Render one expanded editable line card on phones, keep the current total and
-  primary action within thumb reach, and preserve every desktop-required field.
-- Commit Enter before advancing to the next writable native cell, leave open
-  Link pickers in control of arrows/selection, focus a new line's first writable
-  cell, and confirm removal of populated rows.
-
-### Checks
-
-- Focused bill contracts pass 68/68 and Arabic catalogue coverage is complete
-  for 1,213 Theme-owned source strings.
-- The canonical live bill acceptance passes against the isolated local stack:
-  aligned row controls, next-writable-cell keyboard flow, removal cancellation,
-  Warehouse autocomplete, VAT template presence and native draft save.
-- Customer and Supplier Quick Entry pass as a non-System-Manager operational
-  user with native `tax_id` save/reload and zero duplicate Custom Fields.
-- Three-line Sales/Purchase desktop and 390 px captures have zero page overflow;
-  a 100-line probe keeps the header sticky and the item sheet bounded.
-- Final payloads remain inside the recorded ceilings: 32,727-byte CSS gzip and
-  157,167-byte JavaScript gzip, with no new runtime dependency or data model.
-
-## [0.44.22] — 2026-09-12 — Production-candidate stabilization (patch)
-
-### Fixed
-
-- Prevent locked Frappe v16's native SidebarHeader from generating
-  `/desk/undefined` requests for separators and iconless Navbar actions;
-  seed a bundled Appearance icon for fresh sites and upgrades.
-- Replace stale Create Entry onboarding flags with permission-aware
-  persisted-record progress while preserving native role checks, manual steps,
-  panel shape and completion behavior.
-- Keep onboarding contained inside the sidebar and add one accessible native
-  refresh control with loading, success and recoverable-error states.
-- Give Invoice Tools complete disclosure semantics, Escape/focus restoration
-  and stable control association.
-- Hide inactive ZATCA server/sync metadata until the connector is operational.
-- Prioritize amount and document identity in Sales and Purchase invoice lists
-  without replacing native actions or overriding saved user layouts.
-
-### Changed
-
-- Define the five Home KPIs on the server with explicit company, period,
-  currency, docstatus and drill-down filters. Counts, booked value, invoiced
-  value, outstanding receivables and average order value now share auditable
-  populations.
-- Render those metrics as keyboard-operable drill-down controls with visible
-  periods and Arabic coverage.
-
-### Checks
-
-- Focused patch regressions pass 100/100; server contracts pass 7/7.
-- Arabic coverage is complete for 1,213 source strings, all 47 emitted icon IDs
-  exist, all 9,184 contrast pairs pass WCAG 2.2 AA, and the asset/payload build
-  passes.
-- Live local evidence records zero undefined routes on the named route matrix,
-  exact KPI reconciliation, truthful Selling onboarding at 4/6, refresh
-  recovery with zero console errors, and an authenticated websocket event
-  delivered over the websocket transport.
-
-## [0.44.21] — 2026-09-12 — Cached sidebar toggle rebinding (patch)
-
-- Rebind the page-head sidebar toggle during every cached-page reconciliation,
-  so the visible control always opens and closes the pane after Frappe restores
-  a retained page header.
-
-## [0.44.20] — 2026-09-12 — All Apps Home route restoration (patch)
-
-### Fixed
-
-- Restore one labelled Home button in Frappe's native All Apps navbar when the
-  configured Bunood bars are disabled, so the module grid can always return to
-  `/desk/home` without editing the URL.
-- Remove the native fallback whenever a Bunood shell owns navigation, keeping
-  the global Home action singular in desktop, mobile, LTR and RTL layouts.
-
-### Checks
-
-The focused Home-entry regression and a real local All Apps navigation check
-cover the native-navbar fallback. No broad suite is repeated for this patch.
-
-## [0.44.19] — 2026-09-12 — Reviewed Real Estate release pin (patch)
-
-### Fixed
-
-- Advance the reviewed `bunood_real_estate` compatibility pin from 1.4.3 to
-  1.4.4 so the fail-closed pre-migration gate accepts the release-manifest app
-  upgrade while continuing to reject unreviewed upstream drift.
-
-### Checks
-
-The focused upstream-gate suite passes before the immutable image is rebuilt.
-
-## [0.44.15] — 2026-09-11 — Production PDF engine repair (patch)
-
-### Fixed
-
-- Pin every managed format and the site-wide fallback to the Chromium engine
-  that the immutable release image actually provides, eliminating the invoice
-  PDF 500 caused by wkhtmltopdf's unreachable tenant-host fetch.
-- Keep the branded letterhead in the body flow because Frappe v16's separate
-  Chrome header merger clips its top; the full company identity and footer now
-  render on the candidate invoice.
-- Make the deploy helper derive all worker names from the selected Compose
-  project so a disposable candidate receives the same source as its backend.
-- Move all real PDF regression helpers onto the release engine.
-
-### Checks
-
-Focused PDF/deploy/UI regressions pass **80/80**. A real candidate invoice with
-15% VAT renders through Chromium with the full letterhead, branded totals,
-embedded riyal glyph and a decoded Phase-1 QR whose seller, VAT number, total
-and tax match the source invoice. Full immutable-image acceptance remains the
-release gate.
-
-## [0.44.14] — 2026-09-11 — Invoice alignment and sidebar ownership (patch)
-
-- Aligned synthetic invoice inputs to one spreadsheet row track and removed
-  the remaining duplicate legacy sidebar toggle.
-
-## [0.44.13] — 2026-09-11 — Link autocomplete ownership (patch)
-
-- Preserved continued typing and native Link autocomplete while invoice row
-  mutations are in flight.
-
-## [0.44.12] — 2026-09-11 — Spreadsheet Link controls (patch)
-
-- Preserve Frappe's native Link query function in synthetic Sales and Purchase
-  Invoice spreadsheet rows, restoring populated Warehouse autocomplete choices.
-- Align acceptance readiness with the permanent Dock/rail navigation design and
-  current-form ownership without relaxing the product behavior being tested.
-
-## [0.44.11] — 2026-09-11 — Navigation ownership cleanup (patch)
-
-### Fixed
-
-- Removed Frappe's obsolete pane-edge collapse chevrons while retaining the
-  invisible resize strip, keyboard sizing, and the page-head toggle as the one
-  visible desktop owner.
-- Confined Home, Notifications, and Profile mobile captions to the four-cell
-  phone navigation so Arabic labels cannot wrap below top-bar icons or overlap
-  adjacent controls. The intentionally labelled All Apps return remains.
-
-### Checks
-
-The theme bundle and syntax gates pass. Focused Arabic/English navigation
-acceptance passes; complete browser acceptance is reserved for the immutable
-release image.
-
-## [0.44.10] — 2026-09-10 — Production-candidate acceptance repairs (patch)
-
-### Fixed
-
-- Kept top-bar labels inside their desktop controls and removed the remaining
-  overflow around the profile and notification actions.
-- Made the page-head sidebar button the single desktop owner, with logical
-  RTL/LTR arrows and click-owned rail expansion.
-- Aligned query-report filters, totals and charts into one responsive branded
-  stack, including wrapped summaries at mobile widths.
-- Updated the kanban Plain option for Frappe v16's `--kanban-column-bg` token.
-- Repaired clean-site fixtures for an overdue receivable, the `BND-TEST-001`
-  form item and real local gallery image attachments.
-- Restored the Language & Appearance section and protected Bunood's explicit
-  Arabic product wording from inherited translation overrides.
-
-### Checks
-
-Static product tests: **110/110 passed**. Translation coverage, icons and all
-9,184 WCAG color-pair checks pass. Full immutable-image browser acceptance is
-the release gate for this patch.
-
-## [0.44.9] — 2026-09-10 — Preference ownership guard (patch)
-
-### Fixed
-
-- Classified the language switch and appearance-button configuration as
-  administrator-owned site settings. This restores the field partition invariant
-  and prevents named personal looks from silently claiming tenant-wide language
-  availability or global chrome placement.
-
-### Checks
-
-The personal-field partition gate fails on v0.44.8 and passes with all four new
-settings filed exactly once as site-owned.
-
-## [0.44.8] — 2026-09-10 — Page-head sidebar control (patch)
-
-### Changed
-
-- Moved the desktop sidebar control out of the pane and into the page head,
-  directly beside Frappe's workspace/Home button. It remains anchored while
-  the pane changes width or scroll position.
-- Replaced the static edge chevron with a stateful double-chevron: expanded
-  points toward logical start, collapsed points toward logical end, and RTL
-  mirrors the glyph without physical left/right state.
-- Retired the pane-edge and optional top-bar duplicates while preserving the
-  separate workspace/Home menu and Frappe's native mobile drawer control.
-- Corrected and standardized the Arabic notification vocabulary: the visible
-  plural is now `إشعارات`, the singular is `إشعار`, and related settings use
-  the same terminology.
-
-### Checks
-
-Build guards and focused sidebar, breadcrumb, and Home regressions pass. The
-desktop browser smoke covers placement, open/close state, and Arabic mirroring.
-
-## [0.44.7] — 2026-09-10 — Tajawal invoice typography (patch)
-
-### Changed
-
-- Replaced Cairo as the primary Arabic invoice face with the Tajawal family from
-  Google Fonts. The official OFL-licensed Regular, Medium, Bold, and ExtraBold TTFs
-  are self-hosted so wkhtmltopdf works without external network access.
-- Applied Tajawal to managed invoice formats, letter heads, footers, and page labels.
-  The Arabic document title now uses weight 700 for a cleaner, less bulbous heading.
-- Registered Tajawal with the shared fontconfig directory alongside the dedicated
-  Saudi riyal face. A generated PDF proves both Tajawal Medium/Bold and Bunood Riyal
-  are embedded.
-
-### Checks
-
-Print/font regression plus Sales Bill and simplified-form suites: **76/76 passed**.
-Fresh `exact.bunood.test` PDF: one page, embedded `Tajawal-Medium`, `Tajawal-Bold`,
-and `BunoodRiyal-Regular`; visually checked in the browser.
+`npm run contrast` covers 9,464 pairs over 27 seeds and both modes, one of them a pair the
+gate had no row for. `node tools/shots.mjs` was read in all five pane states, and the
+composer sweep applied and saved all 71 of its options and restored the site row for row.
+Full run after every fix above: **529/529**, on a bench running frappe 16.33.0 and erpnext 16.34.1.
 
 ## [0.44.2] — 2026-09-08 — The switch offers what you chose; the pane stays on All Apps (patch)
 

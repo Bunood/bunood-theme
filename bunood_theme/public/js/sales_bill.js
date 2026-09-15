@@ -354,6 +354,7 @@
 		setMode(simple) {
 			this.simple = simple; this.root.hidden = !simple; if (this.native) this.native.hidden = simple;
 			this.frm.$wrapper?.toggleClass("bnd-bill-simple-active", simple);
+			window.bunood_theme?.[simple ? "claim_native" : "release_native"]?.("salesbill");
 			this.simpleButton?.setAttribute("aria-pressed", String(simple));
 			this.advancedButton?.setAttribute("aria-pressed", String(!simple));
 			this.simpleButton?.setAttribute("aria-current", simple ? "page" : "false");

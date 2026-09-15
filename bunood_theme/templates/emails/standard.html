@@ -24,7 +24,8 @@
   PINS us to the version copied, and a Frappe change here would be invisible — in
   an inbox — indefinitely. So the fork is pinned rather than merely taken:
   `tests/smoke.mjs` hashes Frappe's shipped copies and fails loudly when upstream
-  moves. Forked at frappe 16.27.0, sha256 ef600441177479bc.
+  moves. Forked at frappe 16.27.0; re-read and re-pinned at 16.33.0 — see the
+  re-pin note below the render contract for what was taken and what was left.
 
   WHAT MUST NOT BE LOST, and it is not styling. Three markers in these templates
   are rewritten per recipient downstream; losing one is a dead unsubscribe link or
@@ -38,8 +39,34 @@
   something we do not control.
 
   Plus the render contract: {{ content }}, {{ header }}, {{ footer }},
-  {{ brand_logo }}, {{ with_container }}, {{ print_html }}, {{ subject }},
-  {{ site_url }}. `get_formatted_html` supplies every one.
+  {{ brand_logo }}, {{ brand_name }}, {{ with_container }}, {{ print_html }},
+  {{ subject }}, {{ site_url }}. `get_formatted_html` supplies every one.
+
+  RE-PINNED AT FRAPPE 16.33.0 (sha256 fd3e883de26cc1), 2026-09-10, which is the
+  pin working as designed: it went red, upstream was read, and this is what was
+  taken and what was left.
+    PORTED — the container width now keys on `header or with_container`, not
+      `header` alone, and `{{ content }}` is wrapped in a `<div>` rather than a
+      `<p>` it cannot legally contain. Each is marked at its site.
+    READ AND REFUSED — 16.33's new `brand_name` key. It looked like a free
+      fallback for the wordmark until its value was measured:
+      `get_brand_name()` is `website_settings.app_name or
+      system_settings.app_name`, which is **"Frappe"** on a site that set
+      neither. That is the framework's name on a customer's mail to their
+      customers — what `_vendor_name` exists to prevent, and what two other
+      seams in `email.py` already strip out. The key is read; its value is what
+      decides. Argument in `email.brand`.
+    NOT PORTED, and this is the argued half. 16.33 names its cells
+      `email-masthead` / `email-title-cell` / `email-body-cell` /
+      `email-footer-cell` and hangs padding on all four inside
+      `.body-table.with-container .email-container` (`email.bundle.scss:174-195`),
+      plus a `filled` modifier keyed on the string `with-divider` appearing in
+      the footer. Taking those class names would ADD that padding on top of the
+      `.bnd-e-pad` cell this fork exists to introduce — the docblock two rows
+      down explains why the padding moved off the table — so every contained
+      email would be inset twice. The rows are structurally ours already; the
+      class names are the vendor's hooks for the vendor's padding, and we do not
+      want the padding.
 
   IT SHIPPED INERT AND NO LONGER IS. Slice 1 landed this file byte-identical to
   the vendor.s, so the render was byte-identical too and the only thing under test
@@ -71,8 +98,13 @@
 	<table class="bnd-e {{ bunood_email_class() }} body-table {% if header or with_container %} with-container {% endif %}" cellpadding="0" cellspacing="0">
 		<tr>
 			<td class="body-content" align="center" valign="top">
+				{#- PORTED FROM FRAPPE 16.33 (the fork was taken at 16.27, where this read
+				    `{% if header %}`). A container without a header is now 600 too, and
+				    that matters for `Original`, whose whole job is to render as stock
+				    does: our composition gives that pole no max-width, so a contained
+				    email was full-bleed here and 600px on a stock desk. -#}
 				<table class="bnd-e-plate email-container" border="0" cellpadding="0" cellspacing="0"
-					width="{% if header %} 600 {% else %} 100% {% endif %}">
+					width="{% if header or with_container %} 600 {% else %} 100% {% endif %}">
 					{#- ITEM 34. Two structural rows, and both exist on EVERY pole.
 
 					    THE BAND is sized to nothing except under `Masthead`. A row that
@@ -130,7 +162,13 @@
 							<table class="bnd-e-body email-body" border="0" cellpadding="0" cellspacing="0" width="100%">
 								<tr>
 									<td valign="top">
-										<p>{{ content }}</p>
+										{#- PORTED FROM FRAPPE 16.33: this was `<p>{{ content }}</p>` at 16.27,
+										    which is invalid whenever the message has block content — and a
+										    Notification email always does. A browser or mail client closes the
+										    `<p>` at the first `<div>` or `<table>`, so the wrapper silently
+										    became two elements and anything styling it reached only the first
+										    fragment. -#}
+										<div>{{ content }}</div>
 									</td>
 								</tr>
 							</table>

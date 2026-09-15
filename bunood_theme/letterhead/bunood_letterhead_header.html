@@ -102,16 +102,19 @@
 </div>
 <!--BND-END-->
 <!--BND lh=minimal-->
-{# One identity row: company, VAT and CR. Explicit table cells mirror in Arabic
-   and survive wkhtmltopdf's isolated header. Long real names may wrap within
-   their cell rather than getting clipped or shrinking the whole document. #}
+{# One bounded identity row: company, VAT and CR. Explicit table cells mirror
+   in Arabic and survive the isolated PDF header. The print engine reserves a
+   fixed-height header band, so a legal name must never grow the row and collide
+   with the invoice title. The complete legal name is printed again in the
+   seller block; this compact identity uses a smaller face and ellipsis only for
+   unusually long names. #}
 {% if display_name or logo or vat or cr %}
 <div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" class="bnd-lh-minimal" style="font-family:'Tajawal','Noto Sans Arabic','DejaVu Sans',sans-serif; color:var(--bnd-ink); padding:4px 0 0;">
   <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; table-layout:fixed; border-collapse:collapse; margin:0;">
     <tr>
       <td class="bnd-lh-identity" style="width:{{ '30%' if vat and cr else ('60%' if vat or cr else '100%') }}; text-align:{{ _start }}; vertical-align:middle; padding:0;">
         {% if logo %}<div style="display:inline-block; width:40px; vertical-align:middle; margin-{{ _end }}:6px;"><img class="bnd-lh-logo" src="{{ logo | e }}" alt="" style="display:block; width:auto !important; height:auto; max-width:100%; max-height:30px;"></div>{% endif %}
-        {% if display_name %}<span class="bnd-lh-name" dir="auto" style="font-size:17px; line-height:1.4; font-weight:700; color:var(--bnd-ink); word-wrap:break-word;">{{ display_name | e }}</span>{% endif %}
+        {% if display_name %}<span class="bnd-lh-name" dir="auto" title="{{ display_name | e }}" style="display:inline-block; max-width:{{ 'calc(100% - 46px)' if logo else '100%' }}; vertical-align:middle; font-size:{{ '10' if display_name|length > 42 else '17' }}px; line-height:1.4; font-weight:700; color:var(--bnd-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ display_name | e }}</span>{% endif %}
       </td>
       {% for value, en, ar, width in [(vat, 'VAT number', 'الرقم الضريبي', '34%'), (cr, 'Commercial registration', 'السجل التجاري', '36%')] %}
       {% if value %}<td class="bnd-lh-registration" style="width:{{ width if vat and cr else '40%' }}; text-align:{{ _end }}; vertical-align:middle; padding:0 {{ '10px' if _rtl else '0' }} 0 {{ '0' if _rtl else '10px' }}; line-height:1.6;">

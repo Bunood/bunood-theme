@@ -965,7 +965,7 @@ function assertAutomaticArms(css, name) {
 // it would make "which user thing is this" a question the prefix no longer
 // answers. The axis itself is declared in `bunood_theme/personal.py`, which is
 // also what `assertPersonalAxes` reads.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "start", "language", "appearance", "topbar", "pagehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
+const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "start", "language", "appearance", "topbar", "pagehead", "panehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design. Typography joined in item 7(b): a typeface is an axis in exactly
@@ -1026,11 +1026,17 @@ const FIELD_EXCEPTIONS = new Set([
 function readOwnedNatives(registrySrc) {
 	const out = new Set();
 	for (const m of registrySrc.matchAll(/"native":\s*"([^"]+)"/g)) {
-		const classes = [...m[1].matchAll(/\.([A-Za-z_-][\w-]*)/g)].map((c) => c[1]);
-		if (!classes.length) {
-			throw new Error(`Ownership guard: registry.py native "${m[1]}" names no class`);
+		// A tenant may replace SEVERAL natives (the bell: the pane's row and the
+		// desk page's navbar bell, 2026-09-14), comma-joined as any selector list
+		// is. Each names its own last class; a list read as one string would keep
+		// only the final selector's and silently unguard the rest.
+		for (const sel of m[1].split(",")) {
+			const classes = [...sel.matchAll(/\.([A-Za-z_-][\w-]*)/g)].map((c) => c[1]);
+			if (!classes.length) {
+				throw new Error(`Ownership guard: registry.py native "${sel.trim()}" names no class`);
+			}
+			out.add(classes[classes.length - 1]);
 		}
-		out.add(classes[classes.length - 1]);
 	}
 	if (out.size < 3) {
 		throw new Error(
@@ -1232,6 +1238,69 @@ function assertPaneStops(presetsSrc, sidebarScss, doctypeJson, pickerSrc) {
 	}
 	if (problems.length) {
 		throw new Error("Pane-stops guard:\n  " + problems.join("\n  "));
+	}
+}
+
+/**
+ * Body-width guard (item 45) — `presets.DESK_WIDTHS` is THE catalogue, and this
+ * holds its three consumers to it: the doctype's `desk_width` Select, the
+ * client's slug map in bunood.js, and the per-user `bnd_body_width` axis that
+ * resolves through it.
+ *
+ * THE CONSUMER THIS EXISTS FOR is the last one. `desk_width` is a SITE field
+ * with a stand-down pole (`Original`) and `bnd_body_width` is a PERSON'S
+ * override without one — two lists that are nearly the same list, which is the
+ * shape every "same fact in two places" defect in this repo has had. The
+ * subtraction is asserted, not assumed: `Original` must be in the Select and
+ * must NOT be in the table, because a person standing the site's width kit
+ * down from a status-bar icon is not what the control means.
+ *
+ * @param {string} presetsSrc - presets.py text
+ * @param {object} doctypeJson - the parsed Theme Settings doctype
+ * @param {string} deskJs - bunood.js text
+ * @param {string} personalPy - personal.py text
+ */
+function assertBodyWidths(presetsSrc, doctypeJson, deskJs, personalPy) {
+	const problems = [];
+	const table = presetsSrc.match(/DESK_WIDTHS\s*=\s*\(([^)]*)\)/);
+	if (!table) throw new Error("Body-width guard: presets.DESK_WIDTHS not found");
+	const widths = [...table[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+	if (widths.length < 2) problems.push(`DESK_WIDTHS parsed to ${widths.length} entries`);
+	if (widths.includes("Original")) {
+		problems.push("DESK_WIDTHS carries Original — that pole stands the kit down and is the site's alone");
+	}
+
+	const field = (doctypeJson.fields || []).find((f) => f.fieldname === "desk_width");
+	const options = field ? String(field.options || "").split("\n").filter(Boolean) : [];
+	if (options.join(",") !== ["Original"].concat(widths).join(",")) {
+		problems.push(
+			`desk_width options (${options.join(",")}) are not Original plus DESK_WIDTHS ` +
+				`(${widths.join(",")})`
+		);
+	}
+
+	// The client's one copy: the body kit's width axis row.
+	const row = deskJs.match(/\["width",\s*"desk_width",\s*\{([^}]*)\}\]/);
+	if (!row) problems.push("bunood.js has no body-kit width axis row to check");
+	else {
+		const labels = [...row[1].matchAll(/"([^"]+)":\s*"/g)].map((m) => m[1]);
+		if (labels.join(",") !== options.join(",")) {
+			problems.push(
+				`bunood.js's width slug map (${labels.join(",")}) disagrees with the Select ` +
+					`(${options.join(",")}) — a label with no slug renders the site's width silently`
+			);
+		}
+	}
+
+	// The personal axis must RESOLVE the table rather than restate it.
+	const axis = personalPy.match(/"key":\s*"bnd_body_width"[\s\S]*?\n\s{4}\},/);
+	if (!axis) problems.push("personal.py declares no bnd_body_width axis");
+	else if (!/"catalogue":\s*"DESK_WIDTHS"/.test(axis[0])) {
+		problems.push("bnd_body_width does not resolve DESK_WIDTHS — it is restating the list");
+	}
+
+	if (problems.length) {
+		throw new Error("Body-width guard:\n  " + problems.join("\n  "));
 	}
 }
 
@@ -1885,6 +1954,37 @@ function assertFieldNaming(doctypeJson) {
 }
 
 /**
+ * `field_order` is the doctype's ONE statement of order (item 43 B2: the
+ * settings page reads as the JSON lists it). A name in it that no field carries
+ * is a ghost Frappe drops without a word, and a field it omits is appended after
+ * the LAST section by frappe.model.meta — measured: two hidden Selects sat inside
+ * the collapsible Generated card at idx 219/220 while the file said nothing of
+ * the kind. Both are the same fact in two places, disagreeing.
+ */
+function assertFieldOrder(doctypeJson) {
+	const names = new Set((doctypeJson.fields || []).map((f) => f.fieldname));
+	const order = doctypeJson.field_order || [];
+	const ghosts = order.filter((n) => !names.has(n));
+	const seen = new Set();
+	const repeats = [];
+	for (const n of order) {
+		if (seen.has(n)) repeats.push(n);
+		seen.add(n);
+	}
+	const unlisted = [...names].filter((n) => !seen.has(n));
+	const problems = [];
+	if (ghosts.length) problems.push(`names no field: ${ghosts.join(", ")}`);
+	if (repeats.length) problems.push(`repeats: ${repeats.join(", ")}`);
+	if (unlisted.length) problems.push(`omits (Frappe appends these after the last section): ${unlisted.join(", ")}`);
+	if (problems.length) {
+		throw new Error(
+			`Field-order guard: theme_settings.json's field_order ${problems.join("; ")} — ` +
+				"it must list every field exactly once, in the order the page should read."
+		);
+	}
+}
+
+/**
  * Compile one entry, write the hashed file, reap older hashes of the same entry.
  * @returns {Promise<{pyid: string, url: string}>}
  */
@@ -2036,6 +2136,14 @@ async function main() {
 			)
 		)
 	);
+	assertFieldOrder(
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		)
+	);
 	assertRegistryIdentity(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
@@ -2060,6 +2168,17 @@ async function main() {
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
 		)
+	);
+	assertBodyWidths(
+		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8"),
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		),
+		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8"),
+		await readFile(new URL("./bunood_theme/personal.py", import.meta.url), "utf8")
 	);
 	assertLogicalPlacementArgs(
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")

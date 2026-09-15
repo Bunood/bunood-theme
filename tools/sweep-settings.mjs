@@ -44,7 +44,7 @@ const { chromium } = require("playwright");
 
 const SITE = "demo.bunood.test";
 const BACKEND = "bunood-backend-1";
-const URL_BASE = "http://localhost:8080";
+const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 
 const py = (c) =>
 	execFileSync(
@@ -151,7 +151,7 @@ const restore = () => {
 
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1440, height: 1000 } });
-await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" }]);
+await ctx.addCookies([{ name: "sid", value: sid, domain: new URL(URL_BASE).hostname, path: "/" }]);
 const page = await ctx.newPage();
 
 // Console errors, attributed to whichever click is in flight.
@@ -181,8 +181,15 @@ page.on("console", (msg) => {
 	seenErrors.push({ at: current, text: text.slice(0, 300) });
 });
 
-await page.goto(`${URL_BASE}/desk/theme-settings?shell=1`, { waitUntil: "domcontentloaded", timeout: 60000 });
-await page.waitForSelector(".bnd-shell-item", { timeout: 30000 });
+// THE COMPOSER PASS (item 43 C5): `BND_SWEEP_COMPOSE=1` sweeps the composer's
+// rail instead of the cards — the same click path, the same save-and-read-back,
+// over `/desk/theme-settings?compose&compare=0` (no frames), with `.bnd-cmp` as
+// the one "section". The rail's chips carry the same data-field/data-value as
+// the cards', and the click phase picks the VISIBLE one, which is the rail's
+// while the cards stand down.
+const COMPOSE = process.env.BND_SWEEP_COMPOSE === "1";
+await page.goto(`${URL_BASE}/desk/theme-settings${COMPOSE ? "?compose&compare=0" : ""}`, { waitUntil: "domcontentloaded", timeout: 60000 });
+await page.waitForSelector(COMPOSE ? ".bnd-cmp .bnd-cbp-opt" : ".bnd-cbp", { timeout: 30000 });
 await page.waitForTimeout(2000);
 
 const settled = async () => {
@@ -198,17 +205,37 @@ const settled = async () => {
 	}
 };
 
-const items = await page.evaluate(() =>
-	[...document.querySelectorAll(".bnd-shell-item")].map((n) => n.getAttribute("data-key"))
-);
-console.log(`shell items: ${items.join(", ")}`);
+// Item 43 B1: the sections, in the doctype's order — every card is on the page
+// at once, so each pass scrolls its card into view and sweeps the controls
+// INSIDE it (the option scan is scoped below).
+const items = COMPOSE
+	? ["composer"]
+	: await page.evaluate(() =>
+			[...document.querySelectorAll(".form-layout .form-section[data-fieldname]")]
+				.filter((n) => n.getBoundingClientRect().height > 0)
+				.map((n) => n.getAttribute("data-fieldname"))
+	  );
+console.log(`sections: ${items.join(", ")}`);
+/** The section's own selector — or the composer's rail, the one non-section root. */
+const rootSel = (k) => (k === "composer" ? ".bnd-cmp" : `.form-layout .form-section[data-fieldname="${k}"]`);
 
 for (const key of items) {
-	await page.click(`.bnd-shell-item[data-key="${key}"]`);
+	await page.evaluate((s) => {
+		const n = document.querySelector(s);
+		if (n) n.scrollIntoView({ block: "start" });
+	}, rootSel(key));
 	await page.waitForTimeout(600);
 
-	const opts = await page.evaluate(() => {
+	const opts = await page.evaluate((k) => {
 		const out = [];
+		// EVERY kind below reads from the SECTION, never the document. The first
+		// cut scoped only the explicit chips and left the other five kinds
+		// page-wide, so each of 39 passes replayed ~400 options — hours of the
+		// live desk cycling through every look instead of minutes (2026-09-09).
+		// A missing section throws rather than falling back to the document:
+		// the fallback is exactly what hid that.
+		const root = document.querySelector(k === "composer" ? ".bnd-cmp" : `.form-layout .form-section[data-fieldname="${k}"]`);
+		if (!root) throw new Error(`sweep: section ${k} is not on the page`);
 		const vis = (n) => n.offsetParent !== null && !n.disabled && !n.hasAttribute("disabled");
 		const seen = new Set();
 		const push = (row, k) => {
@@ -216,7 +243,7 @@ for (const key of items) {
 			seen.add(k);
 			out.push(row);
 		};
-		for (const n of document.querySelectorAll(
+		for (const n of root.querySelectorAll(
 			".bnd-cbp-opt, .bnd-dgm-slot, .bnd-sbp-opt, .bnd-sbp-stop"
 		)) {
 			if (!vis(n)) continue;
@@ -271,18 +298,18 @@ for (const key of items) {
 			Object.keys(IMPLICIT).concat(MULTI).map((c) => `:not(${c})`).join("");
 		IMPLICIT[CRUMBS_ONLY] = "crumb_style";
 		for (const [sel, field] of Object.entries(IMPLICIT)) {
-			for (const n of document.querySelectorAll(sel)) {
+			for (const n of root.querySelectorAll(sel)) {
 				if (!vis(n)) continue;
 				const value = n.getAttribute("data-value");
 				if (value !== null) push({ kind: "implicit", sel, field, value }, field + "=" + value);
 			}
 		}
-		for (const n of document.querySelectorAll(".bnd-sbp-toggle, .bnd-cbp-toggle, .bnd-ibp-toggle, .bnd-stp-toggle")) {
+		for (const n of root.querySelectorAll(".bnd-sbp-toggle, .bnd-cbp-toggle, .bnd-ibp-toggle, .bnd-stp-toggle")) {
 			if (!vis(n)) continue;
 			const field = n.getAttribute("data-field");
 			if (field) push({ kind: "toggle", field }, "toggle:" + field);
 		}
-		for (const n of document.querySelectorAll(".bnd-sbp-preset")) {
+		for (const n of root.querySelectorAll(".bnd-sbp-preset")) {
 			if (!vis(n)) continue;
 			const preset = n.getAttribute("data-preset");
 			if (preset) push({ kind: "preset", preset }, "preset:" + preset);
@@ -302,7 +329,7 @@ for (const key of items) {
 		// knows this theme's picker classes. Free-input fields (Data, Color,
 		// Attach) stay out: their value space is unbounded and the suite's
 		// live-preview tests own them.
-		for (const n of document.querySelectorAll(
+		for (const n of root.querySelectorAll(
 			".frappe-control[data-fieldtype='Check'] input[type='checkbox']"
 		)) {
 			if (n.offsetParent === null || n.disabled) continue;
@@ -310,7 +337,7 @@ for (const key of items) {
 			const field = wrap && wrap.getAttribute("data-fieldname");
 			if (field) push({ kind: "check", field }, "check:" + field);
 		}
-		for (const n of document.querySelectorAll(".frappe-control[data-fieldtype='Select'] select")) {
+		for (const n of root.querySelectorAll(".frappe-control[data-fieldtype='Select'] select")) {
 			if (n.offsetParent === null || n.disabled) continue;
 			const wrap = n.closest("[data-fieldname]");
 			const field = wrap && wrap.getAttribute("data-fieldname");
@@ -320,7 +347,8 @@ for (const key of items) {
 			}
 		}
 		return out;
-	});
+	}, key); // THE KEY WAS NEVER PASSED before 2026-09-09 — `k` was undefined and the
+	// fallback made every "scoped" scan a page-wide one.
 
 	console.log(`\n[${key}] ${opts.length} options`);
 	for (const o of opts) {

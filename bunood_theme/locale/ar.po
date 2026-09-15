@@ -7689,3 +7689,751 @@ msgstr "راقب الأداء وافتح السجل المطابق"
 #. src: human review — operational role homes 2026-09-12
 msgid "No reports are available for this role"
 msgstr "لا توجد تقارير متاحة لهذا الدور"
+
+#. src: merged reviewed upstream catalogue
+msgid "A bar along the top edge."
+msgstr "شريط على طول الحافة العلوية."
+
+#. src: merged reviewed upstream catalogue
+msgid "A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled."
+msgstr "شريط مثبّت فوق الحافة السفلية يحمل الإجراء الرئيسي للسجل ومبالغه الأساسية، أينما مُرّرت الصفحة."
+
+#. src: merged reviewed upstream catalogue
+msgid "A brand-washed band heads each bordered section, the way a ledger rules its columns."
+msgstr "شريط مغسول بلون العلامة يعنون كل قسم محدود، كما يسطّر دفتر الحسابات أعمدته."
+
+#. src: merged reviewed upstream catalogue
+msgid "A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document."
+msgstr "مسار سهمي عبر رأس المستند: حالات سير العمل، أو مسودة · مُعتمد · ملغى في مستند قابل للاعتماد."
+
+#. src: merged reviewed upstream catalogue
+msgid "A floating dock along the bottom edge."
+msgstr "مرسى عائم على طول الحافة السفلية."
+
+#. src: merged reviewed upstream catalogue
+msgid "A named look for the whole desk — one card writes every kit below."
+msgstr "مظهر مسمّى للمكتب كله — بطاقة واحدة تكتب كل مجموعة أدناه."
+
+#. src: merged reviewed upstream catalogue
+msgid "A preset for the five containers below — where the chrome lives."
+msgstr "إعداد مسبق للحاويات الخمس أدناه — أين يعيش الإطار."
+
+#. src: merged reviewed upstream catalogue
+msgid "A record's anatomy: sections, fields, line items, tabs, sidebar, activity, header, stage path, pinned foot."
+msgstr "تشريح السجل: الأقسام والحقول والبنود والتبويبات والشريط الجانبي والنشاط والرأس ومسار المراحل والذيل المثبّت."
+
+#. src: merged reviewed upstream catalogue
+msgid "Activity"
+msgstr "النشاط"
+
+#. src: merged reviewed upstream catalogue
+msgid "Back to settings"
+msgstr "العودة إلى الإعدادات"
+
+#. src: merged reviewed upstream catalogue
+msgid "Beside"
+msgstr "بجانب النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Beyond the desk"
+msgstr "خارج المكتب"
+
+#. src: merged reviewed upstream catalogue
+msgid "Black"
+msgstr "أسود"
+
+#. src: merged reviewed upstream catalogue
+msgid "Body"
+msgstr "المتن"
+
+#. src: merged reviewed upstream catalogue
+msgid "Body width"
+msgstr "عرض المتن"
+
+#. src: merged reviewed upstream catalogue
+msgid "Brand-dark"
+msgstr "داكن بلون العلامة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Brief"
+msgstr "موجز"
+
+#. src: merged reviewed upstream catalogue
+msgid "Bunood Console"
+msgstr "بنود كونسول"
+
+#. src: merged reviewed upstream catalogue
+msgid "Cancelled"
+msgstr "ملغى"
+
+#. src: merged reviewed upstream catalogue
+msgid "Click to cycle how wide the body runs. Each person sets their own; the site width below is what they start from."
+msgstr "انقر لتدوير عرض متن الصفحة. كل شخص يضبط عرضه الخاص، وعرض الموقع أدناه هو ما يبدأ منه."
+
+#. src: merged reviewed upstream catalogue
+msgid "Compact 13"
+msgstr "مضغوط 13"
+
+#. src: merged reviewed upstream catalogue
+msgid "Compare"
+msgstr "مقارنة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Comparing: {0}"
+msgstr "مقارنة: {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "Compose"
+msgstr "تأليف"
+
+#. src: merged reviewed upstream catalogue
+msgid "Copied"
+msgstr "تم النسخ"
+
+#. src: merged reviewed upstream catalogue
+msgid "Copy"
+msgstr "نسخ"
+
+#. src: merged reviewed upstream catalogue
+msgid "Could not save width preference"
+msgstr "تعذر حفظ تفضيل العرض"
+
+#. src: merged reviewed upstream catalogue
+msgid "CRM deal"
+msgstr "صفقة CRM"
+
+#. src: merged reviewed upstream catalogue
+msgid "CRM is not installed."
+msgstr "CRM غير مثبّت."
+
+#. src: merged reviewed upstream catalogue
+msgid "Ctrl+K: style, ranking, footer and fallbacks."
+msgstr "Ctrl+K: النمط والترتيب والتذييل والبدائل."
+
+#. src: merged reviewed upstream catalogue
+msgid "Decisions"
+msgstr "القرارات"
+
+#. src: merged reviewed upstream catalogue
+msgid "Dense Table"
+msgstr "جدول مكثّف"
+
+#. src: merged reviewed upstream catalogue
+msgid "Desk body"
+msgstr "متن المكتب"
+
+#. src: merged reviewed upstream catalogue
+msgid "Desk Body"
+msgstr "متن المكتب"
+
+#. src: merged reviewed upstream catalogue
+msgid "Desk Body Picker"
+msgstr "منتقي متن المكتب"
+
+#. src: merged reviewed upstream catalogue
+msgid "Desk Scale"
+msgstr "مقياس خط المتن"
+
+#. src: merged reviewed upstream catalogue
+msgid "Desk Width"
+msgstr "عرض المتن"
+
+#. src: merged reviewed upstream catalogue
+msgid "Dialogs, scrims and menus."
+msgstr "الحوارات والحُجب والقوائم."
+
+#. src: merged reviewed upstream catalogue
+msgid "Document header"
+msgstr "رأس المستند"
+
+#. src: merged reviewed upstream catalogue
+msgid "Draft"
+msgstr "مسودة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Drawer"
+msgstr "دُرج"
+
+#. src: merged reviewed upstream catalogue
+msgid "ERPNext is not installed."
+msgstr "ERPNext غير مثبّت."
+
+#. src: merged reviewed upstream catalogue
+msgid "Every value of the decision you last touched, side by side."
+msgstr "كل قيمة للقرار الذي لمسته آخرًا، جنبًا إلى جنب."
+
+#. src: merged reviewed upstream catalogue
+msgid "Fields"
+msgstr "الحقول"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form"
+msgstr "النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Activity"
+msgstr "نشاط النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Fields"
+msgstr "حقول النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Foot"
+msgstr "ذيل النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Grid"
+msgstr "جدول النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Header"
+msgstr "رأس النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Header Tone"
+msgstr "نبرة رأس النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Form Stage"
+msgstr "مرحلة النموذج"
+
+#. src: merged reviewed upstream catalogue
+msgid "Frames are off (compare=0): the desk you are on is the preview."
+msgstr "الإطارات متوقفة (compare=0): المكتب الذي أنت فيه هو المعاينة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Frappe's near-black button, or the brand fill with its gated ink."
+msgstr "زر فرابي شبه الأسود، أو تعبئة العلامة التجارية بحبرها المعتمد."
+
+#. src: merged reviewed upstream catalogue
+msgid "Frappe's own 900px cap"
+msgstr "حد فرابي الأصلي 900 بكسل"
+
+#. src: merged reviewed upstream catalogue
+msgid "Full"
+msgstr "كامل"
+
+#. src: merged reviewed upstream catalogue
+msgid "Full Bleed"
+msgstr "عرض كامل"
+
+#. src: merged reviewed upstream catalogue
+msgid "Grouped Insets"
+msgstr "مجموعات غائرة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Hairline Ledger"
+msgstr "دفتر بخطوط رفيعة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Headed Groups"
+msgstr "مجموعات معنونة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Header tone"
+msgstr "نبرة الرأس"
+
+#. src: merged reviewed upstream catalogue
+msgid "Helpdesk is not installed."
+msgstr "Helpdesk غير مثبّت."
+
+#. src: merged reviewed upstream catalogue
+msgid "Helpdesk ticket"
+msgstr "تذكرة الدعم"
+
+#. src: merged reviewed upstream catalogue
+msgid "Hero Band"
+msgstr "الشريط الرئيسي"
+
+#. src: merged reviewed upstream catalogue
+msgid "Highlights Band"
+msgstr "شريط الأبرز"
+
+#. src: merged reviewed upstream catalogue
+msgid "How rows of items, taxes and payments read. Both theme options end-align the numbers and make Add row a quiet full-width button."
+msgstr "كيف تُقرأ صفوف الأصناف والضرائب والمدفوعات. كلا خياري السمة يحاذيان الأرقام إلى النهاية ويجعلان «إضافة صف» زرًا هادئًا بعرض كامل."
+
+#. src: merged reviewed upstream catalogue
+msgid "How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."
+msgstr "كيف ينفصل الشريط الجانبي للسجل عن المستند — أو، كشريط فحص، يجاور المستند بلا بطاقة على الإطلاق."
+
+#. src: merged reviewed upstream catalogue
+msgid "How tightly rows and controls pack, as the site's default."
+msgstr "مدى تراصّ الصفوف وعناصر التحكم، كإعداد افتراضي للموقع."
+
+#. src: merged reviewed upstream catalogue
+msgid "How wide the body is allowed to be. Every value carries two measures: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a child table. Compact 900/1200 · Balanced 1040/1400 · Roomy 1120/1600 · Full lifts both. Original leaves Frappe's own 900px cap."
+msgstr "العرض المسموح به لمتن الصفحة. كل قيمة تحمل مقياسين: حافة قراءة للنماذج والإعدادات، وحافة عريضة للقوائم والتقارير واللوحات وأي قسم يحتوي جدولًا فرعيًا. مُحكم 900/1200 · متوازن 1040/1400 · فسيح 1120/1600 · كامل يرفع الحدّين. الأصلي يترك حد فرابي 900 بكسل."
+
+#. src: merged reviewed upstream catalogue
+msgid "How wide the body runs. Each value sets TWO edges: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a table."
+msgstr "عرض متن الصفحة. كل قيمة تحدد حافتين: حافة القراءة للنماذج والإعدادات، وحافة العرض للقوائم والتقارير واللوحات وأي قسم يحتوي جدولًا."
+
+#. src: merged reviewed upstream catalogue
+msgid "How wide the body runs. Frappe caps forms, footers and workspaces at 900px and centres them; the theme's card used to span the whole column around that."
+msgstr "مدى اتساع المتن. يحدّ فرابي النماذج والتذييلات ومساحات العمل عند 900 بكسل ويوسّطها؛ وكانت بطاقة السمة تمتد على العمود كله حول ذلك."
+
+#. src: merged reviewed upstream catalogue
+msgid "Inline Text"
+msgstr "نص مضمّن"
+
+#. src: merged reviewed upstream catalogue
+msgid "Inspector Rail"
+msgstr "شريط الفحص"
+
+#. src: merged reviewed upstream catalogue
+msgid "Invoice list"
+msgstr "قائمة الفواتير"
+
+#. src: merged reviewed upstream catalogue
+msgid "Kanban, calendar, gantt and image views."
+msgstr "عروض كانبان والتقويم وغانت والصور."
+
+#. src: merged reviewed upstream catalogue
+msgid "Line items"
+msgstr "بنود السطور"
+
+#. src: merged reviewed upstream catalogue
+msgid "Lists"
+msgstr "القوائم"
+
+#. src: merged reviewed upstream catalogue
+msgid "Lists & pages"
+msgstr "القوائم والصفحات"
+
+#. src: merged reviewed upstream catalogue
+msgid "Measured Column"
+msgstr "عمود مقاس"
+
+#. src: merged reviewed upstream catalogue
+msgid "Narrow Column"
+msgstr "عمود ضيق"
+
+#. src: merged reviewed upstream catalogue
+msgid "No dashboard on this site."
+msgstr "لا توجد لوحة معلومات في هذا الموقع."
+
+#. src: merged reviewed upstream catalogue
+msgid "No language was chosen."
+msgstr "لم يتم اختيار أي لغة."
+
+#. src: merged reviewed upstream catalogue
+msgid "No limit on either edge"
+msgstr "بلا حد على أي من الحافتين"
+
+#. src: merged reviewed upstream catalogue
+msgid "One sheet, each section a titled group under a hairline — air does the separating."
+msgstr "ورقة واحدة، كل قسم مجموعة معنونة تحت خط رفيع — والفراغ هو الذي يفصل."
+
+#. src: merged reviewed upstream catalogue
+msgid "Only the hero band is painted"
+msgstr "الشريط الرئيسي وحده يُطلى"
+
+#. src: merged reviewed upstream catalogue
+msgid "Open at full size: {0}"
+msgstr "فتح بالحجم الكامل: {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "Outgoing email: style, header, action, theme."
+msgstr "البريد الصادر: النمط والرأس والإجراء والسمة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Pinned Bar"
+msgstr "شريط مثبّت"
+
+#. src: merged reviewed upstream catalogue
+msgid "Pinned foot"
+msgstr "الذيل المثبّت"
+
+#. src: merged reviewed upstream catalogue
+msgid "Preview"
+msgstr "المعاينة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Preview: {0}"
+msgstr "معاينة: {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "Primary button"
+msgstr "الزر الأساسي"
+
+#. src: merged reviewed upstream catalogue
+msgid "Primary Button"
+msgstr "الزر الأساسي"
+
+#. src: merged reviewed upstream catalogue
+msgid "Print formats: header, tables, totals, headings, QR, signatures."
+msgstr "تنسيقات الطباعة: الرأس والجداول والمجاميع والعناوين ورمز QR والتوقيعات."
+
+#. src: merged reviewed upstream catalogue
+msgid "Property Rows"
+msgstr "صفوف الخصائص"
+
+#. src: merged reviewed upstream catalogue
+msgid "Quick Links"
+msgstr "روابط سريعة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Quick links in the pane head's menu: each module row opens a flyout of New … rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone."
+msgstr "روابط سريعة في قائمة رأس اللوحة: كل صف وحدة يفتح قائمة جانبية بصفوف «جديد» لما يمكنك إنشاؤه، وتقارير الوحدة، و«اذهب إلى». موجز 3+2، أساسي 6+4، كامل 12+8 صفًا؛ «معطَّل» يبقي قائمة الوحدات وحدها."
+
+#. src: merged reviewed upstream catalogue
+msgid "Quiet Underline"
+msgstr "خط سفلي هادئ"
+
+#. src: merged reviewed upstream catalogue
+msgid "Reading the desk…"
+msgstr "جارٍ قراءة المكتب…"
+
+#. src: merged reviewed upstream catalogue
+msgid "Roomy"
+msgstr "فسيح"
+
+#. src: merged reviewed upstream catalogue
+msgid "Rows, hover, selection, and the checkbox reveal."
+msgstr "الصفوف والتحويم والتحديد وإظهار مربع الاختيار."
+
+#. src: merged reviewed upstream catalogue
+msgid "Ruled Sheet"
+msgstr "ورقة مسطّرة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Sales Invoice"
+msgstr "فاتورة مبيعات"
+
+#. src: merged reviewed upstream catalogue
+msgid "Sections sit in soft raised insets on the sheet, no borders anywhere."
+msgstr "الأقسام في مساحات غائرة مرتفعة بنعومة على الورقة، بلا حدود في أي مكان."
+
+#. src: merged reviewed upstream catalogue
+msgid "Selling Settings"
+msgstr "إعدادات المبيعات"
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled."
+msgstr "يُضبط من المنتقي أعلاه. شريط مثبّت فوق الحافة السفلية يحمل الإجراء الرئيسي للسجل ومبالغه الأساسية، أينما مُرّرت الصفحة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document."
+msgstr "يُضبط من المنتقي أعلاه. مسار سهمي عبر رأس المستند: حالات سير العمل، أو مسودة · مُعتمد · ملغى في مستند قابل للاعتماد."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. How rows of items, taxes and payments read: the stock grid, a hairline ledger, or a ruled sheet."
+msgstr "يُضبط من المنتقي أعلاه. كيف تُقرأ صفوف الأصناف والضرائب والمدفوعات: الجدول الأصلي، أو دفتر بخطوط رفيعة، أو ورقة مسطّرة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."
+msgstr "يُضبط من المنتقي أعلاه. كيف ينفصل الشريط الجانبي للسجل عن المستند — أو، كشريط فحص، يجاور المستند بلا بطاقة على الإطلاق."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. How wide the body runs: Frappe's own 900px cap, a measured column, or the whole page."
+msgstr "يُضبط من المنتقي أعلاه. مدى اتساع المتن: سقف فرابي البالغ 900 بكسل، أو عمود مقاس، أو الصفحة كاملة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. The body's type set: values, labels, section heads and titles move together."
+msgstr "يُضبط من المنتقي أعلاه. مجموعة خطوط المتن: القيم والتسميات وعناوين الأقسام والعناوين تتحرك معًا."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. The hero band's paint: a tint of the brand, or the brand deepened to a dark block."
+msgstr "يُضبط من المنتقي أعلاه. طلاء الشريط الرئيسي: صبغة من لون العلامة، أو العلامة معمّقة إلى كتلة داكنة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band."
+msgstr "يُضبط من المنتقي أعلاه. ما يُسمّي السجل فوق نموذجه: رأس الصفحة وحده، أو كتلة عنوان، أو شريط أبرز حقائقه، أو شريط رئيسي."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. What one field looks like: where its label sits and what its box is."
+msgstr "يُضبط من المنتقي أعلاه. شكل الحقل الواحد: أين تقع تسميته وما هو صندوقه."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."
+msgstr "يُضبط من المنتقي أعلاه. أين تقع التعليقات والخط الزمني: أسفل النموذج، أو بجانبه على شاشة عريضة، أو في دُرج يُفتح من إجراءات الصفحة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Set by the picker above. Whether the primary button is Frappe's black or the brand fill."
+msgstr "يُضبط من المنتقي أعلاه. هل الزر الأساسي هو أسود فرابي أم تعبئة العلامة التجارية."
+
+#. src: merged reviewed upstream catalogue
+msgid "Settings"
+msgstr "الإعدادات"
+
+#. src: merged reviewed upstream catalogue
+msgid "Shape"
+msgstr "الشكل"
+
+#. src: merged reviewed upstream catalogue
+msgid "Stacked Outlined"
+msgstr "مكدّس بإطار"
+
+#. src: merged reviewed upstream catalogue
+msgid "Stage path"
+msgstr "مسار المراحل"
+
+#. src: merged reviewed upstream catalogue
+msgid "Standard 14"
+msgstr "قياسي 14"
+
+#. src: merged reviewed upstream catalogue
+msgid "Status Path"
+msgstr "مسار الحالة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Submitted"
+msgstr "مُعتمد"
+
+#. src: merged reviewed upstream catalogue
+msgid "The Arabic typeface, and the translation console."
+msgstr "الخط العربي، ولوحة الترجمة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The bell: style, placement, badge, grouping, row actions."
+msgstr "الجرس: النمط والموضع والشارة والتجميع وإجراءات الصف."
+
+#. src: merged reviewed upstream catalogue
+msgid "The body's type set: values, labels, section heads and titles move together, and the head leads. Density is separate and never touches type."
+msgstr "مجموعة خطوط المتن: القيم والتسميات وعناوين الأقسام والعناوين تتحرك معًا، والعنوان يتقدّم. الكثافة منفصلة ولا تمسّ الخط أبدًا."
+
+#. src: merged reviewed upstream catalogue
+msgid "The bottom bar: clock, connection, jobs, errors."
+msgstr "الشريط السفلي: الساعة والاتصال والمهام والأخطاء."
+
+#. src: merged reviewed upstream catalogue
+msgid "The brand and accent seeds, their dark-mode counterparts, and the ground the surfaces are mixed from."
+msgstr "بذرتا العلامة والتمييز، ونظيراهما في الوضع الداكن، والأرضية التي تُمزج منها الأسطح."
+
+#. src: merged reviewed upstream catalogue
+msgid "The brand pill at the bar's start — the tile and the company's name, as the pane's head draws them; a click goes home. Off on the shipped desk, where the pane's head already carries the brand."
+msgstr "شارة العلامة في بداية الشريط — المربّع واسم الشركة كما يرسمهما رأس اللوحة؛ النقر عليها يعود إلى الصفحة الرئيسية. معطَّلة في المكتب الافتراضي، حيث يحمل رأس اللوحة العلامة بالفعل."
+
+#. src: merged reviewed upstream catalogue
+msgid "The chart surface's grid."
+msgstr "شبكة سطح المخططات."
+
+#. src: merged reviewed upstream catalogue
+msgid "The company's name, logo, favicon and tagline as the desk shows them."
+msgstr "اسم الشركة وشعارها وأيقونتها وسطرها التعريفي كما يعرضها المكتب."
+
+#. src: merged reviewed upstream catalogue
+msgid "The composer shows the real desk beside every decision and writes through the same settings as the cards below."
+msgstr "يعرض المؤلّف المكتب الحقيقي بجانب كل قرار ويكتب عبر الإعدادات نفسها التي تكتبها البطاقات أدناه."
+
+#. src: merged reviewed upstream catalogue
+msgid "The desk before the body was rebuilt: floating cards on a hue-washed pane."
+msgstr "المكتب قبل إعادة بناء المتن: بطاقات عائمة على لوحة مغسولة بلون العلامة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The desk you are on is the preview: every choice applies to this page as you click, and saves on its own."
+msgstr "المكتب الذي أنت فيه هو المعاينة: كل اختيار يُطبَّق على هذه الصفحة فور النقر، ويُحفظ من تلقاء نفسه."
+
+#. src: merged reviewed upstream catalogue
+msgid "The filter bar, applied filters and saved views."
+msgstr "شريط التصفية والمرشحات المطبّقة والعروض المحفوظة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The hero band's paint: a tint of the brand, or the brand deepened to a dark block."
+msgstr "طلاء الشريط الرئيسي: صبغة من لون العلامة، أو العلامة معمّقة إلى كتلة داكنة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The icon set, its weight, and where the desk draws it."
+msgstr "مجموعة الأيقونات ووزنها وأين يرسمها المكتب."
+
+#. src: merged reviewed upstream catalogue
+msgid "The landing page's tiles, metrics and rows."
+msgstr "بلاطات صفحة الهبوط ومقاييسها وصفوفها."
+
+#. src: merged reviewed upstream catalogue
+msgid "The language switch and the appearance button: enabled languages, placement, style."
+msgstr "مبدّل اللغة وزر المظهر: اللغات المفعّلة والموضع والنمط."
+
+#. src: merged reviewed upstream catalogue
+msgid "The page head has no band to carry it"
+msgstr "لا يوجد في رأس الصفحة شريط يحمله"
+
+#. src: merged reviewed upstream catalogue
+msgid "The page's own title row."
+msgstr "صف عنوان الصفحة نفسها."
+
+#. src: merged reviewed upstream catalogue
+msgid "The page's width, the type scale, and the primary button's colour."
+msgstr "عرض الصفحة، ومقياس الخط، ولون الزر الرئيسي."
+
+#. src: merged reviewed upstream catalogue
+msgid "The public website and the portal: style, header, theme."
+msgstr "الموقع العام والبوابة: النمط والرأس والسمة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The report view's grid, grain and rows."
+msgstr "شبكة عرض التقرير ونسيجها وصفوفها."
+
+#. src: merged reviewed upstream catalogue
+msgid "The shipped look: a hero band naming the record, the activity in a drawer, a ruled sheet for the lines, zebra lists."
+msgstr "المظهر الافتراضي: شريط رئيسي يسمّي السجل، والنشاط في دُرج، وورقة مسطّرة للبنود، وقوائم مخططة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The side pane: placement, material, colour, its rail and its width."
+msgstr "اللوحة الجانبية: موضعها ومادتها ولونها وسكّتها وعرضها."
+
+#. src: merged reviewed upstream catalogue
+msgid "The sign-in page's style, action and theme."
+msgstr "نمط صفحة تسجيل الدخول وإجراؤها وسمتها."
+
+#. src: merged reviewed upstream catalogue
+msgid "The stage path shows the status"
+msgstr "مسار المراحل يعرض الحالة"
+
+#. src: merged reviewed upstream catalogue
+msgid "The trail above a record: style, separator, hover, status."
+msgstr "المسار فوق السجل: النمط والفاصل والتحويم والحالة."
+
+#. src: merged reviewed upstream catalogue
+msgid "The whole look in one place: what the desk is now, and the composer that changes it one decision at a time."
+msgstr "المظهر كله في مكان واحد: ما هو المكتب الآن، والمؤلّف الذي يغيّره قرارًا بعد قرار."
+
+#. src: merged reviewed upstream catalogue
+msgid "This desk is {0}."
+msgstr "هذا المكتب هو {0}."
+
+#. src: merged reviewed upstream catalogue
+msgid "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look."
+msgstr "صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات."
+
+#. src: merged reviewed upstream catalogue
+msgid "Tinted Heads"
+msgstr "عناوين ملوّنة"
+
+#. src: merged reviewed upstream catalogue
+msgid "Title Block"
+msgstr "كتلة العنوان"
+
+#. src: merged reviewed upstream catalogue
+msgid "Touch 16"
+msgstr "لمس 16"
+
+#. src: merged reviewed upstream catalogue
+msgid "Type scale"
+msgstr "مقياس الخط"
+
+#. src: merged reviewed upstream catalogue
+msgid "Updated {0}"
+msgstr "حُدّث {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "Use this"
+msgstr "استخدم هذا"
+
+#. src: merged reviewed upstream catalogue
+msgid "Use this: {0}"
+msgstr "استخدم هذا: {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "What a page shows while it loads."
+msgstr "ما تعرضه الصفحة أثناء تحميلها."
+
+#. src: merged reviewed upstream catalogue
+msgid "What an empty list or board shows."
+msgstr "ما تعرضه قائمة أو لوحة فارغة."
+
+#. src: merged reviewed upstream catalogue
+msgid "What each user may change for themselves: look, shape, comfort."
+msgstr "ما يمكن لكل مستخدم تغييره لنفسه: المظهر والشكل والراحة."
+
+#. src: merged reviewed upstream catalogue
+msgid "What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band."
+msgstr "ما يُسمّي السجل فوق نموذجه: رأس الصفحة وحده، أو كتلة عنوان، أو شريط أبرز حقائقه، أو شريط رئيسي."
+
+#. src: merged reviewed upstream catalogue
+msgid "What one field looks like: where its label sits and what its box is. Property Rows put the label beside the value; Inline Text draws no box until you hover."
+msgstr "شكل الحقل الواحد: أين تقع تسميته وما هو صندوقه. «صفوف الخصائص» تضع التسمية بجانب القيمة؛ و«نص مضمّن» لا يرسم صندوقًا حتى تمرّ بالمؤشر."
+
+#. src: merged reviewed upstream catalogue
+msgid "What the bottom bar carries on a phone."
+msgstr "ما يحمله الشريط السفلي على الهاتف."
+
+#. src: merged reviewed upstream catalogue
+msgid "What the theme wrote for this site: the brand stylesheet's address."
+msgstr "ما كتبته السمة لهذا الموقع: عنوان ورقة أنماط العلامة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Where every component lives, on one board — and the overview of the desk."
+msgstr "أين يعيش كل مكوّن، على لوحة واحدة — ونظرة عامة على المكتب."
+
+#. src: merged reviewed upstream catalogue
+msgid "Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."
+msgstr "أين تقع التعليقات والخط الزمني: أسفل النموذج، أو بجانبه على شاشة عريضة، أو في دُرج يُفتح من إجراءات الصفحة."
+
+#. src: merged reviewed upstream catalogue
+msgid "Where the Home and All Apps links sit."
+msgstr "أين يقع رابطا الصفحة الرئيسية وكل التطبيقات."
+
+#. src: merged reviewed upstream catalogue
+msgid "Where the profile menu sits."
+msgstr "أين تقع قائمة الملف الشخصي."
+
+#. src: merged reviewed upstream catalogue
+msgid "Where the search field sits."
+msgstr "أين يقع حقل البحث."
+
+#. src: merged reviewed upstream catalogue
+msgid "Width"
+msgstr "العرض"
+
+#. src: merged reviewed upstream catalogue
+msgid "Width Segment"
+msgstr "مقطع العرض"
+
+#. src: merged reviewed upstream catalogue
+msgid "Width toggle"
+msgstr "مبدّل العرض"
+
+#. src: merged reviewed upstream catalogue
+msgid "Width: {0}"
+msgstr "العرض: {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "Width: following site default"
+msgstr "العرض: بحسب افتراضي الموقع"
+
+#. src: merged reviewed upstream catalogue
+msgid "Workspace missing on this site: {0}"
+msgstr "مساحة العمل غير موجودة في هذا الموقع: {0}"
+
+#. src: merged reviewed upstream catalogue
+msgid "Your own width ({0}) is overriding this on your desk."
+msgstr "عرضك الخاص ({0}) يتجاوز هذا الإعداد على مكتبك."
+
+#. src: merged reviewed production catalogue
+msgid "Setup required"
+msgstr "يلزم إكمال الإعداد"
+
+#. src: merged reviewed production catalogue
+msgid "Access required"
+msgstr "يلزم الحصول على صلاحية"
+
+#. src: merged reviewed production catalogue
+msgid "Updates are delayed"
+msgstr "التحديثات متأخرة"
+
+#. src: merged reviewed production catalogue
+msgid "Could not refresh this list"
+msgstr "تعذّر تحديث هذه القائمة"
+
+#. src: merged reviewed production catalogue
+msgid "Check your connection and try again."
+msgstr "تحقق من اتصالك ثم حاول مرة أخرى."
+
+#. src: merged reviewed production catalogue
+msgid "Minimize"
+msgstr "تصغير"
+
+#. src: merged reviewed production catalogue
+msgid "Remove filter"
+msgstr "إزالة عامل التصفية"
+
+#. src: system-state production copy
+msgid "Something went wrong"
+msgstr "حدث خطأ ما"
+
+#. src: system-state production copy
+msgid "Could not refresh this report"
+msgstr "تعذّر تحديث هذا التقرير"

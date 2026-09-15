@@ -75,6 +75,12 @@ html[data-theme] .bnd-statusbar {
   // it sorts after the cluster slot, whose auto margin pushes everything
   // past it to the end, so the glyph is the last thing in the bar in either
   // direction. Its words live in aria-label and title.
+  //
+  // ITEM 45'S WIDTH SEGMENT RIDES THE SAME RULE one place earlier. "Next to
+  // density" is an ORDER question, not a DOM one: both sort past the cluster
+  // slot, so appending width before density in the DOM would still have left
+  // it on the far side of the auto margin with the whole bar between them.
+  .bnd-status-width,
   .bnd-status-density {
     order: 1000;
     margin-inline-start: var(--bnd-sp-2);
@@ -83,6 +89,10 @@ html[data-theme] .bnd-statusbar {
       inline-size: 14px;
       block-size: 14px;
     }
+  }
+
+  .bnd-status-width {
+    order: 999;
   }
 
   // Connection dot: green connected, critical red otherwise. The label beside

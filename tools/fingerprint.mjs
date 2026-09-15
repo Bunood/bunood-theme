@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 // documented regeneration command runs anywhere (item 27, §4.9).
 const require = createRequire(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"));
 const { chromium } = require("playwright");
-const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE="http://localhost:8080";
+const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE=process.env.BND_URL||"http://localhost:8080";
 const py=(c)=>execFileSync("docker",["exec","-i",BACKEND,"bash","-lc","cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
  {input:`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n`+c,encoding:"utf8",stdio:["pipe","pipe","pipe"]});
 const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.cookie_manager=CookieManager()\nfrappe.local.form_dict=frappe._dict()\nfrappe.local.request=frappe._dict(path="/",method="GET",remote_addr="127.0.0.1",cookies=frappe._dict(),headers=frappe._dict(),environ=frappe._dict())\nfrappe.local.request_ip="127.0.0.1"\nlm=LoginManager()\nlm.login_as("Administrator")\nfrappe.db.commit()\nprint("SID="+frappe.session.sid)\n`).match(/SID=([a-f0-9]+)/)[1];
@@ -50,7 +50,7 @@ print(json.dumps(SHIPPED))
 const SHAPE_STATE = { ...shipped, inbox_placement: "Top Bar End", user_placement: "Top Bar End" };
 set(SHAPE_STATE);
 const b=await chromium.launch(); const ctx=await b.newContext({viewport:{width:1280,height:1000}});
-await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); const page=await ctx.newPage();
+await ctx.addCookies([{name:"sid",value:sid,domain:new URL(URL_BASE).hostname,path:"/"}]); const page=await ctx.newPage();
 // REFUSE TO CAPTURE A PAGE THAT IS NOT SHOWING THE PINNED STATE.
 //
 // Setting a value and navigating is not enough: the form reads its own
@@ -63,14 +63,11 @@ await ctx.addCookies([{name:"sid",value:sid,domain:"localhost",path:"/"}]); cons
 //
 // Reload rather than sleep longer, because the failure is a stale document
 // and not a slow one.
-// ?shell=0 ON PURPOSE. The shell is the default now, and it shows ONE component
-// at a time — so six of the seven pickers would be in hidden panes and measure as
-// nothing. The fixture records the shape of every picker, which only the stacked
-// form renders all at once. This is not a fallback; it is the right surface for
-// this measurement.
+// The plain URL (item 43 B1): the settings page is one scroll of cards now, and
+// every picker renders at once — the surface this measurement always wanted.
 async function settleOnPinnedState() {
   for (let attempt = 1; attempt <= 3; attempt++) {
-    await page.goto(`${URL_BASE}/desk/theme-settings?shell=0`, { waitUntil: "domcontentloaded", timeout: 45000 });
+    await page.goto(`${URL_BASE}/desk/theme-settings`, { waitUntil: "domcontentloaded", timeout: 45000 });
     await page.waitForSelector(".bnd-dgm-slot", { timeout: 30000 });
     await page.waitForTimeout(3500);
     const shown = await page.evaluate(() => {
@@ -98,7 +95,7 @@ await settleOnPinnedState();
 const fp = await page.evaluate(()=>{
   const out={};
   for (const f of ["theme_picker","layout_picker","sidebar_picker","crumbs_picker","palette_picker","inbox_picker","user_picker","links_picker","search_picker","status_picker",
-	"list_picker","form_picker","workspace_picker","chart_picker","report_picker","views_picker","overlay_picker","empty_picker","skeleton_picker","filters_picker","login_picker","web_picker",
+	"list_picker","form_picker","desk_picker", "workspace_picker","chart_picker","report_picker","views_picker","overlay_picker","empty_picker","skeleton_picker","filters_picker","login_picker","web_picker",
 	"email_picker","print_picker","icons_picker","placement_board"]) {
     const root=document.querySelector(`[data-fieldname="${f}"]`);
     if(!root){out[f]=null;continue;}

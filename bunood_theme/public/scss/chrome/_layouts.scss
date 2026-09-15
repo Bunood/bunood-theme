@@ -54,9 +54,32 @@
 //   contract (see NO LAYOUT ATTRIBUTE = CLASSIC above).
 //
 //   There is no "release path" to write either. Releasing is the default.
+// ...AND THE DESKTOP PAGE'S OWN PAIR. Frappe's desk page (/app, /app/desktop)
+// renders its own navbar — search, a bell with a dropdown, an avatar with a
+// menu — beside the pane; the pane's rows were owned and these were not, so
+// that page carried two bells and two account menus, the top pair the vendor's
+// (the user, 2026-09-14: "the user profile menu on desk is not our menu and
+// bell is not our bell"). Same tokens, same polarity: registry.py lists both
+// selectors on the tenant's `native`, comma-joined.
 html[data-bnd-own~="search"] .body-sidebar .navbar-search-bar,
+html[data-bnd-own~="search"] .desktop-navbar .desktop-search-wrapper,
+html[data-bnd-own~="panesearch"] .desktop-navbar .desktop-search-wrapper,
 html[data-bnd-own~="bell"] .body-sidebar .sidebar-notification,
-html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button {
+html[data-bnd-own~="bell"] .desktop-navbar .desktop-notifications,
+html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button,
+html[data-bnd-own~="user"] .desktop-navbar .desktop-avatar {
+  display: none;
+}
+
+// ...AND THE STRIP ITSELF, once every piece of it is ours — search, brand (the
+// logo tile, below with the pane header), bell, avatar. An empty 50px band
+// over the desk page is not a native affordance, it is the space one used to
+// take. Any piece released brings the strip back with it.
+// `panesearch` is the search placed IN the pane: Frappe's own row, revealed, which
+// by design owns no `search` token (mount_search_at) — so the strip needs this
+// second, outcome-backed token, stamped only while that row is on screen.
+html[data-bnd-own~="search"][data-bnd-own~="panehead"][data-bnd-own~="bell"][data-bnd-own~="user"] .desktop-navbar,
+html[data-bnd-own~="panesearch"][data-bnd-own~="panehead"][data-bnd-own~="bell"][data-bnd-own~="user"] .desktop-navbar {
   display: none;
 }
 
@@ -116,7 +139,8 @@ html[data-bnd-own~="onboard"] .body-sidebar p:has(> .onboarding-sidebar) {
 // ceiling. Sass strips `//` before anything reaches the wire, and this is where
 // the polarity contract already lives, so the constraint moved the prose to the
 // file that should always have held it.
-html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header {
+html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header,
+html[data-bnd-own~="panehead"] .desktop-navbar .navbar-home {
   display: none;
 }
 
@@ -213,6 +237,35 @@ html[data-bnd-chrome-off~="sidepane"] {
 // a real-device measurement showing content lost under the mobile URL bar.
 html[data-bnd-desk] .main-section {
   block-size: calc(100vh - var(--bnd-bottom-reserve));
+}
+
+// The ONE thing the reserve above cannot reach: a FIXED vendor panel.
+//
+// Frappe's onboarding panel (`OnboardingPanel.vue`, `.onb-panel`) is
+// `position: fixed; z-index: 1000; bottom: 24px` at the trailing corner, with
+// its CSS inlined by `user_onboarding.bundle.js`. Shrinking `.main-section`
+// keeps CONTENT clear of the bars; a fixed panel is in no scroller, so the
+// reserve never applied to it, and 1000 beats our bottom chrome's 990.
+//
+// MEASURED, and older than the bar that made it obvious: at 1600x1000 the panel
+// sits on the STATUS BAR with the pinned foot switched off entirely, and on the
+// foot's primary action when it is on — a click at Save's own centre resolves to
+// `div.onb-panel`. So this is not item 45's doing; item 45's foot is what put a
+// primary action under it.
+//
+// LIFTED, NOT RE-STACKED. Raising our foot above 1000 would put it over the
+// vendor's modals and dropdowns, which live in the same band; the panel is
+// page-level furniture and our bars own the bottom edge, so the panel moves.
+// The vendor's own 24px gap is preserved by adding the reserve to it rather
+// than replacing it — `--bnd-sp-5` is that 24px at the shipped root size, and
+// naming a token keeps the raw-px guard satisfied and the gap in one system.
+//
+// Scoped to `html[data-bnd-desk]` like the reserve itself: a desk with no
+// bottom chrome measures 0px and this resolves to the vendor's own inset. No
+// fallback on the reserve — it is declared unconditionally in _tokens.scss, and
+// the phantom-token guard refuses a second copy of a value that cannot be missing.
+html[data-bnd-desk] .onb-panel {
+  inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5));
 }
 
 // The ONE box that shrinking the scroll container does not fix by itself.

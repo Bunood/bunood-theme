@@ -55,6 +55,8 @@ $desktop-item: ".desktop-icon";
 html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home {
   display: inline-flex;
   flex: 0 0 auto;
+  inline-size: auto;
+  min-inline-size: 40px;
   align-items: center;
   justify-content: center;
   min-block-size: 40px;
@@ -90,7 +92,7 @@ html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home {
 // The native cube links back to the Desktop page already being viewed. Once
 // the working Bunood Home button has mounted, replace that dead-end control;
 // without the ownership stamp Frappe's cube remains as the fail-open fallback.
-html[data-bnd-desk][data-bnd-desktop-home] .desktop-wrapper .desktop-navbar .navbar-home {
+html[data-bnd-desk][data-bnd-desktop-home][data-bnd-own~="desktophome"] .desktop-wrapper .desktop-navbar .navbar-home {
   display: none;
 }
 

@@ -102,9 +102,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
         "sidebar_pane_state": "Rail",
-        # The independent page-head button owns the rail state. Pointer
-        # proximity must never resize the workspace under a user's cursor.
-        "sidebar_rail_trigger": "Click",
+        "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
@@ -299,6 +297,7 @@ STATUS_FIELDS = [
     "status_segments_scheduler",
     "status_segments_connection",
     "status_segments_density",
+    "status_segments_width",
     "status_clock",
     "status_interval",
     "status_freshness",
@@ -328,6 +327,10 @@ STATUS_DEFAULTS = {
     "status_segments_scheduler": 1,
     "status_segments_connection": 1,
     "status_segments_density": 1,
+    # Item 45. Ships ON beside density: the two answer the same question
+    # (how much fits on my screen) and a control nobody can find is the
+    # same as no control.
+    "status_segments_width": 1,
     "status_freshness": 1,
     "status_escalate": 0,
 }
@@ -389,18 +392,31 @@ USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
 #: taskbar rows turn it on, which is what makes them taskbars.
 START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Off")}
 
-# Language and appearance controls introduced on the v0.44 line. Keep their
-# defaults alongside the other independently placeable chrome tenants so setup,
-# boot and preset derivation all read the same values.
+#: The language switch and the Appearance button (item 44). Both default to the
+#: bottom bar's end, after the avatar and beside the density segment the bar
+#: draws at its trailing edge - the user's words - and both
+#: are placeable anywhere a tenant can go, or Off. `language_style` is how the
+#: switch draws itself: a globe, the other language's two-letter code, its name
+#: in its own script, or the globe with either.
 LANGUAGE_DEFAULTS = {
     "language_placement": _DEFAULT_TENANTS.get("language_placement", "Bottom Bar End"),
     "language_style": "Globe",
+    # The languages the switch offers, as Language codes in display order (v0.44.2).
+    # The user's rule: "only languages turned on in settings" - Frappe enables
+    # seventeen at install that nobody chose, so the set is THIS field, and the
+    # shipped pair is the product's. `language.offered_languages` derives the list
+    # for boot and for the endpoint that validates a switch.
     "language_choices": "ar,en",
 }
 LANGUAGE_FIELDS = ["language_style", "language_choices"]
-APPEARANCE_DEFAULTS = {
-    "appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")
-}
+
+#: The pane head's quick links (2026-09-14): the flyouts on the head menu's module
+#: rows. Off keeps the module list alone; Brief / Standard / Full say how many
+#: "New …" and report rows a module's flyout carries (3+2 · 6+4 · 12+8) before
+#: "Go to <module>". Policy, not a look — outside THEME_AXES like `language_choices`.
+PANEHEAD_DEFAULTS = {"panehead_quick_links": "Standard"}
+PANEHEAD_FIELDS = ["panehead_quick_links"]
+APPEARANCE_DEFAULTS = {"appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
@@ -412,10 +428,14 @@ LIST_FIELDS = [
     "list_checkbox_reveal",
 ]
 
-#: The shipped list defaults. Dense, separated rows are the operational ERP
-#: baseline; cards remain available for users who prefer a softer catalogue.
+#: The shipped list defaults — the user's own picks from the item-16 wireframe
+#: round (2026-08-09): 1C Floating Cards, 2B Edge Rail, 3C Bold Bar, 4A reveal.
+#: The bolder option each time, consistent with the sidebar re-choice the day
+#: before. "Original" stays one click away for anyone who wants stock rows.
 LIST_DEFAULTS = {
-    "list_style": "Hairline Rows",
+    # Item 43 A10, the user's pick (Bunood Console): zebra rows. Floating Cards
+    # stays in the catalogue and in every earlier preset.
+    "list_style": "Zebra Stripes",
     "list_hover": "Edge Rail",
     # One treatment for checked rows AND the bulk header: they are one state,
     # and splitting them is how a solid brand bar ends up over neutral rows.
@@ -430,8 +450,15 @@ LIST_DEFAULTS = {
 #: the top-level choice and the treatments compose with any style.
 FORM_FIELDS = [
     "form_style",
+    "form_fields",
+    "form_grid",
     "form_tabs",
     "form_sidebar",
+    "form_activity",
+    "form_header",
+    "form_header_tone",
+    "form_stage",
+    "form_foot",
     "form_grid_checkbox_reveal",
 ]
 
@@ -444,13 +471,77 @@ FORM_DEFAULTS = {
     # dashboard: they are one container statement, and splitting them is how
     # a floating section ends up beside a naked flat grid.
     "form_style": "Floating Panels",
+    # Item 43 A2, the user's pick (Bunood Console): a real edge on the field.
+    # Original is the stock tint with no edge; Property Rows, Quiet Underline
+    # and Inline Text are the catalogue's other anatomies.
+    "form_fields": "Stacked Outlined",
+    # Item 43 A4, the user's pick: the ruled sheet — verticals, a raised head,
+    # odd-row stripes by the report kit's rule. Hairline Ledger is the quiet one.
+    "form_grid": "Ruled Sheet",
     "form_tabs": "Solid Pill",
     # Styling only — the sidebar has no Off here. Hiding chrome is a
     # container concern; attachments and assignments must stay reachable.
-    "form_sidebar": "Floating Pane",
+    # Item 43 A5/A10, the user's pick: the inspector rail. Floating Pane stays
+    # in the catalogue and in every earlier preset.
+    "form_sidebar": "Inspector Rail",
+    # Item 43 A6, the user's pick: the timeline in a drawer opened from the
+    # page's actions. Original leaves it below the form; Beside is a column.
+    "form_activity": "Drawer",
+    # Item 43 A8a, the user's pick: a hero band naming the record, brand-dark.
+    # Original is the page head alone; Title Block and Highlights Band are the
+    # catalogue's quieter headers; Tinted is the band's lighter paint.
+    "form_header": "Hero Band",
+    "form_header_tone": "Brand-dark",
+    # Item 43 A8b, the user's pick: the stage path in the band. Off leaves the
+    # page head's docstatus pill where Frappe puts it.
+    "form_stage": "Status Path",
+    # Item 43 A8c, the user's pick: the primary action and the key amounts
+    # pinned above the bottom edge. Off leaves the page head's button alone.
+    "form_foot": "Pinned Bar",
     # A Check, default-on: the same three-door contract as the list kit's
     # reveal (hover, :focus-within, any-checked), stood down on touch.
     "form_grid_checkbox_reveal": 1,
+}
+
+#: The body kit (item 43 A1), matching theme_settings.json: how wide the body runs,
+#: the type set it renders at, and whether the primary button is black or brand.
+#: Three axes that stand down ONE AT A TIME — there is no anchor, because a site can
+#: want Frappe's own cap with our type scale, and "Original" means the vendor's own
+#: value on each axis (its 900px cap, its 14-over-14 type, its near-black button).
+#: The fields keep the registered ``desk_`` prefix; the attribute stem is ``body``,
+#: because ``data-bnd-desk`` is the presence mark bunood.js stamps for "this file ran".
+DESK_FIELDS = [
+    "desk_width",
+    "desk_scale",
+    "desk_primary",
+]
+
+#: The widths the body kit names, in order, narrowest first.
+#:
+#: THE TABLE, so that a fifth width costs one tuple entry. Its consumers are the
+#: doctype's ``desk_width`` Select, the client's slug map in ``bunood.js`` and
+#: the per-user ``bnd_body_width`` axis, and ``assertBodyWidths`` in build.mjs
+#: holds all three to it — the ``SB_PANE_STOPS`` shape, for the same reason.
+#:
+#: ``Original`` is NOT here and that is the point: it stands the kit down and
+#: leaves Frappe's own 900px cap alone, which is an administrator's answer to
+#: "does this theme govern width at all". Every member below is a reading edge
+#: and a wide edge, which is a person's answer to "how much do I want on
+#: screen" — so the Select offers ``Original`` plus these, and the personal
+#: axis offers only these.
+DESK_WIDTHS = ("Compact", "Balanced", "Roomy", "Full")
+
+#: The shipped body — the user's pick from the item-43 composer (Bunood Console,
+#: 2026-09-08): the 14 set and the brand fill. The WIDTH moved to Balanced in
+#: item 45 at the user's decision: full bleed stretched a read form to the
+#: monitor, and the width setting only reached two of seven surface families,
+#: so using it made the desk LESS consistent (measured at 1920: 305px of spread
+#: between surfaces became 513px). Every value now carries two measures — a
+#: reading edge and a wide edge — and every surface sits on one of them.
+DESK_DEFAULTS = {
+    "desk_width": "Balanced",
+    "desk_scale": "Standard 14",
+    "desk_primary": "Brand",
 }
 
 #: Workspace tile surface fields (item 25), matching theme_settings.json. Like the
@@ -1016,13 +1107,13 @@ PRINT_DEFAULTS = {
     # THE LETTERHEAD COMPOSITION — selected at SYNC time: the Letter Head
     # record a site stores carries one concrete layout, recomposed from the
     # marked blocks in letterhead/bunood_letterhead_header.html whenever the
-    # axis or the seeds change. `Hairline Minimal` is the production default:
-    # one compact, direction-aware identity row carries the company, VAT and
-    # commercial registration without pushing invoice content down the page.
+    # axis or the seeds change. `Bilingual Split` is the user's pick and the
+    # legacy convention kept: Arabic name right, mark centre, English left —
+    # deliberately physical, a bilingual-letterhead convention, not RTL.
     # `Frappe's own` is the TRUE stand-down: the sync does not touch the
     # record at all, so a tenant's hand-made letterhead survives every save
     # (proved by a sentinel in the suite).
-    "print_letterhead": "Hairline Minimal",
+    "print_letterhead": "Bilingual Split",
     # THE PER-SECTION SWITCHES (the user's second-pass direction: every element
     # its own control). Read AT RENDER by the macros — no sync step, no second
     # copy — so the neutral defaults below are exactly today's behaviour, and
@@ -1132,6 +1223,17 @@ PRINT_PRESETS = {
 CHROME_DEFAULTS = {
     c["toggle"]: LAYOUT_CHROME[DEFAULT_DESK_LAYOUT][c["key"]]
     for c in CONTAINERS
+}
+
+#: Mobile bar contents (item 24). Which tenants join search in the phone bottom
+#: bar below 768px. Search has no toggle — it is the only search on a phone
+#: (Frappe drops its own and Ctrl+K is unreachable on touch), so it is always
+#: there; these three choose what joins it. All on by default: the shipped bar
+#: is search / apps / alerts / you.
+MOBILE_DEFAULTS = {
+    "mobile_inbox": 1,
+    "mobile_user": 1,
+    "mobile_apps": 1,
 }
 
 #: The shipped default: "Inbox + Page" (the user's pick, option C) — our
@@ -1308,21 +1410,23 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
-    """Every field a theme preset writes and compares — 123 of the doctype's 130.
+    """Every field a theme preset writes and compares — 123 of the doctype's 133.
 
-    THE SEVEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
+    THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
 
       * ``company_name`` ``tagline`` ``logo`` ``favicon`` describe the COMPANY,
         not the desk. A look that renamed the business would be absurd.
       * ``brand_css_url`` is GENERATED - the content-hashed sheet's own address.
         Writing it would hand a preset the power to point a site at a stale file.
       * ``arabic_font`` is a language choice, which item 36 deliberately moved
-        out of Appearance.
-      * ``palette_enabled`` is the honest gap. It DOES describe the desk, and a
-        preset does not write it, so two desks differing only in that gate both
-        read the same preset name. Named here rather than left to be discovered,
-        because an unwritten axis is invisible: the derived label compares this
-        list, so a field missing from it can never make a desk read "Custom".
+        out of Appearance — and so is ``language_choices``, the languages the
+        switch offers (v0.44.2): site policy that no look may rewrite.
+      * ``palette_enabled`` ``mobile_inbox`` ``mobile_user`` ``mobile_apps`` are
+        the honest gap. They DO describe the desk, and a preset does not write
+        them, so two desks differing only in a phone-bar toggle both read the
+        same preset name. Named here rather than left to be discovered, because
+        an unwritten axis is invisible: the derived label compares this list, so
+        a field missing from it can never make a desk read "Custom".
     """
     seen: set = set()
     out: list = []
@@ -1331,9 +1435,17 @@ def _theme_axes() -> list:
          "ground_color", "density_default", "desk_order"],
         [c["toggle"] for c in CONTAINERS],
         list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
-        list(LANGUAGE_DEFAULTS), list(APPEARANCE_DEFAULTS),
+        # Item 44's two tenants. The layouts write them (so `personal.py` files
+        # them as SHAPE), and a theme preset must write them too, or the partition
+        # gate reads them as PHANTOM — "filed but not written by any preset" —
+        # which is exactly what `npm run contrast` said from v0.44.0 until item 43
+        # A3 needed the gate to run past that line. NOT `language_choices`: which
+        # languages a site offers is policy, not a look — `list(LANGUAGE_DEFAULTS)`
+        # stood here and made every theme card write "ar,en" over a site's own
+        # list, and read "Custom" on any site offering a third (item 43's review).
+        ["language_placement", "language_style"], list(APPEARANCE_DEFAULTS),
         SIDEBAR_FIELDS, ICON_FIELDS, CRUMB_FIELDS, PALETTE_FIELDS, INBOX_FIELDS,
-        STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
+        STATUS_FIELDS, LIST_FIELDS, FORM_FIELDS, DESK_FIELDS, WORKSPACE_FIELDS, CHART_FIELDS,
         REPORT_FIELDS, VIEWS_FIELDS, OVERLAY_FIELDS, EMPTY_FIELDS, SKELETON_FIELDS,
         FILTERS_FIELDS, LOGIN_FIELDS, WEB_FIELDS, EMAIL_FIELDS, PRINT_FIELDS,
     )
@@ -1355,7 +1467,7 @@ THEME_AXES = _theme_axes()
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
 #: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
-#: all ~123 values. It also makes the one invariant free: ``Bunood Night`` overrides
+#: all ~123 values. It also makes the one invariant free: ``Bunood Console`` overrides
 #: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
 #: on the day it is installed.
 #:
@@ -1365,17 +1477,51 @@ THEME_AXES = _theme_axes()
 #: value is drawn from that field's own ``options`` list, so nothing here is a value
 #: the doctype would refuse.
 THEME_PRESETS = {
-    "Bunood Night": {
+    # Item 43's pick, named by the user (2026-09-08): the desk of the "Console"
+    # look — full bleed, a brand-dark hero band with the record's facts and a
+    # stage path, stacked outlined fields, a ruled sheet for the lines, an
+    # inspector rail, the activity in a drawer, the primary action pinned
+    # above the edge, zebra lists, the brand on the primary button. Its
+    # values are EMPTY because it IS the shipped default: every default map
+    # above carries the pick, and _shipped_baseline() composes it.
+    "Bunood Console": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
         "values": {},
     },
+    "Bunood Night": {
+        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
+        "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "list_style": "Floating Cards", "form_sidebar": "Floating Pane", "desk_width": "Original",
+            "desk_scale": "Original", "desk_primary": "Black", "form_fields": "Original",
+            "form_grid": "Original", "form_activity": "Original", "form_header": "Original",
+            "form_header_tone": "Tinted", "form_stage": "Off", "form_foot": "Off",
+        },
+    },
     "Bunood Day": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Light",
-        "values": {},
+        "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "list_style": "Floating Cards", "form_sidebar": "Floating Pane", "desk_width": "Original",
+            "desk_scale": "Original", "desk_primary": "Black", "form_fields": "Original",
+            "form_grid": "Original", "form_activity": "Original", "form_header": "Original",
+            "form_header_tone": "Tinted", "form_stage": "Off", "form_foot": "Off",
+        },
     },
     "Focus": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Ink",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Fill on Active", "crumb_style": "Original",
             "list_style": "Hairline Rows", "list_hover": "Soft Wash",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
@@ -1390,6 +1536,13 @@ THEME_PRESETS = {
     "Canvas": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "crumb_style": "Eyebrow Title",
             "list_style": "Open Rows", "form_style": "Open Canvas",
             "workspace_style": "Open Board", "report_style": "Open Sheet",
@@ -1401,6 +1554,13 @@ THEME_PRESETS = {
     "Ledger": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Indigo", "sidebar": "Daylight",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Zebra Stripes", "form_style": "Hairline Panels",
             "workspace_style": "Mixed Weights", "report_style": "Ledger Rows",
             "report_grain": "Row Stripes", "views_style": "Soft Tiles",
@@ -1412,6 +1572,13 @@ THEME_PRESETS = {
     "Elevated": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Violet", "sidebar": "Aurora",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Floating Cards", "form_style": "Floating Panels",
             "workspace_style": "Soft Tiles", "views_style": "Soft Tiles",
             "overlay_style": "Soft", "empty_style": "Filled",
@@ -1422,6 +1589,13 @@ THEME_PRESETS = {
     "Carbon": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Teal", "sidebar": "Carbon",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "list_style": "Hairline Rows",
             "form_style": "Hairline Panels", "workspace_style": "Hairline Grid",
             "report_style": "Ruled Grid", "views_style": "Hairline",
@@ -1433,6 +1607,13 @@ THEME_PRESETS = {
     "Records": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bronze", "sidebar": "Paper",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Hairline Rows", "form_style": "Paper Sheet",
             "workspace_style": "Headed Panel", "report_style": "Ledger Rows",
             "views_style": "Soft Tiles", "overlay_style": "Soft",
@@ -1444,6 +1625,13 @@ THEME_PRESETS = {
     "Studio": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Bunood Light",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "list_style": "Floating Cards", "form_style": "Floating Panels",
             "workspace_style": "Hairline Grid", "report_style": "Open Sheet",
             "views_style": "Floating Cards", "overlay_style": "Floating",
@@ -1454,6 +1642,13 @@ THEME_PRESETS = {
     "Contrast": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Indigo", "sidebar": "Carbon",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "crumb_style": "Crumb Pills",
             "list_style": "Floating Cards", "list_selection": "Bold Bar",
             "form_style": "Floating Panels", "workspace_style": "Headed Panel",
@@ -1468,6 +1663,13 @@ THEME_PRESETS = {
     "Workbench": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Workbench",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "desk_width": "Original", "desk_scale": "Original",
+            "desk_primary": "Black", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "icon_style": "Filled Color", "crumb_style": "Original",
             "list_style": "Hairline Rows", "form_style": "Hairline Panels",
             "workspace_style": "Mixed Weights", "report_style": "Ruled Grid",
@@ -1489,9 +1691,18 @@ THEME_PRESETS = {
     "Quiet": {
         "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Ink",
         "values": {
+            # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
+            # the desk it had: the earlier list and sidebar, and every new axis at
+            # its stand-down pole.
+            "form_sidebar": "Floating Pane", "form_fields": "Original", "form_grid": "Original",
+            "form_activity": "Original", "form_header": "Original", "form_header_tone": "Tinted",
+            "form_stage": "Off", "form_foot": "Off",
             "crumb_style": "Original", "palette_style": "Original",
             "inbox_style": "Original", "list_style": "Original",
             "form_style": "Original", "workspace_style": "Original",
+            # The body kit stands down one axis at a time (item 43 A1): the
+            # vendor's cap, its type, its black button.
+            "desk_width": "Original", "desk_scale": "Original", "desk_primary": "Black",
             "report_style": "Original", "views_style": "Original",
             "overlay_style": "Original", "empty_style": "Original",
             "skeleton_style": "Original", "filters_style": "Original",
@@ -1513,7 +1724,7 @@ THEME_PRESETS = {
 }
 
 #: The look a fresh install gets. It must be the one whose ``values`` are empty.
-DEFAULT_THEME_PRESET = "Bunood Night"
+DEFAULT_THEME_PRESET = "Bunood Console"
 
 
 def _shipped_baseline() -> dict:
@@ -1542,10 +1753,10 @@ def _shipped_baseline() -> dict:
         "density_default": "Comfortable",
         "desk_order": ",".join(t["key"] for t in TENANTS),
     }
-    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS,
-              LANGUAGE_DEFAULTS, APPEARANCE_DEFAULTS, ICON_DEFAULTS,
+    for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, LANGUAGE_DEFAULTS,
+              APPEARANCE_DEFAULTS, ICON_DEFAULTS,
               CRUMB_DEFAULTS, PALETTE_DEFAULTS, INBOX_DEFAULTS, STATUS_DEFAULTS,
-              LIST_DEFAULTS, FORM_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
+              LIST_DEFAULTS, FORM_DEFAULTS, DESK_DEFAULTS, WORKSPACE_DEFAULTS, CHART_DEFAULTS,
               REPORT_DEFAULTS, VIEWS_DEFAULTS, OVERLAY_DEFAULTS, EMPTY_DEFAULTS,
               SKELETON_DEFAULTS, FILTERS_DEFAULTS, LOGIN_DEFAULTS, WEB_DEFAULTS,
               EMAIL_DEFAULTS, PRINT_DEFAULTS):

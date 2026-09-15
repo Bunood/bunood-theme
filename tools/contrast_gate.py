@@ -173,6 +173,11 @@ def pairs():
         Pair("var(--bnd-on-brand, var(--bnd-ink-inverse))",
              "var(--bnd-brand-solid, var(--bnd-brand))", AA_TEXT, "label on a brand fill"),
         Pair("var(--bnd-on-critical)", "var(--bnd-critical)", AA_TEXT, "unread badge count"),
+        # Item 43 A8a: the document band and the tiles on it. Both derived by
+        # palette.derive(); the tile wash moves away from the ink by construction,
+        # and this is where that construction is measured rather than trusted.
+        Pair("var(--bnd-on-deep)", "var(--bnd-brand-deep)", AA_TEXT, "band ink"),
+        Pair("var(--bnd-on-deep)", "var(--bnd-brand-deep-tile)", AA_TEXT, "band tile ink"),
         Pair("var(--bnd-warn)", "var(--bnd-raised)", AA_TEXT, "status segment, warning"),
         Pair("var(--bnd-critical)", "var(--bnd-raised)", AA_TEXT, "status segment, bad"),
         Pair("var(--bnd-critical)", ALARM_BG, AA_TEXT, "status segment on the alarm tint"),
@@ -181,6 +186,37 @@ def pairs():
         Pair("var(--bnd-good)", "var(--bnd-raised)", AA_NON_TEXT, "status dot, healthy"),
         Pair("var(--bnd-serious)", "var(--bnd-pane)", AA_NON_TEXT, "sidebar badge fill"),
     ]
+
+    # Item 43 A3: Tinted Heads paints a section head on the checked-row wash
+    # (10% brand over the surface) under plain ink. A wash is not a surface the
+    # cross product above knows, so it gets its own row; a bright seed pulls the
+    # wash toward itself, which is exactly what this measures.
+    out.append(Pair(
+        "var(--bnd-ink)", "color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface))",
+        AA_TEXT, "tinted section head",
+    ))
+
+    # And the MUTED ink over the same wash — the pair this gate had no row for.
+    # Item 43 A8a's Hero Band reads `var(--bnd-form-band-muted,
+    # var(--bnd-ink-muted))` for its meta line and every tile label, and the
+    # tinted tone sets only `--bnd-form-band-ink`, so the fallback is what paints
+    # on a band that is this same 10% wash. The band's own comment records the
+    # muted ink as the risk the DARK tone refused to take; the tinted tone takes
+    # it and nothing measured it. "Closed is not the same as covered" — the
+    # release review's CSS lens found this as a pair with no row, not a wrong
+    # ratio, which is the shape item 40's three defects also had.
+    out.append(Pair(
+        "var(--bnd-ink-muted)", "color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface))",
+        AA_TEXT, "tinted band meta and tile labels",
+    ))
+
+    # Item 43 A4: Ruled Sheet's even rows carry a 3% ink wash under the row's
+    # own ink. Near-invisible on purpose, and a wash all the same — the gate
+    # measures every surface a text token is drawn over.
+    out.append(Pair(
+        "var(--bnd-ink)", "color-mix(in srgb, var(--bnd-ink) 3%, var(--bnd-surface))",
+        AA_TEXT, "ruled grid zebra row",
+    ))
 
     # The focus ring, against every surface it can be drawn over. `outline` paints
     # OUTSIDE the element, so the adjacent colour is the container's, not the

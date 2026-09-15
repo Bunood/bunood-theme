@@ -340,6 +340,7 @@
 			this.header.classList.toggle("bnd-simple-form-head-advanced", !this.simple);
 			const setLayout = active => {
 				this.frm.$wrapper?.toggleClass("bnd-generic-simple", active);
+				window.bunood_theme?.[active ? "claim_native" : "release_native"]?.("simpleform");
 				this.frm.$wrapper?.toggleClass("bnd-stock-simple-active", active && this.frm.doctype === "Stock Entry");
 				this.frm.$wrapper?.toggleClass("bnd-delivery-simple-active", active && this.frm.doctype === "Delivery Note");
 				this.frm.$wrapper?.toggleClass("bnd-composed-simple-active", active && !!COMPOSITIONS[this.frm.doctype]);

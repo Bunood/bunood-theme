@@ -89,6 +89,9 @@
 @use "surfaces/list";
 @use "surfaces/report";
 @use "surfaces/form";
+// Item 43: the body kit — the width every surface runs at, the type set the
+// body renders in, the primary button's fill. Attribute-only, anchorless.
+@use "surfaces/body";
 @use "surfaces/summary";
 @use "surfaces/charts";
 @use "surfaces/views";

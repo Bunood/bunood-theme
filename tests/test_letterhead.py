@@ -123,6 +123,12 @@ class LetterheadTest(unittest.TestCase):
             self.assertNotIn("Commercial registration", header.get_text())
             self.assertIn("Long <company> & partners", header.get_text())
 
+        minimal_name = render("minimal", company_name="Long legal company name " * 6).select_one(".bnd-lh-name")
+        self.assertIn("white-space:nowrap", minimal_name["style"])
+        self.assertIn("overflow:hidden", minimal_name["style"])
+        self.assertIn("text-overflow:ellipsis", minimal_name["style"])
+        self.assertEqual(minimal_name["title"], "Long legal company name " * 6)
+
     def test_footer_uses_the_requested_print_language(self):
         english = render_footer("en")
         arabic = render_footer("ar")

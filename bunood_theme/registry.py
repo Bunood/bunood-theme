@@ -227,7 +227,9 @@ COMPONENTS = [
         # the dock and page-head clusters carry. Naming only the field made
         # the matrix report Dock as having no search at all.
         "selector": ".bnd-search-field, .bnd-search-icon",
-        "native": ".body-sidebar .navbar-search-bar",
+        # The pane's row, and the search the desk page (/app) draws in its own
+        # navbar beside the pane (2026-09-14) — the pane's bar answers Ctrl+K there.
+        "native": ".body-sidebar .navbar-search-bar, .desktop-navbar .desktop-search-wrapper",
         "regions": REGIONS,
         "toggle": None,
         "offable": False,
@@ -268,7 +270,11 @@ COMPONENTS = [
         # affordance; the client guard reads this fallback before deciding that
         # the side pane must be forced back on.
         "fallback": '[data-bnd-inbox-route]',
-        "native": ".body-sidebar .sidebar-notification",
+        # Two natives, comma-joined: the pane's row, and the bell Frappe's own
+        # desk page (/app) draws in ITS navbar beside the pane (2026-09-14). The
+        # build guard reads the last class of each; _layouts.scss hides both
+        # from the same token.
+        "native": ".body-sidebar .sidebar-notification, .desktop-navbar .desktop-notifications",
         "regions": REGIONS,
         "toggle": None,
         "offable": True,
@@ -280,7 +286,8 @@ COMPONENTS = [
         "label": "User profile",
         "type": TENANT,
         "selector": ".bnd-avatar-btn",
-        "native": ".body-sidebar .sidebar-user-button",
+        # As the bell: the pane's row, and the desk page's own avatar menu.
+        "native": ".body-sidebar .sidebar-user-button, .desktop-navbar .desktop-avatar",
         "regions": REGIONS,
         "toggle": None,
         "offable": True,
@@ -321,17 +328,18 @@ COMPONENTS = [
         "part": "start",
         "label": "Start button",
         "type": TENANT,
-        # The taskbar layouts' way into the pane (item 42, slice 7). It does not
-        # BUILD anything: it puts Frappe's own pane into the open state the rail
-        # already drives, so there is no second pane to keep in agreement and
-        # every rule the pane has applies unchanged.
+        # The bar's brand pill (item 42, slice 7; redrawn 2026-09-14 by the
+        # user): the mark and the company's name, exactly as the pane's head
+        # draws them, and a click goes home. Until then it toggled the pane; the
+        # way back to a hidden pane is the page head's show button, which mounts
+        # beside this pill without repeating the brand.
         "selector": '[data-bnd-part="start"]',
         # Ours entirely; stock v16 has no such control, so a failed mount
         # releases nothing — the pane is still reachable by its own handle.
         "native": None,
-        # NOT the side pane: a button inside the pane that opens the pane is a
-        # control with nothing to do. The page header is out for the same reason
-        # search is — no slug exists there.
+        # NOT the side pane: its head already IS this pill. The page header is
+        # out for the same reason search is — no slug exists there — and, when
+        # the pane is Hidden, the head carries the brand of its own accord.
         "regions": ("topbar", "bottombar", "dock"),
         "toggle": None,
         # OFFABLE, and the taskbar layouts do not depend on it being on: the pane
@@ -370,6 +378,30 @@ COMPONENTS = [
         # statement about the component, not a gap waiting to be filled. The
         # pane keeps both of its zones, which it genuinely has.
         "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
+        "critical": False,
+    },
+    {
+        "key": "language",
+        "part": "language",
+        "label": "Language switch",
+        "type": TENANT,
+        "selector": '[data-bnd-part="language"]',
+        "native": None,
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        "critical": False,
+    },
+    {
+        "key": "appearance",
+        "part": "appearance",
+        "label": "Appearance button",
+        "type": TENANT,
+        "selector": '[data-bnd-part="appearance"]',
+        "native": None,
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
         "critical": False,
     },
 ]
@@ -509,19 +541,25 @@ LAYOUT_TENANTS = {
         # Frappe's OWN search row, revealed at the pane's start; mount_search_at
         # deliberately does not claim it.
         "search_placement": "Side Pane Start",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Taskbar": {
         # The page head owns the one stable pane toggle on every desktop.
-        "start_placement": "Off",
+        "start_placement": "Bottom Bar Start",
         "inbox_placement": "Bottom Bar End",
         "user_placement": "Bottom Bar End",
         "search_placement": "Bottom Bar Center",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Top Taskbar": {
-        "start_placement": "Off",
+        "start_placement": "Top Bar Start",
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Rail + Flyout": {
         # The same tenants as Unified: this row differs by the pane's STATE, which
@@ -530,9 +568,11 @@ LAYOUT_TENANTS = {
         "inbox_placement": "Side Pane End",
         "user_placement": "Side Pane End",
         "search_placement": "Side Pane Start",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
     "Floating Bar": {
-        "start_placement": "Off",
+        "start_placement": "Dock Start",
         "inbox_placement": "Dock End",
         "user_placement": "Dock End",
         # `search_placement` has no "Dock" option — the dock takes the ICON form
@@ -540,6 +580,8 @@ LAYOUT_TENANTS = {
         # the dock first for this layout. Naming a slot the field does not offer
         # would write an illegal value into a Select.
         "search_placement": "Bottom Bar Center",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
     },
 }
 
@@ -583,6 +625,8 @@ NARROW_PLACEMENT = {
     # no side pane at all. Home and Apps therefore keep the same slots on every
     # route; the current one is identified with aria-current, never removed.
     "home": "Bottom Bar Start",
+    "language": "Off",
+    "appearance": "Off",
 }
 
 
@@ -604,6 +648,17 @@ MARK = "mark"
 
 MARKS = [
     {
+        "key": "railbtn",
+        "part": "railbtn",
+        "label": "Rail button",
+        "type": MARK,
+        "selector": ".bnd-railbtn",
+        "native": ".page-title .sidebar-toggle-btn",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
         "key": "compactnav", "part": "compactnav", "label": "Compact navigation",
         "type": MARK, "selector": ".bnd-compact-nav",
         "native": ".body-sidebar-top", "regions": (), "toggle": None, "critical": False,
@@ -616,7 +671,8 @@ MARKS = [
         "selector": ".bnd-sb-head",
         # Hiding this native is legal ONLY from data-bnd-own~="panehead",
         # stamped after the head is in the pane (claim_panehead measures).
-        "native": ".body-sidebar .sidebar-header",
+        # ...and the desk page's own logo tile: our brand row carries the brand.
+        "native": ".body-sidebar .sidebar-header, .desktop-navbar .navbar-home",
         "regions": (),
         "toggle": None,
         "critical": False,
@@ -635,14 +691,104 @@ MARKS = [
         "toggle": None,
         "critical": False,
     },
+    {
+        "key": "drawer",
+        "part": "drawer",
+        "label": "Activity drawer",
+        "type": MARK,
+        "selector": ".bnd-drawer-toggle",
+        # Item 43 A6. The native is the form's own footer - the comment box
+        # and the timeline. It is never display:none'd: the Drawer option
+        # parks it off-canvas, which is hiding by another name, so the CSS
+        # keys on data-bnd-own~="drawer", stamped by mount_drawer only after
+        # the toggle that opens it is in the DOM and wired. A toggle that
+        # failed to mount leaves the footer below the form, exactly as stock.
+        "native": ".form-footer",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "dochead",
+        "part": "dochead",
+        "label": "Document header",
+        "type": MARK,
+        "selector": ".bnd-dochead",
+        # Item 43 A8a. Built by mount_dochead as the first child of
+        # .layout-main-section on every form refresh: the record's title, its
+        # status, a meta line and (Highlights/Hero) tiles from the doctype's
+        # own list-view fields. Owns no native: the page head keeps its title
+        # (the crumb kit already decides that) and the pill stays where it is
+        # until A8b's stage path claims it.
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "stagepath",
+        "part": "stagepath",
+        "label": "Stage path",
+        "type": MARK,
+        "selector": ".bnd-stagepath",
+        # Item 43 A8b. The band's chevron path: the active Workflow's states,
+        # else Draft · Submitted · Cancelled on a submittable doctype, else
+        # nothing. It says what the page head's docstatus pill says, so the
+        # pill is hidden - ONLY from data-bnd-own~="stagepath", stamped by
+        # mount_dochead after the path is in the band. The crumb kit's
+        # "status in the trail row" moves the same pill; while the path is on,
+        # that toggle is greyed with the reason.
+        # Measured on 16.33: the indicator is a bare span.indicator-pill inside
+        # .title-area - the .page-indicator-pill wrapper the crumb kit's own
+        # rule names does not exist on this build (a crumb-kit defect, filed).
+        "native": ".page-head .title-area > .indicator-pill",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "docfoot",
+        "part": "docfoot",
+        "label": "Pinned foot",
+        "type": MARK,
+        "selector": ".bnd-docfoot",
+        # Item 43 A8c. A fixed bar above the bottom chrome carrying the page's
+        # primary action (proxied: frm.page.btn_primary.trigger("click") runs
+        # the one jQuery handler Frappe binds; the native is re-read on every
+        # mutation of the action cluster), the list-view Currency fields as
+        # facts, and the drawer's toggle. The native button is hidden ONLY
+        # under data-bnd-own~="docfoot", stamped after the foot is in the DOM
+        # and wired, and only on form routes - a list's own primary action is
+        # the same class and is never ours.
+        "native": ".page-actions .primary-action",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "settingsmap",
+        "part": "settingsmap",
+        "label": "Settings map",
+        "type": MARK,
+        "selector": ".bnd-sb-map",
+        # Item 43 B3. On the Theme Settings route only: a map of the form's
+        # cards in the pane's Start zone, its rows DERIVED from the rendered
+        # sections (the form script hands them over on every refresh), marked
+        # current by an IntersectionObserver, dotted by the same comparison the
+        # cards use. In the Rail state one chip opens it as a menu; in the
+        # Hidden state a "Sections" menu mounts in the page head (the chrome
+        # ladder, as the brand does). Owns no native.
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
 ]
 
 SURFACE = "surface"
 
 # Fixed controls owned by their host, without independent placement settings.
-CHROME_ACTIONS = [
-    {"key": "language", "part": "language", "selector": '[data-bnd-part="language"]'},
-]
+CHROME_ACTIONS = []
 
 # Additive content, not chrome and not a replacement for native form controls.
 CONTENT_COMPONENTS = [

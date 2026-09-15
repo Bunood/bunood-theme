@@ -573,6 +573,15 @@ def sb_hues(polarity: str, tint: int = 0) -> list[str]:
 
 
 
+#: The band's derivation (item 43 A8a): how far the seed is pulled toward the
+#: dark page base, the base itself, the label target (a hair above AA), and the
+#: tile wash's strength. Constants here so the gate and the sheet cannot disagree.
+DEEP_MIX_PCT = 55
+BAND_BASE = "#101317"
+DEEP_TARGET = 4.6
+DEEP_TILE_PCT = 14
+
+
 def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dict[str, str]:
     """Every seed-dependent token for one mode.
 
@@ -665,6 +674,24 @@ def derive(brand: str, accent: str, mode: str, ground: str | None = None) -> dic
     # which is a visible cost for no benefit; deriving neither was the state
     # before this item, at 4.27:1 on white with the shipped seed.
     out["--bnd-brand-ink"], _ = fit_ink(brand, surfaces, target=AA_TEXT)
+    # ── The band (item 43 A8a) ───────────────────────────────────────────────
+    # A document header painted brand-DARK: the seed pulled 55% toward the dark
+    # page base, then fitted as a fill exactly as `--bnd-brand-solid` is — legible
+    # under `--bnd-on-deep` (a hair above 4.5, never on the floor: 4.6) and
+    # visible against every surface (3:1). In dark mode fill_pair LIFTS it clear
+    # of the dark surfaces, so a dark desk gets a mid-tone brand block rather than
+    # a black one; measured at the pathological seeds a yellow brand gives a dark
+    # olive with white ink, a pale one a grey with dark ink. The tile wash on the
+    # band moves AWAY from the ink — toward the dark base under a light ink and
+    # toward white under a dark one — so ink-on-tile can only be higher than
+    # ink-on-band; mixing the ink's own colour in (the obvious "white-alpha")
+    # measured 3.61:1 on a yellow seed.
+    deep_seed = mix(brand, DEEP_MIX_PCT, BAND_BASE)
+    out["--bnd-brand-deep"], out["--bnd-on-deep"], _ = fill_pair(
+        deep_seed, target=DEEP_TARGET, surfaces=surfaces
+    )
+    away = BAND_BASE if luminance(parse_color(out["--bnd-on-deep"])) > 0.5 else "#ffffff"
+    out["--bnd-brand-deep-tile"] = mix(away, DEEP_TILE_PCT, out["--bnd-brand-deep"])
 
     for token, target, _why in FITTED:
         start = base.get(token, out.get(token, ""))

@@ -58,7 +58,8 @@ $bnd-cq: (
 	bar-1: 900px, // status/top bar: drop ranks 1-2 (freshness, density)
 	bar-2: 700px, // ...rank 3 (clock) and the search field's label + kbd
 	bar-3: 460px, // ...rank 4 (errors)
-	shell: 620px, // settings master/detail shell -> one column
+	tc: 620px, // the translation console's proposal rows -> one column (item 43 B1)
+	cmp: 760px, // the composer's rail-beside-stage grid -> one column (item 43 C1)
 	board: 544px, // placement board -> stacked (was an unnamed 34rem)
 	card: 250px,  // number card (Display metric) -> the value steps up a size
 	bill-rail: 1176px, // spreadsheet minimum + totals rail + workbench gap

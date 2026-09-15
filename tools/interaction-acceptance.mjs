@@ -92,7 +92,10 @@ try {
 	await page.evaluate(async () => frappe.new_doc("Sales Invoice"));
 	await page.waitForFunction(() => cur_frm?.doctype === "Sales Invoice" && cur_frm.doc?.__islocal && document.querySelector(".bnd-bill:not([hidden])"), null, { timeout: 30000 });
 
-	const partyOpener = page.locator(".bnd-bill-party .bnd-bill-button").filter({ hasText: /New customer/i });
+	// The candidate can legitimately render in either supported language. Target
+	// the unique create-party action by structure instead of coupling this
+	// interaction gate to an English translation.
+	const partyOpener = page.locator(".bnd-bill-party .bnd-bill-section-head .bnd-bill-button");
 	await partyOpener.focus();
 	await partyOpener.click();
 	await page.locator(".modal.show").waitFor({ state: "visible", timeout: 10000 });

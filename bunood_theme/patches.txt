@@ -114,4 +114,23 @@ bunood_theme.patches.v0_42_0.retire_icon_styles
 
 bunood_theme.patches.v0_42_1.retire_shortcuts
 
+# Item 43: Bunood Console moved two EXISTING defaults (form_sidebar, list_style).
+# Both are theme axes, so a row still holding the old default would read Custom
+# on every theme card against the moved baseline — the quick_links_stand_down
+# shape, same limits. The ten new axes need nothing: no row is the new default.
+bunood_theme.patches.v0_45_0.console_defaults
+
+# Item 45: desk_width is a RENAME, not a moved default. A v0.45 row holds a
+# Select value the options no longer contain, so the kit's value map has no
+# entry, `data-bnd-body-width` is never stamped, and the site silently loses
+# EVERY width rule — worse than the state it replaces. Must run wherever
+# v0.45 landed.
+bunood_theme.patches.v0_46_0.width_two_edges
+
 bunood_theme.patches.v0_11_0.heal_unknown_placements
+
+# Item 45.1: the width segment must not appear on a bar its owner emptied.
+# Found by reading a real tenant's settings before shipping — every segment
+# off, and a new default-on Check would have put one back. Asks the neighbour
+# it sits beside: density off means this site did not ask for width either.
+bunood_theme.patches.v0_46_1.width_follows_density

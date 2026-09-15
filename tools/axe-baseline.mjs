@@ -41,7 +41,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const OUT = join(ROOT, "tests", "fixtures", "axe-baseline.json");
 const SITE = "demo.bunood.test";
 const BACKEND = "bunood-backend-1";
-const URL_BASE = "http://localhost:8080";
+const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 
 // The same routes the suite's baseline test walks — the three page shapes a
 // desk session lives in: a list view, a document form, and the settings form.
@@ -109,7 +109,7 @@ print("pinned")
 
 const b = await chromium.launch();
 const ctx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
-await ctx.addCookies([{ name: "sid", value: sid, domain: "localhost", path: "/" }]);
+await ctx.addCookies([{ name: "sid", value: sid, domain: new URL(URL_BASE).hostname, path: "/" }]);
 const page = await ctx.newPage();
 
 const baseline = {};
@@ -132,7 +132,7 @@ for (const [route, waitFor, opts] of ROUTES) {
 			continue;
 		}
 		guestCtx = await b.newContext({ viewport: { width: 1920, height: 1080 } });
-		await guestCtx.addCookies([{ name: "sid", value: portalSid, domain: "localhost", path: "/" }]);
+		await guestCtx.addCookies([{ name: "sid", value: portalSid, domain: new URL(URL_BASE).hostname, path: "/" }]);
 		target = await guestCtx.newPage();
 	}
 	await target.goto(URL_BASE + route.replace("/desk/", "/app/").replace("/desk", "/app"), {

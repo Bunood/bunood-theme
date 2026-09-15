@@ -7,14 +7,19 @@
 	"/desk/item/BND-TEST-001": {
 		"aria-required-children": 1,
 		"aria-required-parent": 11,
-		"button-name": 13,
+		"button-name": 12,
 		"color-contrast": 4,
 		"label": 5,
 		"link-name": 1,
 		"listitem": 11
 	},
-	"/desk/theme-settings?shell=1": {
-		"button-name": 1,
+	"/desk/theme-settings": {
+		"color-contrast": 26,
+		"label": 2,
+		"link-name": 1,
+		"select-name": 6
+	},
+	"/desk/theme-settings?compose&compare=0": {
 		"link-name": 1
 	},
 	"/desk/selling": {

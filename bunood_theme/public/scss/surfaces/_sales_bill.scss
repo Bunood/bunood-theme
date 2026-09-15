@@ -315,8 +315,8 @@
 .bnd-simple-form-head-advanced .bnd-simple-copy,
 .bnd-simple-form-head-advanced .bnd-simple-actions { display: none; }
 .bnd-simple-form-head-advanced h2 { font-size: var(--bnd-text-md); }
-html[data-theme] .bnd-bill-simple-active .standard-actions > .primary-action,
-html[data-theme] .bnd-generic-simple .standard-actions > .primary-action,
+html[data-theme][data-bnd-own~="salesbill"] .bnd-bill-simple-active .standard-actions > .primary-action,
+html[data-theme][data-bnd-own~="simpleform"] .bnd-generic-simple .standard-actions > .primary-action,
 html[data-theme] .bnd-generic-simple .bnd-simple-tab-omitted { display: none !important; }
 html[data-theme] .bnd-generic-simple .bnd-simple-omitted { display: none !important; }
 html[data-theme] .bnd-generic-simple .bnd-form-summary { display: none !important; }

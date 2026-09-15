@@ -44,21 +44,13 @@ const DRY = process.argv.includes("--dry");
  * fix for each is either a rename (done for "Operator") or our own row.
  * This list is small and argued; it is not a place to park anything awkward.
  */
-const REJECT = new Map([
-	["Count", "upstream عد is the VERB 'to count'; ours is a badge count (noun)"],
-	["More", "upstream أكثر is the comparative 'more than'; a More button is المزيد"],
-	["Full", "upstream ممتلئ means 'filled up'; ours is full intensity"],
-	["Center", "upstream مركز is a hub (cost centre), not centre alignment"],
-	["Mention", "upstream أشير is a verb; ours is a noun — but it is Frappe's own notification type, so we ship no row either"],
-	["Mentions", "upstream يذكر is a verb; ours is a noun"],
-	["Action", "helpdesk حدث is an EVENT/occurrence; ours is a thing the user does — إجراء"],
-	["Apply", "crm تقديم is submitting an application; ours applies a setting — تطبيق"],
-	["Filter", "frappe منقي is a purifier; a filter control is تصفية"],
-	["Display", "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it"],
-	["Translations", "frappe ترجمة is singular; our nav section is plural — الترجمات"],
-	["Notifications", "Frappe إخطارات is inconsistent with Bunood's product wording; our notification surface uses إشعارات"],
-	["Queued", "frappe قائمة الانتظار is the queue (a noun); ours is a STATUS — في قائمة الانتظار"],
-]);
+// The argued list lives in locale/false_friends.json, shared with the migrate
+// defense (bunood_theme.setup._defend_false_friends) that makes it EFFECTIVE:
+// refusing to inherit a false friend is half the job; the other half is the
+// later app's row overwriting ours in the merge, which only a Translation row
+// outranks. One file, two readers.
+const FALSE_FRIENDS = JSON.parse(readFileSync(join(APP, "locale", "false_friends.json"), "utf8"));
+const REJECT = new Map(Object.entries(FALSE_FRIENDS.entries).map(([msgid, e]) => [msgid, e.reason]));
 
 /**
  * Every app installed on the site, in `installed_apps` order — asked, not
@@ -77,9 +69,9 @@ function installedApps() {
 		const out = execFileSync(
 			DOCKER_BIN,
 			dockerArgv("exec", BACKEND, "bash", "-lc",
-			 `cd /home/frappe/frappe-bench/sites && ../env/bin/python -c ` +
-			 `'import frappe,json;frappe.init(site="${SITE}",sites_path=".");frappe.connect();` +
-			 `print("APPS=" + json.dumps(frappe.get_installed_apps()))'`),
+				 `cd /home/frappe/frappe-bench/sites && ../env/bin/python -c ` +
+				 `'import frappe,json;frappe.init(site="${SITE}",sites_path=".");frappe.connect();` +
+				 `print("APPS=" + json.dumps(frappe.get_installed_apps()))'`),
 			{ encoding: "utf8" }
 		);
 		const m = out.match(/APPS=(\[.*\])/);
@@ -148,9 +140,8 @@ function parsePo(text) {
 	return out;
 }
 
-const { extractCatalogue, readTranslations } = await import(`file://${join(ROOT, "tools", "i18n.mjs").replace(/\\/g, "/")}`);
+const { extractCatalogue } = await import(`file://${join(ROOT, "tools", "i18n.mjs").replace(/\\/g, "/")}`);
 const catalogue = extractCatalogue();
-const localTranslations = readTranslations(join(APP, "translations", `${LANG}.csv`));
 
 const upstream = new Map();
 for (const app of APPS) {
@@ -191,10 +182,7 @@ if (!upstream.size) {
 }
 
 const hits = [...catalogue.keys()].filter((m) => upstream.has(m)).sort();
-// An explicit Bunood row is an intentional product-language choice. Do not
-// convert it into an inherited dependency merely because a newly installed
-// app happens to translate the same English key.
-const accepted = hits.filter((m) => !REJECT.has(m) && !localTranslations.has(m));
+const accepted = hits.filter((m) => !REJECT.has(m));
 const rejected = hits.filter((m) => REJECT.has(m));
 
 console.log(`\n  our strings: ${catalogue.size}`);

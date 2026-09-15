@@ -118,10 +118,13 @@ defect in 0.10.0.
 - `[x]` **Slice 1c step 1** — picker CSS into the guarded pipeline, shared `P`
   vocabulary, container queries, identity attributes, committed shape fixture.
   **All 7 pickers ported**; two duplicate class vocabularies deleted
-- `[x]` **Slice 1c step 2** — master & detail settings form. **It is the settings page**
-  as of 2026-08-06; `?shell=0` still reaches the stacked form for any field the shell
-  has not placed. It shipped behind `?shell=1` while half-built, which was right then
+- `[x]` **Slice 1c step 2** — master & detail settings form. **It was the settings page**
+  from 2026-08-06 to 2026-09-08; `?shell=0` reached the stacked form for any field the shell
+  had not placed. It shipped behind `?shell=1` while half-built, which was right then
   and wrong the moment it was finished — the work was invisible behind a query string.
+  **Retired in item 43 B1 (2026-09-08)**: the page is one scroll of section cards in
+  importance order (B2; `field_order` is the single source, build-guarded) with the map
+  in the desk's own side pane (B3).
   - `[x]` The shell: grouped left list (Bars & panes / Controls / Appearance, 10
     entries), a detail pane showing one component at a time. It **relocates** the
     sections Frappe built rather than drawing a second surface, so "only one surface
@@ -1552,6 +1555,46 @@ only its Arabic strings crossed.
   Letters` under another field's name). Released as **v0.42.0**; `app_version` resumes
   tracking here.
 
+- `[x]` **43 · The body, rebuilt: anatomy over frame** *(opened 2026-09-03, built
+  2026-09-08/09; plan at `~/.claude/plans/erp-next-is-good-serene-whisper.md`; releases as
+  v0.45.0 — item 44 took the next number while this one waited for its picks)*. The user's
+  brief: "ERPNext is good, but the visual body is poorly done; the previous items didn't
+  really make it look better, especially the body of the program and the forms." Measured
+  on the live desk, the diagnosis was that nine surface kits had all dressed the FRAME —
+  a card around a section, a pill on a tab — while the anatomy inside stayed stock: one
+  type size for head, label and value; a field box at 1.02:1 against its page; no document
+  header; and TWO widths, Frappe's 900px cap centred inside the theme's full-width card.
+  Decided through three published rounds — the decision cards
+  ([Desk Body Round](https://claude.ai/code/artifact/58e2d705-8247-4a39-a1cc-380490019b3b)),
+  thirty complete looks across eleven pages
+  ([Desk Body Looks](https://claude.ai/code/artifact/51a66996-0bb1-4e65-9817-55384405e9fc))
+  and a live per-decision picker
+  ([Desk Body Composer](https://claude.ai/code/artifact/7d10abfb-e20b-491e-97dd-821290cac5f5)),
+  the last built after the user asked to choose the pieces rather than a whole look. **The
+  pick is "Bunood Console"** and it becomes the shipped default: full bleed, stacked
+  outlined fields, floating panels, a brand-dark hero band with tiles and a chevron stage
+  path, a ruled line-item sheet, an inspector rail, activity in a drawer, zebra lists, a
+  pinned foot, 14px, brand primary. Every letter the rounds drew stays in the catalogue.
+  The user then asked for two more things: **the composer inside the theme**, and **the
+  settings page restructured**.
+  **Built.** Ten new axes plus three mounts (the band, the foot, the drawer), each an
+  attribute kit with an Original pole and ownership stamped after the node is in the DOM;
+  the vendor's own `--page-max-width` fed where the vendor reads it, never a second width.
+  The settings page loses its in-page shell for one scroll of cards in importance order,
+  with the section map moved into the desk's own side pane (scroll-spy, a chip-and-menu in
+  the rail, a Sections menu in the page head under Hidden). The composer ships as a mode
+  of that form at `?compose`: a rail of eighteen decisions through the kits' own setters, a
+  real desk page in a scaled same-origin frame told the form's unsaved values, and a
+  compare strip drawing every value of the decision you last touched. **Three defects the
+  item's own traces found, each older than the slice that caught it:** the critical-reach
+  guard opened a Hidden pane on every fresh load of a form or list; the settings sweep
+  replayed the live desk 39 times because a scoped scan fell back to the whole document;
+  and a composer frame booting inside a page Frappe had cached hidden was 0px wide, so it
+  wrote Frappe's collapsed-sidebar flag into storage the desk shares. **Deferred, with
+  reasons in the plan:** the folding accordion sections, the master list and the print
+  bench (each a large mount, none in the pick), and the timeline restyle until its DOM is
+  measured. Released as **v0.45.0**; the account in CHANGELOG `[0.45.0]`.
+
 - `[x]` **44 · The language switch and the Appearance button** *(opened and built
   2026-09-06; releases as v0.44.0)*. Asked for after the overhaul went back to its branch:
   "add a language switch that can be added to different placements, default in bottom next
@@ -1564,7 +1607,28 @@ only its Arabic strings crossed.
   switch writing `User.language` through a validating endpoint and reloading, the avatar
   menu's language entry as the route every layout keeps, the style as an attribute the
   band degrades honestly, the foot band wrapping at six cells, seven checks. Item 43 is
-  still awaiting its picks; this took the next number. The account in CHANGELOG `[0.44.0]`.
+  was still awaiting its picks; this took the next number, which is why 43 ships as v0.45.0.
+  The account in CHANGELOG `[0.44.0]`.
+
+- `[x]` **45 · The desk's width, made one decision** *(opened and built 2026-09-11/12;
+  releases as v0.46.0 — 45 is taken as a MINOR by item 43's v0.45.0, so this takes the
+  next number)*. Asked for after the user saw the body disagree with itself: "there is
+  a dissonance with the width… I prefer not using full wide width, but distinct sections
+  in the body." **Measured first:** `desk_width` reached two of seven surface families,
+  so turning it on widened the spread between the widest and narrowest surface from
+  305px to 513px at 1920 — using the setting made the desk LESS consistent. Nine
+  strategies were drawn and put to the user, who chose the tiered model and asked for
+  all four values with Balanced shipped. **Built:** every value carries TWO measures — a
+  reading edge for forms, settings and the document band, a wide edge for lists,
+  reports, dashboards, charts, kanban, calendar, gallery, the workspace and any section
+  holding a child table, which asks for it by what it CONTAINS. Then, at the user's ask,
+  a width control in the status bar beside density: per-user (`bnd_body_width`, under
+  the existing `personal_comfort` lock), because a control every desk shows may not
+  write a site Single — it would throw for everyone but a System Manager and, for the
+  one who is, re-lay every colleague's desk. Two things the work turned up on the way,
+  both recorded in HANDOVER: this suite had been writing 345 of the site's 560 unseen
+  Error Log rows through its own sabotage checks, and the local stack's socket.io had
+  never once connected. The account in CHANGELOG `[0.46.0]`.
 
 ---
 

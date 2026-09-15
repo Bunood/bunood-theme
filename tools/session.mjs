@@ -21,7 +21,7 @@
  * USAGE
  *   import { openDesk, benchPy, URL_BASE } from "./tools/session.mjs";
  *   const { page, close } = await openDesk();
- *   await page.goto(`${URL_BASE}/desk/theme-settings?shell=1`);
+ *   await page.goto(`${URL_BASE}/desk/theme-settings`);
  *   ...
  *   await close();
  */

@@ -4,15 +4,10 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "section_shell",
-  "chrome_shell",
-  "section_branding",
-  "identity_picker",
-  "company_name",
-  "logo",
-  "column_break_branding",
-  "favicon",
-  "tagline",
+  "section_compose",
+  "desk_compose",
+  "section_theme",
+  "theme_picker",
   "section_colors",
   "brand_color",
   "accent_color",
@@ -20,8 +15,13 @@
   "brand_color_dark",
   "accent_color_dark",
   "ground_color",
-  "section_language",
-  "arabic_font",
+  "section_branding",
+  "identity_picker",
+  "company_name",
+  "logo",
+  "column_break_branding",
+  "favicon",
+  "tagline",
   "section_icons",
   "icons_picker",
   "icon_style",
@@ -29,16 +29,81 @@
   "icon_source",
   "icon_rail_button",
   "icon_crumbs",
-  "section_theme",
-  "theme_picker",
+  "section_language",
+  "arabic_font",
+  "language_translations",
+  "section_density",
+  "density_default",
+  "section_personal",
+  "personal_look",
+  "personal_shape",
+  "personal_comfort",
+  "section_body",
+  "desk_picker",
+  "desk_width",
+  "desk_scale",
+  "desk_primary",
+  "section_form",
+  "form_picker",
+  "form_style",
+  "form_fields",
+  "form_grid",
+  "form_tabs",
+  "form_sidebar",
+  "form_activity",
+  "form_header",
+  "form_header_tone",
+  "form_stage",
+  "form_foot",
+  "form_grid_checkbox_reveal",
+  "section_list",
+  "list_picker",
+  "list_style",
+  "list_hover",
+  "list_selection",
+  "list_checkbox_reveal",
+  "section_workspace",
+  "workspace_picker",
+  "workspace_style",
+  "workspace_metric",
+  "workspace_rows",
+  "workspace_menu_reveal",
+  "section_report",
+  "report_picker",
+  "report_style",
+  "report_grain",
+  "report_rows",
+  "report_checkbox_reveal",
+  "section_views",
+  "views_picker",
+  "views_style",
+  "views_band",
+  "views_mark",
+  "views_media",
+  "views_reveal",
+  "section_chart",
+  "chart_picker",
+  "chart_grid",
+  "section_filters",
+  "filters_picker",
+  "filters_style",
+  "filters_applied",
+  "filters_saved",
+  "section_overlay",
+  "overlay_picker",
+  "overlay_style",
+  "overlay_scrim",
+  "overlay_menu",
+  "section_empty",
+  "empty_picker",
+  "empty_style",
+  "empty_media",
+  "empty_action",
+  "section_skeleton",
+  "skeleton_picker",
+  "skeleton_style",
   "section_layout",
   "layout_picker",
-  "section_topbar",
-  "topbar_enabled",
-  "section_pagehead",
-  "pagehead_enabled",
-  "section_dock",
-  "dock_enabled",
   "section_sidebar",
   "sidebar_enabled",
   "sidebar_picker",
@@ -49,12 +114,58 @@
   "sidebar_section_style",
   "sidebar_hue_wash",
   "sidebar_card_depth",
-  "sidebar_menu_rail",
+  "sidebar_pane_state",
   "sidebar_rail_trigger",
   "sidebar_rail_button",
   "sidebar_pane_width",
   "sidebar_badges",
   "sidebar_filter",
+  "panehead_quick_links",
+  "section_topbar",
+  "topbar_enabled",
+  "section_pagehead",
+  "pagehead_enabled",
+  "section_dock",
+  "dock_enabled",
+  "section_status",
+  "bottombar_enabled",
+  "status_style",
+  "status_picker",
+  "status_clock",
+  "status_interval",
+  "status_segments_jobs",
+  "status_segments_errors",
+  "status_segments_scheduler",
+  "status_segments_connection",
+  "status_segments_density",
+  "status_segments_width",
+  "status_freshness",
+  "status_escalate",
+  "section_mobile",
+  "mobile_inbox",
+  "mobile_user",
+  "mobile_apps",
+  "section_placement",
+  "desk_overview",
+  "placement_board",
+  "desk_order",
+  "start_placement",
+  "section_search",
+  "search_placement",
+  "search_picker",
+  "section_user",
+  "user_picker",
+  "user_placement",
+  "section_links",
+  "links_picker",
+  "home_placement",
+  "apps_placement",
+  "section_language_switch",
+  "language_picker",
+  "language_choices",
+  "language_placement",
+  "language_style",
+  "appearance_placement",
   "section_crumbs",
   "crumb_style",
   "crumbs_picker",
@@ -83,92 +194,6 @@
   "inbox_chips",
   "inbox_row_actions",
   "inbox_keyboard",
-  "section_placement",
-  "placement_board",
-  "desk_order",
-  "section_search",
-  "search_placement",
-  "search_picker",
-  "section_user",
-  "user_picker",
-  "user_placement",
-  "section_links",
-  "links_picker",
-  "home_placement",
-  "apps_placement",
-  "section_language_switch",
-  "language_picker",
-  "language_choices",
-  "language_placement",
-  "language_style",
-  "appearance_placement",
-  "section_status",
-  "bottombar_enabled",
-  "status_style",
-  "status_picker",
-  "status_clock",
-  "status_interval",
-  "status_segments_jobs",
-  "status_segments_errors",
-  "status_segments_scheduler",
-  "status_segments_connection",
-  "status_segments_density",
-  "status_freshness",
-  "status_escalate",
-  "section_density",
-  "density_default",
-  "section_list",
-  "list_picker",
-  "list_style",
-  "list_hover",
-  "list_selection",
-  "list_checkbox_reveal",
-  "section_form",
-  "form_picker",
-  "form_style",
-  "form_tabs",
-  "form_sidebar",
-  "form_grid_checkbox_reveal",
-  "section_workspace",
-  "workspace_picker",
-  "workspace_style",
-  "workspace_metric",
-  "workspace_rows",
-  "workspace_menu_reveal",
-  "section_chart",
-  "chart_picker",
-  "chart_grid",
-  "section_report",
-  "report_picker",
-  "report_style",
-  "report_grain",
-  "report_rows",
-  "report_checkbox_reveal",
-  "section_views",
-  "views_picker",
-  "views_style",
-  "views_band",
-  "views_mark",
-  "views_media",
-  "views_reveal",
-  "section_overlay",
-  "overlay_picker",
-  "overlay_style",
-  "overlay_scrim",
-  "overlay_menu",
-  "section_empty",
-  "empty_picker",
-  "empty_style",
-  "empty_media",
-  "empty_action",
-  "section_skeleton",
-  "skeleton_picker",
-  "skeleton_style",
-  "section_filters",
-  "filters_picker",
-  "filters_style",
-  "filters_applied",
-  "filters_saved",
   "section_login",
   "login_picker",
   "login_style",
@@ -200,11 +225,7 @@
   "print_words",
   "print_signatures",
   "section_generated",
-  "brand_css_url",
-  "section_personal",
-  "personal_look",
-  "personal_shape",
-  "personal_comfort"
+  "brand_css_url"
  ],
  "fields": [
   {
@@ -223,22 +244,14 @@
   {
    "fieldname": "section_icons",
    "fieldtype": "Section Break",
-   "label": "Icons"
-  },
-  {
-   "fieldname": "section_shell",
-   "fieldtype": "Section Break",
-   "label": "Desk"
-  },
-  {
-   "fieldname": "chrome_shell",
-   "fieldtype": "HTML",
-   "label": "Desk Settings"
+   "label": "Icons",
+   "description": "The icon set, its weight, and where the desk draws it."
   },
   {
    "fieldname": "section_branding",
    "fieldtype": "Section Break",
-   "label": "Identity"
+   "label": "Identity",
+   "description": "The company's name, logo, favicon and tagline as the desk shows them."
   },
   {
    "fieldname": "identity_picker",
@@ -275,7 +288,8 @@
   {
    "fieldname": "section_colors",
    "fieldtype": "Section Break",
-   "label": "Colors"
+   "label": "Colors",
+   "description": "The brand and accent seeds, their dark-mode counterparts, and the ground the surfaces are mixed from."
   },
   {
    "fieldname": "brand_color",
@@ -316,7 +330,8 @@
   {
    "fieldname": "section_language",
    "fieldtype": "Section Break",
-   "label": "Language & Fonts"
+   "label": "Language & Fonts",
+   "description": "The Arabic typeface, and the translation console."
   },
   {
    "fieldname": "arabic_font",
@@ -327,9 +342,26 @@
    "description": "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
   },
   {
+   "fieldname": "language_translations",
+   "fieldtype": "HTML",
+   "label": "Translations"
+  },
+  {
+   "fieldname": "section_compose",
+   "fieldtype": "Section Break",
+   "label": "Compose",
+   "description": "The whole look in one place: what the desk is now, and the composer that changes it one decision at a time."
+  },
+  {
+   "fieldname": "desk_compose",
+   "fieldtype": "HTML",
+   "label": "Compose"
+  },
+  {
    "fieldname": "section_theme",
    "fieldtype": "Section Break",
-   "label": "Theme"
+   "label": "Theme",
+   "description": "A named look for the whole desk — one card writes every kit below."
   },
   {
    "fieldname": "theme_picker",
@@ -339,7 +371,8 @@
   {
    "fieldname": "section_layout",
    "fieldtype": "Section Break",
-   "label": "Desk Layout"
+   "label": "Desk Layout",
+   "description": "A preset for the five containers below — where the chrome lives."
   },
   {
    "fieldname": "layout_picker",
@@ -349,7 +382,8 @@
   {
    "fieldname": "section_topbar",
    "fieldtype": "Section Break",
-   "label": "Top Bar"
+   "label": "Top Bar",
+   "description": "A bar along the top edge."
   },
   {
    "fieldname": "topbar_enabled",
@@ -361,7 +395,8 @@
   {
    "fieldname": "section_pagehead",
    "fieldtype": "Section Break",
-   "label": "Page Header"
+   "label": "Page Header",
+   "description": "The page's own title row."
   },
   {
    "fieldname": "pagehead_enabled",
@@ -373,7 +408,8 @@
   {
    "fieldname": "section_dock",
    "fieldtype": "Section Break",
-   "label": "Dock"
+   "label": "Dock",
+   "description": "A floating dock along the bottom edge."
   },
   {
    "fieldname": "dock_enabled",
@@ -385,7 +421,8 @@
   {
    "fieldname": "section_sidebar",
    "fieldtype": "Section Break",
-   "label": "Sidebar Style"
+   "label": "Sidebar Style",
+   "description": "The side pane: placement, material, colour, its rail and its width."
   },
   {
    "fieldname": "sidebar_enabled",
@@ -516,6 +553,14 @@
    "label": "Workspace Filter"
   },
   {
+   "default": "Standard",
+   "description": "Quick links in the pane head's menu: each module row opens a flyout of New \u2026 rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone.",
+   "fieldname": "panehead_quick_links",
+   "fieldtype": "Select",
+   "label": "Quick Links",
+   "options": "Off\nBrief\nStandard\nFull"
+  },
+  {
    "fieldname": "palette_enabled",
    "fieldtype": "Check",
    "label": "Enable Command Palette",
@@ -526,7 +571,8 @@
   {
    "fieldname": "section_overlay",
    "fieldtype": "Section Break",
-   "label": "Overlays"
+   "label": "Overlays",
+   "description": "Dialogs, scrims and menus."
   },
   {
    "fieldname": "overlay_picker",
@@ -563,7 +609,8 @@
   {
    "fieldname": "section_empty",
    "fieldtype": "Section Break",
-   "label": "Empty states"
+   "label": "Empty states",
+   "description": "What an empty list or board shows."
   },
   {
    "fieldname": "empty_picker",
@@ -600,7 +647,8 @@
   {
    "fieldname": "section_skeleton",
    "fieldtype": "Section Break",
-   "label": "Loading"
+   "label": "Loading",
+   "description": "What a page shows while it loads."
   },
   {
    "fieldname": "skeleton_picker",
@@ -619,7 +667,8 @@
   {
    "fieldname": "section_filters",
    "fieldtype": "Section Break",
-   "label": "Filters"
+   "label": "Filters",
+   "description": "The filter bar, applied filters and saved views."
   },
   {
    "fieldname": "filters_picker",
@@ -656,7 +705,8 @@
   {
    "fieldname": "section_login",
    "fieldtype": "Section Break",
-   "label": "Sign In"
+   "label": "Sign In",
+   "description": "The sign-in page's style, action and theme."
   },
   {
    "fieldname": "login_picker",
@@ -693,7 +743,8 @@
   {
    "fieldname": "section_web",
    "fieldtype": "Section Break",
-   "label": "Website & Portal"
+   "label": "Website & Portal",
+   "description": "The public website and the portal: style, header, theme."
   },
   {
    "fieldname": "web_picker",
@@ -730,7 +781,8 @@
   {
    "fieldname": "section_email",
    "fieldtype": "Section Break",
-   "label": "Email"
+   "label": "Email",
+   "description": "Outgoing email: style, header, action, theme."
   },
   {
    "fieldname": "email_picker",
@@ -776,7 +828,8 @@
   {
    "fieldname": "section_print",
    "fieldtype": "Section Break",
-   "label": "Print"
+   "label": "Print",
+   "description": "Print formats: header, tables, totals, headings, QR, signatures."
   },
   {
    "fieldname": "print_picker",
@@ -829,7 +882,7 @@
    "options": "Brand headings\nInk only\nBrand panels"
   },
   {
-   "default": "Hairline Minimal",
+   "default": "Bilingual Split",
    "description": "Set by the picker above. How the synced Letter Head is composed from your identity - logo, Arabic and English names. Frappe's own leaves whatever Letter Head the site already uses untouched.",
    "fieldname": "print_letterhead",
    "fieldtype": "Select",
@@ -895,7 +948,8 @@
    "fieldname": "section_generated",
    "fieldtype": "Section Break",
    "label": "Generated",
-   "collapsible": 1
+   "collapsible": 1,
+   "description": "What the theme wrote for this site: the brand stylesheet's address."
   },
   {
    "fieldname": "brand_css_url",
@@ -915,7 +969,8 @@
   {
    "fieldname": "section_crumbs",
    "fieldtype": "Section Break",
-   "label": "Breadcrumbs"
+   "label": "Breadcrumbs",
+   "description": "The trail above a record: style, separator, hover, status."
   },
   {
    "fieldname": "crumb_style",
@@ -977,7 +1032,8 @@
   {
    "fieldname": "section_palette",
    "fieldtype": "Section Break",
-   "label": "Command Palette"
+   "label": "Command Palette",
+   "description": "Ctrl+K: style, ranking, footer and fallbacks."
   },
   {
    "fieldname": "palette_style",
@@ -1038,7 +1094,8 @@
   {
    "fieldname": "section_inbox",
    "fieldtype": "Section Break",
-   "label": "Notifications"
+   "label": "Notifications",
+   "description": "The bell: style, placement, badge, grouping, row actions."
   },
   {
    "fieldname": "inbox_style",
@@ -1117,7 +1174,8 @@
   {
    "fieldname": "section_status",
    "fieldtype": "Section Break",
-   "label": "Status Bar"
+   "label": "Status Bar",
+   "description": "The bottom bar: clock, connection, jobs, errors."
   },
   {
    "fieldname": "search_placement",
@@ -1200,6 +1258,13 @@
    "hidden": 1
   },
   {
+   "fieldname": "status_segments_width",
+   "fieldtype": "Check",
+   "label": "Width Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
    "fieldname": "status_freshness",
    "fieldtype": "Check",
    "label": "Freshness Stamp",
@@ -1215,7 +1280,13 @@
   {
    "fieldname": "section_placement",
    "fieldtype": "Section Break",
-   "label": "Placement"
+   "label": "Placement",
+   "description": "Where every component lives, on one board — and the overview of the desk."
+  },
+  {
+   "fieldname": "desk_overview",
+   "fieldtype": "HTML",
+   "label": "Overview"
   },
   {
    "fieldname": "placement_board",
@@ -1223,7 +1294,7 @@
    "label": "Placement Board"
   },
   {
-   "default": "search,inbox,user,home,start,apps",
+   "default": "search,inbox,user,home,start,apps,language,appearance",
    "description": "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here.",
    "fieldname": "desk_order",
    "fieldtype": "Data",
@@ -1233,7 +1304,8 @@
   {
    "fieldname": "section_search",
    "fieldtype": "Section Break",
-   "label": "Search"
+   "label": "Search",
+   "description": "Where the search field sits."
   },
   {
    "fieldname": "search_picker",
@@ -1241,14 +1313,43 @@
    "label": "Search Picker"
   },
   {
+   "fieldname": "section_mobile",
+   "fieldtype": "Section Break",
+   "label": "Mobile Bar",
+   "description": "What the bottom bar carries on a phone."
+  },
+  {
+   "fieldname": "mobile_inbox",
+   "fieldtype": "Check",
+   "label": "Alerts on the phone bar",
+   "default": "1",
+   "description": "Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load."
+  },
+  {
+   "fieldname": "mobile_user",
+   "fieldtype": "Check",
+   "label": "You on the phone bar",
+   "default": "1",
+   "description": "Show your profile menu in the bottom bar below 768px."
+  },
+  {
+   "fieldname": "mobile_apps",
+   "fieldtype": "Check",
+   "label": "Apps on the phone bar",
+   "default": "1",
+   "description": "Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way."
+  },
+  {
    "fieldname": "section_density",
    "fieldtype": "Section Break",
-   "label": "Density"
+   "label": "Density",
+   "description": "How tightly rows and controls pack, as the site's default."
   },
   {
    "fieldname": "section_list",
    "fieldtype": "Section Break",
-   "label": "List View"
+   "label": "List View",
+   "description": "Rows, hover, selection, and the checkbox reveal."
   },
   {
    "fieldname": "list_picker",
@@ -1256,13 +1357,13 @@
    "label": "List Picker"
   },
   {
-   "default": "Hairline Rows",
+   "default": "Zebra Stripes",
    "description": "Set by the picker above. How rows draw their boundaries.",
    "fieldname": "list_style",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "List Style",
-   "options": "Original\nHairline Rows\nOpen Rows\nZebra Stripes\nFloating Cards"
+   "options": "Original\nHairline Rows\nOpen Rows\nZebra Stripes\nFloating Cards\nDense Table"
   },
   {
    "default": "Edge Rail",
@@ -1291,9 +1392,48 @@
    "label": "Reveal Checkboxes on Hover"
   },
   {
+   "fieldname": "section_body",
+   "fieldtype": "Section Break",
+   "label": "Desk Body",
+   "description": "The page's width, the type scale, and the primary button's colour."
+  },
+  {
+   "fieldname": "desk_picker",
+   "fieldtype": "HTML",
+   "label": "Desk Body Picker"
+  },
+  {
+   "default": "Balanced",
+   "description": "How wide the body is allowed to be. Every value carries two measures: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a child table. Compact 900/1200 · Balanced 1040/1400 · Roomy 1120/1600 · Full lifts both. Original leaves Frappe's own 900px cap.",
+   "fieldname": "desk_width",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Desk Width",
+   "options": "Original\nCompact\nBalanced\nRoomy\nFull"
+  },
+  {
+   "default": "Standard 14",
+   "description": "Set by the picker above. The body's type set: values, labels, section heads and titles move together.",
+   "fieldname": "desk_scale",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Desk Scale",
+   "options": "Original\nCompact 13\nStandard 14\nTouch 16"
+  },
+  {
+   "default": "Brand",
+   "description": "Set by the picker above. Whether the primary button is Frappe's black or the brand fill.",
+   "fieldname": "desk_primary",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Primary Button",
+   "options": "Black\nBrand"
+  },
+  {
    "fieldname": "section_form",
    "fieldtype": "Section Break",
-   "label": "Form View"
+   "label": "Form View",
+   "description": "A record's anatomy: sections, fields, line items, tabs, sidebar, activity, header, stage path, pinned foot."
   },
   {
    "fieldname": "form_picker",
@@ -1307,7 +1447,25 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Form Style",
-   "options": "Original\nHairline Panels\nOpen Canvas\nFloating Panels\nPaper Sheet"
+   "options": "Original\nHairline Panels\nOpen Canvas\nFloating Panels\nPaper Sheet\nHeaded Groups\nGrouped Insets\nTinted Heads"
+  },
+  {
+   "default": "Stacked Outlined",
+   "description": "Set by the picker above. What one field looks like: where its label sits and what its box is.",
+   "fieldname": "form_fields",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Fields",
+   "options": "Original\nStacked Outlined\nProperty Rows\nQuiet Underline\nInline Text"
+  },
+  {
+   "default": "Ruled Sheet",
+   "description": "Set by the picker above. How rows of items, taxes and payments read: the stock grid, a hairline ledger, or a ruled sheet.",
+   "fieldname": "form_grid",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Grid",
+   "options": "Original\nHairline Ledger\nRuled Sheet"
   },
   {
    "default": "Solid Pill",
@@ -1319,13 +1477,58 @@
    "options": "Brand Underline\nSegment Pills\nSolid Pill"
   },
   {
-   "default": "Floating Pane",
-   "description": "Set by the picker above. How the record's sidebar separates from the document.",
+   "default": "Inspector Rail",
+   "description": "Set by the picker above. How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all.",
    "fieldname": "form_sidebar",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Form Sidebar",
-   "options": "Hairline Edge\nQuiet Pane\nFloating Pane"
+   "options": "Hairline Edge\nQuiet Pane\nFloating Pane\nInspector Rail"
+  },
+  {
+   "default": "Drawer",
+   "description": "Set by the picker above. Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions.",
+   "fieldname": "form_activity",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Activity",
+   "options": "Original\nBeside\nDrawer"
+  },
+  {
+   "default": "Hero Band",
+   "description": "Set by the picker above. What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band.",
+   "fieldname": "form_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Header",
+   "options": "Original\nTitle Block\nHighlights Band\nHero Band"
+  },
+  {
+   "default": "Brand-dark",
+   "description": "Set by the picker above. The hero band's paint: a tint of the brand, or the brand deepened to a dark block.",
+   "fieldname": "form_header_tone",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Header Tone",
+   "options": "Tinted\nBrand-dark"
+  },
+  {
+   "default": "Status Path",
+   "description": "Set by the picker above. A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document.",
+   "fieldname": "form_stage",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Stage",
+   "options": "Off\nStatus Path"
+  },
+  {
+   "default": "Pinned Bar",
+   "description": "Set by the picker above. A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled.",
+   "fieldname": "form_foot",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Foot",
+   "options": "Off\nPinned Bar"
   },
   {
    "default": "1",
@@ -1338,7 +1541,8 @@
   {
    "fieldname": "section_workspace",
    "fieldtype": "Section Break",
-   "label": "Workspace"
+   "label": "Workspace",
+   "description": "The landing page's tiles, metrics and rows."
   },
   {
    "fieldname": "workspace_picker",
@@ -1383,7 +1587,8 @@
   {
    "fieldname": "section_chart",
    "fieldtype": "Section Break",
-   "label": "Charts"
+   "label": "Charts",
+   "description": "The chart surface's grid."
   },
   {
    "fieldname": "chart_picker",
@@ -1402,7 +1607,8 @@
   {
    "fieldname": "section_report",
    "fieldtype": "Section Break",
-   "label": "Data tables"
+   "label": "Data tables",
+   "description": "The report view's grid, grain and rows."
   },
   {
    "fieldname": "report_picker",
@@ -1447,7 +1653,8 @@
   {
    "fieldname": "section_views",
    "fieldtype": "Section Break",
-   "label": "Alternate views"
+   "label": "Alternate views",
+   "description": "Kanban, calendar, gantt and image views."
   },
   {
    "fieldname": "views_picker",
@@ -1501,7 +1708,8 @@
   {
    "fieldname": "section_user",
    "fieldtype": "Section Break",
-   "label": "User Menu"
+   "label": "User Menu",
+   "description": "Where the profile menu sits."
   },
   {
    "fieldname": "user_picker",
@@ -1511,7 +1719,8 @@
   {
    "fieldname": "section_links",
    "fieldtype": "Section Break",
-   "label": "Home & All Apps"
+   "label": "Home & All Apps",
+   "description": "Where the Home and All Apps links sit."
   },
   {
    "fieldname": "links_picker",
@@ -1535,7 +1744,8 @@
   {
    "fieldname": "section_language_switch",
    "fieldtype": "Section Break",
-   "label": "Language & Appearance"
+   "label": "Language & Appearance",
+   "description": "The language switch and the appearance button: enabled languages, placement, style."
   },
   {
    "fieldname": "language_picker",
@@ -1577,12 +1787,13 @@
    "options": "Off\nTop Bar Start\nBottom Bar Start\nDock Start",
    "default": "Off",
    "hidden": 1,
-   "description": "A start button that opens the side pane, the way a taskbar does. Off on the shipped desk, where the pane is already open."
+   "description": "The brand pill at the bar's start \u2014 the tile and the company's name, as the pane's head draws them; a click goes home. Off on the shipped desk, where the pane's head already carries the brand."
   },
   {
    "fieldname": "section_personal",
    "fieldtype": "Section Break",
-   "label": "Personalization"
+   "label": "Personalization",
+   "description": "What each user may change for themselves: look, shape, comfort."
   },
   {
    "fieldname": "personal_look",
@@ -1608,7 +1819,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-08 04:14:26.284231",
+ "modified": "2026-09-08 19:56:01.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

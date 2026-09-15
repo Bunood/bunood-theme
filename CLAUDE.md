@@ -201,7 +201,12 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   an icon check reporting the default it just moved away from. It looks like five
   unrelated bugs, it gets worse as the machine gets busier, and restarting the backend
   "fixes" it for a while, which is what makes it so easy to file as environmental.
-  Commit, then clear. Measured after: one page load, every time.
+  Commit, then clear. Measured after: one page load, every time. **Third instance
+  (2026-09-10):** `withPersonal` cleared the USER cache before committing its restore, and
+  the composer's stage check was the first caller whose desk keeps REQUESTING during the
+  restore (its frames are live desks) — the leaked personal look then failed three
+  unrelated checks sixty tests later, none naming it. Any helper that clears any cache
+  commits first.
 - **A retry that treats a TRANSIENT as its premise.** `sidepane_sync` mounts the head
   inside a `try_for`; re-reading `sidebar_is_hidden()` on every attempt made it give up
   on a pane that was merely mid-layout, and three presets in a row lost their head while
@@ -256,7 +261,34 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   prints the doc.save() repair recipe instead (`set_single_value` fires no hooks).
   The standing advice survives the fix: before assuming a red suite is your change,
   **stash, redeploy and re-run at HEAD**; after any sweep, diff Theme Settings
-  against `setup.SHIPPED`.
+  against `setup.SHIPPED`. **Widen "after any sweep" to after any RUN OR PROBE**
+  (2026-09-10): an ad-hoc probe left `brand_color` on a preset's red seed, two
+  writes nine seconds apart, and nothing shouted — the verified-restore checks
+  cover the checks that write seeds, and a probe has no such contract. The seeds
+  sit outside `MUTABLE_FIELDS` by design, so the suite's own snapshot will not
+  put them back either. `settingsDrift()` is one call and it is the whole
+  defence.
+- **A measurement taken inside a HIDDEN container is a lie, and a SHARED store carries
+  that lie outward.** Frappe caches an outgoing page `display:none`, so a composer frame
+  that navigated into one booted 0px wide; `frappe.is_mobile()` is `innerWidth < 768`, the
+  frame concluded it was a phone, and it wrote `sidebar-expanded=false` into the
+  localStorage it SHARES with the desk (same origin). Every later fresh load of the real
+  desk then came up with a collapsed pane, and five checks failed sixty tests later reading
+  like five unrelated bugs — the settings map in a rail menu, a pane head with no name,
+  seven pane links with no text, link-name growing 1→8, two pane zones at the same pixel.
+  Nothing in any of them named a frame. Two rules: never let a frame or a measurement run
+  inside a container that is hidden (gate on `getClientRects().length`, and use the
+  vendor's own `show` to resume), and when a defect's symptoms are scattered and none names
+  a cause, look for something WRITTEN once and READ by everything — browser storage, a
+  cache, a Single row. Related in shape: *Clearing a cache BEFORE committing the write*.
+- **A fallback that WIDENS scope hides an argument that was never passed.** The settings
+  sweep's per-section scan read `document.querySelector(section) || document` — and the
+  section key was never passed into `page.evaluate`, so `k` was undefined on every pass
+  and every "scoped" scan was page-wide: 39 passes × ~400 options on the LIVE desk, which
+  cycled through every look for most of an hour before the user saw it (2026-09-09). The
+  per-section counts in its own log said so ("429 options" for a card with one button) and
+  nobody read them. Make the not-found case THROW — that throw is what found the unpassed
+  key — and read a tool's own counts before trusting its verdict.
 - **Deleting a stored name does not delete the need for the identity.** `desk_layout`
   went, and two runtime call sites still had to know the shape - so it is DERIVED by
   comparison (`presets.layout_of`), server-side, against the one catalogue. Two things

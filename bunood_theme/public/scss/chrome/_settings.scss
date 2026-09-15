@@ -288,7 +288,16 @@ html[data-theme] {
     background: var(--card-bg, var(--fg-color));
   }
 
-  .bnd-cbp-off {
+  // A greyed group stays READABLE: its title and note keep AA ink — the
+  // reason it is off is the one thing the reader needs — and only the
+  // controls beneath them fade. Opacity over the whole group put the title
+  // near 4.0:1; axe caught it the day a shipped style (Crumb Pills) greyed a
+  // group on the default walk (item 43 A4).
+  .bnd-cbp-off > .bnd-cbp-title,
+  .bnd-cbp-off > .bnd-cbp-desc {
+    color: var(--bnd-ink-muted);
+  }
+  .bnd-cbp-off > :not(.bnd-cbp-title):not(.bnd-cbp-desc) {
     opacity: 0.55;
   }
 
@@ -354,6 +363,32 @@ html[data-theme] {
     font-size: var(--text-xs);
     font-weight: 600;
     margin-block-start: 2px;
+  }
+
+  // A chip's optional second line: the value the NAME cannot carry, such as the
+  // two measures behind "Balanced". Muted and a step down, so the name still
+  // leads and the row's rhythm is unchanged for every chip that has none.
+  // Numerals are tabular because these line up in a row and drift reads as
+  // sloppiness — the same reason the grid's Currency cells are.
+  .bnd-cbp-osub {
+    display: block;
+    margin-block-start: 1px;
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+    font-weight: var(--bnd-weight-normal);
+    font-variant-numeric: var(--bnd-numeric);
+    white-space: nowrap;
+  }
+
+  // A chip carrying a second line sizes to its CONTENT. The base chip is a
+  // fixed 96px, chosen for one word, and a second line does not fit it — the
+  // first cut clipped "Reading: 1040 · Wid" mid-word. Scoped to chips that
+  // actually have a sub, so every other row keeps the fixed width that makes a
+  // chip row read as a set.
+  .bnd-cbp-opt:has(.bnd-cbp-osub) {
+    inline-size: auto;
+    min-inline-size: 96px;
+    padding-inline: var(--bnd-sp-3);
   }
 
   .bnd-cbp-reset {
@@ -764,191 +799,26 @@ html[data-theme] {
   }
 }
 
-// ── Master & detail shell (rework slice 1c step 2) ──────────────────────────
-//
-// A list beside a detail pane, collapsing to stacked below 900px. The width
-// query is on the FORM's container, not the viewport: this form already gets a
-// different width depending on whether the desk sidebar is expanded, so a
-// viewport query would answer a question nobody asked. Same reasoning as the
-// status bar's rank collapse.
-// THE CONTAINER AND THE RESPONDER ARE TWO ELEMENTS, and they have to be: a
-// `@container` rule styles only the container's DESCENDANTS, never the
-// container itself. When `.bnd-shell` carried `container-type`, its own
-// narrow rule below (collapse to one column) could never match — while the
-// nav and the items, being descendants, DID get their narrow rules. The
-// result was the worst of both: a wrap-row chip nav crammed into a grid
-// column that stayed 210px, items shrunk to 83px and packed two per ragged
-// row. Measured 2026-08-09 on an 800px pane; reported as "not responsive,
-// breaks its format" — which is exactly what half-applied breakpoints look
-// like.
-.bnd-shell-viewport {
-  container-type: inline-size;
-  container-name: bndshell;
+
+// ── The Compose card (item 43 B2) ────────────────────────────────────────────
+// One line and one button, on the card's own row; the note beneath.
+.bnd-cmp-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-4);
+	flex-wrap: wrap;
 }
-
-.bnd-shell {
-  display: grid;
-  grid-template-columns: minmax(160px, 210px) minmax(0, 1fr);
-  gap: var(--bnd-sp-5);
-  align-items: start;
+.bnd-cmp-line {
+	margin: 0;
+	font-size: var(--bnd-text-md);
+	font-weight: var(--bnd-weight-medium);
 }
-
-.bnd-shell-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  position: sticky;
-  inset-block-start: var(--bnd-sp-4);
-  padding-inline-end: var(--bnd-sp-3);
-  border-inline-end: var(--bnd-line) solid var(--bnd-border);
-}
-
-.bnd-shell-group {
-  font-size: var(--bnd-text-xs);
-  font-weight: var(--bnd-weight-medium);
-  color: var(--bnd-ink-subtle);
-  padding: var(--bnd-sp-3) var(--bnd-sp-2) var(--bnd-sp-1);
-}
-
-// Label on one line, state beneath it. Side by side, the note gets whatever the
-// label leaves of a 210px rail, and the two shipped side-pane presets are
-// "Bunood Night" and "Bunood Light" - both of which truncate to "Bunood ...",
-// which is worse than showing nothing at all. A preset name is the one note that
-// carries real information, so the layout is built for it.
-.bnd-shell-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0 var(--bnd-sp-2);
-  inline-size: 100%;
-  text-align: start;
-  padding: var(--bnd-pad-y) var(--bnd-sp-2);
-  border: none;
-  border-radius: var(--bnd-radius-md);
-  background: transparent;
-  color: var(--bnd-ink-muted);
-  font-size: var(--bnd-text-sm);
-  cursor: pointer;
-
-  &:hover {
-    background: var(--bnd-hover);
-    color: var(--bnd-ink);
-  }
-
-  &.bnd-shell-on {
-    background: var(--bnd-active);
-    color: var(--bnd-brand-ink);
-    font-weight: var(--bnd-weight-medium);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--bnd-accent);
-    outline-offset: 2px;
-  }
-}
-
-// The note is the entry's state in words - a preset name for the side pane,
-// "Default" or "Changed" for everything else. It carries the meaning; the dot
-// beside it is redundant reinforcement, which is the point: colour alone is
-// never the only signal (same rule the status tokens follow).
-.bnd-shell-note {
-  grid-column: 1;
-  font-size: var(--bnd-text-xs);
-  color: var(--bnd-ink-subtle);
-  // Truncate only if a future preset name is genuinely longer than the rail,
-  // rather than at a width that clips the ones we actually ship.
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-
-  // An empty note must not reserve a line: the marks are absent until the
-  // defaults arrive, and a rail that reflows when they land reads as a glitch.
-  &:empty {
-    display: none;
-  }
-}
-
-.bnd-shell-dot {
-  grid-column: 2;
-  grid-row: 1;
-  align-self: center;
-  inline-size: 6px;
-  block-size: 6px;
-  border-radius: 50%;
-  background: var(--bnd-brand-solid);
-  flex: none;
-
-  &[hidden] {
-    // `hidden` is a UA rule of the lowest possible weight and loses to any
-    // display declaration - the exact failure the status bar hit with
-    // `.bnd-status-item[hidden]`. State it explicitly.
-    display: none;
-  }
-}
-
-.bnd-shell-item.bnd-shell-on .bnd-shell-note {
-  color: var(--bnd-brand-ink);
-}
-
-.bnd-shell-detail {
-  min-inline-size: 0;
-
-  // Relocated sections arrive with the top border and padding that separated
-  // them from a sibling above. In a pane there is no sibling, so the rule is a
-  // line hanging over nothing.
-  .form-section {
-    border-block-start: none;
-    padding-block-start: 0;
-    margin-block-start: 0;
-  }
-
-  // The section heading names the same thing the selected list entry names, one
-  // inch away - "Command palette" over the Command palette pane. In a stacked
-  // form that heading IS the navigation; here it is a second copy of it. Hidden
-  // rather than removed, because the heading is Frappe's and the stacked form
-  // still needs it.
-  //
-  // It also absorbs the sub-headings a pane picks up when one entry owns two
-  // sections, which would otherwise read as stray labels: "Generated" under
-  // Colours is the brand stylesheet path, not a second topic.
-  .section-head,
-  .form-section-heading {
-    display: none;
-  }
-}
-
-.bnd-shell-pane[hidden] {
-  display: none;
-}
-
-// shell (620px), not bar-1 (900): the form's own column is ~840px wide on a 1440
-// desk with the sidebar expanded, so a 900px threshold collapsed the list into a
-// wrapped row of chips at full size - measured, not guessed. The stacked layout
-// is for a genuinely narrow form, which is why the number is well below the
-// common case. (The value lives in $bnd-cq as `shell`.)
-@include bnd-container-until(bndshell, shell) {
-  .bnd-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .bnd-shell-nav {
-    position: static;
-    flex-direction: row;
-    flex-wrap: wrap;
-    padding-inline-end: 0;
-    padding-block-end: var(--bnd-sp-3);
-    border-inline-end: none;
-    border-block-end: var(--bnd-line) solid var(--bnd-border);
-  }
-
-  .bnd-shell-item {
-    inline-size: auto;
-  }
-
-  // A group heading in a wrapped row of chips reads as another chip. The
-  // grouping survives in the order; the label does not survive the layout.
-  .bnd-shell-group {
-    display: none;
-  }
+// The ring every control of ours carries (the guard's own idiom); it is a
+// button, not an option chip, so it does not borrow bnd-cbp-opt.
+html[data-theme] .bnd-cmp-open:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
 }
 
 // ── The placement board (E2) ────────────────────────────────────────────────
@@ -963,6 +833,8 @@ html[data-theme] {
 // RTL for free, which matters more than usual because "Start" and "End" are
 // the words on the zones.
 .bnd-bd {
+	container-type: inline-size;
+	container-name: bndboard;
 	display: flex;
 	flex-direction: column;
 	gap: 0.75rem;
@@ -1247,12 +1119,12 @@ html[data-theme] {
 }
 
 // Narrow panes: the desk stops pretending to be a desk and stacks, rather than
-// squeezing five regions into a column too thin to drop onto. Named `bndshell`
-// explicitly (was an UNNAMED @container that resolved to whatever ancestor
-// happened to carry container-type — .bnd-shell-viewport in practice, but it
-// would silently retarget if an intermediate box ever gained one). Same
-// container, same value (`board` = 544px = the old 34rem).
-@include bnd-container-until(bndshell, board) {
+// squeezing five regions into a column too thin to drop onto. The board is
+// its own container now (item 43 B1 retired the shell viewport it used to
+// query): the root declares `bndboard` and the rule targets its descendants,
+// which is the one arrangement a @container rule allows. Same value (`board`
+// = 544px = the old 34rem).
+@include bnd-container-until(bndboard, board) {
 	.bnd-bd-desk {
 		grid-template-columns: 1fr;
 	}
@@ -1268,6 +1140,8 @@ html[data-theme] {
 // Text-and-buttons chrome; the heavy lifting is server-side. Logical
 // properties throughout, no tracking (assertCursiveSafe), tokens only.
 .bnd-tc {
+	container-type: inline-size;
+	container-name: bndtc;
 	display: grid;
 	gap: var(--bnd-sp-3);
 }
@@ -1317,11 +1191,11 @@ html[data-theme] {
 }
 
 // Narrow: five columns (source, translation, three action controls) cannot fit
-// a phone-width shell pane, and there is no horizontal scroll wrapper — so the
-// row stacks, each cell taking the full width (item 24). Same container and
-// threshold as the shell's own collapse; the row was the last settings surface
-// with a fixed multi-column grid and no narrow fallback.
-@include bnd-container-until(bndshell, shell) {
+// a phone-width card, and there is no horizontal scroll wrapper — so the row
+// stacks, each cell taking the full width (item 24). The console is its own
+// container since item 43 B1 retired the shell viewport it used to query; the
+// threshold keeps the shell's old value under the console's name.
+@include bnd-container-until(bndtc, tc) {
 	.bnd-tc-prow {
 		grid-template-columns: 1fr;
 	}
@@ -1548,4 +1422,291 @@ html[data-theme] {
 	> div + div {
 		margin-block-start: var(--bnd-sp-1);
 	}
+}
+
+// ── Where the map lands (item 43 B3) ────────────────────────────────────────
+// scrollIntoView puts a section's edge at the SCROLLER's edge, and the sticky
+// page head is painted over the first --page-head-height of that — so a card
+// the map scrolled to opened on its description line, its heading under the
+// head (read off a screenshot; the check now asserts the card clears the head).
+// scroll-margin is the CSS answer to an anchor under a sticky bar: it moves
+// nothing at rest, and every scroll-to on this page — the map, the page-head
+// menu, the Overview's goto — inherits it. Frappe's variable, read the way
+// _layouts.scss reads it; scoped to this route because it is this route's
+// gesture.
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .form-layout .form-section {
+	scroll-margin-block-start: calc(var(--page-head-height) + var(--bnd-sp-2));
+}
+
+// ── The composer (item 43 C1+C2) ─────────────────────────────────────────────
+// A MODE of the settings form (`?compose`): the Compose card hosts a rail of
+// decisions beside a stage, and every other card stands down. The class is
+// stamped by the form script on the page container at refresh — read once
+// from the address, like the retired ?shell — so the plain page is untouched.
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .form-layout .form-section:not([data-fieldname="section_compose"]) {
+	display: none;
+}
+// The stage wants the width, and Frappe's 900px cap on the section body would
+// fold it: lifted for the composing page only (Full Bleed makes it moot on the
+// shipped desk; Original width still carries the cap everywhere else).
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-form-layout .section-body {
+	max-inline-size: none;
+}
+.bnd-cmp-wrap {
+	container-type: inline-size;
+	container-name: bndcmp;
+}
+.bnd-cmp {
+	display: grid;
+	grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+	gap: var(--bnd-sp-5);
+	// The row is as tall as the rail; the stage sticks inside that height.
+}
+@include bnd-container-until(bndcmp, cmp) {
+	.bnd-cmp {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	// One column: the preview first, the rail of decisions under it. The rail
+	// is the taller of the two, and led with, it put the preview under the fold
+	// on every narrow screen.
+	.bnd-cmp-rail {
+		order: 2;
+	}
+}
+.bnd-cmp-head {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-4);
+	flex-wrap: wrap;
+}
+.bnd-cmp-rail {
+	display: grid;
+	gap: var(--bnd-sp-3);
+}
+// The value named beside a row's title; a hover previews the option there.
+.bnd-cmp-cur {
+	margin-inline-start: var(--bnd-sp-2);
+	font-weight: var(--bnd-weight-normal);
+	color: var(--bnd-ink-muted);
+}
+.bnd-cmp-linebox {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-linetext {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+	padding: 0;
+	background: transparent;
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-muted);
+	overflow-wrap: anywhere;
+}
+// Rings for the two controls of ours that are not option chips (the guard's own idiom).
+html[data-theme] .bnd-cmp-back:focus-visible,
+html[data-theme] .bnd-cmp-copy:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// ── The stage (item 43 C3) ───────────────────────────────────────────────────
+// A real desk page in a same-origin frame, kept at 1440×900 CSS px and drawn
+// at --bnd-cmp-scale: the clip's width over 1440, set inline by a
+// ResizeObserver on the clip (declared here so the token is never phantom;
+// the runtime's value wins on the element where the frame reads it).
+// STICKY BESIDE THE RAIL: the rail is long (eighteen rows), and a stage that
+// scrolled away with it left the composer showing options with nothing beside
+// them (read off a screenshot). Its own start alignment keeps it content-tall
+// inside the row-tall grid area, which is what gives sticky its room; the
+// offset clears the sticky page head. Under the one-column fold it is plain
+// flow again — the stage above the rail, nothing to stick beside.
+.bnd-cmp-stage {
+	display: grid;
+	gap: var(--bnd-sp-3);
+	align-content: start;
+	align-self: start;
+	min-inline-size: 0;
+	position: sticky;
+	inset-block-start: calc(var(--page-head-height) + var(--bnd-sp-3));
+	// NEVER TALLER THAN THE VIEWPORT: a sticky box taller than the window only
+	// shows its bottom once the row it sits in runs out — with a strip up, a
+	// cell's "Use this" was unreachable from the top of the rail (read off a
+	// screenshot). Bounded to the window under the head and above the bottom
+	// chrome, the stage scrolls on its own instead.
+	max-block-size: calc(100vh - var(--page-head-height) - var(--bnd-sp-3) * 2 - var(--bnd-bottom-reserve));
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+@include bnd-container-until(bndcmp, cmp) {
+	.bnd-cmp-stage {
+		position: static;
+	}
+}
+.bnd-cmp-pages {
+	display: grid;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-open-page {
+	font-size: var(--bnd-text-xs);
+	justify-self: start;
+}
+.bnd-cmp-clip {
+	--bnd-cmp-scale: 0.6;
+	position: relative;
+	inline-size: 100%;
+	block-size: calc(900px * var(--bnd-cmp-scale));
+	overflow: hidden;
+	border: var(--bnd-line) solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	background: var(--bnd-surface);
+}
+// The frame anchors at the clip's inline START and must scale from THAT
+// corner: `transform-origin` knows no logical keywords, so RTL flips it below
+// (0 0 under RTL put the scaled desk 700px to the left of its clip — read off
+// the Arabic screenshot). The desk inside mirrors on its own.
+.bnd-cmp-frame {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: 1440px;
+	block-size: 900px;
+	border: 0;
+	transform: scale(var(--bnd-cmp-scale));
+	transform-origin: 0 0;
+}
+html[data-theme] .bnd-cmp-open-page:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// ── The compare strip (item 43 C4) ──────────────────────────────────────────
+// Under the stage frame, inside the sticky stage: a horizontal strip of cells
+// at the stage's own scale, one per value of the decision last touched. While
+// a strip is up the main frame's clip shows the page's first 600px instead of
+// 900, so pages + frame + strip still fit the sticky height at 900 tall.
+.bnd-cmp-stage[data-bnd-comparing] .bnd-cmp-clip {
+	block-size: calc(600px * var(--bnd-cmp-scale));
+}
+.bnd-cmp-strip {
+	display: grid;
+	gap: var(--bnd-sp-2);
+	min-inline-size: 0;
+}
+.bnd-cmp-striphead {
+	font-size: var(--bnd-text-sm);
+	font-weight: var(--bnd-weight-medium);
+}
+.bnd-cmp-cells {
+	display: flex;
+	gap: var(--bnd-sp-3);
+	overflow-x: auto;
+	scroll-snap-type: inline mandatory;
+	padding-block-end: var(--bnd-sp-2);
+}
+.bnd-cmp-cell {
+	flex: 0 0 auto;
+	inline-size: 100%;
+	scroll-snap-align: start;
+	display: grid;
+	gap: var(--bnd-sp-2);
+	border: var(--bnd-line) solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	padding: var(--bnd-sp-2);
+	background: var(--bnd-surface);
+}
+.bnd-cmp-cell-on {
+	border-color: var(--bnd-accent);
+}
+// A spare cell is parked with the `hidden` attribute; the grid above would
+// otherwise win over the UA's `[hidden]` and keep drawing an empty card.
+.bnd-cmp-cell[hidden] {
+	display: none;
+}
+// The clip inherits the stage's scale from the clip above it (one ResizeObserver,
+// one token) — declared again here only as the fallback the guard reads.
+.bnd-cmp-cellclip {
+	--bnd-cmp-scale: 0.5;
+	position: relative;
+	inline-size: 100%;
+	block-size: calc(600px * var(--bnd-cmp-scale));
+	overflow: hidden;
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
+}
+.bnd-cmp-cellframe {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: 1440px;
+	block-size: 900px;
+	border: 0;
+	transform: scale(var(--bnd-cmp-scale));
+	transform-origin: 0 0;
+}
+// Under RTL the inline start is the right edge: the origin follows it, so the
+// scaled box is exactly the clip in both directions (measured: 47px of the
+// stage inside its clip before this).
+html[dir="rtl"] .bnd-cmp-frame,
+html[dir="rtl"] .bnd-cmp-cellframe {
+	transform-origin: 100% 0;
+}
+.bnd-cmp-cellbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-cellname {
+	font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-cmp-compare:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// The reader's own width, overriding the site's (item 45.1). It appears only
+// while an override is in force, so it is a NOTICE and not furniture: a tinted
+// row under the width chips carrying the fact and the way out.
+.bnd-dkp-mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-block-start: var(--bnd-sp-2);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-pane);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+
+  // An ACTION, not an option chip — so it carries its own styling and its own
+  // ring rather than borrowing `.bnd-cbp-opt`, whose contract includes an
+  // `aria-pressed` state this button does not have.
+  .bnd-dkp-mine-clear {
+    flex: none;
+    margin-inline-start: auto;
+    padding: var(--bnd-sp-1) var(--bnd-sp-3);
+    border: 1px solid var(--bnd-border);
+    border-radius: var(--bnd-radius-sm);
+    background: var(--bnd-surface);
+    color: var(--text-color);
+    font-size: var(--text-xs);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--bnd-border-strong);
+    }
+  }
+}
+
+// The override note's action gets the same ring every control this file builds
+// gets. Its own class, because it is not an option chip — see the docblock in
+// theme_settings.js for why borrowing `.bnd-cbp-opt` was wrong.
+html[data-theme] .bnd-dkp-mine-clear:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
 }

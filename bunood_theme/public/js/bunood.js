@@ -617,6 +617,7 @@
 				if (options.lineOptions.regionFill === undefined) options.lineOptions.regionFill = 1;
 			}
 			const chart = new NativeChart(parent, options);
+			if (chart) guard_chart_area(chart); // installs once; see guard_chart_area
 			if (chart && chart.container) {
 				if (viable.fallback) chart.container.dataset.bndChartFallback = viable.fallback;
 				chart._bnd_given = given;
@@ -636,19 +637,28 @@
 		// A redraw during the SMIL swap (the real svg is out of its container for
 		// 250ms; a ResizeObserver fires when our chrome mounts) is the removeChild
 		// pageerror. Put the real svg back first. Argument: surfaces/_charts.scss.
-		const native_area = NativeChart.prototype.makeChartArea;
-		if (typeof native_area === "function" && !native_area._bnd) {
-			const guarded = function () {
-				if (this.svg && this.container && this.svg.parentNode !== this.container) {
-					for (const n of Array.from(this.container.children)) {
-						if (n.tagName && n.tagName.toLowerCase() === "svg") this.container.removeChild(n);
+		// PATCHED ON THE PROTOTYPE THAT OWNS IT, found from a real instance —
+		// `frappe.Chart` is a factory and does not own `makeChartArea`, so the
+		// first version of this guard installed nothing at all. Argument and
+		// measurements in surfaces/_charts.scss.
+		function guard_chart_area(chart) {
+			for (let p = Object.getPrototypeOf(chart); p && p !== Object.prototype; p = Object.getPrototypeOf(p)) {
+				if (!Object.prototype.hasOwnProperty.call(p, "makeChartArea")) continue;
+				const native = p.makeChartArea;
+				if (typeof native !== "function" || native._bnd) return;
+				const guarded = function () {
+					if (this.svg && this.container && this.svg.parentNode !== this.container) {
+						for (const n of Array.from(this.container.children)) {
+							if (n.tagName && n.tagName.toLowerCase() === "svg") this.container.removeChild(n);
+						}
+						this.container.appendChild(this.svg);
 					}
-					this.container.appendChild(this.svg);
-				}
-				return native_area.apply(this, arguments);
-			};
-			guarded._bnd = true;
-			NativeChart.prototype.makeChartArea = guarded;
+					return native.apply(this, arguments);
+				};
+				guarded._bnd = true;
+				p.makeChartArea = guarded;
+				return;
+			}
 		}
 		frappe.Chart = BndChart;
 
@@ -1060,6 +1070,13 @@
 		// TWO WAYS TO HIDE THE PANE since item 42 — argument in _sidebar.scss.
 		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden";
 		if (!off.includes("sidepane") && !hidden) return false;
+		// NOT READY IS NOT STRANDED. A hidden pane lends its tenants to the page
+		// head, and a Form or List route builds that head AFTER the container
+		// this mount polls for (~0.8s against ~2s on a fresh load). Judged before
+		// the host existed, the guard opened a pane the user had hidden, on every
+		// load of every form; a workspace, built at once, never showed it. The
+		// head's arrival is "page-change": lend_to_arrived_page asks again then.
+		if (hidden && !off.includes("sidepane") && !visible_page_title()) return false;
 
 		// PRESENCE, not visibility — except inside the pane we are hiding, where a
 		// present node is an unreachable one. Argument in _sidebar.scss.
@@ -1155,7 +1172,7 @@
 		apply_chrome_off();
 
 		// `panehead` joins them (item 40); see _layouts.scss.
-		for (const token of ["search", "bell", "user", "panehead", "panetoggle", "mobilehome"]) bnd_disown(token);
+		for (const token of ["search", "panesearch", "bell", "user", "panehead", "panetoggle", "mobilehome"]) bnd_disown(token);
 
 		for (const key of Object.keys(CONTAINER_TEARDOWN)) {
 			if (container_on(key)) continue;
@@ -1399,6 +1416,12 @@
 		else html.removeAttribute("data-bnd-own");
 	}
 
+	// Public outcome stamps for the doctype-specific bundles loaded after this
+	// desk bundle. They may hide a native action only after their replacement is
+	// mounted, and must release it when their simple surface stands down.
+	bunood.claim_native = bnd_own;
+	bunood.release_native = bnd_disown;
+
 	// ════════════════════════════════════════════════════════════════════════
 	// Sidebar style kit (item 10) — attribute application
 	// ════════════════════════════════════════════════════════════════════════
@@ -1546,7 +1569,7 @@
 	const BND_SURFACE_KITS = {
 		list: {
 			attr: "list", boot: "bnd_list",
-			anchor: ["list_style", { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards" }],
+			anchor: ["list_style", { "Original": "", "Hairline Rows": "hairline", "Open Rows": "open", "Zebra Stripes": "zebra", "Floating Cards": "cards", "Dense Table": "table" }],
 			axes: [
 				["hover", "list_hover", { "Soft Wash": "wash", "Edge Rail": "rail" }],
 				["select", "list_selection", { "Soft Tint": "soft", "Accent Rail": "rail", "Bold Bar": "bold" }],
@@ -1555,12 +1578,35 @@
 		},
 		form: {
 			attr: "form", boot: "bnd_form",
-			anchor: ["form_style", { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet" }],
+			anchor: ["form_style", { "Original": "", "Hairline Panels": "hairline", "Open Canvas": "open", "Floating Panels": "cards", "Paper Sheet": "sheet", "Headed Groups": "groups", "Grouped Insets": "inset", "Tinted Heads": "tinted" }],
 			axes: [
+				// Item 43 A2: the anatomy of one control. Original = the stock tint
+				// with no edge, so the whole axis stands down under it.
+				["fields", "form_fields", { "Original": "", "Stacked Outlined": "outline", "Property Rows": "rows", "Quiet Underline": "underline", "Inline Text": "inline" }],
+				["grid", "form_grid", { "Original": "", "Hairline Ledger": "ledger", "Ruled Sheet": "ruled" }],
 				["tabs", "form_tabs", { "Brand Underline": "underline", "Segment Pills": "segment", "Solid Pill": "pill" }],
-				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card" }],
+				["side", "form_sidebar", { "Hairline Edge": "edge", "Quiet Pane": "pane", "Floating Pane": "card", "Inspector Rail": "rail" }],
+				["activity", "form_activity", { "Original": "", "Beside": "beside", "Drawer": "drawer" }],
+				["header", "form_header", { "Original": "", "Title Block": "title", "Highlights Band": "facts", "Hero Band": "band" }],
+				["tone", "form_header_tone", { "Tinted": "tint", "Brand-dark": "dark" }],
+				["stage", "form_stage", { "Off": "", "Status Path": "path" }],
+				["foot", "form_foot", { "Off": "", "Pinned Bar": "pinned" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
+			// The drawer (item 43 A6) and the header (A8a) are MOUNTS: an
+			// attribute flip alone cannot build or remove them, so the current
+			// form follows the value.
+			after: () => sync_form_mounts(),
+		},
+		body: {
+			attr: "body", boot: "bnd_body",
+			anchor: null,
+			axes: [
+				["width", "desk_width", { "Original": "", "Compact": "compact", "Balanced": "balanced", "Roomy": "roomy", "Full": "full" }],
+				["scale", "desk_scale", { "Original": "", "Compact 13": "13", "Standard 14": "14", "Touch 16": "16" }],
+				["primary", "desk_primary", { "Black": "", "Brand": "brand" }],
+			],
+			check: null,
 		},
 		workspace: {
 			attr: "ws", boot: "bnd_workspace",
@@ -1659,9 +1705,13 @@
 			if (!v) return;
 			state = v;
 			bnd_kit_state[kit] = v;
-			const style = def.anchor[1][v[def.anchor[0]]];
-			if (!style) return; // "" (Original) => pure clearing
-			html.setAttribute(stem, style);
+			// An ANCHORLESS kit (body) has no whole-kit stand-down: each axis
+			// stands down alone, and the bare stem is never set.
+			if (def.anchor) {
+				const style = def.anchor[1][v[def.anchor[0]]];
+				if (!style) return; // "" (Original) => pure clearing
+				html.setAttribute(stem, style);
+			}
 			for (const [suffix, field, slugs] of def.axes) {
 				const slug = slugs[v[field]];
 				if (slug) html.setAttribute(stem + "-" + suffix, slug);
@@ -1677,6 +1727,557 @@
 			if (def.after) def.after();
 		};
 	}
+
+	// ── Body width, per person (item 45) ────────────────────────────────────
+	// THE LAYER IS FORCED BY WHO CAN REACH THE CONTROL: the status bar is on
+	// every desk, so an icon there that wrote Theme Settings would throw for
+	// everyone but a System Manager and, for the System Manager, re-lay every
+	// colleague's desk. `personal.bnd_body_width` carries it under the
+	// `personal_comfort` lock density rides; `resolve_for_user` overlays it
+	// onto `desk_width` last.
+
+	/** The cycle: follow-the-site, then each width narrowest first. Derived
+	 *  from the kit's own slug map — `presets.DESK_WIDTHS` is the server's copy
+	 *  and `assertBodyWidths` holds both to the doctype Select. `Original`
+	 *  stands the kit down, which is the site's call, not a reader's. */
+	function width_cycle() {
+		return [""].concat(
+			Object.keys(bnd_axis_slugs("body", "width")).filter((n) => n !== "Original")
+		);
+	}
+
+	/** The person's stored intent, and what "follow the site" resolves to. */
+	function width_state() {
+		const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+		return { mine: p.body_width || "", site: p.site_body_width || "" };
+	}
+
+	/**
+	 * Persist a width and apply it now — `set_density`'s shape exactly, down to
+	 * the rollback, so the visible state never lies. `{save:false}` previews.
+	 * @param {string} value - one of `width_cycle()`. Empty follows the site.
+	 * @param {{save?: boolean}} [opts]
+	 * @returns {Promise<void>}
+	 */
+	bunood.set_body_width = function (value, opts) {
+		const was = width_state();
+		bunood.body_apply({ desk_width: value || was.site });
+		if (opts && opts.save === false) return Promise.resolve();
+		return frappe
+			.xcall("bunood_theme.api.set_personal", { values: { bnd_body_width: value } })
+			.then(() => {
+				if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = value;
+				refresh_width_label();
+				frappe.show_alert({
+					message: value ? __("Width: {0}", [__(value)]) : __("Width: following site default"),
+					indicator: "green",
+				});
+			})
+			.catch(() => {
+				bunood.body_apply({ desk_width: was.mine || was.site });
+				refresh_width_label();
+				frappe.show_alert({
+					message: __("Could not save width preference"),
+					indicator: "red",
+				});
+			});
+	};
+
+	/** Advance to the next width in the cycle. Wired to the status segment. */
+	bunood.cycle_body_width = function () {
+		const list = width_cycle();
+		const at = list.indexOf(width_state().mine);
+		bunood.set_body_width(list[(at + 1) % list.length]);
+	};
+
+	/** Reflect the stored width override on the status bar label. */
+	function refresh_width_label() {
+		if (!status_refs.width) return;
+		const mine = width_state().mine;
+		const label = __("Width: {0}", [mine ? __(mine) : __("Auto")]);
+		// The glyph stays; the words go to AT and to the tooltip, as density's do.
+		status_refs.width.setAttribute("aria-label", label);
+		status_refs.width.title = label;
+	}
+
+	// ════════════════════════════════════════════════════════════════════════
+	// Activity drawer (item 43 A6) — the form kit's one JS mount before the band
+	//
+	// `form_activity` = Drawer parks the form's footer (comment box + timeline)
+	// off-canvas by CSS, and that CSS keys on data-bnd-own~="drawer": the
+	// footer leaves the flow only once the toggle that brings it back is in
+	// the DOM and wired — the ownership rule every mount in this file obeys.
+	// The toggle lives in the page's action cluster (A8a's band and A8c's foot
+	// re-home it when they exist), carries a count of comments and
+	// communications read from frm.get_docinfo(), and is re-counted whenever
+	// the timeline re-renders. State is one attribute on <html>,
+	// data-bnd-drawer="open"; Escape closes and returns focus to the toggle; a
+	// route change closes. Under Original and Beside the mount tears itself
+	// down and releases the claim, so the footer is stock again.
+	const DRAWER_ATTR = "data-bnd-drawer";
+
+	function drawer_wanted() {
+		return document.documentElement.getAttribute("data-bnd-form-activity") === "drawer";
+	}
+
+	function drawer_count(frm) {
+		const info = frm.get_docinfo && frm.get_docinfo();
+		if (!info) return 0;
+		return (info.comments || []).length + (info.communications || []).length;
+	}
+
+	function drawer_set_open(open, restore) {
+		const html = document.documentElement;
+		if (open) html.setAttribute(DRAWER_ATTR, "open");
+		else html.removeAttribute(DRAWER_ATTR);
+		for (const t of document.querySelectorAll(".bnd-drawer-toggle")) {
+			t.setAttribute("aria-expanded", open ? "true" : "false");
+		}
+		if (!open && restore) {
+			// One tick later, after every other keydown listener: Frappe's own
+			// Escape handling blurs the active element, and would take the
+			// toggle's focus straight back if it were handed over synchronously.
+			window.setTimeout(() => {
+				if (restore.isConnected) restore.focus();
+			}, 0);
+		}
+	}
+
+	function drawer_recount(frm, toggle) {
+		const n = drawer_count(frm);
+		const badge = toggle.querySelector(".bnd-drawer-count");
+		if (badge) badge.textContent = n ? String(n) : "";
+	}
+
+	/** The current page's toggle, if any — pages are cached, so never the first in the DOM. */
+	function drawer_current_toggle() {
+		const frm = window.cur_frm;
+		const page = frm && frm.page && frm.page.wrapper && frm.page.wrapper[0];
+		return page ? page.querySelector(".bnd-drawer-toggle") : null;
+	}
+
+	/** Mount, refresh or tear down one form's toggle; runs on every refresh. */
+	function mount_drawer(frm) {
+		if (!frm || !frm.page || !frm.footer || !frm.footer.wrapper || (frm.meta && frm.meta.istable)) return;
+		const page = frm.page.wrapper && frm.page.wrapper[0];
+		if (!page) return;
+		let toggle = page.querySelector(".bnd-drawer-toggle");
+		// Nothing to open on an unsaved document: Frappe hides the footer's
+		// wrapper until the first save.
+		const wanted = drawer_wanted() && !(frm.is_new && frm.is_new());
+		if (!wanted) {
+			if (toggle) toggle.remove();
+			if (frm.__bnd_drawer_mo) {
+				frm.__bnd_drawer_mo.disconnect();
+				frm.__bnd_drawer_mo = null;
+			}
+			drawer_set_open(false);
+			// Per page, like the path's and the foot's.
+			if (!page.querySelector(".bnd-drawer-toggle")) bnd_disown("drawer");
+			return;
+		}
+		// The band re-homes the toggle when it exists (A8a); the page's action
+		// cluster is the fallback. A toggle in the wrong host is moved, not
+		// rebuilt — its observer and count ride along.
+		const host =
+			page.querySelector(":scope > .bnd-docfoot > .bnd-docfoot-actions") ||
+			page.querySelector(":scope .bnd-dochead > .bnd-dochead-actions") ||
+			(frm.page.page_actions && frm.page.page_actions[0]);
+		if (!host) return;
+		if (toggle && toggle.parentElement !== host) host.appendChild(toggle);
+		if (!toggle) {
+			toggle = el("button", "bnd-drawer-toggle btn btn-default btn-sm", {
+				type: "button",
+				"data-bnd-part": "drawer",
+				"aria-expanded": "false",
+			});
+			const label = el("span", "bnd-drawer-label");
+			label.textContent = __("Activity");
+			toggle.appendChild(label);
+			toggle.appendChild(el("span", "bnd-drawer-count"));
+			toggle.addEventListener("click", () => {
+				const open = document.documentElement.getAttribute(DRAWER_ATTR) !== "open";
+				drawer_set_open(open, toggle);
+				if (!open) return;
+				// Focus lands in the drawer, on the first thing that takes it.
+				window.setTimeout(() => {
+					const first = frm.footer.wrapper[0].querySelector(
+						".ql-editor, button, [href], input, textarea, [tabindex]:not([tabindex='-1'])"
+					);
+					if (first) first.focus();
+				}, 0);
+			});
+			host.insertBefore(toggle, host.firstChild);
+		}
+		drawer_recount(frm, toggle);
+		if (!frm.__bnd_drawer_mo && typeof MutationObserver !== "undefined") {
+			let queued = false;
+			// RE-QUERIED, NOT CLOSED OVER: the foot's stand-down removes the
+			// toggle with it, so the one captured here goes detached and the
+			// observer counts into nothing for the rest of the session.
+			frm.__bnd_drawer_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => {
+					queued = false;
+					const live = drawer_current_toggle();
+					if (live) drawer_recount(frm, live);
+				});
+			});
+			frm.__bnd_drawer_mo.observe(frm.footer.wrapper[0], { childList: true, subtree: true });
+		}
+		// LAST: the footer may leave the flow only now that the way back is live.
+		bnd_own("drawer");
+	}
+
+	// ── The document header (item 43 A8a) — mount 2 of 3 ──────────────────
+	// `form_header` = Title Block · Highlights Band · Hero Band builds one
+	// .bnd-dochead as the FIRST child of .layout-main-section (never inside the
+	// page head: its content height is fixed at 48px and the tabs stick under
+	// it): the record's title in a <bdi>, its status as Frappe's own indicator,
+	// a meta line, and — Highlights and Hero — tiles from the doctype's first
+	// four list-view fields, formatted by frappe.format. Rebuilt on every
+	// refresh, removed under Original; the action slot survives the rebuild so
+	// the drawer's toggle (A6) keeps its observer. Owns no native.
+	const DOCHEAD_STYLES = new Set(["title", "facts", "band"]);
+	// Fieldtypes that make no tile: a Check reads "Is Fixed Asset: No", a table
+	// has no scalar, and the long-form types are the form's own body.
+	const DOCHEAD_SKIP = new Set([
+		"Check", "Table", "Table MultiSelect", "Section Break", "Column Break", "Tab Break",
+		"HTML", "Button", "Image", "Attach", "Attach Image", "Text Editor", "Long Text",
+		"Small Text", "Text", "Code", "Markdown Editor", "HTML Editor", "Geolocation", "Signature",
+	]);
+
+	function dochead_wanted() {
+		return DOCHEAD_STYLES.has(document.documentElement.getAttribute("data-bnd-form-header") || "");
+	}
+
+	/** The decided rule: the first four list-view fields, minus the title, status and the unfit types. */
+	function dochead_tile_fields(meta) {
+		return (meta.fields || [])
+			.filter((df) => df.in_list_view && df.fieldname !== meta.title_field && df.fieldname !== "status" && !DOCHEAD_SKIP.has(df.fieldtype))
+			.slice(0, 4);
+	}
+
+	// ── The stage path (item 43 A8b) — inside the band ─────────────────────
+	// The states in order and which one the record is at: the active Workflow's
+	// (frappe.workflow reads them from boot, synchronously), else the docstatus
+	// ladder on a submittable doctype, else none. The page head's docstatus
+	// pill says the same thing, so it is hidden — ONLY once the path is in the
+	// DOM (bnd_own("stagepath") is stamped last, released when the path goes).
+	function stagepath_wanted() {
+		return document.documentElement.getAttribute("data-bnd-form-stage") === "path";
+	}
+
+	function stagepath_states(frm) {
+		const doc = frm.doc || {};
+		let field = null;
+		try {
+			field = frappe.workflow && frappe.workflow.get_state_fieldname ? frappe.workflow.get_state_fieldname(frm.doctype) : null;
+		} catch (e) {
+			field = null;
+		}
+		const wf = field && frappe.workflow.workflows && frappe.workflow.workflows[frm.doctype];
+		if (field && wf && Array.isArray(wf.states) && wf.states.length) {
+			const states = wf.states.map((row) => row.state).filter(Boolean);
+			return { states, current: doc[field] || states[0] };
+		}
+		if (frm.meta.is_submittable) {
+			const states = [__("Draft"), __("Submitted"), __("Cancelled")];
+			return { states, current: states[Math.min(Math.max(parseInt(doc.docstatus, 10) || 0, 0), 2)] };
+		}
+		return null;
+	}
+
+	/** Build or remove the path in one band; returns whether it is present. */
+	function mount_stagepath(frm, head) {
+		let path = head.querySelector(":scope > .bnd-stagepath");
+		const ladder = stagepath_wanted() && !(frm.is_new && frm.is_new()) ? stagepath_states(frm) : null;
+		if (!ladder) {
+			if (path) path.remove();
+			return false;
+		}
+		if (!path) path = el("ol", "bnd-stagepath", { "data-bnd-part": "stagepath", "aria-label": __("Stage path") });
+		path.textContent = "";
+		const at = ladder.states.indexOf(ladder.current);
+		ladder.states.forEach((state, i) => {
+			const li = el("li", "bnd-stagepath-step");
+			if (i < at) li.setAttribute("data-bnd-done", "");
+			if (i === at) li.setAttribute("aria-current", "step");
+			const bdi = document.createElement("bdi");
+			bdi.textContent = __(state);
+			li.appendChild(bdi);
+			path.appendChild(li);
+		});
+		head.appendChild(path);
+		return true;
+	}
+
+	function mount_dochead(frm) {
+		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.main || !frm.page.main[0]) return;
+		const main = frm.page.main[0];
+		let head = main.querySelector(":scope > .bnd-dochead");
+		if (!dochead_wanted()) {
+			if (head) head.remove();
+			// No band, no path: the pill is Frappe's again. Per page, as below.
+			if (!main.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
+			return;
+		}
+		const style = document.documentElement.getAttribute("data-bnd-form-header");
+		if (!head) {
+			head = el("section", "bnd-dochead", { "data-bnd-part": "dochead", "aria-label": __("Document header") });
+			main.insertBefore(head, main.firstChild);
+		}
+		const doc = frm.doc || {};
+		const is_new = !!(frm.is_new && frm.is_new());
+		const title_field = frm.meta.title_field;
+		// A Single's docname IS its doctype name, untranslated — the settings
+		// form is the case that showed it — so a Single is named by its label.
+		const is_single = !!(frm.meta.issingle || frm.docname === frm.doctype);
+		const title = is_new
+			? __("New") + " " + __(frm.doctype)
+			: is_single
+			? __(frm.doctype)
+			: String((title_field && doc[title_field]) || frm.docname || "");
+		// The action slot outlives the rebuild: detached with its children,
+		// re-appended below.
+		const actions = head.querySelector(":scope > .bnd-dochead-actions") || el("div", "bnd-dochead-actions");
+		head.textContent = "";
+		const h = el("h1", "bnd-dochead-title");
+		const bdi = document.createElement("bdi");
+		bdi.textContent = title;
+		h.appendChild(bdi);
+		let ind = null;
+		try {
+			ind = !is_new && frappe.get_indicator ? frappe.get_indicator(doc, frm.doctype) : null;
+		} catch (e) {
+			ind = null;
+		}
+		if (ind && ind[0]) {
+			const pill = el("span", "bnd-dochead-status indicator-pill no-indicator-dot " + (ind[1] || "gray"));
+			pill.textContent = __(ind[0]);
+			h.appendChild(pill);
+		}
+		head.appendChild(h);
+		const meta = el("p", "bnd-dochead-meta");
+		const bits = is_single ? [] : [__(frm.doctype)];
+		if (!is_new && !is_single && title !== frm.docname) bits.push(frm.docname);
+		// prettyDate, not comment_when: the latter returns a <span> with a tooltip,
+		// and the meta line is text (the screenshot showed the markup verbatim).
+		if (!is_new && doc.modified && frappe.datetime && frappe.datetime.prettyDate) {
+			bits.push(__("Updated {0}", [frappe.datetime.prettyDate(doc.modified)]));
+		}
+		meta.textContent = bits.join(" · ");
+		head.appendChild(meta);
+		head.appendChild(actions);
+		const tiles = el("div", "bnd-dochead-tiles");
+		if (style !== "title" && !is_new) {
+			for (const df of dochead_tile_fields(frm.meta)) {
+				const tile = el("div", "bnd-dochead-tile", { "data-fieldname": df.fieldname });
+				const label = el("span", "bnd-dochead-tile-label");
+				label.textContent = __(df.label || df.fieldname);
+				tile.appendChild(label);
+				const value = el("span", "bnd-dochead-tile-value");
+				let text = "";
+				try {
+					text = String(frappe.format(doc[df.fieldname], df, { inline: true, only_value: true }, doc) || "");
+				} catch (e) {
+					text = "";
+				}
+				// Text, never markup: a formatter's output is shown, not interpreted.
+				value.textContent = text.trim() ? text.trim() : "—";
+				tile.appendChild(value);
+				tiles.appendChild(tile);
+			}
+		}
+		head.appendChild(tiles);
+		// LAST: the pill may leave only once the path that replaces it is live.
+		// RELEASED PER PAGE, never per document — Frappe caches one page per
+		// doctype, so a cached path was deciding for the page on screen. Every
+		// mount re-claims, so a cached page takes it back on its own refresh.
+		if (mount_stagepath(frm, head)) bnd_own("stagepath");
+		else if (!main.querySelector(".bnd-stagepath")) bnd_disown("stagepath");
+	}
+
+	// ── The foot bar (item 43 A8c) — mount 3 of 3 ─────────────────────────
+	// `form_foot` = Pinned Bar: a fixed bar above the bottom chrome — LIFTED by
+	// whatever chrome is already there (the status bar, the dock), measured at
+	// mount and on resize, never declared — carrying the page's primary action
+	// as a PROXY (the native keeps its handler; the proxy triggers it and
+	// mirrors its label, hidden and disabled state through a MutationObserver
+	// on the action cluster), the doctype's list-view Currency fields as facts,
+	// and the drawer's toggle. It joins BND_BOTTOM_CHROME, so the scroller's
+	// reserve grows by what it measures and the last field is never under it.
+	// The native button is hidden ONLY under data-bnd-own~="docfoot" (stamped
+	// last) and only on form routes; a route change releases the claim, and the
+	// form's next refresh takes it again.
+	function docfoot_wanted() {
+		return document.documentElement.getAttribute("data-bnd-form-foot") === "pinned";
+	}
+
+	function docfoot_facts(meta) {
+		return (meta.fields || []).filter((df) => df.in_list_view && df.fieldtype === "Currency").slice(0, 3);
+	}
+
+	/** Distance from the viewport's bottom edge to the top of the tallest OTHER bottom chrome. */
+	function docfoot_lift() {
+		let lift = 0;
+		for (const bar of document.querySelectorAll(".bnd-statusbar, .bnd-dock")) {
+			const r = bar.getBoundingClientRect();
+			if (r.height > 0) lift = Math.max(lift, Math.ceil(window.innerHeight - r.top));
+		}
+		return lift;
+	}
+
+	function docfoot_sync(frm, foot) {
+		const btn = frm.page.btn_primary && frm.page.btn_primary[0];
+		const proxy = foot.querySelector(".bnd-docfoot-primary");
+		if (btn && proxy) {
+			const label = btn.textContent.trim() || decodeURIComponent(btn.getAttribute("data-label") || "");
+			proxy.textContent = label;
+			proxy.hidden = btn.classList.contains("hide") || !label;
+			proxy.disabled = !!btn.disabled;
+		}
+		foot.style.setProperty("--bnd-foot-lift", docfoot_lift() + "px");
+		const facts = foot.querySelector(".bnd-docfoot-facts");
+		facts.textContent = "";
+		const doc = frm.doc || {};
+		if (!(frm.is_new && frm.is_new())) {
+			for (const df of docfoot_facts(frm.meta)) {
+				const fact = el("div", "bnd-docfoot-fact", { "data-fieldname": df.fieldname });
+				const label = el("span", "bnd-docfoot-fact-label");
+				label.textContent = __(df.label || df.fieldname);
+				const value = el("span", "bnd-docfoot-fact-value");
+				let text = "";
+				try {
+					text = String(frappe.format(doc[df.fieldname], df, { inline: true, only_value: true }, doc) || "");
+				} catch (e) {
+					text = "";
+				}
+				value.textContent = text.trim() ? text.trim() : "—";
+				fact.appendChild(label);
+				fact.appendChild(value);
+				facts.appendChild(fact);
+			}
+		}
+	}
+
+	function mount_docfoot(frm) {
+		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.wrapper || !frm.page.wrapper[0]) return;
+		const page = frm.page.wrapper[0];
+		let foot = page.querySelector(":scope > .bnd-docfoot");
+		const wanted = docfoot_wanted() && !!(frm.page.btn_primary && frm.page.btn_primary.length);
+		if (!wanted) {
+			if (foot) foot.remove();
+			if (frm.__bnd_foot_mo) {
+				frm.__bnd_foot_mo.disconnect();
+				frm.__bnd_foot_mo = null;
+			}
+			// Per page, like the path's: a cached foot was hiding the head's Save
+			// button on the form the user was actually looking at.
+			if (!page.querySelector(".bnd-docfoot")) bnd_disown("docfoot");
+			defer_bottom_reserve();
+			return;
+		}
+		if (!foot) {
+			foot = el("div", "bnd-docfoot", { "data-bnd-part": "docfoot", role: "region", "aria-label": __("Document actions") });
+			foot.appendChild(el("div", "bnd-docfoot-facts"));
+			const actions = el("div", "bnd-docfoot-actions");
+			const primary = el("button", "bnd-docfoot-primary btn btn-primary btn-sm", { type: "button" });
+			primary.addEventListener("click", () => {
+				if (frm.page.btn_primary) frm.page.btn_primary.trigger("click");
+			});
+			actions.appendChild(primary);
+			foot.appendChild(actions);
+			page.appendChild(foot);
+		}
+		docfoot_sync(frm, foot);
+		if (!frm.__bnd_foot_mo && typeof MutationObserver !== "undefined" && frm.page.page_actions && frm.page.page_actions[0]) {
+			let queued = false;
+			frm.__bnd_foot_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => {
+					queued = false;
+					if (foot.isConnected) docfoot_sync(frm, foot);
+				});
+			});
+			frm.__bnd_foot_mo.observe(frm.page.page_actions[0], { attributes: true, childList: true, subtree: true, characterData: true });
+		}
+		// LAST: the native may leave the head only now that the proxy is live.
+		bnd_own("docfoot");
+		defer_bottom_reserve();
+	}
+	window.addEventListener("resize", () => {
+		for (const foot of document.querySelectorAll(".bnd-docfoot")) foot.style.setProperty("--bnd-foot-lift", docfoot_lift() + "px");
+	});
+
+	/** The form kit's after-apply hook: the current form follows the new values. */
+	/**
+	 * The band's status pill, re-derived on the dirty tick — `get_indicator`
+	 * answers "Not Saved" the moment `__unsaved` is set, the band is built on
+	 * `refresh` only, and the stage path hides Frappe's own pill. No DOM class
+	 * marks the dirty state (measured), so this is the hook. Only the pill:
+	 * rebuilding the band would drop the action slot on every keystroke.
+	 */
+	function dochead_sync_status(frm) {
+		if (!frm || !frm.page || !frm.page.main || !frm.page.main[0]) return;
+		const head = frm.page.main[0].querySelector(":scope > .bnd-dochead");
+		if (!head) return;
+		const h = head.querySelector(".bnd-dochead-title");
+		if (!h) return;
+		let ind = null;
+		try {
+			ind = frm.is_new && frm.is_new() ? null : frappe.get_indicator ? frappe.get_indicator(frm.doc, frm.doctype) : null;
+		} catch (e) {
+			ind = null;
+		}
+		const existing = h.querySelector(":scope > .bnd-dochead-status");
+		if (!ind || !ind[0]) {
+			if (existing) existing.remove();
+			return;
+		}
+		const pill = existing || el("span", "");
+		pill.className = "bnd-dochead-status indicator-pill no-indicator-dot " + (ind[1] || "gray");
+		pill.textContent = __(ind[0]);
+		if (!existing) h.appendChild(pill);
+	}
+
+	function sync_form_mounts() {
+		if (!window.cur_frm) return;
+		mount_dochead(window.cur_frm);
+		mount_docfoot(window.cur_frm);
+		mount_drawer(window.cur_frm);
+	}
+
+	if (window.frappe && frappe.ui && frappe.ui.form && frappe.ui.form.on) {
+		// A wildcard handler runs after the doctype's own and after
+		// refresh_header, so the action cluster is settled when this mounts.
+		// The header and the foot first: they offer the drawer's toggle its home.
+		frappe.ui.form.on("*", {
+			refresh: (frm) => {
+				mount_dochead(frm);
+				mount_docfoot(frm);
+				mount_drawer(frm);
+				// The dirty tick. Namespaced and `.off()`-first — `refresh` runs
+				// many times per document.
+				if (frm && frm.$wrapper) {
+					frm.$wrapper.off("dirty.bnddochead").on("dirty.bnddochead", () => dochead_sync_status(frm));
+				}
+			},
+		});
+	}
+	// CAPTURE phase: focus is usually inside the comment editor when Escape is
+	// pressed, and Quill stops the keydown before it bubbles to the document.
+	// Escape has no editing meaning there; closing the panel is the one it has.
+	document.addEventListener(
+		"keydown",
+		(e) => {
+			if (e.key !== "Escape" || document.documentElement.getAttribute(DRAWER_ATTR) !== "open") return;
+			drawer_set_open(false, drawer_current_toggle());
+		},
+		true
+	);
 
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
@@ -2159,7 +2760,9 @@
 	// ── Bottom reserve tracking ─────────────────────────────────────────────
 
 	/** Every piece of chrome this theme fixes to the viewport's bottom edge. */
-	const BND_BOTTOM_CHROME = ".bnd-statusbar, .bnd-dock";
+	// The pinned foot (item 43 A8c) joins the measured reserve: a display:none
+	// foot on a cached page measures 0, which is the right answer.
+	const BND_BOTTOM_CHROME = ".bnd-statusbar, .bnd-dock, .bnd-docfoot";
 
 	/**
 	 * Re-measure the bottom reserve on demand. Assigned by
@@ -2482,6 +3085,24 @@
 		return true;
 	}
 
+	function keep_pane_on_desktop() {
+		const pg = window.frappe && frappe.container && frappe.container.page && frappe.container.page.page;
+		if (!pg || !pg.hide_sidebar || !sb_state) return;
+		const html = document.documentElement;
+		if ((html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).includes("sidepane")) return;
+		if (html.hasAttribute("data-bnd-narrow")) return;
+		pg.hide_sidebar = false;
+		if (frappe.app && frappe.app.sidebar && typeof frappe.app.sidebar.toggle === "function") frappe.app.sidebar.toggle(false);
+		// The kit skipped a pane that was hidden when it mounted (HOSTS.sidepane answers
+		// null then), so a pane shown here would stay undressed: dress it now. Idempotent.
+		if (typeof mount_sidebar_kit === "function") mount_sidebar_kit();
+		// ...and RE-RESOLVE search: resolved while the pane was hidden it lent itself
+		// to the page head, which this page keeps hidden — a search nobody could reach,
+		// and the pane's own row hidden under the token (measured 2026-09-14, once in
+		// twelve loads). Resolved again with the pane shown it is the pane's row.
+		if (typeof mount_search === "function") mount_search();
+	}
+
 	function update_desktop_mode() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		const on_desktop = on_desktop_route(route);
@@ -2524,6 +3145,7 @@
 		if (!on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []) ||
 			html.hasAttribute("data-bnd-desktop-shell")) {
 			html.removeAttribute("data-bnd-desktop-home");
+			bnd_disown("desktophome");
 			if (existing) existing.remove();
 			return true;
 		}
@@ -2531,6 +3153,7 @@
 		const brand = document.querySelector(".desktop-wrapper .desktop-navbar .navbar-home");
 		if (!brand) {
 			html.removeAttribute("data-bnd-desktop-home");
+			bnd_disown("desktophome");
 			return false;
 		}
 
@@ -2541,6 +3164,7 @@
 		}
 		// Retire Frappe's self-linking cube only after Home is working.
 		html.setAttribute("data-bnd-desktop-home", "");
+		bnd_own("desktophome");
 		return true;
 	}
 
@@ -2783,6 +3407,9 @@
 
 	/** The one open .bnd-menu, so opening another closes it first. */
 	let open_menu = null;
+	/** Its one open flyout — a row's submenu — and the hover-intent timer. */
+	let open_fly = null;
+	let fly_timer = null;
 
 	/**
 	 * Mark a trigger as ABLE to open a menu — knowable at build time, unlike
@@ -2806,7 +3433,11 @@
 	function close_menu() {
 		if (!open_menu) return;
 		const trigger = open_menu._trigger;
-		const had_focus = open_menu.contains(document.activeElement);
+		// Focus inside the FLYOUT counts as inside the menu: it is the menu's
+		// second surface, body-appended like the first.
+		const had_focus =
+			open_menu.contains(document.activeElement) || !!(open_fly && open_fly.contains(document.activeElement));
+		close_fly(false);
 		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "false");
 		open_menu.remove();
 		open_menu = null;
@@ -2821,7 +3452,7 @@
 	// (e2a4926). This pointerdown closer has no such conflict; it stays global
 	// because nothing inside the menu needs to see an outside click.
 	document.addEventListener("pointerdown", (e) => {
-		if (open_menu && !open_menu.contains(e.target)) close_menu();
+		if (open_menu && !open_menu.contains(e.target) && !(open_fly && open_fly.contains(e.target))) close_menu();
 	});
 	document.addEventListener("keydown", (e) => {
 		if (e.key === "Escape") close_menu();
@@ -2830,6 +3461,170 @@
 	/** The menu's own focusable items, in DOM order. */
 	function menu_items(menu) {
 		return [...menu.querySelectorAll(".bnd-menu-item")];
+	}
+
+	/** The document's direction, never the language — _cluster.scss. */
+	function menu_rtl() {
+		return getComputedStyle(document.documentElement).direction === "rtl";
+	}
+
+	/** A role="menu" list: "divider" | {label, icon?, image?, run?, danger?,
+	 *  checked?, children?}. A row with children opens a flyout; a {heading}
+	 *  is the flyout's title, lifted out of the list. Argument: _cluster.scss. */
+	function menu_list(items) {
+		const list = el("div", "bnd-menu-list", { role: "menu" });
+		for (const item of items) {
+			if (item === "divider") {
+				list.appendChild(el("div", "bnd-menu-divider", { role: "separator" }));
+				continue;
+			}
+			if (item.heading !== undefined) continue;
+			const btn = el("button", "bnd-menu-item" + (item.danger ? " bnd-danger" : ""), {
+				type: "button",
+				role: "menuitem",
+				tabindex: "-1",
+			});
+			// One 20px cell per row, image or sprite, so the labels share a column.
+			const ico = el("span", "bnd-menu-ico");
+			if (item.image) ico.appendChild(el("img", "bnd-menu-img", { src: item.image, alt: "" }));
+			else if (item.icon) ico.appendChild(sprite_icon(item.icon));
+			btn.appendChild(ico);
+			const label = el("span", "bnd-menu-label");
+			label.textContent = item.label;
+			btn.appendChild(label);
+			// A menu of choices (item 44's language list) marks the current one the
+			// ARIA way: menuitemradio + aria-checked, never a check glyph alone.
+			if (item.checked !== undefined) {
+				btn.setAttribute("role", "menuitemradio");
+				btn.setAttribute("aria-checked", item.checked ? "true" : "false");
+			}
+			if (item.children && item.children.length) {
+				btn._children = item.children;
+				btn.setAttribute("aria-haspopup", "menu");
+				btn.setAttribute("aria-expanded", "false");
+				const more = el("span", "bnd-menu-more");
+				more.appendChild(sprite_icon("icon-chevron-right"));
+				btn.appendChild(more);
+			}
+			// Hover intent; leaving a row closes nothing (_cluster.scss).
+			btn.addEventListener("pointerenter", () => {
+				clearTimeout(fly_timer);
+				fly_timer = setTimeout(() => {
+					if (btn._children) open_fly_for(btn);
+					else close_fly(false);
+				}, 120);
+			});
+			btn.addEventListener("pointerleave", () => clearTimeout(fly_timer));
+			btn.addEventListener("click", () => {
+				close_menu();
+				try {
+					item.run && item.run();
+				} catch (e) {
+					console.error("bunood_theme menu action failed", e); // eslint-disable-line no-console
+				}
+			});
+			list.appendChild(btn);
+		}
+		return list;
+	}
+
+	/** Keys shared by the menu and its flyout — the FOCUS CONTRACT on show_menu,
+	 *  plus the arrow toward the inline end (open) and start (close). */
+	function menu_keys(e, menu, hooks) {
+		if (e.key === "Escape") {
+			e.preventDefault();
+			e.stopPropagation(); // see the FOCUS CONTRACT note on show_menu
+			close_menu();
+			return;
+		}
+		if (e.key === "Tab") {
+			close_menu(); // NOT prevented — see the FOCUS CONTRACT note on show_menu
+			return;
+		}
+		const end_key = menu_rtl() ? "ArrowLeft" : "ArrowRight";
+		const start_key = menu_rtl() ? "ArrowRight" : "ArrowLeft";
+		if (e.key === end_key && hooks.end) {
+			e.preventDefault();
+			hooks.end();
+			return;
+		}
+		if (e.key === start_key && hooks.start) {
+			e.preventDefault();
+			hooks.start();
+			return;
+		}
+		const nodes = menu_items(menu);
+		if (!nodes.length) return;
+		const at = nodes.indexOf(document.activeElement);
+		let next = -1;
+		if (e.key === "ArrowDown") next = at < 0 ? 0 : (at + 1) % nodes.length;
+		else if (e.key === "ArrowUp") next = at < 0 ? nodes.length - 1 : (at - 1 + nodes.length) % nodes.length;
+		else if (e.key === "Home") next = 0;
+		else if (e.key === "End") next = nodes.length - 1;
+		if (next !== -1) {
+			e.preventDefault();
+			nodes[next].focus();
+		}
+	}
+
+	/** Close the open flyout; its row says closed and, when asked or when focus
+	 *  was inside, takes focus back. */
+	function close_fly(refocus) {
+		clearTimeout(fly_timer);
+		if (!open_fly) return;
+		const row = open_fly._row;
+		const had_focus = open_fly.contains(document.activeElement);
+		open_fly.remove();
+		open_fly = null;
+		if (row) row.setAttribute("aria-expanded", "false");
+		if ((had_focus || refocus) && row && row.focus) row.focus();
+	}
+
+	/** A row's flyout at the menu's inline-end edge, level with the row, flipped
+	 *  when it would not fit. Physical coordinates, like show_menu. */
+	function open_fly_for(row) {
+		if (open_fly && open_fly._row === row) return;
+		close_fly(false);
+		const items = row._children || [];
+		if (!items.length) return;
+		const fly = el("div", "bnd-menu bnd-menu-fly", { tabindex: "0" });
+		fly._row = row;
+		const heading = items.find((i) => i && i.heading !== undefined);
+		if (heading) {
+			const h = el("div", "bnd-menu-heading");
+			h.textContent = heading.heading;
+			fly.appendChild(h);
+		}
+		const list = menu_list(items);
+		if (heading) list.setAttribute("aria-label", heading.heading);
+		fly.appendChild(list);
+		fly.addEventListener("keydown", (e) => menu_keys(e, fly, { start: () => close_fly(true) }));
+		fly.addEventListener("pointerenter", () => clearTimeout(fly_timer));
+		document.body.appendChild(fly);
+		row.setAttribute("aria-expanded", "true");
+		const m = row.closest(".bnd-menu").getBoundingClientRect();
+		const r = row.getBoundingClientRect();
+		const fw = fly.offsetWidth;
+		const fh = fly.offsetHeight;
+		const gap = 2;
+		let left = menu_rtl() ? m.left - fw - gap : m.right + gap;
+		if (left + fw > window.innerWidth - 8) left = m.left - fw - gap;
+		if (left < 8) left = m.right + gap;
+		left = Math.max(8, Math.min(left, window.innerWidth - fw - 8));
+		let top = r.top - 6;
+		if (top + fh > window.innerHeight - 8) top = window.innerHeight - fh - 8;
+		fly.style.left = left + "px";
+		fly.style.top = Math.max(8, top) + "px";
+		open_fly = fly;
+	}
+
+	/** The keyboard's way into a flyout: from the focused row, if it has one. */
+	function fly_from_focus() {
+		const row = document.activeElement;
+		if (!row || !row._children) return;
+		open_fly_for(row);
+		const first = open_fly && menu_items(open_fly)[0];
+		if (first) first.focus();
 	}
 
 	/**
@@ -2867,8 +3662,9 @@
 	 * @param {HTMLElement} trigger - the button the menu hangs off. Should
 	 *   already carry aria-haspopup via menu_trigger() at build time.
 	 * @param {Array<Object|"divider">} items - "divider" or
-	 *   {label, icon?, run?, danger?, header?} where header items render the
-	 *   identity block instead of a button.
+	 *   {label, icon?, image?, run?, danger?, checked?, children?}; a row with
+	 *   `children` (the same shape, plus a leading {heading}) opens a flyout —
+	 *   menu_list() carries the contract.
 	 */
 	function show_menu(trigger, items) {
 		if (open_menu && open_menu._trigger === trigger) {
@@ -2882,65 +3678,12 @@
 		menu._trigger = trigger;
 		if (trigger && trigger.setAttribute) trigger.setAttribute("aria-expanded", "true");
 
-		const list = el("div", "bnd-menu-list", { role: "menu" });
-
-		for (const item of items) {
-			if (item === "divider") {
-				list.appendChild(el("div", "bnd-menu-divider", { role: "separator" }));
-				continue;
-			}
-			// The identity header moved into the account panel (8c) — no caller
-			// passes `header` any more, and the panel labels itself by the name.
-			const btn = el("button", "bnd-menu-item" + (item.danger ? " bnd-danger" : ""), {
-				type: "button",
-				role: "menuitem",
-				tabindex: "-1",
-			});
-			// One 20px cell per row, image or sprite, so the labels share a column.
-			const ico = el("span", "bnd-menu-ico");
-			if (item.image) ico.appendChild(el("img", "bnd-menu-img", { src: item.image, alt: "" }));
-			else if (item.icon) ico.appendChild(sprite_icon(item.icon));
-			btn.appendChild(ico);
-			const label = el("span", "bnd-menu-label");
-			label.textContent = item.label;
-			btn.appendChild(label);
-			btn.addEventListener("click", () => {
-				close_menu();
-				try {
-					item.run && item.run();
-				} catch (e) {
-					console.error("bunood_theme menu action failed", e); // eslint-disable-line no-console
-				}
-			});
-			list.appendChild(btn);
-		}
-
-		menu.appendChild(list);
-
-		menu.addEventListener("keydown", (e) => {
-			if (e.key === "Escape") {
-				e.preventDefault();
-				e.stopPropagation(); // see the FOCUS CONTRACT note above
-				close_menu();
-				return;
-			}
-			if (e.key === "Tab") {
-				close_menu(); // NOT prevented — see the FOCUS CONTRACT note above
-				return;
-			}
-			const nodes = menu_items(menu);
-			if (!nodes.length) return;
-			const at = nodes.indexOf(document.activeElement);
-			let next = -1;
-			if (e.key === "ArrowDown") next = at < 0 ? 0 : (at + 1) % nodes.length;
-			else if (e.key === "ArrowUp") next = at < 0 ? nodes.length - 1 : (at - 1 + nodes.length) % nodes.length;
-			else if (e.key === "Home") next = 0;
-			else if (e.key === "End") next = nodes.length - 1;
-			if (next !== -1) {
-				e.preventDefault();
-				nodes[next].focus();
-			}
-		});
+		// The identity header moved into the account panel (8c) — no caller
+		// passes `header` any more, and the panel labels itself by the name.
+		// The rows, the keys and the flyouts are menu_list / menu_keys, shared
+		// with the flyout so the two surfaces cannot disagree.
+		menu.appendChild(menu_list(items));
+		menu.addEventListener("keydown", (e) => menu_keys(e, menu, { end: fly_from_focus }));
 
 		document.body.appendChild(menu);
 		open_menu = menu;
@@ -3770,26 +4513,36 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
-	/** The start button — argument in _sidebar.scss. */
+	/** The brand mark — logo, or the initial on the brand tile — for the pane's
+	 *  brand row, the page head's pill and the start pill. One builder; the
+	 *  third copy had drifted to a class no rule painted (_sidebar.scss). */
+	function brand_mark() {
+		const mark = el("span", "bnd-sb-brand-mark");
+		if (frappe.boot.bnd_logo) {
+			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
+		} else {
+			mark.classList.add("bnd-sb-brand-initial");
+			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		}
+		return mark;
+	}
+
+	/** The start pill — the brand, and the way home. Argument in _sidebar.scss. */
 	function build_start() {
-		const sidebar = document.querySelector(".body-sidebar");
-		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
-		const expanded = document.documentElement.getAttribute("data-bnd-sb-panestate") === "open";
-		const btn = el("button", "bnd-icon-btn bnd-sb-start bnd-sidebar-toggle", {
+		const name = frappe.boot.bnd_company || __("Home");
+		const btn = el("button", "bnd-icon-btn bnd-sb-start", {
 			type: "button",
 			"data-bnd-part": "start",
-			"aria-controls": (sidebar && sidebar.id) || "bnd-primary-sidebar",
-			// FROM THE LIVE STATE, not a constant. Built false, it announced a pane
-			// that was plainly open as collapsed until the first click corrected it —
-			// and the first click is exactly when a screen-reader user has already
-			// been told the wrong thing.
-			"aria-expanded": expanded ? "true" : "false",
+			"aria-label": name,
+			title: __("Home"),
 		});
-		btn.innerHTML = BND_PANEL_SVG;
-		sync_start_toggle(btn, expanded);
+		btn.appendChild(brand_mark());
+		const label = el("span", "bnd-sb-brand-name");
+		label.textContent = name;
+		btn.appendChild(label);
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			bunood.pane_toggle();
+			frappe.set_route("");
 		});
 		return btn;
 	}
@@ -3843,6 +4596,33 @@ function sb_zone_anchor(pane, zone, node) {
 		event.preventDefault();
 		event.stopImmediatePropagation();
 		bunood.pane_toggle();
+	}
+
+	// ── The language switch and the Appearance button (item 44) ──────────
+	//
+	// A PLACEABLE TENANT like the bell, replacing no native: Frappe keeps a user's
+	// language behind My Settings and offers no desk affordance for it. What it
+	// offers is the languages ENABLED in the Language list (boot.bnd_language), the
+	// same set My Settings offers: exactly two make it a one-click toggle to the
+	// OTHER language, named in its own script so the person who needs it can read
+	// it; more make it a menu marking the current one. Switching writes
+	// User.language through the theme's endpoint (an ordinary role cannot save its
+	// own User doc) and reloads: a language change needs new translations and the
+	// matching LTR/RTL bundle, which no in-page apply can deliver.
+	//
+	// How it draws itself is `language_style` (Globe · Code · Name · Globe + Code ·
+	// Globe + Name), applied as `data-bnd-language-style` on <html>; the button
+	// always carries all three parts and the stylesheet shows the chosen ones, so a
+	// style change is an attribute, not a rebuild. In the pane's foot band and the
+	// rail a 36px cell cannot hold a word, so Name shrinks to Code there
+	// (_sidebar.scss).
+	const LANGUAGE_STYLE_SLUGS = { "Globe": "globe", "Code": "code", "Name": "name", "Globe + Code": "globe-code", "Globe + Name": "globe-name" };
+
+	function language_state() {
+		const b = (window.frappe && frappe.boot && frappe.boot.bnd_language) || {};
+		const current = String(b.current || (frappe.boot && frappe.boot.lang) || "en");
+		const languages = Array.isArray(b.languages) ? b.languages.filter((l) => l && l.code) : [];
+		return { style: b.style || "Globe", current, languages };
 	}
 	document.addEventListener("click", on_pagehead_sidebar_toggle, true);
 
@@ -4650,6 +5430,14 @@ function sb_zone_anchor(pane, zone, node) {
 		return html.getAttribute("data-bnd-sb-panestate") === "hidden" && !html.hasAttribute("data-bnd-narrow");
 	}
 
+	/** The page title on screen, wherever it is — frappe.container.page lags a
+	 *  fresh load, and a Form or List route has no head until its meta arrives.
+	 *  What a hidden pane lends to the head is placed against the title that
+	 *  exists, never the pointer. Null while nothing is built yet. */
+	function visible_page_title() {
+		return [...document.querySelectorAll(".page-head .page-title")].find((t) => t.getBoundingClientRect().width > 0) || null;
+	}
+
 	/** The slot the admin asked for, as a slug. */
 	function search_wanted_slot() {
 		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
@@ -4727,6 +5515,30 @@ function sb_zone_anchor(pane, zone, node) {
 		}, 20 * 150 + 100);
 	}
 
+	/**
+	 * A pane-placed search is Frappe's own row, revealed — no `search` token, by
+	 * design (below). The desk page's strip carries a second search, and the
+	 * polarity rule needs an OUTCOME to hide it from: this token says the pane's
+	 * row is in the document and on screen, nothing more. A hidden pane releases
+	 * it and the strip's search is the desk page's again — _layouts.scss.
+	 */
+	function claim_panesearch() {
+		if (sb_pane_hidden()) {
+			bnd_disown("panesearch");
+			return;
+		}
+		try_for(() => {
+			if (sb_pane_hidden()) {
+				bnd_disown("panesearch");
+				return true;
+			}
+			const row = document.querySelector(".body-sidebar .navbar-search-bar");
+			if (!row || !row.getClientRects().length) return false;
+			bnd_own("panesearch");
+			return true;
+		}, 20);
+	}
+
 	/** Place the field (or reveal the native row) for a resolved slot. */
 	function mount_search_at(slot) {
 		const html = document.documentElement;
@@ -4740,6 +5552,7 @@ function sb_zone_anchor(pane, zone, node) {
 			for (const stray of document.querySelectorAll(".bnd-search-field, .bnd-search-icon")) stray.remove();
 			bnd_disown("search");
 			sync_desktop_shell();
+			claim_panesearch();
 			return;
 		}
 
@@ -4755,6 +5568,7 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 			bnd_own("search");
 			sync_desktop_shell();
+			bnd_disown("panesearch");
 			return;
 		}
 		for (const stray of document.querySelectorAll(".bnd-search-icon")) stray.remove();
@@ -4782,6 +5596,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// earlier than the replacement actually existing.
 		bnd_own("search");
 		sync_desktop_shell();
+		bnd_disown("panesearch");
 	}
 
 	// ── Top bar ─────────────────────────────────────────────────────────────
@@ -4820,7 +5635,7 @@ function sb_zone_anchor(pane, zone, node) {
 	// ── Status bar / bottom bar ─────────────────────────────────────────────
 
 	/** Live references the status bar updates after mount. */
-	const status_refs = { conn: null, conn_label: null, density: null, clock: null };
+	const status_refs = { conn: null, conn_label: null, density: null, width: null, clock: null };
 
 	/**
 	 * Mount the fixed bottom strip.
@@ -4926,6 +5741,27 @@ function sb_zone_anchor(pane, zone, node) {
 			fresh.addEventListener("click", () => status_poll(true));
 			bar.appendChild(fresh);
 			status_refs.fresh = fresh;
+		}
+
+		// Width: the same treatment, immediately BEFORE density — item 42's call
+		// was that density ends the bar. Gated on the LOCK as well as the
+		// segment: on a site that closed personal comfort the icon would
+		// otherwise be present and throw on every click.
+		const comfort_open = !!(
+			frappe.boot.bnd_personal &&
+			frappe.boot.bnd_personal.open &&
+			frappe.boot.bnd_personal.open.bnd_body_width
+		);
+		if (status_on("status_segments_width") && comfort_open) {
+			const width = el("button", "bnd-status-item bnd-status-width", {
+				type: "button",
+				"data-bnd-prio": "2",
+			});
+			width.appendChild(sprite_icon("icon-move-horizontal"));
+			width.addEventListener("click", () => bunood.cycle_body_width());
+			bar.appendChild(width);
+			status_refs.width = width;
+			refresh_width_label();
 		}
 
 		// Density: an icon at the trailing edge (item 42); words in the label.
@@ -7506,7 +8342,9 @@ function sb_zone_anchor(pane, zone, node) {
 	 *  claim_panehead: the router hook calls it on every route, and a pane
 	 *  the layout has hidden must not claim the current page from nowhere. */
 	function sb_mark_current() {
-		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
+		// Scoped to Frappe's own list: the settings map (item 43 B3) is a
+		// Start-zone sibling that marks its own current row.
+		for (const n of document.querySelectorAll(".body-sidebar-top [aria-current]")) {
 			if (!n.closest(".bnd-compact-nav")) n.removeAttribute("aria-current");
 		}
 		if (!sb_active() || !container_on("sidepane") || sidebar_is_hidden()) return;
@@ -7518,7 +8356,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** The sweep above is the whole teardown. */
 	function sb_unmark_current() {
-		for (const n of document.querySelectorAll(".body-sidebar [aria-current]")) {
+		for (const n of document.querySelectorAll(".body-sidebar-top [aria-current]")) {
 			n.removeAttribute("aria-current");
 		}
 	}
@@ -7578,6 +8416,258 @@ function sb_zone_anchor(pane, zone, node) {
 		claim_panehead();
 	}
 
+	// ── The settings map (item 43 B3) ─────────────────────────────────────
+	// The settings page is one scroll of cards (B1); the map is its table of
+	// contents, in the pane's Start zone, on that route only. ROWS ARE DERIVED:
+	// the form script reads its rendered sections (fieldname, heading, group,
+	// changed) on every refresh and hands them over through
+	// bunood_theme.map_sync — order has one source, the doctype, and the map
+	// has none of its own. Current row: an IntersectionObserver on the real
+	// sections (never a timer after a click). Rail: the rows hide and one chip
+	// opens the map as a menu. Hidden: the pane is gone, so a "Sections" menu
+	// mounts in the page head from the chrome ladder, as the brand does.
+	let map_rows = [];
+	let map_observer = null;
+	let map_visible = new Map();
+	let map_scroller = null;
+	let map_at_bottom = false;
+
+	/** At the end of the scroll the LAST card is current: it can never reach the top. */
+	function map_on_scroll() {
+		const m = map_scroller;
+		if (!m) return;
+		const at_bottom = m.scrollTop + m.clientHeight >= m.scrollHeight - 2;
+		if (at_bottom === map_at_bottom) return;
+		map_at_bottom = at_bottom;
+		if (at_bottom) {
+			const last = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter((n) => n.getBoundingClientRect().height > 0).pop();
+			if (last) map_mark_current(last.getAttribute("data-fieldname"));
+		} else {
+			map_mark_from_visible();
+		}
+	}
+
+	function map_mark_from_visible() {
+		let top = null;
+		for (const [node] of map_visible) {
+			const t = node.getBoundingClientRect().top;
+			if (!top || t < top.t) top = { node, t };
+		}
+		if (top) map_mark_current(top.node.getAttribute("data-fieldname"));
+	}
+
+	/** The band the sticky page head paints over at the scroller's top. A card
+	 *  scrolled to lands just under it (scroll-margin, _settings.scss), so the
+	 *  previous card's last sliver is still "visible" there — and was the
+	 *  topmost card in the zone, so the spy marked it, not the one clicked.
+	 *  Read from the head itself, never a constant: the head is Frappe's. */
+	function map_head_inset(scroller) {
+		const head = scroller && scroller.querySelector(".page-head");
+		return head ? Math.ceil(head.getBoundingClientRect().height) : 0;
+	}
+
+	/** From geometry alone — the same rule as the observer's zone — so a fresh
+	 *  build is marked before any intersection event has fired. */
+	function map_mark_from_geometry() {
+		const m = map_scroller || document.querySelector(".main-section");
+		if (!m) return;
+		const mr = m.getBoundingClientRect();
+		const from = mr.top + map_head_inset(m);
+		const zone = mr.top + mr.height * 0.4;
+		let pick = null;
+		for (const n of document.querySelectorAll(".form-layout .form-section[data-fieldname]")) {
+			const r = n.getBoundingClientRect();
+			if (r.height === 0 || r.bottom <= from || r.top >= zone) continue;
+			if (!pick || r.top < pick.top) pick = { top: r.top, name: n.getAttribute("data-fieldname") };
+		}
+		if (pick) map_mark_current(pick.name);
+	}
+
+	function map_route_on() {
+		const r = (window.frappe && frappe.get_route && frappe.get_route()) || [];
+		return r[0] === "Form" && r[1] === "Theme Settings";
+	}
+
+	/** Smooth only where motion is welcome: the OS preference or the item-38 stamp. */
+	function scroll_behavior() {
+		const reduce =
+			(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+			document.documentElement.getAttribute("data-bnd-motion") === "reduce";
+		return reduce ? "auto" : "smooth";
+	}
+
+	/** Scroll one card into view and put focus on its heading. */
+	function map_goto(fieldname) {
+		const node = document.querySelector(`.form-layout .form-section[data-fieldname="${fieldname}"]`);
+		if (!node) return;
+		// Current at once; the observer confirms when the scroll lands.
+		map_mark_current(fieldname);
+		node.scrollIntoView({ block: "start", behavior: scroll_behavior() });
+		const head = node.querySelector(".section-head");
+		if (head) {
+			head.setAttribute("tabindex", "-1");
+			head.focus({ preventScroll: true });
+		}
+	}
+
+	function map_mark_current(fieldname) {
+		for (const b of document.querySelectorAll(".bnd-sb-map-row")) {
+			if (b.getAttribute("data-section") === fieldname) b.setAttribute("aria-current", "page");
+			else b.removeAttribute("aria-current");
+		}
+	}
+
+	/** The topmost card in view is the current one — observed, never assumed. */
+	function map_observe() {
+		if (map_observer) map_observer.disconnect();
+		map_observer = null;
+		map_visible = new Map();
+		if (typeof IntersectionObserver === "undefined") return;
+		const scroller = document.querySelector(".main-section");
+		const sections = [...document.querySelectorAll(".form-layout .form-section[data-fieldname]")].filter(
+			(n) => n.getBoundingClientRect().height > 0
+		);
+		if (!sections.length) return;
+		map_observer = new IntersectionObserver(
+			(entries) => {
+				for (const e of entries) {
+					if (e.isIntersecting) map_visible.set(e.target, e.boundingClientRect.top);
+					else map_visible.delete(e.target);
+				}
+				if (!map_at_bottom) map_mark_from_visible();
+			},
+			// The zone: below the sticky head, down to 40% of the scroller.
+			{ root: scroller || null, rootMargin: `-${map_head_inset(scroller)}px 0px -60% 0px`, threshold: 0 }
+		);
+		for (const n of sections) map_observer.observe(n);
+		if (map_scroller !== scroller) {
+			if (map_scroller) map_scroller.removeEventListener("scroll", map_on_scroll);
+			map_scroller = scroller || null;
+			if (map_scroller) map_scroller.addEventListener("scroll", map_on_scroll, { passive: true });
+		}
+		map_at_bottom = false;
+		map_mark_from_geometry();
+		map_on_scroll();
+	}
+
+	/** The rows as menu items — the Rail chip and the page-head button share them. */
+	function map_menu_items() {
+		// The bands as dividers: thirty-nine rows scroll inside the menu's cap,
+		// and a rule where the pane would draw a heading keeps them scannable.
+		const items = [];
+		let group = null;
+		for (const row of map_rows) {
+			if (group !== null && row.group !== group) items.push("divider");
+			group = row.group;
+			items.push({ label: row.label, run: () => map_goto(row.fieldname) });
+		}
+		return items;
+	}
+
+	function sb_mount_map() {
+		const pane = document.querySelector(".body-sidebar");
+		const on = map_route_on() && sb_active() && container_on("sidepane") && !sidebar_is_hidden() && !!pane;
+		if (!on) {
+			sb_teardown_map();
+			return;
+		}
+		document.documentElement.setAttribute("data-bnd-route", "settings");
+		let map = pane.querySelector(":scope > .bnd-sb-map");
+		if (!map) {
+			map = el("nav", "bnd-sb-utils bnd-sb-map", { "data-bnd-part": "settingsmap", "aria-label": __("Settings") });
+			sb_zone_anchor(pane, "start", map);
+		}
+		map.textContent = "";
+		// The head: the map's title in the open pane, the one chip that opens
+		// the map as a menu in the rail.
+		// Named on the button itself: the rail hides the label span, and a chip
+		// with a hidden label is a button with no name (axe button-name).
+		const head = el("button", "bnd-sb-item bnd-sb-map-head", { type: "button", title: __("Settings"), "aria-label": __("Settings") });
+		menu_trigger(head);
+		const chip = el("span", "bnd-sb-chip bnd-sb-map-chip");
+		chip.appendChild(sprite_icon("icon-list"));
+		head.appendChild(chip);
+		const title = el("span", "bnd-sb-item-label");
+		title.textContent = __("Settings");
+		head.appendChild(title);
+		head.addEventListener("click", (e) => {
+			e.stopPropagation();
+			show_menu(head, map_menu_items());
+		});
+		map.appendChild(head);
+		let group = null;
+		for (const row of map_rows) {
+			if (row.group && row.group !== group) {
+				const h = el("div", "bnd-sb-map-group");
+				h.textContent = row.group;
+				map.appendChild(h);
+			}
+			group = row.group;
+			const btn = el("button", "bnd-sb-item bnd-sb-map-row", { type: "button", "data-section": row.fieldname });
+			const label = el("span", "bnd-sb-item-label");
+			label.textContent = row.label;
+			btn.appendChild(label);
+			if (row.changed) {
+				const dot = el("span", "bnd-sb-map-dot", { title: __("Differs from default") });
+				btn.appendChild(dot);
+			}
+			btn.addEventListener("click", () => map_goto(row.fieldname));
+			map.appendChild(btn);
+		}
+		map_observe();
+	}
+
+	function sb_teardown_map() {
+		for (const n of document.querySelectorAll(".bnd-sb-map")) n.remove();
+		if (map_observer) map_observer.disconnect();
+		map_observer = null;
+		map_visible = new Map();
+		if (map_scroller) map_scroller.removeEventListener("scroll", map_on_scroll);
+		map_scroller = null;
+		map_at_bottom = false;
+		if (document.documentElement.getAttribute("data-bnd-route") === "settings" && !map_route_on()) {
+			document.documentElement.removeAttribute("data-bnd-route");
+		}
+	}
+
+	/** What Hidden leaves behind on the settings route: a Sections menu in the page head. */
+	function sb_mount_pagehead_map() {
+		if (!map_route_on() || !sb_pane_hidden()) {
+			for (const n of document.querySelectorAll(".bnd-ph-map")) n.remove();
+			return;
+		}
+		// The host can lag the form's refresh (measured: a direct call after the
+		// load mounted, the refresh-time call found no title) — the pane's own
+		// retry idiom, re-checking the premise on every attempt.
+		try_for(() => {
+			if (!map_route_on() || !sb_pane_hidden()) return true;
+			const title = visible_page_title();
+			if (!title) return false;
+			sb_place_pagehead_map(title);
+			return true;
+		}, 30);
+	}
+
+	function sb_place_pagehead_map(title) {
+		for (const n of document.querySelectorAll(".bnd-ph-map")) if (!title.contains(n)) n.remove();
+		if (title.querySelector(".bnd-ph-map")) return;
+		const btn = el("button", "bnd-icon-btn bnd-ph-map", { type: "button", "data-bnd-part": "settingsmap", title: __("Sections"), "aria-label": __("Sections") });
+		menu_trigger(btn);
+		btn.appendChild(sprite_icon("icon-list"));
+		btn.addEventListener("click", (e) => {
+			e.stopPropagation();
+			show_menu(btn, map_menu_items());
+		});
+		title.appendChild(btn);
+	}
+
+	/** The form script's entry: fresh rows, then the map and the head menu follow. */
+	bunood.map_sync = function (frm, rows) {
+		if (Array.isArray(rows)) map_rows = rows;
+		sb_mount_map();
+		sb_mount_pagehead_map();
+	};
+
 	/** What Hidden leaves behind: the brand in the page head — argument in _sidebar.scss. */
 	function sb_mount_pagehead_brand() {
 		const page = (window.frappe && frappe.container && frappe.container.page) || null;
@@ -7587,23 +8677,23 @@ function sb_zone_anchor(pane, zone, node) {
 			sb_teardown_pagehead_brand();
 			return;
 		}
-		for (const n of document.querySelectorAll(".bnd-ph-brand")) if (!title.contains(n)) n.remove();
-		if (title.querySelector(".bnd-ph-brand")) return;
-		const wrap = el("div", "bnd-ph-brand");
-		const home = el("button", "bnd-ph-home", { type: "button", title: __("Home"), "aria-label": __("Home") });
-		const mark = el("span", "bnd-sb-brand-mark");
-		if (frappe.boot.bnd_logo) {
-			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-		} else {
-			mark.classList.add("bnd-sb-brand-initial");
-			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		// Beside a start pill the head keeps only the way back (_sidebar.scss);
+		// the wrap records its shape so a placement change rebuilds it.
+		const with_brand = document.querySelector('[data-bnd-part="start"]') ? "0" : "1";
+		for (const n of document.querySelectorAll(".bnd-ph-brand")) {
+			if (!title.contains(n) || n.getAttribute("data-bnd-brand") !== with_brand) n.remove();
 		}
-		home.appendChild(mark);
-		const name = el("span", "bnd-sb-brand-name");
-		name.textContent = frappe.boot.bnd_company || __("Home");
-		home.appendChild(name);
-		home.addEventListener("click", go_home);
-		wrap.appendChild(home);
+		if (title.querySelector(".bnd-ph-brand")) return;
+		const wrap = el("div", "bnd-ph-brand", { "data-bnd-brand": with_brand });
+		if (with_brand === "1") {
+			const home = el("button", "bnd-ph-home", { type: "button", title: __("Home"), "aria-label": __("Home") });
+			home.appendChild(brand_mark());
+			const name = el("span", "bnd-sb-brand-name");
+			name.textContent = frappe.boot.bnd_company || __("Home");
+			home.appendChild(name);
+			home.addEventListener("click", () => frappe.set_route(""));
+			wrap.appendChild(home);
+		}
 		const show = el("button", "bnd-icon-btn bnd-ph-show", {
 			type: "button",
 			title: __("Show the side pane"),
@@ -7668,6 +8758,7 @@ function sb_zone_anchor(pane, zone, node) {
 	bunood.pane_state = function (value, options = {}) {
 		if (!sb_state) return;
 
+		// sb_apply re-places what the state moves (sb_follow_pane_state).
 		bunood.sb_apply({ sidebar_pane_state: value });
 		// Re-place search and the tenants: a hidden pane lends them to the page head.
 		mount_search();
@@ -7702,6 +8793,13 @@ function sb_zone_anchor(pane, zone, node) {
 		const ws = sb_current_workspace;
 		const label = (ws && __(ws.title || ws.name)) || frappe.boot.bnd_company || __("Home");
 		name.textContent = label;
+		// The rail hides the name span; the button keeps its name regardless
+		// (measured: a rail-state scan reported .bnd-sb-head with no name).
+		const btn = name.closest(".bnd-sb-head");
+		if (btn) {
+			btn.setAttribute("aria-label", label);
+			btn.setAttribute("title", label);
+		}
 		const ico = document.querySelector(".bnd-sb-head .bnd-sb-head-ico");
 		if (ico) {
 			ico.textContent = "";
@@ -7734,9 +8832,89 @@ function sb_zone_anchor(pane, zone, node) {
 		// whenever the vendor actually writes it, however long that takes.
 	}
 
-	/** Home, All Apps and the workspace cascade. The cascade is an OBLIGATION of
-	 *  the "keep replacing" posture, not decoration — hiding Frappe's header
-	 *  takes its list with it. Roots only, no cap; _sidebar.scss carries why. */
+	/** A module's quick links from its OWN sidebar, in its order: New … for the
+	 *  DocTypes this person may create (six), its reports (four), the way in.
+	 *  [] when it offers neither. Argument: _cluster.scss (the flyout). */
+	/** panehead_quick_links → [creates, reports] caps, or null for Off. */
+	const QUICK_LINK_CAPS = { Off: null, Brief: [3, 2], Standard: [6, 4], Full: [12, 8] };
+	function quick_links_caps() {
+		const b = (window.frappe && frappe.boot && frappe.boot.bnd_panehead) || {};
+		const v = String(b.quick_links || "Standard");
+		return Object.prototype.hasOwnProperty.call(QUICK_LINK_CAPS, v) ? QUICK_LINK_CAPS[v] : QUICK_LINK_CAPS.Standard;
+	}
+
+	/** Live apply from the settings form: the next open reads the new caps. */
+	bunood.panehead_apply = function (vals) {
+		if (!vals || !window.frappe || !frappe.boot) return;
+		frappe.boot.bnd_panehead = Object.assign({}, frappe.boot.bnd_panehead || {}, { quick_links: vals.panehead_quick_links });
+	};
+
+	function sb_quick_links(w) {
+		const caps = quick_links_caps();
+		if (!caps) return [];
+		const [max_new, max_reports] = caps;
+		const title = w.title || w.name;
+		const map = (frappe.boot && frappe.boot.workspace_sidebar_item) || {};
+		const sb = map[String(title).toLowerCase()] || map[String(w.name).toLowerCase()];
+		const rows = (sb && sb.items) || [];
+		const singles = new Set((frappe.boot && frappe.boot.single_types) || []);
+		const can_create = (dt) => {
+			try {
+				return !!(frappe.model && frappe.model.can_create(dt));
+			} catch (e) {
+				return false;
+			}
+		};
+		const creates = [];
+		const reports = [];
+		for (const it of rows) {
+			if (!it || it.type !== "Link" || !it.link_to) continue;
+			if (it.link_type === "DocType") {
+				if (creates.length >= max_new || singles.has(it.link_to) || creates.includes(it.link_to) || !can_create(it.link_to)) continue;
+				creates.push(it.link_to);
+			} else if (it.link_type === "Report" && it.report) {
+				if (reports.length >= max_reports || reports.some((r) => r.name === it.link_to)) continue;
+				reports.push({ name: it.link_to, label: it.label || it.link_to, report: it.report });
+			}
+		}
+		if (!creates.length && !reports.length) return [];
+		const items = [{ heading: __(title) }];
+		for (const dt of creates) {
+			items.push({ label: __("New {0}", [__(dt)]), icon: "icon-plus", run: () => frappe.new_doc(dt) });
+		}
+		if (creates.length && reports.length) items.push("divider");
+		for (const r of reports) {
+			items.push({
+				label: r.label,
+				icon: "icon-file",
+				run: () =>
+					frappe.set_route(
+						frappe.utils.generate_route({
+							type: "Report",
+							name: r.name,
+							is_query_report: r.report.report_type === "Query Report" || r.report.report_type === "Script Report",
+							report_ref_doctype: r.report.ref_doctype,
+						})
+					),
+			});
+		}
+		items.push("divider");
+		items.push({
+			// Not "Open {0}": every app after ours in the install order translates
+			// that msgid too, as the ADJECTIVE, and the merged dictionary keeps the
+			// last writer's row (the standing merge debt). "Go to {0}" is Frappe's
+			// alone and the verb — inherited, and the placeholder last.
+			label: __("Go to {0}", [__(title)]),
+			icon: ws_symbol(w.icon),
+			image: ws_original_icon(w),
+			run: () => frappe.set_route(ws_route(w.name)),
+		});
+		return items;
+	}
+
+	/** Home, All Apps and the workspace cascade, each module row with a flyout
+	 *  of its quick links. The cascade is an OBLIGATION of the "keep replacing"
+	 *  posture; roots only, no cap — _sidebar.scss carries why. */
 	function sb_head_menu() {
 		// `key` is the UNTRANSLATED name the dedupe matches on; `label` is read.
 		const items = [
@@ -7764,11 +8942,15 @@ function sb_zone_anchor(pane, zone, node) {
 		);
 		if (roots.length) items.push("divider");
 		for (const w of roots) {
+			const links = sb_quick_links(w);
 			items.push({
+				// Translated, as Frappe's own header lists them — an Arabic desk read
+				// "Selling" here until 2026-09-14.
 				label: __(w.title || w.name),
 				icon: ws_symbol(w.icon),
 				image: ws_original_icon(w),
 				run: () => frappe.set_route(ws_route(w.name)),
+				children: links.length ? links : undefined,
 			});
 		}
 		// Collapse-all (2a), only when something is foldable.
@@ -8735,7 +9917,82 @@ function sb_zone_anchor(pane, zone, node) {
 		{ key: "resize", volatile: false, mount: sb_mount_resize, unmount: sb_teardown_resize },
 		// The pane's half of a contract with the chrome. _sidebar.scss.
 		{ key: "tenants", volatile: false, mount: mount_placed_tenants, unmount: sb_band_prune },
+		// The settings map (item 43 B3): present on the Theme Settings route only;
+		// the router hook re-runs it on every route so it appears and goes.
+		{ key: "map", volatile: false, mount: sb_mount_map, unmount: sb_teardown_map },
+		// Volatile: Frappe rebuilds the list (and re-applies ITS per-language memory)
+		// on every workspace change; ours is applied after, so it wins.
+		{ key: "sections", volatile: true, mount: sb_apply_section_state, unmount: () => {} },
 	];
+
+	// Keep each sidebar section's collapsed state stable across English and
+	// Arabic. Frappe keys its own memory by translated labels, so without this
+	// identity-based store the two languages remember different layouts.
+	const SB_SECTION_STORE = "bnd-section-state";
+
+	function sb_section_instances() {
+		const sb = window.frappe && frappe.app && frappe.app.sidebar;
+		return ((sb && sb.items) || []).filter(
+			(item) => item && item.item && item.item.type === "Section Break" && item.wrapper && item.wrapper[0]
+		);
+	}
+
+	function sb_section_scope() {
+		const sb = window.frappe && frappe.app && frappe.app.sidebar;
+		return (sb && (sb.sidebar_name || sb.sidebar_title)) || "";
+	}
+
+	function sb_section_key(instance, index) {
+		const item = instance.item || {};
+		return item.name ? "n:" + item.name : "i:" + index;
+	}
+
+	function sb_section_store_read() {
+		try {
+			return JSON.parse(localStorage.getItem(SB_SECTION_STORE) || "{}") || {};
+		} catch (error) {
+			return {};
+		}
+	}
+
+	function sb_section_store_write(store) {
+		try {
+			localStorage.setItem(SB_SECTION_STORE, JSON.stringify(store));
+		} catch (error) {
+			// Storage refusal is non-fatal; the current section still toggles.
+		}
+	}
+
+	function sb_apply_section_state() {
+		const scope = sb_section_scope();
+		if (!scope) return;
+		const mine = sb_section_store_read()[scope];
+		if (!mine) return;
+		sb_section_instances().forEach((instance, index) => {
+			const wanted = mine[sb_section_key(instance, index)];
+			if (wanted === undefined || !!instance.collapsed === !!wanted) return;
+			instance.collapsed = !!wanted;
+			instance.toggle();
+		});
+	}
+
+	document.addEventListener("click", (event) => {
+		if (!event.isTrusted) return;
+		const head = event.target?.closest?.(".body-sidebar .section-item > .standard-sidebar-item");
+		if (!head) return;
+		const wrapper = head.parentElement;
+		const scope = sb_section_scope();
+		if (!scope) return;
+		setTimeout(() => {
+			sb_section_instances().forEach((instance, index) => {
+				if (instance.wrapper[0] !== wrapper) return;
+				const store = sb_section_store_read();
+				store[scope] = store[scope] || {};
+				store[scope][sb_section_key(instance, index)] = !!instance.collapsed;
+				sb_section_store_write(store);
+			});
+		}, 0);
+	});
 
 	/** The watch record: the NODES being observed, their observers, and the one
 	 *  timer they share. Null when nothing is being watched. */
@@ -8948,6 +10205,7 @@ function sb_zone_anchor(pane, zone, node) {
 					bnd_look: st.look || "",
 					bnd_shape: st.shape || "",
 					bnd_density: st.density || "",
+					bnd_body_width: st.body_width || "",
 					bnd_motion: st.motion || "",
 					bnd_home: st.home || "",
 					mode: document.documentElement.getAttribute("data-theme-mode") || "light",
@@ -8988,6 +10246,8 @@ function sb_zone_anchor(pane, zone, node) {
 					);
 				const density_values =
 					(data.axes || []).find((a) => a.key === "bnd_density") || { values: [] };
+				const width_values =
+					(data.axes || []).find((a) => a.key === "bnd_body_width") || { values: [] };
 
 				const body =
 					`<div class="bnd-cbp" data-bnd-part="appearance">` +
@@ -8999,6 +10259,10 @@ function sb_zone_anchor(pane, zone, node) {
 						{ value: "automatic", label: __("Automatic") },
 					], !open_for("bnd_density")) +
 					row("bnd_density", __("Density"), named(density_values.values, data.site.density), !open_for("bnd_density")) +
+					// Item 45: the same question as density, asked of the page. The
+					// site's own width comes from `site_values`, which already
+					// carries it — `desk_width` is a LOOK field.
+					row("bnd_body_width", __("Body width"), named(width_values.values, (data.site_values || {}).desk_width || ""), !open_for("bnd_body_width")) +
 					// No lock on motion, ever — see personal.UNLOCKABLE. It is an
 					// accessibility floor, not a taste, and the one pole reduces.
 					row("bnd_motion", __("Motion"), [
@@ -9034,6 +10298,7 @@ function sb_zone_anchor(pane, zone, node) {
 					if (axis === "bnd_look") show_look(value);
 					else if (axis === "bnd_shape") show_shape(value);
 					else if (axis === "bnd_density") bunood.set_density(value, { save: false });
+					else if (axis === "bnd_body_width") bunood.set_body_width(value, { save: false });
 					else if (axis === "bnd_motion") bunood.set_motion(value, { save: false });
 					else if (axis === "mode") show_mode(value);
 					// bnd_home has nothing to preview — it decides where the NEXT
@@ -9062,6 +10327,7 @@ function sb_zone_anchor(pane, zone, node) {
 					show_look(opened.bnd_look);
 					show_shape(opened.bnd_shape);
 					bunood.set_density(opened.bnd_density, { save: false });
+					bunood.set_body_width(opened.bnd_body_width, { save: false });
 					bunood.set_motion(opened.bnd_motion, { save: false });
 					show_mode(opened.mode);
 				});
@@ -9073,6 +10339,7 @@ function sb_zone_anchor(pane, zone, node) {
 								bnd_look: pick.bnd_look,
 								bnd_shape: pick.bnd_shape,
 								bnd_density: pick.bnd_density,
+								bnd_body_width: pick.bnd_body_width,
 								bnd_motion: pick.bnd_motion,
 								bnd_home: pick.bnd_home,
 							},
@@ -9093,6 +10360,14 @@ function sb_zone_anchor(pane, zone, node) {
 					Promise.all(calls)
 						.then(() => {
 							saved = true;
+							// Boot is the seed both status-bar cycles read to decide their
+							// NEXT value, so a save that left it stale made the following
+							// icon click jump to the wrong stop. Density had this before
+							// width existed; half a repair is a regression.
+							frappe.boot.bnd_density = pick.bnd_density;
+							if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = pick.bnd_body_width;
+							refresh_density_label();
+							refresh_width_label();
 							dialog.hide();
 							frappe.show_alert({ message: __("Appearance saved"), indicator: "green" });
 						})
@@ -9141,7 +10416,41 @@ function sb_zone_anchor(pane, zone, node) {
 		// eight of the ten mounts by hand and skip the other two.
 		sidepane_teardown();
 		sidepane_sync("settings");
+		sb_follow_pane_state();
 	};
+
+	/**
+	 * What a pane state MOVES, re-placed after every apply: search and the
+	 * tenants (a hidden pane lends them to the page head), the brand and the
+	 * settings map the head keeps while Hidden. Only pane_state() did this
+	 * until item 43 B3; the settings form's preview re-applies the pane through
+	 * sb_apply on every refresh, and with nothing following that change the
+	 * head kept neither brand nor map.
+	 */
+	function sb_follow_pane_state() {
+		mount_search();
+		mount_placed_tenants();
+		if (guard_critical_reach()) {
+			mount_placed_tenants();
+			sidepane_sync("settings");
+		}
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		else sb_teardown_pagehead_brand();
+		sb_mount_pagehead_map();
+	}
+
+	/** Frappe's "page-change": the page head exists now. Only Hidden cares —
+	 *  every other state keeps its tenants in the pane, which was there first.
+	 *  A retry, because the event fires with the title still at zero width
+	 *  (measured 2.2s against 3.0s on a User form); the premise is re-read. */
+	function lend_to_arrived_page() {
+		try_for(() => {
+			if (!sb_state || !sb_pane_hidden() || !container_on("sidepane")) return true;
+			if (!visible_page_title()) return false;
+			sb_follow_pane_state();
+			return true;
+		}, 40);
+	}
 
 	/**
 	 * LIVE PREVIEW / re-application for the breadcrumb kit: take a full set
@@ -9180,11 +10489,16 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	bunood.apply_look = function (values) {
 		if (!values) return;
-		for (const fn of [
+		// DERIVED FROM THE REGISTRY, NOT LISTED — the hand-kept list this
+		// docblock calls a trap had become one, missing `body` and `language`,
+		// so Appearance previewed every look at the site's width, type scale and
+		// button colour. Only the hand-written appliers need naming.
+		const appliers = [
 			"sb_apply", "crumb_apply", "icon_apply", "palette_apply", "inbox_apply",
-			"chart_apply", "list_apply", "form_apply", "workspace_apply", "report_apply",
-			"views_apply", "overlay_apply", "empty_apply", "skeleton_apply", "filters_apply",
-		]) {
+			"chart_apply", "language_apply",
+			...Object.keys(BND_SURFACE_KITS).map((k) => k + "_apply"),
+		];
+		for (const fn of appliers) {
 			if (typeof bunood[fn] === "function") bunood[fn](values);
 		}
 	};
@@ -10658,10 +11972,35 @@ function sb_zone_anchor(pane, zone, node) {
 		try_for(enhance_onboarding_refresh, 40, 150);
 		try_for(() => mount_home_dashboard(), 40, 150);
 
+		// THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
+		// desktop page declares `hide_sidebar`, and container.js honours it right
+		// AFTER firing "page-change" - so the flag is cleared on the way through
+		// whenever the kit owns a pane on this desk, and Frappe's own toggle then
+		// shows it. Nothing here touches the pane's DOM. The bars still stand down
+		// in desktop mode (_sidebar.scss): the ask was the pane.
+		// Two hooks, because the order is not ours: "page-change" fires BEFORE
+		// container.js reads the flag (so clearing it there is enough on most loads),
+		// but a load whose first page-change ran before this script listened (measured
+		// on a second visit to /app) leaves the pane hidden — so the router's own
+		// change event, which fires AFTER the toggle, repairs it through Frappe's
+		// toggle(false). Both paths call one function; neither touches the pane's DOM.
+		if (window.jQuery) window.jQuery(document).on("page-change", keep_pane_on_desktop);
+		keep_pane_on_desktop();
+		// THE HEAD HAS ARRIVED: under Hidden it is the tenants' host, and a slow
+		// page's head arrives after this mount placed and judged (the guard
+		// declines to judge until then). Idempotent — see lend_to_arrived_page.
+		if (window.jQuery) window.jQuery(document).on("page-change", lend_to_arrived_page);
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
 				if (redirect_apps_alias()) return;
 				close_menu();
+				drawer_set_open(false);
+				// The foot's claim is a form's; a list's primary action is the
+				// same class and must never be hidden by a cached form's foot.
+				bnd_disown("docfoot");
+				// And the path's, for the same reason: a doctype with no path of
+				// its own must not inherit a cached one's hidden pill.
+				bnd_disown("stagepath");
 				update_desktop_mode();
 				land_on_home();
 				// Restore the complete sidebar after native navigation, including
@@ -10690,6 +12029,12 @@ function sb_zone_anchor(pane, zone, node) {
 				try_for(install_interaction_dialog_show, 40, 150);
 				load_report_workbench();
 				sb_resolve_workspace_from_route();
+				// The settings map (item 43 B3) is the first pane part that is
+				// conditional on the ROUTE, so the ladder alone cannot place it:
+				// it re-runs here on every change, appearing on Theme Settings and
+				// going anywhere else, in the pane or in the page head.
+				sb_mount_map();
+				sb_mount_pagehead_map();
 				decorate_crumbs();
 				// The ONE container that has to remount per route: page heads
 				// are built per page and Frappe swaps the element out from

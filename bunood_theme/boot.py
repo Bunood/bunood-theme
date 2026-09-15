@@ -137,6 +137,7 @@ def resolve_for_user(site) -> tuple:
     pane_state = frappe.defaults.get_user_default("bnd_pane_state") or ""
     motion = frappe.defaults.get_user_default("bnd_motion") or ""
     home = frappe.defaults.get_user_default("bnd_home") or ""
+    body_width = frappe.defaults.get_user_default("bnd_body_width") or ""
 
     # THE LOOK. A whole named look, filtered to the fields a look is allowed to
     # carry — never the colour seeds, never the shape, and never the four
@@ -171,6 +172,17 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_pane_state") and pane_state in ("Open", "Rail", "Hidden"):
         resolved["sidebar_pane_state"] = pane_state
 
+    # THE BODY WIDTH. One field, last, for the same reason the pane state is: a
+    # look MAY carry a width (`desk_width` is in LOOK_FIELDS) and this still
+    # wins, because it is the narrower and more recent statement about the same
+    # desk. The catalogue is `presets.DESK_WIDTHS` and never a tuple restated
+    # here — `Original` is not in it on purpose, so a person cannot use their
+    # own comfort setting to stand the site's width kit down.
+    if is_open("bnd_body_width") and body_width in (
+        personal_axes.values_for("bnd_body_width") or ()
+    ):
+        resolved["desk_width"] = body_width
+
     return resolved, {
         "look": look,
         "shape": shape,
@@ -181,6 +193,15 @@ def resolve_for_user(site) -> tuple:
         "pane_state": pane_state,
         "motion": motion,
         "home": home,
+        "body_width": body_width,
+        # WHAT "FOLLOW THE SITE" RESOLVES TO, carried because the overlay two
+        # lines up DESTROYS it: `bnd_body.desk_width` is the effective width,
+        # so a client that has just cycled away from the site's value has no way
+        # back to it without a reload. Read here, in the one function that does
+        # the overlay, so the pair cannot drift. (The Appearance dialog gets the
+        # same fact from `get_personal_presets`'s `site_values`, which serves a
+        # different consumer — a whole look's ~100 fields for its preview.)
+        "site_body_width": site.get("desk_width") or "",
         "locks": {
             name: 1 if personal_axes.lock_open(name, site.get(name)) else 0
             for name in personal_axes.LOCKS
@@ -558,6 +579,18 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_form = {f: form_(f) for f in FORM_DEFAULTS}
 
+        # ── The body kit (item 43 A1) ────────────────────────────────────
+        # Width feeds Frappe's --page-max-width, the scale sets the body's type
+        # set, the primary flips the button — all attributes, all before the
+        # first section renders. No anchor: each axis stands down alone.
+        from bunood_theme.presets import DESK_DEFAULTS
+
+        def body_(field):
+            value = settings.get(field)
+            return DESK_DEFAULTS[field] if value in (None, "") else value
+
+        bootinfo.bnd_body = {f: body_(f) for f in DESK_DEFAULTS}
+
         # ── Workspace tile surface (item 25) ────────────────────────────
         # No-flash: editor.js paints the widgets after boot, so an attribute
         # set from this payload is on <html> before the first tile exists.
@@ -700,6 +733,7 @@ def extend_bootinfo(bootinfo):
         from bunood_theme.presets import (
             APPEARANCE_DEFAULTS,
             LANGUAGE_DEFAULTS,
+            PANEHEAD_DEFAULTS,
             LINKS_DEFAULTS,
             START_DEFAULTS,
             USER_DEFAULTS,
@@ -739,6 +773,12 @@ def extend_bootinfo(bootinfo):
             # The admin's list (Theme Settings), not Frappe's install-time flag - see
             # bunood_theme/language.py for why the first cut was the wrong fact.
             "languages": offered_languages(settings),
+        }
+
+        # The pane head's quick links (2026-09-14): how many rows a module's
+        # flyout carries, or Off for the module list alone.
+        bootinfo.bnd_panehead = {
+            "quick_links": settings.get("panehead_quick_links") or PANEHEAD_DEFAULTS["panehead_quick_links"],
         }
 
         bootinfo.bnd_inbox = {

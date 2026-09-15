@@ -108,7 +108,15 @@ const P = {
 
 	/**
 	 * A row of small chips — the second-tier choice inside a group.
-	 * @param {Array<{value:string|number, name:string, glyph?:string, reason?:string}>} items
+	 *
+	 * `sub` is an OPTIONAL second line, and it exists for one reason: a value
+	 * whose name cannot carry its own meaning. "Balanced" says nothing about
+	 * 1040; the number has to be shown, and it has to be shown as a DERIVED
+	 * value rather than spelled into the label, or the label becomes a second
+	 * copy of the measure and the copy that goes stale is always the label.
+	 * Gutenberg's width menu reaches the same answer — "Wide width, max 1340px".
+	 * Every existing caller passes none and renders exactly as before.
+	 * @param {Array<{value:string|number, name:string, glyph?:string, reason?:string, sub?:string}>} items
 	 */
 	options(items, opts) {
 		return (
@@ -124,6 +132,7 @@ const P = {
 						(i.reason ? ' title="' + bnd_esc(i.reason) + '" disabled' : "") + ">" +
 						(i.glyph ? '<span class="bnd-cbp-glyph">' + i.glyph + "</span>" : "") +
 						'<span class="bnd-cbp-oname">' + bnd_esc(i.name) + "</span>" +
+						(i.sub ? '<span class="bnd-cbp-osub">' + bnd_esc(i.sub) + "</span>" : "") +
 						"</button>"
 					);
 				})
@@ -490,7 +499,7 @@ function bnd_desk_diagram(o) {
  * disappears from it. "Off" is excluded because it is drawn as a chip beside
  * the diagram, not as a place on the desk.
  */
-function bnd_field_slots(frm, field) {
+function bnd_field_values(frm, field) {
 	// META FIRST, and the order matters. `frm.fields_dict[field].df.options` is
 	// whatever the form layer last put there, and for a Select that is not
 	// reliably the newline string the doctype stores — it can already be a list
@@ -508,7 +517,14 @@ function bnd_field_slots(frm, field) {
 	return list
 		.map((v) => (v && typeof v === "object" ? v.value : v) || "")
 		.map((v) => String(v).trim())
-		.filter((v) => v && v !== "Off");
+		.filter((v) => v);
+}
+
+/** The slots a PLACEMENT offers: every value but Off, which is drawn as a chip
+ *  beside the diagram, never as a place on the desk. The composer's rows read
+ *  the unfiltered list (item 43 C2): for a style field Off IS a value. */
+function bnd_field_slots(frm, field) {
+	return bnd_field_values(frm, field).filter((v) => v !== "Off");
 }
 
 /** The value a picker shows when the field is empty: the first slot it offers. */
@@ -812,6 +828,9 @@ function bnd_autosave(frm) {
 				return bnd_merge_and_retry(frm, mine);
 			}
 			bnd_snapshot(frm);
+			// LANDED, with what it carried: the composer reloads its frames when a
+			// brand input is among them (item 43 C3) — the sheet is server-written.
+			frm.$wrapper.trigger("bnd:saved", [mine]);
 			// A click that landed WHILE this save was in flight left the form
 			// dirty again. Re-arm — this is what makes the last click the one
 			// that ends up stored.
@@ -879,7 +898,11 @@ function bnd_merge_and_retry(frm, mine) {
 				frm.doc.__unsaved = 1;
 				return frm.save();
 			})
-			.then(() => bnd_snapshot(frm))
+			.then(() => {
+				bnd_snapshot(frm);
+				// Landed by the retry: the same announcement the direct path makes.
+				frm.$wrapper.trigger("bnd:saved", [mine]);
+			})
 			.catch(() => {
 				frm.doc.__unsaved = 1;
 			})
@@ -895,25 +918,46 @@ frappe.ui.form.on("Theme Settings", {
 	onload(frm) {
 		bnd_fix_primary_action(frm);
 	},
+	// Item 44: plain Selects, so their live preview and the board redraw hang
+	// off the form events rather than a picker.
+	language_style(frm) {
+		bnd_language_preview(frm);
+	},
+	language_choices(frm) {
+		bnd_render_language_picker(frm);
+	},
+	panehead_quick_links(frm) {
+		bnd_panehead_preview(frm);
+	},
+	language_placement(frm) {
+		bnd_render_placement_board(frm);
+	},
+	appearance_placement(frm) {
+		bnd_render_placement_board(frm);
+	},
 	refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
-		// The custom shell exposes Frappe's icon-only section toggle; its SVG is
-		// aria-hidden, so name the native button from the visible section label.
-		document.querySelectorAll(".sidebar-item-control .drop-icon:not([aria-label])").forEach((button) => {
-			const item = button.closest(".standard-sidebar-item");
-			button.setAttribute("aria-label", item ? item.textContent.trim() : document.title);
-		});
-		// THE LAYOUT IS A PRESET, AND THE STORED FIELD IS GONE (item 37).
-		// The picker's derived label (`bnd_match_layout`) has said what the desk
-		// actually IS since the last container landed, and the Overview reads it
-		// too — so there is no name left to render, read back or set by hand.
+		// The composer is a MODE read once from the address (item 43 C1): the
+		// class on the page container is what stands every other card down.
+		frm.page.wrapper.toggleClass("bnd-composing", bnd_compose_wanted());
+		// THE LAYOUT IS A PRESET, AND ITS FIELD IS NOW A RECORD OF ONE (item 36).
+		// The "read-only for one release so support can still see what a site
+		// was" that stood here expired many releases ago; the picker's derived
+		// label (`bnd_match_layout`) has said what the desk actually IS since
+		// the last container landed, and the Overview reads it too.
 		//
-		// The V2 UI branch reached here still setting `desk_layout` read-only
-		// with an explanatory description. That field no longer exists on the
-		// doctype, so both `set_df_property` calls were dropped in the rebase
-		// rather than carried: they would have addressed a fieldname that
-		// `v0_37_0/drop_desk_layout` deletes.
+		// HIDDEN, NOT DELETED, and the reason is a live consumer the retirement
+		// plan had missed: boot still serves this name and `bunood.js` stamps
+		// `data-bnd-layout` from it, which a dozen `_layouts.scss` rules
+		// position panels by. Deleting the field today would leave a CUSTOM
+		// desk — containers matching no preset — with nothing to stamp, i.e. a
+		// silent rendering change on exactly the sites that diverged. The
+		// honest sequence is to finish phase 0's own direction first (re-key
+		// those rules to container OUTCOMES, as `data-bnd-topbar` already was),
+		// then delete. Filed; this hides the control so nobody sets it by hand
+		// in the meantime, while the stored value keeps the desk rendering and
+		// stays queryable for support.
 		bnd_render_theme_picker(frm);
 		bnd_render_layout_picker(frm);
 		bnd_render_sidebar_picker(frm);
@@ -924,6 +968,7 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_status_picker(frm);
 		bnd_render_list_picker(frm);
 		bnd_render_form_picker(frm);
+		bnd_render_desk_picker(frm);
 		bnd_render_workspace_picker(frm);
 		bnd_render_chart_picker(frm);
 		bnd_render_report_picker(frm);
@@ -940,11 +985,19 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_identity_picker(frm);
 		bnd_render_user_picker(frm);
 		bnd_render_links_picker(frm);
+		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
-		// AFTER the pickers, never before: the shell relocates the sections they
-		// were just drawn into, and moving a node the renderer is about to look
-		// for is how the host resolver ends up pointing at a detached wrapper.
-		bnd_shell_setup(frm);
+		bnd_render_compose_picker(frm);
+		// The side pane's map (item 43 B3) reads the rendered sections: after
+		// the pickers, and again once the shipped defaults land (the dots).
+		bnd_settings_marks(frm);
+		bnd_load_shipped().then(() => bnd_settings_marks(frm));
+		// The two surfaces that own no field draw into fields of their own
+		// (item 43 B1: the shell that used to host them is gone).
+		for (const [name, render] of [["desk_overview", bnd_render_overview], ["language_translations", bnd_render_translations]]) {
+			const f = frm.get_field(name);
+			if (f && f.$wrapper) render(frm, f.$wrapper);
+		}
 		// Re-apply the FORM's values to the desk on every refresh: after a
 		// reload/discard this reverts any live preview to the stored state
 		// (on first open it re-applies what boot already applied — harmless).
@@ -961,6 +1014,10 @@ frappe.ui.form.on("Theme Settings", {
 	bottombar_enabled: bnd_container_changed,
 	dock_enabled: bnd_container_changed,
 	sidebar_enabled: bnd_container_changed,
+	// The phone-bar toggles (item 24): re-apply on click like every kit.
+	mobile_inbox: bnd_mobile_changed,
+	mobile_user: bnd_mobile_changed,
+	mobile_apps: bnd_mobile_changed,
 });
 
 /**
@@ -991,6 +1048,22 @@ function bnd_container_changed(frm) {
 }
 
 /**
+ * A phone-bar toggle changed (item 24): apply it to the live desk. All three go
+ * every time, same reason chrome_apply gets all five — it rebuilds from the
+ * whole picture. Visible only when the window is actually narrow; at the desktop
+ * width the form is viewed at, it keeps the state current for the next resize.
+ */
+function bnd_mobile_changed(frm) {
+	if (window.bunood_theme && typeof window.bunood_theme.mobile_apply === "function") {
+		window.bunood_theme.mobile_apply({
+			mobile_inbox: frm.doc.mobile_inbox,
+			mobile_user: frm.doc.mobile_user,
+			mobile_apps: frm.doc.mobile_apps,
+		});
+	}
+}
+
+/**
  * Repaint every picker whose availability notes read the desk's shape.
  *
  * Every placement diagram marks the slots that cannot be honoured right now
@@ -1007,6 +1080,7 @@ function bnd_repaint_placement_pickers(frm) {
 	bnd_render_user_picker(frm);
 	bnd_render_search_picker(frm);
 	bnd_render_links_picker(frm);
+	bnd_render_language_picker(frm);
 	// The side pane's own picker joins them (item 36's picker audit): toggling
 	// "Show the side pane" left its option groups offering themselves as
 	// live over a pane that no longer existed, and the kit-off note never
@@ -1019,100 +1093,170 @@ function bnd_repaint_placement_pickers(frm) {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// Master & detail shell (component rework, slice 1c step 2)
+// The settings map (item 43 B3) — what the side pane lists while this form is
+// open, and what each entry owns.
 //
 // WHAT
-//   A grouped list on one side, one component's settings on the other, instead
-//   of ~70 fields in nine stacked sections that a reader has to scroll to find
-//   anything in.
+//   One row per section card, under the BANDS of the importance order the
+//   doctype's field_order carries (B2): Compose · Look · Body · Shape · Beyond
+//   the desk · Generated. The rows themselves are DERIVED from the rendered
+//   sections on every refresh (`bnd_settings_rows`), so order has one source,
+//   the JSON. This table contributes membership only — which band a section
+//   sits in, and which fields its change dot watches (`BND_SETTINGS_OWNS`,
+//   keyed by `key`).
 //
-// WHY IT RELOCATES SECTIONS RATHER THAN REBUILDING THEM
-//   The obvious build is a second surface: draw the shell, and render every
-//   picker into it. That gives you TWO sets of cards bound to the same fields,
-//   each unaware of the other's clicks — the same-fact-in-two-places defect this
-//   whole rework exists to remove, reintroduced by the thing meant to fix it.
+// WHY A BAND IS A CONTIGUOUS RUN
+//   The pane draws a heading wherever the band changes between consecutive
+//   rows, so a band whose sections are scattered through field_order heads
+//   itself more than once. The shell's old groups (Bars & panes, Controls,
+//   Appearance…) did exactly that once B2 reordered the cards — APPEARANCE
+//   three times down one pane, read off a screenshot, not a check. The suite
+//   asserts each heading appears once; keep this table and field_order telling
+//   the same story.
 //
-//   So the shell MOVES the DOM Frappe already built. There is exactly one node
-//   per field, in a different parent, and "only one surface exists" stops being
-//   a rule anybody has to keep and becomes a property of the construction. It
-//   also means every Frappe control keeps working untouched: its JS holds a
-//   reference to its own wrapper, and a wrapper does not care who its parent is.
-//
-// WHY IT IS GATED BEHIND ?shell=1
-//   This lands before it replaces anything. The stacked form stays the default
-//   until the shell has the diagram (step 3) and the derived preset label, and
-//   until it has been used. A half-finished navigation is worse than a long
-//   form, because a long form at least shows you everything it has.
+// WHAT IT REPLACED
+//   The master & detail shell (slice 1c, retired in B1) MOVED the sections into
+//   a pane of its own so "only one surface exists" was a property of the
+//   construction. The map keeps that property more simply: it moves nothing,
+//   it points.
 // ════════════════════════════════════════════════════════════════════════════
 
 /**
- * The left list: groups, and what each entry owns.
+ * The map's entries: bands, and what each entry owns.
  *
  * `anchors` are FIELD names, not section names, and that is deliberate — a
  * section break's own wrapper is an implementation detail of Frappe's layout
  * engine that has moved between versions, while a field's `$wrapper` is the
  * thing every control in this form already depends on. The section is found by
  * walking up from the field, so this keeps working if Frappe restructures.
+ *
+ * ONE ENTRY NAMES A SECTION: the first entry whose anchor lands in a section
+ * claims it, and a later one is ignored. That is how an Overview entry (an HTML
+ * field that renders INSIDE the Placement card) claimed Placement's row, its
+ * band and its change dot for a slice — an entry that renders inside another
+ * entry's card is not a row and has no entry here.
  */
-const BND_SHELL_GROUPS = [
+const BND_SETTINGS_GROUPS = [
 	{
-		group: () => __("Desk"),
+		// No heading over the first card: it is the page's own line.
+		group: () => "",
 		items: [
-			// Renders rather than relocating, like Translations below: it owns no
-			// fields, it reads them.
-			{ key: "overview", label: () => __("Overview"), render: bnd_render_overview },
+			// The Compose card (item 43 B2): what the desk is, and the way into
+			// the composer. First on the page, first in the map.
+			{ key: "compose", label: () => __("Compose"), anchors: ["desk_compose"] },
 		],
 	},
 	{
-		group: () => __("Bars & panes"),
+		group: () => __("Look"),
 		items: [
-			// Containers, roughly top to bottom on the desk. The top bar is the
-			// first to have been split out of `desk_layout` (slice 2c); the
-			// others join this group as their own entries as their slices land,
-			// and "Layout preset" under Appearance stops being a setting at all
-			// once the last one has.
-			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
-			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
-			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_picker"] },
-			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
-			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
-			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
+			// ITEM 37, AND IT LEADS THE BAND because it is the control that answers
+			// "what does this desk look like" in one gesture. The entries under it
+			// are the axes a look composes from.
+			{ key: "theme", label: () => __("Theme"), anchors: ["theme_picker"] },
+			// ITEM 36, THE USER'S MAP 1: identity is ONE entry — name, logo,
+			// favicon, tagline AND the colour seeds together. The Directus
+			// co-location (its Appearance page holds colour + logos + favicon on
+			// one surface) extended with the name, because at this scale (four
+			// identity fields, four seeds) a split just separates the specimen
+			// from half its inputs. It anchors TWO cards, colours and branding;
+			// the generated stylesheet line it used to claim as well sits in the
+			// Generated card at the end since B2, with its own entry below.
+			{ key: "identity", label: () => __("Identity"), anchors: ["company_name", "brand_color"] },
+			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
+			// own picker like every other kit; the Selects sit hidden behind the
+			// card picker's controls.
+			{ key: "icons", label: () => __("Icons"), anchors: ["icons_picker"] },
+			// Item 36, the user's direction: language and fonts in their own place
+			// beside Translation. The Arabic face is the entry's whole surface
+			// today; the section is where any later language-shaped field lands.
+			{ key: "fonts", label: () => __("Language & Fonts"), anchors: ["arabic_font"] },
+			// Renders inside the Language & Fonts card, so it is never a row of its
+			// own (the fonts entry claims the section first) — the entry exists for
+			// the Overview's goto. Its state lives in its own doctypes (Bunood
+			// Translation Settings / Scan / Proposal), not in Theme Settings
+			// fields, which keeps the FIELD_PREFIXES guard out of a feature that
+			// is not a desk component.
+			{ key: "translations", label: () => __("Translations"), anchors: ["language_translations"] },
+			// `density_default` has its own section. It used to share
+			// `section_features` with `palette_enabled`, and the shell's fallback
+			// for a twice-claimed section moved a bare $wrapper out of
+			// `.form-column > form`, severing the direct-descendant chain Frappe
+			// caps input width with (form.scss `.form-column.col-sm-12 > form >
+			// .input-max-width`). Measured: 636px against every other Select's
+			// 273px. B1 removed relocation altogether; the section stays its own.
+			{ key: "density", label: () => __("Density"), anchors: ["density_default"] },
+			// Item 38. Not a look but a POLICY about looks: which axes a person
+			// may decide for themselves. It sits with the look because that is
+			// what it governs, and the three Checks are visible rather than
+			// picker-driven — the same shape the container toggles use, and one
+			// fewer surface to keep truthful.
+			{ key: "personal", label: () => __("Personalization"), anchors: ["personal_look"] },
 		],
 	},
 	{
-		group: () => __("Controls"),
+		// Item 43: the body kits, the record's anatomy first.
+		group: () => __("Body"),
 		items: [
-			// FIRST in the group, because it is the one that answers "where does
-			// everything live" — the per-component pickers below it answer the
-			// same question five times, each for one control.
-			{ key: "placement", label: () => __("Placement"), anchors: ["placement_board"] },
-			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
-			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
-			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
-			// `palette_enabled` now sits with its seven siblings in
-			// section_palette, so one anchor reaches the whole component. It used
-			// to live three sections away, and anchoring it here claimed the
-			// section that also held `density_default` — which left a stranded
-			// "Features" heading over nothing and evicted the density control.
-			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
-			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
-			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
+			{ key: "desk", label: () => __("Desk body"), anchors: ["desk_width"] },
 			{ key: "form", label: () => __("Form view"), anchors: ["form_style"] },
+			{ key: "list", label: () => __("List view"), anchors: ["list_style"] },
 			{ key: "workspace", label: () => __("Workspace"), anchors: ["workspace_style"] },
-			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
 			{ key: "report", label: () => __("Data tables"), anchors: ["report_style"] },
 			{ key: "views", label: () => __("Alternate views"), anchors: ["views_style"] },
+			{ key: "chart", label: () => __("Charts"), anchors: ["chart_grid"] },
+			{ key: "filters", label: () => __("Filters"), anchors: ["filters_style"] },
 			{ key: "overlay", label: () => __("Overlays"), anchors: ["overlay_style"] },
 			{ key: "empty", label: () => __("Empty states"), anchors: ["empty_style"] },
 			{ key: "skeleton", label: () => __("Loading"), anchors: ["skeleton_style"] },
-			{ key: "filters", label: () => __("Filters"), anchors: ["filters_style"] },
-			// Item 32. The only entry here whose surface is NOT on the desk — it
-			// dresses /login and /update-password, which an authenticated admin
-			// cannot even load (www/login.py redirects any session to /desk). So
-			// this pane shows a specimen and never a live preview, and the shell's
-			// change dot is the only feedback a click gives.
+		],
+	},
+	{
+		// The chrome: containers roughly top to bottom on the desk, then what
+		// they carry. The top bar was the first split out of `desk_layout`
+		// (slice 2c); each later container joined as its own entry.
+		group: () => __("Shape"),
+		items: [
+			// Item 37: KEEPS its picker — the five layouts stay one click away —
+			// but stores no name: it writes the containers and derives its
+			// highlight from them, which is what a preset is supposed to do.
+			{ key: "layout", label: () => __("Layout preset"), anchors: ["layout_picker"] },
+			{ key: "sidepane", label: () => __("Side pane"), anchors: ["sidebar_picker"] },
+			{ key: "topbar", label: () => __("Top bar"), anchors: ["topbar_enabled"] },
+			{ key: "pagehead", label: () => __("Page header"), anchors: ["pagehead_enabled"] },
+			{ key: "dock", label: () => __("Dock"), anchors: ["dock_enabled"] },
+			{ key: "status", label: () => __("Bottom bar"), anchors: ["bottombar_enabled"] },
+			// The phone bar (item 24): what the bottom bar carries below 768px.
+			// Sits with the bars because that is what it configures.
+			{ key: "mobile", label: () => __("Mobile bar"), anchors: ["mobile_inbox"] },
+			// The one that answers "where does everything live" — the per-component
+			// pickers after it answer the same question five times, each for one
+			// control. The Overview renders inside this card (see the docblock).
+			{ key: "placement", label: () => __("Placement"), anchors: ["placement_board"] },
+			{ key: "search", label: () => __("Search"), anchors: ["search_picker"] },
+			{ key: "user", label: () => __("User menu"), anchors: ["user_picker"] },
+			{ key: "links", label: () => __("Home & All Apps"), anchors: ["links_picker"] },
+			// Item 44: two tenants and the switch's style, plain Selects in one section.
+			{ key: "language", label: () => __("Language & Appearance"), anchors: ["language_placement"] },
+			{ key: "crumbs", label: () => __("Breadcrumbs"), anchors: ["crumb_style"] },
+			// `palette_enabled` sits with its seven siblings in section_palette, so
+			// one anchor reaches the whole component. It used to live three
+			// sections away, and anchoring it here claimed the section that also
+			// held `density_default` — which left a stranded "Features" heading
+			// over nothing and evicted the density control.
+			{ key: "palette", label: () => __("Command palette"), anchors: ["palette_style"] },
+			{ key: "inbox", label: () => __("Notifications"), anchors: ["inbox_style"] },
+		],
+	},
+	{
+		// Surfaces that are NOT the desk. None previews live on this page.
+		group: () => __("Beyond the desk"),
+		items: [
+			// Item 32. It dresses /login and /update-password, which an
+			// authenticated admin cannot even load (www/login.py redirects any
+			// session to /desk). So this card shows a specimen and never a live
+			// preview, and the map's change dot is the only feedback a click gives.
 			{ key: "login", label: () => __("Sign In"), anchors: ["login_style"] },
-			// Item 33, and the second entry here whose surface is not on the desk.
+			// Item 33, and the second entry whose surface is not on the desk.
 			// Unlike Sign In an admin CAN load these pages, so the missing live
 			// preview needs a different argument — the picker's docblock makes it.
 			{ key: "web", label: () => __("Website & Portal"), anchors: ["web_style"] },
@@ -1121,72 +1265,11 @@ const BND_SHELL_GROUPS = [
 		],
 	},
 	{
-		// ITEM 36, THE USER'S MAP 1: identity is ONE page in its own group —
-		// name, logo, favicon, tagline AND the colour seeds together. The
-		// Directus co-location (its Appearance page holds colour + logos +
-		// favicon on one surface) extended with the name, because at this scale
-		// (four identity fields, four seeds) a split page just separates the
-		// specimen from half its inputs. The entry anchors THREE sections:
-		// branding, colours, and the generated stylesheet line — brand_css_url
-		// belongs beside the seeds that produce it, not in a "Generated"
-		// section at the bottom of the form where nobody connects the two.
-		group: () => __("Identity"),
-		items: [
-			{
-				key: "identity",
-				label: () => __("Identity"),
-				anchors: ["company_name", "brand_color", "brand_css_url"],
-			},
-		],
-	},
-	{
-		group: () => __("Appearance"),
-		items: [
-			// ITEM 37, AND IT LEADS THE GROUP because it is the control that answers
-			// "what does this desk look like" in one gesture. The entries under it
-			// are the axes a look composes from. The Layout preset below KEEPS its
-			// picker — the five layouts stay one click away — but it no longer stores
-			// a name: it writes the containers and derives its highlight from them,
-			// which is what a preset is supposed to do.
-			{ key: "theme", label: () => __("Theme"), anchors: ["theme_picker"] },
-			{ key: "layout", label: () => __("Layout preset"), anchors: ["layout_picker"] },
-			// Icons (item 23): an axis, beside Colours and Density. Anchored on its
-			// own picker like every other kit; the relocated Selects sit hidden
-			// behind the card picker's controls.
-			{ key: "icons", label: () => __("Icons"), anchors: ["icons_picker"] },
-			// `density_default` has its own section as of the shell work. It used
-			// to share `section_features` with `palette_enabled`, and the
-			// fallback that handles a twice-claimed section handled it — but only
-			// by moving a bare $wrapper out of `.form-column > form`, which severs
-			// the direct-descendant chain Frappe caps input width with
-			// (form.scss `.form-column.col-sm-12 > form > .input-max-width`).
-			// Measured: 636px against every other Select's 273px. The fallback is
-			// still there for the next collision; this one is fixed at the root.
-			{ key: "density", label: () => __("Density"), anchors: ["density_default"] },
-			// Item 38. Not a look but a POLICY about looks: which axes a person
-			// may decide for themselves. It sits under Appearance because that is
-			// what it governs, and the three Checks are visible rather than
-			// picker-driven — the same shape the container toggles use, and one
-			// fewer surface to keep truthful.
-			{ key: "personal", label: () => __("Personalization"), anchors: ["personal_look"] },
-		],
-	},
-	{
-		group: () => __("Language"),
-		items: [
-			{ key: "language", label: () => __("Language"), anchors: ["language_picker"] },
-			// Item 36, the user's direction: language and fonts move out of the
-			// Colours pane into their own place beside Translation. The Arabic
-			// face is the entry's whole surface today; the section is where any
-			// later language-shaped field lands.
-			{ key: "fonts", label: () => __("Language & Fonts"), anchors: ["arabic_font"] },
-			// Renders rather than relocating, like the overview: the surface's
-			// state lives in its own doctypes (Bunood Translation Settings /
-			// Scan / Proposal), not in Theme Settings fields — which is what
-			// keeps the FIELD_PREFIXES guard out of a feature that is not a
-			// desk component.
-			{ key: "translations", label: () => __("Translations"), render: bnd_render_translations },
-		],
+		// The generated stylesheet line: last and collapsible (B2). Its own
+		// entry so the row exists; no heading, and no OWNS entry — nothing in
+		// it is a choice.
+		group: () => "",
+		items: [{ key: "generated", label: () => __("Generated"), anchors: ["brand_css_url"] }],
 	},
 ];
 
@@ -1225,6 +1308,8 @@ function bnd_default_of(field, fallback) {
  * half a preset from a guess.
  */
 let bnd_layout_chrome = null;
+/** The fields whose save rewrites the brand sheet — served by brand.py, never restated (item 43 C3). */
+let bnd_brand_inputs = null;
 //: The other half of a layout: where the tenants go (item 36's picker audit).
 //: `registry.LAYOUT_TENANTS`, served beside the chrome because a layout is
 //: BOTH — every card's blurb names where search, the bell and the profile sit.
@@ -1257,16 +1342,19 @@ let bnd_layout_slots = null;
  * exactly that about — or views over fields another entry also owns (the
  * board, the layout preset), where both claims are true.
  */
-const BND_SHELL_OWNS = {
+const BND_SETTINGS_OWNS = {
 	topbar: { prefixes: ["topbar_"] },
 	pagehead: { prefixes: ["pagehead_"] },
-	sidepane: { prefixes: ["sidebar_"] },
+	// The pane head's quick links (2026-09-14) sit in the side pane band.
+	sidepane: { prefixes: ["sidebar_", "panehead_"] },
 	dock: { prefixes: ["dock_"] },
 	// The bell and the user menu are separate components sharing one picker, so
 	// this entry owns the inbox prefix plus the user menu's placement field.
 	inbox: { prefixes: ["inbox_"] },
 	user: { fields: ["user_placement"] },
 	links: { fields: ["home_placement", "apps_placement"] },
+	// Item 44: the two prefixes ARE the naming rule, like every other kit here.
+	language: { prefixes: ["language_", "appearance_"] },
 	// The board OWNS the five placement fields it draws — deliberately the
 	// same fields the four entries around it own. It is a second view over one
 	// state, so a moved bell lights both its dot and the bell's: both claims
@@ -1278,6 +1366,8 @@ const BND_SHELL_OWNS = {
 			"user_placement",
 			"home_placement",
 			"apps_placement",
+			"language_placement",
+			"appearance_placement",
 			"desk_order",
 		],
 	},
@@ -1289,6 +1379,10 @@ const BND_SHELL_OWNS = {
 	crumbs: { prefixes: ["crumb_"] },
 	list: { prefixes: ["list_"] },
 	form: { prefixes: ["form_"] },
+	// The body kit's three fields, by NAME: the desk_ prefix is already the
+	// placement board's for desk_order, and a prefix claim here would light
+	// two dots for one change.
+	desk: { fields: ["desk_width", "desk_scale", "desk_primary"] },
 	workspace: { prefixes: ["workspace_"] },
 	chart: { prefixes: ["chart_"] },
 	report: { prefixes: ["report_"] },
@@ -1321,13 +1415,15 @@ const BND_SHELL_OWNS = {
 		fields: [
 			"company_name", "logo", "favicon", "tagline",
 			"brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
+			// Served in SHIPPED_EMPTY so the dot compares against "" — and owned by
+			// nobody until the release review of item 43 (a set ground showed no dot).
+			"ground_color",
 		],
 	},
 	// `arabic_font` was the only visible, user-editable Select in the whole
 	// form that NO entry owned (item 36 gave it one in the Colours pane, then
 	// Map 1 moved it here with the field's own section).
 	fonts: { fields: ["arabic_font"] },
-	language: { prefixes: ["language_"] },
 	// The Icons axis owns every icon_* field by prefix — the same rule the
 	// components use, and why build.mjs earns the prefix (item 23).
 	icons: { prefixes: ["icon_"] },
@@ -1335,6 +1431,8 @@ const BND_SHELL_OWNS = {
 	// Prefix rather than fields: the axis is `personal_*` and every field it
 	// grows belongs to this pane by construction (item 38).
 	personal: { prefixes: ["personal_"] },
+	// The phone bar (item 24): the three mobile_* toggles by prefix.
+	mobile: { prefixes: ["mobile_"] },
 };
 
 /**
@@ -1352,7 +1450,7 @@ const BND_SHELL_OWNS = {
  */
 function bnd_changed_fields(key, frm) {
 	if (!bnd_shipped) return [];
-	const spec = BND_SHELL_OWNS[key];
+	const spec = BND_SETTINGS_OWNS[key];
 	if (!spec) return [];
 	const owned = Object.keys(bnd_shipped).filter(
 		(f) =>
@@ -1388,7 +1486,7 @@ function bnd_changed_fields(key, frm) {
  * get the honest two-state, computed by the SAME function the dot uses. One
  * comparison, two renderings — never two comparisons that can disagree.
  */
-function bnd_shell_note(key, frm) {
+function bnd_settings_note(key, frm) {
 	if (!bnd_shipped) return "";
 	// THE THEME ENTRY OWNS NO FIELDS OF ITS OWN — it writes other entries'. So it
 	// is answered BEFORE the ownership guard below, which would otherwise send it
@@ -1402,7 +1500,7 @@ function bnd_shell_note(key, frm) {
 	// An entry that owns no fields has no state to report. The Overview READS
 	// settings; saying "Default" under it claims it has some, and would go on
 	// saying it while every component it shows had been changed.
-	if (!BND_SHELL_OWNS[key]) return "";
+	if (!BND_SETTINGS_OWNS[key]) return "";
 	// Translated HERE, not in the matcher: this is a display string, while the
 	// picker compares the same answer against untranslated card values.
 	if (key === "layout") return bnd_tr_layout(bnd_match_layout(frm));
@@ -1593,7 +1691,876 @@ const BND_DESK_TENANTS = [
 	{ key: "start", field: "start_placement", label: () => __("Start button") },
 	{ key: "home", field: "home_placement", label: () => __("Home link") },
 	{ key: "apps", field: "apps_placement", label: () => __("All apps link") },
+	// Item 44.
+	{ key: "language", field: "language_placement", label: () => __("Language switch") },
+	{ key: "appearance", field: "appearance_placement", label: () => __("Appearance button") },
 ];
+
+/**
+ * The Compose card (item 43 B2): one line naming the look the desk IS — the
+ * matched theme preset, or "Custom" — and the way into the composer. The line
+ * is the theme picker's own derivation (bnd_theme_match over every axis), so
+ * the card and the picker cannot disagree; it reads "Reading the desk…" until
+ * the catalogue has landed.
+ */
+// ════════════════════════════════════════════════════════════════════════════
+// The composer (item 43 C1+C2)
+//
+// A MODE of this form, read once from the address: `/desk/theme-settings?compose`
+// hides every card but Compose and renders, into that card's own host, a rail
+// of decisions — the pick's letters as rows of options — beside a stage. The
+// address is read once at refresh, exactly as the retired `?shell` was:
+// frappe.set_route drops the query, so leaving the mode is a full navigation
+// (the Back link), never a route change.
+//
+// WHY A RAIL AND NOT A SECOND SURFACE. Every row is `P.options` over the kit's
+// OWN option table (BND_FORM_GROUPS, BND_DESK_GROUPS, the style cards) filtered
+// against the field's real Select options, and every click goes through the
+// kit's OWN setter (bnd_form_set …), so the card's picker re-renders and the
+// desk previews exactly as it always has. The rail restates no catalogue and
+// remembers nothing: highlights are DERIVED from frm.doc on every dirty tick,
+// so a value set by a card, a theme preset, an import or the rail itself shows
+// on the rail before any save. Build once, sync many — a re-render would throw
+// away what C3's frames will hold.
+// ════════════════════════════════════════════════════════════════════════════
+
+// LATCHED, once per document. Re-reading the address on every call looked the
+// same until the route left the page: Frappe caches the form hidden, the query
+// is gone from the address, and the next refresh (a landed save's) drew the
+// plain Compose card over the composer — frames destroyed, not parked. The
+// mode is a property of this page load; the Back link is a full navigation.
+let bnd_compose_latched = null;
+function bnd_compose_wanted() {
+	if (bnd_compose_latched === null) bnd_compose_latched = new URLSearchParams(window.location.search).has("compose");
+	return bnd_compose_latched;
+}
+
+/** The bands of the rail, in the order the pick reads: body, form, pages, shape. */
+const BND_COMPOSER_ZONES = [
+	{ key: "body", title: () => __("Desk body"), rows: ["desk_width", "desk_scale", "desk_primary"] },
+	{
+		key: "form",
+		title: () => __("Form"),
+		rows: ["form_style", "form_fields", "form_header", "form_header_tone", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_stage", "form_foot"],
+	},
+	{ key: "pages", title: () => __("Lists & pages"), rows: ["list_style", "workspace_style", "report_style", "chart_grid"] },
+	{ key: "shape", title: () => __("Shape"), rows: ["sidebar_pane_state"] },
+];
+
+/**
+ * One row per decision: the kit table that names it (a group entry carries its
+ * title, its blurb and its options; a style card table carries the options
+ * under a literal title, because a card table has no title of its own), the
+ * setter that writes it, the defaults its reset reads. A FUNCTION, not a
+ * table: the kit tables are declared further down this file, and a top-level
+ * object would read them before they exist.
+ */
+function bnd_composer_catalogue() {
+	const desk = { set: bnd_desk_set, groups: BND_DESK_GROUPS, defaults: BND_DESK_DEFAULTS };
+	const form = { set: bnd_form_set, groups: BND_FORM_GROUPS, defaults: BND_FORM_DEFAULTS };
+	return {
+		desk_width: desk,
+		desk_scale: desk,
+		desk_primary: desk,
+		form_style: { set: bnd_form_set, styles: BND_FORM_STYLES, title: () => __("Sections"), defaults: BND_FORM_DEFAULTS },
+		form_fields: form,
+		form_header: form,
+		form_header_tone: form,
+		form_grid: form,
+		form_tabs: form,
+		form_sidebar: form,
+		form_activity: form,
+		form_stage: form,
+		form_foot: form,
+		list_style: { set: bnd_list_set, styles: BND_LIST_STYLES, title: () => __("Lists"), defaults: BND_LIST_DEFAULTS },
+		workspace_style: { set: bnd_workspace_set, styles: BND_WORKSPACE_STYLES, title: () => __("Workspace"), defaults: BND_WORKSPACE_DEFAULTS },
+		report_style: { set: bnd_report_set, styles: BND_REPORT_STYLES, title: () => __("Data tables"), defaults: BND_REPORT_DEFAULTS },
+		chart_grid: { set: bnd_chart_set, styles: BND_CHART_STYLES, title: () => __("Charts"), defaults: BND_CHART_DEFAULTS },
+		// The sidebar picker's own entry: its option names carry the "pane state"
+		// context ("Open" the state, not the verb), and its Hidden option carries
+		// the reason the pane cannot go while the bell and the profile live in it.
+		sidebar_pane_state: { set: bnd_sb_set, groups: BND_SB_GROUPS, defaults: null },
+	};
+}
+
+/** The value a row shows: the stored one, else what the kit's picker would show. */
+function bnd_composer_value(frm, field, row) {
+	// Through the same normaliser the sidebar card uses: a site still holding a
+	// pre-item-42 pane label highlights Open on both, not on one.
+	return bnd_sb_norm(field, frm.doc[field] || bnd_default_of(field, row.defaults ? row.defaults[field] : "") || "");
+}
+
+let bnd_cmp_tick = 0;
+
+/** The Compose card in either mode: the line and the way in, or the composer. */
+function bnd_render_compose_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "desk_compose", host);
+	if (!$host) return;
+	if (bnd_compose_wanted()) {
+		bnd_render_composer_picker(frm, $host);
+		return;
+	}
+	const name = bnd_theme_cache ? bnd_tr_layout(bnd_theme_match(frm)) : "";
+	const line = name ? __("This desk is {0}.", [name]) : __("Reading the desk…");
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cmp-card">' +
+				'<p class="bnd-cmp-line">' + bnd_esc(line) + "</p>" +
+				'<button type="button" class="btn btn-primary btn-sm bnd-cmp-open">' + bnd_esc(__("Compose")) + "</button>" +
+				"</div>" +
+				P.note(__("The composer shows the real desk beside every decision and writes through the same settings as the cards below."))
+		)
+	);
+	// A full navigation, on purpose: the composer is a MODE of this form read
+	// once from the address, and frappe.set_route drops the query.
+	$host.find(".bnd-cmp-open").on("click", () => {
+		window.location.assign("/desk/theme-settings?compose");
+	});
+}
+
+/** Build once, sync many. */
+function bnd_render_composer_picker(frm, $host) {
+	if (!$host.find(".bnd-cmp").length) bnd_composer_build(frm, $host);
+	bnd_composer_sync(frm);
+	bnd_composer_stage_sync(frm);
+}
+
+function bnd_composer_build(frm, $host) {
+	const cat = bnd_composer_catalogue();
+	const zones = BND_COMPOSER_ZONES.map((z) =>
+		P.zone({
+			key: "cmp-" + z.key,
+			title: z.title(),
+			body: z.rows
+				.map((field) => {
+					const row = cat[field];
+					const g = row.groups ? row.groups.find((x) => x.field === field) : null;
+					const reason = g && g.disabled ? g.disabled(frm) : "";
+					// Filtered against the field's real options — the rule that
+					// retired the status Off-card wedge class of bug.
+					const offered = bnd_field_values(frm, field);
+					// An option's OWN reason (the pane's Hidden while the bell is in it)
+					// counts as much as the group's.
+					const items = (g
+						? g.options.map((o) => ({ value: o.value, name: o.name(), reason: reason || (o.disabled ? o.disabled(frm) : "") }))
+						: row.styles
+						? row.styles.map((s) => ({ value: s.value, name: __(s.value), reason }))
+						: offered.map((v) => ({ value: v, name: __(v), reason }))
+					).filter((i) => !offered.length || offered.includes(i.value));
+					return (
+						'<div class="bnd-cmp-row" data-field="' + bnd_esc(field) + '">' +
+						P.group({
+							title: g ? g.title() : row.title(),
+							desc: g && g.desc ? g.desc() : "",
+							field,
+							resetCls: "bnd-cmp-reset",
+							off: !!reason,
+							body: P.options(items, { field, value: bnd_composer_value(frm, field, row) }),
+						}) +
+						"</div>"
+					);
+				})
+				.join(""),
+		})
+	).join("");
+	$host.html(
+		P.wrap(
+			'<div class="bnd-cmp-wrap"><div class="bnd-cmp">' +
+				'<div class="bnd-cmp-head">' +
+				'<p class="bnd-cmp-line"></p>' +
+				'<a class="btn btn-default btn-sm bnd-cmp-back" href="/desk/theme-settings">' + bnd_esc(__("Back to settings")) + "</a>" +
+				"</div>" +
+				'<nav class="bnd-cmp-rail" aria-label="' + bnd_esc(__("Decisions")) + '">' +
+				zones +
+				'<div class="bnd-cmp-linebox"><code class="bnd-cmp-linetext"></code>' +
+				'<button type="button" class="btn btn-default btn-xs bnd-cmp-copy">' + bnd_esc(__("Copy")) + "</button></div>" +
+				"</nav>" +
+				'<section class="bnd-cmp-stage" aria-label="' + bnd_esc(__("Preview")) + '"></section>' +
+				"</div></div>"
+		)
+	);
+	// The current value named beside each title; hover previews a name there.
+	$host.find(".bnd-cmp-row .bnd-cbp-title").append('<span class="bnd-cmp-cur"></span>');
+	bnd_composer_build_stage(frm, $host.find(".bnd-cmp-stage"));
+
+	// DELEGATED, ONCE. A click re-renders nothing here: the kit's setter does
+	// the work (the hidden card's picker, the desk) and the dirty tick below
+	// re-derives every highlight. Reset chips declare their class for the
+	// build's reset guard (the inbox picker's precedent).
+	$host
+		.off(".bndcompose")
+		.on("click.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			if (this.hasAttribute("disabled")) return;
+			bnd_composer_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+		})
+		.on("click.bndcompose", ".bnd-cmp .bnd-cmp-reset[data-field]", function (e) {
+			e.stopPropagation();
+			const f = this.getAttribute("data-field");
+			const row = bnd_composer_catalogue()[f];
+			bnd_composer_set(frm, f, bnd_default_of(f, row.defaults ? row.defaults[f] : ""));
+		})
+		.on("mouseenter.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), this.querySelector(".bnd-cbp-oname").textContent);
+		})
+		.on("mouseleave.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), null);
+		})
+		// The keyboard gets the same naming as the pointer: an option under
+		// focus is named in its row, exactly as one under the cursor is.
+		.on("focusin.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), this.querySelector(".bnd-cbp-oname").textContent);
+		})
+		.on("focusout.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
+			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), null);
+		})
+		.on("click.bndcompose", ".bnd-cmp-copy", function () {
+			const text = $host.find(".bnd-cmp-linetext").text();
+			const done = () => frappe.show_alert({ message: __("Copied"), indicator: "green" });
+			if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done);
+			else frappe.msgprint(text);
+		});
+
+	// The highlights follow the DOCUMENT, whoever wrote it: frm.dirty() fires on
+	// every set_value (a theme card is ~120 of them), coalesced to one frame.
+	frm.$wrapper.off("dirty.bndcompose").on("dirty.bndcompose", () => {
+		if (bnd_cmp_tick) return;
+		bnd_cmp_tick = requestAnimationFrame(() => {
+			bnd_cmp_tick = 0;
+			bnd_composer_sync(frm);
+			bnd_composer_push_all(frm);
+			bnd_composer_strip_push_all(frm);
+			bnd_composer_strip_sync(frm);
+		});
+	});
+	// Colour reaches the desk only through the brand sheet on_update writes
+	// (content-hashed): a landed save naming a brand input reloads the frames.
+	frm.$wrapper.off("bnd:saved.bndcompose").on("bnd:saved.bndcompose", (e, mine) => {
+		const inputs = bnd_brand_inputs || [];
+		if (!Object.keys(mine || {}).some((f) => inputs.includes(f))) return;
+		// BOTH FRAME FAMILIES. The strip's cells are `.bnd-cmp-cellframe`, which
+		// `.bnd-cmp-frame` does not match, so a landed brand save repainted the
+		// stage onto the new content-hashed sheet and left every compare cell on
+		// the old one — a strip whose whole job is to show the same desk with one
+		// field changed, showing two different brands instead.
+		for (const frame of frm.$wrapper.find(".bnd-cmp-frame, .bnd-cmp-cellframe")) {
+			if (frame.contentWindow && frame.getAttribute("data-bnd-route")) {
+				frame.removeAttribute("data-bnd-route");
+				frame.contentWindow.location.reload();
+			}
+		}
+	});
+}
+
+/** One field through its kit's setter — the same path a card click takes. */
+function bnd_composer_set(frm, field, value) {
+	const row = bnd_composer_catalogue()[field];
+	if (!row) return;
+	row.set(frm, field, value);
+	bnd_composer_touch(frm, field);
+}
+
+/** The name beside a row's title: the hovered option's, else the current one's. */
+function bnd_composer_name(frm, rowNode, hovered) {
+	if (!rowNode) return;
+	const cur = rowNode.querySelector(".bnd-cmp-cur");
+	if (!cur) return;
+	if (hovered !== null) {
+		cur.textContent = hovered;
+		return;
+	}
+	const on = rowNode.querySelector(".bnd-cbp-opt.bnd-cbp-on .bnd-cbp-oname");
+	cur.textContent = on ? on.textContent : "";
+}
+
+/** Re-derive every highlight and the line from frm.doc. */
+function bnd_composer_sync(frm) {
+	const $cmp = frm.$wrapper.find(".bnd-cmp");
+	if (!$cmp.length) return;
+	const cat = bnd_composer_catalogue();
+	$cmp.find(".bnd-cmp-row").each(function () {
+		const field = this.getAttribute("data-field");
+		const value = bnd_composer_value(frm, field, cat[field]);
+		for (const b of this.querySelectorAll(".bnd-cbp-opt")) {
+			const on = b.getAttribute("data-value") === value;
+			b.classList.toggle("bnd-cbp-on", on);
+			b.setAttribute("aria-pressed", on ? "true" : "false");
+		}
+		if (!this.matches(":hover")) bnd_composer_name(frm, this, null);
+	});
+	const line = bnd_composer_line(frm);
+	$cmp.find(".bnd-cmp-line").text(line.head);
+	$cmp.find(".bnd-cmp-linetext").text(line.text);
+}
+
+/**
+ * The line: the matched look's name (the theme picker's own derivation, so the
+ * two cannot disagree), then every decision as `field value` — untranslated
+ * values on purpose, because the line is for pasting back, not for reading.
+ */
+function bnd_composer_line(frm) {
+	const name = bnd_theme_cache ? bnd_tr_layout(bnd_theme_match(frm)) : "";
+	const cat = bnd_composer_catalogue();
+	const parts = BND_COMPOSER_ZONES.flatMap((z) => z.rows).map((f) => f + " " + bnd_composer_value(frm, f, cat[f]));
+	return {
+		head: name ? __("This desk is {0}.", [name]) : __("Reading the desk…"),
+		text: [name || __("Custom")].concat(parts).join(" · "),
+	};
+}
+
+// ── The stage (item 43 C3) ─────────────────────────────────────────────────
+//
+// A REAL DESK PAGE, SCALED. The stage is a same-origin iframe of the desk —
+// never a mock — kept at 1440×900 CSS px and drawn at `--bnd-cmp-scale` (the
+// clip's width over 1440, set by a ResizeObserver). Pages come from the server
+// (`api.composer_pages`: the latest record of each doctype, the new-document
+// route when there is none, a REASON when the doctype is absent — drawn greyed,
+// never hidden). Navigation is `location.replace`, and the frame's history
+// API is shimmed at load so in-frame routing never writes the joint history.
+//
+// THE SEAM. At the frame's load, and again on its router change / page-change /
+// form-refresh, the frame's OWN engine (`fw.bunood_theme`) is handed the FORM's
+// values: the sixteen previews with `engine` (the form's packers normalise, the
+// frame's kits stamp), the shape (containers + placements + search + the pane
+// state) through `shape_apply`, the language style, the phone bar, and the
+// SITE density (`set_density("", {save:false})`) — so the frame shows the
+// setting, never the admin's personal comfort. `dirty` pushes the same seam
+// again, coalesced with the rail's sync. Colour cannot be previewed
+// client-side: brand inputs reach the desk only through `on_update`'s brand
+// sheet, so a landed save that touched one (`bnd:saved`) reloads the frames.
+//
+// `?compare=0` disables every frame — the suite, the sweep and the axe scan
+// pass it, so nobody pays for a 1440×900 desk they did not ask for.
+
+let bnd_compare_latched = null;
+function bnd_compare_wanted() {
+	if (bnd_compare_latched === null) bnd_compare_latched = new URLSearchParams(window.location.search).get("compare") !== "0";
+	return bnd_compare_latched;
+}
+
+let bnd_cmp_pages = null; // the server's answer, once per form session
+let bnd_cmp_page = ""; // the page on the stage
+let bnd_cmp_ro = null; // the clip's ResizeObserver
+
+/** The five container toggles + every placement + search + the pane state: the SHAPE. */
+const BND_COMPOSER_SHAPE = [
+	"topbar_enabled", "pagehead_enabled", "bottombar_enabled", "dock_enabled", "sidebar_enabled",
+	"inbox_placement", "user_placement", "start_placement", "home_placement", "apps_placement",
+	"language_placement", "appearance_placement", "search_placement", "sidebar_pane_state",
+];
+
+/** Everything the frame's engine is told, in order. Idempotent. */
+function bnd_composer_push_frame(frm, frame) {
+	const fw = frame && frame.contentWindow;
+	const E = fw && fw.bunood_theme;
+	if (!E || !fw.frappe || !fw.frappe.boot) return false;
+	bnd_all_previews(frm, E);
+	if (typeof E.shape_apply === "function") {
+		const values = {};
+		for (const f of BND_COMPOSER_SHAPE) values[f] = frm.doc[f];
+		values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
+		const shape = bnd_match_layout(frm);
+		E.shape_apply(values, shape === "Custom" ? "" : shape);
+	}
+	if (typeof E.language_apply === "function") E.language_apply({ language_style: frm.doc.language_style });
+	if (typeof E.panehead_apply === "function") E.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
+	if (typeof E.mobile_apply === "function") {
+		E.mobile_apply({ mobile_inbox: frm.doc.mobile_inbox, mobile_user: frm.doc.mobile_user, mobile_apps: frm.doc.mobile_apps });
+	}
+	if (typeof E.set_density === "function") E.set_density("", { save: false });
+	// The frame's router may not have routed yet at `load` (measured: the
+	// second cell of a strip); the mark is left off and the seam runs again on
+	// the frame's own router change, which is when the mark is true.
+	const r = fw.frappe.get_route ? fw.frappe.get_route() : null;
+	if (Array.isArray(r) && r.length) frame.setAttribute("data-bnd-route", r.join("/"));
+	return true;
+}
+
+/** Bind the frame's own events once per document it loads. */
+function bnd_composer_frame_loaded(frm, frame) {
+	const fw = frame.contentWindow;
+	if (!fw || !fw.frappe) return;
+	// NEVER THE JOINT HISTORY: in-frame routing replaces instead of pushing, so
+	// the composer's Back button is the browser's Back, not the frame's.
+	if (fw.history && !fw.__bnd_shimmed) {
+		fw.history.pushState = fw.history.replaceState.bind(fw.history);
+		fw.__bnd_shimmed = true;
+	}
+	const push = () => {
+		try {
+			bnd_composer_push_frame(frm, frame);
+		} catch (e) {
+			console.error("bunood_theme composer stage", e); // eslint-disable-line no-console
+		}
+	};
+	push();
+	if (fw.frappe.router && fw.frappe.router.on) fw.frappe.router.on("change", push);
+	if (fw.jQuery) fw.jQuery(fw.document).on("page-change form-refresh", push);
+}
+
+/** Navigate the stage to a page, or park it (`about:blank`). */
+/**
+ * The composer page is on screen — not a cached page Frappe hid. A frame must
+ * NEVER boot inside a hidden page: its window is 0px wide there, Frappe's
+ * `is_mobile()` reads that as a phone and writes `sidebar-expanded=false` into
+ * the browser storage the frames SHARE with the desk — and every fresh load
+ * of the real desk then boots with its pane collapsed. Measured 2026-09-10: a
+ * save landing 2.4s after the page hid refreshed the hidden form, its sync sent
+ * the parked stage back to Home, and the map's rows sat in a rail menu for the
+ * next sixty checks, none naming it.
+ */
+function bnd_composer_shown(frm) {
+	const el = frm.page && frm.page.wrapper && frm.page.wrapper[0];
+	return !!el && el.getClientRects().length > 0;
+}
+
+function bnd_composer_navigate(frm, route) {
+	const frame = frm.$wrapper.find(".bnd-cmp-frame")[0];
+	if (!frame || !frame.contentWindow) return;
+	if (route && !bnd_composer_shown(frm)) return; // stays parked; `show` sends it back
+	const url = route ? window.location.origin + route : "about:blank";
+	// The mark is the NEW document's, stamped by the seam at its load; a stale
+	// one would read as "ready" through the whole navigation.
+	frame.removeAttribute("data-bnd-route");
+	frame.contentWindow.location.replace(url);
+	if (!route) bnd_cmp_queue = null;
+}
+
+/** Every live frame is told the form's values again (the dirty tick). */
+function bnd_composer_push_all(frm) {
+	for (const frame of frm.$wrapper.find(".bnd-cmp-frame")) {
+		if (frame.getAttribute("data-bnd-route")) bnd_composer_push_frame(frm, frame);
+	}
+}
+
+/** The page buttons: current pressed, absent greyed with the reason, plus Open ↗. */
+function bnd_composer_render_pages(frm) {
+	const $stage = frm.$wrapper.find(".bnd-cmp-stage");
+	if (!$stage.length || !bnd_cmp_pages) return;
+	const pages = bnd_cmp_pages;
+	if (!bnd_cmp_page) {
+		const first = pages.find((p) => p.route);
+		bnd_cmp_page = first ? first.key : "";
+	}
+	const buttons = pages
+		.map(
+			(p) =>
+				'<button type="button" class="bnd-cbp-opt bnd-cmp-page' + (p.key === bnd_cmp_page ? " bnd-cbp-on" : "") + (p.reason ? " bnd-cbp-dis" : "") +
+				'" data-page="' + bnd_esc(p.key) + '" aria-pressed="' + (p.key === bnd_cmp_page ? "true" : "false") + '"' +
+				(p.reason ? ' disabled title="' + bnd_esc(p.reason) + '"' : "") + ">" +
+				bnd_esc(p.label) +
+				"</button>"
+		)
+		.join("");
+	const current = pages.find((p) => p.key === bnd_cmp_page);
+	// The frame is named for the page it shows — a reader's list of frames
+	// says "Preview: Home", not "Preview" ten times.
+	$stage.find(".bnd-cmp-frame").attr("title", current ? __("Preview: {0}", [current.label]) : __("Preview"));
+	$stage.find(".bnd-cmp-pages").html(
+		'<div class="bnd-cbp-row">' + buttons + "</div>" +
+			(current && current.route
+				? '<a class="bnd-cmp-open-page" href="' + bnd_esc(current.route) + '" target="_blank" rel="noopener">' + bnd_esc(__("Open at full size: {0}", [current.label])) + "</a>"
+				: "")
+	);
+}
+
+/** The stage's one-time build: the switcher host, the clip, the frame. */
+function bnd_composer_build_stage(frm, $stage) {
+	if (!bnd_compare_wanted()) {
+		$stage.html(P.note(__("Frames are off (compare=0): the desk you are on is the preview.")));
+		return;
+	}
+	$stage.html(
+		'<div class="bnd-cmp-pages"></div>' +
+			'<div class="bnd-cmp-clip"><iframe class="bnd-cmp-frame" tabindex="-1" title="' + bnd_esc(__("Preview")) + '"></iframe></div>'
+	);
+	const frame = $stage.find(".bnd-cmp-frame")[0];
+	frame.addEventListener("load", () => {
+		if (frame.contentWindow && frame.contentWindow.location.href !== "about:blank") bnd_composer_frame_loaded(frm, frame);
+	});
+	// The scale follows the clip's width: 1440 CSS px drawn into whatever the
+	// column gives. Declared in the sheet, overridden here — the runtime's own
+	// value, on the element where it is read.
+	const clip = $stage.find(".bnd-cmp-clip")[0];
+	if (bnd_cmp_ro) bnd_cmp_ro.disconnect();
+	bnd_cmp_ro = new ResizeObserver(() => {
+		const w = clip.getBoundingClientRect().width;
+		if (w > 0) clip.style.setProperty("--bnd-cmp-scale", String(Math.min(1, w / 1440)));
+	});
+	bnd_cmp_ro.observe(clip);
+	// Pages: fetched once, greyed with a reason when absent.
+	const load = bnd_cmp_pages ? Promise.resolve(bnd_cmp_pages) : frappe.xcall("bunood_theme.api.composer_pages").then((d) => (bnd_cmp_pages = (d && d.pages) || []));
+	load.then(() => {
+		bnd_composer_render_pages(frm);
+		const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+		if (current && current.route) bnd_composer_navigate(frm, current.route);
+	});
+	$stage.off(".bndstage").on("click.bndstage", ".bnd-cmp-page", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_cmp_page = this.getAttribute("data-page");
+		bnd_composer_render_pages(frm);
+		const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+		if (current && current.route) bnd_composer_navigate(frm, current.route);
+	});
+	// PARKED when the page hides (Frappe fires `hide` on the outgoing page and
+	// keeps it in the DOM): a cached display:none page would keep a desk
+	// running. Refresh on the way back rebuilds nothing and re-navigates.
+	frm.page.wrapper.off("hide.bndstage").on("hide.bndstage", () => {
+		bnd_composer_navigate(frm, "");
+		bnd_composer_strip_park(frm);
+	});
+	// The way back — Frappe fires `show` on the incoming page once it is
+	// visible: the stage returns to its page and the strip, if one was up, is
+	// drawn again. From HERE, never from a refresh that lands while hidden.
+	frm.page.wrapper.off("show.bndstage").on("show.bndstage", () => {
+		bnd_composer_stage_sync(frm);
+		if (bnd_cmp_touched) bnd_composer_render_strip(frm);
+	});
+	bnd_composer_render_compare_switch(frm, $stage);
+}
+
+/** On every refresh: a parked frame is sent back to its page. */
+function bnd_composer_stage_sync(frm) {
+	const frame = frm.$wrapper.find(".bnd-cmp-frame")[0];
+	if (!frame || !bnd_cmp_pages) return;
+	const current = bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+	const parked = !frame.getAttribute("data-bnd-route") && frame.contentWindow && frame.contentWindow.location.href === "about:blank";
+	if (parked && current && current.route) bnd_composer_navigate(frm, current.route);
+}
+
+// ── The compare strip (item 43 C4) ─────────────────────────────────────────
+//
+// THE DECISION YOU LAST TOUCHED, EVERY WAY IT COULD GO. A rail click marks its
+// field as touched (`data-bnd-touch` on the composer — gesture state, never
+// document state), and a strip under the stage frame draws one cell per value
+// the field offers: each a same-origin desk frame at the stage's own scale,
+// pushed the FORM's values with that ONE field replaced, scrolled to the
+// element the decision governs. The current value's cell is marked; every
+// other cell's "Use this" goes through the kit's setter like any rail chip.
+//
+// CELLS ARE REUSED ACROSS DECISIONS: a frame on the same route is re-pushed
+// and re-focused, never navigated; a decision whose page differs (lists live
+// on the list, workspaces on a workspace) navigates the stage and the cells
+// together, one after another so the machine stays answerable. The Compare
+// switch parks the strip; `?compare=0` never builds it; Frappe's `hide` parks
+// every frame with the stage's.
+
+/** Where a decision is SEEN, and what to scroll its cell to. */
+const BND_COMPOSER_FOCUS = {
+	desk_width: { pages: null, sel: ".std-form-layout, .layout-main-section" },
+	desk_scale: { pages: null, sel: ".form-layout .form-section, .layout-main-section" },
+	desk_primary: { pages: null, sel: ".page-actions, .bnd-docfoot" },
+	form_style: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-layout .form-section" },
+	form_fields: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-layout .frappe-control[data-fieldtype='Data'], .form-layout .frappe-control" },
+	form_header: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".bnd-dochead, .page-head" },
+	form_header_tone: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".bnd-dochead, .page-head" },
+	form_grid: { pages: ["invoice"], sel: ".form-grid" },
+	form_tabs: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-tabs-list, .form-layout" },
+	form_sidebar: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".layout-side-section" },
+	form_activity: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".form-footer, .bnd-drawer-toggle" },
+	form_stage: { pages: ["invoice"], sel: ".bnd-stagepath, .bnd-dochead, .page-head" },
+	form_foot: { pages: ["invoice", "customer", "settings", "ticket", "crm"], sel: ".bnd-docfoot, .page-actions" },
+	list_style: { pages: ["list"], sel: ".result, .frappe-list" },
+	workspace_style: { pages: ["home", "workspace"], sel: ".ce-block .widget, .layout-main-section" },
+	report_style: { pages: ["report"], sel: ".datatable .dt-scrollable, .datatable" },
+	chart_grid: { pages: ["dashboard"], sel: ".widget-group-body, .chart-container" },
+	sidebar_pane_state: { pages: null, sel: ".body-sidebar-container, .page-head" },
+};
+
+let bnd_cmp_compare = true; // the Compare switch: a gesture, per page load
+let bnd_cmp_touched = ""; // the decision the strip draws
+let bnd_cmp_scrolled_for = ""; // the decision the stage last scrolled its strip in for
+let bnd_cmp_queue = null; // cells still to load, one after another
+
+/** The form with ONE field replaced — what a cell is pushed. It INHERITS the
+ *  form (get_field, fields_dict, the wrapper) and owns only the document, so
+ *  the previews and the layout matcher read it exactly as they read the form. */
+function bnd_composer_variant(frm, field, value) {
+	return Object.create(frm, { doc: { value: Object.assign({}, frm.doc, { [field]: value }), enumerable: true } });
+}
+
+/** The values a strip draws for a field: the rail's own items, in the rail's order. */
+function bnd_composer_strip_values(frm, field) {
+	return [...frm.$wrapper.find('.bnd-cmp-row[data-field="' + field + '"] .bnd-cbp-opt:not([disabled])')].map((b) => ({
+		value: b.getAttribute("data-value"),
+		name: b.querySelector(".bnd-cbp-oname").textContent,
+	}));
+}
+
+/** The page a decision should be seen on: the stage's, if that page shows it; else its first. */
+function bnd_composer_page_for(field) {
+	const spec = BND_COMPOSER_FOCUS[field];
+	if (!spec || !spec.pages || !bnd_cmp_pages) return bnd_cmp_page;
+	if (spec.pages.includes(bnd_cmp_page)) return bnd_cmp_page;
+	const first = spec.pages.map((k) => bnd_cmp_pages.find((p) => p.key === k && p.route)).find(Boolean);
+	return first ? first.key : bnd_cmp_page;
+}
+
+/** A rail click touched a decision: draw (or redraw) its strip. */
+function bnd_composer_touch(frm, field) {
+	const $cmp = frm.$wrapper.find(".bnd-cmp");
+	if (!$cmp.length || !bnd_compare_wanted() || !bnd_cmp_compare || !bnd_cmp_pages) return;
+	$cmp.attr("data-bnd-touch", field);
+	bnd_cmp_touched = field;
+	const page = bnd_composer_page_for(field);
+	if (page !== bnd_cmp_page) {
+		bnd_cmp_page = page;
+		bnd_composer_render_pages(frm);
+		const current = bnd_cmp_pages.find((p) => p.key === page);
+		if (current && current.route) bnd_composer_navigate(frm, current.route);
+	}
+	bnd_composer_render_strip(frm);
+}
+
+/** Build or reuse the cells for the touched decision, then load them one after another. */
+function bnd_composer_render_strip(frm) {
+	const $stage = frm.$wrapper.find(".bnd-cmp-stage");
+	const field = bnd_cmp_touched;
+	if (!$stage.length || !field) return;
+	let $strip = $stage.find(".bnd-cmp-strip");
+	if (!$strip.length) {
+		$strip = $('<section class="bnd-cmp-strip" aria-label="' + bnd_esc(__("Compare")) + '"><div class="bnd-cmp-striphead"></div><div class="bnd-cmp-cells"></div></section>');
+		$stage.append($strip);
+	}
+	$stage.attr("data-bnd-comparing", field);
+	// ONCE PER TOUCH, the stage's own scroller shows the whole strip: the stage
+	// is bounded and scrolls itself, and at 1366x768 the strip sat entirely
+	// under the fold, so a touch looked like nothing had happened. Only as far
+	// as the strip's foot needs, never past its head, and never the host page.
+	if (bnd_cmp_scrolled_for !== field) {
+		bnd_cmp_scrolled_for = field;
+		const stage = $stage[0], strip = $strip[0];
+		requestAnimationFrame(() => {
+			const sr = strip.getBoundingClientRect(), tr = stage.getBoundingClientRect();
+			const under = sr.bottom - tr.bottom;
+			if (under > 0) stage.scrollTo({ top: stage.scrollTop + Math.min(under + 8, Math.max(0, sr.top - tr.top)), behavior: bnd_scroll_behavior() });
+		});
+	}
+	const row = frm.$wrapper.find('.bnd-cmp-row[data-field="' + field + '"] .bnd-cbp-title');
+	const title = row.length ? row[0].childNodes[0].textContent.trim() : field;
+	$strip.find(".bnd-cmp-striphead").text(__("Comparing: {0}", [title]));
+	const values = bnd_composer_strip_values(frm, field);
+	const $cells = $strip.find(".bnd-cmp-cells");
+	const existing = [...$cells.children(".bnd-cmp-cell")];
+	// One cell per value; spare cells park, missing cells are made.
+	values.forEach((v, i) => {
+		let cell = existing[i];
+		if (!cell) {
+			cell = $(
+				// The bar FIRST: a reader meets the value's name and its control
+				// before a preview it cannot use, and a toast rising under the
+				// frame no longer covers the control. The clip is inert — a cell
+				// is a picture of a desk, not a desk to tab into; the stage frame
+				// is the one that stays reachable.
+				'<div class="bnd-cmp-cell"><div class="bnd-cmp-cellbar"><span class="bnd-cmp-cellname"></span>' +
+					'<button type="button" class="bnd-cbp-opt bnd-cmp-use" data-field="" data-value=""><span class="bnd-cbp-oname">' + bnd_esc(__("Use this")) + "</span></button></div>" +
+					'<div class="bnd-cmp-cellclip" inert><iframe class="bnd-cmp-cellframe" tabindex="-1" title=""></iframe></div></div>'
+			)[0];
+			$cells.append(cell);
+			const frame = cell.querySelector(".bnd-cmp-cellframe");
+			frame.addEventListener("load", () => bnd_composer_cell_loaded(frm, cell));
+		}
+		cell.setAttribute("data-value", v.value);
+		cell.querySelector(".bnd-cmp-cellname").textContent = v.name;
+		cell.querySelector(".bnd-cmp-cellframe").setAttribute("title", __("Preview: {0}", [v.name]));
+		const use = cell.querySelector(".bnd-cmp-use");
+		use.setAttribute("data-field", field);
+		use.setAttribute("data-value", v.value);
+		// Five buttons all reading "Use this" are one button to a reader.
+		use.setAttribute("aria-label", __("Use this: {0}", [v.name]));
+		cell.hidden = false;
+	});
+	for (const spare of existing.slice(values.length)) {
+		spare.hidden = true;
+		bnd_composer_cell_park(spare);
+	}
+	bnd_composer_strip_sync(frm);
+	// A new decision starts at its first cell: the strip's scroll is the
+	// previous decision's otherwise (read off a screenshot).
+	$cells[0].scrollLeft = 0;
+	// Load in order: a cell already on the stage's route is re-pushed in place.
+	bnd_cmp_queue = [...$cells.children(".bnd-cmp-cell:not([hidden])")];
+	bnd_composer_load_next(frm);
+}
+
+function bnd_composer_cell_park(cell) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	clearTimeout(cell.__bnd_wait); // a parked cell hands no turn on
+	clearTimeout(cell.__bnd_focus); // …and chases no element in a parked frame
+	frame.removeAttribute("data-bnd-route");
+	if (frame.contentWindow) frame.contentWindow.location.replace("about:blank");
+}
+
+/** The stage's route today, from the page the switcher marks. */
+function bnd_composer_stage_route() {
+	const current = bnd_cmp_pages && bnd_cmp_pages.find((p) => p.key === bnd_cmp_page);
+	return current && current.route ? current.route : "";
+}
+
+function bnd_composer_load_next(frm) {
+	if (!bnd_cmp_queue || !bnd_cmp_queue.length) return;
+	if (!bnd_composer_shown(frm)) return; // a hidden page boots no frame (bnd_composer_shown)
+	const cell = bnd_cmp_queue.shift();
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const route = bnd_composer_stage_route();
+	if (!route) return;
+	const fw = frame.contentWindow;
+	const onRoute = fw && fw.location && fw.location.pathname === route.split("?")[0] && frame.getAttribute("data-bnd-route");
+	if (onRoute) {
+		// Same route: re-push the variant, re-focus, move on.
+		bnd_composer_cell_push(frm, cell);
+		bnd_composer_load_next(frm);
+		return;
+	}
+	frame.removeAttribute("data-bnd-route");
+	fw.location.replace(window.location.origin + route);
+	// `load` continues the queue (bnd_composer_cell_loaded); a load that never
+	// comes (a hung request) hands the turn on after a minute rather than never.
+	clearTimeout(cell.__bnd_wait);
+	cell.__bnd_wait = setTimeout(() => bnd_composer_load_next(frm), 60000);
+}
+
+/** A cell's document arrived: shim, push its variant, focus, continue the queue. */
+function bnd_composer_cell_loaded(frm, cell) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const fw = frame.contentWindow;
+	if (!fw || fw.location.href === "about:blank") return; // parked, not a load step
+	clearTimeout(cell.__bnd_wait);
+	// A document without Frappe (a 504 on a cold backend) still ENDS this
+	// cell's turn — the queue must never stall on one cell.
+	if (fw.frappe) {
+		if (fw.history && !fw.__bnd_shimmed) {
+			fw.history.pushState = fw.history.replaceState.bind(fw.history);
+			fw.__bnd_shimmed = true;
+		}
+		// A push that throws must not stall the queue (it did: the whole strip
+		// behind one cell).
+		const push = () => {
+			try {
+				bnd_composer_cell_push(frm, cell);
+			} catch (e) {
+				console.error("bunood_theme composer cell", e); // eslint-disable-line no-console
+			}
+		};
+		push();
+		if (fw.frappe.router && fw.frappe.router.on) fw.frappe.router.on("change", push);
+		if (fw.jQuery) fw.jQuery(fw.document).on("page-change form-refresh", push);
+	}
+	bnd_composer_load_next(frm);
+}
+
+/** Push the cell's variant document and scroll its frame to the decision's element. */
+function bnd_composer_cell_push(frm, cell) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const field = bnd_cmp_touched;
+	const value = cell.getAttribute("data-value");
+	if (!field || value === null) return;
+	if (!bnd_composer_push_frame(bnd_composer_variant(frm, field, value), frame)) return;
+	bnd_composer_cell_focus(cell, field);
+}
+
+/**
+ * Focus: the element the decision governs, scrolled to the top of its own
+ * scroller (reaches nested ones), then the frame translated by the DELTA
+ * between the element's rect and the clip's — never a named side, so an RTL
+ * frame mirrors on its own. The sticky page head is left above the element.
+ */
+function bnd_composer_cell_focus(cell, field) {
+	const frame = cell.querySelector(".bnd-cmp-cellframe");
+	const fw = frame.contentWindow;
+	const spec = BND_COMPOSER_FOCUS[field];
+	if (!fw || !spec) return;
+	// ONE CHAIN PER CELL. A push arrives from the dirty tick, from the frame's
+	// own router-change and page-change handlers, and from each load — so
+	// without this every push started another self-rescheduling retry, and two
+	// chains on one cell wrote `frame.style.translate` from rects measured at
+	// different moments. Cleared here and in `bnd_composer_cell_park`, beside
+	// the queue's own timer.
+	clearTimeout(cell.__bnd_focus);
+	const settle = (tries) => {
+		const el = fw.document.querySelector(spec.sel);
+		if (!el) {
+			if (tries > 0) cell.__bnd_focus = setTimeout(() => settle(tries - 1), 250);
+			return;
+		}
+		// Scrolled within the FRAME's own scroller — the nearest scrollable
+		// ancestor (a report's .dt-scrollable), else its document. scrollIntoView
+		// would also scroll every ANCESTOR frame, and the host page jumped to
+		// the cell on every load (read off the screen, item 43 review).
+		const doc = fw.document.scrollingElement || fw.document.documentElement;
+		let scroller = doc;
+		for (let n = el.parentElement; n && n !== fw.document.body; n = n.parentElement) {
+			const o = fw.getComputedStyle(n).overflowY;
+			if ((o === "auto" || o === "scroll") && n.scrollHeight > n.clientHeight) {
+				scroller = n;
+				break;
+			}
+		}
+		const base = scroller === doc ? 0 : scroller.getBoundingClientRect().top;
+		scroller.scrollTop += el.getBoundingClientRect().top - base;
+		const head = fw.document.querySelector(".page-head");
+		const headH = head ? head.getBoundingClientRect().height : 0;
+		const top = el.getBoundingClientRect().top;
+		const scale = parseFloat(getComputedStyle(cell.querySelector(".bnd-cmp-cellclip")).getPropertyValue("--bnd-cmp-scale")) || 0.5;
+		const dy = Math.max(0, top - headH);
+		frame.style.translate = "0 " + -(dy * scale) + "px";
+		cell.setAttribute("data-bnd-focus", spec.sel.split(",")[0].trim());
+	};
+	settle(12);
+}
+
+/** The current value's cell is marked; the switch and the strip follow the gesture. */
+function bnd_composer_strip_sync(frm) {
+	const $cmp = frm.$wrapper.find(".bnd-cmp");
+	if (!$cmp.length || !bnd_cmp_touched) return;
+	const cat = bnd_composer_catalogue();
+	const current = bnd_composer_value(frm, bnd_cmp_touched, cat[bnd_cmp_touched]);
+	for (const cell of $cmp.find(".bnd-cmp-cell")) {
+		const on = cell.getAttribute("data-value") === current;
+		cell.classList.toggle("bnd-cmp-cell-on", on);
+		const use = cell.querySelector(".bnd-cmp-use");
+		use.classList.toggle("bnd-cbp-on", on);
+		use.setAttribute("aria-pressed", on ? "true" : "false");
+	}
+}
+
+/** Every live cell is told the form again (the dirty tick), its own field replaced. */
+function bnd_composer_strip_push_all(frm) {
+	if (!bnd_cmp_touched) return;
+	for (const cell of frm.$wrapper.find(".bnd-cmp-cell:not([hidden])")) {
+		const frame = cell.querySelector(".bnd-cmp-cellframe");
+		if (frame.getAttribute("data-bnd-route")) bnd_composer_cell_push(frm, cell);
+	}
+}
+
+/** Park every cell (Frappe's hide, the Compare switch off). */
+function bnd_composer_strip_park(frm) {
+	for (const cell of frm.$wrapper.find(".bnd-cmp-cell")) bnd_composer_cell_park(cell);
+	bnd_cmp_queue = null;
+}
+
+/** The Compare switch in the stage's head. */
+function bnd_composer_render_compare_switch(frm, $stage) {
+	if (!bnd_compare_wanted()) return;
+	const $sw = $(
+		'<button type="button" class="bnd-cbp-toggle bnd-cmp-compare" role="switch" aria-checked="' + (bnd_cmp_compare ? "true" : "false") + '">' +
+			'<span class="bnd-cbp-knob' + (bnd_cmp_compare ? " bnd-cbp-knob-on" : "") + '"></span>' +
+			"<span><b>" + bnd_esc(__("Compare")) + "</b><br><span class='bnd-cbp-blurb'>" + bnd_esc(__("Every value of the decision you last touched, side by side.")) + "</span></span>" +
+			"</button>"
+	);
+	$stage.find(".bnd-cmp-pages").before($sw);
+	$sw.on("click", () => {
+		bnd_cmp_compare = !bnd_cmp_compare;
+		$sw.attr("aria-checked", bnd_cmp_compare ? "true" : "false");
+		$sw.find(".bnd-cbp-knob").toggleClass("bnd-cbp-knob-on", bnd_cmp_compare);
+		if (!bnd_cmp_compare) {
+			bnd_composer_strip_park(frm);
+			$stage.find(".bnd-cmp-strip").remove();
+			$stage.removeAttr("data-bnd-comparing");
+		} else if (bnd_cmp_touched) {
+			bnd_composer_render_strip(frm);
+		}
+	});
+}
 
 function bnd_render_overview(frm, $pane) {
 	const pc = (n, total) => Math.round((n / total) * 10000) / 100 + "%";
@@ -1657,7 +2624,7 @@ function bnd_render_overview(frm, $pane) {
 		)
 	);
 	$pane.find(".bnd-dgm-mark").on("click", function () {
-		bnd_shell_select(frm, this.getAttribute("data-goto"));
+		bnd_settings_goto(frm, this.getAttribute("data-goto"));
 	});
 	// THE SAME SEAMS THE OWNING PICKERS USE. `bnd_container_changed` rebuilds
 	// the desk from all five containers and repaints every placement picker;
@@ -1877,159 +2844,87 @@ function bnd_render_translations(frm, $pane) {
 }
 
 /**
- * True unless the URL asks for the old stacked form.
+ * Scroll one settings card into view and put focus on its heading.
  *
- * THE DEFAULT FLIPPED once the shell was finished. It shipped behind `?shell=1`
- * while it was being built, on the reasoning that a half-finished navigation is
- * worse than a long form — right at the time, and wrong the moment it stopped
- * being half-finished. Left as it was, the work was invisible: the settings page
- * kept showing the ~70-field stack it was built to replace, and the only way to
- * see the new one was a query string nobody would guess.
- *
- * `?shell=0` still reaches the stacked form. It is the escape hatch for anyone
- * who needs a field the shell has not placed, and for comparing the two.
- *
- * Read from `location`, not from Frappe's route state: the router drops unknown
- * query args on some transitions, and the answer must not change under the user
- * mid-session.
+ * The shell's `select` switched panes; with every card in one scroll (item 43
+ * B1) a route to a control is a scroll. The entry's anchor FIELD names the
+ * card, exactly as the shell found it — walking up from a field's wrapper is
+ * what every control in this form already depends on.
  */
-function bnd_shell_wanted() {
-	try {
-		return new URLSearchParams(window.location.search).get("shell") !== "0";
-	} catch (e) {
-		// Cannot tell — show the stacked form, which needs nothing from us.
-		return false;
+/**
+ * Smooth only where motion is welcome: the OS preference, or the theme's own
+ * per-user reduce-motion stamp (item 38, `data-bnd-motion`). A smooth scroll
+ * is motion like any other and used to ignore both.
+ */
+function bnd_scroll_behavior() {
+	const reduce =
+		(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) ||
+		document.documentElement.getAttribute("data-bnd-motion") === "reduce";
+	return reduce ? "auto" : "smooth";
+}
+
+function bnd_settings_goto(frm, key) {
+	const entry = BND_SETTINGS_GROUPS.flatMap((g) => g.items).find((i) => i.key === key);
+	const anchor = entry && (entry.anchors || [])[0];
+	const field = anchor && frm.get_field(anchor);
+	const $section = field && field.$wrapper ? field.$wrapper.closest(".form-section") : null;
+	const node = $section && $section.length ? $section[0] : null;
+	if (!node) return false;
+	node.scrollIntoView({ block: "start", behavior: bnd_scroll_behavior() });
+	const head = node.querySelector(".section-head");
+	if (head) {
+		head.setAttribute("tabindex", "-1");
+		head.focus({ preventScroll: true });
+	}
+	return true;
+}
+
+/**
+ * Repaint whatever shows the change marks. The shell painted its own rail;
+ * with the shell gone (item 43 B1) the marks live on the side pane's settings
+ * map, which bunood.js owns (B3) and which reads the same bnd_changed_fields.
+ * Until the map exists this is a no-op with a name, not a dangling call.
+ */
+function bnd_settings_marks(frm) {
+	if (window.bunood_theme && typeof window.bunood_theme.map_sync === "function") {
+		window.bunood_theme.map_sync(frm, bnd_settings_rows(frm));
 	}
 }
 
 /**
- * Build the shell once, move the owned sections into it, and select an entry.
- *
- * Idempotent: `refresh` fires on every save and route return, and rebuilding
- * would detach sections the pickers have already been drawn into.
+ * The map's rows, read from the RENDERED sections (item 43 B3): fieldname and
+ * heading from the DOM in DOM order (the doctype's order, one source), the
+ * group and the change dot from the entry whose anchor field lives in that
+ * section — the same tables the shell read, the same comparison the cards use.
  */
-function bnd_shell_setup(frm) {
-	const field = frm.get_field("chrome_shell");
-	if (!field || !field.$wrapper) return;
-	if (!bnd_shell_wanted()) {
-		// Hide the host section on the stacked form. The field renders nothing
-		// there, and Frappe cannot mark the section empty by itself — so it drew
-		// a "Desk" heading over a blank strip at the top of the default form,
-		// which is the same empty-heading defect the shell's own panes fixed.
-		field.$wrapper.closest(".form-section").hide();
-		return;
-	}
-	if (field.$wrapper.find(".bnd-shell").length) {
-		// Already built. The sections are where we put them; the selection and
-		// the change marks are the only state that can have gone stale — and the
-		// marks always have, because `refresh` fires straight after a save and a
-		// save is precisely when "changed" stops being true.
-		bnd_shell_select(frm, field.$wrapper.find(".bnd-shell").attr("data-current") || "sidepane");
-		bnd_shell_marks(frm);
-		return;
-	}
-
-	const $ = window.$;
-	let nav = "";
-	for (const g of BND_SHELL_GROUPS) {
-		nav += `<div class="bnd-shell-group">${bnd_esc(g.group())}</div>`;
+function bnd_settings_rows(frm) {
+	const entry_of = new Map();
+	for (const g of BND_SETTINGS_GROUPS) {
 		for (const item of g.items) {
-			nav +=
-				`<button type="button" class="bnd-shell-item" role="tab" aria-selected="false" tabindex="-1" data-key="${bnd_esc(item.key)}">` +
-				`<span class="bnd-shell-label">${bnd_esc(item.label())}</span>` +
-				`<span class="bnd-shell-note" data-bnd-note="${bnd_esc(item.key)}"></span>` +
-				`<span class="bnd-shell-dot" data-bnd-dot="${bnd_esc(item.key)}" hidden></span>` +
-				`</button>`;
-		}
-	}
-
-	// The VIEWPORT wrapper exists for one reason: a `@container` rule cannot
-	// style the container it queries — only its descendants. `.bnd-shell` used
-	// to carry `container-type` itself, so its own narrow rule (collapse to one
-	// column) never applied while its CHILDREN's narrow rules did: the nav
-	// became a row of wrapped chips inside a still-210px grid column, 83px
-	// items packed two per ragged row. Measured 2026-08-09 on an 800px pane —
-	// the "breaks its format instead of reflowing" report. The wrapper queries;
-	// the shell responds.
-	const $shell = $(
-		`<div class="bnd-shell-viewport">` +
-			`<div class="bnd-shell" data-current="">` +
-			`<nav class="bnd-shell-nav" role="tablist">${nav}</nav>` +
-			`<div class="bnd-shell-detail"></div>` +
-			`</div>` +
-			`</div>`
-	);
-	field.$wrapper.empty().append($shell);
-
-	const $detail = $shell.find(".bnd-shell-detail");
-	// A section can only be in one pane. Two entries claiming the same one is not
-	// hypothetical — `density_default` and `palette_enabled` share
-	// `section_features`, so the second claim silently stole the first entry's
-	// content until this existed. First claim wins the whole section; a later one
-	// takes just its own field, which is the smaller, still-correct move.
-	const claimed = new Set();
-	for (const g of BND_SHELL_GROUPS) {
-		for (const item of g.items) {
-			const $pane = $(`<div class="bnd-shell-pane" data-key="${bnd_esc(item.key)}" hidden></div>`);
-			$detail.append($pane);
-			if (item.render) {
-				// Owns no fields, so there is nothing to relocate — it draws.
-				item.render(frm, $pane);
-				continue;
-			}
 			for (const anchor of item.anchors || []) {
 				const f = frm.get_field(anchor);
-				if (!f || !f.$wrapper) continue;
-				const $section = f.$wrapper.closest(".form-section");
-				const node = $section.length ? $section[0] : null;
-				// MOVE, not clone. jQuery append relocates an existing node, so
-				// there is never a second copy to keep in step.
-				if (node && !claimed.has(node)) {
-					claimed.add(node);
-					$pane.append($section);
-				} else {
-					$pane.append(f.$wrapper);
-				}
+				const $section = f && f.$wrapper ? f.$wrapper.closest(".form-section") : null;
+				const name = $section && $section.length ? $section.attr("data-fieldname") : null;
+				if (name && !entry_of.has(name)) entry_of.set(name, { key: item.key, group: g.group() });
 			}
 		}
 	}
-
-	$shell.on("click", ".bnd-shell-item", function () {
-		bnd_shell_select(frm, this.getAttribute("data-key"));
-	});
-
-	// THE TABLIST KEYBOARD CONTRACT. The nav has carried role=tablist since
-	// the shell shipped, and a tablist promises arrow-key movement with a
-	// roving tabindex — one Tab stop for the whole rail, arrows to move
-	// within it. Without this the role was a lie the 34a audit called out:
-	// entries were plain buttons, aria-selected landed on nothing, and Tab
-	// walked all seventeen entries one by one.
-	$shell.on("keydown", ".bnd-shell-item", function (e) {
-		const HORIZ = ["ArrowLeft", "ArrowRight"];
-		const VERT = ["ArrowUp", "ArrowDown"];
-		if (!HORIZ.includes(e.key) && !VERT.includes(e.key) && e.key !== "Home" && e.key !== "End") return;
-		const items = $shell.find(".bnd-shell-item").toArray();
-		const at = items.indexOf(this);
-		if (at === -1) return;
-		e.preventDefault();
-		let next = at;
-		if (e.key === "Home") next = 0;
-		else if (e.key === "End") next = items.length - 1;
-		else {
-			const fwd = e.key === "ArrowDown" || e.key === "ArrowRight";
-			next = (at + (fwd ? 1 : -1) + items.length) % items.length;
-		}
-		bnd_shell_select(frm, items[next].getAttribute("data-key"));
-		items[next].focus();
-	});
-
-	bnd_shell_select(frm, BND_SHELL_GROUPS[0].items[0].key);
-
-	// The marks need the shipped defaults, which the server owns. Fetched once
-	// and then re-read from the module-level cache, so returning to the form
-	// costs nothing. A failure leaves `bnd_shipped` null and the marks simply do
-	// not appear — the shell is already fully usable without them.
-	bnd_load_shipped().then(() => bnd_shell_marks(frm));
+	const rows = [];
+	for (const node of document.querySelectorAll(".form-layout .form-section[data-fieldname]")) {
+		if (node.getBoundingClientRect().height === 0) continue;
+		const head = node.querySelector(".section-head");
+		const label = head ? head.textContent.trim() : "";
+		if (!label) continue;
+		const name = node.getAttribute("data-fieldname");
+		const entry = entry_of.get(name);
+		rows.push({
+			fieldname: name,
+			label,
+			group: entry ? entry.group : "",
+			changed: entry ? bnd_changed_fields(entry.key, frm).length > 0 : false,
+		});
+	}
+	return rows;
 }
 
 /**
@@ -2060,6 +2955,7 @@ function bnd_load_shipped() {
 			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
 			bnd_layout_slots = (data && data.slots) || null;
+			bnd_brand_inputs = (data && data.brand_inputs) || null;
 		})
 		.catch(() => {
 			// Let the next caller try again: this one may have failed because
@@ -2133,75 +3029,6 @@ function bnd_apply_layout_preset(frm, name) {
 	});
 }
 
-/**
- * Paint the change dot and the note on every entry.
- *
- * Called after the fetch and after every save, because a save is exactly when
- * "changed" stops being true. It reads `frm.doc`, so it must run after Frappe
- * has refreshed the document, never against the values the user typed.
- */
-function bnd_shell_marks(frm) {
-	const field = frm.get_field("chrome_shell");
-	if (!field || !field.$wrapper) return;
-	const $shell = field.$wrapper.find(".bnd-shell");
-	if (!$shell.length) return;
-
-	for (const g of BND_SHELL_GROUPS) {
-		for (const item of g.items) {
-			const changed = bnd_changed_fields(item.key, frm).length;
-			const dot = $shell.find(`[data-bnd-dot="${item.key}"]`)[0];
-			const note = $shell.find(`[data-bnd-note="${item.key}"]`)[0];
-			if (dot) {
-				if (changed) dot.removeAttribute("hidden");
-				else dot.setAttribute("hidden", "hidden");
-				// The dot is decoration; the count is the fact. Announce it once,
-				// on the control, rather than shipping a coloured circle that
-				// says nothing to anyone not looking at it.
-				// Label + value, never an interpolated plural: Frappe's translation
-				// layer is flat key->value with no plural support and Arabic has
-				// singular, dual and two plural forms, so "{0} settings differ"
-				// cannot be made correct for n=1,2,3-10,11+. See ROADMAP item 7(c).
-				dot.setAttribute("title", __("Differs from default") + ": " + changed);
-			}
-			if (note) note.textContent = bnd_shell_note(item.key, frm);
-		}
-	}
-}
-
-/** Show one pane, mark its entry selected. */
-function bnd_shell_select(frm, key) {
-	const field = frm.get_field("chrome_shell");
-	if (!field || !field.$wrapper) return;
-	const $shell = field.$wrapper.find(".bnd-shell");
-	if (!$shell.length) return;
-
-	$shell.attr("data-current", key);
-	$shell.find(".bnd-shell-item").each(function () {
-		const on = this.getAttribute("data-key") === key;
-		this.classList.toggle("bnd-shell-on", on);
-		this.setAttribute("aria-selected", on ? "true" : "false");
-		// The roving half of the tablist contract: exactly one entry is a Tab
-		// stop, and it is the selected one. Arrows move within the rail.
-		this.setAttribute("tabindex", on ? "0" : "-1");
-	});
-	// A render-entry reads values the OTHER panes write, so it is stale the
-	// moment anything else was touched. Redrawn on selection rather than on
-	// every change: it is the cheapest place that is always early enough.
-	for (const g of BND_SHELL_GROUPS) {
-		for (const item of g.items) {
-			if (item.render && item.key === key) {
-				item.render(frm, $shell.find(`.bnd-shell-pane[data-key="${key}"]`));
-			}
-		}
-	}
-	$shell.find(".bnd-shell-pane").each(function () {
-		const on = this.getAttribute("data-key") === key;
-		// `hidden` rather than display, so a pane that is off is off for
-		// assistive technology too, not merely invisible.
-		if (on) this.removeAttribute("hidden");
-		else this.setAttribute("hidden", "hidden");
-	});
-}
 
 // ════════════════════════════════════════════════════════════════════════════
 // Desk Layout picker (item 9) — unchanged behaviour.
@@ -2326,7 +3153,6 @@ const BND_LAYOUTS = [
  * Falls back to the field wrapper when no host is given, so every existing
  * caller keeps working unchanged.
  */
-const bnd_picker_hosts = {};
 
 /**
  * Hand every kit's values to the desk at once.
@@ -2338,22 +3164,23 @@ const bnd_picker_hosts = {};
  * sidebar through `_now` because its catalogue is already loaded. Folding those
  * together would be a behaviour change wearing a refactor's clothes.
  */
-function bnd_all_previews(frm) {
-	bnd_sb_preview(frm);
-	bnd_crumb_preview(frm);
-	bnd_palette_preview(frm);
-	bnd_inbox_preview(frm);
-	bnd_list_preview(frm);
-	bnd_form_preview(frm);
-	bnd_workspace_preview(frm);
-	bnd_chart_preview(frm);
-	bnd_report_preview(frm);
-	bnd_views_preview(frm);
-	bnd_overlay_preview(frm);
-	bnd_empty_preview(frm);
-	bnd_skeleton_preview(frm);
-	bnd_filters_preview(frm);
-	bnd_icon_preview(frm);
+function bnd_all_previews(frm, engine = window.bunood_theme) {
+	bnd_sb_preview(frm, engine);
+	bnd_crumb_preview(frm, engine);
+	bnd_palette_preview(frm, engine);
+	bnd_inbox_preview(frm, engine);
+	bnd_list_preview(frm, engine);
+	bnd_form_preview(frm, engine);
+	bnd_desk_preview(frm, engine);
+	bnd_workspace_preview(frm, engine);
+	bnd_chart_preview(frm, engine);
+	bnd_report_preview(frm, engine);
+	bnd_views_preview(frm, engine);
+	bnd_overlay_preview(frm, engine);
+	bnd_empty_preview(frm, engine);
+	bnd_skeleton_preview(frm, engine);
+	bnd_filters_preview(frm, engine);
+	bnd_icon_preview(frm, engine);
 }
 
 function bnd_picker_host(frm, fieldname, host) {
@@ -2363,14 +3190,11 @@ function bnd_picker_host(frm, fieldname, host) {
 	// would be the same fact in five places, which is the defect this rework
 	// exists to remove; the third caller to forget it would quietly send the
 	// picker back to its field wrapper mid-session.
-	if (host) bnd_picker_hosts[fieldname] = window.$(host);
-	const $remembered = bnd_picker_hosts[fieldname];
-	if ($remembered) {
-		// Still attached? A shell that was torn down must not capture the
-		// picker forever.
-		if ($remembered.length && document.body.contains($remembered[0])) return $remembered;
-		delete bnd_picker_hosts[fieldname];
-	}
+	// `host` is accepted and ignored (item 43 B1): with the shell gone every
+	// picker renders into its own field's wrapper, and that is what keeps a
+	// Select at its 273px — the shell's fallback `append(f.$wrapper)` once
+	// severed `.form-column > form > .input-max-width` and made one 636.
+	void host;
 	const field = frm.get_field(fieldname);
 	return field && field.$wrapper ? field.$wrapper : null;
 }
@@ -2731,7 +3555,9 @@ function bnd_render_sidebar_picker_now(frm, host) {
 		const on = !!parseInt(frm.doc[t.field], 10);
 		add(t.zone, (
 			'<div class="bnd-cbp-group bnd-sbp-group" data-search="' + (t.name() + " " + t.field).toLowerCase() + '">' +
-			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
+			// role=switch + aria-checked, as P.toggle says it (item 43 B1: the first
+			// whole-page a11y scan found this hand-built one silent).
+			'<button type="button" class="bnd-cbp-toggle bnd-sbp-toggle" role="switch" aria-checked="' + (on ? "true" : "false") + '" data-field="' + t.field + '" data-value="' + (on ? 0 : 1) + '">' +
 			'<span class="bnd-cbp-knob' + (on ? " bnd-cbp-knob-on" : "") + '"></span>' +
 			"<span><b>" + t.name() + "</b><br><span class='bnd-sbp-pblurb'>" + t.desc() + "</span></span>" +
 			"</button></div>"
@@ -2826,12 +3652,12 @@ function bnd_render_sidebar_picker_now(frm, host) {
  * the chrome around this very form restyles instantly. Saving makes it
  * permanent for everyone the moment it is clicked — this form autosaves.
  */
-function bnd_sb_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.sb_apply) return;
+function bnd_sb_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.sb_apply) return;
 	const values = {};
 	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
 	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
-	window.bunood_theme.sb_apply(values);
+	engine.sb_apply(values);
 }
 
 /**
@@ -2875,7 +3701,8 @@ function bnd_sb_set(frm, fieldname, value) {
 
 /** Card art + copy per shipped look. No VALUES — those are the server's. */
 const BND_THEME_ART = {
-	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The shipped look. Floating cards on a hue-washed pane.") },
+	"Bunood Console": { name: () => __("Bunood Console"), pane: "dark", card: "float", rows: "zebra", blurb: () => __("The shipped look: a hero band naming the record, the activity in a drawer, a ruled sheet for the lines, zebra lists.") },
+	"Bunood Night": { name: () => __("Bunood Night"), pane: "dark", card: "float", rows: "plain", blurb: () => __("The desk before the body was rebuilt: floating cards on a hue-washed pane.") },
 	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — a floating card lifted off the page instead of attached solid.") },
 	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
 	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
@@ -2984,7 +3811,7 @@ function bnd_apply_theme_preset(frm, name) {
 	// Layout row (recomputed by bnd_shell_marks) told the truth, and the two rows
 	// of one form disagreed about one desk.
 	bnd_render_layout_picker(frm);
-	bnd_shell_marks(frm);
+	bnd_settings_marks(frm);
 }
 
 /**
@@ -3005,10 +3832,12 @@ function bnd_render_theme_picker(frm, host) {
 		frappe.xcall("bunood_theme.api.get_theme_presets").then((r) => {
 			bnd_theme_cache = r;
 			bnd_render_theme_picker(frm);
-			// The shell's Theme note DERIVES from this catalogue, and two fetches
-			// race here. Painting again is the cheap half of the fix; the marks are
-			// idempotent, so the redundant repaint costs nothing.
-			bnd_shell_marks(frm);
+			// The Theme note DERIVES from this catalogue, and two fetches race
+			// here. Painting again is the cheap half of the fix; the marks are
+			// idempotent, so the redundant repaint costs nothing. The Compose
+			// card's line is the same derivation, so it repaints here too.
+			bnd_settings_marks(frm);
+			bnd_render_compose_picker(frm);
 		}).catch(() => {
 			// The flag RESETS so the next render retries — item 35's review caught
 			// a first cut latching one transient failure into a dead card row for
@@ -3270,8 +4099,8 @@ function bnd_render_icons_picker(frm, host) {
  * and its `set` is a no-op on an absent value, so a partial icon-values object
  * never disturbs a pane's other settings.
  */
-function bnd_icon_preview(frm) {
-	const bt = window.bunood_theme;
+function bnd_icon_preview(frm, engine = window.bunood_theme) {
+	const bt = engine;
 	if (!bt) return;
 	const values = {};
 	for (const f of BND_ICON_FIELDS) values[f] = frm.doc[f];
@@ -3424,7 +4253,16 @@ const BND_CRUMB_GROUPS = [
 /** Toggle rows: field + name + one-liner. */
 const BND_CRUMB_TOGGLES = [
 	{ field: "crumb_copy_link", name: () => __("Copy link"), desc: () => __("A copy button appears on the last crumb when the title row is hovered.") },
-	{ field: "crumb_status_pill", name: () => __("Status in the trail row"), desc: () => __("Pushes the document's Draft / Submitted pill to the row's end and calms its shape.") },
+	{
+		field: "crumb_status_pill",
+		name: () => __("Status in the trail row"),
+		desc: () => __("Pushes the document's Draft / Submitted pill to the row's end and calms its shape."),
+		// Item 43 A8b: the stage path hides that pill; moving it is moot.
+		disabled: (frm) =>
+			(frm.doc.form_stage || "Status Path") === "Status Path" && (frm.doc.form_header || "Hero Band") !== "Original"
+				? __("The stage path shows the status")
+				: "",
+	},
 	{ field: "crumb_narrow_collapse", name: () => __("Back crumb on small screens"), desc: () => __("Under tablet width the trail becomes a single labeled link to the parent.") },
 ];
 
@@ -3473,7 +4311,7 @@ function bnd_render_crumbs_picker(frm, host) {
 			on: !!parseInt(frm.doc[t.field], 10),
 			name: t.name(),
 			desc: t.desc(),
-			reason: kit_down ? __("Original leaves the stock trail") : "",
+			reason: kit_down ? __("Original leaves the stock trail") : (t.disabled ? t.disabled(frm) : ""),
 		})
 	).join("");
 
@@ -3515,11 +4353,11 @@ function bnd_render_crumbs_picker(frm, host) {
  * the trail above this very form restyles instantly. Saving makes it
  * permanent for everyone the moment it is clicked — this form autosaves.
  */
-function bnd_crumb_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.crumb_apply) return;
+function bnd_crumb_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.crumb_apply) return;
 	const values = {};
 	for (const f of BND_CRUMB_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.crumb_apply(values);
+	engine.crumb_apply(values);
 }
 
 /** Set one crumb option, preview, re-render. */
@@ -3708,12 +4546,12 @@ function bnd_render_palette_picker(frm, host) {
  * The palette is built lazily, so "preview" means the next Ctrl+K opens
  * with these options; saving makes them permanent for everyone.
  */
-function bnd_palette_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.palette_apply) return;
+function bnd_palette_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.palette_apply) return;
 	const values = {};
 	for (const f of BND_PALETTE_FIELDS) values[f] = frm.doc[f];
 	if (!parseInt(frm.doc.palette_enabled ?? 1, 10)) values.palette_style = "Original";
-	window.bunood_theme.palette_apply(values);
+	engine.palette_apply(values);
 }
 
 /** Set one palette option, preview, re-render. */
@@ -3728,6 +4566,81 @@ function bnd_palette_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.INBOX_FIELDS — keep in sync. */
+const BND_LANGUAGE_FIELDS = ["language_style", "language_choices"];
+// The reset chip's target, mirroring presets.LANGUAGE_DEFAULTS (the default-mirror
+// guard pairs every BND_<X>_FIELDS with a BND_<X>_DEFAULTS).
+const BND_LANGUAGE_DEFAULTS = { language_style: "Globe", language_choices: "ar,en" };
+
+/** Client mirror of presets.PANEHEAD_FIELDS / PANEHEAD_DEFAULTS (2026-09-14). */
+const BND_PANEHEAD_FIELDS = ["panehead_quick_links"];
+const BND_PANEHEAD_DEFAULTS = { panehead_quick_links: "Standard" };
+
+/** The enabled Language rows, fetched once per form: what the picker may offer. */
+let bnd_language_rows = null;
+
+/**
+ * The languages the switch offers (v0.44.2). A multi-choice row of chips over the
+ * languages ENABLED in the Language list; each click toggles a code in
+ * `language_choices`, and the order of choosing is the order the switch lists.
+ * The user's rule: "only languages turned on in settings" - the seventeen Frappe
+ * enables at install are not that.
+ */
+function bnd_render_language_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "language_picker", host);
+	if (!$host) return;
+	const codes = () => String(frm.doc.language_choices || "").split(",").map((s) => s.trim()).filter(Boolean);
+	const draw = () => {
+		const chosen = codes();
+		const rows = bnd_language_rows || [];
+		const chips = rows
+			.map((r) => {
+				const on = chosen.includes(r.name);
+				return (
+					'<button type="button" class="bnd-cbp-opt bnd-cbp-lang' + (on ? " bnd-cbp-on" : "") +
+					'" aria-pressed="' + (on ? "true" : "false") + '" data-value="' + bnd_esc(r.name) +
+					'" lang="' + bnd_esc(r.name) + '">' + bnd_esc(r.language_name || r.name) + "</button>"
+				);
+			})
+			.join("");
+		const order = chosen.length ? __("Order: {0}", [chosen.join(" · ")]) : __("Empty: the shipped pair, Arabic and English.");
+		$host.html(
+			P.wrap(
+				'<div class="bnd-cbp-group" data-field="language_choices"><div class="bnd-cbp-title">' +
+					bnd_esc(__("Languages the switch offers")) + '</div><div class="bnd-cbp-row bnd-cbp-langs">' + chips + "</div>" +
+					P.note(order) +
+					P.note(__("Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load.")) +
+					"</div>"
+			)
+		);
+		$host.find(".bnd-cbp-lang").on("click", function () {
+			const code = this.getAttribute("data-value");
+			const now = codes();
+			const next = now.includes(code) ? now.filter((c) => c !== code) : now.concat([code]);
+			frm.set_value("language_choices", next.join(","));
+			draw();
+		});
+	};
+	if (bnd_language_rows) return draw();
+	frappe.db
+		.get_list("Language", { filters: { enabled: 1 }, fields: ["name", "language_name"], order_by: "language_name asc", limit: 200 })
+		.then((rows) => {
+			bnd_language_rows = rows || [];
+			draw();
+		});
+}
+
+/** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
+function bnd_language_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.language_apply) return;
+	engine.language_apply({ language_style: frm.doc.language_style });
+}
+
+/** LIVE PREVIEW (2026-09-14): the head menu's next open reads the new caps. */
+function bnd_panehead_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.panehead_apply) return;
+	engine.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
+}
+
 const BND_INBOX_FIELDS = [
 	"inbox_style", "inbox_badge", "inbox_group", "inbox_chips",
 	"inbox_row_actions", "inbox_arrival", "inbox_keyboard",
@@ -3948,11 +4861,11 @@ function bnd_render_inbox_picker(frm, host) {
 }
 
 /** LIVE PREVIEW: hand the form's current inbox values to the desk engine. */
-function bnd_inbox_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.inbox_apply) return;
+function bnd_inbox_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.inbox_apply) return;
 	const values = {};
 	for (const f of BND_INBOX_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.inbox_apply(values);
+	engine.inbox_apply(values);
 }
 
 /**
@@ -3995,7 +4908,7 @@ const BND_LIST_FIELDS = ["list_style", "list_hover", "list_selection", "list_che
 
 /** Client mirror of presets.LIST_DEFAULTS — keep in sync. */
 const BND_LIST_DEFAULTS = {
-	list_style: "Hairline Rows",
+	list_style: "Zebra Stripes",
 	list_hover: "Edge Rail",
 	list_selection: "Bold Bar",
 	list_checkbox_reveal: 1,
@@ -4057,6 +4970,28 @@ const BND_LIST_STYLES = [
 			'<rect x="12" y="13" width="40" height="4" rx="2" fill="currentColor" opacity=".4"/>' +
 			'<rect x="6" y="30" width="108" height="16" rx="4" fill="currentColor" opacity=".08" stroke="currentColor" stroke-opacity=".25"/>' +
 			'<rect x="12" y="36" width="36" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
+	},
+	{
+		value: "Dense Table",
+		blurb: () => __("Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="6" y="6" width="108" height="9" fill="currentColor" opacity=".08"/>' +
+			'<rect x="10" y="9" width="22" height="3" rx="1.5" fill="currentColor" opacity=".45"/>' +
+			'<rect x="52" y="9" width="18" height="3" rx="1.5" fill="currentColor" opacity=".45"/>' +
+			'<rect x="90" y="9" width="20" height="3" rx="1.5" fill="currentColor" opacity=".45"/>' +
+			'<line x1="6" y1="24" x2="114" y2="24" stroke="currentColor" opacity=".25"/>' +
+			'<line x1="6" y1="33" x2="114" y2="33" stroke="currentColor" opacity=".25"/>' +
+			'<line x1="6" y1="42" x2="114" y2="42" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="10" y="18" width="30" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<circle cx="54" cy="19.5" r="2" fill="currentColor" opacity=".6"/><rect x="59" y="18" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="10" y="27" width="26" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<circle cx="54" cy="28.5" r="2" fill="currentColor" opacity=".6"/><rect x="59" y="27" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="10" y="36" width="34" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<circle cx="54" cy="37.5" r="2" fill="currentColor" opacity=".6"/><rect x="59" y="36" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="92" y="18" width="18" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="96" y="27" width="14" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="90" y="36" width="20" height="3" rx="1.5" fill="currentColor" opacity=".4"/></svg>',
 	},
 ];
 
@@ -4164,11 +5099,11 @@ function bnd_render_list_picker(frm, host) {
 }
 
 /** Hand the form's current list values to the desk engine — live preview. */
-function bnd_list_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.list_apply) return;
+function bnd_list_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.list_apply) return;
 	const values = {};
 	for (const f of BND_LIST_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.list_apply(values);
+	engine.list_apply(values);
 }
 
 /** Set one list option, preview, re-render. */
@@ -4183,7 +5118,11 @@ function bnd_list_set(frm, fieldname, value) {
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Client mirror of presets.FORM_FIELDS — keep in sync. */
-const BND_FORM_FIELDS = ["form_style", "form_tabs", "form_sidebar", "form_grid_checkbox_reveal"];
+const BND_FORM_FIELDS = ["form_style", "form_fields", "form_grid", "form_tabs", "form_sidebar", "form_activity", "form_header", "form_header_tone", "form_stage", "form_foot", "form_grid_checkbox_reveal"];
+// Mobile bar contents (item 24 C2). Export AND import list it — the same const
+// on both sides, so the two cannot drift (the item-18 escapee: export carried a
+// field the import's `known` set refused, silently dropping it on re-import).
+const BND_MOBILE_FIELDS = ["mobile_inbox", "mobile_user", "mobile_apps"];
 
 /**
  * Client mirror of presets.LINKS_DEFAULTS — keep in sync.
@@ -4207,8 +5146,15 @@ const BND_LINKS_DEFAULTS = {
 /** Client mirror of presets.FORM_DEFAULTS — keep in sync. */
 const BND_FORM_DEFAULTS = {
 	form_style: "Floating Panels",
+	form_fields: "Stacked Outlined",
+	form_grid: "Ruled Sheet",
 	form_tabs: "Solid Pill",
-	form_sidebar: "Floating Pane",
+	form_sidebar: "Inspector Rail",
+	form_activity: "Drawer",
+	form_header: "Hero Band",
+	form_header_tone: "Brand-dark",
+	form_stage: "Status Path",
+	form_foot: "Pinned Bar",
 	form_grid_checkbox_reveal: 1,
 };
 
@@ -4275,10 +5221,72 @@ const BND_FORM_STYLES = [
 			'<line x1="12" y1="32" x2="108" y2="32" stroke="currentColor" opacity=".2"/>' +
 			'<rect x="12" y="38" width="26" height="4" rx="2" fill="currentColor" opacity=".4"/></svg>',
 	},
+	{
+		value: "Headed Groups",
+		blurb: () => __("One sheet, each section a titled group under a hairline — air does the separating."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="8" y="16" width="36" height="4" rx="2" fill="currentColor" opacity=".55"/>' +
+			'<line x1="8" y1="24" x2="112" y2="24" stroke="currentColor" opacity=".3"/>' +
+			'<rect x="8" y="28" width="46" height="3" rx="1.5" fill="currentColor" opacity=".15"/>' +
+			'<rect x="8" y="38" width="28" height="4" rx="2" fill="currentColor" opacity=".55"/>' +
+			'<line x1="8" y1="46" x2="112" y2="46" stroke="currentColor" opacity=".3"/></svg>',
+	},
+	{
+		value: "Grouped Insets",
+		blurb: () => __("Sections sit in soft raised insets on the sheet, no borders anywhere."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="14" width="108" height="16" rx="5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="12" y="20" width="32" height="4" rx="2" fill="currentColor" opacity=".45"/>' +
+			'<rect x="6" y="34" width="108" height="14" rx="5" fill="currentColor" opacity=".1"/>' +
+			'<rect x="12" y="39" width="26" height="4" rx="2" fill="currentColor" opacity=".45"/></svg>',
+	},
+	{
+		value: "Tinted Heads",
+		blurb: () => __("A brand-washed band heads each bordered section, the way a ledger rules its columns."),
+		svg:
+			'<svg viewBox="0 0 120 54"><rect x="1" y="1" width="118" height="52" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
+			'<rect x="8" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".4"/>' +
+			'<rect x="30" y="6" width="16" height="3" rx="1.5" fill="currentColor" opacity=".2"/>' +
+			'<rect x="6" y="14" width="108" height="16" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>' +
+			'<rect x="6" y="14" width="108" height="7" rx="2" fill="var(--primary, #3d8150)" opacity=".2"/>' +
+			'<rect x="11" y="16" width="26" height="3" rx="1.5" fill="currentColor" opacity=".55"/>' +
+			'<rect x="6" y="34" width="108" height="14" rx="2" fill="none" stroke="currentColor" stroke-opacity=".3"/>' +
+			'<rect x="6" y="34" width="108" height="7" rx="2" fill="var(--primary, #3d8150)" opacity=".2"/>' +
+			'<rect x="11" y="36" width="22" height="3" rx="1.5" fill="currentColor" opacity=".55"/></svg>',
+	},
 ];
 
-/** The two composing option groups. */
+/** The composing option groups — the field's anatomy first, because it is the
+ * decision the item-43 census traced the "poorly done body" to. */
 const BND_FORM_GROUPS = [
+	{
+		field: "form_fields",
+		title: () => __("Fields"),
+		desc: () => __("What one field looks like: where its label sits and what its box is. Property Rows put the label beside the value; Inline Text draws no box until you hover."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Stacked Outlined", name: () => __("Stacked Outlined") },
+			{ value: "Property Rows", name: () => __("Property Rows") },
+			{ value: "Quiet Underline", name: () => __("Quiet Underline") },
+			{ value: "Inline Text", name: () => __("Inline Text") },
+		],
+	},
+	{
+		field: "form_grid",
+		title: () => __("Line items"),
+		desc: () => __("How rows of items, taxes and payments read. Both theme options end-align the numbers and make Add row a quiet full-width button."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Hairline Ledger", name: () => __("Hairline Ledger") },
+			{ value: "Ruled Sheet", name: () => __("Ruled Sheet") },
+		],
+	},
 	{
 		field: "form_tabs",
 		title: () => __("Tabs"),
@@ -4292,11 +5300,62 @@ const BND_FORM_GROUPS = [
 	{
 		field: "form_sidebar",
 		title: () => __("Sidebar"),
-		desc: () => __("How the record's sidebar separates from the document."),
+		desc: () => __("How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all."),
 		options: [
 			{ value: "Hairline Edge", name: () => __("Hairline Edge") },
 			{ value: "Quiet Pane", name: () => __("Quiet Pane") },
 			{ value: "Floating Pane", name: () => __("Floating Pane") },
+			{ value: "Inspector Rail", name: () => __("Inspector Rail") },
+		],
+	},
+	{
+		field: "form_activity",
+		title: () => __("Activity"),
+		desc: () => __("Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Beside", name: () => __("Beside") },
+			{ value: "Drawer", name: () => __("Drawer") },
+		],
+	},
+	{
+		field: "form_header",
+		title: () => __("Document header"),
+		desc: () => __("What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Title Block", name: () => __("Title Block") },
+			{ value: "Highlights Band", name: () => __("Highlights Band") },
+			{ value: "Hero Band", name: () => __("Hero Band") },
+		],
+	},
+	{
+		field: "form_header_tone",
+		title: () => __("Header tone"),
+		desc: () => __("The hero band's paint: a tint of the brand, or the brand deepened to a dark block."),
+		options: [
+			{ value: "Tinted", name: () => __("Tinted") },
+			{ value: "Brand-dark", name: () => __("Brand-dark") },
+		],
+		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Hero Band" ? "" : __("Only the hero band is painted"),
+	},
+	{
+		field: "form_stage",
+		title: () => __("Stage path"),
+		desc: () => __("A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document."),
+		options: [
+			{ value: "Off", name: () => __("Off") },
+			{ value: "Status Path", name: () => __("Status Path") },
+		],
+		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Original" ? __("The page head has no band to carry it") : "",
+	},
+	{
+		field: "form_foot",
+		title: () => __("Pinned foot"),
+		desc: () => __("A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled."),
+		options: [
+			{ value: "Off", name: () => __("Off") },
+			{ value: "Pinned Bar", name: () => __("Pinned Bar") },
 		],
 	},
 ];
@@ -4331,17 +5390,21 @@ function bnd_render_form_picker(frm, host) {
 	);
 
 	const reason = off ? __("Original leaves the stock form untouched — nothing below applies.") : "";
-	const groups = BND_FORM_GROUPS.map((g) =>
-		P.group({
+	// A group may carry a reason of its own (the crumbs picker's shape): the
+	// kit's stand-down wins, else the group's.
+	const groups = BND_FORM_GROUPS.map((g) => {
+		const g_reason = reason || (g.disabled ? g.disabled(frm) : "");
+		return P.group({
 			title: g.title(),
 			desc: g.desc(),
 			field: g.field,
+			off: !!g_reason,
 			body: P.options(
-				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
+				g.options.map((o) => ({ value: o.value, name: o.name(), reason: g_reason })),
 				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_FORM_DEFAULTS[g.field]) }
 			),
-		})
-	).join("");
+		});
+	}).join("");
 
 	const toggles = BND_FORM_TOGGLES.map((t) =>
 		P.toggle({
@@ -4382,11 +5445,11 @@ function bnd_render_form_picker(frm, host) {
 }
 
 /** Hand the form's current form-kit values to the desk engine — live preview. */
-function bnd_form_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.form_apply) return;
+function bnd_form_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.form_apply) return;
 	const values = {};
 	for (const f of BND_FORM_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.form_apply(values);
+	engine.form_apply(values);
 }
 
 /** Set one form option, preview, re-render. */
@@ -4394,6 +5457,189 @@ function bnd_form_set(frm, fieldname, value) {
 	frm.set_value(fieldname, value);
 	bnd_form_preview(frm);
 	bnd_render_form_picker(frm);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// Desk body picker (item 43 A1) — width, type scale, primary button
+// ════════════════════════════════════════════════════════════════════════════
+
+/** Client mirror of presets.DESK_FIELDS — keep in sync. Export AND import list it. */
+const BND_DESK_FIELDS = ["desk_width", "desk_scale", "desk_primary"];
+
+/** Client mirror of presets.DESK_DEFAULTS — keep in sync. */
+const BND_DESK_DEFAULTS = {
+	desk_width: "Balanced",
+	desk_scale: "Standard 14",
+	desk_primary: "Brand",
+};
+
+/**
+ * Three rows and no style cards: the body kit has NO anchor. Each axis stands
+ * down alone, so each row offers its own "Original" — the vendor's 900px cap,
+ * the vendor's flat type, the vendor's black button — beside the theme's values.
+ */
+/**
+ * The two measures as a bare pair — "1040 · 1400", reading edge first.
+ *
+ * NOT LABELLED, and both halves of that are deliberate. The group's own
+ * description already says which edge is which, in that order, so a label on
+ * every chip repeats it four times; and the first cut DID label them, which
+ * overflowed a 96px chip and clipped to "Reading: 1040 · Wid" — the screenshot
+ * caught it, nothing else could have. Digits carry no grammar, so this also
+ * sidesteps the plural guard that refused "{0} reading" outright.
+ */
+function bnd_width_blurb(reading, wide) {
+	return reading + " · " + wide;
+}
+
+const BND_DESK_GROUPS = [
+	{
+		field: "desk_width",
+		title: () => __("Width"),
+		desc: () => __("How wide the body runs. Each value sets TWO edges: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a table."),
+		// THE NUMBERS ARE SHOWN, NOT ENCODED IN THE NAME. A label that says
+		// "Balanced" and a measure that says 1040 are the same fact twice, and the
+		// copy that goes stale is always the name. Gutenberg reached the same
+		// answer — its width menu reads "Wide width · Max 1340px wide", deriving
+		// the number from the setting rather than spelling it in the label.
+		options: [
+			{ value: "Original", name: () => __("Original"), blurb: () => __("Frappe's own 900px cap") },
+			{ value: "Compact", name: () => __("Compact"), blurb: () => bnd_width_blurb(900, 1200) },
+			{ value: "Balanced", name: () => __("Balanced"), blurb: () => bnd_width_blurb(1040, 1400) },
+			{ value: "Roomy", name: () => __("Roomy"), blurb: () => bnd_width_blurb(1120, 1600) },
+			{ value: "Full", name: () => __("Full"), blurb: () => __("No limit on either edge") },
+		],
+	},
+	{
+		field: "desk_scale",
+		title: () => __("Type scale"),
+		desc: () => __("The body's type set: values, labels, section heads and titles move together, and the head leads. Density is separate and never touches type."),
+		options: [
+			{ value: "Original", name: () => __("Original") },
+			{ value: "Compact 13", name: () => __("Compact 13") },
+			{ value: "Standard 14", name: () => __("Standard 14") },
+			{ value: "Touch 16", name: () => __("Touch 16") },
+		],
+	},
+	{
+		field: "desk_primary",
+		title: () => __("Primary button"),
+		desc: () => __("Frappe's near-black button, or the brand fill with its gated ink."),
+		options: [
+			{ value: "Black", name: () => __("Black") },
+			{ value: "Brand", name: () => __("Brand") },
+		],
+	},
+];
+
+/** Render the desk body picker. */
+/**
+ * The reader's OWN width, when it is overriding the site's.
+ *
+ * THE USER, 2026-09-12: "the width doesnt change" — and the kit was not the
+ * cause. `bnd_body_width` (item 45's status-bar control) wins over
+ * `desk_width` in `resolve_for_user`, so an administrator who has ever
+ * touched that icon changes this setting, watches the page's own preview move —
+ * `bnd_desk_preview` applies the FORM's values straight to <html>, past the
+ * overlay — and then finds the old width back on the next page they open. The
+ * setting was working; nothing said who was beating it.
+ *
+ * A LIVE NOTE, NOT PROSE IN THE DESCRIPTION: a permanent "each person can
+ * override this" line is false for almost everyone who reads it, and the one
+ * person it is true for still has to work out that it is about them. This
+ * appears only while an override is actually in force, names the value, and
+ * carries the single gesture that clears it.
+ *
+ * THE BUTTON IS NOT A `.bnd-cbp-opt`, and the first cut made it one to borrow
+ * the picker's focus ring. That class is what the a11y check gathers when it
+ * requires `aria-pressed` on every option chip — correct for a chip, wrong
+ * here: this button has no pressed state, it performs an action and then stops
+ * existing. It carries its own class and its own ring instead. The defect hid
+ * through two full suites because the note only renders while an override is
+ * in force, and no run happened to have one.
+ */
+function bnd_desk_mine_note(mine) {
+	return (
+		'<div class="bnd-dkp-mine">' +
+		"<span>" +
+		bnd_esc(__("Your own width ({0}) is overriding this on your desk.", [__(mine)])) +
+		"</span>" +
+		'<button type="button" class="bnd-dkp-mine-clear">' +
+		bnd_esc(__("Follow the site")) +
+		"</button>" +
+		"</div>"
+	);
+}
+
+/** The width this reader has chosen for themselves, or "" for none. */
+function bnd_desk_mine() {
+	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+	return p.body_width || "";
+}
+
+function bnd_render_desk_picker(frm, host) {
+	const $host = bnd_picker_host(frm, "desk_picker", host);
+	if (!$host) return;
+
+	const groups = BND_DESK_GROUPS.map((g) => {
+		// Filtered against the field's real options — the rule that retired the
+		// status Off-card wedge class of bug.
+		const offered = bnd_field_slots(frm, g.field);
+		return P.group({
+			title: g.title(),
+			desc: g.desc(),
+			field: g.field,
+			body:
+				P.options(
+					// The blurb carries the MEASURES, resolved here rather than spelled into
+					// the label — see the width group's comment.
+					// The measures ride as the chip's second line — resolved here, never
+					// spelled into the name. See `P.options`.
+					g.options
+						.filter((o) => offered.includes(o.value))
+						.map((o) => ({ value: o.value, name: o.name(), ...(o.blurb ? { sub: o.blurb() } : {}) })),
+					{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_DESK_DEFAULTS[g.field]) }
+				) +
+				// Width is the one body axis with a per-user twin, so it is the one
+				// that can be silently overridden. Scale and primary have none.
+				(g.field === "desk_width" && bnd_desk_mine() ? bnd_desk_mine_note(bnd_desk_mine()) : ""),
+		});
+	}).join("");
+
+	$host.html(P.wrap('<div class="bnd-cbp bnd-dkp">' + groups + P.note(__("Applies as you click.")) + "</div>"));
+
+	$host.find(".bnd-cbp-opt").on("click", function () {
+		if (this.hasAttribute("disabled")) return;
+		bnd_desk_set(frm, this.getAttribute("data-field"), this.getAttribute("data-value"));
+	});
+	$host.find(".bnd-cbp-reset").on("click", function (e) {
+		e.stopPropagation();
+		const f = this.getAttribute("data-field");
+		bnd_desk_set(frm, f, bnd_default_of(f, BND_DESK_DEFAULTS[f]));
+	});
+	$host.find(".bnd-dkp-mine-clear").on("click", function () {
+		const engine = window.bunood_theme;
+		if (!engine || !engine.set_body_width) return;
+		// Through the setter, never the row: it clears the stored intent, puts the
+		// site's width back on <html> and updates the boot seed both status-bar
+		// cycles read. Re-render so the note goes with it.
+		Promise.resolve(engine.set_body_width("")).then(() => bnd_render_desk_picker(frm));
+	});
+}
+
+/** Hand the form's body values to the desk engine — live preview. */
+function bnd_desk_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.body_apply) return;
+	const values = {};
+	for (const f of BND_DESK_FIELDS) values[f] = frm.doc[f];
+	engine.body_apply(values);
+}
+
+/** Set one body option, preview, re-render. */
+function bnd_desk_set(frm, fieldname, value) {
+	frm.set_value(fieldname, value);
+	bnd_desk_preview(frm);
+	bnd_render_desk_picker(frm);
 }
 
 // ── Workspace picker (item 25) — 7 tile styles, a rows group, a menu toggle ──
@@ -4589,11 +5835,11 @@ function bnd_render_workspace_picker(frm, host) {
 }
 
 /** Hand the workspace values to the desk engine — live preview. */
-function bnd_workspace_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.workspace_apply) return;
+function bnd_workspace_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.workspace_apply) return;
 	const values = {};
 	for (const f of BND_WORKSPACE_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.workspace_apply(values);
+	engine.workspace_apply(values);
 }
 
 /** Set one workspace option, preview, re-render. */
@@ -4693,11 +5939,11 @@ function bnd_render_chart_picker(frm, host) {
 }
 
 /** Hand the chart values to the desk engine — live preview. */
-function bnd_chart_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.chart_apply) return;
+function bnd_chart_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.chart_apply) return;
 	const values = {};
 	for (const f of BND_CHART_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.chart_apply(values);
+	engine.chart_apply(values);
 }
 
 /** Set the chart option, preview, re-render. */
@@ -4864,11 +6110,11 @@ function bnd_render_report_picker(frm, host) {
 }
 
 /** Hand the report values to the desk engine — live preview. */
-function bnd_report_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.report_apply) return;
+function bnd_report_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.report_apply) return;
 	const values = {};
 	for (const f of BND_REPORT_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.report_apply(values);
+	engine.report_apply(values);
 }
 
 /** Set one report option, preview, re-render. */
@@ -5035,11 +6281,11 @@ function bnd_render_views_picker(frm, host) {
 }
 
 /** Hand the view values to the desk engine — live preview. */
-function bnd_views_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.views_apply) return;
+function bnd_views_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.views_apply) return;
 	const values = {};
 	for (const f of BND_VIEWS_FIELDS) values[f] = frm.doc[f];
-	window.bunood_theme.views_apply(values);
+	engine.views_apply(values);
 }
 
 /** Set one view option, preview, re-render. */
@@ -5122,7 +6368,7 @@ const BND_PRINT_DEFAULTS = {
 	print_totals_style: "Washed Panel",
 	print_heading_style: "Original",
 	print_accent: "Brand panels",
-	print_letterhead: "Hairline Minimal",
+	print_letterhead: "Bilingual Split",
 	print_title_lang: "Both",
 	print_qr: "Show",
 	print_qr_place: "Head end",
@@ -5279,15 +6525,15 @@ function bnd_render_overlay_picker(frm, host) {
 }
 
 /** Hand the overlay values to the desk engine — live preview. */
-function bnd_overlay_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.overlay_apply) return;
+function bnd_overlay_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.overlay_apply) return;
 	const values = {};
 	// `|| DEFAULT` matters: on a site where a field was never written,
 	// frm.doc[f] is empty and sending it raw CLEARS the anchor the boot payload
 	// had just set — opening the settings form would strip the style. The two
 	// call sites in the renderer above already fall back; this one did not.
 	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_OVERLAY_DEFAULTS[f]);
-	window.bunood_theme.overlay_apply(values);
+	engine.overlay_apply(values);
 }
 
 /** Set one overlay option, preview, re-render. */
@@ -5427,15 +6673,15 @@ function bnd_render_empty_picker(frm, host) {
 }
 
 /** Hand the empty-state values to the desk engine — live preview. */
-function bnd_empty_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.empty_apply) return;
+function bnd_empty_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.empty_apply) return;
 	const values = {};
 	// `|| DEFAULT` matters, and the overlays picker records why: on a site where
 	// a field was never written, frm.doc[f] is empty, and sending it raw CLEARS
 	// the anchor the boot payload had just set — opening the settings form would
 	// strip the style.
 	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_EMPTY_DEFAULTS[f]);
-	window.bunood_theme.empty_apply(values);
+	engine.empty_apply(values);
 }
 
 /** Set one empty-state option, preview, re-render. */
@@ -5513,14 +6759,14 @@ function bnd_render_skeleton_picker(frm, host) {
 }
 
 /** Hand the loading values to the desk engine — live preview. */
-function bnd_skeleton_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.skeleton_apply) return;
+function bnd_skeleton_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.skeleton_apply) return;
 	const values = {};
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
 	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_SKELETON_DEFAULTS[f]);
-	window.bunood_theme.skeleton_apply(values);
+	engine.skeleton_apply(values);
 }
 
 /** Set the loading style, preview, re-render. */
@@ -5655,14 +6901,14 @@ function bnd_render_filters_picker(frm, host) {
 }
 
 /** Hand the filter values to the desk engine — live preview. */
-function bnd_filters_preview(frm) {
-	if (!window.bunood_theme || !window.bunood_theme.filters_apply) return;
+function bnd_filters_preview(frm, engine = window.bunood_theme) {
+	if (!engine || !engine.filters_apply) return;
 	const values = {};
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
 	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_FILTERS_DEFAULTS[f]);
-	window.bunood_theme.filters_apply(values);
+	engine.filters_apply(values);
 }
 
 /** Set a filter field, preview, re-render. */
@@ -6661,15 +7907,18 @@ function bnd_print_set(frm, field, value) {
 const BND_STATUS_FIELDS = [
 	"search_placement", "status_style", "status_segments_jobs", "status_segments_errors",
 	"status_segments_scheduler", "status_segments_connection", "status_segments_density",
+	"status_segments_width",
 	"status_clock", "status_interval", "status_freshness", "status_escalate",
 ];
 
 /** Shipped defaults, for the reset chips. */
 const BND_STATUS_DEFAULTS = {
-	search_placement: "Top Bar Center", status_style: "Quiet", status_clock: "Off",
+	// The layout row's value, as the doctype default reads (item 43's review found
+	// "Top Bar Center" here — the mirror guard reads only literal Python rows).
+	search_placement: "Side Pane Start", status_style: "Quiet", status_clock: "Off",
 	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
 	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
-	status_freshness: 1, status_escalate: 0,
+	status_segments_width: 1, status_freshness: 1, status_escalate: 0,
 };
 
 /**
@@ -7369,6 +8618,7 @@ const BND_STATUS_TOGGLES = [
 	{ field: "status_segments_scheduler", name: () => __("Scheduler"), desc: () => __("Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only.") },
 	{ field: "status_segments_connection", name: () => __("Live updates"), desc: () => __("Says when the realtime connection is down. The desk still works — what stops is anything updating on its own.") },
 	{ field: "status_segments_density", name: () => __("Density toggle"), desc: () => __("Click to cycle row density.") },
+	{ field: "status_segments_width", name: () => __("Width toggle"), desc: () => __("Click to cycle how wide the body runs. Each person sets their own; the site width below is what they start from.") },
 	{ field: "status_freshness", name: () => __("Freshness stamp"), desc: () => __("How old the counts are, and a button to refresh them now.") },
 	{ field: "status_escalate", name: () => __("Recolour the bar on failure"), desc: () => __("Tints the whole strip when something has failed. Off by default — a bar that shouts gets ignored.") },
 ];
@@ -7726,7 +8976,11 @@ function bnd_theme_keys() {
 		"brand_color_dark", "accent_color_dark", "ground_color", "density_default",
 		"topbar_enabled", "pagehead_enabled", "dock_enabled", "sidebar_enabled", "bottombar_enabled",
 		"desk_order", "inbox_placement", "user_placement", "home_placement", "apps_placement",
-	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS);
+		// The three the desk's SHAPE also carries (items 42 and 44); an import that
+		// dropped them kept the target's start button, globe and Appearance button
+		// while counting them applied (item 43's review).
+		"start_placement", "language_placement", "appearance_placement",
+	].concat(BND_SIDEBAR_FIELDS, BND_ICON_FIELDS, BND_CRUMB_FIELDS, BND_PALETTE_FIELDS, BND_INBOX_FIELDS, BND_LANGUAGE_FIELDS, BND_PANEHEAD_FIELDS, BND_STATUS_FIELDS, BND_LIST_FIELDS, BND_FORM_FIELDS, BND_DESK_FIELDS, BND_WORKSPACE_FIELDS, BND_CHART_FIELDS, BND_REPORT_FIELDS, BND_VIEWS_FIELDS, BND_OVERLAY_FIELDS, BND_EMPTY_FIELDS, BND_SKELETON_FIELDS, BND_FILTERS_FIELDS, BND_LOGIN_FIELDS, BND_WEB_FIELDS, BND_EMAIL_FIELDS, BND_PRINT_FIELDS, BND_MOBILE_FIELDS);
 }
 
 /**
@@ -7820,6 +9074,7 @@ function bnd_sb_import(frm) {
 			bnd_render_status_picker(frm);
 			bnd_render_list_picker(frm);
 			bnd_render_form_picker(frm);
+		bnd_render_desk_picker(frm);
 			bnd_render_workspace_picker(frm);
 			bnd_render_chart_picker(frm);
 			bnd_render_report_picker(frm);

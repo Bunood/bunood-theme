@@ -47,6 +47,26 @@
 //     body runs, and the swap pending timeout finds the clone gone and skips.
 //     A patch of a vendor method, confined to the one state the vendor own code
 //     creates and does not handle. Guarded by a marker so it is applied once.
+// (3) AND IT WAS NEVER INSTALLED. Recorded 2026-09-10, after the race failed a
+//     fifth full run and this time was REPRODUCED — the thing four earlier
+//     investigations could not do. Two arms, both on a dashboard: viewport churn
+//     on `/desk/dashboard-view/*` throws once, and the composer's compare strip
+//     drawing four scaled desks over a dashboard throws eight times.
+//     The stack names its caller now that the console budget prints its frames:
+//     `ResizeObserver.boundDrawFn -> draw -> makeChartArea`, exactly the race
+//     described above. So the wrap should have caught it, and did not — because
+//     `frappe.Chart` is a FACTORY. `makeChartArea` lives on the concrete chart
+//     class the factory returns, not on `frappe.Chart.prototype`, so
+//     `const native_area = NativeChart.prototype.makeChartArea` read `undefined`,
+//     the `typeof === "function"` guard around it declined, and the patch
+//     installed NOTHING. Measured on a live dashboard: `frappe.Chart` was ours
+//     (`frappeChartIsBnd: true`) and `frappe.Chart.prototype.makeChartArea._bnd`
+//     was false.
+//     THE LESSON IS THE REPO'S OWN, one level up: a guard whose branch is false
+//     is UNTESTED, not working — and this one dressed its own absence as a
+//     defensive check. `guard_chart_area` now walks the prototype chain of a
+//     real INSTANCE, in `BndChart` where one has just been constructed, and
+//     patches whichever object actually owns the method.
 // ─────────────────────────────────────────────────────────────────────────────
 // Charts — the chart surface (item 25)
 //

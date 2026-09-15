@@ -1,0 +1,150 @@
+{
+ "_readme": [
+  "Strings whose upstream Arabic is a FALSE FRIEND on the desk: another app translates",
+  "the same English word in a different sense, so inheriting its row would be wrong",
+  "on our surface. Two consumers read this file: tools/i18n_inherited.mjs refuses to",
+  "inherit these (we ship our own row), and bunood_theme.setup._defend_false_friends",
+  "asserts the `defend: true` ones site-wide on every migrate through a Translation",
+  "row - because the runtime dictionary is one flat merge in install order and this",
+  "app sits third of ten, so a later app's row overwrites ours before the desk sees",
+  "it (measured 2026-09-14: 17 of 29 lost). `defend: false` marks an entry whose",
+  "upstream sense is RIGHT on the other app's own screens (erpnext's Ledger is the",
+  "accounting ledger); those must carry a translation context at our call sites",
+  "instead, and are listed here so the generator still refuses the inheritance.",
+  "Small and argued; not a place to park anything awkward."
+ ],
+ "entries": {
+  "Count": {
+   "reason": "upstream عد is the VERB 'to count'; ours is a badge count (noun)",
+   "defend": true
+  },
+  "More": {
+   "reason": "upstream أكثر is the comparative 'more than'; a More button is المزيد",
+   "defend": true
+  },
+  "Full": {
+   "reason": "upstream ممتلئ means 'filled up'; ours is full intensity",
+   "defend": true
+  },
+  "Center": {
+   "reason": "upstream مركز is a hub (cost centre), not centre alignment",
+   "defend": false
+  },
+  "Mention": {
+   "reason": "upstream أشير is a verb; ours is a noun — but it is Frappe's own notification type, so we ship no row either",
+   "defend": true
+  },
+  "Mentions": {
+   "reason": "upstream يذكر is a verb; ours is a noun",
+   "defend": true
+  },
+  "Action": {
+   "reason": "helpdesk حدث is an EVENT/occurrence; ours is a thing the user does — إجراء",
+   "defend": true
+  },
+  "Apply": {
+   "reason": "crm تقديم is submitting an application; ours applies a setting — تطبيق",
+   "defend": true
+  },
+  "Filter": {
+   "reason": "frappe منقي is a purifier; a filter control is تصفية",
+   "defend": true
+  },
+  "Display": {
+   "reason": "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it",
+   "defend": false
+  },
+  "Translations": {
+   "reason": "frappe ترجمة is singular; our nav section is plural — الترجمات",
+   "defend": true
+  },
+  "Queued": {
+   "reason": "frappe قائمة الانتظار is the queue (a noun); ours is a STATUS — في قائمة الانتظار",
+   "defend": true
+  },
+  "Automatic": {
+   "reason": "frappe معادلة is a formula; ours is the colour mode that follows the OS — تلقائي",
+   "defend": true
+  },
+  "Both": {
+   "reason": "erpnext على حد سواء is 'alike'; ours is both halves of a title / both gridlines — كلاهما",
+   "defend": true
+  },
+  "Clear": {
+   "reason": "frappe واضح is 'obvious'; ours is the action that clears a field — مسح",
+   "defend": true
+  },
+  "Light": {
+   "reason": "frappe ضوء is a lamp's light (noun); the colour mode is فاتح",
+   "defend": true
+  },
+  "Dark": {
+   "reason": "frappe مظلم is 'gloomy'; kept with Light so the colour-mode pair agrees — داكن",
+   "defend": true
+  },
+  "Link": {
+   "reason": "frappe حلقة الوصل is a liaison; a hyperlink is رابط",
+   "defend": true
+  },
+  "List View": {
+   "reason": "frappe عرض منسدل is a DROPDOWN view; the list view is عرض القائمة",
+   "defend": true
+  },
+  "Original": {
+   "reason": "frappe إبداعي is 'creative'; our stand-down pole is the stock look — الأصلي",
+   "defend": true
+  },
+  "Records": {
+   "reason": "erpnext تسجيل is 'recording' (singular verbal noun); ours is the plural noun — سجلات",
+   "defend": true
+  },
+  "Saved Filters": {
+   "reason": "frappe حفظ الفلاتر is the imperative 'save the filters'; ours is a heading — المحفوظة",
+   "defend": true
+  },
+  "Show": {
+   "reason": "frappe تبين is 'it turns out'; the pair with Hide (إخفاء) is إظهار",
+   "defend": true
+  },
+  "Solid": {
+   "reason": "frappe صلب is 'rigid'; the pane material is opaque — معتم",
+   "defend": true
+  },
+  "Split": {
+   "reason": "erpnext انشق، مزق is 'tore apart'; the two-pane login layout is مُقسَّم",
+   "defend": true
+  },
+  "Subtle": {
+   "reason": "frappe دقيق is 'precise'; a subtle wash is faint — خفيفة",
+   "defend": true
+  },
+  "Theme": {
+   "reason": "frappe موضوع is a topic; a visual theme is السمة (the ar.po note already says so)",
+   "defend": true
+  },
+  "Letter": {
+   "reason": "frappe رسالة is a message; the email style shaped like a formal letter is خطاب",
+   "defend": true
+  },
+  "Ledger": {
+   "reason": "erpnext دفتر الأستاذ is the general-ledger account book; the Ledger look is a ruled page — دفتر",
+   "defend": false
+  },
+  "Notifications": {
+   "reason": "Frappe إخطارات is inconsistent with Bunood's product wording; our notification surface uses إشعارات",
+   "defend": true
+  },
+  "Notification": {
+   "reason": "Keep the singular paired with Bunood's إشعارات product wording — إشعار",
+   "defend": true
+  },
+  "Something went wrong": {
+   "reason": "System-state recovery copy is Bunood-owned and must stay consistent across list and report surfaces",
+   "defend": true
+  },
+  "Could not refresh this report": {
+   "reason": "System-state recovery copy is Bunood-owned and must stay consistent across list and report surfaces",
+   "defend": true
+  }
+ }
+}

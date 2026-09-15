@@ -234,6 +234,27 @@ this on some emails and not others.
 ***Filing:*** pass `_raise_error=True`, or guard the dereference. `get_brand_logo` should
 also tolerate `None` rather than assuming a document.
 
+***FIXED UPSTREAM in frappe 16.33.0*** (confirmed on this bench 2026-09-10) — and by the
+second of the two remedies above:
+
+```python
+def get_brand_logo(email_account):
+	return (email_account and email_account.get("brand_logo")) or frappe.get_website_settings("app_logo")
+```
+
+`find_outgoing` still returns `None`; the dereference is simply guarded now, and a new
+`get_brand_name()` beside it never touched the account at all.
+
+**`api.email_preview` was NOT simplified, and the reason is not the crash.** Its
+`email_account=frappe._dict(brand_logo=None, footer=None)` stub reads as a workaround and
+is doing two other jobs: without it `get_brand_logo(None)` falls through to Website
+Settings' `app_logo`, so the preview would show a logo the tenant's Theme Settings did not
+choose, and `get_footer(None, …)` would append the account footer. A preview that shows
+something other than what the settings say is worse than no preview. The endpoint keeps
+its own sample for the same reason it always did. The suite's arm asserting the upstream
+`AttributeError` is gone — it was a "tell me when this is fixed" tripwire, it fired, and
+we are not going to depend on the fixed behaviour either way.
+
 ---
 
 ## Not filed, and why
