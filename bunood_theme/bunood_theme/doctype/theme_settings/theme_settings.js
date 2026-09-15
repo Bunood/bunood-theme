@@ -1518,7 +1518,13 @@ function bnd_settings_note(key, frm) {
  */
 function bnd_tr_layout(name) {
 	if (!name) return "";
-	return name === "Custom" ? __("Custom") : __(name);
+	// THE SAME CONTEXT THE CARDS USE (2026-09-15). A preset name that collides with
+	// another app's word — "Ledger", which erpnext translates as the general-ledger
+	// account book — is answered by a CONTEXTUAL row, and this dynamic path has to
+	// ask for the same key or the derived label and the card would disagree in
+	// Arabic. Frappe's `__` falls back to the bare msgid when a contextual row is
+	// missing (translate.js), so the other eleven names are untouched.
+	return name === "Custom" ? __("Custom") : __(name, null, "theme name");
 }
 
 /**
@@ -3706,7 +3712,7 @@ const BND_THEME_ART = {
 	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — a floating card lifted off the page instead of attached solid.") },
 	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
 	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
-	"Ledger": { name: () => __("Ledger"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
+	"Ledger": { name: () => __("Ledger", null, "theme name"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
 	"Elevated": { name: () => __("Elevated"), pane: "glass", card: "float", rows: "plain", blurb: () => __("Soft tiles, filled empties, rounded elevation throughout.") },
 	"Carbon": { name: () => __("Carbon"), pane: "dark", card: "hairline", rows: "rule", blurb: () => __("Structured and sharp — a grid you can feel, on a deep pane.") },
 	"Records": { name: () => __("Records"), pane: "tint", card: "sheet", rows: "rule", blurb: () => __("Document-centric: a paper sheet on a headed board.") },

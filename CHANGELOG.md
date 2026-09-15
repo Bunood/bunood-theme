@@ -24,6 +24,48 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.46.7] — 2026-09-15 — The words we could not defend, and one we could (patch)
+
+**The three items v0.46.6 left owed, closed.** Two were translation work the false-friends
+defense could not do, and the third was a gap another session left in the handover.
+
+### Fixed
+
+- **"Standard" reads as standard, not basic.** The quick-links setting's middle option
+  inherited frappe's *أساسي*, which means basic or essential — wrong for the option between
+  Brief and Full, and wrong on frappe's own "standard format / standard filter" screens
+  too. A doctype Select option carries no translation context (Frappe emits none for
+  labels and options), so this one is a false friend of its own: listed, defended, and
+  served site-wide as **قياسي**.
+- **The Ledger look is a ruled page, not the account book.** `Ledger` is the one entry the
+  defense must NOT assert site-wide — erpnext's *دفتر الأستاذ* is the general ledger and is
+  right on its own screens — so our surfaces ask for a CONTEXT instead (`"theme name"`), at
+  **both** render paths: the theme card's own thunk and `bnd_tr_layout`'s dynamic
+  `__(name)`, because a card and its derived label disagreeing in Arabic is exactly the
+  defect a context is supposed to prevent. Frappe's `__` falls back to the bare msgid when a
+  contextual row is missing, so the other eleven preset names are untouched. Our bare
+  `Ledger` row went with it: it served nothing and lost the merge anyway.
+- **`Center` and `Display` needed nothing, and the check is what said so.** Both were
+  written up as losing their word to another app. They are not: no later app claims either,
+  so our own rows already reach the desk. The first draft of the check asserted a context
+  for all three and failed on two — the two contexts were reverted as rows nobody needed,
+  and `locale/false_friends.json` now records the measurement rather than the assumption.
+- **The handover's release chain** skipped v0.45.0 (item 43) and v0.46.0–v0.46.3 (item 45),
+  which another session shipped without adding their sentence. Both are in the chain now.
+
+### Checks
+
+`i18n: a false friend we cannot defend still reaches the desk as ours` — DERIVED from the
+file: every row we ship for an undefended entry, contextual or bare, must be what the merged
+dictionary serves under that same key, and Ledger's two keys must differ. Watched failing
+twice, both times for a real reason: first on the two redundant contexts, then on the dead
+bare row.
+
+### Words
+
+Four Arabic rows move: `Standard` (new, defended), `Ledger` (bare row retired for a
+contextual one), and the two reverted. Source strings 1,362; coverage complete. Full run **545/545**, green including the new check.
+
 ## [0.46.6] — 2026-09-14 — The desk page's strip: the pane's own search counts (patch)
 
 **Found on production minutes after v0.46.5 shipped, by looking:** the All Apps page still

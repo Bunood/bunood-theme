@@ -5163,10 +5163,6 @@ msgid "Canvas"
 msgstr "لوحة الرسم"
 
 #. src: item37
-msgid "Ledger"
-msgstr "دفتر"
-
-#. src: item37
 msgid "Records"
 msgstr "سجلات"
 
@@ -7499,3 +7495,16 @@ msgstr "موجز"
 #. src: quick-links
 msgid "Quick links in the pane head's menu: each module row opens a flyout of New … rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone."
 msgstr "روابط سريعة في قائمة رأس اللوحة: كل صف وحدة يفتح قائمة جانبية بصفوف «جديد» لما يمكنك إنشاؤه، وتقارير الوحدة، و«اذهب إلى». موجز 3+2، أساسي 6+4، كامل 12+8 صفًا؛ «معطَّل» يبقي قائمة الوحدات وحدها."
+
+#. In theme_settings.js — the "Ledger" LOOK, a ruled page; erpnext's دفتر الأستاذ is
+#. the general-ledger account book and is right on its own screens, so ours is a context
+#. src: false-friends
+msgctxt "theme name"
+msgid "Ledger"
+msgstr "دفتر"
+
+#. In theme_settings.json — an option of panehead_quick_links. A doctype option carries
+#. no context (Frappe emits none), so this one is defended site-wide instead
+#. src: false-friends
+msgid "Standard"
+msgstr "قياسي"

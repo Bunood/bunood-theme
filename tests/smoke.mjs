@@ -11944,6 +11944,52 @@ print("ok")
 		// server ships actually carries the decisions, and that what the desk
 		// paints agrees with them where we looked.
 
+		await test("i18n: a false friend we cannot defend still reaches the desk as ours", async () => {
+			// THE OTHER HALF of locale/false_friends.json (2026-09-15). Three entries are
+			// `defend: false` because the upstream sense is RIGHT on its own screens —
+			// erpnext's Ledger is the general-ledger account book, frappe's Center a cost
+			// centre, its Display the generic view — so the site-wide Translation row the
+			// defended entries get would break those. What must still hold is that OUR
+			// surfaces render OUR word, by whichever route: a CONTEXT where the bare msgid
+			// is lost to a later app (Ledger, whose two render paths — the theme card's
+			// thunk and `bnd_tr_layout`'s dynamic call — both pass "theme name"), or the
+			// bare row itself where nothing contests it (Center and Display, measured).
+			//
+			// DERIVED, so it cannot rot: every row we ship for such a msgid is looked up
+			// in the merged dictionary under its own key, contextual or bare. Watched
+			// failing on the first draft, which asserted a context for all three and found
+			// two that were rows nobody needed — the reason those two were reverted.
+			const out = benchPy(
+				"import json\n" +
+				"from frappe.translate import get_all_translations, get_translation_dict_from_file\n" +
+				"entries = json.load(open(frappe.get_app_path('bunood_theme', 'locale', 'false_friends.json'), encoding='utf-8'))['entries']\n" +
+				"undefended = [m for m, e in entries.items() if not e.get('defend')]\n" +
+				"ours = get_translation_dict_from_file(frappe.get_app_path('bunood_theme', 'translations', 'ar.csv'), 'ar', 'bunood_theme')\n" +
+				"d = get_all_translations('ar')\n" +
+				// Every key we ship FOR that msgid: the bare one, and any "source:context".
+				"rows = {m: {k: v for k, v in ours.items() if k == m or k.startswith(m + ':')} for m in undefended}\n" +
+				"served = {m: {k: [v, d.get(k)] for k, v in ks.items()} for m, ks in rows.items()}\n" +
+				"print('BND' + json.dumps({'undefended': undefended, 'served': served}))\n"
+			);
+			const line = String(out).split("\n").find((l) => l.startsWith("BND"));
+			expect(line, `the bench answered (${String(out).slice(-200)})`);
+			const r = JSON.parse(line.slice(3));
+			expect(r.undefended.length >= 3, `the list has undefended entries (${r.undefended.join(", ")})`);
+			for (const msgid of r.undefended) {
+				const keys = r.served[msgid] || {};
+				expect(Object.keys(keys).length > 0, `${msgid}: we ship a row for it at all`);
+				for (const [key, [ourValue, servedValue]] of Object.entries(keys)) {
+					expectEq(servedValue, ourValue, `${msgid}: the desk serves our word under "${key}"`);
+					expect(servedValue !== msgid, `${msgid}: and it is translated, not the msgid back`);
+				}
+			}
+			// Ledger is the one that needed a context, so its two keys must DIFFER: the
+			// bare one is erpnext's account book, the contextual one our look.
+			const led = r.served.Ledger || {};
+			expect(led["Ledger:theme name"], `Ledger carries the context (${JSON.stringify(led)})`);
+			expect(!led.Ledger || led.Ledger[1] !== led["Ledger:theme name"][1], "and it says something other than the bare row");
+		});
+
 		await test("i18n: every defended false friend wins the merged dictionary", async () => {
 			// THE OTHER HALF of refusing to inherit a false friend (2026-09-14, "what
 			// else"): the runtime dictionary is one flat merge in install order and

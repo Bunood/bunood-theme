@@ -27,7 +27,7 @@
    "defend": true
   },
   "Center": {
-   "reason": "upstream مركز is a hub (cost centre), not centre alignment",
+   "reason": "frappe مركز is a hub (cost centre), not centre alignment — and right on ITS screens, so never defended site-wide; our own row wins the merge unaided (measured 2026-09-15), so no context is needed either",
    "defend": false
   },
   "Mention": {
@@ -51,7 +51,7 @@
    "defend": true
   },
   "Display": {
-   "reason": "frappe عرض is generic view; ours names the item-25 metric STYLE (عرض بارز) and must not flatten to it",
+   "reason": "frappe عرض is generic view; ours names the item-25 metric STYLE — right on its own screens, so never defended site-wide; our own row wins the merge unaided (measured 2026-09-15)",
    "defend": false
   },
   "Translations": {
@@ -127,8 +127,12 @@
    "defend": true
   },
   "Ledger": {
-   "reason": "erpnext دفتر الأستاذ is the general-ledger account book; the Ledger look is a ruled page — دفتر",
+   "reason": "erpnext دفتر الأستاذ is the general-ledger account book and is right on ITS screens, so never defended site-wide; the Ledger LOOK is a ruled page and takes the context \"theme name\" at both render paths (the card's thunk and bnd_tr_layout's dynamic call)",
    "defend": false
+  },
+  "Standard": {
+   "reason": "frappe أساسي is 'basic/essential'; a standard option or format is قياسي — and a doctype Select option carries no context, so this one is defended site-wide (panehead_quick_links)",
+   "defend": true
   }
  }
 }
