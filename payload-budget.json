@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-09-15 SIGNED ACCOUNTING CHART DECISION: desk JS ceiling 166500 -> 167100 gzip bytes. The measured bundle is 166892 bytes. The growth detects signed, non-finite, and all-zero data before Frappe's percentage renderer creates invalid SVG geometry; it preserves finite signed balances and selects Frappe's native bar renderer because a percentage breakdown is not mathematically truthful for negative credits. Report tables, queries, calculations and export payloads remain unchanged; no dependency or parallel chart engine was added.",
 		"2026-09-13 SYSTEM-STATE AND STATUS-ICON DECISION: desk CSS ceiling 34000 -> 34200 and desk JS 165500 -> 166500 gzip bytes. Measured bundles are 34143 CSS and 166358 JS. The growth replaces three divergent Home/list/report failure treatments with one documented six-variant component covering loading, configured-empty, setup-incomplete, permission-denied, recoverable-error and offline/delayed-integration states. It supplies semantic role/live-region behavior, verified sprite fallbacks, one labelled recovery action, async busy handling, RTL-safe responsive geometry and reduced motion, and adds an explicit Wi-Fi-off icon to the existing live-update warning. Home, list and report controllers retain their exact request, permission, filter, paging and retry paths; no dependency, endpoint, data model or parallel controller was added.",
 		"2026-09-13 INTERACTION ACCESSIBILITY DECISION: desk JS ceiling 163100 -> 165500 gzip bytes. The measured bundle is 165369 bytes. The 2506-byte growth over the preceding 162863-byte measurement restores the modal contract that pinned Frappe v16 removes after open: Quick Entry, confirmation and server-error dialogs now receive appropriate initial focus, keep keyboard/programmatic focus inside the top visible modal, return focus to the opener or remaining stacked dialog, expose a stable aria-labelledby relationship, associate visible field labels with inputs/selects and announce late feedback. It also turns the body-appended native list filter into a labelled non-modal dialog, connects the trigger with aria-controls/expanded, names Field/Condition/Value controls, makes Remove keyboard-operable, focuses its first control when keyboard-opened and makes Escape close and restore focus. A guarded DOM-state observer covers immediate and lazy-loaded overlays, the wrapper delegates to the exact native Dialog.show method, native actions remain unchanged, and no dependency, business action, validator or parallel overlay component was added.",
 		"2026-09-13 SEVEN-REPORT WORKBENCH DECISION: desk CSS ceiling 33600 -> 34000, desk JS 162700 -> 163100 and a separate report-route JS ceiling is introduced at 4000 gzip bytes. Measured bundles are 33890 CSS, 162863 global JS and 3460 report-route JS. The presentation gives General Ledger, Accounts Receivable, Accounts Payable, VAT Summary, Stock Balance, Rent Roll and Owner Ledger one compact scope summary, persistent recoverable request state, explicit empty-state action, semantic total/section bands and bidi-isolated numeric values. Frappe preloads query-report, so page_js cannot deliver an app Page script there; the global bundle carries only a query-report route loader and fetches the hashed workbench on demand, while that workbench activates only for the seven named reports. The workbench delegates to the live throttled refresh; native filters, prepared reports, virtualization, sort state and export payload remain untouched. A containing-block correction also confines Frappe's transparent onboarding layer to its sidebar instead of letting it intercept the entire page. No dependency, query, calculation, permission bypass or parallel report controller was added.",
@@ -196,7 +197,7 @@
 	],
 	"ceiling": {
 		"css_gzip": 34200,
-		"js_gzip": 166500,
+		"js_gzip": 167100,
 		"report_js_gzip": 4000,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4600,
@@ -668,6 +669,27 @@
 			"studio_js_raw": 90051,
 			"studio_js_gzip": 25557,
 			"note": "css +1227b, js +5845b, report_js 3462b gzip (new), studio_js +0b, web_css +3b, auth_js +0b, email_css +0b, print_css +810b gzip vs v0.44.27"
+		},
+		{
+			"version": "v0.44.30",
+			"date": "2026-09-15",
+			"web_css_raw": 30944,
+			"web_css_gzip": 4516,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 30254,
+			"print_css_gzip": 7748,
+			"css_raw": 265237,
+			"css_gzip": 34143,
+			"auth_js_raw": 1443,
+			"auth_js_gzip": 682,
+			"js_raw": 547366,
+			"js_gzip": 166892,
+			"report_js_raw": 10642,
+			"report_js_gzip": 3462,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +0b, js +510b, report_js +0b, studio_js +0b, web_css +0b, auth_js +0b, email_css +0b, print_css +0b gzip vs v0.44.28"
 		}
 	]
 }

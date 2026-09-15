@@ -314,6 +314,28 @@ async function dismissKnownSaveNotice(page) {
 
 async function submitWithKeyboard(page) {
 	const tabs = await focusSubmitByTab(page);
+	await page.evaluate(() => {
+		window.__bndSubmitKeyClicks = 0;
+		window.__bndSubmitRequests = [];
+		window.jQuery?.(document)
+			.off(".bndSubmitProbe")
+			.on("ajaxSend.bndSubmitProbe", (_event, _xhr, settings) => {
+				window.__bndSubmitRequests.push({ url: settings.url, state: "sent" });
+			})
+			.on("ajaxComplete.bndSubmitProbe", (_event, xhr, settings) => {
+				window.__bndSubmitRequests.push({
+					url: settings.url,
+					state: "complete",
+					status: xhr.status,
+					body: xhr.status >= 400 ? xhr.responseText?.slice(0, 2000) : "",
+				});
+			});
+		document.querySelector('[data-bnd-action="submit"]')?.addEventListener(
+			"click",
+			() => { window.__bndSubmitKeyClicks += 1; },
+			{ capture: true },
+		);
+	});
 	await page.keyboard.press("Enter");
 	await page.waitForFunction(
 		() => Number(cur_frm?.doc?.docstatus) === 1 || !!window.cur_dialog?.confirm_dialog,
@@ -333,6 +355,19 @@ async function submitWithKeyboard(page) {
 			dialog: document.querySelector(".modal.show")?.textContent?.trim() || "",
 			docstatus: cur_frm?.doc?.docstatus,
 			dirty: cur_frm?.is_dirty?.(),
+			busy: document.querySelector(".bnd-bill:not([hidden])")?.getAttribute("aria-busy"),
+			clicks: window.__bndSubmitKeyClicks,
+			ajaxCount: frappe.request?.ajax_count,
+			requests: window.__bndSubmitRequests,
+			active: document.activeElement?.outerHTML?.slice(0, 300) || "",
+			submit: (() => {
+				const button = document.querySelector('[data-bnd-action="submit"]');
+				return button && {
+					hidden: button.hidden,
+					disabled: button.disabled,
+					visible: Boolean(button.getClientRects().length),
+				};
+			})(),
 		}));
 		throw new Error("keyboard submit failed: " + JSON.stringify(state) + " (" + error.message + ")");
 	});
@@ -371,6 +406,10 @@ async function runBill(page, fixture, spec) {
 		null,
 		{ timeout: 30000 },
 	);
+	// ERPNext queues the Purchase Invoice expense-head notice after the draft
+	// model becomes clean. Let native callbacks mount it before dismissal.
+	await page.evaluate(() => frappe.after_ajax());
+	await page.waitForTimeout(500);
 	const saveNotice = await dismissKnownSaveNotice(page);
 	const name = await page.evaluate(() => cur_frm.doc.name);
 	const tabsToSubmit = await submitWithKeyboard(page);

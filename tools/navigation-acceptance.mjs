@@ -220,10 +220,10 @@ async function assertRoleHomes(browser) {
 	}
 }
 
-async function assertRealEstateGroups(browser) {
+async function assertRealEstateOperationalHome(browser) {
 	const expected = {
-		en: ["Portfolio", "Leasing", "Billing and collections", "Owners", "Reports", "Setup"],
-		ar: ["المحفظة العقارية", "التأجير", "الفوترة والتحصيل", "المُلّاك", "التقارير", "الإعدادات"],
+		en: ["Property and unit", "Customer to lease", "Lease to collection", "Deposits", "Owner settlement", "Renewal and termination"],
+		ar: ["العقارات والوحدات", "من العميل إلى عقد الإيجار", "من عقد الإيجار إلى التحصيل", "التأمينات", "تسوية مستحقات المُلّاك", "التجديد والإنهاء"],
 	};
 	for (const [language, labels] of Object.entries(expected)) {
 		setLanguage(language, REAL_ESTATE_USER);
@@ -232,8 +232,8 @@ async function assertRealEstateGroups(browser) {
 		const errors = collectErrors(page);
 		try {
 			await openDeskPage(page, "/desk/real-estate");
-			await page.waitForSelector(".links-widget-box .widget-title > span", { timeout: 30000 });
-			const rendered = await page.locator(".links-widget-box .widget-title > span").evaluateAll(nodes =>
+			await page.waitForSelector(".bnd-home-dashboard .bnd-home-lane-title:visible", { timeout: 30000 });
+			const rendered = await page.locator(".bnd-home-dashboard .bnd-home-lane-title:visible").evaluateAll(nodes =>
 				nodes.map(node => ({
 					text: node.textContent.trim(),
 					fits: node.scrollWidth <= node.clientWidth + 1,
@@ -241,12 +241,14 @@ async function assertRealEstateGroups(browser) {
 			);
 			assert(
 				JSON.stringify(rendered.map(item => item.text)) === JSON.stringify(labels),
-				language + " Real Estate group order is wrong: " + JSON.stringify(rendered)
+				language + " Real Estate process-lane order is wrong: " + JSON.stringify(rendered)
 			);
 			assert(
 				rendered.every(item => item.fits),
-				language + " Real Estate group label overlaps or truncates: " + JSON.stringify(rendered)
+				language + " Real Estate process-lane label overlaps or truncates: " + JSON.stringify(rendered)
 			);
+			assert(await page.locator(".editor-js-container:visible").count() === 0,
+				language + " legacy Workspace cards compete with the approved operational Home");
 			assert(errors.length === 0, language + " Real Estate browser errors: " + JSON.stringify(errors));
 		} finally {
 			await context.close();
@@ -294,16 +296,21 @@ async function assertRoleTaskReachability(browser) {
 	const realEstateErrors = collectErrors(realEstatePage);
 	try {
 		await openDeskPage(realEstatePage, "/desk/real-estate");
-		await realEstatePage.waitForSelector(".shortcut-widget-box:visible", { timeout: 30000 });
-		const shortcuts = await realEstatePage.locator(".shortcut-widget-box:visible").evaluateAll(nodes =>
-			nodes.map(node => node.getAttribute("aria-label"))
+		await realEstatePage.waitForSelector(".bnd-home-actions-panel .bnd-home-action:visible", { timeout: 30000 });
+		const actions = await realEstatePage.locator(".bnd-home-actions-panel .bnd-home-action:visible").evaluateAll(nodes =>
+			nodes.map(node => ({
+				label: node.textContent.replace(/\s+/g, " ").trim(),
+				hasIcon: !!node.querySelector("svg use"),
+			}))
 		);
 		assert(
-			JSON.stringify(shortcuts) === JSON.stringify(
-				["Property", "Real Estate Unit", "Lease", "Lease Wizard", "Account Setup"]
+			JSON.stringify(actions.map(item => item.label)) === JSON.stringify(
+				["New property", "New unit", "Start a lease", "Prepare billing", "Record collection"]
 			),
-			"Real Estate daily shortcuts are not the five one-click tasks: " + JSON.stringify(shortcuts)
+			"Real Estate frequent actions are not the five one-click tasks: " + JSON.stringify(actions)
 		);
+		assert(actions.every(item => item.hasIcon),
+			"Real Estate frequent actions are missing icons: " + JSON.stringify(actions));
 		assert(realEstateErrors.length === 0,
 			"Real Estate task-reachability browser errors: " + JSON.stringify(realEstateErrors));
 	} finally {
@@ -365,7 +372,7 @@ try {
 
 	await assertMobile(browser);
 	await assertRoleHomes(browser);
-	await assertRealEstateGroups(browser);
+	await assertRealEstateOperationalHome(browser);
 	await assertRoleTaskReachability(browser);
 	console.log(JSON.stringify({
 		status: "passed",
@@ -375,7 +382,7 @@ try {
 		viewports: ["1440x900", "1024x800", "430x900"],
 		apps_home_history: "passed",
 		role_homes: ["Selling", "Real Estate"],
-		real_estate_groups: ["Portfolio", "Leasing", "Billing and collections", "Owners", "Reports", "Setup"],
+		real_estate_process_lanes: ["Property and unit", "Customer to lease", "Lease to collection", "Deposits", "Owner settlement", "Renewal and termination"],
 		real_estate_languages: ["en", "ar"],
 		top_tasks: { erp: 5, real_estate: 5, maximum_clicks: 2 },
 		ordinary_apps: "curated",

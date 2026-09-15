@@ -1,6 +1,6 @@
 import { benchJson, getSettings, goto, openDesk, setSettings } from "./session.mjs";
 
-const REPORTS = [
+const DEFAULT_REPORTS = [
 	"General Ledger",
 	"Accounts Receivable",
 	"Accounts Payable",
@@ -9,6 +9,9 @@ const REPORTS = [
 	"Rent Roll",
 	"Owner Ledger",
 ];
+const REPORTS = process.env.BND_REPORTS
+	? process.env.BND_REPORTS.split(",").map((name) => name.trim()).filter(Boolean)
+	: DEFAULT_REPORTS;
 const recoveryOnly = process.env.BND_REPORT_RECOVERY_ONLY === "1";
 const reportUser = process.env.BND_REPORT_USER || "Administrator";
 const reportLanguage = process.env.BND_REPORT_LANGUAGE || "";
@@ -70,6 +73,14 @@ const { page, errors, close } = await openDesk({
 	width: reportWidth,
 	height: reportHeight,
 });
+const routedErrors = [];
+const consoleNoise = /socket\.io|Invalid origin/i;
+page.on("console", message => {
+	if (message.type() === "error" && !consoleNoise.test(message.text())) {
+		routedErrors.push(`${new URL(page.url()).pathname}: ${message.text()}`);
+	}
+});
+page.on("pageerror", error => routedErrors.push(`${new URL(page.url()).pathname}: ${error.message}`));
 try {
 	if (!recoveryOnly) for (const report of REPORTS) {
 		await goto(page, `/desk/query-report/${encodeURIComponent(report)}`, "[id='page-query-report']", {
@@ -105,6 +116,11 @@ try {
 				emptyAction: shown(root?.querySelector(".bnd-report-empty-action")),
 				prepared: Boolean(qr.prepared_report),
 				preparedDocument: Boolean(qr.prepared_report_document),
+				chartType: qr.chart?.type || qr.chart?.config?.type || "",
+				chartFallback: qr.chart?.container?.dataset.bndChartFallback || "",
+				chartData: qr.chart?.data ? JSON.parse(JSON.stringify(qr.chart.data)) : null,
+				chartKeys: qr.chart ? Object.keys(qr.chart).filter((key) =>
+					!["parent", "container", "svg", "tip"].includes(key)) : [],
 				numericCells: root?.querySelectorAll(
 					".dt-scrollable .bnd-report-number .dt-cell__content[dir='ltr']"
 				).length || 0,
@@ -124,6 +140,12 @@ try {
 				`${report}: wrong ${reportLanguage} direction ${state.direction}`);
 		}
 		assert(state.scopeRole === "region" && state.scopeItems > 0, `${report}: scope summary missing`);
+		const signedChart = state.chartData?.datasets?.some((dataset) =>
+			(dataset.values || []).some((value) => Number(value) < 0));
+		if (signedChart) {
+			assert(state.chartType === "bar" && state.chartFallback === "signed-percentage",
+				`${report}: signed percentage data did not use the accurate bar fallback`);
+		}
 		assert(state.nativeExport && state.nativeRefresh, `${report}: native export/refresh ownership changed`);
 		assert(state.overflow <= 1, `${report}: page overflows by ${state.overflow}px`);
 		if (state.rows > 0) {
@@ -240,7 +262,9 @@ try {
 	await page.evaluate(() => frappe.query_report.export_dialog.hide());
 	console.log(`PASS native export dialog (${exportState.applied} applied filters)`);
 
-	if (errors.length) throw new Error(`browser errors: ${errors.join(" | ")}`);
+	if (errors.length || routedErrors.length) {
+		throw new Error(`browser errors: ${(routedErrors.length ? routedErrors : errors).join(" | ")}`);
+	}
 } finally {
 	await close();
 	if (reportLanguage) {

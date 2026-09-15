@@ -17,6 +17,34 @@ inside a release named for item 29. That commit predates the decision, so its
 version files still read 0.20.0. The invariant resumes at v0.30.0. This is
 written down rather than left to be rediscovered as a bug.
 
+## [0.44.30] - 2026-09-15 - Candidate workflow and report correctness (patch)
+
+### Changed
+
+- Accept the reviewed `bunood_real_estate` v1.6.0 operational Home release in
+  the fail-closed migration contract.
+- Route the Real Estate frequent-action row through the writable Lease Wizard
+  Single DocType and the operator-facing Revenue Line workflow.
+- Render signed or all-zero accounting percentage datasets with Frappe's
+  native bar chart so credits remain visible without inventing percentages.
+
+### Fixed
+
+- Eliminate malformed and `NaN` SVG geometry from Accounts Receivable and
+  Accounts Payable reports while leaving report rows, calculations, filters
+  and export payloads unchanged.
+- Derive the expected branded PDF footer identity from the configured
+  letterhead instead of requiring a fixture-only email address.
+
+### Checks
+
+- Focused navigation, role-home, bill-keyboard, report-workbench and PDF gates
+  pass on RC20.
+- The report gate covers seven production reports, native failure recovery and
+  export; the system-state gate covers 72 language/theme/viewport states and
+  all 18 Apps icons with zero blocking accessibility findings.
+- The production asset build and payload budget pass.
+
 ## [0.44.29] — 2026-09-13 — Real Estate 1.5 compatibility (patch)
 
 ### Fixed

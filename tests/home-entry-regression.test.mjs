@@ -66,6 +66,16 @@ test("Home actions can wrap inside their available width", () => {
 	// This guards the source rule only. Real clipping is checked in the browser.
 });
 
+test("Real Estate frequent actions follow native permissions and open the real operator doors", () => {
+	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
+	assert.match(source, /\["Lease Wizard", __\("Start a lease"\), [^\n]+, "single"\]/);
+	assert.match(source, /\["Revenue Line", __\("Prepare billing"\)/);
+	assert.doesNotMatch(source, /\["Billing Claim", __\("Prepare billing"\)/);
+	assert.match(source, /const can_write = [^\n]+\.can_write \|\| \[\]/);
+	assert.match(source, /mode === "single"[\s\S]+can_write\.includes\(doctype\)/);
+	assert.match(source, /mode === "single"[\s\S]+frappe\.set_route\("Form", doctype\)/);
+});
+
 test("role homes share the approved operational hierarchy and select their own API", () => {
 	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
 	const render = source.slice(

@@ -476,6 +476,43 @@
 			return out;
 		}
 
+		/**
+		 * A percentage chart has no truthful geometry when its accounting data is
+		 * signed, and frappe-charts divides an all-zero total into NaN segments.
+		 * Keep every finite signed value, but use the vendor's axis renderer for
+		 * those cases. The report table remains authoritative and untouched.
+		 */
+		function viable_chart_options(options) {
+			if (!options || options.type !== "percentage" || !options.data ||
+				!Array.isArray(options.data.datasets)) return { options, fallback: "" };
+			let total = 0;
+			let signed = false;
+			let invalid = false;
+			const datasets = options.data.datasets.map((dataset) => ({
+				...dataset,
+				values: (Array.isArray(dataset.values) ? dataset.values : []).map((raw) => {
+					const value = Number(raw);
+					if (!Number.isFinite(value)) {
+						invalid = true;
+						return 0;
+					}
+					if (value < 0) signed = true;
+					total += value;
+					return value;
+				}),
+			}));
+			if (!signed && !invalid && total > 0) return { options, fallback: "" };
+			return {
+				options: {
+					...options,
+					type: "bar",
+					data: { ...options.data, datasets },
+					barOptions: { ...(options.barOptions || {}), stacked: 1 },
+				},
+				fallback: "signed-percentage",
+			};
+		}
+
 		const live = new Set();
 		const deferred = new Set();
 
@@ -567,6 +604,8 @@
 
 		const NativeChart = frappe.Chart;
 		function BndChart(parent, options) {
+			const viable = viable_chart_options(options);
+			options = viable.options;
 			const navigable = !!(options && NAVIGABLE_TYPES.has(options.type) && options.isNavigable !== false);
 			if (navigable) options.isNavigable = 0;
 			const given =
@@ -579,6 +618,7 @@
 			}
 			const chart = new NativeChart(parent, options);
 			if (chart && chart.container) {
+				if (viable.fallback) chart.container.dataset.bndChartFallback = viable.fallback;
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
 				decorate_chart(chart, parent, options || {}, navigable);
@@ -9397,9 +9437,8 @@ function sb_zone_anchor(pane, zone, node) {
 	 *   Capped at five, deliberately. A task row that grows into a menu has
 	 *   become the thing it replaced.
 	 *
-	 * `[doctype, label, symbol candidates]`. Candidates because sprite ids move
-	 * between Frappe versions; the first that exists wins and a miss costs a
-	 * glyph, not the button.
+	 * `[doctype, label, symbol candidates, mode="new"]`. `single` opens a writable
+	 * Single DocType because Frappe never grants create on one.
 	 */
 	const HOME_TASKS = {
 		erp: [
@@ -9412,32 +9451,37 @@ function sb_zone_anchor(pane, zone, node) {
 		real_estate: [
 			["Property", __("New property"), ["icon-building", "icon-organization", "icon-plus"]],
 			["Real Estate Unit", __("New unit"), ["icon-grid", "icon-home", "icon-plus"]],
-			["Lease Wizard", __("Start a lease"), ["icon-file-plus", "icon-file", "icon-plus"]],
-			["Billing Claim", __("Prepare billing"), ["icon-invoice", "icon-receipt", "icon-file"]],
+			["Lease Wizard", __("Start a lease"), ["icon-file-plus", "icon-file", "icon-plus"], "single"],
+			["Revenue Line", __("Prepare billing"), ["icon-invoice", "icon-receipt", "icon-file"]],
 			["Payment Entry", __("Record collection"), ["icon-money", "icon-money-coins-1", "icon-file"]],
 		],
 	};
 
 	/**
-	 * Build the task row, filtered to what this user may actually create.
+	 * Build the task row, filtered to what this user may actually open.
 	 *
 	 * A door nobody can open is worse than no door: it teaches a user that the
-	 * product lies to them. `frappe.boot.user.can_create` is the same list the
-	 * desk's own "+ New" menu is built from, so this cannot drift from what
-	 * Frappe would allow. It also filters by doctype EXISTENCE, so a
+	 * product lies to them. New documents follow `can_create`; Single DocTypes
+	 * follow `can_write`. It also filters by doctype existence, so a
 	 * Frappe-only site (no ERPNext) renders the row it can rather than a row of
 	 * dead buttons.
 	 *
 	 * @param {HTMLElement} host - the actions container.
 	 */
 	function home_mount_tasks(host, profile) {
-		const can = ((window.frappe && frappe.boot && frappe.boot.user) || {}).can_create || [];
+		const grants = (window.frappe && frappe.boot && frappe.boot.user) || {};
+		const can_create = grants.can_create || [];
+		const can_write = grants.can_write || [];
 		let primary = true;
-		for (const [doctype, label, symbols] of HOME_TASKS[profile] || HOME_TASKS.erp) {
-			if (!Array.isArray(can) || !can.includes(doctype)) continue;
+		for (const [doctype, label, symbols, mode = "new"] of HOME_TASKS[profile] || HOME_TASKS.erp) {
+			const allowed = mode === "single"
+				? Array.isArray(can_write) && can_write.includes(doctype)
+				: Array.isArray(can_create) && can_create.includes(doctype);
+			if (!allowed) continue;
 			const symbol = sb_existing_symbol(symbols) || symbols[symbols.length - 1];
 			host.appendChild(
 				home_action(label, symbol, () => {
+					if (mode === "single") return frappe.set_route("Form", doctype);
 					if (doctype === "Sales Invoice" && window.bunood_theme.sales_bill) return window.bunood_theme.sales_bill.newInvoice();
 					return frappe.new_doc(doctype);
 				}, primary)

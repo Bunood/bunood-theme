@@ -30,7 +30,20 @@ for lang in ('en', 'ar'):
         assert len(select(invoice, 'bnd-inv-meta')[0].xpath('.//td')) == 2, (name, 'standalone currency box remains')
         assert 'SAR' not in select(invoice, 'bnd-inv-title')[0].text_content(), (name, 'redundant currency beside title')
         header = select(invoice, 'letter-head')[0].text_content()
-        footer = select(invoice, 'letter-head-footer')[0].text_content()
+        footer_node = select(invoice, 'letter-head-footer')[0]
+        footer = footer_node.text_content()
+        footer_lines = [
+            clean(node.text_content())
+            for node in footer_node.xpath('.//div[not(.//div)]')
+            if clean(node.text_content())
+        ]
+        assert footer_lines, (name, 'empty branded footer')
+        # Match the footer that the site actually configured.  The former
+        # verifier hard-coded info@bunood.test, so a valid customer address
+        # made immutable production PDFs fail even though the footer rendered
+        # on every page.  The first leaf is the address/contact identity.
+        footer_marker = re.split('[,،]', footer_lines[0], maxsplit=1)[0].strip()
+        assert footer_marker, (name, 'footer has no stable identity marker')
         if rtl:
             assert 'VAT number' not in header and 'Phone' not in footer, name
         else:
@@ -84,7 +97,11 @@ for lang in ('en', 'ar'):
             # height delta is consistent across every page and remains within
             # printer A4 tolerance; reject any larger paper-size drift.
             assert all(abs(p.width - 595) < 3 and abs(p.height - 842) < 3 for p in pdf.pages), name
-            assert all('Bunood' in t and 'info@bunood.test' in t for t in texts), (name, 'missing repeated header/footer')
+            assert all('Bunood' in t and footer_marker in t for t in texts), (
+                name,
+                'missing repeated branded header/footer',
+                footer_marker,
+            )
             for p in pdf.pages:
                 assert all(c['x0'] >= 0 and c['x1'] <= p.width + 1 for c in p.chars), (name, 'text outside page')
                 white = [c for c in p.chars if c.get('non_stroking_color') in ((1, 1, 1), (1,))]
