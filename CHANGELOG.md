@@ -49,7 +49,12 @@ the token. Once in a dozen loads, and the check's load was one.
 ### Checks
 
 `sidepane: the desk page's own bell and avatar stand down for ours` asserts `panesearch` and
-the pane row's visibility. Full run: TALLY_PENDING.
+the pane row's visibility. Full run on this build: **544/544**, the first fully green run since the suite passed 540 checks
+— and it took a restored bench to get it. Docker Desktop had restarted overnight; the backend
+won the race against Windows file sharing and mounted the theme's directory EMPTY, which reads
+as `ModuleNotFoundError: No module named 'bunood_theme'` (the fix is `docker restart` of
+backend/websocket/frontend, not a reinstall), and the suite killed with it had left sixteen
+Theme Settings fields on a preset's values. Both are recorded.
 
 ### Payload
 
