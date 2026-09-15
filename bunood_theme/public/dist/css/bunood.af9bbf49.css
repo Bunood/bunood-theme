@@ -6212,7 +6212,7 @@ html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home {
   align-items: center;
   justify-content: center;
   min-block-size: 40px;
-  margin-inline-start: var(--bnd-sp-2);
+  margin-inline-start: 0;
   padding-inline: var(--bnd-sp-3);
   gap: var(--bnd-sp-2);
   color: var(--bnd-brand-ink);
@@ -6236,6 +6236,14 @@ html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home:is
   color: var(--bnd-brand-ink);
   background: var(--bnd-hover);
   border-color: var(--bnd-brand-solid);
+}
+
+html[data-bnd-desk][data-bnd-desktop-home] .desktop-wrapper .desktop-navbar .navbar-home {
+  display: none;
+}
+
+html[data-bnd-desk][data-bnd-desktop-home] [data-bnd-part=home]:not(.bnd-desktop-native-home) {
+  display: none !important;
 }
 
 html[data-bnd-desk] .desktop-wrapper .icons {

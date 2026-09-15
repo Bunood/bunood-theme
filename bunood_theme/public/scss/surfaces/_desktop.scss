@@ -50,15 +50,15 @@ $desktop-item: ".desktop-icon";
 // Frappe's private All Apps navbar is the fail-open shell when the configured
 // Bunood bars are all disabled. Give that shell the one route it otherwise
 // lacks: a clear, labelled return to the operational Home dashboard. The
-// runtime removes this control as soon as a Bunood shell owns navigation, so
-// there is never a duplicate Home action.
+// runtime owns this control on wide All Apps and disables the configurable
+// shell copy on that route, so there is never a duplicate Home action.
 html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   min-block-size: 40px;
-  margin-inline-start: var(--bnd-sp-2);
+  margin-inline-start: 0;
   padding-inline: var(--bnd-sp-3);
   gap: var(--bnd-sp-2);
   color: var(--bnd-brand-ink);
@@ -85,6 +85,17 @@ html[data-bnd-desk] .desktop-wrapper .desktop-navbar .bnd-desktop-native-home {
     background: var(--bnd-hover);
     border-color: var(--bnd-brand-solid);
   }
+}
+
+// The native cube links back to the Desktop page already being viewed. Once
+// the working Bunood Home button has mounted, replace that dead-end control;
+// without the ownership stamp Frappe's cube remains as the fail-open fallback.
+html[data-bnd-desk][data-bnd-desktop-home] .desktop-wrapper .desktop-navbar .navbar-home {
+  display: none;
+}
+
+html[data-bnd-desk][data-bnd-desktop-home] [data-bnd-part="home"]:not(.bnd-desktop-native-home) {
+  display: none !important;
 }
 
 html[data-bnd-desk] {

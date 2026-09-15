@@ -2495,7 +2495,11 @@
 		// polls with a bounded budget like every other mount here. Driven from
 		// this one function because it already runs at mount AND on every route
 		// change, which is exactly when a tile can appear.
-		if (on_desktop) try_for(mount_desktop_icons, 40, 150);
+		if (on_desktop) {
+			try_for(mount_desktop_icons, 40, 150);
+			// Frappe creates the private navbar after the route settles.
+			try_for(sync_native_desktop_home, 40, 150);
+		}
 	}
 
 	/** Release Frappe's phone-only inline three-column lock to responsive CSS. */
@@ -2512,21 +2516,45 @@
 		}
 	}
 
+	let desktop_home_observer = null;
+
 	function sync_native_desktop_home() {
+		const html = document.documentElement;
 		const existing = document.querySelector(".desktop-navbar .bnd-desktop-native-home");
-		const owned_home = [...document.querySelectorAll('[data-bnd-part="home"]:not(.bnd-desktop-native-home)')]
-			.some(node => node.offsetParent !== null);
-		if (!on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []) || owned_home) {
+		if (!on_desktop_route(frappe.get_route ? frappe.get_route() || [] : []) ||
+			html.hasAttribute("data-bnd-desktop-shell")) {
+			html.removeAttribute("data-bnd-desktop-home");
 			if (existing) existing.remove();
-			return;
+			return true;
 		}
 
 		const brand = document.querySelector(".desktop-wrapper .desktop-navbar .navbar-home");
-		if (!brand || existing) return;
+		if (!brand) {
+			html.removeAttribute("data-bnd-desktop-home");
+			return false;
+		}
 
-		const button = build_quick_link("home", true);
-		button.classList.add("bnd-desktop-native-home");
-		brand.insertAdjacentElement("afterend", button);
+		if (!existing) {
+			const button = build_quick_link("home", true);
+			button.classList.add("bnd-desktop-native-home");
+			brand.insertAdjacentElement("afterend", button);
+		}
+		// Retire Frappe's self-linking cube only after Home is working.
+		html.setAttribute("data-bnd-desktop-home", "");
+		return true;
+	}
+
+	function observe_desktop_shell_home() {
+		if (desktop_home_observer) return;
+		desktop_home_observer = new MutationObserver((records) => {
+			if (records.some((record) => record.attributeName === "data-bnd-desktop-shell")) {
+				sync_native_desktop_home();
+			}
+		});
+		desktop_home_observer.observe(document.documentElement, {
+			attributes: true,
+			attributeFilter: ["data-bnd-desktop-shell"],
+		});
 	}
 
 	/**
@@ -2549,6 +2577,7 @@
 	 * navigation on a phone.
 	 */
 	function sync_desktop_shell() {
+		observe_desktop_shell_home();
 		const html = document.documentElement;
 		sync_desktop_grid();
 		const mobile = is_narrow();

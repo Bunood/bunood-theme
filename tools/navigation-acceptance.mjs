@@ -156,6 +156,23 @@ async function assertAppsHomeHistory(page) {
 	await page.waitForSelector('[data-bnd-part="home"]', { timeout: 30000 });
 	const homes = page.locator('[data-bnd-part="home"]:visible');
 	assert(await homes.count() === 1, "All Apps must expose exactly one visible Home action");
+	const privateNavbar = page.locator(".desktop-navbar:visible");
+	const navbarHome = page.locator(".desktop-navbar .bnd-desktop-native-home:visible");
+	if (await privateNavbar.count()) {
+		assert(await navbarHome.count() === 1, "Visible Desktop navbar must own the All Apps Home route");
+		assert(await page.locator(".desktop-navbar .navbar-home:visible").count() === 0,
+			"Frappe's self-linking cube must stand down after Bunood Home mounts");
+	} else {
+		assert(await navbarHome.count() === 0 &&
+			await page.locator(".bnd-topbar [data-bnd-part='home']:visible, .bnd-statusbar [data-bnd-part='home']:visible, .bnd-dock [data-bnd-part='home']:visible").count() === 1,
+			"A Bunood-owned Desktop shell must expose the only Home route");
+	}
+	const homeGeometry = await homes.evaluate(node => {
+		const rect = node.getBoundingClientRect();
+		return { y: Math.round(rect.y), width: Math.round(rect.width), label: node.getAttribute("aria-label") || "" };
+	});
+	assert(homeGeometry.width >= 40 && homeGeometry.label,
+		"All Apps Home has wrong geometry or accessible name: " + JSON.stringify(homeGeometry));
 	await homes.click();
 	await page.waitForURL(/\/desk\/selling(?:[/?#]|$)/, { timeout: 20000 });
 	assert((await paneSnapshot(page)).state === "rail", "Apps to Home lost the per-user pane state");

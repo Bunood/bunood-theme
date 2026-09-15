@@ -124,9 +124,17 @@ test("the native All Apps navbar receives one permanent Home route", () => {
 	const source = readFileSync(new URL("../bunood_theme/public/js/bunood.js", import.meta.url), "utf8");
 	assert.match(source, /function sync_native_desktop_home\(\)/);
 	assert.match(source, /\.desktop-navbar \.bnd-desktop-native-home/);
-	assert.match(source, /data-bnd-part="home".*not\(\.bnd-desktop-native-home\)/);
+	assert.match(source, /setAttribute\("data-bnd-desktop-home", ""\)/);
+	assert.match(source, /removeAttribute\("data-bnd-desktop-home"\)/);
 	assert.match(source, /brand\.insertAdjacentElement\("afterend", button\)/);
 	assert.match(source, /build_quick_link\("home", true\)/);
+	assert.match(source, /hasAttribute\("data-bnd-desktop-shell"\)/);
+	assert.match(source, /attributeFilter:\s*\["data-bnd-desktop-shell"\]/);
+	assert.match(source, /function observe_desktop_shell_home\(\)/);
+	assert.match(source, /try_for\(sync_native_desktop_home, 40, 150\)/);
+	const styles = readFileSync(new URL("../bunood_theme/public/scss/surfaces/_desktop.scss", import.meta.url), "utf8");
+	assert.match(styles, /\[data-bnd-desktop-home\][^{]+\.navbar-home\s*\{\s*display:\s*none/);
+	assert.match(styles, /\[data-bnd-desktop-home\][^{]+\[data-bnd-part="home"\]:not\(\.bnd-desktop-native-home\)/);
 	const shell = source.slice(source.indexOf("function sync_desktop_shell()"), source.indexOf("function desktop_symbol"));
 	assert.ok(
 		shell.indexOf("sync_native_desktop_home") < shell.indexOf("if (!bar) return"),
