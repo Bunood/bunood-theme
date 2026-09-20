@@ -572,6 +572,23 @@
 			"js_raw": 415723,
 			"js_gzip": 131176,
 			"note": "css +0b, js +0b, web_css +0b, email_css +0b, print_css +0b gzip vs v0.46.6"
+		},
+		{
+			"version": "v0.47.0",
+			"date": "2026-09-20",
+			"web_css_raw": 29688,
+			"web_css_gzip": 4189,
+			"email_css_raw": 2778,
+			"email_css_gzip": 550,
+			"print_css_raw": 23754,
+			"print_css_gzip": 6812,
+			"css_raw": 246551,
+			"css_gzip": 30821,
+			"js_raw": 415723,
+			"js_gzip": 131176,
+			"studio_js_raw": 90051,
+			"studio_js_gzip": 25557,
+			"note": "css +2536b, js +0b, studio_js 25557b gzip (new), web_css +0b, email_css +0b, print_css +0b gzip vs v0.46.7"
 		}
 	]
 }
