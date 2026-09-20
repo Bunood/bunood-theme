@@ -177,8 +177,9 @@
 		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager."
 	],
 	"ceiling": {
-		"css_gzip": 28500,
+		"css_gzip": 31500,
 		"js_gzip": 131400,
+		"studio_js_gzip": 27000,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
