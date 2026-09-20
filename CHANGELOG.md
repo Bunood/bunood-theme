@@ -24,6 +24,53 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.47.1] — 2026-09-20 — the studio dresses like the desk (patch)
+
+### Fixed — the August wardrobe, retired
+
+Item 46 landed the studio's engine as-is, and its surface kit came with it —
+authored against the v0.39 line's taste: gradient card washes, resting shadows,
+lift-on-hover, pill radii, a display-size hero. The desk around it has been flat
+for seven minors: hairlines (`--bnd-line` + `--bnd-border`), radius-lg boards,
+radius-md controls, no resting elevation, hover as a wash, one chosen-state fill.
+The owner compared the two on the deployed desk and said so («ماهي بنفس الثيم
+المنشور»). `_studio.scss` now speaks the deployed dialect: category identity
+lives in the glyph tint alone (`--bnd-cat-tint`, so dark mode re-derives it),
+the active domain and period chips take `--bnd-brand-solid` — the
+sidebar-active idiom — and the hero is a section head over a hairline, not a
+poster. Every class and behavioural hook the suite pins is unchanged; the
+engine bundle is byte-identical (`bnd-studio.a82a3f91.js`); only the desk css
+hash moves. 29.9 KB gzip, down from 30.1, under the 31,500 ceiling. Suite 31/31.
+
+### Fixed — borders that said a width where a colour goes
+
+Four declarations read `1px solid var(--bnd-line)` — but `--bnd-line` IS a
+width (0.5px), so the value parsed invalid and each rule silently dropped:
+table rows rendered unruled on screen, and the ruled print grid the spec
+promised («جداول محكمة») never printed. Screen rules now read
+`var(--bnd-line) solid var(--bnd-border)`; paper takes a definite 30% ink rule,
+because an on-screen rgba hairline washes out in print.
+
+### Fixed — assets.py caught up with the dist beside it
+
+#8 committed the built bundles but not the regenerated manifest, so the
+committed `THEME_CSS` pointed at `bunood.7b0431d5.css` — deleted one commit
+after the v0.47.0 tag — and `STUDIO_JS` was missing entirely: boot.py's
+try-wrapped import failed, and a bench serving pure git content showed the
+page's fail-open «bundle is not registered». Deployments never noticed because
+the image build reruns `build.mjs` (measured on prod: 7b0431d5 → 404,
+b937a880 → 200). The manifest is now regenerated in the same commit as the
+dist it names — the drift and its symptom are both gone.
+
+### The suite: the busiest month, not the latest
+
+`mintDataMonth()` took `max(posting_date)`, so ONE finger-test invoice in the
+current month re-aimed the whole suite at a month holding a single cash sale:
+both order-analysis cards emptied, the procurement tracker had no rows, and the
+trial balance compared one month's movement against the year's totals — 4 of 31
+red, none of them the studio's fault. The mint now takes the month with the
+MOST submitted invoices; the seeded corpus outvotes a stray.
+
 ## [0.47.0] — 2026-09-20 — the Report Studio returns (item 46)
 
 **The integration HANDOVER's divergence note planned.** The Report Studio — preserved
