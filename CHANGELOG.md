@@ -24,6 +24,28 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.47.0] — 2026-09-20 — the Report Studio returns (item 46)
+
+**The integration HANDOVER's divergence note planned.** The Report Studio — preserved
+on `studio-zatca` when main kept its own line — lands as ONE additive piece (#8):
+the engine, the tokens-only surface kit (it wears this line's design as-is, by the
+owner's constraint), the `bnd-report-studio` page, the public Reports workspace, and
+the end-to-end suite taken at the branch tip. The ZATCA half returned earlier as item
+41; the 176 Arabic strings already live in `locale/ar.po`. Shared touches in this
+line's idiom: a second page-scoped hashed JS entry with its own payload bucket
+(`studio_js`, 25,557 gzip against 27,000) and the desk css ceiling 28,500 → 31,500
+for the measured +2,321 the kit costs; boot's `STUDIO_JS`; two i18n JS sources.
+
+**The suite is calendar-independent now** — it mints the DATA month from the books
+and drives the studio's custom-period dialog itself (`cur_dialog.set_value` is async
+in current Frappe; awaiting it was the difference between September zeros and green).
+31/31 on a bench moved to exactly this base, the VAT return proven against the ledger
+to the fils and the exported xlsx reopened with openpyxl.
+
+**Named debt** (PR #8): dateRange cards' previous-period probe sends filters those
+reports ignore, so their delta chips have always compared the period to itself —
+its own slice, nothing here depends on it.
+
 ## [0.46.7] — 2026-09-15 — The words we could not defend, and one we could (patch)
 
 **The three items v0.46.6 left owed, closed.** Two were translation work the false-friends

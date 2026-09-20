@@ -1630,6 +1630,21 @@ only its Arabic strings crossed.
   Error Log rows through its own sabotage checks, and the local stack's socket.io had
   never once connected. The account in CHANGELOG `[0.46.0]`.
 
+- `[x]` **46 · The Report Studio, integrated** *(preserved on `studio-zatca` at the
+  2026-08-27 divergence; landed 2026-09-20 as one additive piece, PR #8; releases as
+  v0.47.0 — 46 is taken as a MINOR by item 45's v0.46.0, so this takes the next
+  number)*. The bilingual reading room at `/app/bnd-report-studio`: 21 curated cards
+  over the ERPNext reports across selling/buying/accounting, statements of account
+  behind a picker, the ZATCA VAT return with its ledger-true net, route-stepped
+  navigation, an A4 landscape information-only print, a hand-built xlsx export (a
+  real Excel Table; styles read from the theme tokens at export time), and a public
+  Reports workspace as the front door. Tokens-only by construction, so it wears this
+  line's design untouched — the owner's constraint for the landing. Verified by
+  `tests/studio.mjs`: 31/31 in a real browser against server-minted figures, now
+  calendar-independent (it mints the data month from the books and drives the
+  studio's own custom-period dialog). Named debt in PR #8: dateRange cards'
+  previous-period probe has always compared the period to itself.
+
 ---
 
 ## Open, unnumbered threads
