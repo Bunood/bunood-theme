@@ -63,14 +63,20 @@ function benchPy(code) {
 }
 
 function mintDataMonth() {
+	// The BUSIEST month, not the latest: max(posting_date) broke the day the
+	// owner poked one test invoice into the current month — a single stray
+	// document emptied the order-analysis and procurement cards and unhooked
+	// the trial balance from its year totals. The seeded corpus is the month
+	// with the volume; one finger-test cannot outvote it.
 	const out = benchPy(
-		`d = frappe.db.sql("select max(posting_date) from \`tabSales Invoice\` where docstatus=1")[0][0]
+		`row = frappe.db.sql("select year(posting_date), month(posting_date), count(*) c ` +
+		`from \`tabSales Invoice\` where docstatus=1 group by 1, 2 order by c desc, 1 desc, 2 desc limit 1")[0]
 ` +
 		`import calendar
 ` +
-		`last = calendar.monthrange(d.year, d.month)[1]
+		`last = calendar.monthrange(row[0], row[1])[1]
 ` +
-		`print(f"DM={d.year:04d}-{d.month:02d}-01..{d.year:04d}-{d.month:02d}-{last:02d}")
+		`print(f"DM={row[0]:04d}-{row[1]:02d}-01..{row[0]:04d}-{row[1]:02d}-{last:02d}")
 `
 	);
 	const m = out.match(/DM=(\d{4}-\d{2}-\d{2})\.\.(\d{4}-\d{2}-\d{2})/);
