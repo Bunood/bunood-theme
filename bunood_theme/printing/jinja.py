@@ -134,3 +134,19 @@ def bunood_item_vat_map(doc):
     except Exception:
         frappe.log_error(title="bunood_theme: item_vat_map failed"[:140])
     return result
+
+
+def bunood_print_setting(field: str):
+    """A Theme Settings print field at render time, or its SHIPPED default from the one
+    catalogue — never a literal in the template.
+
+    The print macros used to read ``get_single_value(...) or "<literal>"`` at seven sites,
+    each a second statement of a default ``presets.PRINT_DEFAULTS`` owns and nothing
+    compared (the settings audit of 2026-09-21, decision ii-1). Read at render, as before:
+    the field is the fact, and an unseeded site still gets today's behaviour — from the
+    catalogue rather than from a copy that could drift.
+    """
+    from bunood_theme.presets import PRINT_DEFAULTS
+
+    value = frappe.db.get_single_value("Theme Settings", field)
+    return PRINT_DEFAULTS[field] if value in (None, "") else value

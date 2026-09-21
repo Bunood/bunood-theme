@@ -485,20 +485,10 @@
 		document.documentElement.setAttribute("data-bnd-desk", "");
 	})();
 
-	// The status style travels as an attribute for the same reason as the
-	// layout: it is state the stylesheet has to be able to see.
-	//
-	// It used to carry a second job — zeroing the bottom clearance when the
-	// style is "Off" — and no longer does. Clearance is now MEASURED from the
-	// chrome that actually rendered (observe_bottom_reserve), so "Off" needs
-	// no special case: no bar in the DOM measures zero. The attribute stays
-	// because it is a legitimate styling hook, but nothing about the desk's
-	// geometry depends on it any more.
-	(function apply_status() {
-		const boot = (window.frappe && frappe.boot && frappe.boot.bnd_status) || null;
-		const label = (boot && boot.status_style) || "Quiet";
-		document.documentElement.setAttribute("data-bnd-status", String(label).toLowerCase());
-	})();
+	// `data-bnd-status` used to be stamped here from `status_style`; no rule and no script
+	// ever read it (the settings audit of 2026-09-21), so the stamp and its literal
+	// fallback are gone. The bar's own state lives in `status_state`.
+
 
 	// ── Skip link (34a, design pick 4A) ─────────────────────────────────────
 	// A keyboard user otherwise crosses the whole chrome — pane, bars, dock —
@@ -1230,7 +1220,7 @@
 				(sb.panestate === "Hover + Pin" ? "hoverpin" : "hover");
 			html.setAttribute("data-bnd-sb-railtrigger", trigger);
 		}
-		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
+		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source]);
 		set("badges", SB_SLUGS.badges[sb.badges]);
 		if (parseInt(sb.filter, 10)) html.setAttribute("data-bnd-sb-filter", "");
 		const width = parseInt(sb.pane_width, 10);
@@ -3852,7 +3842,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Live preview from the settings form (theme_settings.js): the style only. */
 	bunood.language_apply = function (values) {
-		apply_language_attrs({ style: (values && values.language_style) || "Globe" });
+		apply_language_attrs({ style: (values && values.language_style) || (frappe.boot.bnd_language && frappe.boot.bnd_language.style) || "" });
 	};
 
 	function build_bell() {
@@ -4247,9 +4237,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 * exists and shows nothing, which is the one outcome neither setting means.
 	 */
 	function status_style() {
-		const label = (status_state && status_state.status_style) || "Quiet";
+		const label = (status_state && status_state.status_style) || "";
 		const slug = String(label).toLowerCase();
-		return slug === "off" ? "quiet" : slug;
+		// "" (no served value) stands down exactly as Off does. Boot serves the
+		// shipped style, so neither names it here (audit 2026-09-21, ii-1).
+		return slug === "off" || !slug ? "quiet" : slug;
 	}
 
 	/** Is a segment flag on? */
@@ -4259,15 +4251,16 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Clock mode: off | 12 | 24. */
 	function status_clock_mode() {
-		const label = (status_state && status_state.status_clock) || "24 Hour";
-		if (label === "Off") return "off";
+		const label = (status_state && status_state.status_clock) || "";
+		if (!label || label === "Off") return "off";
 		return label === "12 Hour" ? "12" : "24";
 	}
 
 	/** Poll period in ms, or 0 for manual-only. */
 	function status_period() {
-		const label = (status_state && status_state.status_interval) || "60s";
-		if (label === "Manual") return 0;
+		const label = (status_state && status_state.status_interval) || "";
+		// No served value: no polling. The shipped period is boot's to say.
+		if (!label || label === "Manual") return 0;
 		if (label === "30s") return 30000;
 		if (label === "5min") return 300000;
 		return 60000;
@@ -4630,7 +4623,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** The slot the admin asked for, as a slug. */
 	function search_wanted_slot() {
-		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
+		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "";
 	}
 
 	/**

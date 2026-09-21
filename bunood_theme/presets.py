@@ -1,3 +1,9 @@
+
+#: The two site-level defaults that are not a kit's, stated ONCE. `setup.DEFAULTS`
+#: used to restate both as literals beside the palette's two seeds (the settings
+#: audit of 2026-09-21, decision ii-1): every default now has one owner in this
+#: module, and the seeder is a consumer of it.
+SITE_DEFAULTS = {"company_name": "Bunood", "density_default": "Comfortable"}
 # Copyright (c) 2026, Bunood and contributors
 # For license information, please see license.txt
 """Sidebar style presets — the single source of truth (item 10 / item 30).
@@ -1749,7 +1755,7 @@ def _shipped_baseline() -> dict:
         "brand_color_dark": "",
         "accent_color_dark": "",
         "ground_color": "",
-        "density_default": "Comfortable",
+        "density_default": SITE_DEFAULTS["density_default"],
         "desk_order": ",".join(t["key"] for t in TENANTS),
     }
     for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, LANGUAGE_DEFAULTS,

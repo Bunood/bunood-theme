@@ -8814,17 +8814,21 @@ print("ok")
 			);
 			expectEq(bad.join(" | "), "", "every written placement is one the field offers");
 
-			// E3's order default is pinned the same way: the doctype's literal
-			// must equal what the registry derives, or a tenant added to the
-			// table would ship ranked by a stale string.
+			// E3's order default has ONE statement, the registry's: the doctype
+			// carries no `default` of its own any more (the settings audit of
+			// 2026-09-21, decision ii-2 — build.mjs's doctype-default guard holds
+			// it), so a tenant added to the table can never ship ranked by a
+			// stale string in the JSON.
 			const orderPin = JSON.parse(
 				benchPy(
 					"from bunood_theme.registry import default_desk_order\n" +
+					"from bunood_theme.setup import SHIPPED\n" +
 					"stored = frappe.get_meta('Theme Settings').get_field('desk_order').default\n" +
-					"print(json.dumps({'registry': default_desk_order(), 'doctype': stored}))\n"
+					"print(json.dumps({'registry': default_desk_order(), 'doctype': stored, 'shipped': SHIPPED['desk_order']}))\n"
 				).trim().split("\n").pop()
 			);
-			expectEq(orderPin.doctype, orderPin.registry, "desk_order's default is the registry's");
+			expectEq(orderPin.doctype, null, "desk_order carries no doctype default — the registry is the one statement");
+			expectEq(orderPin.shipped, orderPin.registry, "and the shipped set reads the registry's order");
 
 			// Belt and braces on the live site: whatever it is holding RIGHT NOW
 			// must be acceptable too, or the next save of any setting dies. This
@@ -19790,7 +19794,10 @@ print("cleared")
 							`meta = frappe.get_meta("Theme Settings")\n` +
 							`opts = {f: [o for o in (meta.get_field(f).options or "").split("\\n") if o]\n` +
 							`        for f in AUTH_CLASSES}\n` +
-							`defs = {f: meta.get_field(f).default for f in AUTH_CLASSES}\n` +
+							`from bunood_theme.setup import SHIPPED\n` +
+							// The SHIPPED value, not the doctype's `default`: the JSON carries
+							// none since the settings audit of 2026-09-21 (decision ii-2).
+							`defs = {f: SHIPPED.get(f) for f in AUTH_CLASSES}\n` +
 							`print(json.dumps({"map": AUTH_CLASSES,\n` +
 							`                  "opts": {k: sorted(v) for k, v in opts.items()},\n` +
 							`                  "defs": defs}))\n`
@@ -22776,8 +22783,10 @@ print("cleared")
 				for (const value of Object.keys(d.slugs)) {
 					expect(d.options.includes(value), `${field}: vocabulary has orphan "${value}"`);
 				}
-				expect(d.options.includes(d.default), `${field}: doctype default "${d.default}" is not an option`);
-				expectEq(d.default, d.shipped, `${field}: the doctype default and EMAIL_DEFAULTS disagree`);
+				expect(d.options.includes(d.shipped), `${field}: shipped default "${d.shipped}" is not an option`);
+				// The doctype carries no copy of the default (audit 2026-09-21, ii-2):
+				// EMAIL_DEFAULTS is the one statement and the seeder writes it.
+				expectEq(d.default, null, `${field}: the doctype carries no default of its own`);
 				// The neutral is always first, and for a MAPPED field it always means
 				// the ABSENCE of a class — which is what makes the stand-down
 				// structural rather than a rule that has to remember to do nothing.

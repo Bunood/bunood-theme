@@ -7508,3 +7508,10 @@ msgstr "دفتر"
 #. src: false-friends
 msgid "Standard"
 msgstr "قياسي"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision ii-3: the form awaits the served defaults)
+#, fuzzy
+msgid "The shipped defaults could not be loaded — reset chips and change dots are unavailable until this page is reloaded."
+msgstr "تعذر تحميل الإعدادات الافتراضية الأصلية — أزرار إعادة الضبط ونقاط التغيير غير متاحة حتى تُعاد تحميل هذه الصفحة."
+

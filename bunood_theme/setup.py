@@ -61,6 +61,9 @@ from bunood_theme.presets import (
     PANEHEAD_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
+    DEFAULT_PALETTE,
+    PALETTES,
+    SITE_DEFAULTS,
 )
 
 #: Check-type fields whose shipped default is 1. These CANNOT go through the
@@ -129,9 +132,11 @@ for _lock, _row in _personal.LOCKS.items():
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
 DEFAULTS = {
-    "company_name": "Bunood",
-    "brand_color": "#3d8150",
-    "accent_color": "#0090ff",
+    # Owned by presets.py (SITE_DEFAULTS and the default palette), never restated
+    # here: the audit of 2026-09-21 found these four stated four times over.
+    "company_name": SITE_DEFAULTS["company_name"],
+    "brand_color": PALETTES[DEFAULT_PALETTE]["brand_color"],
+    "accent_color": PALETTES[DEFAULT_PALETTE]["accent_color"],
     # Item 7(b). Read from the face catalogue, never restated: typography.py is
     # the one table, and this seeder is just another of its consumers. Seeded
     # here because a field `default` only applies to NEW records and Theme
@@ -140,7 +145,7 @@ DEFAULTS = {
     # Density site default (decision "G with C"). Seeded here because a field
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.
-    "density_default": "Comfortable",
+    "density_default": SITE_DEFAULTS["density_default"],
     # Desk layout (checklist item 9; re-chosen in item 42). "Unified Side Pane"
     # is the layout the user chose as the default: everything in the side pane,
     # no top bar, the slim status bar below. Same seeding rationale as
