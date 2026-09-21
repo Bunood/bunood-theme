@@ -23,7 +23,7 @@ Field values are the Theme Settings Select LABELS (bunood.js owns the
 label -> css-slug mapping). Keep labels in sync with theme_settings.json.
 """
 
-from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, LAYOUT_TENANTS, TENANTS, layout_settings
+from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, LAYOUT_PANE, LAYOUT_TENANTS, TENANTS, layout_settings
 
 #: The desk layout a fresh install gets — "Unified Side Pane" since item 42 (it
 #: was "Top Bar"). Named once, up here, because it decides the container
@@ -54,7 +54,6 @@ SIDEBAR_FIELDS = [
     "sidebar_section_style",
     "sidebar_hue_wash",
     "sidebar_card_depth",
-    "sidebar_pane_state",
     "sidebar_rail_trigger",
     "sidebar_rail_button",
     "sidebar_pane_width",
@@ -73,7 +72,11 @@ SIDEBAR_FIELDS = [
 #: floating glass, a step wider, the pane following the theme colour, and no
 #: rail button (its rendering was broken; the rail still opens on hover).
 #: "Bunood Light" keeps the earlier floating-glass look, so the old shipped
-#: appearance remains one click away rather than gone.
+#: appearance remains one click away rather than gone. NO LOOK WRITES THE PANE
+#: STATE: that field belongs to the layout half of the catalogue
+#: (`registry.LAYOUT_PANE`), and a look that wants a rail names a Rail + Flyout
+#: layout instead — two tables writing one field lit the wrong layout card
+#: (the settings audit of 2026-09-21).
 _SIDEBAR_LOOKS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
@@ -82,10 +85,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "4",
-        # Always expanded, because the re-chosen look is "attached, solid, a
-        # step wider" — a pane that collapses to a 52px rail shows none of
-        # those. The rail lives on in Bunood Light and the picker.
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         # Trigger and icon are inert while the mode has no rail and the button
@@ -101,7 +100,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
-        "sidebar_pane_state": "Rail",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
@@ -115,7 +113,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -129,7 +126,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -143,7 +139,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -157,7 +152,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -171,7 +165,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -193,7 +186,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
         "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
@@ -1434,6 +1426,9 @@ def _theme_axes() -> list:
         ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
          "ground_color", "density_default", "desk_order"],
         [c["toggle"] for c in CONTAINERS],
+        # The catalogue's third half (item 42): written by `registry.layout_settings`,
+        # owned by `registry.LAYOUT_PANE`, and by NO sidebar look — one table.
+        ["sidebar_pane_state"],
         list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
         # Item 44's two tenants. The layouts write them (so `personal.py` files
         # them as SHAPE), and a theme preset must write them too, or the partition
@@ -1501,7 +1496,10 @@ THEME_PRESETS = {
         },
     },
     "Bunood Day": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Light",
+        # Rail + Flyout, declared: this card composed a Rail pane through its look while
+        # declaring Unified Side Pane, and `layout_of()` then lit the wrong layout card
+        # (the settings audit of 2026-09-21). The LAYOUT owns the pane state now.
+        "layout": "Rail + Flyout", "palette": "Bunood", "sidebar": "Bunood Light",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at
@@ -1623,7 +1621,8 @@ THEME_PRESETS = {
         },
     },
     "Studio": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Bunood Light",
+        # Rail + Flyout, declared — see Bunood Day.
+        "layout": "Rail + Flyout", "palette": "Slate", "sidebar": "Bunood Light",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at
@@ -1762,6 +1761,9 @@ def _shipped_baseline() -> dict:
               EMAIL_DEFAULTS, PRINT_DEFAULTS):
         out.update(d)
     out.update(_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK])
+    # The pane state's ONE owner is the layout catalogue (registry.LAYOUT_PANE); no
+    # sidebar look writes it since the settings audit of 2026-09-21.
+    out["sidebar_pane_state"] = LAYOUT_PANE[DEFAULT_DESK_LAYOUT]
     return out
 
 

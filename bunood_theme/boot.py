@@ -164,6 +164,19 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_shape") and shape in LAYOUT_CHROME:
         resolved.update(layout_settings(shape))
 
+    # THE SHAPE'S NAME, DERIVED HERE AND NOT LATER. `bnd_desk_shape` used to be
+    # computed from the FINISHED map, after the pane state below had overwritten
+    # `sidebar_pane_state` — so a personal Rail turned the derived shape into
+    # Rail + Flyout and a personal Hidden derived "", which sent
+    # `search_fallback_order` down the Top Bar order on a desk with no top bar
+    # (the settings audit of 2026-09-21, finding c-1). Pane state is COMFORT
+    # (decision i-1): the shape is the site's, or the person's named layout,
+    # never their pane comfort. Read at this line, where only the look and the
+    # shape have been applied.
+    from bunood_theme.presets import layout_of
+
+    shape_name = layout_of(resolved)
+
     # THE PANE STATE. Last, and deliberately so: a look must not be able to take
     # somebody's pane away, and a shape names the containers rather than how much
     # of the pane is on screen. This is one field, it is the person's own comfort
@@ -186,6 +199,8 @@ def resolve_for_user(site) -> tuple:
     return resolved, {
         "look": look,
         "shape": shape,
+        # The derived layout name, from the map BEFORE the comfort overlays.
+        "shape_name": shape_name,
         "sidebar_preset": sidebar_preset,
         # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
         # differs whenever comfort is locked; the dialog needs both.
@@ -215,7 +230,8 @@ def resolve_for_user(site) -> tuple:
     }
 
 
-from bunood_theme.presets import SB_PANE_STOPS as _SB_PANE_STOPS
+from bunood_theme.presets import DEFAULT_DESK_LAYOUT, SB_PANE_STOPS as _SB_PANE_STOPS
+from bunood_theme.registry import LAYOUT_PANE
 
 # Module-level ON PURPOSE: `pane_px` reads it inside extend_bootinfo, whose
 # whole-function `try` SWALLOWS a NameError - the kit goes quietly dark on
@@ -394,7 +410,11 @@ def extend_bootinfo(bootinfo):
         # `registry.layout_settings` - the one catalogue, one derivation, exactly
         # as the picker's highlight is. "" when the containers spell no shipped
         # layout, which is a real and common state since the container split.
-        bootinfo.bnd_desk_shape = layout_of(settings)
+        #
+        # FROM THE SHAPE-STAGE MAP, NOT THE FINISHED ONE: `resolve_for_user`
+        # derives it before the pane-state and width overlays, so a person's
+        # comfort can never rename their desk's shape (audit 2026-09-21, c-1).
+        bootinfo.bnd_desk_shape = personal_state["shape_name"]
 
         # The components a user must never lose every route to, as the pair of
         # selectors that answers "is there a route to this" — ours, and the
@@ -473,7 +493,9 @@ def extend_bootinfo(bootinfo):
             "sections": get("sidebar_section_style"),
             "wash": get("sidebar_hue_wash"),
             "intensity": get("sidebar_card_depth"),
-            "panestate": get("sidebar_pane_state"),
+            # The pane state's owner is the layout catalogue, not a sidebar look
+            # (audit 2026-09-21, a-4): an unset row falls back to the shipped layout's.
+            "panestate": settings.get("sidebar_pane_state") or LAYOUT_PANE[DEFAULT_DESK_LAYOUT],
             "rail_trigger": get("sidebar_rail_trigger"),
             "rail_button": get("sidebar_rail_button"),
             "rail_button_icon": icon("icon_rail_button"),

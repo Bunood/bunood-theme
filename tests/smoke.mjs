@@ -3430,7 +3430,13 @@ async function main() {
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {
-				setSettings(values);
+				// THE PREMISE IS STATED, NOT INHERITED. Every look used to carry a
+				// `sidebar_pane_state`, so applying one silently reopened a pane the
+				// layout checks above had hidden — for this check and for every
+				// check after it. The layout catalogue owns the pane state now (the
+				// settings audit of 2026-09-21, decision iii-1) and no look writes
+				// it, so an open pane is asked for by name.
+				setSettings({ sidebar_pane_state: "Open", ...values });
 				// A WORKSPACE PAGE, because the Cards arm below needs real sections
 				// to measure. The old route's resolved sidebar has none, and the
 				// old wrapper-count assertion only ever passed there because the
@@ -3452,13 +3458,8 @@ async function main() {
 				// preset's own claim.
 				expect(await q(".bnd-sb-head .bnd-sb-head-name"), "the place row");
 				expect(await q(".bnd-sb-head .bnd-sb-head-chev"), "a chevron that is actually built");
-				if (values.sidebar_pane_state === "Rail") {
-					expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-rail")), "rail attr");
-					expectEq(
-						await page.evaluate(() => Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width)),
-						52, "resting rail width"
-					);
-				}
+				// The rail arm that stood here read `values.sidebar_pane_state`, which no
+				// look carries any more; the rail's own geometry is the `rail:` family's.
 				if (values.sidebar_section_style === "Cards") {
 					// Paint on the section container, not a wrapper count: the wrap
 					// retired in item 40, and a border-radius is what Cards IS.
@@ -9710,6 +9711,31 @@ print("ok")
 		//
 		// These assert SHAPE, not pixels. Absolute heights would be a snapshot
 		// of this machine's font rendering and would fail on anyone else's.
+		await test("theme: every theme card lights the layout it declares", async () => {
+			// THE FIELD TWO TABLES OWNED. `theme_settings()` wrote `sidebar_pane_state`
+			// from the layout's row and then let the sidebar LOOK overwrite it (the
+			// settings audit of 2026-09-21, finding a-4): Bunood Day and Studio declared
+			// Unified Side Pane, composed Rail through the "Bunood Light" look, and
+			// `layout_of()` named Rail + Flyout — so clicking one theme card lit a
+			// layout card the user never picked, and `bnd_desk_shape` followed. A
+			// preset's composition must survive its own derivation, for every card,
+			// which is only true when exactly one table writes the pane state.
+			const rows = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import THEME_PRESETS, theme_settings, layout_of\n` +
+						`print("BND" + json.dumps({n: [spec["layout"], layout_of(theme_settings(n))] for n, spec in THEME_PRESETS.items()}))\n`
+				).split("BND")[1].trim()
+			);
+			const wrong = Object.entries(rows).filter(([, [declared, derived]]) => declared !== derived);
+			expectEq(
+				wrong.length,
+				0,
+				"every card's composed desk derives back to the layout it declares (wrong: " +
+					wrong.map(([n, [d, x]]) => `${n} declares ${d}, derives ${x || '""'}`).join("; ") +
+					")"
+			);
+		});
+
 		await test("theme: the picker's own gesture writes the look the server composed", async () => {
 			// THE HEADLINE FEATURE, DRIVEN. Everything else about this catalogue was
 			// checked by COUNTING cards and reading a note; nothing clicked one. That is
@@ -23833,6 +23859,61 @@ print("cleared")
 			);
 		});
 
+		await test("personal: a personal pane state does not change the derived desk shape", async () => {
+			// THE DERIVATION READ THE OVERLAID MAP (the settings audit of 2026-09-21,
+			// finding c-1). `bnd_desk_shape` was computed AFTER `bnd_pane_state` had
+			// overwritten `sidebar_pane_state`, so a personal Rail derived Rail + Flyout
+			// and a personal Hidden derived "" — and `search_fallback_order` then took
+			// the Top Bar order on a desk with no top bar. Pane state is COMFORT
+			// (decision i-1 of that audit): the shape is the site's, or the person's
+			// named layout, never their pane comfort. Measured through the fixture
+			// user, whose comfort lock ships open.
+			const site = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import layout_of\n` +
+						`d = frappe.get_cached_doc("Theme Settings").as_dict()\n` +
+						`print("BND" + json.dumps({"shape": layout_of(d), "pane": d.get("sidebar_pane_state")}))\n`
+				)
+					.split("BND")[1]
+					.trim()
+			);
+			const siteShape = JSON.stringify(site.shape);
+			// A PERSONAL VALUE THAT DIFFERS FROM THE SITE'S, or the premise is empty:
+			// the first draft wrote Hidden while a filtered run had the site on Top
+			// Taskbar (pane Hidden already), and passed on a derivation that was wrong.
+			const personal = site.pane === "Rail" ? "Open" : "Rail";
+			await withPersonal(DESK_FIXTURE.user, { bnd_pane_state: personal }, async () => {
+				// THE SERVED PAYLOAD IS THE SUBJECT: `bnd_desk_shape` is composed once,
+				// server-side, in `extend_bootinfo`, and nothing on the client derives it
+				// again (only the form's `shape_apply` ever rewrites it). Built here as
+				// the fixture user, the way a desk load builds it.
+				const served = JSON.parse(
+					benchPy(
+						`U = ${JSON.stringify(DESK_FIXTURE.user)}\n` +
+							`from bunood_theme import boot\n` +
+							`frappe.set_user(U)\n` +
+							`bi = frappe._dict()\nboot.extend_bootinfo(bi)\n` +
+							`frappe.set_user("Administrator")\n` +
+							`print("BND" + json.dumps({"shape": bi.get("bnd_desk_shape") or "", "pane": (bi.get("bnd_sidebar") or {}).get("panestate")}))\n`
+					)
+						.split("BND")[1]
+						.trim()
+				);
+				expectEq(served.pane, personal, "premise: the personal pane state applies in the payload");
+				const client = await withDeskUser("/app", "body", async (dp) => {
+					await dp.waitForTimeout(1500);
+					return dp.evaluate(() => ({ shape: frappe.boot.bnd_desk_shape || "", pane: document.documentElement.getAttribute("data-bnd-sb-panestate") }));
+				});
+				expectEq(
+					JSON.stringify(served.shape),
+					siteShape,
+					"the derived shape is the site's layout, not the person's pane comfort (the desk's own client read: " +
+						JSON.stringify(client) +
+						")"
+				);
+			});
+		});
+
 		await test("personal: Automatic survives a desk load", async () => {
 			// THE BRANCH NOBODY HAD EVER RUN. ARCHITECTURE §3 claimed from
 			// 2026-07-29 that `User.desk_theme = "Automatic"` normalises to Light
@@ -23864,7 +23945,9 @@ print("cleared")
 			// which is exactly what the first draft did.
 			const before = JSON.parse(read());
 			try {
-				const seen = await withDeskUser("/app", ".body-sidebar-container", async (dp) => {
+				// Waits on the BODY: the subject is two attributes on <html>, and the pane's
+				// visibility is another check's premise (a hidden pane once timed this out).
+				const seen = await withDeskUser("/app", "body", async (dp) => {
 					await dp.waitForTimeout(1200);
 					return dp.evaluate(() => ({
 						attr: document.documentElement.getAttribute("data-theme"),

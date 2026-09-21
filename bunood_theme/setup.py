@@ -27,7 +27,7 @@ import frappe
 
 from bunood_theme.brand import write_brand_css
 from bunood_theme.printing.install import sync_print_theme
-from bunood_theme.registry import default_desk_order
+from bunood_theme.registry import LAYOUT_PANE, default_desk_order
 from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
 from bunood_theme.presets import (
     CHART_DEFAULTS,
@@ -158,6 +158,9 @@ DEFAULTS = {
     # default to the same function.
     "desk_order": default_desk_order(),
     **_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK],
+    # The pane state: from the layout catalogue, its one owner (the sidebar look
+    # used to carry a second copy — the settings audit of 2026-09-21).
+    "sidebar_pane_state": LAYOUT_PANE[DEFAULT_DESK_LAYOUT],
     # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
     # protects an admin's explicit 0.
