@@ -965,7 +965,6 @@ html[data-bnd-sb-color] .bnd-sb-item {
   }
 }
 
-
 // ── The Place row ───────────────────────────────────────────────────────────
 // One node and the whole of the pane head: the brand mark, the place you are
 // in, and a chevron onto the switcher.
@@ -1401,11 +1400,9 @@ html[data-bnd-sb-active="rail"] .body-sidebar .standard-sidebar-item.active-side
   background: color-mix(in srgb, var(--bnd-sb-accent) 9%, transparent);
 }
 
-
 html[data-bnd-sb-active="outline"] .body-sidebar .standard-sidebar-item.active-sidebar {
   box-shadow: inset 0 0 0 1.5px var(--bnd-sb-accent);
 }
-
 
 // Folder tab: the active link takes the PAGE surface and merges into it.
 // Only offered on attached panes (the picker enforces it) because a floating
@@ -1783,7 +1780,6 @@ html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
   background: var(--bnd-serious);
 }
 
-
 // ── Menu rail: hover-expand ─────────────────────────────────────────────────
 // The container narrows to the rail width (its inline width is set by
 // bunood.js because Frappe writes inline widths of its own); the INNER
@@ -1899,82 +1895,6 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .sidebar-resize-handle 
 // documents that the statusbar consumes it; see observe_sidebar_width() in
 // bunood.js. It used to say "and the apps rail", which the rail's deletion
 // (item 40) made false.
-
-// ── Rail expand button ──────────────────────────────────────────────────────
-// Mounted by bunood.js when the tenant chooses one (or picks the Button-only
-// trigger). Placement, shape and glyph are all Theme Settings options; the
-// element carries them as modifier classes so the CSS stays a flat list.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  position: absolute;
-  z-index: calc(var(--bnd-z-flyout) + 1);
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: var(--bnd-line) solid var(--bnd-sb-line);
-  background: var(--bnd-sb-card-base);
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-  box-shadow: var(--bnd-shadow-sm);
-  // One shape since item 40: all eight shipped looks chose Circle, and the
-  // other two rendered through a CONCATENATED class the focus-ring guard
-  // cannot see. The radius lives on the identity class instead.
-  border-radius: var(--bnd-radius-pill);
-
-  svg {
-    inline-size: 13px;
-    block-size: 13px;
-    transition: rotate var(--bnd-dur-base) var(--bnd-ease);
-  }
-
-  &:hover {
-    color: var(--bnd-sb-ink);
-  }
-}
-
-// Placements. Edge rides the pane's end border, vertically centred; top sits
-// in the header row; bottom is pinned above the pane's end.
-//
-// TWO POSITIONS EACH, because the pane and the button have different parents.
-// The button is absolute against the CONTAINER, which stays at the rail's
-// 52px; the open pane is an overlay that grows to --bnd-sb-w PAST it. With
-// only the at-rest offset, opening slid the pane out from under the button
-// and left it floating over the workspace list, 40px from the left edge — a
-// chevron on top of "Material Request", measured 2026-08-08, and the broken
-// render reported that day. So each placement states where it sits at REST
-// (against the rail) and where it sits OPEN (against the pane's real edge,
-// derived from the same two widths the pane itself uses), with the same
-// duration as the pane's growth so the button glides with the edge it rides.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  transition: inset-inline-end var(--bnd-dur-base) var(--bnd-ease);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-edge {
-  inset-inline-end: -12px;
-  inset-block-start: 50%;
-  translate: 0 -50%;
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-edge,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-edge {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
-}
-// The head placement, named for where it sits rather than for a compass
-// point (item 40). BOTTOM IS GONE, and it was measured out rather than
-// dropped on taste: at `inset-inline-end: 50%` it sat over the foot's own
-// controls — Frappe's collapse link and resize handle both live there.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-header {
-  inset-inline-end: var(--bnd-sp-1);
-  inset-block-start: var(--bnd-sp-2);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-header,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-header {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-
-
-// Open state: the chevron/arrow glyphs flip to point back.
-.bnd-rail-open .bnd-railbtn svg {
-  rotate: 180deg;
-}
 
 // ── Icon source overrides ───────────────────────────────────────────────────
 // "Original" hands the icon area back to Frappe untouched — every chip rule

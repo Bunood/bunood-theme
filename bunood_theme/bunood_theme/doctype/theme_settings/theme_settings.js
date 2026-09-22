@@ -3417,17 +3417,6 @@ const BND_SB_GROUPS = [
 			{ value: "Hover + Pin", name: () => __("Hover + pin"), thumb: '<span class="bnd-sbp-glyph">⌖</span>' },
 		],
 	},
-	{
-		field: "sidebar_rail_button",
-		zone: "rail",
-		title: () => __("Rail expand button"),
-		desc: () => __("An always-visible expand/collapse control on the rail."),
-		options: [
-			{ value: "None", name: () => __("None"), thumb: bnd_sb_pane("currentColor", "opacity:.14") },
-			{ value: "Edge", name: () => __("Edge"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:50%;inset-inline-start:24px;translate:0 -50%"></span>' },
-			{ value: "Header", name: () => __("Header"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:8px;inset-inline-start:20px"></span>' },
-		],
-	},
 	// Rail button icon moved to the Icons axis (item 23).
 	{
 		field: "sidebar_badges",
@@ -3890,10 +3879,10 @@ const BND_SIDEBAR_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
-	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",
+	"sidebar_pane_width", "sidebar_badges",
 	"sidebar_filter",
 ];
-const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs"];
+const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_crumbs"];
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.ICON_DEFAULTS. */
 
@@ -3953,16 +3942,6 @@ const BND_ICON_GROUPS = [
 			{ value: "First Crumb", name: () => __("First crumb"), glyph: "▣›b" },
 			{ value: "Every Crumb", name: () => __("Every crumb"), glyph: "▣›▣" },
 			{ value: "Off", name: () => __("Off"), glyph: "a›b" },
-		],
-	},
-	{
-		field: "icon_rail_button",
-		title: () => __("Rail button icon"),
-		desc: () => __("The glyph on the side pane's collapse button."),
-		options: [
-			{ value: "Chevron", name: () => __("Chevron"), glyph: "›" },
-			{ value: "Menu", name: () => __("Menu"), glyph: "☰" },
-			{ value: "Arrows", name: () => __("Arrows"), glyph: "⇄" },
 		],
 	},
 ];

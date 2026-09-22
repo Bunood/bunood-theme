@@ -488,8 +488,8 @@ def extend_bootinfo(bootinfo):
             "material": get("sidebar_material"),
             # Icon fields (item 23) moved to their own axis, so they are read
             # with ICON_DEFAULTS as the fallback rather than the sidebar preset
-            # — but the PAYLOAD keys stay put ("icons", "rail_button_icon",
-            # "icon_source"), so bunood.js and the SCSS are untouched.
+            # — but the PAYLOAD keys stay put ("icons", "icon_source"), so
+            # bunood.js and the SCSS are untouched.
             "icons": icon("icon_style"),
             "active": get("sidebar_active_style"),
             "sections": get("sidebar_section_style"),
@@ -499,8 +499,6 @@ def extend_bootinfo(bootinfo):
             # (audit 2026-09-21, a-4): an unset row falls back to the shipped layout's.
             "panestate": settings.get("sidebar_pane_state") or LAYOUT_PANE[DEFAULT_DESK_LAYOUT],
             "rail_trigger": get("sidebar_rail_trigger"),
-            "rail_button": get("sidebar_rail_button"),
-            "rail_button_icon": icon("icon_rail_button"),
             "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.

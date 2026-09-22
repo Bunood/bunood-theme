@@ -61,7 +61,6 @@ SIDEBAR_FIELDS = [
     "sidebar_hue_wash",
     "sidebar_card_depth",
     "sidebar_rail_trigger",
-    "sidebar_rail_button",
     "sidebar_pane_width",
     "sidebar_badges",
     "sidebar_filter",
@@ -92,7 +91,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "4",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         # Trigger and icon are inert while the mode has no rail and the button
         # is None — kept so flipping back restores a tuned look.
         "sidebar_pane_width": "5",
@@ -107,7 +105,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -120,7 +117,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -133,7 +129,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -146,7 +141,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -159,7 +153,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -172,7 +165,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -193,7 +185,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Counts",
         "sidebar_filter": 0,
@@ -251,7 +242,6 @@ ICON_FIELDS = [
     "icon_style",
     "icon_weight",
     "icon_source",
-    "icon_rail_button",
     "icon_crumbs",
 ]
 
@@ -267,7 +257,6 @@ ICON_DEFAULTS = {
     # made true everywhere for the first time.
     "icon_weight": "1.5",
     "icon_source": "Smart",
-    "icon_rail_button": "Chevron",
     "icon_crumbs": "First Crumb",
 }
 

@@ -27,7 +27,6 @@
   "icon_style",
   "icon_weight",
   "icon_source",
-  "icon_rail_button",
   "icon_crumbs",
   "section_language",
   "arabic_font",
@@ -116,7 +115,6 @@
   "sidebar_card_depth",
   "sidebar_pane_state",
   "sidebar_rail_trigger",
-  "sidebar_rail_button",
   "sidebar_pane_width",
   "sidebar_badges",
   "sidebar_filter",
@@ -497,20 +495,6 @@
    "fieldtype": "Select",
    "label": "Rail Expand Trigger",
    "options": "Hover\nClick\nHover + Pin",
-   "hidden": 1
-  },
-  {
-   "fieldname": "sidebar_rail_button",
-   "fieldtype": "Select",
-   "label": "Rail Expand Button",
-   "options": "None\nEdge\nHeader",
-   "hidden": 1
-  },
-  {
-   "fieldname": "icon_rail_button",
-   "fieldtype": "Select",
-   "label": "Rail Button Icon",
-   "options": "Chevron\nMenu\nArrows",
    "hidden": 1
   },
   {
@@ -1703,7 +1687,7 @@
  ],
  "issingle": 1,
  "links": [],
- "modified": "2026-09-21 16:22:59.622877",
+ "modified": "2026-09-22 00:10:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Theme Settings",

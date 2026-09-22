@@ -1394,7 +1394,7 @@ function assertTypographySync(typographySrc, doctypeJson, fontFiles) {
  * parses registry.py rather than importing it: `el("button", "…", …)` calls
  * in bunood.js, and `<button … class="…">` HTML string literals in
  * theme_settings.js — everywhere either file builds a control. A class
- * fragment produced by string concatenation (`"bnd-railbtn-" + shape`) is
+ * fragment produced by string concatenation (a `"bnd-x-" + shape`) is
  * filtered out — it ends in `-` and is not a real class name until runtime —
  * but the identity class beside it in the same literal is still checked.
  * A literal that resolves to an empty prefix (the whole class list built

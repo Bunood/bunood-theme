@@ -1141,8 +1141,6 @@
 		// is read; a retired spelling is a migration's job, never a lookup's.
 		panestate: { "Open": "open", "Rail": "rail", "Hidden": "hidden" },
 		railtrigger: { "Hover": "hover", "Click": "click", "Hover + Pin": "hoverpin" },
-		railbtn: { "None": "", "Edge": "edge", "Header": "header" },
-		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
 		iconsrc: { "Smart": "smart", "Original": "original", "Letters": "letters" },
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
 	};
@@ -8269,11 +8267,7 @@
 		const toggle_pin = () => {
 			pinned = !pinned;
 			container.classList.toggle("bnd-rail-pinned", pinned);
-			// Both toggles SAY what they hold: the expand button controls the
-			// pane's expansion (aria-expanded), the pin holds it (aria-pressed).
-			for (const b of container.querySelectorAll(".bnd-railbtn")) {
-				b.setAttribute("aria-expanded", pinned ? "true" : "false");
-			}
+			// The pin SAYS what it holds (aria-pressed).
 			for (const b of container.querySelectorAll(".bnd-sb-pin")) {
 				b.setAttribute("aria-pressed", pinned ? "true" : "false");
 			}
@@ -8324,7 +8318,9 @@
 		if (trigger === "hoverpin") {
 			const header = container.querySelector(".bnd-sb-head") || container.querySelector(".sidebar-header");
 			if (header) {
-				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
+				// The rail's one control since the expand button retired (audit
+				// 2026-09-21, iv-2): identified, so the board and the matrix find it.
+				const pin = el("button", "bnd-sb-pin", { type: "button", "data-bnd-part": "railpin", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
 				pin.textContent = "⌖";
 				pin.addEventListener("click", (e) => {
 					e.stopPropagation();
@@ -8334,31 +8330,6 @@
 			}
 		}
 
-		// The expand button. Its click PINS the pane (open until clicked
-		// again) so it works alone and alongside the hover trigger.
-		const sb = sb_state || {};
-		// No "Button Only": it forced pos="edge", overwriting another picker.
-		const pos = SB_SLUGS.railbtn[sb.rail_button] || "";
-		if (pos) {
-			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
-			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos, {
-				type: "button",
-				"data-bnd-part": "railbtn",
-				"aria-label": __("Expand sidebar"),
-				"aria-expanded": "false",
-				title: __("Expand sidebar"),
-			});
-			btn.appendChild(
-				sprite_icon(
-					glyph === "menu" ? "icon-menu" : glyph === "arrows" ? "icon-arrow-left-to-line" : "icon-chevron-right"
-				)
-			);
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				toggle_pin();
-			});
-			container.appendChild(btn);
-		}
 
 		// Wiring live — claim the hamburger. Never before it. _layouts.scss.
 		bnd_own("panetoggle");
@@ -8408,7 +8379,7 @@
 		container.classList.remove("bnd-rail-open", "bnd-rail-pinned");
 		for (const off of container._bnd_rail_teardown || []) off();
 		container._bnd_rail_teardown = [];
-		for (const node of container.querySelectorAll(".bnd-railbtn, .bnd-sb-pin")) node.remove();
+		for (const node of container.querySelectorAll(".bnd-sb-pin")) node.remove();
 	}
 
 	// ── Icon engine (Smart / Original / Letters) ────────────────────────────
@@ -9313,8 +9284,6 @@
 			intensity: v("sidebar_card_depth", "intensity"),
 			panestate: v("sidebar_pane_state", "panestate"),
 			rail_trigger: v("sidebar_rail_trigger", "rail_trigger"),
-			rail_button: v("sidebar_rail_button", "rail_button"),
-			rail_button_icon: v("icon_rail_button", "rail_button_icon"),
 			icon_source: v("icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
 			badges: v("sidebar_badges", "badges"),

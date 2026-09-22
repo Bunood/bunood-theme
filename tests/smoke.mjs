@@ -1449,13 +1449,12 @@ const MUTABLE_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
-	"sidebar_rail_button",
 	"sidebar_pane_width",
 	"sidebar_badges", "sidebar_filter",
 	// The pane head's quick links (2026-09-14): policy, outside the look catalogue.
 	"panehead_quick_links",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
-	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
+	"icon_style", "icon_weight", "icon_source", "icon_crumbs",
 	// Personalization locks (item 38). Here for the ordinary reason and one of
 	// their own: a run that dies with `personal_look` at 0 leaves every stored
 	// per-user look inert site-wide, which reads as the personalize menu being
@@ -3539,22 +3538,6 @@ async function main() {
 			}
 		});
 
-		await test("rail: edge button pins open and unpins", async () => {
-			expect(await q(".bnd-railbtn.bnd-railbtn-edge"), "edge button mounted");
-			await page.click(".bnd-railbtn");
-			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "pinned open");
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(500);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays while pinned");
-			await page.click(".bnd-railbtn");
-			// Soft unpin BY DESIGN: with the pointer still over the pane it
-			// stays open until the pointer leaves (v0.6.1 rail-feel fix), so
-			// move away before expecting closure.
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(700);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "unpins closed after pointer leaves");
-		});
 
 		// ── Icon engine ────────────────────────────────────────────────────
 		await test("icon engine: every id the module can emit exists in the sprite", async () => {
@@ -6597,11 +6580,13 @@ print("ok")
 			}
 		});
 
-		await test("sidepane: the place row and the rail button announce their identity", async () => {
+		await test("sidepane: the place row and the rail's pin announce their identity", async () => {
 			// Slice 9: parts, not classes — the placement board, desk order and
 			// the invariant matrix find components by data-bnd-part, and the
-			// audit found the pane's own nodes invisible to all three.
-			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_button"]);
+			// audit found the pane's own nodes invisible to all three. The rail's
+			// control is its PIN since the expand button retired (the settings audit
+			// of 2026-09-21, iv-2).
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
 			try {
 				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
@@ -6611,13 +6596,68 @@ print("ok")
 				);
 				expectEq(head, "panehead", `the place row is findable by part (${head})`);
 
-				setSettings({ sidebar_pane_state: "Rail", sidebar_rail_button: "Edge" });
+				setSettings({ sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover + Pin" });
 				await goDesk("/app/selling", "body", 3000);
-				await page.waitForFunction(() => !!document.querySelector(".bnd-railbtn"), null, { timeout: 20000 });
-				const btn = await page.evaluate(() =>
-					document.querySelector(".bnd-railbtn").getAttribute("data-bnd-part")
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-pin"), null, { timeout: 20000 });
+				const pin = await page.evaluate(() =>
+					document.querySelector(".bnd-sb-pin").getAttribute("data-bnd-part")
 				);
-				expectEq(btn, "railbtn", `and so is the rail button (${btn})`);
+				expectEq(pin, "railpin", `and so is the rail's pin (${pin})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the rail's expand button is retired — the trigger is the affordance", async () => {
+			// TWO FIELDS THE 2026-09-02 ROUND SAID TO RETIRE were still shipped with
+			// values (the settings audit of 2026-09-21, D8; decision iv-2 b): the
+			// rail's always-visible expand button and its glyph. The three-state pane
+			// and the rail's trigger are the affordance; Hover + Pin keeps its pin.
+			// Four facts: the fields are gone from the doctype and the catalogue, a
+			// Rail desk mounts no such control and still opens, the patch deletes a
+			// stored row through the table, and nothing on the wire names the part.
+			const server = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import THEME_AXES\n` +
+						`from bunood_theme.registry import COMPONENTS, MARKS\n` +
+						`meta = frappe.get_meta("Theme Settings")\n` +
+						`frappe.db.sql("insert into tabSingles (doctype, field, value) values ('Theme Settings','sidebar_rail_button','Edge'), ('Theme Settings','icon_rail_button','Menu')")\n` +
+						`frappe.db.commit()\n` +
+						`from bunood_theme.patches.unreleased import retire_rail_button as p\n` +
+						`p.execute()\n` +
+						`left = frappe.db.sql("select field from tabSingles where doctype='Theme Settings' and field in ('sidebar_rail_button','icon_rail_button')")\n` +
+						`print("BND" + json.dumps({"meta": [f for f in ("sidebar_rail_button", "icon_rail_button") if meta.has_field(f)], "axes": [f for f in THEME_AXES if "rail_button" in f], "parts": [c["part"] for c in COMPONENTS + MARKS if c.get("part") in ("railbtn", "railpin")], "left": [r[0] for r in left]}))\n`
+				)
+					.split("BND")[1]
+					.trim()
+			);
+			expectEq(server.meta.join(","), "", "neither field is on the doctype");
+			expectEq(server.axes.join(","), "", "and neither is a theme axis");
+			expectEq(server.parts.join(","), "railpin", "the registry names the rail's pin, not a button");
+			expectEq(server.left.join(","), "", "the patch deletes a stored row through the table");
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover" });
+				await goDesk("/app/selling", ".page-head", 3500);
+				await page.waitForFunction(() => document.documentElement.getAttribute("data-bnd-sb-panestate") === "rail", null, { timeout: 20000 });
+				const desk = await page.evaluate(() => ({
+					buttons: document.querySelectorAll(".bnd-railbtn, [data-bnd-part=railbtn]").length,
+					edge: document.querySelector(".body-sidebar-container").getBoundingClientRect().right,
+				}));
+				expectEq(desk.buttons, 0, "a Rail desk mounts no expand button");
+				await page.mouse.move(desk.edge + 200, 450);
+				await page.waitForTimeout(300);
+				await page.mouse.move(desk.edge - 10, 450);
+				await page.waitForTimeout(700);
+				expect(
+					await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")),
+					"and the rail still opens from its trigger"
+				);
+				const bundle_url = await page.evaluate(
+					() => [...document.scripts].map((n) => n.src).find((u) => /\/dist\/js\/bunood\.[0-9a-f]+\.js/.test(u)) || ""
+				);
+				const bundle = await (await page.request.get(bundle_url)).text();
+				expect(!bundle.includes("railbtn") && !bundle.includes("rail_button"), "nothing on the wire names the retired control");
 			} finally {
 				setSettings(before);
 			}
@@ -8290,7 +8330,6 @@ print("ok")
 						head: document.querySelectorAll(".bnd-sb-head").length,
 						utils: document.querySelectorAll(".body-sidebar .bnd-sb-utils").length,
 						badges: document.querySelectorAll(".bnd-sb-badge").length,
-						railbtn: document.querySelectorAll(".bnd-railbtn").length,
 						iconized: document.querySelectorAll("[data-bnd-iconized]").length,
 						own: document.documentElement.getAttribute("data-bnd-own") || "",
 					}));
@@ -8304,7 +8343,6 @@ print("ok")
 				expectEq(off.head, 0, "the head is gone");
 				expectEq(off.utils, 0, "the pane's link rows are gone");
 				expectEq(off.badges, 0, "the badges are gone");
-				expectEq(off.railbtn, 0, "the rail button is gone");
 				expectEq(off.iconized, 0, "Frappe's own rows have their icons back");
 				expect(!/\bpanehead\b/.test(off.own),
 					`and the token agrees with the document (own=${off.own || "(none)"})`);
@@ -10180,13 +10218,14 @@ print("ok")
 				// session away from — so the only person who can open this picker is
 				// the only one who cannot see the page it configures.
 				login_picker: { cards: 4, toggles: 0, opts: 5 },
-				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
-				// option chips across four groups — 4 weights, 3 missing-icon
-				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
-				// specimen is aria-hidden decoration, not a control.
+				// Icon system kit (item 23): 6 style cards (the chip looks), and 10
+				// option chips across three groups — 4 weights, 3 missing-icon
+				// fallbacks, 3 breadcrumb-icon (the 3 rail-button glyphs left with
+				// `icon_rail_button`, the settings audit of 2026-09-21, iv-2). No
+				// toggles; the specimen is aria-hidden decoration, not a control.
 				// DERIVED, for the third time in this object and for the same reason: a
 				// literal 6 here outlived the six icon styles by exactly one slice.
-				icons_picker: { cards: iconCount, toggles: 0, opts: 13 },
+				icons_picker: { cards: iconCount, toggles: 0, opts: 10 },
 				// The three below joined this map in item 35 — web and email had been
 				// MISSING since their items shipped (only the fingerprint fixture
 				// covered them; a picker that silently rendered nothing would have
@@ -17425,7 +17464,6 @@ print("cleared")
 			expect(/^rgb\(/.test(o.boxBg), `Original leaves stock's opaque sheet alone (${o.boxBg})`);
 		});
 
-
 		await test("overlay: Blurred blurs, and is guarded", async () => {
 			// The blur is progressive enhancement — shadcn guards every one of its
 			// own with supports-backdrop-filter:, and a full-viewport
@@ -22750,7 +22788,6 @@ print("cleared")
 			}
 		});
 
-
 		await test("email: every email has a floor of its own", async () => {
 			// CONTRACT E1, and the finding that reshaped this item. `standard.html`
 			// paints a ground only under `with_container`, and
@@ -22969,7 +23006,6 @@ print("cleared")
 			}
 		});
 
-
 		await test("email: the class map and the field options are one fact", async () => {
 			// Item 32 built this check for the login kit after `SETTINGS_PANE_KEYS`
 			// was found listing seven kits short; item 33 never got one. It is
@@ -23138,7 +23174,6 @@ print("cleared")
 			}
 		});
 
-
 		await test("email: both axes reach a rendered message", async () => {
 			// The whole point of an axis is that changing it changes the email. Item
 			// 29 shipped two poles that would have rendered as nothing and item 31
@@ -23304,7 +23339,6 @@ print("cleared")
 			// "asserting something this app does not control" trap the markers check
 			// two tests up refuses by name.
 		});
-
 
 		await test("email: the framework's name is nowhere in a message", async () => {
 			// EACH HALF ASSERTS THE STOCK VALUE FIRST, BY NAME. Item 33 ran nine

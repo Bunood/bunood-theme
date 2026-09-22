@@ -72,7 +72,6 @@ Loading...	frappe: تحميل ...
 Logo	erpnext: شعار
 Manual	erpnext: يدوي
 Medium	frappe: متوسط
-Menu	frappe: الخيارات
 Missing	erpnext: مفتقد
 Name	frappe: اسم
 New	frappe: جديد
