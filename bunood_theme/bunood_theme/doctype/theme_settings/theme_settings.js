@@ -1477,53 +1477,6 @@ function bnd_changed_fields(key, frm) {
 }
 
 /**
- * The note under a shell entry: a preset name where one genuinely exists,
- * otherwise how far the component is from stock.
- *
- * TWO ENTRIES HAVE A REAL CATALOGUE; the rest do not, and pretending otherwise
- * would be the defect this rework exists to remove.
- *
- *   sidepane  — `SIDEBAR_PRESETS`, every field in `presets.SIDEBAR_FIELDS`,
- *               matched since item 10.
- *   layout    — `registry.LAYOUT_CHROME` as of slice 2c. **This is new**, and
- *               it is what the whole container split was for. Until the split
- *               there was no table anywhere stating what a layout writes: the
- *               migration patch records what 0.10.0 *rendered*, which is a
- *               one-shot artefact, and the layout decided things at mount time
- *               that no field recorded at all. There was nothing to compare
- *               against, so this function said "Changed" or "Default" and the
- *               comment here said why. Now every layout is exactly five
- *               container values, so the name is DERIVED by comparing them —
- *               and reads "Custom" the moment one differs.
- *
- * `crumb_style`, `palette_style`, `inbox_style` and `status_style` are top-level
- * style CHOICES that compose with their extras — `presets.py` says so in as many
- * words — so there is still nothing to match and no "Custom" to derive. Those
- * get the honest two-state, computed by the SAME function the dot uses. One
- * comparison, two renderings — never two comparisons that can disagree.
- */
-function bnd_settings_note(key, frm) {
-	if (!bnd_shipped) return "";
-	// THE THEME ENTRY OWNS NO FIELDS OF ITS OWN — it writes other entries'. So it
-	// is answered BEFORE the ownership guard below, which would otherwise send it
-	// down the "no state to report" path and print nothing under the one control
-	// with the largest catalogue on the page. What it can honestly report is
-	// which shipped look the desk currently IS, which is a comparison rather than
-	// a field it holds. (The side pane used to answer with a look's NAME from a
-	// second fetch that raced this one — slice 10 deleted both, and the pane
-	// takes the generic two-state below.)
-	if (key === "theme" && bnd_theme_cache) return bnd_tr_layout(bnd_theme_match(frm));
-	// An entry that owns no fields has no state to report. The Overview READS
-	// settings; saying "Default" under it claims it has some, and would go on
-	// saying it while every component it shows had been changed.
-	if (!BND_SETTINGS_OWNS[key]) return "";
-	// Translated HERE, not in the matcher: this is a display string, while the
-	// picker compares the same answer against untranslated card values.
-	if (key === "layout") return bnd_tr_layout(bnd_match_layout(frm));
-	return bnd_changed_fields(key, frm).length ? __("Changed") : __("Default");
-}
-
-/**
  * Display form of a matched layout or theme name. Empty stays empty — "cannot say".
  *
  * "Custom" IS SPELLED OUT, and the build guard is why. The extractor reads

@@ -74,10 +74,8 @@ html:lang(ks) body {
 // selectors are deliberately narrow: this is not a licence to strip tracking
 // from Frappe's chrome, only from the places our own components print data.
 .bnd-sb-letter,
-.bnd-inbox-row-title,
 .bnd-inbox-group,
 .bnd-palette-row-label,
-.bnd-crumb-title,
 html[data-bnd-sb-color] .body-sidebar .sidebar-item-label {
   letter-spacing: normal;
 }

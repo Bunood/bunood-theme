@@ -42,9 +42,6 @@
 // partials that own the elements, each scoped html[data-theme] so density
 // keeps working under a kit's "Original".
 
-// ── Base ────────────────────────────────────────────────────────────────────
-// @use "base";
-
 // Item 7(a). Must load AFTER bridge and BEFORE the chrome partials: it neutralises
 // tracking Frappe's own sheet applies to `body`, which our chrome then inherits —
 // something the build guard over our stylesheet structurally cannot see.

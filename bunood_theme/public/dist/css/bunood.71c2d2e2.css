@@ -454,10 +454,8 @@ html:lang(ks) body {
 }
 
 .bnd-sb-letter,
-.bnd-inbox-row-title,
 .bnd-inbox-group,
 .bnd-palette-row-label,
-.bnd-crumb-title,
 html[data-bnd-sb-color] .body-sidebar .sidebar-item-label {
   letter-spacing: normal;
 }
@@ -1389,7 +1387,7 @@ html[data-theme] .bnd-dock-item:focus-visible {
 html[data-theme] :is(.bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
 .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-ph-home, .bnd-ph-show, .bnd-sb-brand-hide,
 .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
-.bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
+.bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import,
 .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank):focus-visible {
   outline: 2px solid var(--bnd-accent);
   outline-offset: 1px;
@@ -3845,49 +3843,10 @@ html[data-theme] .bnd-sbp-reset {
 html[data-theme] .bnd-sbp-reset:hover {
   color: var(--primary);
 }
-html[data-theme] .bnd-sbp-presets {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 8px;
-}
-html[data-theme] .bnd-sbp-preset {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  padding: 9px;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  background: var(--control-bg);
-  cursor: pointer;
-  text-align: start;
-}
-html[data-theme] .bnd-sbp-preset:hover {
-  border-color: var(--primary);
-}
-html[data-theme] .bnd-sbp-pname {
-  font-weight: 600;
-  font-size: var(--text-sm);
-}
 html[data-theme] .bnd-sbp-pblurb {
   font-size: var(--text-xs);
   color: var(--text-muted);
   line-height: 1.4;
-}
-html[data-theme] .bnd-sbp-dots {
-  display: flex;
-  gap: 3px;
-  margin-block-start: 2px;
-}
-html[data-theme] .bnd-sbp-dot {
-  inline-size: 9px;
-  block-size: 9px;
-  border-radius: 50%;
-  outline: 1px solid var(--border-color);
-  outline-offset: -1px;
-}
-html[data-theme] .bnd-sbp-custom {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
 }
 html[data-theme] .bnd-sbp-row-wrap {
   display: flex;
@@ -4008,15 +3967,6 @@ html[data-theme] .bnd-sbp-btnmark {
   background: var(--control-bg);
   border: 1px solid currentColor;
   opacity: 0.7;
-}
-html[data-theme] .bnd-sbp-shape {
-  position: absolute;
-  inset-block-start: 12px;
-  inset-inline-start: 38px;
-  inline-size: 16px;
-  block-size: 16px;
-  border: 1.5px solid currentColor;
-  opacity: 0.6;
 }
 html[data-theme] .bnd-sbp-steps {
   display: flex;

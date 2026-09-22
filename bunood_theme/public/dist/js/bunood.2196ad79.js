@@ -1244,16 +1244,6 @@
 	}
 
 	// ════════════════════════════════════════════════════════════════════════
-	// Breadcrumb kit (item 11) — attribute application
-	// ════════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Theme Settings label -> attribute slug. "Original" deliberately maps to
-	 * "" so it sets NO attributes at all — the CSS matrix matches nothing and
-	 * v16's stock trail is untouched, the same escape hatch the desk-layout
-	 * picker offers with "Classic". Unknown labels behave identically.
-	 */
-	// ════════════════════════════════════════════════════════════════════════
 	// The SURFACE kits — list (15) · form (16) · workspace (25) · report (26)
 	// · views (27) · overlays (28) · empty (29) · skeleton (30) · filters (31)
 	// — one construction, NINE rows of a table. (This said "six" from the
@@ -2172,6 +2162,16 @@
 		}
 	})();
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Breadcrumb kit (item 11) — attribute application
+	// ════════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Theme Settings label -> attribute slug. "Original" deliberately maps to
+	 * "" so it sets NO attributes at all — the CSS matrix matches nothing and
+	 * v16's stock trail is untouched, the same escape hatch the desk-layout
+	 * picker offers with "Classic". Unknown labels behave identically.
+	 */
 	const CRUMB_SLUGS = {
 
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },
@@ -3285,92 +3285,92 @@
 		return !!(pane && getComputedStyle(pane).display !== "none");
 	}
 
-/**
- * Put a node at a zone of the SIDE PANE, by DOM position.
- *
- * TWO ZONES, NOT THREE. The pane is the one region that does not get a centre,
- * and `registry.ZONES_BY_REGION` is where that is declared — this function is
- * only where it is carried out. The reason is measured, not stylistic: the
- * pane's content FILLS the column, so "after the workspace list" and "the foot
- * of the pane" are the same position, because the list is the last thing in it.
- * Three attempts said so — CSS `order` with auto margins put start, centre and
- * end on an identical y; inserting the end before Frappe's pinned bottom strip
- * put it ABOVE the centre; inserting it at the true last child matched the
- * centre exactly. A third choice that lands where the second one does is the
- * "two options, one pixel" defect this vocabulary exists to delete, and the
- * pane already had it — search's old Sidebar Top and Sidebar Bottom both
- * measured y 228 for months.
- *
- *   start   after the pane's header, above the workspaces
- *   end     the foot of the pane, below the workspace list
- *
- * Position, not `order`, is what decides here — see the measurement above.
- * Falls back outward at every step: a pane missing its header or its bottom
- * strip still gets the node, at the nearest honest place, rather than not at
- * all.
- */
-/** The account band (8c): one toolbar shell at the foot. _sidebar.scss. */
-function sb_band(pane) {
-	let band = pane.querySelector(".bnd-sb-band");
-	if (!band) {
-		band = el("div", "bnd-sb-band", {
-			role: "toolbar",
-			"aria-label": __("Quick actions"),
-			"data-bnd-zone": "end",
-		});
-		// Through the anchor: no part, so the cell branch passes it by.
-		sb_zone_anchor(pane, "end", band);
+	/** The account band (8c): one toolbar shell at the foot. _sidebar.scss. */
+	function sb_band(pane) {
+		let band = pane.querySelector(".bnd-sb-band");
+		if (!band) {
+			band = el("div", "bnd-sb-band", {
+				role: "toolbar",
+				"aria-label": __("Quick actions"),
+				"data-bnd-zone": "end",
+			});
+			// Through the anchor: no part, so the cell branch passes it by.
+			sb_zone_anchor(pane, "end", band);
+		}
+		return band;
 	}
-	return band;
-}
 
-function sb_band_prune() {
-	for (const band of document.querySelectorAll(".bnd-sb-band")) {
-		if (!band.childElementCount) band.remove();
-	}
-}
-
-function sb_zone_anchor(pane, zone, node) {
-	// Our end tenants become band cells.
-	if (zone === "end" && node.getAttribute) {
-		const part = node.getAttribute("data-bnd-part");
-		// Every End-zone tenant lives in the foot card. This was a list of four and
-		// item 44 added two: the band-order guard in build.mjs derives the same set
-		// from registry.py, so a tenant missing here lands loose under the card.
-		if (part === "bell" || part === "user" || part === "home" || part === "apps" || part === "language" || part === "appearance") {
-			return sb_band(pane).appendChild(node);
+	function sb_band_prune() {
+		for (const band of document.querySelectorAll(".bnd-sb-band")) {
+			if (!band.childElementCount) band.remove();
 		}
 	}
-	const bottom = pane.querySelector(".body-sidebar-bottom");
 
-	if (zone === "start") {
-		// Between the brand row and the place row, whichever mounted first.
-		const head = pane.querySelector(":scope > .bnd-sb-head") || pane.querySelector(":scope > .body-sidebar-top");
-		if (head) return head.insertAdjacentElement("beforebegin", node);
-		const top = pane.querySelector(":scope > .bnd-sb-brand") || pane.querySelector(":scope > .sidebar-header");
-		if (top) return top.insertAdjacentElement("afterend", node);
-		return pane.insertBefore(node, pane.firstChild);
-	}
-	// No "center" branch: the pane has two zones, because a third could not be
-	// made to differ from the second (see registry.ZONES_BY_REGION). A value
-	// from a site that stored one before this settled falls through to the foot,
-	// which is where it rendered anyway.
-	// "end" = the foot: before `.body-sidebar-bottom` when it is the last
-	// IN-FLOW child. "Last CHILD" was permanently false — the collapse link
-	// and handle trail it, both absolute (defect 20; band 8 vs bottom 5).
-	if (bottom) {
-		let lastInFlow = null;
-		for (const kid of pane.children) {
-			const cs = getComputedStyle(kid);
-			if (cs.position === "absolute" || cs.position === "fixed") continue;
-			lastInFlow = kid;
+	/**
+	 * Put a node at a zone of the SIDE PANE, by DOM position.
+	 *
+	 * TWO ZONES, NOT THREE. The pane is the one region that does not get a centre,
+	 * and `registry.ZONES_BY_REGION` is where that is declared — this function is
+	 * only where it is carried out. The reason is measured, not stylistic: the
+	 * pane's content FILLS the column, so "after the workspace list" and "the foot
+	 * of the pane" are the same position, because the list is the last thing in it.
+	 * Three attempts said so — CSS `order` with auto margins put start, centre and
+	 * end on an identical y; inserting the end before Frappe's pinned bottom strip
+	 * put it ABOVE the centre; inserting it at the true last child matched the
+	 * centre exactly. A third choice that lands where the second one does is the
+	 * "two options, one pixel" defect this vocabulary exists to delete, and the
+	 * pane already had it — search's old Sidebar Top and Sidebar Bottom both
+	 * measured y 228 for months.
+	 *
+	 *   start   after the pane's header, above the workspaces
+	 *   end     the foot of the pane, below the workspace list
+	 *
+	 * Position, not `order`, is what decides here — see the measurement above.
+	 * Falls back outward at every step: a pane missing its header or its bottom
+	 * strip still gets the node, at the nearest honest place, rather than not at
+	 * all.
+	 */
+	function sb_zone_anchor(pane, zone, node) {
+		// Our end tenants become band cells.
+		if (zone === "end" && node.getAttribute) {
+			const part = node.getAttribute("data-bnd-part");
+			// Every End-zone tenant lives in the foot card. This was a list of four and
+			// item 44 added two: the band-order guard in build.mjs derives the same set
+			// from registry.py, so a tenant missing here lands loose under the card.
+			if (part === "bell" || part === "user" || part === "home" || part === "apps" || part === "language" || part === "appearance") {
+				return sb_band(pane).appendChild(node);
+			}
 		}
-		if (lastInFlow === bottom) {
-			return bottom.insertAdjacentElement("beforebegin", node);
+		const bottom = pane.querySelector(".body-sidebar-bottom");
+
+		if (zone === "start") {
+			// Between the brand row and the place row, whichever mounted first.
+			const head = pane.querySelector(":scope > .bnd-sb-head") || pane.querySelector(":scope > .body-sidebar-top");
+			if (head) return head.insertAdjacentElement("beforebegin", node);
+			const top = pane.querySelector(":scope > .bnd-sb-brand") || pane.querySelector(":scope > .sidebar-header");
+			if (top) return top.insertAdjacentElement("afterend", node);
+			return pane.insertBefore(node, pane.firstChild);
 		}
+		// No "center" branch: the pane has two zones, because a third could not be
+		// made to differ from the second (see registry.ZONES_BY_REGION). A value
+		// from a site that stored one before this settled falls through to the foot,
+		// which is where it rendered anyway.
+		// "end" = the foot: before `.body-sidebar-bottom` when it is the last
+		// IN-FLOW child. "Last CHILD" was permanently false — the collapse link
+		// and handle trail it, both absolute (defect 20; band 8 vs bottom 5).
+		if (bottom) {
+			let lastInFlow = null;
+			for (const kid of pane.children) {
+				const cs = getComputedStyle(kid);
+				if (cs.position === "absolute" || cs.position === "fixed") continue;
+				lastInFlow = kid;
+			}
+			if (lastInFlow === bottom) {
+				return bottom.insertAdjacentElement("beforebegin", node);
+			}
+		}
+		return pane.appendChild(node);
 	}
-	return pane.appendChild(node);
-}
 
 	/**
 	 * Tell the stylesheet where the BELL really is.
@@ -4121,7 +4121,6 @@ function sb_zone_anchor(pane, zone, node) {
 			panel.focus();
 		});
 	}
-	bunood.acct_panel = bunood_acct_panel;
 
 	/**
 	 * The avatar and its panel — the only route to Log Out once a layout hides
@@ -5452,173 +5451,6 @@ function sb_zone_anchor(pane, zone, node) {
 		pal_pending_uses.push(key);
 		pal_flush_uses(false);
 	}
-
-	/**
-	 * Render the full-page inbox into a container (the "Inbox + Page" style;
-	 * called by bunood_theme/page/bnd_inbox/bnd_inbox.js). Shares every row
-	 * class and action with the panel — one renderer, two surfaces — and
-	 * adds the detail pane the panel has no room for.
-	 * @param {HTMLElement} container - the page's main element.
-	 */
-	bunood.inbox_render_page = function (container) {
-		if (!container) return;
-		container.innerHTML = "";
-		const frame = el("div", "bnd-inbox-page");
-		const left = el("div", "bnd-inbox-page-list");
-		// role="group" of aria-pressed toggles, not role="tablist" (item 22):
-		// what these filter is a role="listbox" a few lines down, which
-		// cannot ALSO be a tabpanel, and a tablist promises arrow-key
-		// movement that inbox_keydown already owns here for row triage —
-		// two arrow contracts in one dialog is the two-options-one-pixel
-		// defect in keyboard form. aria-pressed is this codebase's existing
-		// idiom for "an option chip that says its own selection".
-		const tabs = el("div", "bnd-inbox-tabs", { role: "group", "aria-label": __("Filter") });
-		for (const tab of INBOX_TABS) {
-			const btn = el("button", "bnd-inbox-tab", { type: "button", "aria-pressed": "false", "data-tab": tab.id });
-			btn.textContent = tab.label();
-			btn.addEventListener("click", () => {
-				inbox_tab = tab.id;
-				load();
-			});
-			tabs.appendChild(btn);
-		}
-		left.appendChild(tabs);
-		const list = el("div", "bnd-inbox-list", { role: "listbox", tabindex: "0" });
-		left.appendChild(list);
-		frame.appendChild(left);
-
-		const detail = el("div", "bnd-inbox-page-detail");
-		frame.appendChild(detail);
-		container.appendChild(frame);
-
-		/** Paint the detail pane for the highlighted row. */
-		function show_detail() {
-			const row = inbox_flat[inbox_cursor];
-			detail.innerHTML = "";
-			if (!row) {
-				// aria-hidden like its Loading sibling: the message is visual, the
-			// list's own label and the status live region carry the state, and
-			// a listbox whose only child is prose fails required-children —
-			// found by the scoped axe scan on the caught-up resting state.
-			const empty = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
-				empty.textContent = __("Select a notification");
-				detail.appendChild(empty);
-				return;
-			}
-			const title = el("div", "bnd-inbox-detail-title");
-			title.textContent = row.document_name || __("Notification");
-			detail.appendChild(title);
-			const meta = el("div", "bnd-inbox-detail-meta");
-			const subject = el("div");
-			subject.innerHTML = row.subject || "";
-			meta.appendChild(subject);
-			// Plain facts as TEXT, the timestamp as MARKUP — comment_when
-			// returns a live <span class="frappe-timestamp">, so the two
-			// cannot share one assignment.
-			const facts = [];
-			if (row.document_type) facts.push(__(row.document_type));
-			if (row.from_user) facts.push(row.from_user);
-			if (facts.length) {
-				const line = el("div");
-				line.textContent = facts.join(" · ");
-				meta.appendChild(line);
-			}
-			const detail_when = inbox_when(row);
-			if (detail_when) {
-				const line = el("div");
-				line.innerHTML = detail_when;
-				meta.appendChild(line);
-			}
-			detail.appendChild(meta);
-
-			const actions = el("div", "bnd-inbox-detail-actions");
-			const open_btn = el("button", "bnd-inbox-btn bnd-inbox-btn-primary", { type: "button" });
-			open_btn.textContent = __("Open");
-			open_btn.addEventListener("click", () => inbox_open(row));
-			actions.appendChild(open_btn);
-			const done_btn = el("button", "bnd-inbox-btn", { type: "button" });
-			done_btn.textContent = inbox_done.has(row.name) ? __("Not done") : __("Done");
-			done_btn.addEventListener("click", () => {
-				const node = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
-				inbox_mark_read(row, node);
-				inbox_toggle_done(row);
-				if (node) node.classList.toggle("bnd-inbox-done", inbox_done.has(row.name));
-				// Triage loop: acting advances, exactly like the `e` key.
-				inbox_highlight(inbox_cursor + 1, list);
-				show_detail();
-			});
-			actions.appendChild(done_btn);
-			detail.appendChild(actions);
-		}
-
-		/** Load the active tab into the page list. */
-		function load() {
-			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
-				const tab_on = btn.getAttribute("data-tab") === inbox_tab;
-				btn.classList.toggle("bnd-inbox-tab-on", tab_on);
-				// The class styles; the attribute SAYS which filter is on.
-				btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
-			}
-			list.innerHTML = "";
-			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true", "data-bnd-loading": "" });
-			loading.textContent = __("Loading...");
-			list.appendChild(loading);
-			inbox_fetch(inbox_tab, 0).then((res) => {
-				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
-				inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
-				inbox_paint_badge();
-				inbox_render_rows(list, (res && res.rows) || []);
-				inbox_highlight(0, list);
-				show_detail();
-			});
-		}
-
-		// Selection follows the pointer and the keys; the detail pane
-		// follows the selection.
-		list.addEventListener("mousemove", (ev) => {
-			const row = ev.target.closest && ev.target.closest(".bnd-inbox-row");
-			if (!row) return;
-			const idx = parseInt(row.getAttribute("data-idx"), 10);
-			if (idx !== inbox_cursor) {
-				inbox_highlight(idx, list);
-				show_detail();
-			}
-		});
-		list.addEventListener("keydown", (ev) => {
-			inbox_keydown(ev, list, null);
-			show_detail();
-		});
-		list.focus();
-		inbox_tab = "unread";
-		load();
-	};
-
-	/**
-	 * LIVE PREVIEW for the notification kit: re-derive the attribute, drop
-	 * the built panel so flag changes rebuild on next open, repaint the
-	 * badge. Boot shape and field shape both accepted.
-	 * @param {Object} values
-	 */
-	bunood.inbox_apply = function (values) {
-		if (!values) return;
-		const v = (field, key) => values[field] ?? values[key] ?? (inbox_state ? inbox_state[key] : undefined);
-		apply_inbox_attrs({
-			style: v("inbox_style", "style"),
-			badge: v("inbox_badge", "badge"),
-			arrival: v("inbox_arrival", "arrival"),
-			group: v("inbox_group", "group"),
-			chips: v("inbox_chips", "chips"),
-			row_actions: v("inbox_row_actions", "row_actions"),
-			keyboard: v("inbox_keyboard", "keyboard"),
-			unread: inbox_unread,
-			done: [...inbox_done],
-		});
-		if (inbox_nodes) {
-			inbox_nodes.backdrop.remove();
-			inbox_nodes = null;
-		}
-		inbox_paint_badge();
-	};
 
 	/** Forget the in-memory usage blob (the picker's reset presses this). */
 	bunood.palette_forget_usage = function () {
@@ -7207,6 +7039,173 @@ function sb_zone_anchor(pane, zone, node) {
 			});
 		}
 	}
+
+	/**
+	 * Render the full-page inbox into a container (the "Inbox + Page" style;
+	 * called by bunood_theme/page/bnd_inbox/bnd_inbox.js). Shares every row
+	 * class and action with the panel — one renderer, two surfaces — and
+	 * adds the detail pane the panel has no room for.
+	 * @param {HTMLElement} container - the page's main element.
+	 */
+	bunood.inbox_render_page = function (container) {
+		if (!container) return;
+		container.innerHTML = "";
+		const frame = el("div", "bnd-inbox-page");
+		const left = el("div", "bnd-inbox-page-list");
+		// role="group" of aria-pressed toggles, not role="tablist" (item 22):
+		// what these filter is a role="listbox" a few lines down, which
+		// cannot ALSO be a tabpanel, and a tablist promises arrow-key
+		// movement that inbox_keydown already owns here for row triage —
+		// two arrow contracts in one dialog is the two-options-one-pixel
+		// defect in keyboard form. aria-pressed is this codebase's existing
+		// idiom for "an option chip that says its own selection".
+		const tabs = el("div", "bnd-inbox-tabs", { role: "group", "aria-label": __("Filter") });
+		for (const tab of INBOX_TABS) {
+			const btn = el("button", "bnd-inbox-tab", { type: "button", "aria-pressed": "false", "data-tab": tab.id });
+			btn.textContent = tab.label();
+			btn.addEventListener("click", () => {
+				inbox_tab = tab.id;
+				load();
+			});
+			tabs.appendChild(btn);
+		}
+		left.appendChild(tabs);
+		const list = el("div", "bnd-inbox-list", { role: "listbox", tabindex: "0" });
+		left.appendChild(list);
+		frame.appendChild(left);
+
+		const detail = el("div", "bnd-inbox-page-detail");
+		frame.appendChild(detail);
+		container.appendChild(frame);
+
+		/** Paint the detail pane for the highlighted row. */
+		function show_detail() {
+			const row = inbox_flat[inbox_cursor];
+			detail.innerHTML = "";
+			if (!row) {
+				// aria-hidden like its Loading sibling: the message is visual, the
+			// list's own label and the status live region carry the state, and
+			// a listbox whose only child is prose fails required-children —
+			// found by the scoped axe scan on the caught-up resting state.
+			const empty = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
+				empty.textContent = __("Select a notification");
+				detail.appendChild(empty);
+				return;
+			}
+			const title = el("div", "bnd-inbox-detail-title");
+			title.textContent = row.document_name || __("Notification");
+			detail.appendChild(title);
+			const meta = el("div", "bnd-inbox-detail-meta");
+			const subject = el("div");
+			subject.innerHTML = row.subject || "";
+			meta.appendChild(subject);
+			// Plain facts as TEXT, the timestamp as MARKUP — comment_when
+			// returns a live <span class="frappe-timestamp">, so the two
+			// cannot share one assignment.
+			const facts = [];
+			if (row.document_type) facts.push(__(row.document_type));
+			if (row.from_user) facts.push(row.from_user);
+			if (facts.length) {
+				const line = el("div");
+				line.textContent = facts.join(" · ");
+				meta.appendChild(line);
+			}
+			const detail_when = inbox_when(row);
+			if (detail_when) {
+				const line = el("div");
+				line.innerHTML = detail_when;
+				meta.appendChild(line);
+			}
+			detail.appendChild(meta);
+
+			const actions = el("div", "bnd-inbox-detail-actions");
+			const open_btn = el("button", "bnd-inbox-btn bnd-inbox-btn-primary", { type: "button" });
+			open_btn.textContent = __("Open");
+			open_btn.addEventListener("click", () => inbox_open(row));
+			actions.appendChild(open_btn);
+			const done_btn = el("button", "bnd-inbox-btn", { type: "button" });
+			done_btn.textContent = inbox_done.has(row.name) ? __("Not done") : __("Done");
+			done_btn.addEventListener("click", () => {
+				const node = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
+				inbox_mark_read(row, node);
+				inbox_toggle_done(row);
+				if (node) node.classList.toggle("bnd-inbox-done", inbox_done.has(row.name));
+				// Triage loop: acting advances, exactly like the `e` key.
+				inbox_highlight(inbox_cursor + 1, list);
+				show_detail();
+			});
+			actions.appendChild(done_btn);
+			detail.appendChild(actions);
+		}
+
+		/** Load the active tab into the page list. */
+		function load() {
+			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
+				const tab_on = btn.getAttribute("data-tab") === inbox_tab;
+				btn.classList.toggle("bnd-inbox-tab-on", tab_on);
+				// The class styles; the attribute SAYS which filter is on.
+				btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
+			}
+			list.innerHTML = "";
+			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true", "data-bnd-loading": "" });
+			loading.textContent = __("Loading...");
+			list.appendChild(loading);
+			inbox_fetch(inbox_tab, 0).then((res) => {
+				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+				inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
+				inbox_paint_badge();
+				inbox_render_rows(list, (res && res.rows) || []);
+				inbox_highlight(0, list);
+				show_detail();
+			});
+		}
+
+		// Selection follows the pointer and the keys; the detail pane
+		// follows the selection.
+		list.addEventListener("mousemove", (ev) => {
+			const row = ev.target.closest && ev.target.closest(".bnd-inbox-row");
+			if (!row) return;
+			const idx = parseInt(row.getAttribute("data-idx"), 10);
+			if (idx !== inbox_cursor) {
+				inbox_highlight(idx, list);
+				show_detail();
+			}
+		});
+		list.addEventListener("keydown", (ev) => {
+			inbox_keydown(ev, list, null);
+			show_detail();
+		});
+		list.focus();
+		inbox_tab = "unread";
+		load();
+	};
+
+	/**
+	 * LIVE PREVIEW for the notification kit: re-derive the attribute, drop
+	 * the built panel so flag changes rebuild on next open, repaint the
+	 * badge. Boot shape and field shape both accepted.
+	 * @param {Object} values
+	 */
+	bunood.inbox_apply = function (values) {
+		if (!values) return;
+		const v = (field, key) => values[field] ?? values[key] ?? (inbox_state ? inbox_state[key] : undefined);
+		apply_inbox_attrs({
+			style: v("inbox_style", "style"),
+			badge: v("inbox_badge", "badge"),
+			arrival: v("inbox_arrival", "arrival"),
+			group: v("inbox_group", "group"),
+			chips: v("inbox_chips", "chips"),
+			row_actions: v("inbox_row_actions", "row_actions"),
+			keyboard: v("inbox_keyboard", "keyboard"),
+			unread: inbox_unread,
+			done: [...inbox_done],
+		});
+		if (inbox_nodes) {
+			inbox_nodes.backdrop.remove();
+			inbox_nodes = null;
+		}
+		inbox_paint_badge();
+	};
 
 	// ── Dock ────────────────────────────────────────────────────────────────
 
