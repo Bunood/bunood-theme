@@ -1000,6 +1000,12 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
 		bnd_render_compose_picker(frm);
+		// Density is a plain Select with a per-user twin: its note hangs under the
+		// field itself (audit 2026-09-21, i-2).
+		{
+			const df = frm.get_field("density_default");
+			if (df && df.$wrapper) bnd_note_mine(df.$wrapper, frm, "bnd_density", __("density"), null);
+		}
 		// The side pane's map (item 43 B3) reads the rendered sections: after
 		// the pickers, and again once the shipped defaults land (the dots).
 		bnd_settings_marks(frm);
@@ -2068,7 +2074,8 @@ function bnd_composer_push_frame(frm, frame) {
 	const fw = frame && frame.contentWindow;
 	const E = fw && fw.bunood_theme;
 	if (!E || !fw.frappe || !fw.frappe.boot) return false;
-	bnd_all_previews(frm, E);
+	// The stage shows the FORM, not this admin's effective desk — see bnd_all_previews.
+	bnd_all_previews(frm, E, { raw: true });
 	if (typeof E.shape_apply === "function") {
 		const values = {};
 		for (const f of BND_COMPOSER_SHAPE) values[f] = frm.doc[f];
@@ -3179,23 +3186,28 @@ const BND_LAYOUTS = [
  * sidebar through `_now` because its catalogue is already loaded. Folding those
  * together would be a behaviour change wearing a refactor's clothes.
  */
-function bnd_all_previews(frm, engine = window.bunood_theme) {
-	bnd_sb_preview(frm, engine);
-	bnd_crumb_preview(frm, engine);
-	bnd_palette_preview(frm, engine);
-	bnd_inbox_preview(frm, engine);
-	bnd_list_preview(frm, engine);
-	bnd_form_preview(frm, engine);
-	bnd_desk_preview(frm, engine);
-	bnd_workspace_preview(frm, engine);
-	bnd_chart_preview(frm, engine);
-	bnd_report_preview(frm, engine);
-	bnd_views_preview(frm, engine);
-	bnd_overlay_preview(frm, engine);
-	bnd_empty_preview(frm, engine);
-	bnd_skeleton_preview(frm, engine);
-	bnd_filters_preview(frm, engine);
-	bnd_icon_preview(frm, engine);
+function bnd_all_previews(frm, engine = window.bunood_theme, opts = {}) {
+	// ONE LIST, THE RUNTIME'S. This was a hand-kept list of sixteen previews beside
+	// `bunood.apply_look`'s seventeen appliers, and the two had drifted (`language`
+	// missing here) — the settings audit of 2026-09-21, finding c-3. The values are
+	// the reader's EFFECTIVE ones (`bnd_effective`): a refresh re-applies what this
+	// person's desk should show, never the raw site row over their own choices.
+	//
+	// EXCEPT ON A STAGE. The composer's frames are stages for the SITE's settings
+	// (item 43 C3: "the seam must still hand it the form's value"), so they get
+	// the form's raw values even where this administrator's own look would
+	// override them on their desk — measured 2026-09-21: with a personal Canvas
+	// look, the effective values left the stage on Canvas's list style while the
+	// form said Dense Table. The top window keeps the effective values, and its
+	// notes name the override.
+	if (!engine || !engine.apply_look) return;
+	const values = {};
+	for (const f of Object.keys(frm.doc)) {
+		if (f.startsWith("__") || f === "name" || f === "doctype") continue;
+		values[f] = opts.raw ? frm.doc[f] : bnd_effective(frm, f);
+	}
+	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
+	engine.apply_look(values);
 }
 
 function bnd_picker_host(frm, fieldname, host) {
@@ -3260,6 +3272,8 @@ function bnd_render_layout_picker(frm, host) {
 	// its strings were dead. Deleted in item 36; the fixture is byte-identical, which
 	// is the proof it never reached the DOM.
 	$host.html(P.wrap(cards));
+	// The person's own override on this axis, named, with the way back (audit 2026-09-21, i-2).
+	bnd_note_mine($host, frm, "bnd_shape", __("desk shape"), bnd_render_layout_picker);
 
 	$host.find(".bnd-lp-card").on("click", function () {
 		// `data-value`, not `data-layout`: the shared builder emits one
@@ -3625,6 +3639,8 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			]) +
 			"</div>"
 	);
+	// The person's own override on this axis, named, with the way back (audit 2026-09-21, i-2).
+	bnd_note_mine($host, frm, "bnd_pane_state", __("side pane state"), bnd_render_sidebar_picker);
 
 	// One delegated pass wires everything; re-render happens on any change.
 	$host.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
@@ -3670,7 +3686,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 function bnd_sb_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.sb_apply) return;
 	const values = {};
-	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_SIDEBAR_FIELDS) values[f] = bnd_effective(frm, f);
 	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
 	engine.sb_apply(values);
 }
@@ -3914,6 +3930,8 @@ function bnd_render_theme_picker(frm, host) {
 			: "";
 
 	$host.html(P.wrap(cards + note));
+	// The person's own override on this axis, named, with the way back (audit 2026-09-21, i-2).
+	bnd_note_mine($host, frm, "bnd_look", __("look"), bnd_render_theme_picker);
 	$host.find(".bnd-thp-style").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_apply_theme_preset(frm, this.getAttribute("data-value"));
@@ -4111,7 +4129,7 @@ function bnd_icon_preview(frm, engine = window.bunood_theme) {
 	const bt = engine;
 	if (!bt) return;
 	const values = {};
-	for (const f of BND_ICON_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_ICON_FIELDS) values[f] = bnd_effective(frm, f);
 	if (bt.sb_apply) bt.sb_apply(values);
 	if (bt.crumb_apply) bt.crumb_apply(values);
 	if (bt.icon_apply) bt.icon_apply(values);
@@ -4356,7 +4374,7 @@ function bnd_render_crumbs_picker(frm, host) {
 function bnd_crumb_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.crumb_apply) return;
 	const values = {};
-	for (const f of BND_CRUMB_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_CRUMB_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.crumb_apply(values);
 }
 
@@ -4540,8 +4558,8 @@ function bnd_render_palette_picker(frm, host) {
 function bnd_palette_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.palette_apply) return;
 	const values = {};
-	for (const f of BND_PALETTE_FIELDS) values[f] = frm.doc[f];
-	if (!parseInt(frm.doc.palette_enabled ?? 1, 10)) values.palette_style = "Original";
+	for (const f of BND_PALETTE_FIELDS) values[f] = bnd_effective(frm, f);
+	if (!parseInt(bnd_effective(frm, "palette_enabled") ?? 1, 10)) values.palette_style = "Original";
 	engine.palette_apply(values);
 }
 
@@ -4621,13 +4639,13 @@ function bnd_render_language_picker(frm, host) {
 /** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
 function bnd_language_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.language_apply) return;
-	engine.language_apply({ language_style: frm.doc.language_style });
+	engine.language_apply({ language_style: bnd_effective(frm, "language_style") });
 }
 
 /** LIVE PREVIEW (2026-09-14): the head menu's next open reads the new caps. */
 function bnd_panehead_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.panehead_apply) return;
-	engine.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
+	engine.panehead_apply({ panehead_quick_links: bnd_effective(frm, "panehead_quick_links") });
 }
 
 const BND_INBOX_FIELDS = [
@@ -4844,7 +4862,7 @@ function bnd_render_inbox_picker(frm, host) {
 function bnd_inbox_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.inbox_apply) return;
 	const values = {};
-	for (const f of BND_INBOX_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_INBOX_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.inbox_apply(values);
 }
 
@@ -5076,7 +5094,7 @@ function bnd_render_list_picker(frm, host) {
 function bnd_list_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.list_apply) return;
 	const values = {};
-	for (const f of BND_LIST_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_LIST_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.list_apply(values);
 }
 
@@ -5405,7 +5423,7 @@ function bnd_render_form_picker(frm, host) {
 function bnd_form_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.form_apply) return;
 	const values = {};
-	for (const f of BND_FORM_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_FORM_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.form_apply(values);
 }
 
@@ -5517,17 +5535,70 @@ function bnd_desk_mine() {
 	return p.body_width || "";
 }
 
-function bnd_desk_mine_note(mine) {
+/**
+ * A field's value AS THIS READER'S DESK RENDERS IT: the person's resolved override
+ * where one is in force, the form's value otherwise.
+ *
+ * THE FORM USED TO PREVIEW THE RAW SITE ROW. `refresh` re-applied `frm.doc` to the
+ * desk 300 ms after every autosave, past `resolve_for_user`, so an administrator
+ * with a personal width, pane state or look watched their own desk revert to the
+ * site's on every click and stay reverted for the session (the settings audit of
+ * 2026-09-21, finding a-1 — measured, three views, all three axes). Boot serves
+ * the person's overrides as ONE map, computed in the function that owns the
+ * precedence chain; the two comfort twins with live setters are read from their
+ * own boot fields because the setters keep those current without a reload.
+ */
+function bnd_effective(frm, field) {
+	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+	if (field === "desk_width" && p.body_width) return p.body_width;
+	if (field === "sidebar_pane_state" && p.pane_state) return p.pane_state;
+	const o = p.overrides || {};
+	return field in o ? o[field] : frm.doc[field];
+}
+
+/**
+ * "Your own X is overriding this on your desk" + a way back, for any twinned axis.
+ * Width had this since v0.46.1; density, the pane state, the look and the shape
+ * revert the same way and had no note at all (audit 2026-09-21, i-2).
+ */
+function bnd_mine_note(axis, what, mine) {
 	return (
-		'<div class="bnd-dkp-mine">' +
+		'<div class="bnd-dkp-mine" data-bnd-axis="' + bnd_esc(axis) + '">' +
 		"<span>" +
-		bnd_esc(__("Your own width ({0}) is overriding this on your desk.", [__(mine)])) +
+		bnd_esc(__("Your own {0} ({1}) is overriding this on your desk.", [what, __(mine)])) +
 		"</span>" +
-		'<button type="button" class="bnd-dkp-mine-clear">' +
+		'<button type="button" class="bnd-dkp-mine-clear" data-bnd-axis="' + bnd_esc(axis) + '">' +
 		bnd_esc(__("Follow the site")) +
 		"</button>" +
 		"</div>"
 	);
+}
+
+/** Bind every "Follow the site" button under a host to the runtime's one clearer. */
+function bnd_bind_mine_notes($host, frm, rerender) {
+	$host.find(".bnd-dkp-mine-clear[data-bnd-axis]").on("click", function () {
+		const engine = window.bunood_theme;
+		if (!engine || !engine.follow_site) return;
+		const axis = this.getAttribute("data-bnd-axis");
+		// The pane's clearer needs the SITE's value to fall back to; the form holds it.
+		const site_value = axis === "bnd_pane_state" ? frm.doc.sidebar_pane_state : undefined;
+		Promise.resolve(engine.follow_site(axis, site_value)).then(() => rerender && rerender(frm));
+	});
+}
+
+/** The person's override on a twinned axis, or "" — what a note has to name. */
+function bnd_mine_of(axis) {
+	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+	if (!p.open || !p.open[axis]) return "";
+	return { bnd_look: p.look, bnd_shape: p.shape, bnd_density: p.density, bnd_pane_state: p.pane_state, bnd_body_width: p.body_width }[axis] || "";
+}
+
+/** Append the override note for one axis under a rendered picker, and bind it. */
+function bnd_note_mine($host, frm, axis, what, rerender) {
+	$host.find('.bnd-dkp-mine[data-bnd-axis="' + axis + '"]').remove();
+	const mine = bnd_mine_of(axis);
+	if (mine) $host.append(bnd_mine_note(axis, what, mine));
+	bnd_bind_mine_notes($host, frm, rerender);
 }
 
 function bnd_render_desk_picker(frm, host) {
@@ -5555,7 +5626,7 @@ function bnd_render_desk_picker(frm, host) {
 				) +
 				// Width is the one body axis with a per-user twin, so it is the one
 				// that can be silently overridden. Scale and primary have none.
-				(g.field === "desk_width" && bnd_desk_mine() ? bnd_desk_mine_note(bnd_desk_mine()) : ""),
+				(g.field === "desk_width" && bnd_desk_mine() ? bnd_mine_note("bnd_body_width", __("width"), bnd_desk_mine()) : ""),
 		});
 	}).join("");
 
@@ -5570,21 +5641,14 @@ function bnd_render_desk_picker(frm, host) {
 		const f = this.getAttribute("data-field");
 		bnd_desk_set(frm, f, bnd_default_of(f));
 	});
-	$host.find(".bnd-dkp-mine-clear").on("click", function () {
-		const engine = window.bunood_theme;
-		if (!engine || !engine.set_body_width) return;
-		// Through the setter, never the row: it clears the stored intent, puts the
-		// site's width back on <html> and updates the boot seed both status-bar
-		// cycles read. Re-render so the note goes with it.
-		Promise.resolve(engine.set_body_width("")).then(() => bnd_render_desk_picker(frm));
-	});
+	bnd_bind_mine_notes($host, frm, bnd_render_desk_picker);
 }
 
 /** Hand the form's body values to the desk engine — live preview. */
 function bnd_desk_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.body_apply) return;
 	const values = {};
-	for (const f of BND_DESK_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_DESK_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.body_apply(values);
 }
 
@@ -5785,7 +5849,7 @@ function bnd_render_workspace_picker(frm, host) {
 function bnd_workspace_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.workspace_apply) return;
 	const values = {};
-	for (const f of BND_WORKSPACE_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_WORKSPACE_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.workspace_apply(values);
 }
 
@@ -5888,7 +5952,7 @@ function bnd_render_chart_picker(frm, host) {
 function bnd_chart_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.chart_apply) return;
 	const values = {};
-	for (const f of BND_CHART_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_CHART_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.chart_apply(values);
 }
 
@@ -6053,7 +6117,7 @@ function bnd_render_report_picker(frm, host) {
 function bnd_report_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.report_apply) return;
 	const values = {};
-	for (const f of BND_REPORT_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_REPORT_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.report_apply(values);
 }
 
@@ -6217,7 +6281,7 @@ function bnd_render_views_picker(frm, host) {
 function bnd_views_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.views_apply) return;
 	const values = {};
-	for (const f of BND_VIEWS_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_VIEWS_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.views_apply(values);
 }
 
@@ -6417,7 +6481,7 @@ function bnd_overlay_preview(frm, engine = window.bunood_theme) {
 	// frm.doc[f] is empty and sending it raw CLEARS the anchor the boot payload
 	// had just set — opening the settings form would strip the style. The two
 	// call sites in the renderer above already fall back; this one did not.
-	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f);
+	for (const f of BND_OVERLAY_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.overlay_apply(values);
 }
 
@@ -6565,7 +6629,7 @@ function bnd_empty_preview(frm, engine = window.bunood_theme) {
 	// a field was never written, frm.doc[f] is empty, and sending it raw CLEARS
 	// the anchor the boot payload had just set — opening the settings form would
 	// strip the style.
-	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f);
+	for (const f of BND_EMPTY_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.empty_apply(values);
 }
 
@@ -6650,7 +6714,7 @@ function bnd_skeleton_preview(frm, engine = window.bunood_theme) {
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
-	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f);
+	for (const f of BND_SKELETON_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.skeleton_apply(values);
 }
 
@@ -6792,7 +6856,7 @@ function bnd_filters_preview(frm, engine = window.bunood_theme) {
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
-	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f);
+	for (const f of BND_FILTERS_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.filters_apply(values);
 }
 

@@ -3983,6 +3983,36 @@ async function main() {
 			setSettings({ crumb_hover: start });
 		});
 
+		await test("settings: the settings page honours a personal value instead of reverting it", async () => {
+			// THE FORM PREVIEWED THE RAW SITE ROW (audit 2026-09-21, finding a-1,
+			// measured): with a personal width of Roomy, a fresh tab rendered roomy, the
+			// settings page rendered the site's, and after one unrelated click the desk
+			// stayed on the site's for the rest of the session while the store kept
+			// roomy. The previews read the reader's EFFECTIVE values now (decision i-2
+			// a), and the width group names the override with a way back. Measured as
+			// the Administrator — exactly the person who has the page open.
+			await withPersonal("Administrator", { bnd_body_width: "Roomy" }, async () => {
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 5000);
+				const onLoad = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-body-width"));
+				expectEq(onLoad, "roomy", "the settings page renders the person's own width after load");
+				// AN UNRELATED CLICK — the autosave, the refresh and the re-apply follow.
+				// The same subject the click-applies check drives, for the same reason.
+				const start = getSettings(["crumb_hover"]).crumb_hover;
+				const want = start === "Underline" ? "Darken" : "Underline";
+				await scrollToSettings("crumbs");
+				await page.waitForTimeout(800);
+				await page.click(`[data-field="crumb_hover"][data-value="${want}"]`);
+				await page.waitForTimeout(4500);
+				const afterClick = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-body-width"));
+				expectEq(afterClick, "roomy", "and still after an unrelated click and its autosave");
+				expect(
+					await q('[data-fieldname="desk_picker"] .bnd-dkp-mine[data-bnd-axis="bnd_body_width"] .bnd-dkp-mine-clear'),
+					"the width group names the override and offers the way back"
+				);
+				setSettings({ crumb_hover: start });
+			});
+		});
+
 		await test("settings: a container applies to the desk on click, with no reload", async () => {
 			// THE GAP CLICK-TO-APPLY EXPOSED. Every style kit — sidebar,
 			// breadcrumbs, palette, inbox — re-applies to the live desk the
@@ -7700,8 +7730,13 @@ print("ok")
 				expect(start.avatar && start.bell && start.band,
 					`premise: the pane carries the band and both tenants (${JSON.stringify(start)})`);
 
+				// PAGE-LOCAL, SAID SO. Since the settings audit of 2026-09-21 (i-3),
+				// `pane_state(v)` without `{ save: false }` IS the person's gesture and
+				// writes their preference — a preview that forgot the option left the
+				// Administrator's pane Hidden for the rest of a run (measured: two
+				// sidepane checks on /app/selling found no pane at all).
 				for (const state of ["Open", "Rail", "Hidden", "Open"]) {
-					await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
+					await page.evaluate((v) => window.bunood_theme.pane_state(v, { save: false }), state);
 					await page.waitForTimeout(900);
 					const now = await read();
 					if (state === "Hidden") {
@@ -7720,7 +7755,7 @@ print("ok")
 				// papering over a hole -- on the shipped desk Hidden could never be held.
 				// Now the page head lends the pane its tenants, so Hidden is honoured and
 				// identity is still one click away, at the head's end, beside the way back.
-				await page.evaluate(() => window.bunood_theme.pane_state("Hidden"));
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
 				await page.waitForTimeout(900);
 				const lent = await read();
 				expectEq(lent.state, "hidden",
@@ -9225,13 +9260,15 @@ print("ok")
 					// pane, so a desk whose only routes to identity were inside it has none,
 					// and the guard has to see the second way to hide a pane as well as the
 					// first.
+					// Page-local (`{ save: false }`): a bare pane_state(v) is the person's
+					// gesture since the settings audit of 2026-09-21 and would persist.
 					for (const state of ["Open", "Rail", "Hidden"]) {
-						await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
+						await page.evaluate((v) => window.bunood_theme.pane_state(v, { save: false }), state);
 						await cell(`${layout}: pane=${state}`);
 					}
 					// ...and back to the row's own, so the next layout starts clean.
 					await page.evaluate(
-						(v) => window.bunood_theme.pane_state(v), cat.pane[layout] || "Open"
+						(v) => window.bunood_theme.pane_state(v, { save: false }), cat.pane[layout] || "Open"
 					);
 
 					// (d) THE ROUND TRIP (item 42, slice 10). Every switch above was flipped
@@ -23920,6 +23957,106 @@ print("cleared")
 						JSON.stringify(client) +
 						")"
 				);
+			});
+		});
+
+		await test("personal: the pane's hide gesture is remembered across a reload", async () => {
+			// THE AXIS WITH A READER AND NO WRITER (the settings audit of 2026-09-21,
+			// finding a-2). `bnd_pane_state` was declared in personal.py, read at boot,
+			// documented in registry.py as "the person wins" — and nothing wrote it, so
+			// the pane's Hide button re-stamped attributes and forgot on reload. The
+			// gesture writes through `api.set_personal` now (decision i-3 a), under the
+			// comfort lock the fixture ships open. Measured as the fixture user on a
+			// LIST: /app/home is not a workspace this Desk User can open (its route
+			// resolves to a bare "home" and the pane kit never mounts there — measured
+			// 2026-09-21), while a list mounts the head and holds a hidden pane
+			// (v0.44.1). The pane starts Open FOR THIS PERSON whatever the site's state
+			// is at this point of a filtered run (the section-level Top Taskbar write
+			// hides it), the gesture is the button a person clicks, and the reload is
+			// a fresh boot.
+			const U = DESK_FIXTURE.user;
+			await withPersonal(U, { bnd_pane_state: "Open" }, async () => {
+				const seen = await withDeskUser("/app/todo", ".body-sidebar .bnd-sb-brand-hide", async (dp) => {
+					await dp.waitForTimeout(1500);
+					const clicked = await dp.evaluate(() => {
+						const hide = document.querySelector(".body-sidebar .bnd-sb-brand-hide");
+						if (!hide) return "no hide button";
+						hide.click();
+						return "clicked";
+					});
+					await dp.waitForTimeout(2000);
+					const stored = JSON.parse(
+						benchPy(
+							`U = ${JSON.stringify(U)}\n` +
+								`print("BND" + json.dumps(frappe.defaults.get_user_default("bnd_pane_state", U) or ""))\n`
+						).split("BND")[1].trim()
+					);
+					await dp.reload({ waitUntil: "domcontentloaded" });
+					await dp.waitForSelector("body", { timeout: 30000 });
+					await dp.waitForTimeout(3500);
+					const after = await dp.evaluate(() => ({
+						pane: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+						boot: ((frappe.boot && frappe.boot.bnd_personal) || {}).pane_state || "",
+					}));
+					return { clicked, stored, after };
+				});
+				expectEq(seen.clicked, "clicked", "premise: the pane's hide button is on the page");
+				expectEq(seen.stored, "Hidden", "the gesture wrote the person's pane state");
+				expectEq(seen.after.boot, "Hidden", "and boot serves it back after a reload");
+				expectEq(seen.after.pane, "hidden", "so the pane stays hidden on the next load");
+			});
+		});
+
+		await test("personal: the legacy side-pane look is retired, and its rows are carried", async () => {
+			// `api.set_user_sidebar_preset` had no caller anywhere, while a stored
+			// `bnd_sidebar_preset` row still applied twelve fields at boot with no way
+			// to change it (audit 2026-09-21, finding a-3; decision i-4 a). The axis is
+			// gone, the endpoint is gone, and the patch carries a stored name into
+			// `bnd_look` for a person who has none. The retired row is seeded the way
+			// frappe.defaults.add_default builds one — a DefaultValue document — because
+			// the build's personal-axes guard reads any `frappe.defaults.*("key")` call
+			// as that key being live.
+			const U = DESK_FIXTURE.user;
+			const axes = JSON.parse(
+				benchPy(`from bunood_theme import personal\nprint("BND" + json.dumps([r["key"] for r in personal.AXES]))\n`)
+					.split("BND")[1]
+					.trim()
+			);
+			expect(!axes.includes("bnd_sidebar_preset"), "the axis is retired");
+			// GONE, NOT REFUSING. Frappe answers a deleted whitelisted method with 417
+			// ("Failed to get method"), the same status a live method's frappe.throw
+			// gets — so the status alone cannot tell "deleted" from "refused", and the
+			// module is asked directly as well.
+			const gone = JSON.parse(
+				benchPy(`from bunood_theme import api\nprint("BND" + json.dumps(not hasattr(api, "set_user_sidebar_preset")))\n`)
+					.split("BND")[1]
+					.trim()
+			);
+			expect(gone, "the endpoint is gone from the module");
+			const status = await page.evaluate(() =>
+				fetch("/api/method/bunood_theme.api.set_user_sidebar_preset", {
+					method: "POST",
+					headers: { "X-Frappe-CSRF-Token": frappe.csrf_token, "Content-Type": "application/json" },
+					body: JSON.stringify({ preset: "" }),
+				}).then((r) => r.status)
+			);
+			expect(status !== 200, "and nothing answers at its address (HTTP " + status + ")");
+			await withPersonal(U, { bnd_look: "" }, async () => {
+				const out = JSON.parse(
+					benchPy(
+						`U = ${JSON.stringify(U)}\n` +
+							`frappe.get_doc({"doctype": "DefaultValue", "parent": U, "parenttype": "__default", "parentfield": "system_defaults", "defkey": "bnd_sidebar_preset", "defvalue": "Focus"}).insert(ignore_permissions=True)\n` +
+							`frappe.db.commit()\n` +
+							`from bunood_theme.patches.unreleased import retire_sidebar_preset_key as p\n` +
+							`p.execute()\n` +
+							`rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent=%s and defkey in ('bnd_sidebar_preset','bnd_look')", U, as_dict=True)\n` +
+							`print("BND" + json.dumps({r.defkey: r.defvalue for r in rows}))\n`
+					)
+						.split("BND")[1]
+						.trim()
+				);
+				expectEq(out.bnd_sidebar_preset, undefined, "the retired row is gone");
+				expectEq(out.bnd_look, "Focus", "and its name was carried into the whole-desk look");
 			});
 		});
 

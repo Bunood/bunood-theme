@@ -126,10 +126,18 @@ bunood_theme.patches.v0_45_0.console_defaults
 # v0.45 landed.
 bunood_theme.patches.v0_46_0.width_two_edges
 
-bunood_theme.patches.v0_11_0.heal_unknown_placements
-
 # Item 45.1: the width segment must not appear on a bar its owner emptied.
 # Found by reading a real tenant's settings before shipping — every segment
 # off, and a new default-on Check would have put one back. Asks the neighbour
 # it sits beside: density off means this site did not ask for width either.
 bunood_theme.patches.v0_46_1.width_follows_density
+
+# The settings audit of 2026-09-21 (decision i-4): the legacy per-user side-pane
+# look retires into the whole-desk look; its rows are carried, then deleted.
+# `unreleased` until the release names the directory — see the patch's docstring.
+bunood_theme.patches.unreleased.retire_sidebar_preset_key
+
+# LAST, AND IT STAYS: whatever the translations above could not map, this makes
+# legal. It had drifted to third-from-last (audit finding c-8) — a Select a
+# later patch writes must still be healed by it.
+bunood_theme.patches.v0_11_0.heal_unknown_placements

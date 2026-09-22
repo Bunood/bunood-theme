@@ -437,45 +437,9 @@ def set_user_density(density: str = "") -> dict:
     return {"density": density}
 
 
-# `get_sidebar_presets` lived here and is DELETED (item 40, slice 10): its
-# only caller was the picker's second fetch, everything it served is in
-# `get_shipped_defaults`, and deleting it deletes the documented two-fetch
-# race by construction — the note read "Default" on the one entry with a
-# real name, intermittently, which is the worst kind.
-@frappe.whitelist()
-def set_user_sidebar_preset(preset: str = "") -> dict:
-    """Persist the current user's sidebar preset override.
-
-    The "personalize" layer: a user picks a whole PRESET (never individual
-    options — users always land on designed combinations; option-level
-    freedom is the tenant admin's). Empty clears the override and the user
-    follows the site's configuration again. Stored in ``frappe.defaults`` for
-    the same reasons as density — rides into boot, never localStorage.
-
-    Args:
-        preset: a name from the theme catalogue, or empty for "follow the site".
-
-    Returns:
-        ``{"preset": <stored value>}``.
-    """
-    if frappe.session.user in ("Guest", None, ""):
-        frappe.throw("Not permitted")
-    if not _personal_open("bnd_sidebar_preset"):
-        frappe.throw("Personal looks are switched off for this site")
-    # VALIDATED AGAINST THE THEME CATALOGUE (item 37), which is what the menu now
-    # lists. Only the sidebar slice of the named look is applied — see boot.py.
-    # Reached through personal.py (item 38) so the accepted values and the row
-    # describing this key cannot drift apart; that module names the catalogue
-    # rather than copying it.
-    if preset and preset not in _personal_values("bnd_sidebar_preset"):
-        frappe.throw(f"Unknown theme preset: {preset!r}")
-
-    if preset:
-        frappe.defaults.set_user_default("bnd_sidebar_preset", preset)
-    else:
-        frappe.defaults.clear_default("bnd_sidebar_preset", parent=frappe.session.user)
-    frappe.cache.hdel("bootinfo", frappe.session.user)
-    return {"preset": preset}
+# `set_user_sidebar_preset` and `get_theme_sidebar_presets` lived here until the
+# settings audit of 2026-09-21: the menu that called them was gone for releases,
+# and the key they wrote retired into `bnd_look` (patches/unreleased).
 
 
 @frappe.whitelist()
@@ -1273,44 +1237,6 @@ def _seed(field: str) -> str:
 
 
 @frappe.whitelist()
-def get_theme_sidebar_presets() -> dict:
-    """The shipped looks' SIDE PANE slice — the per-user "personalize" menu's data.
-
-    WHY THIS IS NOT ``get_theme_presets``, and the defect that says so. Item 37
-    re-pointed the avatar menu at ``get_theme_presets``, which opens with
-    ``frappe.only_for("System Manager")``. That menu entry is pushed for EVERY
-    desk user — deliberately, unlike the "Theme Settings" entry three lines above
-    it, which is role-gated. So every non-admin's click became a 403 rejected into
-    an empty ``catch``: personalization silently dead for everyone but
-    administrators, and INVISIBLE TO THE SUITE, which runs as Administrator. Found
-    by the adversarial release review, by three dimensions independently.
-
-    It also over-served. The per-user layer applies the side pane and nothing else
-    — colours are one content-hashed stylesheet per SITE, and containers are the
-    site's — so handing a non-admin all 123 values, brand seeds included, was a
-    payload they could neither use nor be shown. This returns exactly the fields
-    ``sb_apply`` reads, in the same shape the retired ``get_sidebar_presets`` used,
-    so the client needed no unpacking either way.
-    """
-    from bunood_theme.presets import (
-        DEFAULT_THEME_PRESET,
-        SIDEBAR_FIELDS,
-        THEME_PRESETS,
-        theme_settings,
-    )
-
-    wanted = set(SIDEBAR_FIELDS)
-    return {
-        "presets": {
-            name: {f: v for f, v in theme_settings(name).items() if f in wanted}
-            for name in THEME_PRESETS
-        },
-        "fields": SIDEBAR_FIELDS,
-        "default": DEFAULT_THEME_PRESET,
-    }
-
-
-@frappe.whitelist()
 def get_personal_presets() -> dict:
     """Everything the Appearance dialog draws — item 38.
 
@@ -1378,6 +1304,8 @@ def get_personal_presets() -> dict:
             "look": look_of(site.as_dict()),
             "shape": layout_of(site.as_dict()),
             "density": site.get("density_default") or "",
+            # The pane state gained its writer in the audit of 2026-09-21 (i-3).
+            "pane_state": site.get("sidebar_pane_state") or "",
         },
         # THE SITE'S OWN VALUES, so "Follow the site" can be PREVIEWED and not
         # merely chosen. Both names above are derived by comparison and are ""

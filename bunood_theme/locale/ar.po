@@ -7515,3 +7515,44 @@ msgstr "قياسي"
 msgid "The shipped defaults could not be loaded — reset chips and change dots are unavailable until this page is reloaded."
 msgstr "تعذر تحميل الإعدادات الافتراضية الأصلية — أزرار إعادة الضبط ونقاط التغيير غير متاحة حتى تُعاد تحميل هذه الصفحة."
 
+#. In bunood.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "Could not save pane preference"
+msgstr "تعذر حفظ تفضيل اللوحة الجانبية"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "Your own {0} ({1}) is overriding this on your desk."
+msgstr "إعدادك الخاص لـ{0} ({1}) يتجاوز هذا الإعداد على مكتبك."
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "width"
+msgstr "العرض"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "look"
+msgstr "المظهر"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "desk shape"
+msgstr "شكل المكتب"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "side pane state"
+msgstr "حالة اللوحة الجانبية"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+#, fuzzy
+msgid "density"
+msgstr "الكثافة"

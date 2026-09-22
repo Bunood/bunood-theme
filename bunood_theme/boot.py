@@ -132,7 +132,6 @@ def resolve_for_user(site) -> tuple:
     # check, and slice 1's docstring said so before this tried to be clever.
     look = frappe.defaults.get_user_default("bnd_look") or ""
     shape = frappe.defaults.get_user_default("bnd_shape") or ""
-    sidebar_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
     density = frappe.defaults.get_user_default("bnd_density") or ""
     pane_state = frappe.defaults.get_user_default("bnd_pane_state") or ""
     motion = frappe.defaults.get_user_default("bnd_motion") or ""
@@ -146,16 +145,8 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_look") and look in THEME_PRESETS:
         chosen = theme_settings(look)
         resolved.update({f: v for f, v in chosen.items() if f in personal_axes.LOOK_FIELDS})
-    elif is_open("bnd_sidebar_preset") and sidebar_preset in THEME_PRESETS:
-        # THE DEPRECATED KEY, honoured in field space now rather than through the
-        # eighteen-entry rename map it used to need. It applies only the side
-        # pane, which is what the people who chose it chose; `bnd_look` wins
-        # outright where both are set, because it is the newer and larger answer
-        # to the same question.
-        chosen = theme_settings(sidebar_preset)
-        from bunood_theme.presets import SIDEBAR_FIELDS
-
-        resolved.update({f: v for f, v in chosen.items() if f in SIDEBAR_FIELDS})
+    # `bnd_sidebar_preset` was honoured here as an `elif` until the settings audit
+    # of 2026-09-21 retired it into `bnd_look` (patches/unreleased).
 
     # THE SHAPE. Exactly what a named layout writes — containers plus tenant
     # placements — because under "names only" that is the whole gesture. Applied
@@ -196,12 +187,23 @@ def resolve_for_user(site) -> tuple:
     ):
         resolved["desk_width"] = body_width
 
+    # THE PERSON'S OVERRIDES, AS ONE MAP: every field whose effective value differs
+    # from the site's row. The settings form previews THROUGH this (decision i-2 of
+    # the audit) instead of re-stamping the raw site row over somebody's own desk,
+    # and it is computed here, in the one function that owns the precedence chain,
+    # so the client never re-derives it. Empty for a person with no preferences.
+    site_row = site.as_dict()
+    overrides = {
+        f: v for f, v in resolved.items()
+        if f in site_row and str(v if v is not None else "") != str(site_row.get(f) if site_row.get(f) is not None else "")
+    }
+
     return resolved, {
         "look": look,
         "shape": shape,
         # The derived layout name, from the map BEFORE the comfort overlays.
         "shape_name": shape_name,
-        "sidebar_preset": sidebar_preset,
+        "overrides": overrides,
         # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
         # differs whenever comfort is locked; the dialog needs both.
         "density": density,
@@ -843,15 +845,6 @@ def extend_bootinfo(bootinfo):
         # the short keys `bnd_sidebar` uses, applied after the fact; it is gone
         # because the values it patched now arrive correct.
         #
-        # `user_preset` is still served under its old name and place. `bunood.js`
-        # reads `sb_state.user_preset` to tick the current row in the personalize
-        # menu, and item 38 does not touch that client until its own slice.
-        bootinfo.bnd_sidebar["user_preset"] = (
-            personal_state["sidebar_preset"]
-            if personal_state["open"]["bnd_sidebar_preset"]
-            else ""
-        )
-
         # The choices behind the resolved values, for the Appearance dialog:
         # the RAW stored intents (so a locked axis still shows what the person
         # picked) plus which axes this site currently offers.

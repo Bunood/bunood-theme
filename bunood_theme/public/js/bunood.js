@@ -1537,7 +1537,11 @@
 		return frappe
 			.xcall("bunood_theme.api.set_personal", { values: { bnd_body_width: value } })
 			.then(() => {
-				if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = value;
+				if (frappe.boot.bnd_personal) {
+					frappe.boot.bnd_personal.body_width = value;
+					const o = frappe.boot.bnd_personal.overrides;
+					if (o) { if (value) o.desk_width = value; else delete o.desk_width; }
+				}
 				refresh_width_label();
 				frappe.show_alert({
 					message: value ? __("Width: {0}", [__(value)]) : __("Width: following site default"),
@@ -7775,12 +7779,60 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const n of document.querySelectorAll(".bnd-ph-brand")) n.remove();
 	}
 
-	/** The pane's state, page-locally — argument in _sidebar.scss. */
-	bunood.pane_state = function (value) {
-		if (!sb_state) return;
+	/**
+	 * The pane's state — applied to the page, and REMEMBERED for the person.
+	 *
+	 * `bnd_pane_state` was declared, read at boot and documented as "the person
+	 * wins" from item 42 on, and nothing ever wrote it: the Hide button re-stamped
+	 * attributes and forgot on reload (the settings audit of 2026-09-21, a-2). The
+	 * gesture writes through the same endpoint the width segment uses, under the
+	 * same comfort lock; the settings form's own preview passes `{ save: false }`
+	 * because a preview is not a choice, and `guard_critical_reach` never comes
+	 * through here at all — an un-hide the desk forces is not a preference.
+	 */
+	bunood.pane_state = function (value, opts) {
+		if (!sb_state) return Promise.resolve();
 
 		// sb_apply re-places what the state moves (sb_follow_pane_state).
 		bunood.sb_apply({ sidebar_pane_state: value });
+		if (opts && opts.save === false) return Promise.resolve();
+		const p = frappe.boot && frappe.boot.bnd_personal;
+		if (!p || !p.open || !p.open.bnd_pane_state) return Promise.resolve();
+		return frappe
+			.xcall("bunood_theme.api.set_personal", { values: { bnd_pane_state: value } })
+			.then(() => {
+				p.pane_state = value;
+				if (p.overrides) {
+					if (value) p.overrides.sidebar_pane_state = value;
+					else delete p.overrides.sidebar_pane_state;
+				}
+			})
+			.catch(() => {
+				frappe.show_alert({ message: __("Could not save pane preference"), indicator: "red" });
+			});
+	};
+
+	/**
+	 * Stop overriding one axis and follow the site again — the form's notes call
+	 * this (audit 2026-09-21, i-2). Comfort axes re-apply live through their own
+	 * setters; a look or a shape is a hundred values, so the page reloads onto the
+	 * site's — the honest cost of "follow the site" for a whole look.
+	 */
+	bunood.follow_site = function (axis, site_value) {
+		if (axis === "bnd_body_width") return bunood.set_body_width("");
+		if (axis === "bnd_density") return bunood.set_density("");
+		if (axis === "bnd_pane_state") {
+			// The site's own pane state comes from the caller (the form holds it);
+			// boot serves only the person's, and "Open" is the last resort.
+			const site = site_value || "Open";
+			return bunood.pane_state(site, { save: false }).then(() =>
+				frappe.xcall("bunood_theme.api.set_personal", { values: { bnd_pane_state: "" } }).then(() => {
+					const p = frappe.boot.bnd_personal;
+					if (p) { p.pane_state = ""; if (p.overrides) delete p.overrides.sidebar_pane_state; }
+				})
+			);
+		}
+		return frappe.xcall("bunood_theme.api.set_personal", { values: { [axis]: "" } }).then(() => location.reload());
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -9035,6 +9087,7 @@ function sb_zone_anchor(pane, zone, node) {
 					bnd_shape: st.shape || "",
 					bnd_density: st.density || "",
 					bnd_body_width: st.body_width || "",
+					bnd_pane_state: st.pane_state || "",
 					bnd_motion: st.motion || "",
 					bnd_home: st.home || "",
 					mode: document.documentElement.getAttribute("data-theme-mode") || "light",
@@ -9077,6 +9130,8 @@ function sb_zone_anchor(pane, zone, node) {
 					(data.axes || []).find((a) => a.key === "bnd_density") || { values: [] };
 				const width_values =
 					(data.axes || []).find((a) => a.key === "bnd_body_width") || { values: [] };
+				const pane_values =
+					(data.axes || []).find((a) => a.key === "bnd_pane_state") || { values: [] };
 
 				const body =
 					`<div class="bnd-cbp" data-bnd-part="appearance">` +
@@ -9092,6 +9147,9 @@ function sb_zone_anchor(pane, zone, node) {
 					// site's own width comes from `site_values`, which already
 					// carries it — `desk_width` is a LOOK field.
 					row("bnd_body_width", __("Body width"), named(width_values.values, (data.site_values || {}).desk_width || ""), !open_for("bnd_body_width")) +
+					// The pane state, the comfort axis that had no writer until the
+					// settings audit of 2026-09-21 (i-3): the same row shape as width.
+					row("bnd_pane_state", __("Side pane"), named(pane_values.values, data.site.pane_state || ""), !open_for("bnd_pane_state")) +
 					// No lock on motion, ever — see personal.UNLOCKABLE. It is an
 					// accessibility floor, not a taste, and the one pole reduces.
 					row("bnd_motion", __("Motion"), [
@@ -9128,6 +9186,7 @@ function sb_zone_anchor(pane, zone, node) {
 					else if (axis === "bnd_shape") show_shape(value);
 					else if (axis === "bnd_density") bunood.set_density(value, { save: false });
 					else if (axis === "bnd_body_width") bunood.set_body_width(value, { save: false });
+					else if (axis === "bnd_pane_state") bunood.pane_state(value || data.site.pane_state || "Open", { save: false });
 					else if (axis === "bnd_motion") bunood.set_motion(value, { save: false });
 					else if (axis === "mode") show_mode(value);
 					// bnd_home has nothing to preview — it decides where the NEXT
@@ -9157,6 +9216,7 @@ function sb_zone_anchor(pane, zone, node) {
 					show_shape(opened.bnd_shape);
 					bunood.set_density(opened.bnd_density, { save: false });
 					bunood.set_body_width(opened.bnd_body_width, { save: false });
+					bunood.pane_state(opened.bnd_pane_state || data.site.pane_state || "Open", { save: false });
 					bunood.set_motion(opened.bnd_motion, { save: false });
 					show_mode(opened.mode);
 				});
@@ -9169,6 +9229,7 @@ function sb_zone_anchor(pane, zone, node) {
 								bnd_shape: pick.bnd_shape,
 								bnd_density: pick.bnd_density,
 								bnd_body_width: pick.bnd_body_width,
+								bnd_pane_state: pick.bnd_pane_state,
 								bnd_motion: pick.bnd_motion,
 								bnd_home: pick.bnd_home,
 							},
@@ -9194,7 +9255,10 @@ function sb_zone_anchor(pane, zone, node) {
 							// icon click jump to the wrong stop. Density had this before
 							// width existed; half a repair is a regression.
 							frappe.boot.bnd_density = pick.bnd_density;
-							if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = pick.bnd_body_width;
+							if (frappe.boot.bnd_personal) {
+								frappe.boot.bnd_personal.body_width = pick.bnd_body_width;
+								frappe.boot.bnd_personal.pane_state = pick.bnd_pane_state;
+							}
 							refresh_density_label();
 							refresh_width_label();
 							dialog.hide();
@@ -9237,7 +9301,6 @@ function sb_zone_anchor(pane, zone, node) {
 			pane_width: v("sidebar_pane_width", "pane_width"),
 			badges: v("sidebar_badges", "badges"),
 			filter: v("sidebar_filter", "filter"),
-			user_preset: sb_state ? sb_state.user_preset : "",
 		};
 		apply_sidebar_attrs(next);
 
