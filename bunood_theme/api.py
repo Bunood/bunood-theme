@@ -889,7 +889,7 @@ def get_shipped_defaults() -> dict:
 
     WHY THE SERVER ANSWERS THIS
         The defaults are composed in Python from :mod:`bunood_theme.presets` —
-        the sidebar preset's 22 values plus five per-kit default dicts. Any
+        every kit's default dict, flattened into ``setup.SHIPPED``. Any
         client-side copy is a second statement of the same fact, and this repo's
         every critical defect has traced to one. The form asks instead.
 
@@ -1200,7 +1200,7 @@ def get_theme_presets() -> dict:
     a layout writing HALF of itself for the whole of phase 0 because the form
     composed the containers while ``registry.layout_settings`` composed containers
     *and* tenant placements, so the suite drove a state no gesture could produce.
-    At ~123 values that failure is a certainty unless both writers call the same
+    At a hundred-odd values that failure is a certainty unless both writers call the same
     function. They do; this is it.
 
     ``axes`` rides along so the client derives its label by comparing the same

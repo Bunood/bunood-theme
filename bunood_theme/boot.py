@@ -363,7 +363,7 @@ def extend_bootinfo(bootinfo):
         # layout attribute only hides sidebar rows and mounts bars — all elements
         # Frappe's JS builds after the splash — so boot delivery paints nothing
         # stale. Site-wide by design; per-user layouts are a possible later step.
-        # bunood.js maps this label to a data-bnd-layout slug; an unknown or
+        # bunood.js maps this label to a data-bnd-desk slug; an unknown or
         # missing value degrades to the stock desk (fails open).
         from bunood_theme.presets import CHROME_DEFAULTS, DEFAULT_DESK_LAYOUT
 

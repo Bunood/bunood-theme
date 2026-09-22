@@ -1113,7 +1113,7 @@ _SHARMA_2005 = [
 def check_theme_catalogue() -> list[str]:
     """The theme catalogue, held to what the doctype will actually accept.
 
-    Item 37. A theme preset writes ~124 values in one click — the largest blast
+    Item 37. A theme preset writes every axis in one click — the largest blast
     radius any control in this app has had — so the table is checked against the
     doctype rather than trusted, on four properties:
 
@@ -1872,7 +1872,7 @@ def check_layout_catalogue() -> list[str]:
 def check_personal_partition() -> list[str]:
     """Every theme axis is filed as exactly one kind of thing — item 38.
 
-    ``personal.py`` splits the 124 fields a theme preset writes into four sets:
+    ``personal.py`` splits the fields a theme preset writes into four sets:
     what a person's LOOK may carry, what their SHAPE is, what belongs to surfaces
     that are not the desk, and what stays the administrator's. The split decides
     what the per-user layer is allowed to touch, so it has to be a partition and

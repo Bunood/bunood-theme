@@ -134,8 +134,9 @@ defect in 0.10.0.
     which `smoke.mjs` and `fingerprint.mjs` now also read instead of each recomposing
     `{**DEFAULTS, **CHECK_DEFAULTS}`). Ownership is by **prefix**, the rule `build.mjs`
     already enforces, so there is no sixth hand-written field list
-  - `[x]` Derived note — the side pane's real preset name via the existing
-    `bnd_sb_match_preset`; **Default/Changed** for everything else, from the same
+  - `[x]` Derived note — the side pane's real preset name via the then-existing
+    `bnd_sb_match_preset` (deleted in item 40, slice 10: the pane takes the Changed/Default
+    path like every other kit); **Default/Changed** for everything else, from the same
     function the dot uses. Deliberately *not* a preset label: only the side pane has a
     catalogue. `crumb_style`/`palette_style`/`inbox_style`/`status_style` are style
     choices that compose with their extras, and no table anywhere says what
@@ -352,8 +353,9 @@ entry.
   mounted, absent attributes ARE the stand-down. Wireframed and picked
   2026-08-09 (five style options after the market-survey round): **1C Floating
   Cards · 2B Edge Rail · 3C Bold Bar · 4A reveal-on-hover**, Open Rows joining
-  from the survey; the floating selection bar (Linear/Attio) is DEFERRED with
-  its `list_selection` slot reserved. On-screen tabular numerals landed with
+  from the survey; the floating selection bar (Linear/Attio) was deferred and then
+  STRUCK on 2026-09-21 (the settings audit of 2026-09-21, iv-5); the `list_selection` field's three
+  options stand as they are, no slot reserved. On-screen tabular numerals landed with
   it; the density rules migrated in from `_density.scss` per its lifecycle
   note, proven a move by a baseline test written first. Phase-3 evidence: the
   picker is the sprite's second caller (23), the reveal's `:focus-within` path
@@ -393,8 +395,8 @@ entry.
   system controls lightness; inks fitted per tenant against the surfaces that
   seed produces, because seed-tinted surfaces mean no fixed value can pass for
   every seed (`ink-subtle` failed 96 of 96 placements). `npm run contrast`
-  recomputes the full pair set over 11 seeds × 2 modes plus the no-brand-sheet
-  fallback, in CI; the smoke suite ties it to rendered pixels. Nothing is ever
+  recomputes the full pair set over the gate's seeds × 2 modes (11 seeds when the item
+  closed, 27 since item 37's palettes) plus the no-brand-sheet fallback, in CI; the smoke suite ties it to rendered pixels. Nothing is ever
   rejected — Theme Settings reports what it adjusted. See `GUIDELINES.md` §2.2
   "RESOLVED". Two things it handed to item 22: (a) whether a control whose
   resting boundary is a 1.22:1 hairline is identifiable at all — a
@@ -475,7 +477,10 @@ entry.
   `--bnd-border`, which would repaint every stock Frappe control via
   `_bridge.scss:61-62`.
 
-- `[~]` **23 · Icon system** *(was 33)* — REFRAMED and largely shipped 2026-08-13. The
+- `[x]` **23 · Icon system** *(was 33)* — REFRAMED and shipped 2026-08-13; its deferred
+  remainder (`icon_set`/`icon_fill`) was STRUCK on 2026-09-21 rather than left half-open
+  (the settings audit of 2026-09-21, iv-1 — the option read "`[~]` becomes `[ ]`"; the box is `[x]` because
+  nothing of the reframed scope is open, and the struck part is named here). The
   original scope was "an SVG sprite via `app_include_icons`". Investigation found the
   desk already loads five sprites (2,085 symbols, no collisions), so the coverage problem
   the item assumed does not exist — the real work was elsewhere, and this delivered it:
@@ -493,10 +498,10 @@ entry.
     fields renamed in from the sidebar and breadcrumb kits via a `v0_15_0` migration; the
     eight sidebar presets no longer write icons. A card picker with a live specimen, and
     the one new axis — `icon_weight` (normalised stroke, the thing the mixed grids broke).
-  - **DEFERRED** (the user's explicit scope call, 2026-08-13): `icon_set` (a Lucide↔Tabler
-    switcher) and `icon_fill` (outline↔filled). Both need a shipped Tabler subset sprite
-    via `app_include_icons` — which is where the item's ORIGINAL sprite-interface scope
-    finally lands. That is the slice that closes this item. The stale `theme_settings.js`
+  - **STRUCK 2026-09-21** (deferred at the user's scope call on 2026-08-13, never built):
+    `icon_set` (a Lucide↔Tabler switcher) and `icon_fill` (outline↔filled). Both needed a
+    shipped Tabler subset sprite via `app_include_icons`; the hook line that waited for it
+    is deleted, and nothing declares a fieldname that does not exist. The stale `theme_settings.js`
     "second real caller" comment was retired when `sprite_icon` was reworked.
 
 - `[x]` **24 · Responsive** *(was 35, done 2026-08-16)* — a mobile navigation mode, and
@@ -1132,7 +1137,7 @@ entry.
     could produce.
   - **No preset name is stored anywhere.** `sidebar_preset` and `desk_layout` are both
     deleted (`v0_37_0`) — the last two stored labels in the app. Every active-preset
-    label is derived by comparison and reads "Custom" the moment one of 124 values
+    label is derived by comparison and reads "Custom" the moment one of its values
     differs, which at this scope is the honest and common answer.
   - **A preset carries its palette.** 17 palettes, every seed a Radix step 9 except the
     recalibrated Bunood green (`#3d8150`, painted verbatim as the light fill). The accent
@@ -1223,7 +1228,7 @@ entry.
 
   **What the item leaves.** `bunood_theme/personal.py` is the one table: every
   `frappe.defaults` key with its lock, its boot key and what empty means, plus the field
-  partition (**look 85 / shape 8 / off-desk 22 / site-only 9 = 124**), derived from the
+  partition (**look / shape / off-desk / site-only**, the counts of the day in CHANGELOG `[0.38.0]`), derived from the
   catalogue and never listed. Two guards hold it — `build.mjs::assertPersonalAxes`
   (bidirectional, and it refuses `set_default` without `parent=`, which writes the global
   row every account inherits) and `contrast_gate::check_personal_partition`. The boot
@@ -1232,11 +1237,11 @@ entry.
   `_apply_icon_inference` consumes a LOOK field server-side and ran *before* the old
   post-hoc overlay.
 
-  **Not delivered, and why.** `bnd_sb_open` — remembering which side-pane sections a
-  person left open — is specified and not shipped. It needs Frappe's own expanded/
-  collapsed contract measured, and this repo's rule is that a native contract is measured
-  before it is depended on. `sidebar_remember_sections` therefore remains what it has
-  been since v0.6.0: a field written by all eight sidebar presets and read by nothing.
+  **Not delivered here, and why.** `bnd_sb_open` — remembering which side-pane sections a
+  person left open — was specified and not shipped: it needed Frappe's own expanded/
+  collapsed contract measured first. Delivered in v0.44.1 as the pane kit's own
+  `bnd-section-state` store; `sidebar_remember_sections`, a field read by nothing since
+  v0.6.0, was deleted in 0.40.0.
 
 ### Beyond the 38 — the numbering gap, and what is in flight
 
@@ -1247,7 +1252,8 @@ than a version number that would describe two different things. **The ZATCA half
 back as item 41** (2026-09-02, below); the Report Studio itself stays on the branch, and
 only its Arabic strings crossed.
 
-- `[ ]` **40 · The side pane, rebuilt** *(new, in flight since 2026-08-28)* — the pane
+- `[x]` **40 · The side pane, rebuilt** *(new, in flight since 2026-08-28; released as
+  v0.40.0)* — the pane
   (item 10's sidebar kit) was built before the doctrine that now governs every other
   surface, and amended by six later items without ever being re-designed. It renders our
   chrome *and* Frappe's underneath it in some configurations; several shipped options
@@ -1300,11 +1306,12 @@ only its Arabic strings crossed.
   **What the colour phase leaves.** The pane's palette is derived rather than
   hand-authored: `palette.sb_hues` replaces fourteen hexes the gate hand-copied with no
   drift check, and `SB_PANES` states each mode's recipe once. Five guards hold it —
-  `check_sidebar_agrees`, `_coverage`, `_binding`, `_headroom` and `_emission` — plus
+  `check_sidebar_agrees`, `_coverage`, `_binding`, `_headroom` and `_emission` (since
+  consolidated into `check_sidebar_hues` and `check_sidebar_surfaces`) — plus
   `--check-sidebar`, which reads the pane's own tokens out of a browser for **all four**
   colour modes rather than whichever one the desk happened to be in.
-  `tools/sabotage_sidebar.py` is the failing-first harness: sixteen cases across two
-  targets, each naming the guard that owns it.
+  `tools/sabotage_sidebar.py` was the failing-first harness: sixteen cases across two
+  targets, each naming the guard that owns it (deleted with the pane's colour phase).
 
   **The measurement that overturned the plan's own premise.** "8% collapses Minimal into
   Match Theme" was half right and wrongly reasoned. In light the two panes are ALREADY
@@ -1590,10 +1597,9 @@ only its Arabic strings crossed.
   guard opened a Hidden pane on every fresh load of a form or list; the settings sweep
   replayed the live desk 39 times because a scoped scan fell back to the whole document;
   and a composer frame booting inside a page Frappe had cached hidden was 0px wide, so it
-  wrote Frappe's collapsed-sidebar flag into storage the desk shares. **Deferred, with
-  reasons in the plan:** the folding accordion sections, the master list and the print
-  bench (each a large mount, none in the pick), and the timeline restyle until its DOM is
-  measured. Released as **v0.45.0**; the account in CHANGELOG `[0.45.0]`.
+  wrote Frappe's collapsed-sidebar flag into storage the desk shares. **Struck 2026-09-21**
+  (the settings audit of 2026-09-21, iv-4; deferred in the plan and not started since): the folding accordion
+  sections, the master list, the print bench and the timeline restyle. Released as **v0.45.0**; the account in CHANGELOG `[0.45.0]`.
 
 - `[x]` **44 · The language switch and the Appearance button** *(opened and built
   2026-09-06; releases as v0.44.0)*. Asked for after the overhaul went back to its branch:
@@ -1636,15 +1642,13 @@ only its Arabic strings crossed.
 
 Carried forward regardless of the renumber — neither is one of the 38.
 
-- **The honest-picker audit.** `bnd_region_blocker` covers placement; the rest was
-  unaudited as of the 2026-08-06/07 review. Item 22 closes several concrete findings
-  from it (the board's ARIA role, the menu's focus contract); what remains is a
-  systematic pass, not yet scheduled.
-- **The floating selection bar**, deferred from item 15 (list view): frappe-ui
-  ListSelectBanner precedent, ~2 KB injected JS, must respect `--bnd-bottom-reserve`.
-  A fourth `list_selection` option slot is reserved so the field doesn't churn. Not a
-  surface by the registry's definition, since it injects chrome — which is why both
-  surface kits left it alone.
+- **The honest-picker audit.** `bnd_region_blocker` covers placement; item 22 closed
+  several concrete findings (the board's ARIA role, the menu's focus contract); the
+  systematic pass RAN on 2026-09-21 as the settings audit's render walk (251 options
+  measured in three views; 148 rendered live, 25 on the next load, 0 inert; 18 placements
+  into OFF containers cannot render and the pickers say so).
+- **The floating selection bar**, deferred from item 15 (list view) and STRUCK on
+  2026-09-21 (the settings audit of 2026-09-21, iv-5): never started, no slot reserved for it any more.
 
 ---
 

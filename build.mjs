@@ -953,7 +953,7 @@ function assertAutomaticArms(css, name) {
 // `icon` (item 23) is the first entry earned by neither a component nor a
 // surface but by an AXIS with more than one field. Colour and typography are
 // axes too and sit in FIELD_EXCEPTIONS below — but each is a SINGLE field, so
-// naming it there costs one line. Icons is `icon_set` / `icon_weight` /
+// naming it there costs one line. Icons is `icon_style` / `icon_weight` /
 // `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
 // the hand-maintained list a prefix exists to delete. So the axis takes a
 // prefix, the same shape a surface does, and this comment is the registration.

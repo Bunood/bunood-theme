@@ -959,10 +959,10 @@ frappe.ui.form.on("Theme Settings", {
 		// label (`bnd_match_layout`) has said what the desk actually IS since
 		// the last container landed, and the Overview reads it too.
 		//
-		// HIDDEN, NOT DELETED, and the reason is a live consumer the retirement
-		// plan had missed: boot still serves this name and `bunood.js` stamps
-		// `data-bnd-layout` from it, which a dozen `_layouts.scss` rules
-		// position panels by. Deleting the field today would leave a CUSTOM
+		// HIDDEN, NOT DELETED. (This used to say boot served the name and `bunood.js`
+		// stamped `data-bnd-layout` from it: item 37 deleted the field, the attribute
+		// is `data-bnd-desk` and it is DERIVED — boot.py says so where it composes
+		// `bnd_desk_shape`. The paragraph below is the sequence that was followed.) Deleting the field today would leave a CUSTOM
 		// desk — containers matching no preset — with nothing to stamp, i.e. a
 		// silent rendering change on exactly the sites that diverged. The
 		// honest sequence is to finish phase 0's own direction first (re-key
@@ -3648,7 +3648,7 @@ function bnd_sb_set(frm, fieldname, value) {
 // item 36 found a layout writing HALF of itself for the whole of phase 0 because
 // the form composed the containers while `registry.layout_settings` composed
 // containers AND tenant placements, so the suite drove a state no gesture could
-// produce. At ~124 values that failure is a certainty unless both writers call
+// produce. At a hundred-odd values that failure is a certainty unless both writers call
 // one function.
 //
 // ART AND BLURBS ONLY BELOW. A name listed here that the server does not know
@@ -3763,7 +3763,7 @@ function bnd_apply_theme_preset(frm, name) {
 	bnd_render_theme_picker(frm);
 	// AND THE LAYOUT PICKER, because a theme writes the five container toggles:
 	// without this the layout card kept its old highlight while the Overview's
-	// Layout row (recomputed by bnd_shell_marks) told the truth, and the two rows
+	// Layout row (recomputed with the rows) told the truth, and the two rows
 	// of one form disagreed about one desk.
 	bnd_render_layout_picker(frm);
 	bnd_settings_marks(frm);
@@ -3773,7 +3773,7 @@ function bnd_apply_theme_preset(frm, name) {
  * The theme picker — a GALLERY of complete looks.
  *
  * The presets write values and then stop existing (the settings-architecture
- * doctrine): clicking a card sets ~124 fields and nothing remembers the click.
+ * doctrine): clicking a card sets every axis and nothing remembers the click.
  * The highlighted card is DERIVED by comparing the live values against the
  * server's table, so it reads "Custom" the moment one differs — which, at this
  * scope, is the honest answer and will be the common one.

@@ -9,6 +9,7 @@
 		"watch": "node --watch-path=./bunood_theme/public/scss build.mjs",
 		"test": "node tests/smoke.mjs",
 		"verify": "node tools/verify.mjs",
+		"fixtures:views": "node tools/fixtures-views.mjs",
 		"contrast": "node tools/contrast.mjs",
 		"icons:check": "node tools/icons.mjs",
 		"i18n:check": "node tools/i18n.mjs check",

@@ -38,6 +38,11 @@ import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
 // build's coverage gate uses — restating "which strings are ours" here would
 // be the second copy of the catalogue, and it is the catalogue that moves.
 import { extractCatalogue, readExempt, readInherited, readTranslations } from "../tools/i18n.mjs";
+// THE settings write is the session tool's (the settings audit of 2026-09-21,
+// v-4): this file computes WHAT to write — the layout expansion and the
+// MUTABLE_FIELDS guard are its own — and one function writes it, regenerates
+// the brand sheet when an input moved, commits, THEN clears, and repopulates.
+import { setSettings as writeSettings } from "../tools/session.mjs";
 // Item 33's portal checks need data that does not exist on a stock site. The
 // facts about WHICH data live with the tool that makes it, never restated here —
 // `fixturesReady` is the same predicate the tool's own exit code uses, so the
@@ -221,11 +226,24 @@ let skipped = 0;
  */
 let currentTest = "(before the first check)";
 
+/**
+ * A section-level write that waits for the first check AFTER it that actually
+ * runs. `setSettings(...)` at section level ran at REGISTRATION — in every
+ * filtered run, whether or not any check after it was selected (the settings
+ * audit of 2026-09-21). Deferred, it runs exactly when the suite reaches a
+ * check that could depend on it, and never for a run that ends before it.
+ */
+const pendingSetup = [];
+function deferSetup(fn) {
+	pendingSetup.push(fn);
+}
+
 async function test(name, fn) {
 	if (ONLY && !ONLY.test(name)) {
 		skipped++;
 		return;
 	}
+	for (const setup of pendingSetup.splice(0)) await setup();
 	currentTest = name;
 	try {
 		await fn();
@@ -667,6 +685,7 @@ function setSettings(values) {
 		`restorable = set(json.loads(${JSON.stringify(JSON.stringify(MUTABLE_FIELDS))}))\n` +
 		`meta = frappe.get_meta("Theme Settings")\n` +
 		`unrestorable = []\n` +
+		`merged = {}\n` +
 		`if pick and not layout_settings(pick):\n` +
 		`    raise SystemExit("BND_UNKNOWN_LAYOUT " + pick)\n` +
 		`if pick:\n` +
@@ -679,47 +698,11 @@ function setSettings(values) {
 		`        if f not in restorable:\n` +
 		`            unrestorable.append(f)\n` +
 		`            continue\n` +
-		`        frappe.db.set_single_value("Theme Settings", f, v)\n` +
-		`for f, v in vals.items():\n` +
-		`    frappe.db.set_single_value("Theme Settings", f, v)\n` +
-		// REGENERATE THE BRAND SHEET WHEN WE HAVE WRITTEN ONE OF ITS INPUTS.
-		//
-		// `set_single_value` does not fire `on_update`, so `write_brand_css` never
-		// runs — and the per-site stylesheet keeps whatever the last real SAVE put
-		// in it. That was harmless while the suite only wrote desk attributes the
-		// sheet never reads. Item 32 made `tagline` a sheet input, and `tagline` is
-		// this suite's save-round-trip scratch field, so a run finished with the DB
-		// restored and the SHEET still carrying `smoke-seed-<timestamp>` — which
-		// then rendered on the sign-in page, on the operator's own site,
-		// indefinitely. Found by an adversarial release review and confirmed in
-		// exactly that state.
-		//
-		// The field list comes from `brand.BRAND_INPUTS`, not from here: a copy in
-		// the test file is the same-fact-in-two-places trap, and this is already a
-		// bug that existed because two places disagreed about what regeneration
-		// means.
-		`from bunood_theme.brand import BRAND_INPUTS, write_brand_css\n` +
-		`if set(vals) & set(BRAND_INPUTS):\n` +
-		`    write_brand_css()\n` +
-		// COMMIT, THEN CLEAR — these were the other way round, and that race is
-		// what an afternoon of "the setting did not take effect" turned out to be.
-		// Clearing first opens a window in which any worker that touches Theme
-		// Settings repopulates the cache from the UNCOMMITTED row; the commit then
-		// lands behind a cache nobody clears again, and every later read serves the
-		// value from BEFORE this write. That is why the symptom is always "the
-		// PREVIOUS case's value", why it looked like five different bugs, and why
-		// it got worse as the machine got busier.
-		`frappe.db.commit()\n` +
-		`frappe.clear_cache()\n` +
-		// And REPOPULATE at once. A request already in flight when the commit
-		// landed still reads its own older transaction; on a cache MISS it would
-		// write that stale row back. Filling the cache with the committed doc
-		// right here turns its miss into a hit, which shrinks the race from
-		// "until the next write" to the microseconds between these two lines.
-		`frappe.get_cached_doc("Theme Settings")\n` +
-		`print("BND_UNRESTORABLE=" + json.dumps(unrestorable))\n`
+		`        merged[f] = v\n` +
+		`merged.update(vals)\n` +
+		`print("BND_MERGED=" + json.dumps({"merged": merged, "unrestorable": unrestorable}))\n`
 	);
-	const skipped = JSON.parse((out.match(/BND_UNRESTORABLE=(\[.*\])/) || [, "[]"])[1]);
+	const { merged, unrestorable: skipped } = JSON.parse(out.match(/BND_MERGED=(\{.*\})/)[1]);
 	if (skipped.length) {
 		throw new Error(
 			`setSettings: the layout preset writes ${skipped.join(", ")}, which ` +
@@ -727,6 +710,10 @@ function setSettings(values) {
 				"on/off field belongs there the moment its slice lands."
 		);
 	}
+	// Nothing was written yet: the guard above runs BEFORE the write, as it
+	// always did, and the write is the session tool's (brand sheet, commit,
+	// then clear, then repopulate — its docblock carries the incident).
+	writeSettings(merged);
 }
 
 // ── Language ────────────────────────────────────────────────────────────────
@@ -1981,7 +1968,9 @@ async function main() {
 				await checks();
 			});
 		}
-		setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
+		// The sections below run on Top Taskbar; deferred so a run that never
+		// reaches them never writes it (see deferSetup).
+		deferSetup(() => setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar", search_placement: "Top Bar Center" }));
 
 		await test("Desktop page: all theme chrome stands down and returns", async () => {
 			await goDesk("/desk", "#page-desktop", 2000);

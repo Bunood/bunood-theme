@@ -1397,7 +1397,7 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
-    """Every field a theme preset writes and compares — 123 of the doctype's 133.
+    """Every field a theme preset writes and compares — every settable field but the ten below.
 
     THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
 
@@ -1457,7 +1457,7 @@ THEME_AXES = _theme_axes()
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
 #: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
-#: all ~123 values. It also makes the one invariant free: ``Bunood Console`` overrides
+#: every axis. It also makes the one invariant free: ``Bunood Console`` overrides
 #: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
 #: on the day it is installed.
 #:
@@ -1826,7 +1826,7 @@ def look_of(settings, fields=None) -> str:
 
     IT COMPARES THE LOOK FIELDS AND NOTHING ELSE, which is what makes it usable
     where the layout identity is not. A desk on the Focus look with its own
-    SHAPE is still on Focus; comparing all 124 axes would answer "" and the
+    SHAPE is still on Focus; comparing every axis would answer "" and the
     dialog would go quiet exactly when a person has personalised something.
 
     Exact match, unset falls back to the shipped baseline, "" when no preset
@@ -1866,7 +1866,7 @@ def theme_settings(name: str) -> dict:
     settings form composed the containers while ``registry.layout_settings``
     composed containers *and* tenant placements, so the suite drove a state no
     gesture could produce, and picking "Bottom Bar" left the bell pointing at a
-    region that no longer existed. At ~123 values that failure is a certainty
+    region that no longer existed. At a hundred-odd values that failure is a certainty
     unless the product's writer and the suite's writer call the same function.
     This is that function; nothing else may assemble a preset.
 

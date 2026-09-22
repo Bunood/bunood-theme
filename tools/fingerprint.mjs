@@ -4,7 +4,6 @@
  * thumbnail, a lost class, an element that changed nesting — which is exactly
  * how hand-porting markup fails.
  */
-import { execFileSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -13,10 +12,12 @@ import { fileURLToPath } from "node:url";
 // documented regeneration command runs anywhere (item 27, §4.9).
 const require = createRequire(join(dirname(fileURLToPath(import.meta.url)), "..", "package.json"));
 const { chromium } = require("playwright");
-const SITE="demo.bunood.test", BACKEND="bunood-backend-1", URL_BASE=process.env.BND_URL||"http://localhost:8080";
-const py=(c)=>execFileSync("docker",["exec","-i",BACKEND,"bash","-lc","cd /home/frappe/frappe-bench/sites && ../env/bin/python -"],
- {input:`import frappe, json\nfrappe.init(site=${JSON.stringify(SITE)}, sites_path=".")\nfrappe.connect()\n`+c,encoding:"utf8",stdio:["pipe","pipe","pipe"]});
-const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.cookie_manager=CookieManager()\nfrappe.local.form_dict=frappe._dict()\nfrappe.local.request=frappe._dict(path="/",method="GET",remote_addr="127.0.0.1",cookies=frappe._dict(),headers=frappe._dict(),environ=frappe._dict())\nfrappe.local.request_ip="127.0.0.1"\nlm=LoginManager()\nlm.login_as("Administrator")\nfrappe.db.commit()\nprint("SID="+frappe.session.sid)\n`).match(/SID=([a-f0-9]+)/)[1];
+// The stack's constants, the bench-python runner, the session and THE settings
+// write are the session tool's (the settings audit of 2026-09-21, v-4): this file
+// carried a third copy of the write, and a copy is where commit-then-clear was
+// got wrong once already ("it writes settings 26 times per capture").
+import { benchPy as py, mintSid, setSettings as set, URL_BASE } from "./session.mjs";
+const sid = mintSid();
 // The state the fixture is captured in — read from the app's OWN shipped
 // defaults, not restated here. That matters for the sidebar picker in
 // particular: its label is DERIVED by comparing all 22 sidebar_* values
@@ -25,19 +26,6 @@ const sid=py(`from frappe.auth import CookieManager, LoginManager\nfrappe.local.
 // pins a label the picker then recomputes as "Custom" from whatever values
 // the run left behind. One node and 22 characters of difference, on every
 // run, in a picker nobody touched.
-const set=(v)=>py(`vals=json.loads(${JSON.stringify(JSON.stringify(v))})
-for f,x in vals.items():
-    frappe.db.set_single_value("Theme Settings",f,x)
-# COMMIT, THEN CLEAR -- never the other way round. A worker that touches Theme
-# Settings between the two repopulates the cache from the UNCOMMITTED row, the
-# commit lands behind a cache nobody clears again, and every later read serves
-# the value from BEFORE this write. tests/smoke.mjs and tools/session.mjs were
-# fixed for exactly this; the fixture tool was missed, and it writes settings
-# 26 times per capture.
-frappe.db.commit()
-frappe.clear_cache()
-print("ok")
-`);
 const shipped = JSON.parse(py(`from bunood_theme.setup import SHIPPED
 print(json.dumps(SHIPPED))
 `).trim().split(/\r?\n/).pop());

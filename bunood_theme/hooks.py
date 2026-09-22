@@ -49,9 +49,9 @@ app_include_js = [THEME_JS]
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
-# Each entry below is enabled in the commit that ships its file.
-#
-# app_include_icons = ["/assets/bunood_theme/icons/bunood.svg"]  # when the sprite ships
+# Each entry is enabled in the commit that ships its file. (`app_include_icons`
+# waited here, commented out, for a Tabler sprite that item 23 deferred and never
+# built; the settings audit of 2026-09-21 struck the feature, iv-1.)
 
 # ── Website / portal / login assets ─────────────────────────────────────────────
 # The login page is a WEBSITE page, not a desk page: it does not get app_include_css,

@@ -417,13 +417,13 @@ again:
   navigated, and failed on a desk whose pane an earlier check had switched off — a
   timeout that reads exactly like the feature being missing.
 
-- **`node tools/sweep-settings.mjs` DAMAGES THE SITE.** It leaves eleven `print_*` fields
-  off their shipped defaults while printing "state restored", and four unrelated checks
-  then go red — the picker-drift check, both `shell:` change-dot checks and a print
-  rendering check — none of them naming the cause. Repair: load the Theme Settings
-  document, set each drifted `print_*` field to its `setup.SHIPPED` value, and `doc.save()`
-  — `set_single_value` does not fire `on_update`. Both this and the axe drift are filed as
-  their own tasks.
+- **`node tools/sweep-settings.mjs` USED TO DAMAGE THE SITE** — eleven `print_*` fields
+  off their shipped defaults while it printed "state restored", four unrelated checks red
+  and none naming the cause. FIXED 2026-08-31: the restore deletes the rows the sweep
+  created, fires `on_update` once through `doc.save()`, and diffs itself against its
+  snapshot — it refuses to say "restored" over a non-empty diff and prints the repair
+  recipe instead. The advice survives the fix: after any sweep, run or probe,
+  `settingsDrift()` (one call, the whole defence).
 - **THE DECISIONS ARE MADE; DO NOT RE-OPEN THEM.** Free-pixel drag-to-resize (overruling
   the design round) · `sidebar_menu_rail` drops to Expanded / Rail · the pane's colour is
   derived AND emitted per site · Minimal is tinted by the **ground, never the brand**, at
@@ -450,12 +450,14 @@ again:
   `--bnd-sb-ink-muted` is `#6d7570` on `#fafbfa` — **4.57:1 against a 4.5 floor** — and
   crosses at **1.36%** of the worst shipped ground. Every candidate percentage was a gate
   failure in light, and would have bought nothing: at 3% all six shipped grounds mix to
-  the same hex. `check_sidebar_headroom` enforces it now.
-- **RUN `python tools/sabotage_sidebar.py` BEFORE TRUSTING ANY NEW PANE GUARD.** Sixteen
-  cases across `_sidebar.scss` and `palette.py`, each naming the guard that OWNS it. It
-  mutates both files, so never beside a build or a suite, and it refuses a dirty tree. It
-  has already caught a guard that could not do its job, a comparison that measured
-  nothing, and its own rot.
+  the same hex. The gate's sidebar checks (`check_sidebar_hues`, `check_sidebar_surfaces`
+  in `tools/contrast_gate.py`) enforce it now.
+- **PROVE A NEW PANE GUARD BY SABOTAGE FIRST.** `tools/sabotage_sidebar.py` did this —
+  sixteen cases across `_sidebar.scss` and `palette.py`, each naming the guard that OWNS
+  it, refusing a dirty tree — until the pane's colour phase deleted it with the guards it
+  exercised. Write the sabotage the same way (mutate, delete the `.pyc`, pop the package
+  from `sys.modules`, restore), never beside a build or a suite. It caught a guard that
+  could not do its job, a comparison that measured nothing, and its own rot.
 - **THE PANE'S PALETTE IS DERIVED NOW.** `palette.SB_PANES` states each colour mode's
   recipe once, grouped by **polarity, not desk mode** — Dark Contrast is dark in BOTH desk
   themes, and putting it in the light walk drags the light binding pane from `#ebebeb` to
@@ -504,15 +506,16 @@ cost time again:
 - **A GLOBAL DEFAULT IS ONE KEYWORD ARGUMENT AWAY.** `frappe.defaults.set_default(k, v)`
   without `parent=` writes `parent = "__default"`, which every account inherits including
   Guest. The build guard refuses that spelling.
-- **NOT DELIVERED:** remembering which side-pane sections a person left open. It needs
-  Frappe's own expanded/collapsed contract measured. `sidebar_remember_sections` remains
-  a field written by all eight sidebar presets and read by nothing, as since v0.6.0.
+- **NOT DELIVERED HERE, DELIVERED LATER:** remembering which side-pane sections a person
+  left open shipped in v0.44.1 as the kit's own store (`bnd-section-state`, keyed by the
+  sidebar's name and the item's identity, so it holds across languages).
+  `sidebar_remember_sections` — a Check with zero consumers since v0.6.0 — was deleted
+  in 0.40.0.
 - **Item 38 adds 22 fuzzy `ar.po` rows** on top of item 37's 26 — **48 await the user's
   review**, their own commit as always.
 
 **ITEM 37 (presets) — DONE 2026-08-28, released as `v0.37.0`.** The last piece of the
-settings architecture: one catalogue for the whole desk, twelve looks writing 124 values
-each, and **no preset name stored anywhere** — `sidebar_preset` and `desk_layout` are both
+settings architecture: one catalogue for the whole desk, every look writing every axis, and **no preset name stored anywhere** — `sidebar_preset` and `desk_layout` are both
 deleted. ROADMAP's item-37 entry and CHANGELOG carry the account; what belongs here is
 what will cost time again:
 
@@ -1436,9 +1439,10 @@ families all green, and the sweep exits CLEAN):
   diff. And the icon fields feed THREE runtimes (sidebar / breadcrumb / global weight),
   so `bnd_icon_preview` calls all three apply hooks; each hook's `set` no-ops on an
   absent value, so a partial values object never disturbs a pane's other settings.
-- **DEFERRED, the user's explicit scope call:** `icon_set` (Lucide↔Tabler) and `icon_fill`
-  (outline↔filled) need a shipped Tabler subset sprite via `app_include_icons` — the
-  item's ORIGINAL sprite scope, and its closing slice. CSS ceiling was raised 14500→14700
+- **STRUCK 2026-09-21** (the settings audit of 2026-09-21, iv-1): `icon_set` (Lucide↔Tabler) and
+  `icon_fill` (outline↔filled) were deferred at the user's scope call and never built; the
+  `app_include_icons` hook line that waited for their sprite is deleted and item 23's
+  reframed scope is complete. CSS ceiling was raised 14500→14700
   for `_icons.scss`.
 
 **Pushed and green** (2026-08-06). `main` is level with
@@ -1452,7 +1456,7 @@ Shipped this session, all committed, all verified:
 
 | | what |
 |---|---|
-| **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces 1,656 pairs over 11 seeds × 2 modes in CI (1,080 at this item's own release; item 22 added the sidebar pill/mark/stand-down rows) |
+| **Item 17 — contrast** *(was 32)* | WCAG 2.2 AA guaranteed for *any* brand seed. `npm run contrast` enforces every pair over 27 seeds × 2 modes in CI (1,080 pairs over 11 seeds at this item's own release, 1,656 after item 22; item 22 added the sidebar pill/mark/stand-down rows) |
 | **Rework 1c step 2** | Master & detail settings shell — **now the default** at `/app/theme-settings`; `?shell=0` still reaches the stacked form. Change dots, derived note, zone bands. *Retired in item 43 B1 (2026-09-08): the page is one scroll of cards in importance order, and the map lives in the desk's side pane — see §6* |
 | **Rework 1c step 3** | The shared desk diagram as the placement control, plus the Overview |
 | **Submit-label fix** | Theme Settings no longer reads "Submit" (upstream Frappe defect, corrected locally) |
@@ -2127,9 +2131,9 @@ await goto(page, "/desk/theme-settings", ".bnd-cbp");  // one scroll of cards; t
 
 ```bash
 npm run build      # SCSS -> hashed CSS + assets.py codegen. Node only.
-npm run contrast   # WCAG gate, 1,656 pairs. Needs Python.
+npm run contrast   # WCAG gate over 27 seeds x 2 modes. Needs Python.
 npm run deploy     # build + ship to 5 containers + mirror to WSL + restart if hashes moved
-npm run verify     # the full browser suite (200). NEVER while deploying.
+npm run verify     # the full browser suite (~550 checks). NEVER while deploying.
 npm run verify -- --only "container:"   # ~90s inner loop; says FILTERED, never a gate
 ```
 
@@ -2407,7 +2411,7 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 - `theme_settings.js` — the settings map's bands (`BND_SETTINGS_GROUPS`,
   `bnd_settings_rows` → `bunood_theme.map_sync`; the map itself is `sb_mount_map` in
   `bunood.js`), bands inside pickers (`P.zone`, `bnd_bands`), the desk diagram
-  (`bnd_desk_diagram`, `BND_DESK_GEOM`, `BND_DESK_SLOTS`, `bnd_region_blocker`), the
+  (`bnd_desk_diagram`, `bnd_region_blocker`), the
   Overview (`bnd_render_overview`), the Compose card (`bnd_render_compose_picker`), and
   the composer (item 43 C1–C4): the mode (`bnd_compose_wanted`, latched per document),
   the rail (`BND_COMPOSER_ZONES` × `bnd_composer_catalogue()`, `bnd_composer_sync` on the
@@ -2699,9 +2703,6 @@ placement on every route change.
   the selection was still wrong at t+1214ms and corrected at t+3003ms by the
   autosave's own `refresh()` — so a check with a generous timeout passed on the
   defect too, and the check's WINDOW (900ms) is the assertion.
-- `tools/fingerprint.mjs` hardcodes an absolute path to one machine
-  (`createRequire("C:/Users/saltedfish/...")`), so the documented
-  fixture-regeneration command only runs there.
 
 **Older, still true:**
 

@@ -3031,7 +3031,7 @@
 	 *
 	 * The side pane is the exception: its zones are Frappe's own rows, not a
 	 * cluster we built, so it returns the pane itself and the caller places by
-	 * `order` (see sb_zone_style). Wrapping the pane's contents in three divs
+	 * `order` (see sb_zone_anchor). Wrapping the pane's contents in three divs
 	 * would be redrawing Frappe's DOM, which this theme does not do.
 	 */
 	function host_for(region, zone) {
@@ -3866,7 +3866,7 @@
 		// selectors (.notifications-icon / .notifications-unseen) that exist
 		// in no template in this version, so nothing renders however many
 		// unread rows a user has (measured with 2 unread + seen:0). See the
-		// inbox kit below; inbox_mount_badge fills this node.
+		// inbox kit below; inbox_paint_badge fills this node.
 		bell.appendChild(el("span", "bnd-inbox-badge", { hidden: "" }));
 		bell.addEventListener("click", (e) => {
 			// The proxy opens the panel synchronously; without this, OUR click
@@ -5112,12 +5112,11 @@
 			// Identity on the cluster itself, not on the page head: the head is
 			// Frappe's and exists on every desk, while THIS is the container —
 			// the group our tenants live in, and what HOSTS.pagehead resolves
-			// to. `mount_cluster` is shared with the top bar and the dock, so
+			// to. `reserve_cluster` is shared with the top bar and the dock, so
 			// the stamp goes on here rather than inside it.
 			reserve_cluster(section).setAttribute("data-bnd-part", "pagehead");
 			container_mounted("pagehead");
-			// mount_cluster builds the bell and the avatar unconditionally, and
-			// this runs again on EVERY route change (it has to — Frappe swaps the
+			// The cluster is rebuilt on EVERY route change (it has to — Frappe swaps the
 			// page element out from under us). Without re-asserting placement,
 			// a tenant the user placed elsewhere or switched Off came back on the
 			// next navigation and quietly stayed: the setting appeared to work

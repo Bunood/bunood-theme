@@ -1142,7 +1142,9 @@ SURFACES = [
 #: a desk" are one fact. A tenant added to the table joins the order without
 #: anyone remembering a second edit.
 def default_desk_order() -> str:
-    """Tenant keys in registry order, comma-joined: "search,inbox,user,home,apps"."""
+    """Tenant keys in registry order, comma-joined — every TENANT row's key, so the
+    string grows with the table (eight keys as of item 44: search, inbox, user, home,
+    start, apps, language, appearance)."""
     return ",".join(c["key"] for c in COMPONENTS if c["type"] == TENANT)
 
 
