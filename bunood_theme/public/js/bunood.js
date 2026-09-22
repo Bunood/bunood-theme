@@ -578,16 +578,14 @@
 	//   — and the seam between them produced every defect in 0.10.0. One
 	//   setting per container is one answer per question.
 	//
-	// FALLS OPEN, LIKE EVERYTHING ELSE HERE
+	// FALLS TO STOCK, LIKE EVERYTHING ELSE HERE
 	//   No boot payload (theme inactive, boot failed, a site whose migration
-	//   has not run) means `chrome_state` is null and `container_on` answers
-	//   from the layout exactly as before. A desk never loses chrome because a
-	//   payload was missing.
-	//
-	// THE SPLIT LANDS ONE CONTAINER PER SLICE, so this map is deliberately
-	// partial: a container with no entry falls back to the layout branch that
-	// still owns it. LAYOUT_CONTAINERS is that fallback, and it shrinks to
-	// nothing as the slices land.
+	//   has not run) means `chrome_state` is null, `theme_active()` is false
+	//   and nothing mounts: a desk with no payload is a stock desk, by design
+	//   (item 37). The split has landed all five containers, so a key with no
+	//   entry is OFF — the layout-keyed fallback table that carried the slices
+	//   in was unreachable for a year and went with the settings audit of
+	//   2026-09-21 (D2).
 
 	/** Boot's per-container on/off, keyed by registry container key. */
 	const chrome_state = (window.frappe && frappe.boot && frappe.boot.bnd_chrome) || null;
@@ -647,19 +645,6 @@
 	 * have left the last two slices with a fallback that silently answered "no"
 	 * for a container that was plainly there.
 	 */
-	// Renamed with the catalogue (item 42). Reached only when `chrome_state`
-	// lacks a key — boot has carried all five since the container split, so this
-	// is the pre-boot floor rather than a live decision, which is why the stale
-	// names here cost nothing while SEARCH_FALLBACKS' cost a wrong placement.
-	const LAYOUT_CONTAINERS = {
-		unifiedsidepane: ["bottombar", "sidepane"],
-		"rail+flyout": ["bottombar", "sidepane"],
-		taskbar: ["bottombar", "sidepane"],
-		toptaskbar: ["topbar", "bottombar", "sidepane"],
-		// The one layout with no side pane: it hides the whole container.
-		floatingbar: ["dock", "bottombar"],
-	};
-
 	/**
 	 * Should this container mount?
 	 *
@@ -675,7 +660,8 @@
 		if (chrome_state && Object.prototype.hasOwnProperty.call(chrome_state, key)) {
 			return !!chrome_state[key];
 		}
-		return (LAYOUT_CONTAINERS[layout()] || []).indexOf(key) !== -1;
+		// No entry means OFF — see "FALLS TO STOCK" above.
+		return false;
 	}
 
 	/**
@@ -758,6 +744,8 @@
 		const off = Object.keys(HIDES_NATIVE).filter((k) => !container_on(k));
 		if (off.length) document.documentElement.setAttribute("data-bnd-chrome-off", off.join(" "));
 		else document.documentElement.removeAttribute("data-bnd-chrome-off");
+		// The container's one hide follows the declaration, in the same tick.
+		sb_sync_pane_hidden();
 	}
 	apply_chrome_off();
 
@@ -774,6 +762,8 @@
 		const html = document.documentElement;
 		if (is_narrow()) html.setAttribute("data-bnd-narrow", "");
 		else html.removeAttribute("data-bnd-narrow");
+		// Hidden is a desktop state: the pane's hide token follows the boundary.
+		sb_sync_pane_hidden();
 		const coarse = typeof window.matchMedia === "function" && window.matchMedia("(any-pointer: coarse)").matches;
 		if (coarse) html.setAttribute("data-bnd-touch", "");
 		else html.removeAttribute("data-bnd-touch");
@@ -830,7 +820,8 @@
 	function guard_critical_reach() {
 		const html = document.documentElement;
 		const off = (html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).filter(Boolean);
-		// TWO WAYS TO HIDE THE PANE since item 42 — argument in _sidebar.scss.
+		// TWO WAYS TO HIDE THE PANE since item 42, ONE RULE that does it: both
+		// inputs feed sb_sync_pane_hidden — argument in _sidebar.scss.
 		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden";
 		if (!off.includes("sidepane") && !hidden) return false;
 		// NOT READY IS NOT STRANDED. A hidden pane lends its tenants to the page
@@ -850,19 +841,19 @@
 		});
 		if (!stranded.length) return false;
 
-		// Release whichever mechanism is hiding it. Both, when both are.
-		if (hidden) {
-			html.setAttribute("data-bnd-sb-panestate", "open");
-			// DURABLE for the session, not only the attribute: apply_sidebar_attrs
-			// re-stamps the attribute from sb_state on every re-apply, and an un-hide
-			// that lived only in the attribute was undone by the next one - a bell
-			// mounted into the un-hidden window then rode the pane down (measured on
-			// the settings page, 2026-09-08). The route the guard opens stays open.
-			if (sb_state) sb_state.panestate = "Open";
-		}
+		// Release whichever mechanism is hiding it. Both, when both are — through
+		// the pane state's ONE stamper, so the attribute, sb_state and the hide
+		// token move together. DURABLE for the session, not only the attribute:
+		// apply_sidebar_attrs re-stamps from sb_state on every re-apply, and an
+		// un-hide that lived only in the attribute was undone by the next one - a
+		// bell mounted into the un-hidden window then rode the pane down (measured
+		// on the settings page, 2026-09-08). The route the guard opens stays open.
+		if (hidden) sb_stamp_panestate("Open");
 		const kept = off.filter((k) => k !== "sidepane");
 		if (kept.length) html.setAttribute("data-bnd-chrome-off", kept.join(" "));
 		else html.removeAttribute("data-bnd-chrome-off");
+		// The arbiter's last word: the container's one hide follows the release.
+		sb_sync_pane_hidden();
 		return true;
 	}
 	bunood.guard_critical_reach = guard_critical_reach;
@@ -950,26 +941,8 @@
 			document.documentElement.removeAttribute("data-bnd-" + key);
 		}
 
-		if (container_on("topbar")) mount_topbar();
-		if (container_on("pagehead")) inject_compact_cluster();
-		if (container_on("dock")) mount_dock();
-		if (container_on("bottombar")) mount_statusbar();
-
-		mount_search();
-		mount_placed_tenants();
-		if (guard_critical_reach()) mount_placed_tenants();
-		if (container_on("sidepane")) mount_sidebar_kit();
-		// The links live in containers too: without this, switching the bar
-		// that held them leaves them behind in a node that has just been
-		// removed, or absent from the one that has just arrived.
-		sb_mount_utils();
-		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
-		else sb_teardown_pagehead_brand();
+		mount_containers();
 		defer_bottom_reserve();
-		// A shape change moves which route to Appearance exists, so the claim on
-		// Frappe's Display item is re-measured rather than assumed (item 38).
-		stamp_appearance_route();
 	}
 	bunood.remount_chrome = remount_chrome;
 
@@ -1144,19 +1117,19 @@
 	 */
 	const SB_SLUGS = {
 		placement: { "Attached": "attached", "Floating": "floating" },
-		// Six surfaces; four icon styles. The retired labels keep entries —
-		// argument in _sidebar.scss, which Sass strips before the wire.
+		// Six surfaces; four icon styles. NO RETIRED LABEL RESOLVES HERE any more:
+		// v0_40_0 and v0_42_0 rewrote every stored one, and a spelling the field
+		// cannot hold is healed by the next migrate (setup.heal_unknown_selects),
+		// never tolerated on the wire (the settings audit of 2026-09-21, v-8 —
+		// three normalisers for labels every site had already been rewritten past).
 		material: {
 			"Solid": "solid", "Bordered": "bordered", "Elevated": "elevated",
 			"Textured": "textured", "Tinted": "tinted", "Gradient": "gradient",
-			"Glass": "elevated", "Blurred Glass": "elevated",
 		},
 		// `color` is gone; see _sidebar.scss's head for why.
 		icons: {
 			"Filled Color": "filled", "Fill on Active": "onactive",
 			"Solid Tile": "tile", "Circle Badge": "badge",
-			"Colored Chips": "tile", "Colored Dots": "badge",
-			"Duotone": "filled", "Brand Lines": "filled", "Monochrome": "onactive",
 		},
 		active: {
 			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
@@ -1164,13 +1137,9 @@
 		},
 		sections: { "Plain": "plain", "Divided": "divided", "Cards": "cards" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
-		// Three states since item 42. The legacy spellings still resolve — the
-		// migration rewrites stored values, but a desk mid-upgrade (boot cached
-		// before the patch ran) must not lose its pane over a label.
-		panestate: {
-			"Open": "open", "Rail": "rail", "Hidden": "hidden",
-			"Always Expanded": "open", "Hover-Expand": "rail", "Hover + Pin": "rail",
-		},
+		// Three states since item 42. An unknown value falls to "open" where this
+		// is read; a retired spelling is a migration's job, never a lookup's.
+		panestate: { "Open": "open", "Rail": "rail", "Hidden": "hidden" },
 		railtrigger: { "Hover": "hover", "Click": "click", "Hover + Pin": "hoverpin" },
 		railbtn: { "None": "", "Edge": "edge", "Header": "header" },
 		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
@@ -1185,6 +1154,47 @@
 	 * makes instant preview a re-application rather than a special mode.
 	 */
 	let sb_state = (window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || null;
+
+	/**
+	 * ONE HIDE FOR THE PANE'S CONTAINER, keyed on an OUTCOME.
+	 *
+	 * Two settings hide it: the container switched off (`data-bnd-chrome-off`
+	 * carries "sidepane") and the pane state Hidden on a desktop (`data-bnd-sb-
+	 * panestate="hidden"` with no `data-bnd-narrow`). Until the settings audit of
+	 * 2026-09-21 (v-5) each had its own `display: none !important` in a different
+	 * file at a different specificity, so which rule won was an accident of the
+	 * cascade and nothing decided it in one place. This decides it: every writer
+	 * of either input calls it, and _sidebar.scss carries the single rule, on the
+	 * ownership token like every other hide of a vendor node. NO FLASH IS ADDED:
+	 * the token is stamped inside the same synchronous load-time calls that stamp
+	 * the declarations (apply_chrome_off and apply_sidebar_attrs at module scope),
+	 * so it lands before first paint exactly as the declarations did — the
+	 * argument _layouts.scss makes for keying the container on a declaration
+	 * holds for a token written in the same tick.
+	 */
+	function sb_sync_pane_hidden() {
+		const html = document.documentElement;
+		const off = (html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).includes("sidepane");
+		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden" && !html.hasAttribute("data-bnd-narrow");
+		if (off || hidden) bnd_own("pane-hidden");
+		else bnd_disown("pane-hidden");
+	}
+
+	/**
+	 * The pane state's ONE stamper: the slug on <html>, the state in memory and
+	 * the container's hide token move together. `apply_sidebar_attrs` reflects the
+	 * whole set through it and `guard_critical_reach` releases through it — the
+	 * two writers the audit found stamping the attribute independently (D3), one
+	 * of which also had to remember to mutate `sb_state` by hand.
+	 * @returns {string} the slug stamped ("open" for an unknown label).
+	 */
+	function sb_stamp_panestate(label) {
+		const state = SB_SLUGS.panestate[label] || "open";
+		document.documentElement.setAttribute("data-bnd-sb-panestate", state);
+		if (sb_state) sb_state.panestate = label;
+		sb_sync_pane_hidden();
+		return state;
+	}
 
 	/**
 	 * Reflect a full set of sidebar options onto <html>, clearing whatever
@@ -1208,17 +1218,12 @@
 		set("active", SB_SLUGS.active[sb.active]);
 		set("sections", SB_SLUGS.sections[sb.sections]);
 		set("wash", SB_SLUGS.wash[sb.wash]);
-		const state = SB_SLUGS.panestate[sb.panestate] || "open";
-		set("panestate", state);
+		const state = sb_stamp_panestate(sb.panestate);
 		// Rail keeps its own anchor attribute plus the trigger the JS wires --
 		// four dozen rules key on `data-bnd-rail` and it stays their subject.
-		// Legacy "Hover + Pin" mode labels imply their trigger.
 		if (state === "rail") {
 			html.setAttribute("data-bnd-rail", "");
-			const trigger =
-				SB_SLUGS.railtrigger[sb.rail_trigger] ||
-				(sb.panestate === "Hover + Pin" ? "hoverpin" : "hover");
-			html.setAttribute("data-bnd-sb-railtrigger", trigger);
+			html.setAttribute("data-bnd-sb-railtrigger", SB_SLUGS.railtrigger[sb.rail_trigger] || "hover");
 		}
 		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source]);
 		set("badges", SB_SLUGS.badges[sb.badges]);
@@ -7277,6 +7282,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// the invariant matrix then reproduced.
 		reserve_cluster(dock);
 		document.body.appendChild(dock);
+		// Its marker, like the other four: torn down by CONTAINER_TEARDOWN and,
+		// until the settings audit of 2026-09-21 (D2), never stamped.
+		container_mounted("dock");
 		update_dock_active();
 	}
 
@@ -7904,10 +7912,21 @@ function sb_zone_anchor(pane, zone, node) {
 		return Object.prototype.hasOwnProperty.call(QUICK_LINK_CAPS, v) ? QUICK_LINK_CAPS[v] : QUICK_LINK_CAPS.Standard;
 	}
 
-	/** Live apply from the settings form: the next open reads the new caps. */
+	/**
+	 * Live apply from the settings form. The head's flyouts are BUILT ON OPEN
+	 * (sb_head_menu → sb_quick_links reads the caps each time), so the boot value
+	 * IS the live state — and a menu that is open right now is rebuilt, so the
+	 * change shows without a second click (the settings audit of 2026-09-21,
+	 * iv-3: "repaints nothing" was true of exactly that case).
+	 */
 	bunood.panehead_apply = function (vals) {
 		if (!vals || !window.frappe || !frappe.boot) return;
 		frappe.boot.bnd_panehead = Object.assign({}, frappe.boot.bnd_panehead || {}, { quick_links: vals.panehead_quick_links });
+		const head = document.querySelector('.body-sidebar [data-bnd-part="panehead"]');
+		if (head && head.getAttribute("aria-expanded") === "true") {
+			close_menu();
+			show_menu(head, sb_head_menu());
+		}
 	};
 
 	function sb_quick_links(w) {
@@ -9443,6 +9462,54 @@ function sb_zone_anchor(pane, zone, node) {
 	// ── Orchestration ───────────────────────────────────────────────────────
 
 	/**
+	 * THE ONE CONTAINER LADDER, read by both directions.
+	 *
+	 * Boot (`mount_chrome`) and the live remount (`remount_chrome`: a container
+	 * switched from the settings form, or a breakpoint crossed) each kept their
+	 * own copy of these steps, and the copies had drifted — the settings map was
+	 * placed only by boot's route hook, so a container switched off from the form
+	 * took a path boot never took (the settings audit of 2026-09-21, c-2 / v-6).
+	 * Hosts first, then what lives in them, then the guard; everything here is
+	 * idempotent, which is what lets one function serve a first mount and a
+	 * re-mount alike.
+	 */
+	function mount_containers() {
+		if (container_on("topbar")) mount_topbar();
+		if (container_on("pagehead")) inject_compact_cluster();
+		if (container_on("dock")) mount_dock();
+		if (container_on("bottombar")) mount_statusbar();
+		// Search placement is independent of the layout (item 14): AFTER the
+		// bars exist, since its slots live in them. The bell and the user menu
+		// likewise — a placement can only be honoured by a region that is there.
+		mount_search();
+		mount_placed_tenants();
+		// LAST, and only now: every container has mounted and both placement
+		// passes have run, so "is there still a route to everything critical"
+		// has an honest answer. A pane that comes back makes regions available
+		// that were not there a moment ago, so the tenants are placed again.
+		if (guard_critical_reach()) mount_placed_tenants();
+		// The sidebar style kit rides along wherever there IS a side pane —
+		// after the guard, so a pane that has just come back is decorated too
+		// (sidepane_sync owns the is-there-a-pane question).
+		mount_sidebar_kit();
+		// Home and All Apps place themselves, so they mount from HERE rather than
+		// from inside the pane's kit: reached only through that kit they inherited
+		// its gate, and a link placed in the top bar mounted nowhere at all when
+		// the side pane was off. Idempotent.
+		sb_mount_utils();
+		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		else sb_teardown_pagehead_brand();
+		// The settings map (item 43 B3) is conditional on the ROUTE and on which
+		// containers exist: placed here so a remount moves it, not only a route.
+		sb_mount_map();
+		sb_mount_pagehead_map();
+		// A container change moves which route to Appearance exists, so the claim
+		// on Frappe's Display item is re-measured rather than assumed (item 38).
+		stamp_appearance_route();
+	}
+
+	/**
 	 * Mount the desk chrome, once the shell exists.
 	 *
 	 * Per-page work (the page-head cluster, trail resolution, dock highlight)
@@ -9497,8 +9564,8 @@ function sb_zone_anchor(pane, zone, node) {
 		// and then has no further say. That is the whole point of slice 2c, and
 		// this is the line it was aiming at.
 		//
-		// `layout()` still exists, but only as a styling hook and a fallback for
-		// a boot payload that predates the split — never as a mount decision.
+		// `layout()` still exists, but only as a styling hook and SEARCH_FALLBACKS'
+		// key — never as a mount decision.
 		//
 		// Two things about the order:
 		//
@@ -9512,44 +9579,11 @@ function sb_zone_anchor(pane, zone, node) {
 		//     placement_for. Switching a container off therefore cannot take a
 		//     control away from a user; it can only decline to offer a new home
 		//     for one. What stops the LAST one stranding somebody is
-		//     guard_critical_reach, below.
-		if (container_on("topbar")) mount_topbar();
-		if (container_on("pagehead")) inject_compact_cluster();
-		if (container_on("dock")) mount_dock();
-		if (container_on("bottombar")) mount_statusbar();
-
-		// Search placement is independent of the layout (item 14): mount it
-		// AFTER the bars exist, since its slots live in them.
-		mount_search();
-
-		// The bell and the user menu follow their own settings, after the
-		// containers exist — a placement can only be honoured by a region
-		// that is really there.
-		mount_placed_tenants();
-
-		// LAST, and only now: every container has mounted and both placement
-		// passes have run, so "is there still a route to everything critical"
-		// finally has an honest answer. If switching the side pane off has left
-		// a user stranded, it comes back — and the tenants are placed again,
-		// because the pane returning makes regions and native affordances
-		// available that were not there a moment ago. Re-running is safe by
-		// construction: mount_placed_tenants is idempotent and Compact already
-		// calls it on every route change.
-		if (guard_critical_reach()) mount_placed_tenants();
-
-		// The sidebar style kit rides along wherever there IS a side pane —
-		// after the guard, so a pane that has just come back is decorated too.
-		mount_sidebar_kit();
-
-		// Home and All Apps place themselves, so they mount from HERE rather
-		// than from inside the pane's style kit. Reached only through that kit
-		// they inherited its gate, and a link placed in the top bar mounted
-		// nowhere at all when the side pane was off. Idempotent — it clears its
-		// own previous mounts first — so the kit calling it too costs nothing.
-		sb_mount_utils();
-		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
-		else sb_teardown_pagehead_brand();
+		//     guard_critical_reach, inside the ladder.
+		//
+		// The steps themselves live in mount_containers, which remount_chrome
+		// reads too — one ladder, both directions.
+		mount_containers();
 
 		// The palette kit owns search invocation in every layout.
 		mount_palette();

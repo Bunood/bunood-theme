@@ -11,12 +11,10 @@
 //
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
 //   data-bnd-sb-placement   attached | floating
-// A RETIRED LABEL STILL RESOLVES, in `SB_SLUGS` — Glass and Blurred Glass to
-// `elevated`, the six old icon styles to their four successors. A boot cached
-// before the patch ran still serves the old string, and an unknown label sets NO
-// attribute at all: a pane with no surface, rather than the one the migration
-// chose for it. The map is where that is expressible; this is where it is said,
-// because build.mjs copies bunood.js verbatim and every comment there ships.
+// NO RETIRED LABEL RESOLVES in `SB_SLUGS` any more (the settings audit of
+// 2026-09-21, v-8): the patches that renamed them ran on every site, and a value
+// the field cannot hold is healed by the next migrate (setup.heal_unknown_selects)
+// rather than tolerated on the wire. An unknown label sets NO attribute at all.
 //   data-bnd-sb-material    solid | bordered | elevated | textured |
 //                           tinted | gradient   (item 42, slice S)
 //   data-bnd-sb-color       theme | minimal | dark | brand
@@ -569,27 +567,35 @@ html[data-theme] .bnd-icon-btn.bnd-sb-start {
 // wash; a zero-width box still paints its border as a hairline down the page,
 // and every measured reserve would still count it. Gone means gone.
 //
-// `!important` IS REQUIRED, and it is the same one `_layouts.scss` already
-// carries for the same node and the same reason: Frappe's sidebar JS writes
-// `style="display: block"` INLINE on this container, and no selector",
-// specificity beats an inline style. Measured here on the first run of the
-// three states -- the attribute was right, the rule was in the bundle, the
-// container still rendered, and the computed style said `block` with
-// `display: block; width: ...` sitting in the element's own style attribute.
-// The chrome-off rule two files over hit this in July 2026 and wrote it down;
-// this is the second control on the same element, so it inherits the finding
-// rather than rediscovering it.
+// ONE RULE, TWO SETTINGS, ONE ARBITER. The container switched off
+// (`sidebar_enabled: 0`, `_layouts.scss`) and the pane state Hidden used to be
+// two `display: none !important` rules for this node in two files at (0,2,1)
+// and (0,3,1), so which one won was an accident of the cascade and the JS guard
+// that releases either had to know both. Since the settings audit of 2026-09-21
+// (v-5) both feed `sb_sync_pane_hidden` in bunood.js, which stamps the ownership
+// token this selector reads — the same polarity every other hide of a vendor
+// node uses — in the same synchronous load-time calls that stamp the two
+// declarations, so nothing flashes that did not before.
+//
+// `!important` IS REQUIRED: Frappe's sidebar JS writes `style="display: block"`
+// INLINE on this container, and no selector specificity beats an inline style.
+// Measured on the first run of the three states -- the attribute was right, the
+// rule was in the bundle, the container still rendered, and the computed style
+// said `block` with `display: block; width: ...` sitting in the element's own
+// style attribute (July 2026 for chrome-off; again here for Hidden).
+//
 // ...AND HIDDEN IS A DESKTOP STATE. Below 768 the pane IS Frappe's drawer, and
 // the drawer is the only route to the workspace list on a phone -- the
 // page-title hamburger opens it and nothing else does. Hiding it there removes
-// navigation outright, which is not a state any picker offers; it is this rule
-// reaching a breakpoint it was never written for. FOUND BY THE SUITE, at 390px:
-// the drawer opened 0px wide.
+// navigation outright, which is not a state any picker offers. FOUND BY THE
+// SUITE, at 390px: the drawer opened 0px wide. The `:not([data-bnd-narrow])`
+// that used to guard this selector is the arbiter's business now: it stamps the
+// token only off the narrow preset, and re-stamps on every crossing.
 //
 // The page-head brand below is a desktop affordance for the mirror-image
 // reason: on a phone the page-title hamburger already carries the way to the
 // drawer, so this is the second half of one decision, not a new one.
-html[data-bnd-sb-panestate="hidden"]:not([data-bnd-narrow]) .body-sidebar-container {
+html[data-bnd-own~="pane-hidden"] .body-sidebar-container {
   display: none !important;
 }
 

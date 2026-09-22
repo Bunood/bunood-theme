@@ -377,7 +377,7 @@ function bnd_region_blocker(frm, region) {
 		// that shows no pane — the runtime falls back and the picture lies. Rail
 		// is NOT a blocker: the pane is still there, still expands, and a tenant
 		// in it is reachable the moment it does.
-		if (bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden") {
+		if (String(frm.doc.sidebar_pane_state ?? "") === "Hidden") {
 			return __("the side pane is hidden");
 		}
 		return "";
@@ -1457,11 +1457,12 @@ const BND_SETTINGS_OWNS = {
  * changed" therefore render identically, and that is the right way round: a mark
  * that appeared because a fetch failed would be a lie about the user's settings.
  *
- * Comparison goes through `bnd_sb_norm`, which is not decoration here. Two
- * values that mean the same thing arrive in different shapes — a Check reads
- * back as `1` from Python and `"1"` from some form paths, and
- * `sidebar_menu_rail` has two legacy spellings that both mean "Rail". Comparing
- * raw would mark a component changed that nobody had touched.
+ * Both sides are compared as STRINGS, because a Check reads back as `1` from
+ * Python and `"1"` from some form paths. Nothing else is normalised: a retired
+ * spelling is healed by the next migrate (setup.heal_unknown_selects), never
+ * tolerated here — the settings audit of 2026-09-21 (v-8) found this file
+ * carrying one of three normalisers for labels every site had been rewritten
+ * past, and a value the field cannot hold is a migration's job.
  */
 function bnd_changed_fields(key, frm) {
 	if (!bnd_shipped) return [];
@@ -1472,7 +1473,7 @@ function bnd_changed_fields(key, frm) {
 			(spec.fields || []).includes(f) ||
 			(spec.prefixes || []).some((p) => f.startsWith(p))
 	);
-	return owned.filter((f) => bnd_sb_norm(f, frm.doc[f]) !== bnd_sb_norm(f, bnd_shipped[f]));
+	return owned.filter((f) => String(frm.doc[f] ?? "") !== String(bnd_shipped[f] ?? ""));
 }
 
 /**
@@ -1586,7 +1587,7 @@ function bnd_match_layout(frm) {
 		const wantPane = bnd_layout_pane && bnd_layout_pane[name];
 		const paneOk =
 			!wantPane || !frm.get_field("sidebar_pane_state") ||
-			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state ?? wantPane) === wantPane;
+			String(frm.doc.sidebar_pane_state ?? wantPane) === wantPane;
 		if (matches && placed && paneOk) return name;
 	}
 	return "Custom";
@@ -1808,7 +1809,7 @@ function bnd_composer_catalogue() {
 function bnd_composer_value(frm, field, row) {
 	// Through the same normaliser the sidebar card uses: a site still holding a
 	// pre-item-42 pane label highlights Open on both, not on one.
-	return bnd_sb_norm(field, frm.doc[field] || bnd_default_of(field) || "");
+	return String(frm.doc[field] || bnd_default_of(field) || "");
 }
 
 let bnd_cmp_tick = 0;
@@ -2079,7 +2080,6 @@ function bnd_composer_push_frame(frm, frame) {
 	if (typeof E.shape_apply === "function") {
 		const values = {};
 		for (const f of BND_COMPOSER_SHAPE) values[f] = frm.doc[f];
-		values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
 		const shape = bnd_match_layout(frm);
 		E.shape_apply(values, shape === "Custom" ? "" : shape);
 	}
@@ -3051,7 +3051,6 @@ function bnd_apply_layout_preset(frm, name) {
 	});
 }
 
-
 // ════════════════════════════════════════════════════════════════════════════
 // Desk Layout picker (item 9) — unchanged behaviour.
 // ════════════════════════════════════════════════════════════════════════════
@@ -3206,7 +3205,6 @@ function bnd_all_previews(frm, engine = window.bunood_theme, opts = {}) {
 		if (f.startsWith("__") || f === "name" || f === "doctype") continue;
 		values[f] = opts.raw ? frm.doc[f] : bnd_effective(frm, f);
 	}
-	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
 	engine.apply_look(values);
 }
 
@@ -3318,7 +3316,7 @@ const BND_SB_GROUPS = [
 		field: "sidebar_placement",
 		// Nothing to attach or float when there is no pane (item 42).
 		disabled: (frm) =>
-			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+			String(frm.doc.sidebar_pane_state ?? "") === "Hidden"
 				? __("The pane is hidden")
 				: "",
 		zone: "placement",
@@ -3335,7 +3333,7 @@ const BND_SB_GROUPS = [
 		// pill and nothing else, so every card here would govern nothing —
 		// the same reason, and the same wording, as the placement group above.
 		disabled: (frm) =>
-			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+			String(frm.doc.sidebar_pane_state ?? "") === "Hidden"
 				? __("The pane is hidden")
 				: "",
 		zone: "pane",
@@ -3516,20 +3514,6 @@ function bnd_render_sidebar_picker(frm, host) {
 // note takes the same Changed/Default path as every other kit.
 
 /**
- * Normalise legacy stored values so old sites keep matching presets and the
- * picker highlights the right card: the pre-split rail labels both mean
- * "Rail" now.
- */
-function bnd_sb_norm(field, value) {
-	if (field !== "sidebar_pane_state") return String(value ?? "");
-	// The pre-split rail labels and the pre-item-42 mode name. A site whose boot
-	// was cached before the migration ran still highlights the right card.
-	if (value === "Hover-Expand" || value === "Hover + Pin") return "Rail";
-	if (value === "Always Expanded") return "Open";
-	return String(value ?? "");
-}
-
-/**
  * Full render of the sidebar picker. Wholesale re-render on every change —
  * state lives in the form document, never in this DOM.
  */
@@ -3553,11 +3537,11 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	const kit_off = bnd_component_blocker(frm, "sidepane");
 
 	BND_SB_GROUPS.forEach((group) => {
-		const current = bnd_sb_norm(group.field, frm.doc[group.field]);
+		const current = String(frm.doc[group.field] ?? "");
 		const cards = group.options
 			.map((opt) => {
 				const reason = kit_off || (opt.disabled ? opt.disabled(frm) : "");
-				const on = bnd_sb_norm(group.field, opt.value) === current ? " bnd-sbp-on" : "";
+				const on = String(opt.value ?? "") === current ? " bnd-sbp-on" : "";
 				const dis = reason ? " bnd-sbp-dis" : "";
 				return (
 					'<button type="button" class="bnd-sbp-opt' + on + dis + '" data-field="' + group.field +
@@ -3578,7 +3562,6 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
 		));
 	});
-
 
 	BND_SB_TOGGLES.forEach((t) => {
 		const on = !!parseInt(frm.doc[t.field], 10);
@@ -3687,7 +3670,6 @@ function bnd_sb_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.sb_apply) return;
 	const values = {};
 	for (const f of BND_SIDEBAR_FIELDS) values[f] = bnd_effective(frm, f);
-	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
 	engine.sb_apply(values);
 }
 

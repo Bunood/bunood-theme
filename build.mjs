@@ -1588,12 +1588,14 @@ function assertNoFallbackLiterals(doctype, sources) {
 }
 
 /**
- * Layout-slug guard (item 42) — `bunood.js` keys two tables on the catalogue's layout
+ * Layout-slug guard (item 42) — `bunood.js` keys a table on the catalogue's layout
  * NAMES, slugified, and nothing checked that they are the catalogue's.
  *
  * `SEARCH_FALLBACKS` decides where search goes when the slot it asked for is not on
- * this desk; `LAYOUT_CONTAINERS` is the pre-boot floor for "is this container on".
- * Item 42 renamed every layout and neither table moved, so every desk fell through to
+ * this desk. (`LAYOUT_CONTAINERS`, the pre-boot floor for "is this container on",
+ * was the second table here until the settings audit of 2026-09-21 found it
+ * unreachable and deleted it.) Item 42 renamed every layout and the table did not
+ * move, so every desk fell through to
  * a row for a layout that no longer exists: on the shipped pane-first desk, search
  * asked for a top bar that is not there and landed in the STATUS STRIP rather than the
  * pane. Two suite checks found it; nothing offline did, and the `|| default` that makes
@@ -1614,7 +1616,7 @@ function assertLayoutSlugs(registrySrc, jsSrc) {
 	if (want.length < 2) {
 		throw new Error(`Layout-slug guard: only ${want.length} layouts parsed from LAYOUT_CHROME — fix the parser.`);
 	}
-	for (const table of ["SEARCH_FALLBACKS", "LAYOUT_CONTAINERS"]) {
+	for (const table of ["SEARCH_FALLBACKS"]) {
 		const blk = jsSrc.match(new RegExp(`const ${table} = \\{([\\s\\S]*?)\\n\\t\\};`));
 		if (!blk) throw new Error(`Layout-slug guard: ${table} not found in bunood.js`);
 		// QUOTED KEYS COUNT TOO. `layout()` strips whitespace and nothing else, so a

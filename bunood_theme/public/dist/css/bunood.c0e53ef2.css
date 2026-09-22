@@ -495,9 +495,6 @@ html[data-bnd-own~=panehead] .desktop-navbar .navbar-home {
   display: none;
 }
 
-html[data-bnd-chrome-off~=sidepane] .body-sidebar-container {
-  display: none !important;
-}
 html[data-bnd-chrome-off~=sidepane] .page-title .sidebar-toggle-btn {
   display: none;
 }
@@ -1936,7 +1933,7 @@ html[data-theme] .bnd-icon-btn.bnd-sb-start .bnd-sb-brand-name {
   text-overflow: ellipsis;
 }
 
-html[data-bnd-sb-panestate=hidden]:not([data-bnd-narrow]) .body-sidebar-container {
+html[data-bnd-own~=pane-hidden] .body-sidebar-container {
   display: none !important;
 }
 

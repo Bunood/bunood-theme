@@ -1384,13 +1384,10 @@ const SLUG = {
 	sidebar_material: {
 		Solid: "solid", Bordered: "bordered", Elevated: "elevated",
 		Textured: "textured", Tinted: "tinted", Gradient: "gradient",
-		Glass: "elevated", "Blurred Glass": "elevated",
 	},
 	icon_style: {
 		"Filled Color": "filled", "Fill on Active": "onactive",
 		"Solid Tile": "tile", "Circle Badge": "badge",
-		"Colored Chips": "tile", "Colored Dots": "badge",
-		Duotone: "filled", "Brand Lines": "filled", Monochrome: "onactive",
 	},
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
 	sidebar_section_style: { Plain: "plain", Divided: "divided", Cards: "cards" },
@@ -3983,6 +3980,52 @@ async function main() {
 			setSettings({ crumb_hover: start });
 		});
 
+		await test("settings: a retired Select value is healed by migrate, never tolerated by the runtime", async () => {
+			// THREE NORMALISERS FOR ONE RETIRED SPELLING (the settings audit of
+			// 2026-09-21, c-4 / v-8): the runtime's slug table, the form's bnd_sb_norm
+			// and a trigger fallback all tolerated pane-state labels that
+			// v0_42_0.rename_pane_state had rewritten on every site, this one and
+			// production included. Tolerance is not repair. The healer
+			// (setup.heal_unknown_selects) covers every Select and runs on every
+			// migrate now, and nothing on the wire resolves a retired label.
+			const before = getSettings(["sidebar_pane_state"]).sidebar_pane_state;
+			let out;
+			try {
+				out = JSON.parse(
+					benchPy(
+						`import inspect\nfrom bunood_theme import setup\n` +
+							`frappe.db.set_single_value("Theme Settings", "sidebar_pane_state", "Hover-Expand", update_modified=False)\n` +
+							`frappe.db.commit()\n` +
+							`healed = setup.heal_unknown_selects()\n` +
+							`after = frappe.db.get_single_value("Theme Settings", "sidebar_pane_state")\n` +
+							`print("BND" + json.dumps({"healed": healed, "after": after, "shipped": setup.SHIPPED["sidebar_pane_state"], "wired": "heal_unknown_selects()" in inspect.getsource(setup.after_migrate)}))\n`
+					)
+						.split("BND")[1]
+						.trim()
+				);
+			} finally {
+				setSettings({ sidebar_pane_state: before });
+			}
+			expect(out.wired, "after_migrate runs the healer on every migrate");
+			expect(out.healed.includes("sidebar_pane_state"), "the retired value was healed (" + JSON.stringify(out.healed) + ")");
+			expectEq(out.after, out.shipped, "to the shipped value");
+			// AND NOTHING ON THE WIRE STILL RESOLVES IT: the served bundle (comments
+			// ship in it) and the form script, read as text — a lookup keyed on a
+			// retired label is a normaliser, whatever it is called.
+			const bundle_url = await page.evaluate(
+				() => [...document.scripts].map((n) => n.src).find((u) => /\/dist\/js\/bunood\.[0-9a-f]+\.js/.test(u)) || ""
+			);
+			expect(bundle_url, "premise: the theme bundle is on the page");
+			const bundle = await (await page.request.get(bundle_url)).text();
+			const form = readFileSync(new URL("../bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url), "utf8");
+			for (const label of ["Hover-Expand", "Always Expanded", "Blurred Glass", "Colored Chips", "Duotone"]) {
+				expect(!bundle.includes('"' + label + '"'), "the served bundle maps no retired label (" + label + ")");
+			}
+			for (const label of ["Hover-Expand", "Always Expanded"]) {
+				expect(!form.includes('"' + label + '"'), "the form script maps no retired pane state (" + label + ")");
+			}
+		});
+
 		await test("settings: the settings page honours a personal value instead of reverting it", async () => {
 			// THE FORM PREVIEWED THE RAW SITE ROW (audit 2026-09-21, finding a-1,
 			// measured): with a personal width of Roomy, a fresh tab rendered roomy, the
@@ -4340,6 +4383,85 @@ async function main() {
 			expect(released !== "none" && released !== "(absent)",
 				`released, Frappe's header comes back (display is ${released}) -- a failed ` +
 					`mount degrades to stock rather than leaving the pane without a head`);
+		});
+
+		await test("sidepane: the container's one hide follows the arbiter's token, for both settings", async () => {
+			// TWO RULES FOR ONE NODE (the settings audit of 2026-09-21, D10 / v-5):
+			// chrome-off at (0,2,1) in _layouts.scss and Hidden at (0,3,1) in
+			// _sidebar.scss, both !important, a JS guard releasing either, and a
+			// cascade nobody arbitrated. One rule now, keyed on the `pane-hidden`
+			// ownership token sb_sync_pane_hidden stamps from both inputs. Measured on
+			// the workspace desk, page-locally (nothing is saved), and put back.
+			await goDesk("/app/home", "body", 3000);
+			const read = () =>
+				page.evaluate(() => ({
+					own: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/),
+					rects: document.querySelector(".body-sidebar-container").getClientRects().length,
+					panestate: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+					off: document.documentElement.getAttribute("data-bnd-chrome-off") || "",
+				}));
+			// The premise is made, not assumed: a filtered run can arrive here with the
+			// site on Top Taskbar (the layout section's write), pane Hidden and page
+			// head off. Page-local, put back by the next navigation.
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 1 }));
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForTimeout(1200);
+			const rest = await read();
+			expect(!rest.own.includes("pane-hidden") && rest.rects === 1, "premise: the pane is open and its container shows (" + JSON.stringify(rest) + ")");
+			await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
+			await page.waitForTimeout(1200);
+			const hidden = await read();
+			expect(hidden.own.includes("pane-hidden"), "Hidden stamps the token (" + JSON.stringify(hidden) + ")");
+			expectEq(hidden.rects, 0, "and the container is gone");
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForTimeout(1200);
+			const open = await read();
+			expect(!open.own.includes("pane-hidden") && open.rects === 1, "Open releases the token and the container returns (" + JSON.stringify(open) + ")");
+			// The other input: the container switched off. On the shipped pane-first
+			// desk the guard finds search, the bell and Log Out stranded and gives the
+			// pane back — the release must reach the token too, or the container would
+			// stay hidden with the declaration already gone. On a desk with a top bar
+			// the guard lets it go; either way token and declaration must agree.
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 0 }));
+			await page.waitForTimeout(1500);
+			const off = await read();
+			expectEq(
+				off.own.includes("pane-hidden"),
+				off.off.split(/\s+/).includes("sidepane"),
+				"the token agrees with the declaration after the guard's verdict (" + JSON.stringify(off) + ")"
+			);
+			expectEq(off.rects === 0, off.own.includes("pane-hidden"), "and the container follows the token, not the file order");
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 1 }));
+			await page.waitForTimeout(1500);
+			const back = await read();
+			expect(!back.own.includes("pane-hidden") && back.rects === 1, "switched back on, the container shows (" + JSON.stringify(back) + ")");
+		});
+
+		await test("sidepane: a quick-links change reaches a head menu that is open", async () => {
+			// panehead_apply MUTATED BOOT AND REPAINTED NOTHING (the settings audit of
+			// 2026-09-21, c-3 / iv-3). The flyouts are built on open, so the NEXT open
+			// was always right; an open menu was not. Measured on a workspace desk with
+			// the pane Open, page-locally; the site's value goes back through the same
+			// applier.
+			await goDesk("/app/home", "body", 3000);
+			// The premise is made, not assumed (a filtered run arrives on Top Taskbar).
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 1 }));
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForSelector(".body-sidebar .bnd-sb-head", { timeout: 15000 });
+			await page.waitForTimeout(800);
+			const site = await page.evaluate(() => (frappe.boot.bnd_panehead || {}).quick_links || "Standard");
+			await page.evaluate(() => window.bunood_theme.panehead_apply({ panehead_quick_links: "Standard" }));
+			await page.click(".body-sidebar .bnd-sb-head");
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+			const flyouts = () => page.evaluate(() => document.querySelectorAll('.bnd-menu [aria-haspopup="menu"]').length);
+			expect((await flyouts()) > 0, "premise: with Standard links the open menu has flyout rows");
+			await page.evaluate(() => window.bunood_theme.panehead_apply({ panehead_quick_links: "Off" }));
+			await page.waitForTimeout(400);
+			expect(await q(".bnd-menu"), "the menu is still open after the change");
+			expectEq(await flyouts(), 0, "and it shows Off — no flyout rows — without a second click");
+			await page.evaluate((v) => window.bunood_theme.panehead_apply({ panehead_quick_links: v }), site);
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
 		});
 
 		await test("sidepane: exactly one head renders, wherever the pane sits", async () => {
@@ -9086,6 +9208,87 @@ print("ok")
 			setSettings({ desk_layout: "Classic", topbar_enabled: 1 });
 			await goDesk("/desk/item", ".page-head", 4500);
 			expect(await visible(".bnd-topbar"), "a top bar on a Classic desk");
+		});
+
+		await test("container: one ladder, both directions — and a remount keeps the settings map placed", async () => {
+			// TWO MOUNT LADDERS (the settings audit of 2026-09-21, c-2 / v-6): boot's
+			// and the live remount's step lists had drifted apart, each missing calls
+			// the other made. One function, mount_containers, serves both now — read
+			// from the SERVED bundle (the tree would pass before a deploy), because
+			// that is the fact — and the behaviour that rides on it is measured: on the
+			// settings route with the pane Hidden, switching the page head off and on
+			// from the form leaves the settings map placed exactly once.
+			//
+			// THE PREMISE IS WRITTEN, AND PUT BACK: the page head on, the pane Open,
+			// and the bell and the profile IN the page head. With both Off (the state
+			// the check before this one leaves), the guard refuses Hidden — no route
+			// to Log Out outside the pane — which is right; a check that asked for
+			// Hidden anyway measured the guard, not the ladder (found in a family run).
+			const before = getSettings(["sidebar_enabled", "pagehead_enabled", "sidebar_pane_state", "inbox_placement", "user_placement"]);
+			try {
+				setSettings({
+					sidebar_enabled: 1,
+					pagehead_enabled: 1,
+					sidebar_pane_state: "Open",
+					inbox_placement: "Page Header End",
+					user_placement: "Page Header End",
+				});
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
+				const bundle_url = await page.evaluate(
+					() => [...document.scripts].map((n) => n.src).find((u) => /\/dist\/js\/bunood\.[0-9a-f]+\.js/.test(u)) || ""
+				);
+				expect(bundle_url, "premise: the theme bundle is on the page");
+				const src = await (await page.request.get(bundle_url)).text();
+				const body = (name) => {
+					const i = src.indexOf("function " + name + "()");
+					return i < 0 ? "" : src.slice(i, src.indexOf("\n\t}\n", i));
+				};
+				expect(
+					body("mount_chrome").includes("mount_containers();") && body("remount_chrome").includes("mount_containers();"),
+					"mount_chrome and remount_chrome both read one ladder"
+				);
+				expect(
+					!body("remount_chrome").includes("mount_topbar()") && !body("mount_chrome").includes("mount_topbar()"),
+					"and neither keeps a copy of its steps"
+				);
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
+				const count = () => page.evaluate(() => document.querySelectorAll('.page-head [data-bnd-part="settingsmap"]').length);
+				// The map reaches the head through a retrying mount: wait for it, bounded.
+				await page
+					.waitForFunction(() => document.querySelectorAll('.page-head [data-bnd-part="settingsmap"]').length === 1, undefined, { timeout: 10000 })
+					.catch(() => {});
+				expectEq(await count(), 1, "premise: with the pane Hidden the map sits in the page head");
+				await page.evaluate(() => window.bunood_theme.chrome_apply({ pagehead: 0 }));
+				await page.waitForTimeout(1200);
+				await page.evaluate(() => window.bunood_theme.chrome_apply({ pagehead: 1 }));
+				await page
+					.waitForFunction(() => document.querySelectorAll('.page-head [data-bnd-part="settingsmap"]').length >= 1, undefined, { timeout: 10000 })
+					.catch(() => {});
+				expectEq(await count(), 1, "the map is placed exactly once after the page head is switched off and on");
+				await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("container: every container that mounts stamps its marker", async () => {
+			// `dock` was a CONTAINER_TEARDOWN key whose marker was torn down and never
+			// stamped (the settings audit of 2026-09-21, D2): container_mounted("dock")
+			// had no caller while the other four stamp theirs. Page-local, put back.
+			await goDesk("/app/home", "body", 3000);
+			const boot = await page.evaluate(() => Object.assign({}, frappe.boot.bnd_chrome));
+			const keys = ["topbar", "pagehead", "bottombar", "sidepane", "dock"];
+			const on = {};
+			for (const k of keys) on[k] = 1;
+			await page.evaluate((v) => window.bunood_theme.chrome_apply(v), on);
+			// The pane's kit — and its marker — stands down while the pane is Hidden,
+			// by design; a filtered run arrives here on Top Taskbar, so open it.
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForTimeout(1500);
+			const stamped = await page.evaluate((ks) => ks.filter((k) => document.documentElement.hasAttribute("data-bnd-" + k)), keys);
+			expectEq(stamped.join(","), keys.join(","), "with every container on, every marker is stamped");
+			await page.evaluate((b) => window.bunood_theme.chrome_apply(b), boot);
+			await page.waitForTimeout(1000);
 		});
 
 		await test("container: the Top Bar layout with the top bar switched off has none", async () => {

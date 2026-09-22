@@ -32,52 +32,21 @@ WHERE IT HEALS TO
     broken table is how a heal becomes a loop. The shipped default is a value
     this app is prepared to defend on any desk.
 
-WHY IT IS SAFE TO RUN FOREVER
+WHY IT IS SAFE TO RUN FOREVER — AND WHERE IT ACTUALLY DOES
     It is a no-op on a healthy site — every value is already an option — so it
-    costs one read per placement field and writes nothing. It stays in
-    `patches.txt` rather than being deleted after one release, because the
-    class of fault it repairs is "a slot stopped being offered", and that will
-    happen again the next time the vocabulary is narrowed.
+    costs one read per field and writes nothing. This text used to say it
+    "stays in patches.txt" so as to run again; Frappe records a patch as run
+    and never re-runs it, so on every site that had migrated past 0.11.0 it ran
+    exactly once. Since 2026-09-21 (the settings audit, v-8) the body lives in
+    ``setup.heal_unknown_selects``, WIDENED from the placement fields to every
+    Select, and ``after_migrate`` calls it on every migrate. This module is its
+    once-per-site position in the order — LAST, after every patch that writes a
+    Select — and delegates.
 """
 
-import frappe
-
-from bunood_theme.registry import COMPONENTS, TENANT, slots_for
-
-_SQL = "select value from tabSingles where doctype = %s and field = %s"
 
 
 def execute() -> None:
-    from bunood_theme.setup import SHIPPED
+    from bunood_theme.setup import heal_unknown_selects
 
-    for component in COMPONENTS:
-        if component["type"] != TENANT:
-            continue
-        field = f"{component['key']}_placement"
-        rows = frappe.db.sql(_SQL, ("Theme Settings", field))
-        if not rows:
-            continue  # never set; the seeder writes a current value
-        current = rows[0][0]
-        legal = slots_for(component["key"])
-        if current in legal:
-            continue
-        fallback = SHIPPED.get(field)
-        if fallback not in legal:
-            # The shipped default is itself not an option. That is a build
-            # fault, not a site fault, and overwriting a user's value with a
-            # second illegal one would only move the damage. Say so and leave
-            # it: the smoke suite asserts SHIPPED against `slots_for`, so this
-            # branch means that assertion has been bypassed.
-            frappe.log_error(
-                title="bunood_theme: no legal default for " + field,
-                message=f"stored {current!r}, shipped {fallback!r}, offered {legal!r}",
-            )
-            continue
-        # update_modified=False: a migration is not a user's edit, and bumping
-        # `modified` strands every open Theme Settings form — its next save
-        # dies with TimestampMismatchError. See setup._seed_defaults.
-        frappe.db.set_single_value(
-            "Theme Settings", field, fallback, update_modified=False
-        )
-        print(f"  bunood_theme: {field} {current!r} is not offered -> {fallback!r}")
-    frappe.db.commit()
+    heal_unknown_selects()

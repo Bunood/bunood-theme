@@ -181,13 +181,15 @@ html[data-bnd-own~="panehead"] .desktop-navbar .navbar-home {
 //   `data-bnd-desk` and `data-bnd-search` — declarations with no release
 //   path — and deliberately not this one.
 //
-// !important is REQUIRED, not casual: Frappe's sidebar JS writes
-// `style="display: block"` INLINE on this node (measured 2026-07-30) and no
-// selector specificity beats an inline style. One of the two sanctioned uses.
+// THE CONTAINER ITSELF IS HIDDEN BY ONE RULE, IN _sidebar.scss, keyed on the
+// ownership token `pane-hidden` that bunood.js's arbiter (sb_sync_pane_hidden)
+// stamps for this declaration and for the Hidden pane state alike. Until the
+// settings audit of 2026-09-21 (v-5) this file carried its own
+// `display: none !important` for the same node at (0,2,1) beside that file's
+// at (0,3,1): two settings, two rules, and a winner nobody had decided. The
+// token is stamped in the same load-time call that stamps this attribute, so
+// the no-flash argument above holds for it unchanged.
 html[data-bnd-chrome-off~="sidepane"] {
-  .body-sidebar-container {
-    display: none !important;
-  }
   // The hamburger that toggles a sidebar that is no longer there.
   .page-title .sidebar-toggle-btn {
     display: none;

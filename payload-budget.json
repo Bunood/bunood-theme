@@ -175,11 +175,12 @@
 		"walks a real instance s prototype chain instead. 43 gzip bytes after the",
 		"argument moved to surfaces/_charts.scss, which Sass strips.",
 		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager.",
-		"AND js 131400 -> 132200 for the settings audit of 2026-09-21, slice C (decisions i-2 and i-3): the pane gesture WRITES the per-user pane state it had only ever read (bnd_pane_state was declared, read at boot and written by nothing, so the Hide button forgot on reload); follow_site, the one clearer every override note on the settings page calls; and the Appearance dialog's pane row. ~605 gzip measured. The width setter and the pane setter both keep boot's overrides map current, which is what lets the form preview through the reader's own desk instead of re-stamping the site row over it."
+		"AND js 131400 -> 132200 for the settings audit of 2026-09-21, slice C (decisions i-2 and i-3): the pane gesture WRITES the per-user pane state it had only ever read (bnd_pane_state was declared, read at boot and written by nothing, so the Hide button forgot on reload); follow_site, the one clearer every override note on the settings page calls; and the Appearance dialog's pane row. ~605 gzip measured. The width setter and the pane setter both keep boot's overrides map current, which is what lets the form preview through the reader's own desk instead of re-stamping the site row over it.",
+		"AND js 132200 -> 132800 for the settings audit of 2026-09-21, slice D1 (decisions v-5, v-6, v-8, iv-3): one container ladder (mount_containers) read by boot and the live remount, one hide for the pane container keyed on the pane-hidden ownership token with its arbiter (sb_sync_pane_hidden / sb_stamp_panestate), the pane head applier rebuilding an open menu, and the dock stamping its marker; the legacy-label tolerance and the unreachable LAYOUT_CONTAINERS table came out. Measured 132,714: the growth is the three docblocks (comments ship in this bundle) — slice E returns ~450 of it with the rail button, and the ceiling is re-measured at the series' end."
 	],
 	"ceiling": {
 		"css_gzip": 28500,
-		"js_gzip": 132200,
+		"js_gzip": 132800,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
