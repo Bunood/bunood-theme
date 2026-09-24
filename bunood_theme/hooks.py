@@ -118,6 +118,15 @@ doc_events = {
         # cached map; drop it when a DocType's icon could have changed.
         "on_update": "bunood_theme.api.clear_icon_cache",
     },
+    "Sales Invoice": {
+        "validate": "bunood_theme.rounding.enforce_exact_halalas",
+    },
+    "Purchase Invoice": {
+        "validate": "bunood_theme.rounding.enforce_exact_halalas",
+    },
+    "POS Invoice": {
+        "validate": "bunood_theme.rounding.enforce_exact_halalas",
+    },
 }
 
 # ── Print Jinja helpers ─────────────────────────────────────────────────────────

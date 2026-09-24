@@ -273,6 +273,10 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_studio_js = STUDIO_JS
 
+        from bunood_theme.assets import POS_CSS, POS_JS
+
+        bootinfo.bnd_pos_css = POS_CSS
+        bootinfo.bnd_pos_js = POS_JS
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them
