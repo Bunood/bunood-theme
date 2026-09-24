@@ -1132,6 +1132,76 @@ html[data-bnd-form-stage="path"][data-bnd-own~="stagepath"]
 // class that does not exist in this bundle.
 
 // ── The pinned foot (item 43 A8c) ───────────────────────────────────────────
+// Shared sticky action edge for native and Advanced forms. Purpose-built
+// Simple workbenches keep their own toolbar and do not mount this bar.
+body[data-route^="Form"] .bnd-form-actionbar {
+  position: sticky;
+  inset-block-start: var(--page-head-height);
+  z-index: var(--bnd-z-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2) var(--bnd-sp-4);
+  min-block-size: calc(var(--bnd-control-h) + var(--bnd-sp-4));
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  background: var(--bnd-surface);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-own~="docbar"] body[data-route^="Form"] .page-actions .primary-action { display: none; }
+.bnd-form-actionbar-identity,
+.bnd-form-actionbar-actions { display: flex; align-items: center; gap: var(--bnd-sp-2); min-inline-size: 0; }
+.bnd-form-actionbar-identity { flex: 1 1 10rem; }
+.bnd-form-actionbar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--bnd-text-sm); }
+.bnd-form-actionbar-state { flex: none; color: var(--bnd-ink-muted); font-size: var(--bnd-text-xs); }
+.bnd-form-actionbar-actions { flex: 0 0 auto; margin-inline-start: auto; }
+.bnd-form-actionbar-actions > button,
+.bnd-form-actionbar-more > summary { min-block-size: var(--bnd-control-h); }
+.bnd-form-actionbar-actions > button[hidden],
+.bnd-form-actionbar-menu > button[hidden] { display: none; }
+.bnd-form-actionbar-more { position: relative; }
+.bnd-form-actionbar-more > summary { display: inline-flex; align-items: center; cursor: pointer; list-style: none; }
+.bnd-form-actionbar-more > summary::-webkit-details-marker { display: none; }
+.bnd-form-actionbar-menu {
+  position: absolute;
+  inset-block-start: calc(100% + var(--bnd-sp-1));
+  inset-inline-end: 0;
+  z-index: var(--bnd-z-panel);
+  display: grid;
+  inline-size: max-content;
+  min-inline-size: 10rem;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  box-shadow: var(--bnd-shadow-md);
+}
+.bnd-form-actionbar-menu > button {
+  inline-size: 100%;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 0;
+  border-radius: var(--bnd-radius-sm);
+  color: var(--bnd-ink);
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+.bnd-form-actionbar-menu > button:hover { background: var(--bnd-hover); }
+html[data-theme] :is(
+  .bnd-form-actionbar-primary,
+  .bnd-form-actionbar-print,
+  .bnd-form-actionbar-menu-print,
+  .bnd-form-actionbar-draft,
+  .bnd-form-actionbar-new
+):focus-visible { outline: 2px solid var(--bnd-accent); outline-offset: 1px; }
+.bnd-form-actionbar-more > summary:focus-visible { outline: 2px solid var(--bnd-accent); outline-offset: 1px; }
+@include bnd-from(sm) { .bnd-form-actionbar-menu-print { display: none; } }
+@include bnd-until(sm) {
+  .bnd-form-actionbar-actions { inline-size: 100%; justify-content: flex-end; }
+  .bnd-form-actionbar-actions > button { flex: 1 1 auto; }
+  .bnd-form-actionbar-print { display: none; }
+}
+
 // The status bar's own idiom: fixed, inset by the pane's live width, lifted
 // above whatever chrome is already at the edge by a measured custom property
 // bunood.js writes inline (declared here at 0 for the phantom-token guard).

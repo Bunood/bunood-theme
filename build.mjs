@@ -2056,6 +2056,16 @@ const JS_ENTRIES = [
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
 ];
 
+// Keep the shared native-form actions testable as a focused source file while
+// shipping them with the global desk entry. Invoice workbenches are separate.
+const DESK_JS_SOURCES = ["bunood.js", "document_actions.js"];
+
+async function readDeskJs() {
+	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))
+		.join("\n")
+		.replace(/\r\n/g, "\n");
+}
+
 /**
  * Hash and copy one JS entry to dist, reaping older hashes of the same entry.
  * Mirrors buildEntry() for CSS; kept separate because the compile step differs.
@@ -2065,7 +2075,7 @@ async function buildJsEntry({ key, src, pyid }) {
 	// Normalize to LF before hashing: a CRLF Windows checkout and CI's LF
 	// checkout must produce the SAME content hash, or the dist-drift gate
 	// fails on every push made from Windows (CI run #1 did exactly that).
-	const source = (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
+	const source = (key === "bunood" ? await readDeskJs() : await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
 	const digest = hash8(source);
 	const filename = `${key}.${digest}.js`;
 

@@ -174,11 +174,12 @@
 		"because frappe.Chart is a factory and does not own makeChartArea. The guard",
 		"walks a real instance s prototype chain instead. 43 gzip bytes after the",
 		"argument moved to surfaces/_charts.scss, which Sass strips.",
-		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager."
+		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager.",
+		"The shared native form action contract and sticky bar delegate save/submit to Frappe's native form methods. Main's measured desk JS rises from 131176 to 134203 gzip bytes; the new 134400 ceiling allows 197 bytes of headroom."
 	],
 	"ceiling": {
 		"css_gzip": 31500,
-		"js_gzip": 131400,
+		"js_gzip": 134400,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
