@@ -58,6 +58,7 @@ const LEDGER = join(ROOT, "payload-budget.json");
  * repeat this. Add the file to a bucket, or the build fails and says so.
  */
 const BUCKETS = [
+	{ dir: ["css"], prefix: "bnd-studio.", key: "studio_css" },
 	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
 	{ dir: ["css"], prefix: "bunood-email.", key: "email_css" },
 	// Substitution INPUT, not wire bytes: printing/sheet.py reads this file and
@@ -118,7 +119,8 @@ export function measure() {
  * history row's comparability at the release that introduced a second sheet.
  */
 export const CEILING_KEYS = [
-	"css_gzip", "js_gzip", "report_js_gzip", "studio_js_gzip", "web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
+	"css_gzip", "js_gzip", "report_js_gzip", "studio_js_gzip", "studio_css_gzip",
+	"web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
 ];
 
 /**

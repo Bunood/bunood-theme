@@ -18,11 +18,15 @@
 //
 // WHY EVERYTHING IS SCOPED UNDER .bnd-studio
 //   This surface owns its DOM outright, so it needs no specificity war with
-//   Frappe — the html[data-theme] prefix is kept anyway for consistency with
-//   every other partial and so any Frappe variable read here stays mode-safe.
+//   Frappe. Do not gate the surface behind html[data-theme]: that attribute is
+//   applied asynchronously by Desk and can be absent in an existing session.
+//   Gating here turns the whole catalogue into raw controls and lets intrinsic
+//   SVG dimensions fill the viewport. Theme tokens still switch light/dark
+//   when the attribute is present; the usable base layout must not depend on it.
 // ============================================================================
+@use "../breakpoints" as bp;
 
-html[data-theme] .bnd-studio {
+.bnd-studio {
 	--bnd-studio-cat: var(--bnd-brand);
 
 	max-inline-size: 88rem;
@@ -33,7 +37,17 @@ html[data-theme] .bnd-studio {
 
 	// ── Hero ────────────────────────────────────────────────────────────────
 	.bnd-studio__hero {
+		display: flex;
+		align-items: end;
+		justify-content: space-between;
+		gap: var(--bnd-sp-5);
 		margin-block-end: var(--bnd-sp-5);
+		padding-block-end: var(--bnd-sp-4);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+	}
+
+	.bnd-studio__hero-copy {
+		min-inline-size: 0;
 	}
 
 	.bnd-studio__title {
@@ -47,6 +61,18 @@ html[data-theme] .bnd-studio {
 		margin-block: var(--bnd-sp-1) 0;
 		color: var(--bnd-ink-muted);
 		font-size: var(--bnd-text-md);
+	}
+
+	.bnd-studio__hero-count {
+		flex: none;
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		font-variant-numeric: tabular-nums;
 	}
 
 	// ── Domain rail ─────────────────────────────────────────────────────────
@@ -64,7 +90,7 @@ html[data-theme] .bnd-studio {
 		padding-block: var(--bnd-sp-2);
 		padding-inline: var(--bnd-sp-4);
 		border: 1px solid var(--bnd-border);
-		border-radius: var(--bnd-radius-pill);
+		border-radius: var(--bnd-radius-md);
 		background: var(--bnd-surface);
 		color: var(--bnd-ink);
 		font-size: var(--bnd-text-md);
@@ -79,9 +105,10 @@ html[data-theme] .bnd-studio {
 		}
 
 		&.is-active {
-			background: var(--bnd-brand-solid);
+			background: var(--bnd-active);
 			border-color: var(--bnd-brand-solid);
-			color: var(--bnd-on-brand);
+			color: var(--bnd-brand-ink);
+			box-shadow: inset 0 calc(var(--bnd-line-strong) * -1) 0 var(--bnd-brand-solid);
 		}
 
 		&.is-soon {
@@ -108,16 +135,37 @@ html[data-theme] .bnd-studio {
 		font-size: var(--bnd-text-xs);
 		padding-block: 0;
 		padding-inline: var(--bnd-sp-2);
-		border-radius: var(--bnd-radius-pill);
+		border-radius: var(--bnd-radius-sm);
 		background: var(--bnd-pane);
 		color: var(--bnd-ink-muted);
 	}
 
 	// ── Gallery grid ────────────────────────────────────────────────────────
+	.bnd-studio__gallery-tools {
+		display: flex;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		margin-block-end: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__gallery-tools .bnd-studio__count {
+		margin-inline-start: auto;
+	}
+
 	.bnd-studio__grid {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
 		gap: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__gallery-empty {
+		grid-column: 1 / -1;
+		margin: 0;
+		padding: var(--bnd-sp-6);
+		border: var(--bnd-line) dashed var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		color: var(--bnd-ink-muted);
+		text-align: center;
 	}
 
 	.bnd-studio__card {
@@ -127,14 +175,10 @@ html[data-theme] .bnd-studio {
 		gap: var(--bnd-sp-4);
 		padding: var(--bnd-sp-4);
 		border: 1px solid var(--bnd-border);
-		border-radius: var(--bnd-radius-xl);
-		background:
-			linear-gradient(
-				135deg,
-				color-mix(in srgb, var(--bnd-studio-cat) 9%, var(--bnd-surface)),
-				var(--bnd-surface) 45%
-			);
-		box-shadow: var(--bnd-shadow-sm);
+		border-radius: var(--bnd-radius-md);
+		border-block-start: var(--bnd-line-strong) solid var(--bnd-studio-cat);
+		background: var(--bnd-surface);
+		box-shadow: none;
 		color: inherit;
 		text-align: start;
 		cursor: pointer;
@@ -144,8 +188,8 @@ html[data-theme] .bnd-studio {
 			border-color var(--bnd-dur-base) var(--bnd-ease);
 
 		&:hover:not(:disabled) {
-			transform: translateY(calc(var(--bnd-sp-1) * -0.5));
-			box-shadow: var(--bnd-shadow-md);
+			transform: translateY(calc(var(--bnd-sp-1) * -0.25));
+			box-shadow: var(--bnd-shadow-sm);
 			border-color: color-mix(in srgb, var(--bnd-studio-cat) 45%, var(--bnd-border));
 
 			.bnd-studio__card-go {
@@ -188,6 +232,12 @@ html[data-theme] .bnd-studio {
 		min-inline-size: 0;
 	}
 
+	.bnd-studio__card-domain {
+		color: color-mix(in srgb, var(--bnd-studio-cat) 76%, var(--bnd-ink));
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-medium);
+	}
+
 	.bnd-studio__card-title {
 		font-size: var(--bnd-text-lg);
 		font-weight: var(--bnd-weight-medium);
@@ -199,11 +249,18 @@ html[data-theme] .bnd-studio {
 		line-height: var(--bnd-leading-base);
 	}
 
+	.bnd-studio__card-status {
+		align-self: flex-start;
+		margin-block-start: var(--bnd-sp-1);
+		color: var(--bnd-critical);
+		font-size: var(--bnd-text-xs);
+	}
+
 	.bnd-studio__card-go {
 		margin-inline-start: auto;
 		color: var(--bnd-ink-subtle);
-		opacity: 0;
-		translate: calc(var(--bnd-sp-2) * -1) 0;
+		opacity: 0.72;
+		translate: 0;
 		transition:
 			opacity var(--bnd-dur-base) var(--bnd-ease),
 			translate var(--bnd-dur-base) var(--bnd-ease);
@@ -225,7 +282,7 @@ html[data-theme] .bnd-studio {
 		padding-block: var(--bnd-sp-2);
 		padding-inline: var(--bnd-sp-3);
 		border: 1px solid var(--bnd-border);
-		border-radius: var(--bnd-radius-pill);
+		border-radius: var(--bnd-radius-md);
 		background: var(--bnd-surface);
 		color: var(--bnd-ink-muted);
 		font-size: var(--bnd-text-sm);
@@ -274,9 +331,24 @@ html[data-theme] .bnd-studio {
 			background: var(--bnd-hover);
 		}
 
+		&.is-primary {
+			border-color: var(--bnd-brand-solid);
+			background: var(--bnd-brand-solid);
+			color: var(--bnd-on-brand);
+
+			&:hover {
+				background: color-mix(in srgb, var(--bnd-brand-solid) 88%, var(--bnd-ink));
+			}
+		}
+
 		&.is-quiet {
 			border-color: transparent;
 			color: var(--bnd-ink-muted);
+		}
+
+		&:disabled {
+			opacity: 0.48;
+			cursor: not-allowed;
 		}
 	}
 
@@ -284,9 +356,26 @@ html[data-theme] .bnd-studio {
 	.bnd-studio__controls {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--bnd-sp-3);
+		align-items: end;
+		gap: var(--bnd-sp-4);
 		margin-block-end: var(--bnd-sp-4);
+		padding: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-raised);
+	}
+
+	.bnd-studio__control-group {
+		display: flex;
+		flex-direction: column;
+		gap: var(--bnd-sp-1);
+		min-inline-size: 0;
+	}
+
+	.bnd-studio__control-label {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-medium);
 	}
 
 	.bnd-studio__chips {
@@ -295,7 +384,7 @@ html[data-theme] .bnd-studio {
 		gap: calc(var(--bnd-sp-1) / 2);
 		padding: calc(var(--bnd-sp-1) / 2);
 		border: 1px solid var(--bnd-border);
-		border-radius: var(--bnd-radius-pill);
+		border-radius: var(--bnd-radius-md);
 		background: var(--bnd-pane);
 	}
 
@@ -303,7 +392,7 @@ html[data-theme] .bnd-studio {
 		padding-block: var(--bnd-sp-1);
 		padding-inline: var(--bnd-sp-3);
 		border: none;
-		border-radius: var(--bnd-radius-pill);
+		border-radius: var(--bnd-radius-sm);
 		background: transparent;
 		color: var(--bnd-ink-muted);
 		font-size: var(--bnd-text-sm);
@@ -493,6 +582,11 @@ html[data-theme] .bnd-studio {
 			outline: var(--bnd-line-2) solid color-mix(in srgb, var(--bnd-accent) 55%, transparent);
 			outline-offset: var(--bnd-focus-offset);
 		}
+	}
+
+	.bnd-studio__gallery-tools .bnd-studio__search:is(input) {
+		inline-size: min(100%, 28rem);
+		max-inline-size: none;
 	}
 
 	.bnd-studio__count {
@@ -739,6 +833,111 @@ html[data-theme] .bnd-studio {
 			color: var(--bnd-critical);
 		}
 	}
+
+	.bnd-studio__error-actions {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--bnd-sp-2);
+		margin-block-start: var(--bnd-sp-2);
+	}
+}
+
+@media (width < bp.bnd-bp(md)) {
+	.bnd-studio {
+		padding-inline: var(--bnd-sp-3);
+
+		.bnd-studio__viewhead {
+			align-items: flex-start;
+		}
+
+		.bnd-studio__heading {
+			flex: 1 1 16rem;
+		}
+
+		.bnd-studio__actions {
+			flex: 1 0 100%;
+			margin-inline-start: 0;
+		}
+
+		.bnd-studio__action {
+			flex: 1 1 auto;
+		}
+
+		.bnd-studio__control-group:first-child {
+			inline-size: 100%;
+		}
+
+		.bnd-studio__chips {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			inline-size: 100%;
+		}
+
+		.bnd-studio__chip {
+			min-block-size: var(--bnd-control-h);
+		}
+	}
+}
+
+@media (width < bp.bnd-bp(sm)) {
+	.bnd-studio {
+		.bnd-studio__hero {
+			align-items: flex-start;
+			flex-direction: column;
+			gap: var(--bnd-sp-3);
+		}
+
+		.bnd-studio__gallery-tools {
+			align-items: stretch;
+			flex-direction: column;
+		}
+
+		.bnd-studio__gallery-tools .bnd-studio__count {
+			margin-inline-start: 0;
+		}
+
+		.bnd-studio__gallery-tools .bnd-studio__search {
+			flex: none;
+			inline-size: 100%;
+			min-block-size: var(--bnd-control-h);
+		}
+
+		.bnd-studio__domains {
+			flex-wrap: nowrap;
+			overflow-x: auto;
+			padding-block-end: var(--bnd-sp-1);
+		}
+
+		.bnd-studio__domain {
+			flex: none;
+		}
+
+		.bnd-studio__grid {
+			grid-template-columns: 1fr;
+			gap: var(--bnd-sp-3);
+		}
+
+		.bnd-studio__card {
+			gap: var(--bnd-sp-3);
+			padding: var(--bnd-sp-3);
+		}
+
+		.bnd-studio__glyph {
+			inline-size: var(--bnd-sp-7);
+			block-size: var(--bnd-sp-7);
+		}
+
+		.bnd-studio__controls,
+		.bnd-studio__control-group,
+		.bnd-studio__company {
+			inline-size: 100%;
+		}
+
+		.bnd-studio__chips {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
 }
 
 @keyframes bnd-studio-shimmer {
@@ -754,7 +953,7 @@ html[data-theme] .bnd-studio {
 // ── Presentation mode ─────────────────────────────────────────────────────
 // Fullscreen the surface for a meeting: the KPIs and the chart carry the
 // story; the table steps back. Scoped on the modifier the JS toggles.
-html[data-theme] .bnd-studio--present {
+.bnd-studio--present {
 	background: var(--bnd-page);
 	max-inline-size: none;
 	padding-inline: var(--bnd-sp-7);
@@ -809,7 +1008,7 @@ html[data-theme] .bnd-studio--present {
 		background: var(--bnd-surface);
 	}
 
-	html[data-theme] .bnd-studio {
+	.bnd-studio {
 		max-inline-size: none;
 		padding: 0;
 		// مساحة لذيل الصفحة الثابت كي لا يركب آخر سطر.

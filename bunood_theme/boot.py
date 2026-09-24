@@ -264,9 +264,10 @@ def extend_bootinfo(bootinfo):
 
         # Report Studio is deliberately not part of every desk page. Its route
         # loads this immutable asset only when opened.
-        from bunood_theme.assets import STUDIO_JS
+        from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
 
         bootinfo.bnd_studio_js = STUDIO_JS
+        bootinfo.bnd_studio_css = STUDIO_CSS
 
         # Frappe's query-report controller is a preloaded standard page, so its
         # Page record hook is never fetched on route entry. Expose the separately

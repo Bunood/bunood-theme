@@ -37,6 +37,15 @@ from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, 
 
 from bunood_theme.home_metrics import build_home_kpis, home_metric_contract
 
+
+@frappe.whitelist(methods=["GET"])
+def get_report_studio_assets() -> dict:
+    """Return current immutable assets for a Desk session with stale boot hashes."""
+
+    from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
+
+    return {"css": STUDIO_CSS, "js": STUDIO_JS}
+
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
 CACHE_WS_MAP = "bnd_doctype_workspace_map"
