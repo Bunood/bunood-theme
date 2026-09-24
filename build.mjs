@@ -108,6 +108,7 @@ const ENTRIES = [
 	// properties and nothing rtlcss-processes an inline Print Style), carrying
 	// `assertPrintSafeCss` instead — see that guard for the whole argument.
 	{ key: "bunood-print", src: "print/print.scss", pyid: "PRINT_CSS" },
+	{ key: "bnd-report-landing", src: "report_landing.scss", pyid: "REPORT_LANDING_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -2054,6 +2055,7 @@ const JS_ENTRIES = [
 	// page frappe.require()s it on first visit — the global desk payload pays
 	// nothing. Still a plain hashed copy: the no-esbuild policy holds.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+	{ key: "bnd-report-landing", src: "report_landing.js", pyid: "REPORT_LANDING_JS" },
 ];
 
 // Capability controllers stay testable as focused source files while shipping
