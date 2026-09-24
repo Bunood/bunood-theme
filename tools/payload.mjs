@@ -75,6 +75,8 @@ const BUCKETS = [
 	{ dir: ["js"], prefix: "bnd-report-landing.", key: "report_landing_js" },
 	// The bank-reconciliation page loads this bundle only when opened.
 	{ dir: ["js"], prefix: "bnd-banking.", key: "banking_js" },
+	{ dir: ["js"], prefix: "bnd-finance-close.", key: "finance_close_js" },
+	{ dir: ["js"], prefix: "bnd-journal-workbench.", key: "journal_workbench_js" },
 ];
 
 export function measure() {
@@ -124,6 +126,7 @@ export function measure() {
 export const CEILING_KEYS = [
 	"css_gzip", "js_gzip", "studio_js_gzip", "studio_css_gzip",
 	"report_landing_css_gzip", "report_landing_js_gzip", "banking_js_gzip",
+	"finance_close_js_gzip", "journal_workbench_js_gzip",
 	"web_css_gzip", "email_css_gzip", "print_css_gzip",
 ];
 

@@ -1775,3 +1775,27 @@ def create_bank_statement_import(company: str, bank_account: str) -> dict:
         company=company,
         bank_account=bank_account,
     )
+
+
+@frappe.whitelist()
+def journal_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native Journal Entry work queues."""
+    from bunood_theme.journal_workbench import get_journal_workbench
+
+    return get_journal_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native close evidence."""
+    from bunood_theme.finance_close import get_finance_close_cockpit
+
+    return get_finance_close_cockpit(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )

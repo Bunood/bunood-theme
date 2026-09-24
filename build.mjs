@@ -2059,6 +2059,8 @@ const JS_ENTRIES = [
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
 	{ key: "bnd-report-landing", src: "report_landing.js", pyid: "REPORT_LANDING_JS" },
 	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
+	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
+	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
 ];
 
 // Capability controllers stay testable as focused source files while shipping

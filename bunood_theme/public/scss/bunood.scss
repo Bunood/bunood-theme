@@ -107,6 +107,8 @@
 // Bank reconciliation page (bnd-banking). Its JS is route-loaded; the
 // surface rides the global sheet as the capability shipped it.
 @use "surfaces/banking";
+// Finance close and journal workbench pages share one surface in the global sheet.
+@use "surfaces/finance_close";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";

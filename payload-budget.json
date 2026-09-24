@@ -1,6 +1,7 @@
 {
 	"_readme": [
 		"Capability branch: the bank-reconciliation page adds a route-scoped JavaScript bundle capped at 5,000 gzip bytes. Its scoped Desk rules measure 31,671 gzip bytes on main, raising that ceiling from 31,500 to 31,800.",
+		"Capability branch: finance close and journal review are route-scoped JavaScript bundles with independent 3,700 and 4,500 gzip-byte caps. Their shared finance-page styles measure Desk CSS at 31,563 gzip bytes on main, moving its ceiling from 31,500 to 31,700.",
 		"The payload budget (GUIDELINES §2.5). `ceiling` is a HARD gate on the",
 		"built bundle's gzip bytes — tools/payload.mjs --check fails when the",
 		"build crosses it, and the suite runs that check on every verify.",
@@ -180,10 +181,11 @@
 		"The shared native form action contract and sticky bar delegate save/submit to Frappe's native form methods. Main's measured desk JS rises from 131176 to 134203 gzip bytes; the new 134400 ceiling allows 197 bytes of headroom.",
 		"INTEGRATION v0.48.0: both capabilities ship in the one desk entry, so their raises add: js 131400 + 1700 (list queues) + 3000 (form actions) = 136100. Re-measured after the combined build; see the integration commit.",
 		"INTEGRATION v0.48.0: reports-dashboard's own +150 on js (its route loader in the desk entry) added to the summed ceiling: 136100 + 150 = 136250.",
-		"INTEGRATION v0.48.0: banking raises css 31500 -> 31800 (its surface in the global sheet) and adds banking_js_gzip 5000 for its route bundle; js keeps the summed 136250."
+		"INTEGRATION v0.48.0: banking raises css 31500 -> 31800 (its surface in the global sheet) and adds banking_js_gzip 5000 for its route bundle; js keeps the summed 136250.",
+		"INTEGRATION v0.48.0: finance-operations adds its +200 css to banking's: 31500 + 300 + 200 = 32000; finance_close_js_gzip 3700 and journal_workbench_js_gzip 4500 kept as shipped."
 	],
 	"ceiling": {
-		"css_gzip": 31800,
+		"css_gzip": 32000,
 		"js_gzip": 136250,
 		"studio_js_gzip": 27000,
 		"report_landing_css_gzip": 3100,
@@ -191,6 +193,8 @@
 		"studio_css_gzip": 5800,
 		"web_css_gzip": 4200,
 		"banking_js_gzip": 5000,
+		"finance_close_js_gzip": 3700,
+		"journal_workbench_js_gzip": 4500,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
 	},

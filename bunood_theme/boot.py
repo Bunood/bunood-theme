@@ -282,6 +282,11 @@ def extend_bootinfo(bootinfo):
         from bunood_theme.assets import BANKING_JS
 
         bootinfo.bnd_banking_js = BANKING_JS
+        # Accounting workbenches load only on their dedicated Page routes.
+        from bunood_theme.assets import FINANCE_CLOSE_JS, JOURNAL_WORKBENCH_JS
+
+        bootinfo.bnd_finance_close_js = FINANCE_CLOSE_JS
+        bootinfo.bnd_journal_workbench_js = JOURNAL_WORKBENCH_JS
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them

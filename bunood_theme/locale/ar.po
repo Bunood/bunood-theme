@@ -7959,3 +7959,733 @@ msgstr "ليست لديك صلاحية استيراد كشوف الحساب ال
 #, fuzzy
 msgid "You do not have permission to read bank transactions"
 msgstr "ليست لديك صلاحية عرض المعاملات البنكية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Bank, AR/AP, stock, assets and tax"
+msgstr "البنوك والذمم المدينة والدائنة والمخزون والأصول والضرائب"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Each report opens with native permissions. Apply the same company, dates, currency, Finance Book and dimensions before comparing figures."
+msgstr "يُفتح كل تقرير وفق الصلاحيات الأصلية. طبّق الشركة والتواريخ والعملة والدفتر المالي والأبعاد نفسها قبل مقارنة الأرقام."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Journals, schedules and review"
+msgstr "القيود والجداول والمراجعة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No accounting record was changed. Review the error, then try again."
+msgstr "لم يتغير أي سجل محاسبي. راجع الخطأ ثم حاول مرة أخرى."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Open the native document to review account rows, parties, references, currencies, dimensions, attachments and approval history."
+msgstr "افتح المستند الأصلي لمراجعة سطور الحسابات والأطراف والمراجع والعملات والأبعاد والمرفقات وسجل الاعتماد."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Prepare, review and trace accounting adjustments without hiding native controls or creating a second ledger."
+msgstr "حضّر التسويات المحاسبية وراجعها وتتبعها من دون إخفاء الضوابط الأصلية أو إنشاء دفتر أستاذ ثانٍ."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "See what needs attention, review the same reporting boundary, then use ERPNext's native controls. Bunood does not certify the books."
+msgstr "اعرف ما يحتاج إلى الانتباه، وراجع نطاق التقارير نفسه، ثم استخدم ضوابط ERPNext الأصلية. لا تصادق بنود على الدفاتر."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Templates prefill structure only. The resulting Journal Entry still needs amounts, evidence, balance review and native submission."
+msgstr "تملأ القوالب الهيكل فقط. يظل قيد اليومية الناتج بحاجة إلى المبالغ والأدلة ومراجعة التوازن والترحيل الأصلي."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "These are evidence stages, not completion badges. Not evaluated remains different from complete."
+msgstr "هذه مراحل للأدلة وليست شارات اكتمال. تظل حالة «لم يُقيّم» مختلفة عن «مكتمل»."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "These routes retain native permissions, validation, posting and audit history."
+msgstr "تحافظ هذه المسارات على الصلاحيات والتحقق والترحيل وسجل التدقيق الأصلي."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Use Payment Entry for bank or cash, party allocation and invoice settlement."
+msgstr "استخدم سند الدفع للبنك أو النقد، وتخصيص الطرف، وتسوية الفاتورة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Use Purchase Invoice so tax, supplier, stock and payable balances remain connected."
+msgstr "استخدم فاتورة المشتريات لتبقى الضريبة والمورد والمخزون وأرصدة الدائنين مترابطة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Use Sales Invoice so tax, customer, stock and receivable balances remain connected."
+msgstr "استخدم فاتورة المبيعات لتبقى الضريبة والعميل والمخزون وأرصدة المدينين مترابطة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Your controls are unchanged. Review the error, then try again."
+msgstr "لم تتغير ضوابطك. راجع الخطأ ثم حاول مرة أخرى."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "1. Source capture"
+msgstr "١. التقاط المصادر"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "2. Reconciliations"
+msgstr "٢. التسويات"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "3. Adjustments"
+msgstr "٣. التعديلات"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "4. Statements"
+msgstr "٤. القوائم المالية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "5. Period protection"
+msgstr "٥. حماية الفترة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "A Journal Entry is for deliberate accounting adjustments. Routine invoices and money movements belong in their purpose-built native documents."
+msgstr "يُستخدم قيد اليومية للتسويات المحاسبية المقصودة. أما الفواتير والحركات النقدية المعتادة فلها مستنداتها الأصلية المخصصة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "A native posting restriction covers this period. Reconciliations and approval still require review."
+msgstr "يوجد قيد ترحيل أصلي يغطي هذه الفترة. ولا تزال التسويات والموافقة بحاجة إلى مراجعة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Accounting dimensions"
+msgstr "الأبعاد المحاسبية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Accounting handoffs"
+msgstr "مسارات العمل المحاسبية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Accounting Period"
+msgstr "الفترة المحاسبية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Accounting Periods"
+msgstr "الفترات المحاسبية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Accounts frozen through"
+msgstr "الحسابات مجمّدة حتى"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Accrual or adjustment"
+msgstr "استحقاق أو تسوية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "All schedules"
+msgstr "كل الجداول"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "All templates"
+msgstr "كل القوالب"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Attention needed"
+msgstr "يلزم الانتباه"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Attention now"
+msgstr "ما يحتاج الانتباه الآن"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Auto Repeat creates native documents on a schedule. Review whether generated entries remain drafts or submit automatically."
+msgstr "ينشئ التكرار التلقائي مستندات أصلية وفق جدول. راجع ما إذا كانت القيود الناتجة تبقى مسودات أو تُرحّل تلقائيًا."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Auto Repeat"
+msgstr "التكرار التلقائي"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Balanced drafts still require an authorised review and native submission before they affect the ledger."
+msgstr "تبقى المسودات المتوازنة بحاجة إلى مراجعة معتمدة وترحيل أصلي قبل أن تؤثر في دفتر الأستاذ."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Broad Company posting cut-off; authorised roles may bypass it."
+msgstr "تاريخ إيقاف ترحيل عام للشركة؛ يمكن للأدوار المخوّلة تجاوزه."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Cash Flow"
+msgstr "التدفقات النقدية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Choose the correct document first"
+msgstr "اختر المستند الصحيح أولًا"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Close path"
+msgstr "مسار الإقفال"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Closing processing failed"
+msgstr "فشلت معالجة الإقفال"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Closing Vouchers"
+msgstr "سندات إقفال الفترة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Company currency"
+msgstr "عملة الشركة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Correct the difference and review supporting evidence before any native submission."
+msgstr "صحح الفرق وراجع الأدلة المؤيدة قبل ترحيل أي مستند أصلي."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Covering accounting periods"
+msgstr "الفترات المحاسبية المغطية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Covers selected boundary"
+msgstr "يغطي النطاق المحدد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Credit"
+msgstr "دائن"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Customer or supplier payment"
+msgstr "دفعة عميل أو مورد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Customer sale"
+msgstr "بيع لعميل"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Debit"
+msgstr "مدين"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Deferred accounting"
+msgstr "المحاسبة المؤجلة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Deferred revenue and expense"
+msgstr "الإيرادات والمصروفات المؤجلة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Difference needs correction"
+msgstr "الفرق بحاجة إلى تصحيح"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Do not affect the ledger"
+msgstr "لا تؤثر في دفتر الأستاذ"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft — review required"
+msgstr "مسودة — المراجعة مطلوبة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft for review"
+msgstr "مسودة للمراجعة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft or failed native records need review before this period can move forward."
+msgstr "تحتاج السجلات الأصلية المسودة أو الفاشلة إلى مراجعة قبل متابعة هذه الفترة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft review required"
+msgstr "مسودات بانتظار المراجعة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft source document"
+msgstr "مستند مصدر مسودة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft source documents"
+msgstr "مستندات المصدر المسودة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Draft transactions and cutoff"
+msgstr "المعاملات المسودة وحدّ الفترة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Drafts and failed native records"
+msgstr "المسودات والسجلات الأصلية الفاشلة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Drafts observed"
+msgstr "المسودات المرصودة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Entry type"
+msgstr "نوع القيد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Evidence incomplete"
+msgstr "الأدلة غير مكتملة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Finance and close"
+msgstr "المالية والإقفال"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Frequency"
+msgstr "التكرار"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Generated document"
+msgstr "المستند الناتج"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Inside the selected period"
+msgstr "ضمن الفترة المحددة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Items requiring attention"
+msgstr "بنود تحتاج إلى الانتباه"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Journal Entries"
+msgstr "قيود اليومية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Journal evidence is incomplete"
+msgstr "أدلة القيود اليومية غير مكتملة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Journal work queue"
+msgstr "قائمة عمل القيود اليومية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Journal workbench"
+msgstr "مساحة عمل القيود اليومية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Journal"
+msgstr "القيد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Ledger-impacting native documents"
+msgstr "مستندات أصلية مؤثرة في دفتر الأستاذ"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Manual or native process"
+msgstr "إدخال يدوي أو إجراء أصلي"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Maximum close review period in days: {0}"
+msgstr "الحد الأقصى لفترة مراجعة الإقفال بالأيام: {0}"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Maximum journal review period in days: {0}"
+msgstr "الحد الأقصى لفترة مراجعة القيود بالأيام: {0}"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Multi-currency"
+msgstr "متعدد العملات"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Native ERPNext controls"
+msgstr "ضوابط ERPNext الأصلية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Native ERPNext journals"
+msgstr "قيود ERPNext الأصلية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Native Journal Entry"
+msgstr "قيد يومية أصلي"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Native restriction after approval"
+msgstr "القيد الأصلي بعد الموافقة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Native selective restrictions"
+msgstr "قيود أصلية انتقائية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "New Journal Entry"
+msgstr "قيد يومية جديد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Next schedule date"
+msgstr "تاريخ التنفيذ التالي"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No draft Journal Entry was observed in this boundary. This is not accounting or close approval."
+msgstr "لم يُرصد قيد يومية مسودة ضمن هذا النطاق. لا يعني ذلك اعتمادًا محاسبيًا أو اعتماد الإقفال."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No draft or failed native records were observed in the selected boundary. This is not close approval."
+msgstr "لم تُرصد سجلات أصلية مسودة أو فاشلة ضمن النطاق المحدد. وهذا لا يُعد موافقة على الإقفال."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No open drafts observed"
+msgstr "لم تُرصد مسودات مفتوحة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No period protection was observed for this boundary. Complete review before applying a lock."
+msgstr "لم تُرصد حماية للفترة ضمن هذا النطاق. أكمل المراجعة قبل تطبيق القفل."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No permitted active Journal Entry schedule was observed for this company."
+msgstr "لم يُرصد جدول نشط ومسموح به للقيود اليومية لهذه الشركة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No permitted Journal Entry records were observed in the selected period."
+msgstr "لم تُرصد سجلات قيود يومية مسموح بها خلال الفترة المحددة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "No permitted template was observed for this company."
+msgstr "لم يُرصد قالب مسموح به لهذه الشركة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "None for this period"
+msgstr "لا يوجد لهذه الفترة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Not evaluated"
+msgstr "لم يُقيّم"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Not observed"
+msgstr "غير مرصود"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Not protected"
+msgstr "غير محمي"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Observed"
+msgstr "مرصود"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "One or more permitted queries could not be completed. No close conclusion was inferred."
+msgstr "تعذر إكمال استعلام واحد أو أكثر من الاستعلامات المسموح بها. لم يُستنتج أي حكم بشأن الإقفال."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Open native records"
+msgstr "فتح السجلات الأصلية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Open template"
+msgstr "فتح القالب"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "P&L transfer; not a lock"
+msgstr "ترحيل الأرباح والخسائر؛ وليس قفلاً"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Payment Entries"
+msgstr "سندات الدفع"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Period Closing Voucher"
+msgstr "سند إقفال الفترة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Posting date"
+msgstr "تاريخ الترحيل"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Protection is present"
+msgstr "الحماية موجودة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Protection observed"
+msgstr "تم رصد الحماية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Reason"
+msgstr "السبب"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Recurring journal schedules"
+msgstr "جداول القيود الدورية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Restricts configured document types; it does not transfer profit or loss."
+msgstr "يقيّد أنواع المستندات المكوّنة؛ ولا يرحّل الربح أو الخسارة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Reusable native controls"
+msgstr "ضوابط أصلية قابلة لإعادة الاستخدام"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Reusable templates"
+msgstr "قوالب قابلة لإعادة الاستخدام"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Reversal"
+msgstr "عكس قيد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Review journals"
+msgstr "مراجعة القيود"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Review reports"
+msgstr "مراجعة التقارير"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Review required"
+msgstr "تتطلب المراجعة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Review the native Journal Entry records for this boundary."
+msgstr "راجع سجلات القيود اليومية الأصلية ضمن هذا النطاق."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Review the native records for this period."
+msgstr "راجع السجلات الأصلية لهذه الفترة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Schedule"
+msgstr "الجدول"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Source journal"
+msgstr "القيد المصدر"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Source"
+msgstr "المصدر"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "State"
+msgstr "الحالة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Submitted automatically"
+msgstr "يُرحّل تلقائيًا"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Submitted closing vouchers"
+msgstr "سندات الإقفال المقدمة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Submitted entries"
+msgstr "القيود المرحلة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Submitted reversal"
+msgstr "قيد عكسي مرحّل"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Submitted system entry"
+msgstr "قيد نظام مرحّل"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Submitted voucher observed"
+msgstr "تم رصد سند مقدم"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Supplier purchase"
+msgstr "شراء من مورد"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Template"
+msgstr "قالب"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Templates and schedules"
+msgstr "القوالب والجداول"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The close evidence could not be loaded"
+msgstr "تعذر تحميل أدلة الإقفال"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The finance close bundle is not registered. Rebuild the theme assets."
+msgstr "حزمة الإقفال المالي غير مسجلة. أعد بناء ملفات السمة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The finance close workspace failed to load. Check the browser console."
+msgstr "تعذر تحميل مساحة عمل الإقفال المالي. راجع وحدة تحكم المتصفح."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The journal work queue could not be loaded"
+msgstr "تعذر تحميل قائمة عمل القيود اليومية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The journal workbench bundle is not registered. Rebuild the theme assets."
+msgstr "حزمة مساحة عمل القيود اليومية غير مسجلة. أعد بناء ملفات السمة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The journal workbench failed to load. Check the browser console."
+msgstr "تعذر تحميل مساحة عمل القيود اليومية. تحقق من وحدة تحكم المتصفح."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The queue is limited. Open the native lists to review all records."
+msgstr "القائمة محدودة. افتح القوائم الأصلية لمراجعة جميع السجلات."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "The queue was limited or a permitted query failed. No clean-period conclusion was inferred."
+msgstr "تم تقييد قائمة العمل أو تعذر أحد الاستعلامات المسموح بها. لم يُستنتج أن الفترة سليمة."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "This is a bounded work queue. Open the native Journal Entry list for the complete permitted result."
+msgstr "هذه قائمة عمل محدودة. افتح قائمة القيود اليومية الأصلية لعرض النتيجة الكاملة المسموح بها."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Transfers Profit and Loss to the selected closing account; it does not lock posting."
+msgstr "يرحّل الأرباح والخسائر إلى حساب الإقفال المحدد؛ ولا يقفل الترحيل."
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Trial Balance and financial statements"
+msgstr "ميزان المراجعة والقوائم المالية"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Type"
+msgstr "النوع"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Unbalanced draft"
+msgstr "مسودة غير متوازنة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Unbalanced drafts need attention"
+msgstr "توجد مسودات غير متوازنة تحتاج إلى معالجة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Unbalanced drafts"
+msgstr "المسودات غير المتوازنة"
+
+#. src: capability/finance-operations
+#, fuzzy
+msgid "Use Journal Entry when the accounting treatment requires deliberate debit and credit control."
+msgstr "استخدم قيد اليومية عندما تتطلب المعالجة المحاسبية تحكمًا مقصودًا في المدين والدائن."
