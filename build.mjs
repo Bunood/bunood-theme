@@ -108,6 +108,8 @@ const ENTRIES = [
 	// properties and nothing rtlcss-processes an inline Print Style), carrying
 	// `assertPrintSafeCss` instead — see that guard for the whole argument.
 	{ key: "bunood-print", src: "print/print.scss", pyid: "PRINT_CSS" },
+	// Report Studio is styled only on its own page, before the renderer mounts.
+	{ key: "bnd-studio", src: "studio.scss", pyid: "STUDIO_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */

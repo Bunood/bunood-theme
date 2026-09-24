@@ -180,6 +180,7 @@
 		"css_gzip": 31500,
 		"js_gzip": 131400,
 		"studio_js_gzip": 27000,
+		"studio_css_gzip": 5800,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
