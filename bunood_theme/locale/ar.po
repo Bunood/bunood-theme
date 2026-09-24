@@ -7579,3 +7579,33 @@ msgstr "حفظ المسودة"
 #, fuzzy
 msgid "Action Bar"
 msgstr "شريط الإجراءات"
+
+#. src: capability/report-studio
+#, fuzzy
+msgid "Not installed"
+msgstr "غير مثبّت"
+
+#. src: capability/report-studio
+#, fuzzy
+msgid "Period"
+msgstr "الفترة"
+
+#. src: capability/report-studio
+#, fuzzy
+msgid "Reports: {0}"
+msgstr "التقارير: {0}"
+
+#. src: capability/report-studio
+#, fuzzy
+msgid "Search reports"
+msgstr "البحث في التقارير"
+
+#. src: capability/report-studio
+#, fuzzy
+msgid "No reports match your search."
+msgstr "لا توجد تقارير تطابق بحثك."
+
+#. src: capability/report-studio
+#, fuzzy
+msgid "Retry"
+msgstr "إعادة المحاولة"

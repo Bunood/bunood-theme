@@ -269,9 +269,10 @@ def extend_bootinfo(bootinfo):
         # the stale-assets.json trap ARCHITECTURE.md documents. Behaviour flag
         # territory, not appearance — the flash rule does not apply, since the
         # studio only exists after a navigation.
-        from bunood_theme.assets import STUDIO_JS
+        from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
 
         bootinfo.bnd_studio_js = STUDIO_JS
+        bootinfo.bnd_studio_css = STUDIO_CSS
 
         from bunood_theme.assets import REPORT_LANDING_CSS, REPORT_LANDING_JS
 
