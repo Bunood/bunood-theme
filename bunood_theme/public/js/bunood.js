@@ -12065,6 +12065,28 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
+	// The Reports dashboard is fetched only on its workspace. If the optional
+	// bundle cannot load, the native workspace stays visible and usable.
+	let report_landing_loading = null;
+	function load_reports_dashboard() {
+		const route = frappe.get_route?.() || [];
+		if (route[0] !== "Workspaces" || route[1] !== "Reports") return false;
+		if (bunood.report_landing_loaded || report_landing_loading) return true;
+		const css = frappe.boot?.bnd_report_landing_css;
+		const js = frappe.boot?.bnd_report_landing_js;
+		if (!css || !js || typeof frappe.require !== "function") return false;
+		report_landing_loading = Promise.resolve(frappe.require([css, js]))
+			.catch(error => console.error("Reports dashboard assets failed to load", error))
+			.finally(() => { report_landing_loading = null; });
+		return true;
+	}
+	try_for(() => {
+		if (!window.frappe?.boot || !frappe.router?.on) return false;
+		frappe.router.on("change", load_reports_dashboard);
+		load_reports_dashboard();
+		return true;
+	}, 80, 150);
+
 	// The desk is built by Frappe's JS after DOMContentLoaded with no single
 	// "shell ready" event, so wait for its anchor elements with a bounded
 	// poll, then mount. If the desk never appears (website page, login), the
