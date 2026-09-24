@@ -1,0 +1,466 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:BND-MIG-{YYYY}-{#####}",
+ "creation": "2026-09-20 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "scope_tab",
+  "scope_section",
+  "title",
+  "company",
+  "strategy",
+  "column_break_scope",
+  "source_system",
+  "cutover_at",
+  "control_state",
+  "source_details_section",
+  "source_timezone",
+  "source_date_convention",
+  "source_encoding",
+  "column_break_source",
+  "candidate_reference",
+  "scope_reason",
+  "ownership_section",
+  "business_owner",
+  "implementation_lead",
+  "column_break_ownership",
+  "security_privacy_reviewer",
+  "authority_confirmed",
+  "datasets_tab",
+  "datasets_help",
+  "datasets",
+  "data_policy_section",
+  "duplicate_policy",
+  "late_entry_policy",
+  "column_break_data_policy",
+  "archive_reference",
+  "retention_policy",
+  "correction_lineage_section",
+  "supersedes_migration_run",
+  "prior_rehearsal_receipt_digest",
+  "column_break_correction",
+  "correction_reason",
+  "cutover_tab",
+  "freeze_section",
+  "freeze_window_start",
+  "freeze_window_end",
+  "column_break_freeze",
+  "maximum_outage_minutes",
+  "maximum_data_loss_minutes",
+  "recovery_section",
+  "rollback_method",
+  "rollback_point_reference",
+  "column_break_recovery",
+  "rollback_owner",
+  "backup_reference",
+  "receipt_tab",
+  "receipt_notice",
+  "source_site",
+  "source_database_digest",
+  "prepared_by",
+  "prepared_at",
+  "dataset_count",
+  "column_break_receipt",
+  "scope_digest",
+  "receipt_digest",
+  "scope_snapshot",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "scope_tab",
+   "fieldtype": "Tab Break",
+   "label": "Scope"
+  },
+  {
+   "fieldname": "scope_section",
+   "fieldtype": "Section Break",
+   "label": "Migration scope"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Run title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "strategy",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Migration strategy",
+   "options": "Opening Only\nOpen Transactions plus Opening\nApproved History",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_scope",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "source_system",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Source system",
+   "reqd": 1
+  },
+  {
+   "fieldname": "cutover_at",
+   "fieldtype": "Datetime",
+   "label": "Planned cutover",
+   "reqd": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "control_state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Control state",
+   "options": "Draft\nmapped",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_details_section",
+   "fieldtype": "Section Break",
+   "label": "Source conventions"
+  },
+  {
+   "fieldname": "source_timezone",
+   "fieldtype": "Data",
+   "label": "Source timezone"
+  },
+  {
+   "fieldname": "source_date_convention",
+   "fieldtype": "Data",
+   "label": "Source date convention"
+  },
+  {
+   "default": "UTF-8",
+   "fieldname": "source_encoding",
+   "fieldtype": "Data",
+   "label": "Source encoding"
+  },
+  {
+   "fieldname": "column_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Exact site, release and mapping candidate. It is included in the frozen digest.",
+   "fieldname": "candidate_reference",
+   "fieldtype": "Data",
+   "label": "Candidate reference"
+  },
+  {
+   "description": "Define what is included, excluded, archived externally and why this migration strategy was approved.",
+   "fieldname": "scope_reason",
+   "fieldtype": "Text",
+   "label": "Scope and exclusion rationale"
+  },
+  {
+   "fieldname": "ownership_section",
+   "fieldtype": "Section Break",
+   "label": "Accountability"
+  },
+  {
+   "fieldname": "business_owner",
+   "fieldtype": "Link",
+   "label": "Business owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "implementation_lead",
+   "fieldtype": "Link",
+   "label": "Implementation lead",
+   "options": "User"
+  },
+  {
+   "fieldname": "column_break_ownership",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "security_privacy_reviewer",
+   "fieldtype": "Link",
+   "label": "Security and privacy reviewer",
+   "options": "User"
+  },
+  {
+   "description": "I confirm that I am authorized to freeze this scope and that referenced evidence contains no credentials or unrestricted source data.",
+   "fieldname": "authority_confirmed",
+   "fieldtype": "Check",
+   "label": "Authority and safe-reference confirmation"
+  },
+  {
+   "fieldname": "datasets_tab",
+   "fieldtype": "Tab Break",
+   "label": "Datasets"
+  },
+  {
+   "description": "List datasets in dependency order. A submitted packet records mapped candidates only; it does not claim preview, dry-run, import or reconciliation.",
+   "fieldname": "datasets_help",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted\">Use the native load path appropriate to each dataset. References must point to controlled evidence; never paste passwords, tokens or unrestricted source data into this form.</p>"
+  },
+  {
+   "fieldname": "datasets",
+   "fieldtype": "Table",
+   "label": "Dependency-ordered datasets",
+   "options": "Bunood Migration Dataset"
+  },
+  {
+   "fieldname": "data_policy_section",
+   "fieldtype": "Section Break",
+   "label": "Identity, late entries and archive"
+  },
+  {
+   "fieldname": "duplicate_policy",
+   "fieldtype": "Small Text",
+   "label": "Business identity and duplicate policy"
+  },
+  {
+   "fieldname": "late_entry_policy",
+   "fieldtype": "Small Text",
+   "label": "Late-entry and delta policy"
+  },
+  {
+   "fieldname": "column_break_data_policy",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "archive_reference",
+   "fieldtype": "Small Text",
+   "label": "Read-only source archive reference"
+  },
+  {
+   "fieldname": "retention_policy",
+   "fieldtype": "Small Text",
+   "label": "Retention and disposal policy"
+  },
+  {
+   "fieldname": "correction_lineage_section",
+   "fieldtype": "Section Break",
+   "label": "Corrected-run lineage"
+  },
+  {
+   "description": "Required when this packet replaces a failed or exception rehearsal. The predecessor remains immutable.",
+   "fieldname": "supersedes_migration_run",
+   "fieldtype": "Link",
+   "label": "Supersedes migration packet",
+   "options": "Bunood Migration Run"
+  },
+  {
+   "description": "Lowercase SHA-256 from the submitted rehearsal receipt on the isolated site; do not paste raw error text here.",
+   "fieldname": "prior_rehearsal_receipt_digest",
+   "fieldtype": "Data",
+   "label": "Prior rehearsal receipt digest"
+  },
+  {
+   "fieldname": "column_break_correction",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Explain which rows, mapping, identity rule, duplicate decision or control evidence changed.",
+   "fieldname": "correction_reason",
+   "fieldtype": "Small Text",
+   "label": "Correction reason"
+  },
+  {
+   "fieldname": "cutover_tab",
+   "fieldtype": "Tab Break",
+   "label": "Cutover and recovery"
+  },
+  {
+   "fieldname": "freeze_section",
+   "fieldtype": "Section Break",
+   "label": "Freeze window and service objectives"
+  },
+  {
+   "fieldname": "freeze_window_start",
+   "fieldtype": "Datetime",
+   "label": "Freeze starts"
+  },
+  {
+   "fieldname": "freeze_window_end",
+   "fieldtype": "Datetime",
+   "label": "Freeze ends"
+  },
+  {
+   "fieldname": "column_break_freeze",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "maximum_outage_minutes",
+   "fieldtype": "Int",
+   "label": "Maximum outage (minutes)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "maximum_data_loss_minutes",
+   "fieldtype": "Int",
+   "label": "Maximum data loss (minutes)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "recovery_section",
+   "fieldtype": "Section Break",
+   "label": "Rollback boundary"
+  },
+  {
+   "fieldname": "rollback_method",
+   "fieldtype": "Select",
+   "label": "Rollback method",
+   "options": "\nReverse run-owned native records\nRestore complete pre-run site\nApproved native correction"
+  },
+  {
+   "fieldname": "rollback_point_reference",
+   "fieldtype": "Small Text",
+   "label": "Rollback point and decision reference"
+  },
+  {
+   "fieldname": "column_break_recovery",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rollback_owner",
+   "fieldtype": "Link",
+   "label": "Rollback owner",
+   "options": "User"
+  },
+  {
+   "description": "Controlled pre-run backup or restore-point reference. Do not paste credentials.",
+   "fieldname": "backup_reference",
+   "fieldtype": "Small Text",
+   "label": "Backup evidence reference"
+  },
+  {
+   "fieldname": "receipt_tab",
+   "fieldtype": "Tab Break",
+   "label": "Frozen packet"
+  },
+  {
+   "description": "Generated on submit. This proves what was scoped and mapped; it is not an import, reconciliation or go-live approval.",
+   "fieldname": "receipt_notice",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted\">A frozen packet is an immutable planning receipt. Native imports, dry runs, reconciliations and acceptance require separate evidence.</p>"
+  },
+  {
+   "description": "The site on which this packet was frozen. An isolated rehearsal must use a different site and database.",
+   "fieldname": "source_site",
+   "fieldtype": "Data",
+   "label": "Source site",
+   "read_only": 1
+  },
+  {
+   "description": "One-way SHA-256 identity of the source database name; the database name itself is not stored.",
+   "fieldname": "source_database_digest",
+   "fieldtype": "Data",
+   "label": "Source database digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Frozen by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prepared_at",
+   "fieldtype": "Datetime",
+   "label": "Frozen at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "dataset_count",
+   "fieldtype": "Int",
+   "label": "Datasets",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_receipt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "SHA-256 of the exact scope, candidate, controls and ordered dataset mapping packet.",
+   "fieldname": "scope_digest",
+   "fieldtype": "Data",
+   "label": "Scope digest",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "description": "SHA-256 of the frozen receipt including who froze it and when.",
+   "fieldname": "receipt_digest",
+   "fieldtype": "Data",
+   "label": "Receipt digest",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "scope_snapshot",
+   "fieldtype": "Code",
+   "label": "Canonical scope snapshot",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended from",
+   "no_copy": 1,
+   "options": "Bunood Migration Run",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Migration Run",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Bunood Migration Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "company,source_system,strategy,candidate_reference,control_state",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1,
+ "track_seen": 1
+}

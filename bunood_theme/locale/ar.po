@@ -9004,3 +9004,2283 @@ msgstr "الكمية"
 #, fuzzy
 msgid "Discount"
 msgstr "الخصم"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "01 — Company, fiscal year and legal identity"
+msgstr "01 — الشركة والسنة المالية والهوية القانونية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "02 — Chart, dimensions, tax and defaults"
+msgstr "02 — دليل الحسابات والأبعاد والضريبة والإعدادات الافتراضية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "03 — Units, groups, warehouses and dimensions"
+msgstr "03 — الوحدات والمجموعات والمستودعات والأبعاد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "04 — Customers, suppliers, addresses and terms"
+msgstr "04 — العملاء والموردون والعناوين والشروط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "05 — Items, variants, barcodes, serials and batches"
+msgstr "05 — الأصناف والمتغيرات والباركود والأرقام التسلسلية والدفعات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "06 — Price lists, item prices and policies"
+msgstr "06 — قوائم الأسعار وأسعار الأصناف والسياسات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "07 — Opening stock through native stock documents"
+msgstr "07 — المخزون الافتتاحي عبر مستندات المخزون الأصلية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "08 — Opening receivables and payables through native tools"
+msgstr "08 — الذمم المدينة والدائنة الافتتاحية عبر الأدوات الأصلية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "09 — Cash, bank, advances and remaining trial balance"
+msgstr "09 — النقد والبنك والسلف وبقية ميزان المراجعة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "10 — Assets and other approved modules"
+msgstr "10 — الأصول والوحدات الأخرى المعتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "11 — Users, permissions, integrations and queues"
+msgstr "11 — المستخدمون والصلاحيات والتكاملات وقوائم الانتظار"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "<p class=\"text-muted\">A frozen packet is an immutable planning receipt. Native imports, dry runs, reconciliations and acceptance require separate evidence.</p>"
+msgstr "<p class=\"text-muted\">الحزمة المجمّدة سجل تخطيط غير قابل للتعديل. تتطلب عمليات الاستيراد الأصلية والتشغيل التجريبي والمطابقة والقبول أدلة منفصلة.</p>"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "<p class=\"text-muted\">A rehearsal is allowed only on an isolated restored site and database. Success proves the frozen file can be processed there; reconciliation and production acceptance remain separate.</p>"
+msgstr "<p class=\"text-muted\">لا تُسمح تجربة الترحيل إلا على موقع وقاعدة بيانات مستعادين ومعزولين. يثبت النجاح إمكانية معالجة الملف المجمّد هناك؛ وتبقى المطابقة واعتماد الإنتاج خطوتين منفصلتين.</p>"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "<p class=\"text-muted\">Record the approved source total, the matching native report value, and the exact filters used. Add dimension-level rows where the source control is split. Record zero—not a blank—when zero is the approved value.</p>"
+msgstr "<p class=\"text-muted\">سجّل إجمالي المصدر المعتمد وقيمة التقرير المدمج المطابقة والمرشحات الدقيقة المستخدمة. أضف صفوفًا على مستوى الأبعاد عندما يكون ضابط المصدر مقسّمًا. سجّل صفرًا، لا حقلًا فارغًا، عندما تكون القيمة المعتمدة صفرًا.</p>"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "<p class=\"text-muted\">Use the linked Data Import for full error messages and corrected-row export. Bunood stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>"
+msgstr "<p class=\"text-muted\">استخدم استيراد البيانات المرتبط لعرض رسائل الخطأ كاملة وتصدير الصفوف المطلوب تصحيحها. يحفظ بنود أرقام الصفوف والنتائج وبصمات السلامة دون تكرار نصوص الأخطاء الحساسة.</p>"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "<p class=\"text-muted\">Use the native load path appropriate to each dataset. References must point to controlled evidence; never paste passwords, tokens or unrestricted source data into this form.</p>"
+msgstr "<p class=\"text-muted\">استخدم مسار التحميل الأصلي المناسب لكل مجموعة بيانات. يجب أن تشير المراجع إلى أدلة منضبطة؛ ولا تلصق كلمات المرور أو الرموز السرية أو بيانات المصدر غير المقيّدة في هذا النموذج.</p>"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "<p class=\"text-muted\">Use the same company, currency, sign convention, cutover time and report filters on both sides. A submitted receipt preserves exact controls or owned variances; it never authorizes production cutover.</p>"
+msgstr "<p class=\"text-muted\">استخدم الشركة والعملة واتفاقية الإشارة ووقت التحويل ومرشحات التقرير نفسها في الجانبين. يحفظ الإيصال المقدّم الضوابط المتطابقة أو الفروق المسندة لمسؤولين، ولا يصرح أبدًا بالتحويل إلى الإنتاج.</p>"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A corrected packet must change the frozen source, mapping, identity rule, duplicate decision, or control evidence."
+msgstr "يجب أن تغيّر الحزمة المصححة المصدر المجمّد أو التعيين أو قاعدة الهوية أو قرار التكرار أو دليل الرقابة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A corrected packet must keep the same company and source system."
+msgstr "يجب أن تحتفظ الحزمة المصححة بالشركة ونظام المصدر نفسيهما."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A migration dataset is required."
+msgstr "مجموعة بيانات الترحيل مطلوبة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A migration packet cannot supersede itself."
+msgstr "لا يمكن لحزمة ترحيل أن تستبدل نفسها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A migration rehearsal cannot run on the frozen source database."
+msgstr "لا يمكن تشغيل تجربة الترحيل على قاعدة بيانات المصدر المجمّدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A migration rehearsal cannot run on the frozen source site."
+msgstr "لا يمكن تشغيل تجربة الترحيل على موقع المصدر المجمّد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A migration run is required."
+msgstr "تشغيل الترحيل مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A native Data Import is required."
+msgstr "استيراد البيانات المدمج مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A source entity can appear only once in the same dependency stage."
+msgstr "لا يمكن أن يظهر كيان المصدر أكثر من مرة في مرحلة الاعتماد نفسها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A successful rehearsal receipt does not match this packet or isolated environment."
+msgstr "لا يطابق أحد إيصالات التجارب الناجحة هذه الحزمة أو البيئة المعزولة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "A successful rehearsal receipt is missing required integrity evidence."
+msgstr "يفتقد أحد إيصالات التجارب الناجحة إلى دليل سلامة مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Accountability"
+msgstr "المسؤوليات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Add at least one dataset before submitting this migration packet."
+msgstr "أضف مجموعة بيانات واحدة على الأقل قبل تقديم حزمة الترحيل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Add the migration reconciliation controls."
+msgstr "أضف ضوابط تسوية الترحيل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Amended from"
+msgstr "معدّل من"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Applicability"
+msgstr "الانطباق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Applicable"
+msgstr "منطبق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Applicable controls"
+msgstr "الضوابط المنطبقة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Approved History"
+msgstr "السجل التاريخي المعتمد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Approved control totals"
+msgstr "الإجماليات الرقابية المعتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Approved identity rule reference"
+msgstr "مرجع قاعدة الهوية المعتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Approved native correction"
+msgstr "تصحيح أصلي معتمد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Approved source value"
+msgstr "قيمة المصدر المعتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assets, depreciation and net book value"
+msgstr "الأصول والإهلاك وصافي القيمة الدفترية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assign a data owner for every dataset."
+msgstr "عيّن مالك بيانات لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assign a reviewer for every material opening dataset."
+msgstr "عيّن مراجعًا لكل مجموعة بيانات افتتاحية جوهرية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assign the business owner before submitting."
+msgstr "عيّن مالك العمل قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assign the implementation lead before submitting."
+msgstr "عيّن مسؤول التنفيذ قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assign the rollback owner before submitting."
+msgstr "عيّن مسؤول التراجع قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Assign the security and privacy reviewer before submitting."
+msgstr "عيّن مراجع الأمن والخصوصية قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "At least one reconciliation control must be applicable."
+msgstr "يجب أن يكون ضابط تسوية واحد على الأقل منطبقًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Attach the frozen import file to the native Data Import first."
+msgstr "أرفق ملف الاستيراد المجمّد باستيراد البيانات المدمج أولًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Attached file SHA-256"
+msgstr "بصمة SHA-256 للملف المرفق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Authority and safe-reference confirmation"
+msgstr "تأكيد الصلاحية وسلامة المراجع"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Authority confirmed"
+msgstr "تم تأكيد الصلاحية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Backup evidence reference"
+msgstr "مرجع دليل النسخة الاحتياطية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Blocked: this is the frozen source site. Restore the packet to a separate rehearsal site first."
+msgstr "محظور: هذا هو موقع المصدر المجمّد. استعد الحزمة إلى موقع تجربة منفصل أولًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Blocked: this site points to the frozen source database. Use a separate restored database."
+msgstr "محظور: يشير هذا الموقع إلى قاعدة بيانات المصدر المجمّدة. استخدم قاعدة بيانات مستعادة منفصلة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Control Result"
+msgstr "نتيجة ضابط تسوية ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Dataset"
+msgstr "مجموعة بيانات ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Manager"
+msgstr "مدير ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Reconciliation"
+msgstr "تسوية ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Rehearsal"
+msgstr "تجربة ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Rehearsal Result"
+msgstr "نتيجة تجربة ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Migration Run"
+msgstr "تشغيل ترحيل بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Readiness Review"
+msgstr "مراجعة جاهزية بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood Readiness Reviewer"
+msgstr "مراجع جاهزية بنود"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Bunood readiness — {0}"
+msgstr "جاهزية بنود — {0}"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Business identity and duplicate policy"
+msgstr "هوية العمل وسياسة التكرار"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Business owner"
+msgstr "مالك المنشأة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Candidate digest"
+msgstr "بصمة النسخة المرشحة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Candidate reference"
+msgstr "مرجع النسخة المرشحة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Candidate snapshot"
+msgstr "لقطة النسخة المرشحة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Canonical reconciliation snapshot"
+msgstr "اللقطة المعيارية للتسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Canonical rehearsal snapshot"
+msgstr "اللقطة المعيارية للتجارب"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Canonical result snapshot"
+msgstr "لقطة النتيجة المعيارية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Canonical scope snapshot"
+msgstr "لقطة النطاق القياسية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Capture and submit the isolated rehearsal result before downloading failed rows."
+msgstr "التقط نتيجة تجربة الترحيل المعزولة وقدّمها قبل تنزيل الصفوف الفاشلة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Captured at"
+msgstr "وقت التسجيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Captured by"
+msgstr "سجّلها"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Cash, bank, advances and open allocations"
+msgstr "النقد والبنوك والدفعات المقدمة والتخصيصات المفتوحة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Complete every applicable reconciliation value and evidence reference before submitting."
+msgstr "أكمل كل قيمة تسوية منطبقة ومرجع دليل قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Confirm your authority and safe-reference statement before submitting."
+msgstr "أكد صلاحيتك وإقرار سلامة المراجع قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Confirm your authority before submitting this review."
+msgstr "أكد صلاحيتك قبل تقديم هذه المراجعة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Confirm your reconciliation authority before submitting."
+msgstr "أكد صلاحيتك لمراجعة التسوية قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Confirms authority to review this evidence only; it is not production go-live approval."
+msgstr "يؤكد صلاحية مراجعة هذه الأدلة فقط؛ ولا يُعد اعتمادًا لبدء الإنتاج."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Control"
+msgstr "الضابط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Control state"
+msgstr "حالة الرقابة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Control status"
+msgstr "حالة الضابط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Control summary"
+msgstr "ملخص الضوابط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Controlled evidence that names the stable business identifiers used for matching. Display names alone are not an identity rule."
+msgstr "دليل مضبوط يحدد معرّفات الأعمال الثابتة المستخدمة للمطابقة. أسماء العرض وحدها لا تُعد قاعدة هوية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Controlled location of the frozen extract manifest, not the source data itself."
+msgstr "موقع منضبط لبيان المستخرج المجمّد، وليس لبيانات المصدر نفسها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Controlled pre-run backup or restore-point reference. Do not paste credentials."
+msgstr "مرجع منضبط لنسخة احتياطية أو نقطة استعادة قبل التشغيل. لا تلصق بيانات الدخول."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Controls with variance"
+msgstr "الضوابط ذات الفروق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Corrected-run lineage"
+msgstr "تسلسل محاولة التصحيح"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Correction or rerun reference"
+msgstr "مرجع التصحيح أو إعادة التشغيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Correction reason"
+msgstr "سبب التصحيح"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Corrective action"
+msgstr "الإجراء التصحيحي"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Counts and row outcomes are copied from the permissioned native Data Import result. Error text is retained only in the native log."
+msgstr "تُنسخ الأعداد ونتائج الصفوف من نتيجة استيراد البيانات المدمج المصرح بها. ويظل نص الخطأ محفوظًا في السجل المدمج فقط."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Cover every reconciliation domain, using Not Applicable with a reason where necessary."
+msgstr "غطِّ كل مجال من مجالات التسوية، واستخدم غير منطبق مع ذكر السبب عند الحاجة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Create a correction only from a submitted mapped migration packet."
+msgstr "أنشئ التصحيح من حزمة ترحيل مقدّمة ومكتملة التعيين فقط."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Create and open the readiness work plan before recording a review."
+msgstr "أنشئ خطة أعمال الجاهزية وافتحها قبل تسجيل مراجعة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Create migration reconciliation from a submitted successful rehearsal."
+msgstr "أنشئ تسوية الترحيل من تجربة ناجحة مقدّمة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Cross-ledger document, payment, stock and GL chain"
+msgstr "ترابط المستندات والمدفوعات والمخزون والأستاذ العام"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Currency or unit"
+msgstr "العملة أو الوحدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Customers and suppliers"
+msgstr "العملاء والموردون"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Cutover and recovery"
+msgstr "الانتقال والاستعادة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Cutover at"
+msgstr "وقت التحويل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Data Import"
+msgstr "استيراد البيانات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Data owner"
+msgstr "مالك البيانات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Dataset"
+msgstr "مجموعة البيانات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Dataset names must be unique within a migration packet."
+msgstr "يجب أن تكون أسماء مجموعات البيانات فريدة داخل حزمة الترحيل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Dataset row"
+msgstr "سطر مجموعة البيانات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Datasets"
+msgstr "مجموعات البيانات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Decision"
+msgstr "القرار"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Decision reason"
+msgstr "سبب القرار"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Define what is included, excluded, archived externally and why this migration strategy was approved."
+msgstr "حدّد ما يشمله الترحيل وما يُستبعد أو يُؤرشف خارجيًا، وسبب اعتماد هذه الاستراتيجية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Dependency stage"
+msgstr "مرحلة الاعتماد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Dependency-ordered datasets"
+msgstr "مجموعات البيانات بترتيب الاعتماد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Different site and database verified"
+msgstr "تم التحقق من اختلاف الموقع وقاعدة البيانات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Duplicate disposition"
+msgstr "معالجة السجلات المكررة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Enter the lowercase SHA-256 receipt digest from the prior rehearsal."
+msgstr "أدخل بصمة إيصال SHA-256 بأحرف صغيرة من التجربة السابقة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Environment boundary"
+msgstr "حدود البيئة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Every native Data Import dataset needs a submitted successful rehearsal before reconciliation: {0}"
+msgstr "تحتاج كل مجموعة بيانات استيراد مدمجة إلى تجربة ناجحة مقدّمة قبل التسوية: {0}"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Every non-zero variance needs an owner, cause, corrective action and rerun reference."
+msgstr "يحتاج كل فرق غير صفري إلى مسؤول وسبب وإجراء تصحيحي ومرجع لإعادة التشغيل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Every source snapshot hash must be a lowercase SHA-256 value."
+msgstr "يجب أن تكون بصمة كل لقطة مصدر قيمة SHA-256 بأحرف صغيرة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Evidence"
+msgstr "الأدلة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Evidence reference"
+msgstr "مرجع الدليل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Exact"
+msgstr "متطابق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Exact controls"
+msgstr "الضوابط المتطابقة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Exact release or configuration candidate reviewed, such as a release tag, commit plus asset hashes, or an approved run-packet identifier."
+msgstr "النسخة الدقيقة للإصدار أو الإعدادات التي تمت مراجعتها، مثل وسم إصدار أو التزام مع بصمات الملفات أو معرّف حزمة تشغيل معتمدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Exact site, release and mapping candidate. It is included in the frozen digest."
+msgstr "الموقع والإصدار ونسخة تعيين الحقول المرشحة بدقة. تُضمَّن في البصمة المجمّدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Exception ownership"
+msgstr "مسؤولية الاستثناءات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain the approved scope and exclusions before submitting."
+msgstr "اشرح النطاق المعتمد والاستبعادات قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain the corrected rows or mapping decision before submitting."
+msgstr "اشرح الصفوف المصححة أو قرار التعيين قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain the decision before submitting this review."
+msgstr "اشرح القرار قبل تقديم هذه المراجعة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain the reconciliation conclusion before submitting."
+msgstr "اشرح خلاصة التسوية قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain what was decided, why, and any limitation or unresolved risk."
+msgstr "اشرح ما تقرر وسببه وأي قيد أو خطر لم يُعالج."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain what will be corrected before creating the draft."
+msgstr "اشرح ما سيُصحح قبل إنشاء المسودة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain which rows, mapping, identity rule, duplicate decision or control evidence changed."
+msgstr "وضّح الصفوف أو التعيين أو قاعدة الهوية أو قرار التكرار أو دليل الرقابة الذي تغيّر."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Explain why every not-applicable reconciliation control is excluded."
+msgstr "اشرح سبب استبعاد كل ضابط تسوية غير منطبق."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "External archive only"
+msgstr "أرشيف خارجي فقط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Extract manifest reference"
+msgstr "مرجع بيان المستخرج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Failed records"
+msgstr "السجلات الفاشلة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Failure"
+msgstr "فشل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Freeze ends"
+msgstr "انتهاء التجميد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Freeze starts"
+msgstr "بدء التجميد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Freeze window and service objectives"
+msgstr "نافذة التجميد وأهداف الخدمة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Frozen at"
+msgstr "وقت التجميد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Frozen by"
+msgstr "جمّدها"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Frozen packet"
+msgstr "الحزمة المجمّدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Frozen source"
+msgstr "المصدر المجمّد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Frozen source SHA-256"
+msgstr "بصمة SHA-256 للمصدر المجمّد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Generated on submit. This proves what was scoped and mapped; it is not an import, reconciliation or go-live approval."
+msgstr "تُنشأ عند التقديم. تثبت ما تم تحديد نطاقه وتعيين حقوله، وليست استيرادًا أو مطابقة أو موافقة على التشغيل الفعلي."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "I confirm my reconciliation authority"
+msgstr "أؤكد صلاحيتي لمراجعة التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "I confirm that I am authorized to freeze this scope and that referenced evidence contains no credentials or unrestricted source data."
+msgstr "أؤكد أنني مخوّل بتجميد هذا النطاق، وأن الأدلة المشار إليها لا تحتوي بيانات دخول أو بيانات مصدر غير مقيّدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "I confirm that I am authorized to record this decision for the company and scope shown above."
+msgstr "أؤكد أنني مخوّل بتسجيل هذا القرار للشركة والنطاق الموضحين أعلاه."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Identify the evidence reviewed for this decision."
+msgstr "حدّد الدليل الذي تمت مراجعته لهذا القرار."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Identify the protected reconciliation evidence pack."
+msgstr "حدّد حزمة أدلة التسوية المحمية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Identify the reviewed file, report, test, approval or external evidence. Native Task files and comments are also fingerprinted automatically."
+msgstr "حدّد الملف أو التقرير أو الاختبار أو الموافقة أو الدليل الخارجي الذي تمت مراجعته. تُؤخذ بصمة ملفات المهمة وتعليقاتها الأصلية تلقائيًا أيضًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Identify the source entity for every dataset."
+msgstr "حدّد كيان المصدر لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Identity, late entries and archive"
+msgstr "الهوية والإدخالات المتأخرة والأرشيف"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "If unresolved: {0}"
+msgstr "إذا لم تُحل: {0}"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Immutable receipt"
+msgstr "سجل قرار غير قابل للتعديل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Implementation lead"
+msgstr "قائد التنفيذ"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Import type"
+msgstr "نوع الاستيراد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Insert"
+msgstr "إضافة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Insert New Records"
+msgstr "إدراج سجلات جديدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Insert or Update Records"
+msgstr "إدراج السجلات أو تحديثها"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Insert unmatched and update approved matches"
+msgstr "إدراج غير المطابق وتحديث المطابقات المعتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Inserted records"
+msgstr "السجلات المضافة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Isolation proof"
+msgstr "إثبات العزل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Items, barcodes and UOM"
+msgstr "الأصناف والباركود ووحدات القياس"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Journal Entry or approved native opening"
+msgstr "قيد يومية أو افتتاحية أصلية معتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Keep datasets in the required dependency order."
+msgstr "حافظ على مجموعات البيانات بترتيب الاعتماد المطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Late-entry and delta policy"
+msgstr "سياسة الإدخالات المتأخرة والفروقات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "List datasets in dependency order. A submitted packet records mapped candidates only; it does not claim preview, dry-run, import or reconciliation."
+msgstr "أدرج مجموعات البيانات بترتيب الاعتماد. تسجّل الحزمة المقدمة النسخ التي عُيّنت حقولها فقط؛ ولا تثبت المعاينة أو التشغيل التجريبي أو الاستيراد أو المطابقة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Lowercase SHA-256 from the submitted rehearsal receipt on the isolated site; do not paste raw error text here."
+msgstr "بصمة SHA-256 بأحرف صغيرة من إيصال التجربة المقدّم على الموقع المعزول؛ لا تلصق نص الخطأ الخام هنا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Lowercase SHA-256 of the frozen source extract. Do not paste source data or credentials here."
+msgstr "بصمة SHA-256 بأحرف صغيرة لمستخرج المصدر المجمّد. لا تلصق بيانات المصدر أو بيانات الدخول هنا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Manual controlled setup"
+msgstr "إعداد يدوي منضبط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Mapping version"
+msgstr "إصدار تعيين الحقول"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Material opening data"
+msgstr "بيانات افتتاحية جوهرية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Material opening data present"
+msgstr "توجد بيانات افتتاحية جوهرية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Material opening reconciliation requires a reviewer different from the preparer."
+msgstr "تتطلب تسوية البيانات الافتتاحية الجوهرية مراجعًا مختلفًا عن المُعِد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Maximum data loss (minutes)"
+msgstr "أقصى فقد للبيانات (بالدقائق)"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Maximum outage (minutes)"
+msgstr "أقصى توقف (بالدقائق)"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Measure"
+msgstr "المقياس"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Message digest"
+msgstr "بصمة الرسالة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration control fields are not installed. Run the site migration first."
+msgstr "حقول رقابة الترحيل غير مثبّتة. شغّل ترحيل الموقع أولًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration rehearsal mode is disabled. Enable bunood_migration_rehearsal only on the isolated restored site."
+msgstr "وضع تجربة الترحيل معطّل. فعّل bunood_migration_rehearsal على الموقع المستعاد والمعزول فقط."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration rehearsal receipts are immutable. Create a new rehearsal for another file or retry."
+msgstr "إيصالات تجربة الترحيل غير قابلة للتعديل. أنشئ تجربة جديدة لملف آخر أو لإعادة المحاولة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration rehearsals are issued by the isolated rehearsal action and cannot be edited manually."
+msgstr "تُنشأ تجارب الترحيل من إجراء التجربة المعزولة ولا يمكن تعديلها يدويًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration run"
+msgstr "تشغيل الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration scope"
+msgstr "نطاق الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Migration strategy"
+msgstr "استراتيجية الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Must agree with the native import type so an insert, update or mixed retry cannot silently change duplicate handling."
+msgstr "يجب أن تتوافق مع نوع الاستيراد المدمج حتى لا تغيّر محاولة الإدراج أو التحديث أو المحاولة المختلطة طريقة معالجة التكرار دون تنبيه."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Name every dataset before submitting."
+msgstr "سمِّ كل مجموعة بيانات قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Name every reconciliation control."
+msgstr "سمِّ كل ضابط تسوية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Name the compared slice, such as SAR ageing 31–60 days or Item/Warehouse/Batch."
+msgstr "سمِّ نطاق المقارنة، مثل أعمار الديون بالريال من 31 إلى 60 يومًا أو الصنف/المستودع/الدفعة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native Data Import"
+msgstr "استيراد البيانات المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native action"
+msgstr "الإجراء المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native evidence records"
+msgstr "سجلات الأدلة الأصلية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native evidence reference"
+msgstr "مرجع الدليل المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native file reference"
+msgstr "مرجع الملف في الاستيراد المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native load path"
+msgstr "مسار التحميل الأصلي"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native outcome"
+msgstr "النتيجة المدمجة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native report filters"
+msgstr "مرشحات التقرير المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native report value"
+msgstr "قيمة التقرير المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native report, document list or ledger used for the comparison."
+msgstr "التقرير المدمج أو قائمة المستندات أو دفتر الأستاذ المستخدم في المقارنة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native result"
+msgstr "نتيجة الاستيراد المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native row results"
+msgstr "نتائج الصفوف المدمجة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Native status"
+msgstr "حالة الاستيراد المدمج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Needs Work"
+msgstr "تحتاج إلى معالجة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Not Applicable"
+msgstr "غير منطبق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Not-applicable controls"
+msgstr "الضوابط غير المنطبقة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Not-applicable reason"
+msgstr "سبب عدم الانطباق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Notes"
+msgstr "ملاحظات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "One-way SHA-256 identity of the source database name; the database name itself is not stored."
+msgstr "هوية SHA-256 أحادية الاتجاه لاسم قاعدة بيانات المصدر؛ ولا يُحفظ اسم قاعدة البيانات نفسه."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "One-way SHA-256 of the native target record name. Open the permissioned Data Import log to view the record."
+msgstr "بصمة SHA-256 أحادية الاتجاه لاسم السجل المستهدف في الاستيراد المدمج. افتح سجل استيراد البيانات المصرح به لعرض السجل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Open Transactions plus Opening"
+msgstr "المعاملات المفتوحة مع الأرصدة الافتتاحية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Open reconciliation on the isolated site and database that produced the rehearsals."
+msgstr "افتح التسوية على الموقع وقاعدة البيانات المعزولين اللذين أُجريت عليهما التجارب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Open this rehearsal on the same isolated site and database that produced it."
+msgstr "افتح هذه التجربة على الموقع وقاعدة البيانات المعزولين نفسيهما اللذين أصدراها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Open this rehearsal on the same isolated site and database that started it."
+msgstr "افتح هذه التجربة على الموقع وقاعدة البيانات المعزولين نفسيهما اللذين بدأت عليهما."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Opening Invoice Creation Tool"
+msgstr "أداة إنشاء الفواتير الافتتاحية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Opening Only"
+msgstr "أرصدة افتتاحية فقط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Opening stock quantity and value"
+msgstr "كمية وقيمة المخزون الافتتاحي"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Opening-data reviewer"
+msgstr "مراجع البيانات الافتتاحية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Operational work item only. Completing this task is not tax, ZATCA, accounting or launch approval."
+msgstr "هذه مهمة تشغيلية فقط. إكمالها ليس اعتمادًا ضريبيًا أو محاسبيًا أو للفوترة الإلكترونية أو للتشغيل الفعلي."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Operational work plan only. Task completion is not tax, ZATCA, accounting, security or launch approval."
+msgstr "هذه خطة أعمال تشغيلية فقط. إكمال المهام ليس اعتمادًا ضريبيًا أو محاسبيًا أو أمنيًا أو للفوترة الإلكترونية أو للتشغيل الفعلي."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Payables, currency, dates and ageing"
+msgstr "الذمم الدائنة والعملات والتواريخ وأعمار الديون"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Pending controls"
+msgstr "الضوابط المعلقة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Planned cutover"
+msgstr "موعد الانتقال المخطط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Prepare the native Data Import, attach the frozen file, and restore it to the rehearsal site first."
+msgstr "جهّز استيراد البيانات المدمج، وأرفق الملف المجمّد، ثم استعده إلى موقع التجربة أولًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Prepared at"
+msgstr "وقت الإعداد"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Prepared by"
+msgstr "أعدّها"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Previous receipt"
+msgstr "سجل القرار السابق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Prices and validity"
+msgstr "الأسعار وفترات الصلاحية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Prior rehearsal receipt digest"
+msgstr "بصمة إيصال تجربة الترحيل السابقة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Profiling and mapping evidence"
+msgstr "دليل تحليل البيانات وتعيين الحقول"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Protected evidence pack reference"
+msgstr "مرجع حزمة الأدلة المحمية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Protected folder, report pack or audit reference; do not paste personal data or credentials."
+msgstr "مجلد محمي أو حزمة تقارير أو مرجع تدقيق؛ لا تلصق بيانات شخصية أو بيانات اعتماد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Protected source schedule, workbook or owner-approved control reference."
+msgstr "مرجع محمي لجدول المصدر أو ملف العمل أو الضابط المعتمد من المالك."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Qualification and authority basis"
+msgstr "أساس التأهيل والصلاحية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Read-only source archive reference"
+msgstr "مرجع أرشيف المصدر للقراءة فقط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Readiness domain"
+msgstr "مجال الجاهزية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Readiness scope"
+msgstr "نطاق الجاهزية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Readiness task"
+msgstr "مهمة الجاهزية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Readiness work plan"
+msgstr "خطة أعمال الجاهزية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Receipt"
+msgstr "الإيصال"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Receipt chain key"
+msgstr "مفتاح سلسلة سجلات القرار"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Receipt digest"
+msgstr "بصمة سجل القرار"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Receivables, currency, dates and ageing"
+msgstr "الذمم المدينة والعملات والتواريخ وأعمار الديون"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation"
+msgstr "التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation conclusion"
+msgstr "خلاصة التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation control names must be unique within each domain."
+msgstr "يجب أن تكون أسماء ضوابط التسوية فريدة داخل كل مجال."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation controls"
+msgstr "ضوابط التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation database digest"
+msgstr "بصمة قاعدة بيانات التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation domain"
+msgstr "مجال التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation site"
+msgstr "موقع التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reconciliation title"
+msgstr "عنوان التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record company, date, currency, account, party, warehouse and every other filter needed to reproduce the value."
+msgstr "سجّل الشركة والتاريخ والعملة والحساب والطرف والمستودع وكل مرشح آخر مطلوب لإعادة إنتاج القيمة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the business identity and duplicate policy before submitting."
+msgstr "سجّل هوية العمل وسياسة التكرار قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the frozen source SHA-256 for every dataset."
+msgstr "سجّل بصمة SHA-256 للمصدر المجمّد لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the late-entry and delta policy before submitting."
+msgstr "سجّل سياسة الإدخالات المتأخرة والفروقات قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the lowercase SHA-256 receipt digest from the prior rehearsal."
+msgstr "سجّل بصمة إيصال SHA-256 بأحرف صغيرة من التجربة السابقة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the mapping version for every dataset."
+msgstr "سجّل إصدار تعيين الحقول لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the qualification and authority basis for this decision."
+msgstr "سجّل أساس التأهيل والصلاحية لهذا القرار."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the retention and disposal policy before submitting."
+msgstr "سجّل سياسة الاحتفاظ والإتلاف قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the reviewer qualification and authority basis."
+msgstr "سجّل مؤهلات المراجع وأساس صلاحيته."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the source date convention before submitting."
+msgstr "سجّل تنسيق التاريخ في المصدر قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the source freeze end before submitting."
+msgstr "سجّل وقت انتهاء تجميد المصدر قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the source freeze start before submitting."
+msgstr "سجّل وقت بدء تجميد المصدر قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Record the source timezone before submitting."
+msgstr "سجّل المنطقة الزمنية للمصدر قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Recorded at"
+msgstr "سُجّل في"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Recorded by"
+msgstr "سجّله"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference approved control totals for every material opening dataset."
+msgstr "أضف مرجع الإجماليات الرقابية المعتمدة لكل مجموعة بيانات افتتاحية جوهرية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference profiling and mapping evidence for every dataset."
+msgstr "أضف مرجع دليل تحليل البيانات وتعيين الحقول لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference the approved stable identity rule for every Data Import dataset."
+msgstr "أضف مرجع قاعدة الهوية الثابتة المعتمدة لكل مجموعة بيانات استيراد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference the extract manifest for every dataset."
+msgstr "أضف مرجع بيان المستخرج لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference the read-only source archive before submitting."
+msgstr "أضف مرجع أرشيف المصدر للقراءة فقط قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference the rollback point and decision before submitting."
+msgstr "أضف مرجع نقطة التراجع وقرارها قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reference the verified backup before submitting."
+msgstr "أضف مرجع النسخة الاحتياطية المتحقق منها قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rehearsal"
+msgstr "تجربة الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rehearsal database digest"
+msgstr "بصمة قاعدة بيانات التجربة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rehearsal evidence digest"
+msgstr "بصمة أدلة التجارب"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rehearsal identity"
+msgstr "هوية تجربة الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rehearsal site"
+msgstr "موقع التجربة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rehearsal title"
+msgstr "عنوان تجربة الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reject existing matches"
+msgstr "رفض السجلات المطابقة الموجودة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reopened"
+msgstr "أُعيد فتحه"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reopening requires a current Accepted or Not Applicable receipt."
+msgstr "تتطلب إعادة الفتح سجلًا حاليًا بحالة «مقبول» أو «غير منطبق»."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Required for material opening data and must be different from the person submitting the packet."
+msgstr "مطلوب للبيانات الافتتاحية الجوهرية، ويجب أن يكون شخصًا مختلفًا عن مقدم الحزمة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Required for material opening data. Identify approved quantities, values or balances used later for reconciliation."
+msgstr "مطلوب للبيانات الافتتاحية الجوهرية. حدّد الكميات أو القيم أو الأرصدة المعتمدة التي ستُستخدم لاحقًا في المطابقة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Required reviewer scope"
+msgstr "نطاق المراجع المطلوب"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Required when this packet replaces a failed or exception rehearsal. The predecessor remains immutable."
+msgstr "مطلوب عندما تستبدل هذه الحزمة تجربة فاشلة أو ذات استثناء. تبقى الحزمة السابقة غير قابلة للتعديل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Responsible role: {0}"
+msgstr "الدور المسؤول: {0}"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Restore complete pre-run site"
+msgstr "استعادة نسخة كاملة للموقع قبل التشغيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Result digest"
+msgstr "بصمة النتيجة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Result rows"
+msgstr "صفوف النتائج"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Retention and disposal policy"
+msgstr "سياسة الاحتفاظ والإتلاف"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reverse run-owned native records"
+msgstr "عكس السجلات الأصلية التي أنشأها التشغيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Review and receipt"
+msgstr "المراجعة والإيصال"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reviewed at"
+msgstr "وقت المراجعة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reviewed by"
+msgstr "راجعها"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Reviewer statement"
+msgstr "إقرار المراجع"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rollback boundary"
+msgstr "حدود التراجع"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rollback method"
+msgstr "طريقة التراجع"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rollback owner"
+msgstr "مسؤول التراجع"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Rollback point and decision reference"
+msgstr "مرجع نقطة التراجع وقراره"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Row result digest"
+msgstr "بصمة نتيجة الصف"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Run the latest Bunood migration before creating the work plan."
+msgstr "شغّل أحدث ترحيل لبنود قبل إنشاء خطة الأعمال."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Run the latest Bunood migration before preparing reconciliation."
+msgstr "شغّل أحدث ترحيل لبنود قبل إعداد التسوية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Run the latest Bunood migration before recording a review."
+msgstr "شغّل أحدث ترحيل لبنود قبل تسجيل مراجعة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Run title"
+msgstr "عنوان التشغيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "SHA-256 of every successful dataset rehearsal receipt used by this packet."
+msgstr "بصمة SHA-256 لكل إيصال تجربة ناجحة لمجموعة بيانات تستخدمه هذه الحزمة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "SHA-256 of the exact scope, candidate, controls and ordered dataset mapping packet."
+msgstr "بصمة SHA-256 للنطاق والنسخة المرشحة والضوابط وحزمة تعيين مجموعات البيانات المرتبة بدقة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "SHA-256 of the exact site, app assets, native task state and evidence references reviewed."
+msgstr "بصمة SHA-256 للموقع وملفات التطبيق وحالة المهمة ومراجع الأدلة التي تمت مراجعتها بدقة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "SHA-256 of the final submitted decision receipt."
+msgstr "بصمة SHA-256 لسجل القرار النهائي المُقدَّم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "SHA-256 of the frozen receipt including who froze it and when."
+msgstr "بصمة SHA-256 للسجل المجمّد، بما في ذلك من جمّده ووقت التجميد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "SHA-256 of the native message and exception. Sensitive error text remains in the permissioned Data Import log."
+msgstr "بصمة SHA-256 للرسالة والاستثناء المدمجين. يظل نص الخطأ الحساس في سجل استيراد البيانات المصرح به."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Scope"
+msgstr "النطاق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Scope and exclusion rationale"
+msgstr "مبررات النطاق والاستبعادات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Scope digest"
+msgstr "بصمة النطاق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Security and privacy reviewer"
+msgstr "مراجع الأمن والخصوصية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a company before creating the work plan."
+msgstr "اختر شركة قبل إنشاء خطة الأعمال."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a dataset that belongs to this migration packet."
+msgstr "اختر مجموعة بيانات تابعة لحزمة الترحيل هذه."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a native load path for every dataset."
+msgstr "اختر مسار تحميل أصليًا لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a readiness decision before submitting."
+msgstr "اختر قرار الجاهزية قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a readiness task."
+msgstr "اختر مهمة جاهزية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a submitted mapped migration packet."
+msgstr "اختر حزمة ترحيل مقدّمة ومكتملة التعيين."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a target DocType for each Data Import dataset."
+msgstr "اختر نوع المستند المستهدف لكل مجموعة بيانات تستخدم استيراد البيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a valid dependency stage for every dataset."
+msgstr "اختر مرحلة اعتماد صالحة لكل مجموعة بيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a valid native Data Import type."
+msgstr "اختر نوعًا صالحًا لاستيراد البيانات الأصلي."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a valid readiness decision."
+msgstr "اختر قرار جاهزية صالحًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a valid readiness domain."
+msgstr "اختر مجال جاهزية صالحًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select a valid reconciliation domain for every control."
+msgstr "اختر مجال تسوية صالحًا لكل ضابط."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select an import type for each Data Import dataset."
+msgstr "اختر نوع الاستيراد لكل مجموعة بيانات تستخدم استيراد البيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select the migration packet this correction supersedes."
+msgstr "حدد حزمة الترحيل التي يستبدلها هذا التصحيح."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Select the rollback method before submitting."
+msgstr "اختر طريقة التراجع قبل التقديم."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source conventions"
+msgstr "ضوابط تنسيق المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source database digest"
+msgstr "بصمة قاعدة بيانات المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source date convention"
+msgstr "تنسيق التاريخ في المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source encoding"
+msgstr "ترميز المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source entity"
+msgstr "كيان المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source evidence reference"
+msgstr "مرجع دليل المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source row counts cannot be negative."
+msgstr "لا يمكن أن يكون عدد صفوف المصدر سالبًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source rows"
+msgstr "صفوف المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source site"
+msgstr "موقع المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source snapshot SHA-256"
+msgstr "بصمة SHA-256 للقطة المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source system"
+msgstr "نظام المصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source timezone"
+msgstr "المنطقة الزمنية للمصدر"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Source-to-native controls"
+msgstr "ضوابط مقارنة المصدر بالنظام"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Started at"
+msgstr "وقت البدء"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Started by"
+msgstr "بدأها"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "State the professional, operational or owner authority used for this decision. The Bunood reviewer role alone is not qualification."
+msgstr "وضّح الأساس المهني أو التشغيلي أو صلاحية المالك التي يستند إليها القرار. دور مراجع جاهزية بنود وحده لا يُعد تأهيلًا."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Stock Reconciliation"
+msgstr "تسوية المخزون"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Submit a mapped migration packet before preparing Data Import."
+msgstr "قدّم حزمة ترحيل مكتملة تعيين الحقول قبل تجهيز استيراد البيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Submit a mapped migration packet before starting a rehearsal."
+msgstr "قدّم حزمة ترحيل مكتملة تعيين الحقول قبل بدء التجربة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Submit a reopening receipt before recording another decision."
+msgstr "قدّم سجل إعادة فتح قبل تسجيل قرار آخر."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Submitted migration packets are immutable. Create a new packet for a changed source or mapping."
+msgstr "حزم الترحيل المقدّمة غير قابلة للتعديل. أنشئ حزمة جديدة عند تغيير المصدر أو تعيين الحقول."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Submitted migration reconciliation receipts are immutable. Correct the source through a new migration packet."
+msgstr "إيصالات تسوية الترحيل المقدّمة غير قابلة للتعديل. صحّح المصدر من خلال حزمة ترحيل جديدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Submitted readiness receipts are immutable. Create a Reopened receipt instead."
+msgstr "سجلات الجاهزية المقدمة غير قابلة للتعديل. أنشئ بدلًا منها سجلًا بحالة «أُعيد فتحه»."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Success"
+msgstr "نجاح"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Successful records"
+msgstr "السجلات الناجحة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Successful rehearsals"
+msgstr "التجارب الناجحة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Supersedes migration packet"
+msgstr "يستبدل حزمة الترحيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Target DocType"
+msgstr "نوع المستند المستهدف"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Target record digest"
+msgstr "بصمة السجل المستهدف"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The approved identity rule reference is required."
+msgstr "مرجع قاعدة الهوية المعتمدة مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The attached file SHA-256 does not match the frozen source snapshot. Create a new packet for changed data."
+msgstr "لا تطابق بصمة SHA-256 للملف المرفق لقطة المصدر المجمّدة. أنشئ حزمة جديدة للبيانات المتغيرة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The attached native import file changed after the rehearsal result was captured."
+msgstr "تغيّر ملف الاستيراد المدمج المرفق بعد التقاط نتيجة التجربة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The attached native import file changed after the rehearsal started."
+msgstr "تغيّر ملف الاستيراد المدمج المرفق بعد بدء التجربة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The business role expected to own this review domain. Authorization to submit does not prove professional qualification."
+msgstr "دور العمل المتوقع أن يتولى مجال المراجعة هذا. صلاحية التقديم لا تثبت وحدها التأهيل المهني."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The current database identity is unavailable. Check the site configuration."
+msgstr "هوية قاعدة البيانات الحالية غير متاحة. تحقق من إعدادات الموقع."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The current rehearsal database identity is unavailable."
+msgstr "هوية قاعدة بيانات التجربة الحالية غير متاحة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The current rehearsal site identity is unavailable."
+msgstr "هوية موقع التجربة الحالي غير متاحة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The current site identity is unavailable."
+msgstr "هوية الموقع الحالي غير متاحة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The duplicate disposition must match the selected native Data Import type."
+msgstr "يجب أن تتطابق معالجة التكرار مع نوع استيراد البيانات المدمج المحدد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The frozen duplicate disposition does not match the native import type."
+msgstr "لا تتطابق معالجة التكرار المجمّدة مع نوع الاستيراد المدمج."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The frozen duplicate disposition is required."
+msgstr "معالجة التكرار المجمّدة مطلوبة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The frozen scope digest is required."
+msgstr "بصمة النطاق المجمّد مطلوبة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The frozen source database identity is required."
+msgstr "هوية قاعدة بيانات المصدر المجمّدة مطلوبة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The frozen source site is required."
+msgstr "موقع المصدر المجمّد مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The immediately preceding submitted receipt. A submitted receipt is never edited or cancelled; reopening creates the next receipt in this chain."
+msgstr "سجل القرار المُقدَّم مباشرة قبله. لا يُعدَّل سجل القرار بعد تقديمه ولا يُلغى؛ بل تنشئ إعادة الفتح سجلًا جديدًا مرتبطًا به."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The migration run bound to a reconciliation packet cannot be changed."
+msgstr "لا يمكن تغيير محاولة الترحيل المرتبطة بحزمة التسوية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The native Data Import does not match this rehearsal."
+msgstr "لا يطابق استيراد البيانات المدمج تجربة الترحيل هذه."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The native Data Import no longer matches the frozen migration dataset."
+msgstr "لم يعد استيراد البيانات المدمج يطابق مجموعة بيانات الترحيل المجمّدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The native Data Import returned an unsupported status."
+msgstr "أعاد استيراد البيانات المدمج حالة غير مدعومة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The native result exceeds the 5,000-row receipt limit. Split the dataset into controlled batches before rehearsal."
+msgstr "تتجاوز النتيجة المدمجة حد الإيصال البالغ 5,000 صف. قسّم مجموعة البيانات إلى دفعات مضبوطة قبل التجربة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The native result exceeds the controlled receipt limit."
+msgstr "تتجاوز النتيجة المدمجة حد الإيصال المضبوط."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The readiness Task does not belong to the selected work plan."
+msgstr "مهمة الجاهزية لا تنتمي إلى خطة الأعمال المحددة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The readiness Task identity does not match its company and domain."
+msgstr "هوية مهمة الجاهزية لا تطابق شركتها ومجالها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The readiness task is not linked to a work plan."
+msgstr "مهمة الجاهزية غير مرتبطة بخطة أعمال."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The readiness work plan identity does not match its company."
+msgstr "هوية خطة أعمال الجاهزية لا تطابق شركتها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The rehearsal database identity is required."
+msgstr "هوية قاعدة بيانات التجربة مطلوبة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The rehearsal environment has not been verified as isolated."
+msgstr "لم يتم التحقق من عزل بيئة التجربة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The rehearsal identity is required."
+msgstr "هوية تجربة الترحيل مطلوبة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The rehearsal site is required."
+msgstr "موقع التجربة مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The reviewer for material opening data must be different from the packet submitter."
+msgstr "يجب أن يكون مراجع البيانات الافتتاحية الجوهرية مختلفًا عن مقدم الحزمة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The selected Task is not a Bunood readiness task."
+msgstr "المهمة المحددة ليست مهمة جاهزية لبنود."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The site on which this packet was frozen. An isolated rehearsal must use a different site and database."
+msgstr "الموقع الذي جُمّدت عليه هذه الحزمة. يجب أن تستخدم تجربة الترحيل المعزولة موقعًا وقاعدة بيانات مختلفين."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The starter rows are summaries, not sufficient detail by themselves. Add rows for each required company, account, currency, party, item, warehouse, batch, ageing bucket or accounting dimension."
+msgstr "صفوف البداية ملخصات ولا تكفي وحدها. أضف صفوفًا لكل شركة أو حساب أو عملة أو طرف أو صنف أو مستودع أو دفعة أو شريحة أعمار ديون أو بُعد محاسبي مطلوب."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The successful rehearsal evidence changed. Create a new reconciliation packet."
+msgstr "تغيّرت أدلة التجارب الناجحة. أنشئ حزمة تسوية جديدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The successful rehearsal evidence is ambiguous for dataset {0}."
+msgstr "أدلة التجربة الناجحة غير محددة بوضوح لمجموعة البيانات {0}."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "The superseded migration packet must be a submitted mapped packet."
+msgstr "يجب أن تكون حزمة الترحيل المستبدلة حزمة تعيين مقدّمة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This dataset uses a different native load path, not Data Import."
+msgstr "تستخدم مجموعة البيانات هذه مسار تحميل أصليًا مختلفًا، وليس استيراد البيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This evidence packet compares approved source controls with permissioned native reports on the isolated rehearsal database. It is not a parallel ledger or production approval."
+msgstr "تقارن حزمة الأدلة هذه ضوابط المصدر المعتمدة بالتقارير المدمجة المصرح بها في قاعدة بيانات التجربة المعزولة. وهي ليست دفتر أستاذ موازيًا ولا اعتمادًا للإنتاج."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This migration packet has no native Data Import datasets to reconcile."
+msgstr "لا تحتوي حزمة الترحيل هذه على مجموعات بيانات استيراد مدمجة لتسويتها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This migration packet no longer matches its frozen scope."
+msgstr "لم تعد حزمة الترحيل هذه تطابق نطاقها المجمّد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This migration packet no longer matches the current candidate. Create a new packet."
+msgstr "لم تعد حزمة الترحيل هذه تطابق النسخة المرشحة الحالية. أنشئ حزمة جديدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This packet predates database binding. Create and submit a new migration packet."
+msgstr "أُنشئت هذه الحزمة قبل إضافة ربط قاعدة البيانات. أنشئ حزمة ترحيل جديدة وقدّمها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This packet predates environment binding. Create and submit a new migration packet."
+msgstr "أُنشئت هذه الحزمة قبل إضافة ربط البيئة. أنشئ حزمة ترحيل جديدة وقدّمها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This packet predates explicit duplicate identity controls. Create and submit a new migration packet."
+msgstr "أُنشئت هذه الحزمة قبل إضافة ضوابط هوية التكرار الصريحة. أنشئ حزمة ترحيل جديدة وقدّمها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This record controls one native Data Import run on a different site database. It never authorizes a production import."
+msgstr "يضبط هذا السجل تشغيلًا واحدًا لاستيراد البيانات المدمج على قاعدة بيانات موقع مختلفة، ولا يجيز مطلقًا الاستيراد إلى الإنتاج."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This rehearsal currently supports the native Data Import path only."
+msgstr "تدعم هذه التجربة حاليًا مسار استيراد البيانات المدمج فقط."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "This rehearsal has no failed rows to download."
+msgstr "لا تحتوي هذه التجربة على صفوف فاشلة لتنزيلها."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Total records"
+msgstr "إجمالي السجلات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Trace"
+msgstr "التتبّع"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Trial Balance, dimensions, debits and credits"
+msgstr "ميزان المراجعة والأبعاد والمدين والدائن"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Update"
+msgstr "تحديث"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Update Existing Records"
+msgstr "تحديث السجلات الموجودة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Update approved matches only"
+msgstr "تحديث المطابقات المعتمدة فقط"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Updated records"
+msgstr "السجلات المحدّثة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Use a pending native Data Import for a new isolated rehearsal."
+msgstr "استخدم استيراد بيانات مدمجًا بحالة معلّق لتجربة معزولة جديدة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Use a submitted successful rehearsal to prepare reconciliation."
+msgstr "استخدم تجربة ناجحة مقدّمة لإعداد التسوية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Use an attached frozen CSV or spreadsheet for a controlled rehearsal; a live Google Sheet cannot prove the frozen source hash."
+msgstr "استخدم ملف CSV أو جدول بيانات مجمّدًا ومرفقًا لتجربة مضبوطة؛ لا تستطيع ورقة Google المباشرة إثبات بصمة المصدر المجمّد."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Use plain numeric source and native values without currency symbols or separators."
+msgstr "استخدم قيمًا رقمية صريحة للمصدر والنظام من دون رموز عملات أو فواصل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "VAT and approved tax openings"
+msgstr "ضريبة القيمة المضافة والأرصدة الضريبية الافتتاحية المعتمدة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Variance"
+msgstr "الفرق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Variance cause"
+msgstr "سبب الفرق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Variance owner"
+msgstr "مسؤول الفرق"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have import permission for the target DocType."
+msgstr "ليست لديك صلاحية الاستيراد لنوع المستند المستهدف."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to create Data Import records."
+msgstr "ليست لديك صلاحية إنشاء سجلات استيراد البيانات."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to create a corrected migration packet."
+msgstr "ليست لديك صلاحية إنشاء حزمة ترحيل مصححة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to create readiness tasks."
+msgstr "ليست لديك صلاحية إنشاء مهام الجاهزية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to create the readiness work plan."
+msgstr "ليست لديك صلاحية إنشاء خطة أعمال الجاهزية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to prepare migration reconciliation."
+msgstr "ليست لديك صلاحية إعداد تسوية الترحيل."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to read the attached import file."
+msgstr "ليست لديك صلاحية قراءة ملف الاستيراد المرفق."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to record readiness reviews."
+msgstr "ليست لديك صلاحية تسجيل مراجعات الجاهزية."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "You do not have permission to use this company."
+msgstr "ليست لديك صلاحية استخدام هذه الشركة."
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "access"
+msgstr "الصلاحيات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "accounting"
+msgstr "المحاسبة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "commercial"
+msgstr "التجارة والتسعير"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "company"
+msgstr "الشركة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "draft"
+msgstr "مسودة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "dry-run-validated"
+msgstr "تم التحقق في التجربة"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "exception"
+msgstr "استثناء"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "first_transaction"
+msgstr "المعاملة الأولى"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "integrations"
+msgstr "التكاملات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "mapped"
+msgstr "تم تعيين الحقول"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "operations"
+msgstr "التشغيل والدعم"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "output"
+msgstr "المخرجات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "parties"
+msgstr "العملاء والموردون"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "payments"
+msgstr "المدفوعات"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "reconciled"
+msgstr "تمت التسوية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "running"
+msgstr "قيد التشغيل"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "stock"
+msgstr "المخزون"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "tax_zatca"
+msgstr "الضريبة والفوترة الإلكترونية"
+
+#. src: capability/onboarding-migration-core
+#, fuzzy
+msgid "Amount"
+msgstr "المبلغ"

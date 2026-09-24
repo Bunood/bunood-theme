@@ -289,6 +289,7 @@ def after_install() -> None:
     # Integration v0.48.0: pos-retail's tenant setup is HELD (see
     # ensure_pos_retail below) -- it creates payment modes, GL accounts, a cash
     # customer, a POS role and custom fields, and disables whole-riyal rounding.
+    _ensure_onboarding_migration()
     print("\n✅ Bunood Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
@@ -547,6 +548,7 @@ def after_migrate() -> None:
     # Integration v0.48.0: pos-retail's tenant setup is HELD (see
     # ensure_pos_retail below) -- it creates payment modes, GL accounts, a cash
     # customer, a POS role and custom fields, and disables whole-riyal rounding.
+    _ensure_onboarding_migration()
     # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
     # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
     # .rtl_patch now reaches them at RENDER time (see that module and
@@ -554,6 +556,23 @@ def after_migrate() -> None:
     # renders correctly, so warning about it would be noise, not signal.
     _defend_identity_overrides()
     _defend_false_friends()
+
+
+def _ensure_onboarding_migration() -> None:
+    """Reconcile bounded roles and metadata for readiness and native data import."""
+    from bunood_theme.roles import (
+        ensure_migration_manager_role,
+        ensure_readiness_reviewer_role,
+        ensure_v1_marker_roles,
+    )
+    from bunood_theme.readiness_work import ensure_readiness_work_fields
+    from bunood_theme.migration_scope import ensure_migration_data_import_fields
+
+    ensure_v1_marker_roles()
+    ensure_readiness_reviewer_role()
+    ensure_migration_manager_role()
+    ensure_readiness_work_fields()
+    ensure_migration_data_import_fields()
 
 
 def _seed_navbar_appearance_item() -> None:
