@@ -107,6 +107,7 @@
 // The Report Studio (bnd-report-studio page). Owns its DOM outright, so it
 // wars with nobody — placed with its fellow surfaces for cascade hygiene only.
 @use "surfaces/studio";
+@use "surfaces/finance_close";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";
