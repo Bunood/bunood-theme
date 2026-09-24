@@ -37,6 +37,29 @@ from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, 
 
 from bunood_theme.home_metrics import build_home_kpis, home_metric_contract
 
+
+STOCK_ENTRY_SETTING_FIELDS = frozenset(
+    {"sample_retention_warehouse", "disable_serial_no_and_batch_selector"}
+)
+
+
+@frappe.whitelist()
+def get_stock_entry_setting(fieldname: str):
+    """Return one non-secret native setting required by the Stock Entry UI."""
+
+    if fieldname not in STOCK_ENTRY_SETTING_FIELDS:
+        frappe.throw("Unsupported Stock Entry setting", frappe.PermissionError)
+    if not frappe.has_permission("Stock Entry", "read"):
+        frappe.throw("Not permitted to read Stock Entry settings", frappe.PermissionError)
+    value = frappe.db.get_single_value("Stock Settings", fieldname)
+    if (
+        fieldname == "sample_retention_warehouse"
+        and value
+        and not frappe.has_permission("Warehouse", "read", value)
+    ):
+        return None
+    return value
+
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
 CACHE_WS_MAP = "bnd_doctype_workspace_map"
