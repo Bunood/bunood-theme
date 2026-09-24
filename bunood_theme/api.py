@@ -32,10 +32,81 @@ See ARCHITECTURE.md section 10.
 from datetime import timedelta
 
 import frappe
+from frappe import _
 from frappe.model.db_query import DatabaseQuery
 from frappe.utils import add_months, flt, get_first_day, get_last_day, getdate, nowdate
 
 from bunood_theme.home_metrics import build_home_kpis, home_metric_contract
+from bunood_theme.launch_readiness import derive_launch_readiness
+from bunood_theme.migration_scope import (
+    prepare_corrected_migration_packet as _prepare_corrected_migration_packet,
+    prepare_native_data_import as _prepare_native_data_import,
+)
+from bunood_theme.migration_rehearsal import (
+    capture_isolated_migration_rehearsal as _capture_isolated_migration_rehearsal,
+    download_isolated_migration_failed_rows as _download_isolated_migration_failed_rows,
+    start_isolated_migration_rehearsal as _start_isolated_migration_rehearsal,
+)
+from bunood_theme.migration_reconciliation import (
+    prepare_migration_reconciliation as _prepare_migration_reconciliation,
+)
+from bunood_theme.readiness_work import get_readiness_work, start_readiness_review as _start_readiness_review
+from bunood_theme.readiness_review import prepare_readiness_decision as _prepare_readiness_decision
+from bunood_theme.start_readiness import derive_start_readiness
+
+
+STOCK_ENTRY_SETTING_FIELDS = frozenset(
+    {"sample_retention_warehouse", "disable_serial_no_and_batch_selector"}
+)
+
+
+@frappe.whitelist(methods=["GET"])
+def get_report_studio_assets() -> dict:
+    """Return the current immutable Report Studio asset URLs.
+
+    Desk sessions can outlive a theme build.  Their boot payload then carries
+    the previous content hashes, while Frappe's asset manager treats even a
+    failed stylesheet request as executed and will not retry it.  Keeping this
+    tiny authenticated endpoint authoritative lets the route recover without
+    coupling the Studio to the global Desk payload.
+    """
+
+    from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
+
+    return {"css": STUDIO_CSS, "js": STUDIO_JS}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_pos_assets() -> dict:
+    """Return the current immutable Bunood POS asset URLs."""
+    from bunood_theme.assets import POS_CSS, POS_JS
+
+    return {"css": POS_CSS, "js": POS_JS}
+
+
+@frappe.whitelist()
+def get_stock_entry_setting(fieldname: str):
+    """Return one non-secret native setting required by the Stock Entry UI.
+
+    Stock User may read and operate Stock Entry but ERPNext's standard client
+    asks the permission-restricted Stock Settings singleton for these two
+    values during form setup. Keep the exception field-bounded and require the
+    caller's original Stock Entry read authority; no configuration write path
+    is introduced.
+    """
+
+    if fieldname not in STOCK_ENTRY_SETTING_FIELDS:
+        frappe.throw("Unsupported Stock Entry setting", frappe.PermissionError)
+    if not frappe.has_permission("Stock Entry", "read"):
+        frappe.throw("Not permitted to read Stock Entry settings", frappe.PermissionError)
+    value = frappe.db.get_single_value("Stock Settings", fieldname)
+    if (
+        fieldname == "sample_retention_warehouse"
+        and value
+        and not frappe.has_permission("Warehouse", "read", value)
+    ):
+        return None
+    return value
 
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
@@ -48,6 +119,60 @@ CACHE_ICON_MAP = "bnd_doctype_icon_map"
 #: high-traffic doctypes get attributed to "Home" and the sidebar highlights the wrong
 #: module everywhere.
 LANDING_WORKSPACES = {"home", "welcome workspace"}
+
+
+@frappe.whitelist()
+def journal_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-safe wrapper for native Journal Entry work queues."""
+
+    from bunood_theme.journal_workbench import get_journal_workbench
+
+    return get_journal_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-safe wrapper for native ERPNext close evidence."""
+
+    from bunood_theme.finance_close import get_finance_close_cockpit
+
+    return get_finance_close_cockpit(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def bank_reconciliation_workbench(
+    company: str,
+    bank_account: str | None = None,
+    from_date=None,
+    to_date=None,
+) -> dict:
+    """Version-stable wrapper for the native banking preflight."""
+
+    from bunood_theme.banking import get_bank_reconciliation_workbench
+
+    return get_bank_reconciliation_workbench(
+        company=company,
+        bank_account=bank_account,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def create_bank_statement_import(company: str, bank_account: str) -> dict:
+    """Create an ERPNext Bank Statement Import draft with native permissions."""
+
+    from bunood_theme.banking import prepare_bank_statement_import
+
+    return prepare_bank_statement_import(company=company, bank_account=bank_account)
 
 
 def _dashboard_rows(doctype: str, *, filters=None, fields=None, order_by=None, limit=0) -> list:
@@ -65,6 +190,335 @@ def _dashboard_rows(doctype: str, *, filters=None, fields=None, order_by=None, l
     except Exception:
         frappe.log_error(title=f"bunood_theme: home dashboard {doctype} query stood down")
         return []
+
+
+def _dashboard_count(doctype: str, *, filters=None) -> int:
+    """Count visible records in SQL without transferring every document name."""
+    rows = _dashboard_rows(
+        doctype,
+        filters=filters,
+        fields=[{"COUNT": "name", "AS": "count"}],
+        limit=1,
+    )
+    return int(rows[0].get("count") or 0) if rows else 0
+
+
+def _native_record_fact(
+    doctype: str,
+    *,
+    filters=None,
+    include_create=False,
+    include_change=False,
+) -> dict:
+    """Describe a native record check without turning query failure into absence."""
+    available = bool(frappe.db.exists("DocType", doctype))
+    can_read = available and bool(frappe.has_permission(doctype, "read"))
+    exists = False
+    query_error = False
+    if can_read:
+        try:
+            exists = bool(
+                frappe.get_list(
+                    doctype,
+                    filters=filters or {},
+                    fields=["name"],
+                    limit=1,
+                )
+            )
+        except Exception:
+            query_error = True
+            frappe.log_error(title=f"bunood_theme: readiness {doctype} query stood down")
+    result = {
+        "available": available,
+        "can_read": can_read,
+        "exists": exists,
+        "query_error": query_error,
+    }
+    if include_create:
+        result["can_create"] = available and bool(frappe.has_permission(doctype, "create"))
+    if include_change:
+        result["can_change"] = available and bool(
+            frappe.has_permission(doctype, "write")
+            or frappe.has_permission(doctype, "create")
+        )
+    return result
+
+
+def _combined_native_fact(*facts, require_all=True, detail="", route=None) -> dict:
+    """Combine narrow native observations without upgrading them into approval."""
+
+    exists_values = [bool(fact.get("exists")) for fact in facts]
+    result = {
+        "available": all(fact.get("available", True) for fact in facts),
+        "can_read": all(fact.get("can_read") for fact in facts),
+        "exists": all(exists_values) if require_all else any(exists_values),
+        "query_error": any(fact.get("query_error") for fact in facts),
+        "can_change": any(fact.get("can_change") for fact in facts),
+        "detail": detail,
+    }
+    if route:
+        result["route"] = route
+    return result
+
+
+def _start_readiness_fact(doctype: str, *, filters=None) -> dict:
+    """Describe one first-use milestone through native scope and permissions."""
+
+    return _native_record_fact(doctype, filters=filters, include_create=True)
+
+
+def _launch_record_fact(doctype: str, *, filters=None) -> dict:
+    """Read and change capability for one pre-live native setup destination."""
+
+    return _native_record_fact(doctype, filters=filters, include_change=True)
+
+
+def _start_readiness(company: str) -> dict:
+    """Return the permission-filtered native path to a first recorded payment."""
+
+    no_company = {"name": ["=", "__bunood_no_company__"]}
+    company_filter = {"company": company} if company else no_company
+    facts = {
+        "company": _start_readiness_fact(
+            "Company", filters={"name": company} if company else no_company
+        ),
+        "customer": _start_readiness_fact("Customer", filters={"disabled": 0}),
+        "item": _start_readiness_fact("Item", filters={"disabled": 0}),
+        "invoice": _start_readiness_fact(
+            "Sales Invoice", filters={**company_filter, "docstatus": 1}
+        ),
+        "payment": _start_readiness_fact(
+            "Payment Entry",
+            filters={**company_filter, "docstatus": 1, "payment_type": "Receive"},
+        ),
+    }
+    return derive_start_readiness(facts)
+
+
+def _launch_observations(company: str, company_row=None) -> dict:
+    """Return pre-live observations without making a launch/compliance claim."""
+
+    no_company = {"name": ["=", "__bunood_no_company__"]}
+    company_filter = {"company": company} if company else no_company
+    profile_exists = bool(
+        company
+        and company_row
+        and company_row.get("default_currency")
+        and company_row.get("country")
+    )
+    company_fact = _launch_record_fact(
+        "Company", filters={"name": company} if company else no_company
+    )
+    company_fact.update(
+        exists=profile_exists,
+        detail="identity-currency-country-found" if profile_exists else "identity-fields-missing",
+        route=["Form", "Company", company] if company else ["List", "Company"],
+    )
+
+    account_fact = _combined_native_fact(
+        _launch_record_fact(
+            "Account", filters={**company_filter, "is_group": 0, "disabled": 0}
+        ),
+        _launch_record_fact(
+            "Cost Center", filters={**company_filter, "is_group": 0, "disabled": 0}
+        ),
+        detail="posting-account-and-cost-center-found",
+        route=["List", "Account", company_filter],
+    )
+    commercial_fact = _combined_native_fact(
+        _launch_record_fact("Item", filters={"disabled": 0}),
+        _launch_record_fact("Price List", filters={"selling": 1, "enabled": 1}),
+        detail="item-and-selling-price-list-found",
+        route=["List", "Price List", {"selling": 1}],
+    )
+    parties_fact = _combined_native_fact(
+        _launch_record_fact("Customer", filters={"disabled": 0}),
+        _launch_record_fact("Supplier", filters={"disabled": 0}),
+        detail="customer-and-supplier-found",
+        route=["List", "Customer"],
+    )
+    payment_fact = _combined_native_fact(
+        _launch_record_fact("Mode of Payment", filters={"enabled": 1}),
+        _launch_record_fact("POS Profile", filters={"disabled": 0}),
+        require_all=False,
+        detail="payment-method-or-pos-profile-found",
+        route=["List", "Mode of Payment"],
+    )
+    first_transaction_fact = _combined_native_fact(
+        _launch_record_fact(
+            "Sales Invoice", filters={**company_filter, "docstatus": 1}
+        ),
+        _launch_record_fact(
+            "Payment Entry",
+            filters={**company_filter, "docstatus": 1, "payment_type": "Receive"},
+        ),
+        detail="submitted-invoice-and-receipt-found",
+        route=["List", "Sales Invoice", {**company_filter, "docstatus": 1}],
+    )
+    tax_fact = _launch_record_fact(
+        "Sales Taxes and Charges Template", filters=company_filter
+    )
+    facts = {
+        "company": company_fact,
+        "accounting": account_fact,
+        "stock": {
+            **_launch_record_fact(
+                "Warehouse", filters={**company_filter, "is_group": 0, "disabled": 0}
+            ),
+            "detail": "stock-warehouse-found",
+            "route": ["List", "Warehouse", company_filter],
+        },
+        "commercial": commercial_fact,
+        "parties": parties_fact,
+        "payments": payment_fact,
+        "access": {
+            **_launch_record_fact(
+                "User", filters={"enabled": 1, "user_type": "System User"}
+            ),
+            "detail": "enabled-system-user-found",
+            "route": ["List", "User", {"enabled": 1, "user_type": "System User"}],
+        },
+        "output": {
+            **_launch_record_fact("Print Format", filters={"doc_type": "Sales Invoice"}),
+            "detail": "sales-invoice-format-found",
+            "route": ["List", "Print Format", {"doc_type": "Sales Invoice"}],
+        },
+        "operations": {
+            "available": True,
+            "can_read": True,
+            "can_change": False,
+            "exists": False,
+            "detail": "privacy-backup-security-support-external",
+        },
+        "integrations": {
+            "available": True,
+            "can_read": True,
+            "can_change": False,
+            "exists": False,
+            "detail": "integration-credentials-failure-ownership-external",
+        },
+        "first_transaction": first_transaction_fact,
+    }
+
+    try:
+        from bunood_theme.zatca.status import get_status
+
+        zatca = get_status(company=company) if company else {
+            "installed": False,
+            "state": "needs_company",
+            "settings": {"route": []},
+        }
+        zatca_route = (zatca.get("settings") or {}).get("route") or []
+        zatca_can_read = not zatca_route or bool(
+            frappe.has_permission("ZATCA Business Settings", "read")
+        )
+        zatca_can_change = bool(
+            zatca_route
+            and (
+                frappe.has_permission("ZATCA Business Settings", "write")
+                or frappe.has_permission("ZATCA Business Settings", "create")
+            )
+        )
+        visible_zatca_route = zatca_route if zatca_can_read else []
+        zatca_fact = {
+            # Absence is an applicability/configuration review, not an unavailable
+            # platform feature or an automatic legal conclusion.
+            "available": True,
+            "can_read": zatca_can_read,
+            "can_change": zatca_can_change,
+            "exists": zatca.get("state") == "ready",
+            "detail": str(zatca.get("state") or "unknown"),
+            "route": visible_zatca_route,
+        }
+        facts["tax_zatca"] = _combined_native_fact(
+            tax_fact,
+            zatca_fact,
+            detail=f"tax-template-and-zatca-{zatca_fact['detail']}",
+            route=visible_zatca_route
+            or ["List", "Sales Taxes and Charges Template", company_filter],
+        )
+    except Exception:
+        frappe.log_error(title="bunood_theme: readiness ZATCA query stood down")
+        facts["tax_zatca"] = _combined_native_fact(
+            tax_fact,
+            {
+                "available": True,
+                "can_read": True,
+                "can_change": False,
+                "exists": False,
+                "query_error": True,
+            },
+            detail="query-error",
+            route=["List", "Sales Taxes and Charges Template", company_filter],
+        )
+    result = derive_launch_readiness(facts)
+    work_plan = get_readiness_work(company)
+    result["work_plan"] = work_plan
+    for check in result["checks"]:
+        task = (work_plan.get("tasks") or {}).get(check["key"])
+        if task:
+            check["work"] = task
+    return result
+
+
+@frappe.whitelist()
+def start_readiness_review(company: str) -> dict:
+    """Create the native readiness Project/Tasks with current-user permissions."""
+
+    return _start_readiness_review(company)
+
+
+@frappe.whitelist()
+def prepare_readiness_decision(company: str, domain: str) -> dict:
+    """Open a permission-safe draft for a candidate-bound review receipt."""
+
+    return _prepare_readiness_decision(company, domain)
+
+
+@frappe.whitelist()
+def prepare_native_data_import(run_name: str, dataset_row_name: str) -> dict:
+    """Open an empty native Data Import draft for one frozen mapped dataset."""
+
+    return _prepare_native_data_import(run_name, dataset_row_name)
+
+
+@frappe.whitelist()
+def prepare_corrected_migration_packet(
+    run_name: str, prior_rehearsal_receipt_digest: str, correction_reason: str
+) -> dict:
+    """Create a new draft linked to an exception rehearsal receipt."""
+
+    return _prepare_corrected_migration_packet(
+        run_name, prior_rehearsal_receipt_digest, correction_reason
+    )
+
+
+@frappe.whitelist()
+def start_isolated_migration_rehearsal(run_name: str, dataset_row_name: str) -> dict:
+    """Start the frozen native import only on a distinct restored database."""
+
+    return _start_isolated_migration_rehearsal(run_name, dataset_row_name)
+
+
+@frappe.whitelist()
+def capture_isolated_migration_rehearsal(rehearsal_name: str) -> dict:
+    """Freeze a terminal native rehearsal result without copying error text."""
+
+    return _capture_isolated_migration_rehearsal(rehearsal_name)
+
+
+@frappe.whitelist()
+def download_isolated_migration_failed_rows(rehearsal_name: str):
+    """Download native failed rows after rechecking the isolated receipt."""
+
+    return _download_isolated_migration_failed_rows(rehearsal_name)
+
+
+@frappe.whitelist()
+def prepare_migration_reconciliation(rehearsal_name: str) -> dict:
+    """Create the permission-safe reconciliation packet for successful rehearsals."""
+
+    return _prepare_migration_reconciliation(rehearsal_name)
 
 
 def _base_outstanding(row, company_currency: str) -> float:
@@ -85,6 +539,48 @@ def _base_outstanding(row, company_currency: str) -> float:
     if party_currency == company_currency:
         return amount
     return amount * flt(row.get("conversion_rate") or 1)
+
+
+@frappe.whitelist()
+def get_customer_account_summary(customer: str, company: str) -> dict:
+    """Return the permission-filtered customer control-account balance.
+
+    GL debit/credit values are already in company currency.  A positive
+    balance is money due from the customer; a negative balance is an advance
+    or other customer credit.  Draft invoices never appear because they have
+    no GL Entries, and submitted receipts reduce the same balance by crediting
+    Accounts Receivable.
+    """
+    if not customer or not company:
+        return {"balance": 0.0, "debit": 0.0, "credit": 0.0, "currency": ""}
+
+    frappe.get_doc("Customer", customer).check_permission("read")
+    frappe.get_doc("Company", company).check_permission("read")
+    if not frappe.has_permission("GL Entry", "read"):
+        frappe.throw(frappe._("Not permitted to read customer ledger entries."), frappe.PermissionError)
+
+    rows = frappe.get_list(
+        "GL Entry",
+        filters={
+            "company": company,
+            "party_type": "Customer",
+            "party": customer,
+            "is_cancelled": 0,
+        },
+        fields=[
+            {"SUM": "debit", "AS": "debit"},
+            {"SUM": "credit", "AS": "credit"},
+        ],
+        limit=1,
+    )
+    debit = flt(rows[0].debit) if rows else 0.0
+    credit = flt(rows[0].credit) if rows else 0.0
+    return {
+        "balance": debit - credit,
+        "debit": debit,
+        "credit": credit,
+        "currency": frappe.db.get_value("Company", company, "default_currency") or "",
+    }
 
 
 def _stock_below_reorder_names(levels: list, warehouses: list, bins: list) -> list[str]:
@@ -289,7 +785,9 @@ def get_home_dashboard(company: str | None = None) -> dict:
     month_start = get_first_day(today)
     six_month_start = get_first_day(add_months(today, -5))
 
-    companies = _dashboard_rows("Company", fields=["name", "default_currency"], limit=0)
+    companies = _dashboard_rows(
+        "Company", fields=["name", "default_currency", "country"], limit=0
+    )
     allowed = {row.name: row for row in companies}
     preferred = company or frappe.defaults.get_user_default("Company")
     selected = preferred if preferred in allowed else (companies[0].name if companies else "")
@@ -329,7 +827,7 @@ def get_home_dashboard(company: str | None = None) -> dict:
         # Documents this user still has to finish. Counted, never listed here:
         # the panel links into the real filtered list rather than trying to be
         # one.
-        "drafts": {"sales": 0, "purchase": 0},
+        "drafts": {"sales": 0, "purchase": 0, "quotation": 0, "payment": 0},
         "invoice_status": {"paid": 0, "open": 0, "overdue": 0},
         # The client uses this exact scope when opening a status list.  Keep it
         # beside the facts it describes so a click can never drift back to the
@@ -344,6 +842,8 @@ def get_home_dashboard(company: str | None = None) -> dict:
         "trend": [],
         "recent": [],
     }
+    result["start_readiness"] = _start_readiness(selected)
+    result["launch_readiness"] = _launch_observations(selected, allowed.get(selected))
     if not selected:
         return result
 
@@ -442,18 +942,16 @@ def get_home_dashboard(company: str | None = None) -> dict:
     )
     result["trend"] = list(month_totals.values())
 
-    # Unfinished work. `_dashboard_rows` is the permission-filtered helper every
-    # other section here uses, so a user who cannot read one of these doctypes
-    # gets a zero rather than an error — the same "valid empty shape" contract
-    # the docstring promises for a Frappe-only or restricted site.
-    for doctype, key in (("Sales Invoice", "sales"), ("Purchase Invoice", "purchase")):
-        result["drafts"][key] = len(
-            _dashboard_rows(
-                doctype,
-                filters={"company": selected, "docstatus": 0},
-                fields=["name"],
-                limit=0,
-            )
+    # Count through the permission-filtered reader, without transferring every
+    # draft name merely to display a number.
+    for doctype, key in (
+        ("Sales Invoice", "sales"),
+        ("Purchase Invoice", "purchase"),
+        ("Quotation", "quotation"),
+        ("Payment Entry", "payment"),
+    ):
+        result["drafts"][key] = _dashboard_count(
+            doctype, filters={"company": selected, "docstatus": 0}
         )
 
     due_soon_filters = {
@@ -482,6 +980,12 @@ def get_home_dashboard(company: str | None = None) -> dict:
         fields=["name", "outstanding_amount", "conversion_rate", "party_account_currency"],
         limit=0,
     )
+    open_quotation_filters = {
+        "company": selected,
+        "docstatus": 1,
+        "status": ["in", ["Open", "Replied"]],
+    }
+    open_quotations_count = _dashboard_count("Quotation", filters=open_quotation_filters)
     result["attention"] = [
         {
             "key": "sales_drafts",
@@ -490,6 +994,30 @@ def get_home_dashboard(company: str | None = None) -> dict:
             "amount": 0,
             "doctype": "Sales Invoice",
             "filters": {"company": selected, "docstatus": 0},
+        },
+        {
+            "key": "quotation_drafts",
+            "label": "Quotation drafts",
+            "count": result["drafts"]["quotation"],
+            "amount": 0,
+            "doctype": "Quotation",
+            "filters": {"company": selected, "docstatus": 0},
+        },
+        {
+            "key": "payment_drafts",
+            "label": "Payment drafts",
+            "count": result["drafts"]["payment"],
+            "amount": 0,
+            "doctype": "Payment Entry",
+            "filters": {"company": selected, "docstatus": 0},
+        },
+        {
+            "key": "open_quotations",
+            "label": "Open quotations",
+            "count": open_quotations_count,
+            "amount": 0,
+            "doctype": "Quotation",
+            "filters": open_quotation_filters,
         },
         {
             "key": "purchase_drafts",
@@ -534,21 +1062,17 @@ def get_home_dashboard(company: str | None = None) -> dict:
     ]
 
     if "System Manager" in frappe.get_roles():
-        failed_jobs = _dashboard_rows(
+        failed_jobs_count = _dashboard_count(
             "Scheduled Job Log",
             filters={"status": "Failed", "creation": [">=", today.isoformat()]},
-            fields=["name"],
-            limit=0,
         )
-        errors = _dashboard_rows(
+        error_count = _dashboard_count(
             "Error Log",
             filters={"creation": [">=", today.isoformat()]},
-            fields=["name"],
-            limit=0,
         )
         result["admin_health"] = {
-            "failed_jobs_today": len(failed_jobs),
-            "error_logs_today": len(errors),
+            "failed_jobs_today": failed_jobs_count,
+            "error_logs_today": error_count,
         }
 
     accounts = _dashboard_rows(
@@ -1373,13 +1897,30 @@ def get_status_signals(want_jobs: int = 1, want_errors: int = 1, want_scheduler:
     if int(want_errors or 0):
         try:
             from frappe.desk.notifications import get_notifications
+            from frappe.utils import add_to_date, now_datetime
 
             counts = (get_notifications() or {}).get("open_count_doctype") or {}
             # Absent key = this user may not read Error Log. That is "not
             # applicable", not zero — leave it None so the bar hides the
             # segment instead of claiming a clean system.
             if "Error Log" in counts:
-                out["errors"] = int(counts["Error Log"] or 0)
+                # Frappe's notification count is lifetime-wide. On a restored
+                # or long-running site that turns a status signal into an
+                # intimidating history counter (the tenant that exposed this
+                # showed 91) even after every cause is repaired. Preserve the
+                # native permission gate above, then count only unseen errors
+                # created in the last 24 hours through get_list so row-level
+                # permissions still apply. The Error Log remains the linked
+                # system of record; this is only its actionable desk signal.
+                since = add_to_date(now_datetime(), hours=-24)
+                out["errors"] = len(
+                    frappe.get_list(
+                        "Error Log",
+                        filters={"seen": 0, "creation": [">=", since]},
+                        pluck="name",
+                        limit_page_length=1000,
+                    )
+                )
         except Exception:
             pass
 
@@ -2189,6 +2730,11 @@ def composer_pages() -> dict:
     System-Manager only, like every other settings-page endpoint; a page the
     admin cannot open is still listed, because the reason is the information.
     """
+    # Keep the translation helper local to this endpoint. Most of this module
+    # deliberately uses ``frappe._`` directly; the composer historically used
+    # the short spelling without importing it, so every request failed before
+    # it could return a single preview route.
+    _ = frappe._
     frappe.only_for("System Manager")
     from urllib.parse import quote
 

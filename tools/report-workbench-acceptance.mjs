@@ -143,8 +143,8 @@ try {
 		const signedChart = state.chartData?.datasets?.some((dataset) =>
 			(dataset.values || []).some((value) => Number(value) < 0));
 		if (signedChart) {
-			assert(state.chartType === "bar" && state.chartFallback === "signed-percentage",
-				`${report}: signed percentage data did not use the accurate bar fallback`);
+			assert(state.chartFallback === "nonviable-part-to-whole",
+				`${report}: signed percentage data did not use the bounded textual fallback`);
 		}
 		assert(state.nativeExport && state.nativeRefresh, `${report}: native export/refresh ownership changed`);
 		assert(state.overflow <= 1, `${report}: page overflows by ${state.overflow}px`);

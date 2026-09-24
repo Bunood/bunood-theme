@@ -126,6 +126,14 @@ def check_inference():
     ar = icons.icon_for_item({"link_to": "Stock Entry", "link_type": "DocType", "label": "قيد مخزون"})
     assert en == ar == "icon-stock", f"Arabic parity broken: en={en!r} ar={ar!r}"
 
+    # ERPNext stores this menu item as a Page route rather than a DocType and
+    # leaves its icon blank. The untranslated route must still resolve before
+    # the Arabic display label can fall back to its first letter.
+    pos = icons.icon_for_item(
+        {"link_to": "point-of-sale", "link_type": "Page", "label": "نقطة البيع"}
+    )
+    assert pos == "icon-retail", f"POS menu icon fell back instead of resolving: {pos!r}"
+
     # Runtime precedence is deliberate: row-owned icon, exact everyday record,
     # explicit DocType/ref-DocType icon, then substring inference. The map
     # below mirrors the generic values observed on the pinned local stack.

@@ -1,0 +1,42 @@
+<!-- Managed report print format. Frappe reports use JavaScript microtemplates. -->
+{% var bndLanguage = (((frappe.boot && frappe.boot.lang) || frappe.lang || "en") + "").toLowerCase(); var bndArabic = bndLanguage.indexOf("ar") === 0; var bndText = bndArabic ? {title:"كشف حساب عميل",customer:"العميل",allCustomers:"جميع العملاء",period:"الفترة",company:"الشركة",currency:"العملة",date:"التاريخ",document:"المستند / البيان",debit:"مدين",credit:"دائن",balance:"الرصيد",closing:"الرصيد الختامي",total:"الإجمالي"} : {title:"CUSTOMER STATEMENT",customer:"Customer",allCustomers:"All customers",period:"Period",company:"Company",currency:"Currency",date:"Date",document:"Document / Description",debit:"Debit",credit:"Credit",balance:"Balance",closing:"Closing balance",total:"Total"}; %}
+<style>
+  .bnd-statement { font-family: Tajawal, Arial, sans-serif; color: #18221c; }
+  .bnd-statement[dir="rtl"] { direction: rtl; text-align: right; }
+  .bnd-statement[dir="ltr"] { direction: ltr; text-align: left; }
+  .bnd-statement h1 { color: #245736; font-size: 22px; margin: 0 0 16px; }
+  .bnd-statement__meta { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
+  .bnd-statement__meta td { padding: 5px 8px; }
+  .bnd-statement__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .bnd-statement__table th { background: #edf5ef; color: #245736; font-weight: 700; }
+  .bnd-statement__table th, .bnd-statement__table td { padding: 7px 8px; border-bottom: 1px solid #dfe7e1; }
+  .bnd-statement__table th:nth-child(1), .bnd-statement__table td:nth-child(1) { width: 14%; }
+  .bnd-statement__table th:nth-child(2), .bnd-statement__table td:nth-child(2) { width: 38%; }
+  .bnd-statement__table th:nth-child(n+3), .bnd-statement__table td:nth-child(n+3) { width: 16%; }
+  .bnd-statement__num { direction: ltr; font-variant-numeric: tabular-nums; }
+  .bnd-statement[dir="rtl"] .bnd-statement__num { text-align: left; }
+  .bnd-statement[dir="ltr"] .bnd-statement__num { text-align: right; }
+  .bnd-statement__total td { font-weight: 700; background: #f6faf7; }
+  @media print { @page { size: A4; margin: 12mm; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
+</style>
+<div class="bnd-statement" dir="{%= bndArabic ? "rtl" : "ltr" %}" lang="{%= bndArabic ? "ar" : "en" %}">
+  <h1>{%= bndText.title %}</h1>
+  <table class="bnd-statement__meta"><tr>
+    <td><strong>{%= bndText.customer %}:</strong> {%= (filters.party && filters.party.length ? filters.party.join(bndArabic ? "، " : ", ") : (filters.party_name || bndText.allCustomers)) %}</td>
+    <td><strong>{%= bndText.period %}:</strong> {%= frappe.datetime.str_to_user(filters.from_date) %} — {%= frappe.datetime.str_to_user(filters.to_date) %}</td>
+  </tr><tr><td><strong>{%= bndText.company %}:</strong> {%= filters.company || "" %}</td><td><strong>{%= bndText.currency %}:</strong> {%= filters.presentation_currency || "SAR" %}</td></tr></table>
+  <table class="bnd-statement__table">
+    <thead><tr><th>{%= bndText.date %}</th><th>{%= bndText.document %}</th><th>{%= bndText.debit %}</th><th>{%= bndText.credit %}</th><th>{%= bndText.balance %}</th></tr></thead>
+    <tbody>
+    {% for (var i = 0; i < data.length; i++) { var row = data[i]; var entry = !!row.posting_date; var summary = row.account || (i === data.length - 1 ? bndText.closing : bndText.total); if (summary && summary.length > 1 && summary.charAt(0) === "'" && summary.charAt(summary.length - 1) === "'") { summary = summary.slice(1, -1); } %}
+      <tr class="{% if (!entry) { %}bnd-statement__total{% } %}">
+        <td>{% if (entry) { %}{%= frappe.datetime.str_to_user(row.posting_date) %}{% } %}</td>
+        <td>{% if (entry) { %}{%= ((row.voucher_type ? __(row.voucher_type) : "") + " " + (row.voucher_no || "")).trim() %}{% if (row.remarks && row.remarks !== "No Remarks") { %}<br>{%= row.remarks %}{% } %}{% } else { %}{%= summary %}{% } %}</td>
+        <td class="bnd-statement__num">{%= row.debit ? format_currency(row.debit, filters.presentation_currency) : "" %}</td>
+        <td class="bnd-statement__num">{%= row.credit ? format_currency(row.credit, filters.presentation_currency) : "" %}</td>
+        <td class="bnd-statement__num">{%= !is_null(row.balance) ? format_currency(row.balance, filters.presentation_currency) : "" %}</td>
+      </tr>
+    {% } %}
+    </tbody>
+  </table>
+</div>

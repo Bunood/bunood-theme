@@ -108,6 +108,13 @@ const ENTRIES = [
 	// properties and nothing rtlcss-processes an inline Print Style), carrying
 	// `assertPrintSafeCss` instead — see that guard for the whole argument.
 	{ key: "bunood-print", src: "print/print.scss", pyid: "PRINT_CSS" },
+	// Report-only styles are intentionally route-scoped. Keeping the catalogue
+	// and data-dense statement rules out of every Desk page protects the global
+	// payload while still preventing the intrinsic-SVG flash on those routes.
+	{ key: "bnd-studio", src: "studio.scss", pyid: "STUDIO_CSS" },
+	{ key: "bnd-report-landing", src: "report_landing.scss", pyid: "REPORT_LANDING_CSS" },
+	// Bunood POS is a full task surface and is fetched only on /app/bnd-pos.
+	{ key: "bnd-pos", src: "pos_workbench.scss", pyid: "POS_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -2053,6 +2060,16 @@ const JS_ENTRIES = [
 	{ key: "bnd-report", src: "report_workbench.js", pyid: "REPORT_JS" },
 	// Report Studio is page-scoped: its route loads this hashed asset on demand.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+	// The Reports workspace enhancement is loaded only on that workspace.
+	{ key: "bnd-report-landing", src: "report_landing.js", pyid: "REPORT_LANDING_JS" },
+	// Banking is page-scoped and keeps reconciliation code out of every Desk page.
+	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
+	// Finance close is page-scoped and coordinates native evidence without posting.
+	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
+	// Journal review is page-scoped and keeps the global desk payload unchanged.
+	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
+	// Bunood POS is page-scoped; invoice and ordinary Desk routes pay no payload cost.
+	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
 	// Loaded only by _auth_context. It keeps the public login bilingual without
 	// shipping the desk bundle or Frappe's full website navbar to that page.
 	{ key: "bunood-auth", src: "bunood_auth.js", pyid: "AUTH_JS" },
@@ -2062,7 +2079,7 @@ const JS_ENTRIES = [
 // source files makes them testable, but the shipped THEME_JS must contain all
 // three. A previous merge retained the source/tests while silently reverting
 // this composition step, so invoices fell back to the native form in production.
-const DESK_JS_SOURCES = ["bunood.js", "sales_bill.js", "simple_forms.js"];
+const DESK_JS_SOURCES = ["bunood.js", "document_actions.js", "list_presets.js", "sales_bill.js", "simple_forms.js"];
 
 async function readDeskJs() {
 	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))

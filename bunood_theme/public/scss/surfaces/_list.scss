@@ -3,6 +3,67 @@
 // LIST VIEW — checklist item 16. The first SURFACE partial.
 
 @use "../breakpoints" as *;
+
+// Native list presets. These controls only set Frappe's real ListView filters;
+// the standard filter row and saved-filter controls remain authoritative and
+// visible immediately below. The colour roles match the shared document-state
+// language instead of introducing a list-only palette.
+html[data-bnd-desk] .bnd-list-presets {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2);
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  color: var(--bnd-ink-muted);
+  background: var(--bnd-raised);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-desk] .bnd-list-presets-label {
+  margin-inline-end: var(--bnd-sp-1);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-bnd-desk] .bnd-list-preset {
+  min-block-size: var(--bnd-control-h);
+  padding: var(--bnd-sp-1) var(--bnd-sp-3);
+  color: var(--bnd-ink-muted);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-pill);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  white-space: nowrap;
+}
+html[data-bnd-desk] .bnd-list-preset:is(:hover, :focus-visible) {
+  color: var(--bnd-ink);
+  border-color: var(--bnd-brand-solid);
+}
+html[data-bnd-desk] .bnd-list-preset:focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-line);
+}
+html[data-bnd-desk] .bnd-list-preset[aria-pressed="true"] {
+  color: var(--bnd-ink);
+  border-color: var(--bnd-list-preset-tone, var(--bnd-brand-solid));
+  background: color-mix(in srgb, var(--bnd-list-preset-tone, var(--bnd-brand)) 12%, var(--bnd-surface));
+  box-shadow: inset 0 calc(-1 * var(--bnd-line-2)) 0 var(--bnd-list-preset-tone, var(--bnd-brand-solid));
+}
+html[data-bnd-desk] .bnd-list-preset.is-info { --bnd-list-preset-tone: var(--bnd-cat-1); }
+html[data-bnd-desk] .bnd-list-preset.is-warning { --bnd-list-preset-tone: var(--bnd-warn); }
+html[data-bnd-desk] .bnd-list-preset.is-danger { --bnd-list-preset-tone: var(--bnd-critical); }
+html[data-bnd-desk] .bnd-list-preset.is-success { --bnd-list-preset-tone: var(--bnd-good); }
+html[data-bnd-desk] .bnd-list-preset.is-accent { --bnd-list-preset-tone: var(--bnd-brand-solid); }
+html[data-bnd-desk] .bnd-list-presets[aria-busy="true"] .bnd-list-preset { opacity: 0.62; }
+
+@include bnd-until(md) {
+  html[data-bnd-desk] .bnd-list-presets {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+  }
+  html[data-bnd-desk] .bnd-list-presets-label { display: none; }
+}
 //
 // WHAT
 //   Row boundaries, hover, selection and the bulk header for Frappe's list

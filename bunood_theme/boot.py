@@ -32,7 +32,72 @@ WHY THIS FILE IS SHORT ON PURPOSE
 See ARCHITECTURE.md sections 3 and 8.
 """
 
+import html
+
 import frappe
+
+
+def _localize_workspace_pages(payload):
+    """Translate HTML-formatted workspace headings before EditorJS renders them.
+
+    Frappe's Header block translates the visible text by replacing it inside the
+    stored HTML. That replacement misses headings containing an entity: the DOM
+    exposes ``Reports & Masters`` while the stored string still contains
+    ``Reports &amp; Masters``. Translate the page data once, before rendering,
+    instead of repairing visible DOM text after it flashes.
+
+    The Workspace records remain language-neutral. This function mutates only
+    the per-request payload and is also used by the reload endpoint below.
+    """
+    lang = str(getattr(frappe.local, "lang", "") or "").lower().split("-")[0]
+    if lang != "ar" or not payload:
+        return payload
+
+    pages = payload.get("pages") if isinstance(payload, dict) else getattr(payload, "pages", None)
+    if not isinstance(pages, list):
+        return payload
+
+    from frappe.utils import strip_html_tags
+
+    for page in pages:
+        content = page.get("content") if isinstance(page, dict) else getattr(page, "content", None)
+        if not isinstance(content, str) or not content:
+            continue
+        try:
+            blocks = frappe.parse_json(content)
+        except Exception:
+            continue
+        changed = False
+        for block in blocks if isinstance(blocks, list) else []:
+            if not isinstance(block, dict) or block.get("type") != "header":
+                continue
+            data = block.get("data")
+            text = data.get("text") if isinstance(data, dict) else None
+            if not isinstance(text, str) or not text:
+                continue
+            plain = html.unescape(strip_html_tags(text)).strip()
+            translated = frappe._(plain)
+            if not plain or not translated or translated == plain:
+                continue
+            escaped_source = html.escape(plain, quote=False)
+            escaped_translation = html.escape(translated, quote=False)
+            needle = escaped_source if escaped_source in text else plain
+            if needle not in text:
+                continue
+            data["text"] = text.replace(needle, escaped_translation, 1)
+            changed = True
+        if changed:
+            page["content"] = frappe.as_json(blocks)
+    return payload
+
+
+@frappe.whitelist()
+@frappe.read_only()
+def get_workspaces():
+    """Return workspaces with their formatted headings localized safely."""
+    from frappe.desk.desktop import get_workspaces as upstream
+
+    return _localize_workspace_pages(upstream())
 
 
 def _boot_text(value) -> str:
@@ -170,7 +235,10 @@ def resolve_for_user(site) -> tuple:
     # (the same family as density), and it wins over both because it is the
     # narrowest and most recent statement about the same desk.
     if is_open("bnd_pane_state") and pane_state in ("Open", "Rail", "Hidden"):
-        resolved["sidebar_pane_state"] = pane_state
+        # Rail used a separate icon-only renderer, so the same navigation looked
+        # unrelated on forms and workspaces. Keep accepting the stored value as
+        # a migration alias, but resolve it to the one visible sidebar.
+        resolved["sidebar_pane_state"] = "Open" if pane_state == "Rail" else pane_state
 
     # THE BODY WIDTH. One field, last, for the same reason the pane state is: a
     # look MAY carry a width (`desk_width` is in LOOK_FIELDS) and this still
@@ -190,7 +258,9 @@ def resolve_for_user(site) -> tuple:
         # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
         # differs whenever comfort is locked; the dialog needs both.
         "density": density,
-        "pane_state": pane_state,
+        # A pre-unification Rail preference is reported as Open too, so the
+        # appearance UI and the rendered desk describe the same state.
+        "pane_state": "Open" if pane_state == "Rail" else pane_state,
         "motion": motion,
         "home": home,
         "body_width": body_width,
@@ -264,9 +334,42 @@ def extend_bootinfo(bootinfo):
 
         # Report Studio is deliberately not part of every desk page. Its route
         # loads this immutable asset only when opened.
-        from bunood_theme.assets import STUDIO_JS
+        from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
 
         bootinfo.bnd_studio_js = STUDIO_JS
+        bootinfo.bnd_studio_css = STUDIO_CSS
+
+        # The Reports workspace uses the same route-scoped asset contract: the
+        # global Desk bundle carries only a tiny loader, never the full surface.
+        from bunood_theme.assets import REPORT_LANDING_CSS, REPORT_LANDING_JS
+
+        bootinfo.bnd_report_landing_css = REPORT_LANDING_CSS
+        bootinfo.bnd_report_landing_js = REPORT_LANDING_JS
+
+        # The banking cockpit is also route-scoped. Its immutable bundle is loaded
+        # only by the bnd-banking Page and all accounting writes stay native.
+        from bunood_theme.assets import BANKING_JS
+
+        bootinfo.bnd_banking_js = BANKING_JS
+
+        # Close evidence is route-scoped and read-first. Native ERPNext records
+        # remain the authority for every journal, lock and closing voucher.
+        from bunood_theme.assets import FINANCE_CLOSE_JS
+
+        bootinfo.bnd_finance_close_js = FINANCE_CLOSE_JS
+
+        # The journal workbench is also route-scoped. It reads native evidence
+        # and routes every create/review/post action back to ERPNext records.
+        from bunood_theme.assets import JOURNAL_WORKBENCH_JS
+
+        bootinfo.bnd_journal_workbench_js = JOURNAL_WORKBENCH_JS
+
+        # The cashier surface is isolated from the redesigned invoice and every
+        # other Desk route. Both assets are immutable and loaded by bnd-pos only.
+        from bunood_theme.assets import POS_CSS, POS_JS
+
+        bootinfo.bnd_pos_css = POS_CSS
+        bootinfo.bnd_pos_js = POS_JS
 
         # Frappe's query-report controller is a preloaded standard page, so its
         # Page record hook is never fetched on route entry. Expose the separately
@@ -468,8 +571,8 @@ def extend_bootinfo(bootinfo):
             "material": get("sidebar_material"),
             # Icon fields (item 23) moved to their own axis, so they are read
             # with ICON_DEFAULTS as the fallback rather than the sidebar preset
-            # — but the PAYLOAD keys stay put ("icons", "rail_button_icon",
-            # "icon_source"), so bunood.js and the SCSS are untouched.
+            # — but the live payload keys stay put ("icons", "icon_source"),
+            # so bunood.js and the SCSS remain aligned.
             "icons": icon("icon_style"),
             "active": get("sidebar_active_style"),
             "sections": get("sidebar_section_style"),
@@ -477,8 +580,6 @@ def extend_bootinfo(bootinfo):
             "intensity": get("sidebar_card_depth"),
             "panestate": get("sidebar_pane_state"),
             "rail_trigger": get("sidebar_rail_trigger"),
-            "rail_button": get("sidebar_rail_button"),
-            "rail_button_icon": icon("icon_rail_button"),
             "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
@@ -603,6 +704,14 @@ def extend_bootinfo(bootinfo):
             return WORKSPACE_DEFAULTS[field] if value in (None, "") else value
 
         bootinfo.bnd_workspace = {f: ws_(f) for f in WORKSPACE_DEFAULTS}
+
+        # Workspace Header blocks may store ``&`` as ``&amp;`` inside HTML.
+        # Frappe translates the decoded text and then tries to replace it in
+        # the still-encoded source, so headings such as "Reports & Masters"
+        # remain English. Normalize the request payload before EditorJS sees
+        # it; the database stays language-neutral and an English session is
+        # untouched. The RPC reload path uses the same helper above.
+        _localize_workspace_pages(getattr(bootinfo, "workspaces", None))
 
         # ── Chart surface (item 25) ─────────────────────────────────────
         # One Select (chart_grid). No-flash: charts are constructed by JS well

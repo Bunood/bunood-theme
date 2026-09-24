@@ -2,7 +2,7 @@ import { openDesk } from "./session.mjs";
 
 const CASES = [
 	["Customer", "customer_name", "tax_id"], ["Supplier", "supplier_name", "tax_id"],
-	["Company", "company_name", "tax_id"], ["Item", "item_code"],
+	["Company", "company_name", "tax_id"], ["Item", "item_name"],
 	["Property", "property_name"], ["Real Estate Unit", "unit_name"], ["Lease", "company"],
 ];
 const fail = message => { throw new Error(message); };

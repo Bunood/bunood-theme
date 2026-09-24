@@ -1,0 +1,156 @@
+{
+ "actions": [],
+ "creation": "2026-09-20 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "domain",
+  "control_key",
+  "applicability",
+  "control_measure",
+  "unit",
+  "source_value",
+  "native_value",
+  "variance",
+  "status",
+  "evidence_section",
+  "source_evidence_reference",
+  "native_evidence_reference",
+  "native_report_filters",
+  "exception_section",
+  "not_applicable_reason",
+  "variance_owner",
+  "variance_cause",
+  "corrective_action",
+  "rerun_reference"
+ ],
+ "fields": [
+  {
+   "fieldname": "domain",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Reconciliation domain",
+   "options": "Customers and suppliers\nItems, barcodes and UOM\nPrices and validity\nOpening stock quantity and value\nReceivables, currency, dates and ageing\nPayables, currency, dates and ageing\nTrial Balance, dimensions, debits and credits\nCash, bank, advances and open allocations\nAssets, depreciation and net book value\nVAT and approved tax openings\nCross-ledger document, payment, stock and GL chain",
+   "reqd": 1
+  },
+  {
+   "description": "Name the compared slice, such as SAR ageing 31–60 days or Item/Warehouse/Batch.",
+   "fieldname": "control_key",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Control",
+   "reqd": 1
+  },
+  {
+   "fieldname": "applicability",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Applicability",
+   "options": "\nApplicable\nNot Applicable"
+  },
+  {
+   "fieldname": "control_measure",
+   "fieldtype": "Select",
+   "label": "Measure",
+   "options": "\nCount\nQuantity\nAmount\nDebit\nCredit\nTrace"
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Data",
+   "label": "Currency or unit"
+  },
+  {
+   "fieldname": "source_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Approved source value"
+  },
+  {
+   "fieldname": "native_value",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Native report value"
+  },
+  {
+   "fieldname": "variance",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Variance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Control status",
+   "options": "Pending\nExact\nVariance\nNot Applicable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "evidence_section",
+   "fieldtype": "Section Break",
+   "label": "Evidence"
+  },
+  {
+   "description": "Protected source schedule, workbook or owner-approved control reference.",
+   "fieldname": "source_evidence_reference",
+   "fieldtype": "Small Text",
+   "label": "Source evidence reference"
+  },
+  {
+   "description": "Native report, document list or ledger used for the comparison.",
+   "fieldname": "native_evidence_reference",
+   "fieldtype": "Small Text",
+   "label": "Native evidence reference"
+  },
+  {
+   "description": "Record company, date, currency, account, party, warehouse and every other filter needed to reproduce the value.",
+   "fieldname": "native_report_filters",
+   "fieldtype": "Small Text",
+   "label": "Native report filters"
+  },
+  {
+   "fieldname": "exception_section",
+   "fieldtype": "Section Break",
+   "label": "Exception ownership"
+  },
+  {
+   "fieldname": "not_applicable_reason",
+   "fieldtype": "Small Text",
+   "label": "Not-applicable reason"
+  },
+  {
+   "fieldname": "variance_owner",
+   "fieldtype": "Link",
+   "label": "Variance owner",
+   "options": "User"
+  },
+  {
+   "fieldname": "variance_cause",
+   "fieldtype": "Small Text",
+   "label": "Variance cause"
+  },
+  {
+   "fieldname": "corrective_action",
+   "fieldtype": "Small Text",
+   "label": "Corrective action"
+  },
+  {
+   "fieldname": "rerun_reference",
+   "fieldtype": "Data",
+   "label": "Correction or rerun reference"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Migration Control Result",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}

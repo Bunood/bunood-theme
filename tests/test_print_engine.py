@@ -126,11 +126,56 @@ class PrintEngineTests(unittest.TestCase):
 		fixture = json.loads((ROOT / "tests/fixtures/picker-shape.json").read_text(encoding="utf-8"))
 		field = next(item for item in settings["fields"] if item.get("fieldname") == "print_letterhead")
 
-		self.assertIn('"print_letterhead": "Hairline Minimal"', presets)
-		self.assertEqual(field["default"], "Hairline Minimal")
-		self.assertIn('print_letterhead: "Hairline Minimal"', settings_js)
-		self.assertEqual(fixture["state"]["print_letterhead"], "Hairline Minimal")
+		self.assertIn('"print_letterhead": "Bilingual Split"', presets)
+		self.assertEqual(field["default"], "Bilingual Split")
+		self.assertIn('print_letterhead: "Bilingual Split"', settings_js)
+		self.assertEqual(fixture["state"]["print_letterhead"], "Bilingual Split")
 		self.assertIn('or PRINT_DEFAULTS["print_letterhead"]', SOURCE.read_text(encoding="utf-8"))
+
+	def test_print_language_is_the_single_language_default_everywhere(self):
+		presets = (ROOT / "bunood_theme/presets.py").read_text(encoding="utf-8")
+		settings = json.loads(
+			(ROOT / "bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json")
+			.read_text(encoding="utf-8")
+		)
+		settings_js = (
+			ROOT / "bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js"
+		).read_text(encoding="utf-8")
+		fixture = json.loads((ROOT / "tests/fixtures/picker-shape.json").read_text(encoding="utf-8"))
+		field = next(item for item in settings["fields"] if item.get("fieldname") == "print_title_lang")
+
+		self.assertIn('"print_title_lang": "Follow print language"', presets)
+		self.assertEqual(field["default"], "Follow print language")
+		self.assertIn("Follow print language", field["options"].splitlines())
+		self.assertIn('print_title_lang: "Follow print language"', settings_js)
+		self.assertEqual(fixture["state"]["print_title_lang"], "Follow print language")
+
+	def test_managed_customer_documents_declare_language_and_direction(self):
+		formats = ROOT / "bunood_theme/printing/formats"
+		for filename in (
+			"quotation_a4.html",
+			"payment_entry_voucher.html",
+			"sales_invoice_tax_a4.html",
+			"sales_invoice_simplified_a4.html",
+			"sales_invoice_tax_thermal.html",
+			"sales_invoice_simplified_thermal.html",
+		):
+			template = (formats / filename).read_text(encoding="utf-8")
+			with self.subTest(filename=filename):
+				self.assertIn("bunood_print_language()", template)
+				self.assertIn('dir="{{ \'rtl\' if is_ar else \'ltr\' }}"', template)
+				self.assertIn('lang="{{ \'ar\' if is_ar else \'en\' }}"', template)
+
+	def test_report_statement_uses_javascript_language_switch_without_jinja(self):
+		template = (
+			ROOT / "bunood_theme/printing/formats/customer_statement.html"
+		).read_text(encoding="utf-8")
+
+		self.assertIn("bndArabic", template)
+		self.assertIn('dir="{%= bndArabic ?', template)
+		self.assertIn('lang="{%= bndArabic ?', template)
+		self.assertNotIn("{{", template)
+		self.assertNotIn("frappe.local.lang", template)
 
 
 if __name__ == "__main__":

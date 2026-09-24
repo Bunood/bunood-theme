@@ -9,10 +9,10 @@ const css=fs.readFileSync('bunood_theme/public/scss/surfaces/_list.scss','utf8')
 const states=fs.readFileSync('bunood_theme/public/scss/components/_states.scss','utf8');
 const desk=fs.readFileSync('bunood_theme/public/js/bunood.js','utf8');
 
-test('all authoritative settings mirrors ship Hairline Rows',()=>{
-  assert.match(py,/LIST_DEFAULTS\s*=\s*\{[\s\S]*?"list_style": "Hairline Rows"/);
-  assert.match(js,/BND_LIST_DEFAULTS\s*=\s*\{[\s\S]*?list_style: "Hairline Rows"/);
-  assert.equal(json.fields.find(field=>field.fieldname==='list_style').default,'Hairline Rows');
+test('all authoritative settings mirrors ship Zebra Stripes',()=>{
+  assert.match(py,/LIST_DEFAULTS\s*=\s*\{[\s\S]*?"list_style": "Zebra Stripes"/);
+  assert.match(js,/BND_LIST_DEFAULTS\s*=\s*\{[\s\S]*?list_style: "Zebra Stripes"/);
+  assert.equal(json.fields.find(field=>field.fieldname==='list_style').default,'Zebra Stripes');
 });
 
 test('keyboard focus is distinct and clipped-safe without replacing native list controls',()=>{

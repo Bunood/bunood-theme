@@ -14,6 +14,7 @@ test('invoice list scripts are registered through Frappe doctype hooks', () => {
   for (const [doctype,, file] of cases) {
     assert.match(hooks, new RegExp(`"${doctype}": "public/js/${file}"`));
   }
+  assert.match(hooks, /"Quotation": "public\/js\/quotation_list\.js"/);
 });
 
 for (const [doctype, titleField, file] of cases) {
@@ -33,7 +34,11 @@ for (const [doctype, titleField, file] of cases) {
         return 'native-before-result';
       },
     };
-    const context = {frappe: {listview_settings: {[doctype]: settings}}};
+    const registered = [];
+    const context = {
+      window: {bunood_theme: {list_presets: {register: (...args) => registered.push(args)}}},
+      frappe: {listview_settings: {[doctype]: settings}},
+    };
     vm.runInNewContext(fs.readFileSync(`bunood_theme/public/js/${file}`, 'utf8'), context);
 
     const defaultColumns = () => [
@@ -66,5 +71,23 @@ for (const [doctype, titleField, file] of cases) {
     listview.list_view_settings.fields = '[{"fieldname":"posting_date"}]';
     settings.before_render.call(receiver);
     assert.equal(listview.columns[3].df.fieldname, 'posting_date', 'saved user column settings must win');
+    if (doctype === 'Sales Invoice') {
+      assert.equal(registered.length, 1);
+      assert.equal(registered[0][0], settings);
+      assert.equal(registered[0][1], 'Sales Invoice');
+    }
   });
 }
+
+test('Quotation list registers the shared native-filter presets', () => {
+  const settings = {};
+  const calls = [];
+  const context = {
+    window: {bunood_theme: {list_presets: {register: (...args) => calls.push(args)}}},
+    frappe: {listview_settings: {Quotation: settings}},
+  };
+  vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/quotation_list.js', 'utf8'), context);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][0], settings);
+  assert.equal(calls[0][1], 'Quotation');
+});

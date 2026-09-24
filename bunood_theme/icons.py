@@ -48,6 +48,11 @@ EXACT_NAME_ICONS = {
     "supplier": "icon-handshake",
     "item": "icon-package",
     "warehouse": "icon-warehouse",
+    # ERPNext's POS sidebar row is a Page link whose untranslated route is
+    # ``point-of-sale``. It ships without an icon, so without this exact route
+    # mapping the Arabic label falls back to a letter chip ("ن") instead of a
+    # recognisable point-of-sale symbol.
+    "point-of-sale": "icon-retail",
     "property": "icon-land-plot",
     "real estate unit": "icon-building-2",
     "lease": "icon-key-round",

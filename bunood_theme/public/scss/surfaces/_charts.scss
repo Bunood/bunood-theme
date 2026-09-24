@@ -200,3 +200,47 @@ html[data-bnd-chart-grid="filled"] .chart-container {
     opacity: 1; // the gradient fades to transparent on its own
   }
 }
+
+// A failed Bank Balance configuration should be a compact recovery state, not
+// raw red HTML stretched across the full chart canvas.
+html[data-theme] .bnd-chart-recovery {
+  display: grid;
+  justify-items: center;
+  gap: var(--bnd-sp-3);
+  min-block-size: 0;
+  padding: var(--bnd-sp-5);
+  color: var(--bnd-ink-muted);
+  text-align: center;
+
+  p { margin: 0; }
+}
+
+html[data-theme] .bnd-chart-fallback {
+  display: grid;
+  place-items: center;
+  min-block-size: 12rem;
+  color: var(--bnd-ink-muted);
+  border: var(--bnd-line) dashed var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-active);
+
+  ul {
+    display: grid;
+    inline-size: min(100%, 42rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--bnd-sp-3);
+    padding-block: var(--bnd-sp-2);
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+
+  li:last-child { border-block-end: 0; }
+
+  bdi { color: var(--bnd-ink); font-weight: var(--bnd-weight-medium); }
+}

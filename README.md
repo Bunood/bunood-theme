@@ -10,7 +10,7 @@ forks, no `@layer`, no `?v=` cache-busters, and (almost) no `!important`.
 > are invisible in the code and were learned by shipping the mistake first.
 > Per-release detail is in [CHANGELOG.md](CHANGELOG.md).
 
-## What it does today (v0.4.0)
+## Current capabilities
 
 - **Design tokens** — a complete `--bnd-*` vocabulary (color, type, spacing,
   radii, elevation, motion, density). Nothing hardcodes a value;
@@ -149,16 +149,20 @@ Two layers, split by what they need:
 - **CI gates** (`.github/workflows/ci.yaml`, every push/PR): the SCSS build —
   whose RTL guard fails on any physical property — plus dist/assets.py drift
   detection and JS/Python syntax checks. No bench required.
-- **The browser smoke suite** (`npm test` → `tests/smoke.mjs`): every
-  behaviour ever verified by hand, re-run against the local dev stack — boot
-  and assets, all five desk layouts, the Desktop-page chrome guard, all eight
-  sidebar presets, rail triggers and the expand button, the icon engine, live
-  preview, the double-save regression, and a console-error budget. Needs the
-  local docker stack and `npx playwright install chromium` once. Settings are
-  snapshotted and restored even on failure.
+- **The legacy browser characterization suite** (`npm test` →
+  `tests/smoke.mjs`): retains coverage of the pre-MVP five-layout catalogue,
+  compact rail, floating sidebar and old Theme Settings permutations. Those
+  variants were deliberately retired by the standardized one-top-bar/one-sidebar
+  product decision. The suite remains useful when maintaining legacy behaviour,
+  snapshots/restores site settings even on failure, and is **not** an active MVP
+  release gate until its still-relevant assertions are migrated to the focused
+  current-scope gates. Needs the local docker stack and
+  `npx playwright install chromium` once.
 
-**A release tag requires the smoke suite green.** New verifications belong in
-the suite, not in throwaway scripts — that is the lesson of v0.4–v0.6.
+**An MVP release requires every focused gate listed in the authoritative
+production handoff to be green.** New current-product verification belongs in
+those focused suites or a rollback-safe verifier, not in throwaway scripts and
+not behind assertions for decommissioned layouts.
 
 ## Versioning and releases
 
@@ -178,13 +182,22 @@ CHANGELOG entry. Commit messages follow Conventional Commits
 **A tag is cut only when all three gates pass:**
 
 1. **CI green** on the release commit.
-2. **`npm test` green** against the local stack.
+2. **The authoritative handoff's active MVP gates are green** against the local
+   stack, including the rollback-safe financial verifier. `npm test` is the
+   legacy characterization suite described above, not a standardized-shell gate.
 3. **The adversarial release review is clean** —
    `tools/release-review.workflow.js` runs four independent reviewers over
    the full diff since the previous tag and adversarially verifies every
    finding. Confirmed findings are fixed (and the review re-run) or
    explicitly waived in the CHANGELOG entry. No tag ships on the author's
    own confidence alone.
+
+The production evidence gate is executable. Fill
+`docs/BUNOOD-MVP-RELEASE-ACCEPTANCE.json` only from owner confirmation and
+physical printer/QR evidence, then run `npm run release:check -- --pre-tag` on
+the clean reviewed release commit. After creating the annotated version tag,
+run `npm run release:check` again; it also verifies the live Company record,
+package/assets identity and that the expected tag points at `HEAD`.
 
 **Keep releases small.** If a change can ship alone, it ships alone — one
 setting, one fix, one behaviour per release. Small diffs keep the review

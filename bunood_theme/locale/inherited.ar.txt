@@ -124,7 +124,6 @@ Show sidebar	frappe: إظهار الشريط الجانبي
 Sidebar	frappe: الشريط الجانبي
 Small	erpnext: صغير
 Source Text	frappe: النص المصدر
-Standard	frappe: اساسي
 Start	frappe: بداية
 Started At	frappe: بدأ في
 Status	frappe: الحالة

@@ -236,7 +236,7 @@ html[data-theme] {
     position: absolute;
     padding: 1px 5px;
     border: 1px solid var(--primary);
-    border-radius: 999px;
+    border-radius: var(--bnd-radius-sm);
     background: color-mix(in srgb, var(--primary) 18%, var(--control-bg));
     color: var(--bnd-ink);
     font-size: 9px;
@@ -1040,7 +1040,7 @@ html[data-theme] .bnd-cmp-open:focus-visible {
 	gap: 0.375rem;
 	padding: 0.25rem 0.5rem;
 	border: 1px solid var(--bnd-border);
-	border-radius: 999px;
+	border-radius: var(--bnd-radius-sm);
 	background: var(--bnd-surface);
 	color: var(--bnd-ink);
 	font-size: var(--text-sm, 0.8125rem);
@@ -1090,7 +1090,7 @@ html[data-theme] .bnd-cmp-open:focus-visible {
 .bnd-bd-move-btn {
 	padding: 0.25rem 0.5rem;
 	border: 1px solid var(--bnd-border);
-	border-radius: 999px;
+	border-radius: var(--bnd-radius-sm);
 	background: var(--bnd-surface);
 	color: var(--bnd-ink);
 	font-size: var(--text-sm, 0.8125rem);

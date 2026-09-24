@@ -245,7 +245,9 @@
   --bnd-radius-md: 6px;
   --bnd-radius-lg: 10px;
   --bnd-radius-xl: 14px;
-  --bnd-radius-pill: 999px;
+  // Legacy component name, restrained house shape. Controls and statuses are
+  // quiet rectangles; genuinely circular marks declare 50% at their source.
+  --bnd-radius-pill: var(--bnd-radius-sm);
 
   // ── Elevation ─────────────────────────────────────────────────────────────
   --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);

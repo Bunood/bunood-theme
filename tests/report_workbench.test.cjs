@@ -21,7 +21,9 @@ test("the workbench is page scoped to the seven production reports", () => {
 	assert.match(build, /key: "bnd-report", src: "report_workbench\.js", pyid: "REPORT_JS"/);
 	assert.match(boot, /bootinfo\.bnd_report_js = REPORT_JS/);
 	assert.match(desk, /route\[0\] !== "query-report"/);
-	assert.match(desk, /frappe\.require\(source\)/);
+	assert.match(desk, /function load_deferred_assets\(key, sources, ready\)/);
+	assert.match(desk, /frappe\.require\(sources\.length === 1 \? sources\[0\] : sources\)/);
+	assert.match(desk, /\[frappe\.boot\?\.bnd_report_js\]/);
 	assert.match(js, /report_workbench_loaded = true/);
 	assert.doesNotMatch(hooks, /page_js\s*=.*report_workbench/);
 	assert.doesNotMatch(js, /export_report\s*=/);

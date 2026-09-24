@@ -1,5 +1,42 @@
 @use "../breakpoints" as *;
 
+// On a narrow viewport the open global navigator is the whole navigation
+// surface. Frappe and the sidebar skin both used partial drawer widths, which
+// left an inert strip beside the menu and made the drawer look unfinished.
+// The closed state remains zero-width; only the native `expanded` state owns
+// the viewport.
+html[data-bnd-narrow] .body-sidebar-container.expanded {
+  position: fixed;
+  inset: 0;
+  inline-size: 100vw !important;
+  block-size: calc(100dvh - var(--bnd-bottom-reserve));
+  overflow: hidden;
+  z-index: calc(var(--bnd-z-panel) + 1);
+
+  // Frappe positions this scrim after its original 220px drawer. Once the
+  // Bunood navigator owns the viewport that scrim sits on top of the widened
+  // menu, leaving only a narrow slice readable. A full-width sheet has no
+  // exposed document area to dismiss, so the scrim has no remaining job.
+  > .overlay { display: none !important; }
+
+  .body-sidebar {
+    display: flex !important;
+    box-sizing: border-box;
+    inline-size: 100vw !important;
+    block-size: 100% !important;
+    overflow: hidden;
+  }
+
+  // Resizing is a desktop affordance. Keep one native close control in the
+  // opposite corner of the brand row instead of a handle hanging off-screen.
+  .sidebar-resize-handle { display: none !important; }
+  .collapse-sidebar-link {
+    inset-block-start: var(--bnd-sp-3);
+    inset-block-end: auto;
+    inset-inline-end: var(--bnd-sp-3);
+  }
+}
+
 // The outer column reserves layout space; its fixed pane owns viewport scrolling.
 // Native page wrappers may have fixed heights, so they cannot contain a sticky pane.
 html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) {
@@ -15,12 +52,21 @@ html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) {
     inline-size: var(--bnd-sb-w);
     min-inline-size: 0;
     max-inline-size: none;
+    margin-inline-end: var(--bnd-sp-4);
     block-size: calc(100dvh - var(--bnd-pane-top) - var(--bnd-bottom-reserve));
     min-block-size: 0;
     margin-block-start: var(--bnd-pane-top);
     overflow: visible;
     z-index: var(--bnd-z-flyout);
     transition: none;
+
+    // The expanded desktop column is user-resizable down to 200px. Its fixed
+    // pane follows the same width token, while clipping here prevents a wide
+    // descendant from raising the visual floor. The resting/collapsed shell
+    // stays visible so the edge handle keeps its intentional overhang.
+    &.expanded {
+      overflow: clip;
+    }
   }
 
   .body-sidebar-container .body-sidebar {
@@ -59,40 +105,41 @@ html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) {
   &[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
     flex-basis: var(--bnd-sb-rail-w);
     inline-size: var(--bnd-sb-rail-w);
-    margin-inline: 0;
+    margin-inline-start: 0;
     .body-sidebar { inline-size: var(--bnd-sb-rail-w); padding-inline: var(--bnd-sp-1); }
   }
 }
 
 // The global header uses viewport coordinates in every mode, not negative
 // offsets derived separately from compact/expanded/floating sidebar widths.
-html.bunood[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) {
+html[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) {
   .main-section {
     min-inline-size: 0;
     flex: 1 1 0;
     padding-block-start: var(--bnd-topbar-h);
-    overflow: visible;
+    // This is Frappe's desk scroll viewport. Lending overflow to the document
+    // creates a second outer scrollbar on every content-tall route.
+    overflow: auto;
   }
   .main-section > header {
     position: fixed;
     inset-block-start: 0;
     inset-inline: 0;
-    inline-size: auto;
-    margin: 0;
     z-index: calc(var(--bnd-z-flyout) + 1);
+  }
+  // The scroll viewport already reserves one top-bar height above its content.
+  // Reapplying that height to the sticky page head leaves a second, visible
+  // strip of dashboard content between the two bars after scrolling.
+  .page-head {
+    inset-block-start: 0;
   }
 }
 
-// The desktop page head is the sole owner of pane collapse. JavaScript removes
-// live copies; this ownership-gated rule also catches a copy Frappe inserts
-// between route remounts without hiding the native fallback if our mount fails.
+// The desktop page head has one pane control. Once Bunood's collapse button is
+// live, the native workspace hamburger and the pane-edge duplicate stand down.
+// Narrow mode keeps Frappe's hamburger because it opens the mobile drawer.
+html.bunood[data-bnd-sidepane][data-bnd-own~="panetoggle"]:not([data-bnd-narrow]) .page-title > .sidebar-toggle-btn,
 html.bunood[data-bnd-sidepane][data-bnd-own~="panetoggle"]:not([data-bnd-narrow]) .body-sidebar-container .collapse-sidebar-link {
-  display: none;
-}
-
-// A Start placement from an older preset must not create a second control in
-// the optional top bar. The page-head control is the one stable desktop home.
-html.bunood[data-bnd-own~="panetoggle"] .bnd-topbar .bnd-sidebar-toggle {
   display: none;
 }
 

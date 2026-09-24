@@ -1,39 +1,48 @@
-# Colored sidebar persistence
+# Canonical sidebar
 
-The local site already selects `Mini-Cards`, `Colored Chips`, `Rich` section
-colors, `Match Theme`, and `Always Expanded`. Administrator follows the site
-with no personal sidebar preset. Keep these values; a plain sidebar with no
-Bunood badge is a missing-decoration bug, not a requested alternate theme.
+The desk has one sidebar component across workspaces, lists, reports and forms.
+Routes may supply different workspace names, sections, destinations, badges and
+permissions; they do not select different sidebar geometry or styling.
 
-The old observer attached once to `.sidebar-items`. Replacing the native pane
-left it watching a detached list, and mounting before the list existed left it
-watching nothing. The route callback restored only the width. Colors belong to
-the section wrappers, so losing those wrappers also made the icons look grey.
+## Visual contract
 
-The sidebar kit now has one observer for the current pane and a shallow body
-observer that notices native pane replacement. It disconnects the old pane and
-rail listeners, rebinds to the new pane, and coalesces decoration before paint.
-Its own DOM writes run with observation disconnected, preventing perpetual
-rebuilds and accumulating listeners. Late rows are regrouped without changing
-native link order. Navigation also schedules the complete decoration pass.
+| Part | Standard |
+|---|---|
+| Pane | Attached, 264 px, neutral brand-tinted surface |
+| Workspace switcher | 48 px raised control with a 32 px icon tile |
+| Destination row | 40 px high, 30 px icon box, 19 px glyph |
+| Current destination | Soft brand surface with a solid brand icon tile |
+| Sections | Plain groups with quiet uppercase dividers; no colored cards |
+| Footer | One raised utility dock using 36 px cells |
+| Responsive behavior | Same component in Frappe's native mobile drawer |
 
-The native `data-mode="edit"` state temporarily releases section wrappers for
-sorting; leaving edit mode restores them. Explicit Plain/other style selections
-are still respected. No global light/dark setting, account preference, navigation
-record or business record is rewritten by this repair.
+Hover, current, focus and collapsed states are part of the component and do not
+vary by route. Icons use Frappe sprites or validated workspace assets through the
+same `smart` icon source. Active icons always use the fitted on-brand color.
 
-Regression checks in `tests/smoke.mjs` cover native shell replacement, route
-changes, edit start/stop, delayed rows, idle stability, alternate styles, reload,
-English/Arabic and light/dark rendering. The baseline failed because the native
-replacement had zero brand blocks instead of one. Run with the normal local
-stack environment variables:
+## Runtime ownership
 
-```sh
-node tools/verify.mjs --only 'sidebar consistency'
-node tools/verify.mjs --only 're:^(preset:|rail:|live preview: pane color|responsive: the side pane collapses)'
-```
+`apply_sidebar_attrs()` stamps `data-bnd-sb-standard` and the canonical visual
+axes before Frappe renders the pane. Stored historical appearance values are
+accepted for migration, but they cannot make a form or workspace render a
+different sidebar. Functional preferences such as visibility, filtering and
+badges remain independent.
 
-Set `BND_SIDEBAR_SCREENSHOTS` to an existing output directory for the rebuild
-capture and English/Arabic light/dark sidebar screenshots. These focused runs
-do not replace the complete release suite. After deployment, existing browser
-tabs must reload to load the new content-hashed JavaScript.
+The fixed top bar is the primary Bunood identity owner. The pane mounts a Bunood
+fallback only when that top-bar control is not visible. The workspace switcher
+then becomes the first normal sidebar control and remains the sole owner of the
+workspace menu. As soon as the visible top-bar brand mounts, it claims identity
+ownership and suppresses the vendor `workspace / app` row; it does not wait for
+the sidebar workspace switcher to finish mounting.
+
+## Accessibility
+
+- The pane is a labelled navigation landmark.
+- Current destinations use `aria-current="page"`.
+- Workspace switching exposes `aria-haspopup="menu"` and `aria-expanded`.
+- All rows retain visible keyboard focus and text labels.
+- Reduced-motion users receive no sidebar state transitions.
+- RTL uses logical properties; no mirrored physical spacing is maintained.
+
+Regression coverage lives in `tests/sidebar-rebuild.test.cjs`. After deploying a
+new content-hashed bundle, reload existing desk tabs before judging the result.

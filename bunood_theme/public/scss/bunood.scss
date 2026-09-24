@@ -73,6 +73,16 @@
 @use "chrome/breadcrumbs";
 // Item 10: the composable sidebar style kit (attribute matrix).
 @use "chrome/sidebar";
+// The sidebar shell and compact rail are structural, not an optional skin.
+// Without this partial the rail DOM still mounts, but its cloned SVGs and
+// labels fall back to browser defaults and the native list remains visible
+// underneath it. Keep it after the style kit so its state-specific layout
+// rules win without !important.
+@use "chrome/sidebar-layout";
+// One maintained visual contract across workspaces, lists, reports and forms.
+// It loads after the historical option matrix so stored appearance experiments
+// cannot create a different sidebar component on another route.
+@use "chrome/sidebar-standard";
 // Item 12: the command palette (refined native skin + our shell).
 @use "chrome/palette";
 // Item 13: the notification centre (badge + refined skin + our panel/page).
@@ -118,7 +128,10 @@
 // kit reaches into, and wins them on specificity already.
 @use "surfaces/filters";
 @use "surfaces/coverage";
+@use "surfaces/pos";
 @use "surfaces/sales_bill";
+@use "surfaces/banking";
+@use "surfaces/finance_close";
 
 // ── Icons — the global icon axis (item 23) ──────────────────────────────────
 @use "icons";

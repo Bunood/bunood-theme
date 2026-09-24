@@ -5,7 +5,7 @@
   "accent_color": "#0090ff",
   "arabic_font": "Noto Sans Arabic",
   "density_default": "Comfortable",
-  "desk_order": "search,inbox,user,home,start,apps",
+  "desk_order": "search,inbox,user,home,start,apps,language,appearance",
   "sidebar_placement": "Attached",
   "sidebar_material": "Solid",
   "sidebar_active_style": "Accent Rail",
@@ -14,7 +14,6 @@
   "sidebar_card_depth": "4",
   "sidebar_pane_state": "Open",
   "sidebar_rail_trigger": "Hover",
-  "sidebar_rail_button": "None",
   "sidebar_pane_width": "5",
   "sidebar_badges": "Off",
   "sidebar_filter": 0,
@@ -73,8 +72,8 @@
   "print_totals_style": "Washed Panel",
   "print_heading_style": "Original",
   "print_accent": "Brand panels",
-  "print_letterhead": "Hairline Minimal",
-  "print_title_lang": "Both",
+  "print_letterhead": "Bilingual Split",
+  "print_title_lang": "Follow print language",
   "print_qr": "Show",
   "print_qr_place": "Head end",
   "print_qr_size": "Medium",
@@ -101,7 +100,6 @@
   "icon_style": "Filled Color",
   "icon_weight": "1.5",
   "icon_source": "Smart",
-  "icon_rail_button": "Chevron",
   "icon_crumbs": "First Crumb",
   "crumb_copy_link": 1,
   "crumb_status_pill": 0,
@@ -143,7 +141,7 @@
   "theme_picker": {
    "n": 285,
    "svgs": 13,
-   "text": 1135,
+   "texts": 27,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp-styles",
@@ -433,9 +431,9 @@
    ]
   },
   "layout_picker": {
-   "n": 92,
-   "svgs": 5,
-   "text": 565,
+   "n": 73,
+   "svgs": 4,
+   "texts": 8,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp-styles",
@@ -503,25 +501,6 @@
     "rect.",
     "rect.",
     "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "span.bnd-cbp-name",
-    "span.bnd-cbp-blurb",
-    "button.bnd-cbp-style.bnd-lp-card",
-    "span.bnd-cbp-thumb",
-    "svg.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
-    "rect.",
     "circle.",
     "circle.",
     "circle.",
@@ -532,9 +511,9 @@
    ]
   },
   "sidebar_picker": {
-   "n": 220,
+   "n": 201,
    "svgs": 0,
-   "text": 1019,
+   "texts": 72,
    "seq": [
     "div.bnd-sbp",
     "div.bnd-sbp-toolbar",
@@ -736,32 +715,13 @@
     "button.bnd-sbp-opt",
     "span.bnd-sbp-thumb",
     "span.bnd-sbp-glyph",
-    "span.bnd-sbp-oname",
-    "div.bnd-cbp-group.bnd-sbp-group",
-    "div.bnd-cbp-title",
-    "button.bnd-cbp-reset.bnd-sbp-reset",
-    "div.bnd-cbp-desc",
-    "div.bnd-sbp-row-wrap",
-    "button.bnd-sbp-on.bnd-sbp-opt",
-    "span.bnd-sbp-thumb",
-    "span.",
-    "span.bnd-sbp-oname",
-    "button.bnd-sbp-opt",
-    "span.bnd-sbp-thumb",
-    "span.",
-    "span.bnd-sbp-btnmark",
-    "span.bnd-sbp-oname",
-    "button.bnd-sbp-opt",
-    "span.bnd-sbp-thumb",
-    "span.",
-    "span.bnd-sbp-btnmark",
     "span.bnd-sbp-oname"
    ]
   },
   "crumbs_picker": {
    "n": 114,
    "svgs": 5,
-   "text": 910,
+   "texts": 39,
    "seq": [
     "div.bnd-cbp",
     "section.bnd-cbp-zone",
@@ -882,7 +842,7 @@
   "palette_picker": {
    "n": 96,
    "svgs": 4,
-   "text": 1101,
+   "texts": 25,
    "seq": [
     "div.bnd-cbp",
     "section.bnd-cbp-zone",
@@ -985,7 +945,7 @@
   "inbox_picker": {
    "n": 166,
    "svgs": 5,
-   "text": 1429,
+   "texts": 57,
    "seq": [
     "div.bnd-cbp.bnd-ibp",
     "section.bnd-cbp-zone",
@@ -1158,7 +1118,7 @@
   "user_picker": {
    "n": 42,
    "svgs": 1,
-   "text": 272,
+   "texts": 16,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-dgm",
@@ -1207,7 +1167,7 @@
   "links_picker": {
    "n": 54,
    "svgs": 2,
-   "text": 241,
+   "texts": 17,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp-group",
@@ -1268,7 +1228,7 @@
   "search_picker": {
    "n": 23,
    "svgs": 1,
-   "text": 180,
+   "texts": 7,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-dgm",
@@ -1298,7 +1258,7 @@
   "status_picker": {
    "n": 115,
    "svgs": 3,
-   "text": 1248,
+   "texts": 38,
    "seq": [
     "div.bnd-cbp.bnd-stp",
     "section.bnd-cbp-zone",
@@ -1420,7 +1380,7 @@
   "list_picker": {
    "n": 112,
    "svgs": 6,
-   "text": 778,
+   "texts": 28,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-lvp",
@@ -1539,7 +1499,7 @@
   "form_picker": {
    "n": 224,
    "svgs": 8,
-   "text": 2224,
+   "texts": 76,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-fvp",
@@ -1770,7 +1730,7 @@
   "desk_picker": {
    "n": 48,
    "svgs": 0,
-   "text": 583,
+   "texts": 26,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-dkp",
@@ -1825,7 +1785,7 @@
   "workspace_picker": {
    "n": 138,
    "svgs": 7,
-   "text": 794,
+   "texts": 33,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-wsp",
@@ -1970,7 +1930,7 @@
   "chart_picker": {
    "n": 65,
    "svgs": 5,
-   "text": 450,
+   "texts": 11,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-chp",
@@ -2042,7 +2002,7 @@
   "report_picker": {
    "n": 148,
    "svgs": 5,
-   "text": 670,
+   "texts": 26,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-rvp",
@@ -2197,7 +2157,7 @@
   "views_picker": {
    "n": 88,
    "svgs": 5,
-   "text": 711,
+   "texts": 31,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-avp.bnd-cbp",
@@ -2292,7 +2252,7 @@
   "overlay_picker": {
    "n": 93,
    "svgs": 5,
-   "text": 541,
+   "texts": 24,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-ovp",
@@ -2392,7 +2352,7 @@
   "empty_picker": {
    "n": 80,
    "svgs": 5,
-   "text": 630,
+   "texts": 24,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-esp",
@@ -2479,7 +2439,7 @@
   "skeleton_picker": {
    "n": 41,
    "svgs": 4,
-   "text": 426,
+   "texts": 9,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-skp",
@@ -2527,7 +2487,7 @@
   "filters_picker": {
    "n": 72,
    "svgs": 5,
-   "text": 633,
+   "texts": 24,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-flp",
@@ -2606,7 +2566,7 @@
   "login_picker": {
    "n": 69,
    "svgs": 4,
-   "text": 541,
+   "texts": 22,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-lgp",
@@ -2682,7 +2642,7 @@
   "web_picker": {
    "n": 74,
    "svgs": 3,
-   "text": 659,
+   "texts": 20,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-wbp",
@@ -2763,7 +2723,7 @@
   "email_picker": {
    "n": 94,
    "svgs": 4,
-   "text": 961,
+   "texts": 31,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-emp",
@@ -2862,9 +2822,9 @@
    ]
   },
   "print_picker": {
-   "n": 412,
+   "n": 414,
    "svgs": 12,
-   "text": 2542,
+   "texts": 115,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-prp",
@@ -3213,6 +3173,8 @@
     "span.bnd-cbp-oname",
     "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
+    "button.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
     "div.bnd-cbp-group",
     "div.bnd-cbp-title",
     "button.bnd-cbp-reset",
@@ -3281,9 +3243,9 @@
    ]
   },
   "icons_picker": {
-   "n": 106,
+   "n": 91,
    "svgs": 8,
-   "text": 600,
+   "texts": 42,
    "seq": [
     "div.bnd-cbp",
     "section.bnd-cbp-zone",
@@ -3354,21 +3316,6 @@
     "button.bnd-cbp-opt",
     "span.bnd-cbp-glyph",
     "span.bnd-cbp-oname",
-    "div.bnd-cbp-group",
-    "div.bnd-cbp-title",
-    "button.bnd-cbp-reset",
-    "span.",
-    "div.bnd-cbp-desc",
-    "div.bnd-cbp-row",
-    "button.bnd-cbp-on.bnd-cbp-opt",
-    "span.bnd-cbp-glyph",
-    "span.bnd-cbp-oname",
-    "button.bnd-cbp-opt",
-    "span.bnd-cbp-glyph",
-    "span.bnd-cbp-oname",
-    "button.bnd-cbp-opt",
-    "span.bnd-cbp-glyph",
-    "span.bnd-cbp-oname",
     "section.bnd-cbp-zone",
     "h4.bnd-cbp-zone-title",
     "div.bnd-cbp-group",
@@ -3396,7 +3343,7 @@
   "placement_board": {
    "n": 83,
    "svgs": 0,
-   "text": 318,
+   "texts": 29,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-bd",

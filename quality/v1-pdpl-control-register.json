@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "authority": "docs/BUNOOD-V1-SAUDI-PDPL-OPERATIONS-CONTRACT-2026-09-20.md",
+  "work_order": "KSA-06",
+  "disclaimer": "Planning control register only. This is not legal advice, a compliance certificate, or an acceptance receipt.",
+  "operating_roles": [
+    "controller-owner",
+    "dpo-or-privacy-owner",
+    "privacy-operator",
+    "data-owner",
+    "security-incident-owner",
+    "auditor"
+  ],
+  "data_subject_rights": [
+    "informed",
+    "access",
+    "copy",
+    "correction",
+    "destruction",
+    "withdraw-consent"
+  ],
+  "request_deadlines_days": {
+    "standard": 30,
+    "maximum_extension": 30,
+    "extension_requires_prior_notice_and_reason": true
+  },
+  "request_states": [
+    "received",
+    "identity-verification",
+    "scoping",
+    "searching",
+    "review-and-redaction",
+    "decision",
+    "fulfilment",
+    "quality-check",
+    "responded",
+    "closed",
+    "waiting-for-requester",
+    "extension-proposed",
+    "extended-after-notice",
+    "partially-fulfilled",
+    "refused-with-reason",
+    "on-legal-hold",
+    "escalated",
+    "overdue"
+  ],
+  "required_ropa_fields": [
+    "controller-and-privacy-contact",
+    "activity-and-version",
+    "purpose-and-reviewed-legal-basis",
+    "data-subject-categories",
+    "personal-and-sensitive-data-categories",
+    "source-and-notice-version",
+    "systems-fields-files-exports-logs-and-paper",
+    "processors-subprocessors-and-recipients",
+    "countries-transfer-route-safeguards-and-risk",
+    "retention-trigger-period-source-hold-and-action",
+    "security-permissions-impact-assessment-and-residual-risk",
+    "owner-reviewer-dates-and-evidence"
+  ],
+  "control_domains": [
+    {"id": "scope-and-role", "state": "planned"},
+    {"id": "processing-inventory-and-ropa", "state": "planned"},
+    {"id": "purpose-notice-and-consent", "state": "planned"},
+    {"id": "data-subject-requests", "state": "planned"},
+    {"id": "retention-holds-and-disposition", "state": "planned"},
+    {"id": "processor-and-subprocessor", "state": "planned"},
+    {"id": "cross-border-transfer", "state": "planned"},
+    {"id": "privacy-impact-assessment", "state": "planned"},
+    {"id": "personal-data-breach", "state": "planned"},
+    {"id": "dpo-assessment-and-governance", "state": "planned"},
+    {"id": "security-isolation-and-audit", "state": "planned"},
+    {"id": "evidence-review-and-training", "state": "planned"}
+  ],
+  "breach": {
+    "authority_notification_ceiling_hours_when_threshold_met": 72,
+    "clock_starts_at_recorded_awareness": true,
+    "legal_threshold_decision_requires_authorised_owner": true,
+    "draft_is_not_notification": true
+  },
+  "transfer": {
+    "requires_purpose_and_legal_basis": true,
+    "requires_minimum_necessary_data": true,
+    "requires_location_and_recipient": true,
+    "requires_safeguard_or_reviewed_route": true,
+    "requires_risk_assessment_when_applicable": true,
+    "unknown_or_high_unresolved_risk_blocks_activation": true
+  },
+  "disposition_invariants": [
+    "no-ledger-stock-tax-payroll-or-audit-corruption",
+    "legal-and-dispute-holds-precede-disposition",
+    "backups-and-archives-remain-personal-data-when-applicable",
+    "pseudonymised-data-remains-personal-data",
+    "hidden-or-archived-is-not-destruction",
+    "processor-and-downstream-propagation-is-recorded",
+    "restored-data-reapplies-approved-tombstones-and-restrictions"
+  ],
+  "required_evidence_groups": [
+    "qualified-legal-privacy-review",
+    "versioned-processing-register",
+    "six-right-request-journeys",
+    "retention-hold-disposition-and-restore",
+    "role-tenant-company-and-subject-isolation",
+    "processor-activation-change-and-revocation",
+    "cross-border-transfer-review",
+    "impact-assessment-and-blocked-release",
+    "breach-clock-notification-decision-and-recovery",
+    "dpo-assessment-contacts-training-and-review",
+    "bilingual-accessible-responsive-states",
+    "candidate-bound-deidentified-run-packet"
+  ],
+  "external_approvals": [
+    "controller-processor-role",
+    "lawful-basis-exception-and-notice",
+    "retention-and-holds",
+    "dpo-appointment-assessment",
+    "processor-and-subprocessor",
+    "transfer-route-and-residual-risk",
+    "breach-threshold-and-notification",
+    "destruction-restriction-or-anonymisation"
+  ]
+}

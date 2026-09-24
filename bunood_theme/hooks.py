@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.46.7"
+app_version = "0.46.35"
 
 required_apps = []
 
@@ -51,8 +51,19 @@ app_include_js = [THEME_JS]
 # native list controllers, retain their bulk actions, and use ListView's column
 # API so phone rows expose amount + document ID without rewriting rendered DOM.
 doctype_list_js = {
+    "Quotation": "public/js/quotation_list.js",
     "Sales Invoice": "public/js/sales_invoice_list.js",
     "Purchase Invoice": "public/js/purchase_invoice_list.js",
+}
+
+# ERPNext's Stock Entry controller reads two Stock Settings values even for the
+# native Stock User role, which has no permission on that configuration form.
+# The route-scoped adapter delegates only those reads to a permission-checked,
+# field-whitelisted method and leaves every other database call native.
+doctype_js = {
+    "Stock Entry": "public/js/stock_entry_compat.js",
+    "Warehouse": "public/js/reference_field_guidance.js",
+    "Country": "public/js/reference_field_guidance.js",
 }
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
@@ -103,6 +114,7 @@ override_whitelisted_methods = {
     "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
     "frappe.desk.query_report.run": "bunood_theme.report_compat.run",
     "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
+    "frappe.desk.desktop.get_workspaces": "bunood_theme.boot.get_workspaces",
     "frappe.desk.desktop.get_onboarding_data": "bunood_theme.onboarding.get_onboarding_data",
     "frappe.desk.doctype.onboarding_step.onboarding_step.get_onboarding_steps": "bunood_theme.onboarding.get_onboarding_steps",
 }
@@ -167,11 +179,20 @@ doc_events = {
         "after_delete": "bunood_theme.api.clear_workspace_cache",
     },
     "Sales Invoice": {
-        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
+        "validate": [
+            "bunood_theme.rounding.enforce_exact_halalas",
+            "bunood_theme.tax_validation.validate_invoice_taxes",
+        ],
         "before_print": "bunood_theme.zatca.print_guard.before_print",
     },
     "Purchase Invoice": {
-        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
+        "validate": [
+            "bunood_theme.rounding.enforce_exact_halalas",
+            "bunood_theme.tax_validation.validate_invoice_taxes",
+        ],
+    },
+    "POS Invoice": {
+        "validate": "bunood_theme.rounding.enforce_exact_halalas",
     },
 }
 
@@ -196,6 +217,7 @@ doc_events = {
 jinja = {
     "methods": [
         "bunood_theme.printing.jinja.bunood_print_language",
+        "bunood_theme.printing.jinja.bunood_print_image_src",
         "bunood_theme.printing.jinja.bunood_amount_in_words",
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",

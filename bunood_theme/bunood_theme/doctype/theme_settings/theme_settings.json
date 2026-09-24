@@ -496,10 +496,10 @@
    "fieldname": "sidebar_pane_state",
    "fieldtype": "Select",
    "label": "Side Pane State",
-   "options": "Open\nRail\nHidden",
+   "options": "Open\nHidden",
    "default": "Open",
    "hidden": 1,
-   "description": "Open shows the pane; Rail shows icons that expand on hover or click; Hidden removes it — the brand and a button to bring it back move into the page head, and anything placed in the pane follows."
+   "description": "Open shows the same full navigation on every route; Hidden removes it while keeping a button in the page head to bring it back."
   },
   {
    "fieldname": "sidebar_rail_trigger",
@@ -891,13 +891,13 @@
    "options": "Frappe's own\nBilingual Split\nCentered Mark\nHairline Minimal"
   },
   {
-   "default": "Both",
-   "description": "Set by the picker above. Which halves of the bilingual document title render on the Bunood formats.",
+   "default": "Follow print language",
+   "description": "Set by the picker above. Follow Print Language keeps Arabic output RTL and English output LTR; explicit overrides remain available when required.",
    "fieldname": "print_title_lang",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Print Title Language",
-   "options": "Both\nArabic only\nEnglish only"
+   "options": "Follow print language\nBoth\nArabic only\nEnglish only"
   },
   {
    "default": "Show",

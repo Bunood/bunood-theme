@@ -117,7 +117,7 @@ async function chooseActiveLink(page, shortcut, fieldname, value) {
 		} : false;
 	}, value, { timeout: 10000 }).then(handle => handle.jsonValue()).catch(async error => {
 		const diagnostic = await page.evaluate(async ({ fieldname, value }) => {
-			const doctype = { customer: "Customer", supplier: "Supplier", quick_bill_item: "Item" }[fieldname];
+			const doctype = { customer: "Customer", supplier: "Supplier", item_code: "Item" }[fieldname];
 			let search = [];
 			let searchError = "";
 			try {
@@ -180,14 +180,10 @@ async function addThreeLines(page, items) {
 	const quantities = [2, 3, 4];
 	for (let index = 0; index < quantities.length; index++) {
 		console.log("keyboard line", index + 1);
-		await chooseActiveLink(page, "Alt+i", "quick_bill_item", items[index]);
+		await chooseActiveLink(page, "Alt+i", "item_code", items[index]);
 		await page.waitForFunction(
-			expected => document.activeElement?.value === expected,
-			items[index],
-		);
-		await page.keyboard.press("Control+Enter");
-		await page.waitForFunction(
-			count => cur_frm.$wrapper[0].querySelectorAll(".bnd-bill-line").length === count,
+			count => cur_frm.doc.items.filter(row => row.item_code).length === count &&
+				cur_frm.$wrapper[0].querySelector(".bnd-bill")?.getAttribute("aria-busy") === "false",
 			index + 1,
 			{ timeout: 20000 },
 		).catch(async error => {
@@ -205,7 +201,7 @@ async function addThreeLines(page, items) {
 		});
 		const active = await page.evaluate(() =>
 			document.activeElement?.closest(".frappe-control")?.dataset.fieldname || "");
-		assert(active === "qty", "new line " + (index + 1) + " did not focus Quantity; active=" + active);
+		assert(active === "qty", "selected line " + (index + 1) + " did not focus Quantity; active=" + active);
 		await page.keyboard.press("Control+A");
 		await page.keyboard.type(String(quantities[index]));
 		await page.keyboard.press("Enter");
@@ -233,6 +229,10 @@ async function totalsSnapshot(page) {
 			});
 		const totalName = api.totalField(frm);
 		if (frm.fields_dict[totalName]?.get_status() !== "None") names.push(totalName);
+		for (const name of ["paid_amount", "outstanding_amount"]) {
+			const field = frm.fields_dict[name];
+			if (field && field.get_status() !== "None" && (doc[name] || Number(doc.docstatus) !== 0)) names.push(name);
+		}
 		const format = name => {
 			const field = frm.fields_dict[name];
 			return window.format_number(
@@ -400,19 +400,22 @@ async function runBill(page, fixture, spec) {
 	}
 	const quantities = await addThreeLines(page, fixture.items);
 	const draftTotals = await totalsSnapshot(page);
-	await page.keyboard.press("F2");
-	await page.waitForFunction(
-		() => !cur_frm.doc.__islocal && !cur_frm.is_dirty(),
-		null,
-		{ timeout: 30000 },
-	);
-	// ERPNext queues the Purchase Invoice expense-head notice after the draft
-	// model becomes clean. Let native callbacks mount it before dismissal.
-	await page.evaluate(() => frappe.after_ajax());
-	await page.waitForTimeout(500);
-	const saveNotice = await dismissKnownSaveNotice(page);
-	const name = await page.evaluate(() => cur_frm.doc.name);
+	let saveNotice = [];
+	if (!spec.oneStepSubmit) {
+		await page.keyboard.press("F2");
+		await page.waitForFunction(
+			() => !cur_frm.doc.__islocal && !cur_frm.is_dirty(),
+			null,
+			{ timeout: 30000 },
+		);
+		// ERPNext queues the Purchase Invoice expense-head notice after the draft
+		// model becomes clean. Let native callbacks mount it before dismissal.
+		await page.evaluate(() => frappe.after_ajax());
+		await page.waitForTimeout(500);
+		saveNotice = await dismissKnownSaveNotice(page);
+	}
 	const tabsToSubmit = await submitWithKeyboard(page);
+	const name = await page.evaluate(() => cur_frm.doc.name);
 	const submittedTotals = await totalsSnapshot(page);
 	const saved = await page.evaluate(async ({ doctype, name }) => {
 		const doc = await frappe.xcall("frappe.client.get", { doctype, name });
@@ -433,7 +436,14 @@ async function runBill(page, fixture, spec) {
 	assert(saved.items.every((row, index) =>
 		row.item_code === fixture.items[index] && row.qty === quantities[index]),
 	spec.doctype + " line data changed after submit");
-	return { ...saved, tabsToSubmit, saveNotice, draftTotals, submittedTotals };
+	return {
+		...saved,
+		submissionPath: spec.oneStepSubmit ? "new-document Save and Submit" : "saved-draft Submit",
+		tabsToSubmit,
+		saveNotice,
+		draftTotals,
+		submittedTotals,
+	};
 }
 
 async function zatcaAcceptance(page, invoiceName) {
@@ -515,6 +525,7 @@ try {
 		doctype: "Sales Invoice",
 		partyField: "customer",
 		fixtureField: "customer",
+		oneStepSubmit: true,
 	});
 	const purchase = await runBill(page, fixture, {
 		doctype: "Purchase Invoice",

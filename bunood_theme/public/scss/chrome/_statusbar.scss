@@ -429,7 +429,10 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar {
   // would — the measured `--bnd-sidebar-live-w` describes the desktop pane and
   // is wrong for a drawer, leaving the bar a ~150px stub on the right (measured
   // 2026-08-15 at 390px).
-  inset-inline-start: 0;
+  // Reset BOTH logical edges. The desktop bar owns a measured sidebar inset;
+  // carrying either half of that geometry into the phone grid shifts one
+  // complete navigation cell beyond the viewport on the Apps route.
+  inset-inline: 0;
   display: grid;
   grid-template-rows: 1fr;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -492,8 +495,8 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
 }
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-avatar-btn .avatar {
-  inline-size: 22px;
-  block-size: 22px;
+  inline-size: 20px;
+  block-size: 20px;
 }
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field {
@@ -502,7 +505,6 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field {
   // is a navigation destination and must surrender that intrinsic width so it
   // owns exactly one track, like every neighbouring control.
   inline-size: 100%;
-  max-inline-size: 100%;
   min-width: 0;
   justify-self: stretch;
 }
@@ -515,8 +517,6 @@ html[data-bnd-narrow][data-theme]
   .bnd-zone[data-zone="center"]
   .bnd-search-field {
   inline-size: 100%;
-  max-inline-size: 100%;
-  min-inline-size: 0;
 }
 
 html[data-bnd-narrow][data-theme] .bnd-statusbar .bnd-search-field .bnd-search-label {
@@ -541,7 +541,24 @@ html[data-bnd-narrow][data-theme] .bnd-statusbar :is(
 html[data-bnd-narrow][data-theme] .bnd-statusbar [aria-current="page"] {
   background: transparent;
   color: var(--bnd-brand-ink);
-  box-shadow: inset 0 2px 0 var(--bnd-brand-solid);
+  border: 0;
+  box-shadow: none;
+}
+
+// A short centred marker reads as navigation state. The former full-cell
+// inset line followed the button's rounded corners and looked like an app card
+// had been wedged into the bar, especially on the All Apps page.
+html[data-bnd-narrow][data-theme] .bnd-statusbar [aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  inline-size: var(--bnd-sp-6);
+  block-size: 2px;
+  margin-inline: auto;
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-brand-solid);
+  pointer-events: none;
 }
 
 // Stable order independent of desktop placement zones and RTL direction.

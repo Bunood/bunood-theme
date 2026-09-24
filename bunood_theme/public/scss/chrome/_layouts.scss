@@ -1,4 +1,5 @@
 // Copyright (c) 2026, Bunood and contributors
+@use "../breakpoints" as *;
 // ============================================================================
 // DESK LAYOUTS — the visibility matrix (checklist item 9).
 //
@@ -71,17 +72,12 @@ html[data-bnd-own~="user"] .desktop-navbar .desktop-avatar {
   display: none;
 }
 
-// ...AND THE STRIP ITSELF, once every piece of it is ours — search, brand (the
-// logo tile, below with the pane header), bell, avatar. An empty 50px band
-// over the desk page is not a native affordance, it is the space one used to
-// take. Any piece released brings the strip back with it.
-// `panesearch` is the search placed IN the pane: Frappe's own row, revealed, which
-// by design owns no `search` token (mount_search_at) — so the strip needs this
-// second, outcome-backed token, stamped only while that row is on screen.
-html[data-bnd-own~="search"][data-bnd-own~="panehead"][data-bnd-own~="bell"][data-bnd-own~="user"] .desktop-navbar,
-html[data-bnd-own~="panesearch"][data-bnd-own~="panehead"][data-bnd-own~="bell"][data-bnd-own~="user"] .desktop-navbar {
-  display: none;
-}
+// The strip itself is owned only by `data-bnd-desktop-shell`, stamped after JS
+// measures a VISIBLE Bunood shell. Do not infer whole-strip ownership from the
+// component tokens above: those components can live in the side pane while the
+// configured top bar is route-hidden on All Apps. Hiding the native strip from
+// that combination removed the only visible Home return. Individual native
+// duplicates still stand down above; the remaining strip carries Home.
 
 // Frappe's page-title button is the workspace/Home menu on this desk. It stays
 // visible beside Bunood's independent pane toggle; the pane-edge collapse link
@@ -114,11 +110,11 @@ html[data-bnd-own~="onboard"] .body-sidebar p:has(> .onboarding-sidebar) {
 // succeeding renders Frappe's header AND ours, one under the other.
 //
 // `panehead` is stamped by `sb_mount_head` only after `.bnd-sb-head` is found
-// IN THE DOCUMENT -- the `stamp_appearance_route` rule, and the reason a cluster
-// that was built but never appended owns nothing. `claim_panehead` DISOWNS on
-// the negative branch rather than merely declining to claim, so a pane whose
-// brand was torn out releases the header instead of leaving it hidden by a token
-// nobody cleared.
+// IN THE DOCUMENT and identity has an owner: either the pane's fallback brand
+// or the visible global top-bar brand. A node that was built but never appended
+// owns nothing. `claim_panehead` DISOWNS on the negative branch rather than
+// merely declining to claim, so losing both identity routes brings the vendor
+// header back instead of leaving it hidden by a stale token.
 //
 // THREE RELEASE PATHS, all of them the same one three affordances already use.
 // `remount_chrome` releases every token before the re-mounts and lets each
@@ -235,8 +231,10 @@ html[data-bnd-chrome-off~="sidepane"] {
 // dvh gain is unverifiable in a headless (chrome-less) browser, so switching on
 // an assumption would break the "measure, don't assume" rule. Revisit only with
 // a real-device measurement showing content lost under the mobile URL bar.
-html[data-bnd-desk] .main-section {
-  block-size: calc(100vh - var(--bnd-bottom-reserve));
+html[data-bnd-desk] {
+  overflow: hidden;
+
+  .main-section { block-size: calc(100vh - var(--bnd-bottom-reserve)); }
 }
 
 // The ONE thing the reserve above cannot reach: a FIXED vendor panel.
@@ -300,14 +298,16 @@ html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section
   display: none;
 }
 
-html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
-  block-size: calc(100vh - var(--bnd-bottom-reserve) - var(--page-head-height));
-}
-
-html[data-bnd-topbar][data-bnd-desk] body[data-route^="Form"] .layout-side-section {
-  block-size: calc(
-    100vh - var(--bnd-bottom-reserve) - var(--page-head-height) - var(--bnd-topbar-h)
-  );
+// The main-section is already the form's scroll viewport. A viewport-height,
+// overflow:auto side section makes a second adjacent scrollbar in RTL, and
+// its lower controls scroll separately from the document. Keep the side
+// column in the form's flow so every part moves with the same page scrollbar.
+@include bnd-from(lg) {
+  html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
+    position: static;
+    block-size: auto;
+    overflow: visible;
+  }
 }
 
 // ── The report view's own 100vh arithmetic needs the reserve too ────────────

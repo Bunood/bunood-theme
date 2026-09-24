@@ -54,8 +54,25 @@ const APP = join(ROOT, "bunood_theme");
  */
 const JS_SOURCES = [
 	join(APP, "public", "js", "bunood.js"),
+	join(APP, "public", "js", "document_actions.js"),
+	join(APP, "public", "js", "list_presets.js"),
+	join(APP, "public", "js", "sales_bill.js"),
+	join(APP, "public", "js", "simple_forms.js"),
+	join(APP, "public", "js", "report_landing.js"),
+	join(APP, "public", "js", "report_studio.js"),
+	join(APP, "bunood_theme", "doctype", "bunood_migration_run", "bunood_migration_run.js"),
+	join(APP, "bunood_theme", "doctype", "bunood_migration_rehearsal", "bunood_migration_rehearsal.js"),
+	join(APP, "bunood_theme", "doctype", "bunood_readiness_review", "bunood_readiness_review.js"),
 	join(APP, "bunood_theme", "doctype", "theme_settings", "theme_settings.js"),
 	join(APP, "bunood_theme", "page", "bnd_inbox", "bnd_inbox.js"),
+	join(APP, "bunood_theme", "page", "bnd_banking", "bnd_banking.js"),
+	join(APP, "public", "js", "banking_workbench.js"),
+	join(APP, "bunood_theme", "page", "bnd_finance_close", "bnd_finance_close.js"),
+	join(APP, "public", "js", "finance_close.js"),
+	join(APP, "bunood_theme", "page", "bnd_journal_workbench", "bnd_journal_workbench.js"),
+	join(APP, "public", "js", "journal_workbench.js"),
+	join(APP, "public", "js", "pos_workbench.js"),
+	join(APP, "bunood_theme", "page", "bnd_pos", "bnd_pos.js"),
 ];
 
 /** Frappe's list, restated so the port is auditable against the original. */
@@ -346,7 +363,12 @@ export function readExempt(path) {
  * deliberate, argued act with a name attached, rather than a quiet edit to the
  * regex below. Do not add to it to make a build pass — reshape the string.
  */
-const PLURAL_EXCEPTIONS = new Map();
+const PLURAL_EXCEPTIONS = new Map([
+	// In both strings the placeholder is the grammatical object; the following
+	// lowercase word is a preposition, not a count-governed noun.
+	["Remove {0} from this invoice?", "object placeholder followed by a preposition"],
+	["Choose a {0} to see their document context here.", "object placeholder followed by a preposition"],
+]);
 
 /**
  * Refuse a source string whose placeholder governs a noun.

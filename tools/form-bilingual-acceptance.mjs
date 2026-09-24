@@ -5,6 +5,7 @@ const CASES = [
 	["Customer", "customer_name", "tax_id"],
 	["Supplier", "supplier_name", "tax_id"],
 	["Company", "company_name", "tax_id"],
+	["Item", "item_name", null],
 	["Lease", "company", null],
 ];
 const LANGUAGES = [
@@ -54,12 +55,6 @@ try {
 			for (const [width, height] of VIEWPORTS) {
 				await page.setViewportSize({ width, height });
 				for (const theme of THEMES) {
-					await page.evaluate(value => {
-						frappe.ui.set_theme(value);
-						document.documentElement.setAttribute("data-theme-mode", value);
-					}, theme);
-					await page.waitForFunction(value => document.documentElement.getAttribute("data-theme") === value, theme);
-
 					for (const [doctype, first, tax] of CASES) {
 						await page.evaluate(async dt => {
 							if (window.cur_frm?.doc) window.cur_frm.doc.__unsaved = 0;
@@ -67,8 +62,19 @@ try {
 							const doc = frappe.model.get_new_doc(dt);
 							frappe.set_route("Form", dt, doc.name);
 						}, doctype);
+						try {
+							await page.locator(".bnd-simple-composer:visible").waitFor({ timeout: 10000 });
+						} catch (_error) {
+							const slug = doctype.toLowerCase().replaceAll(" ", "-");
+							await page.goto(`${URL_BASE}/desk/${slug}/new`, { waitUntil: "domcontentloaded", timeout: 60000 });
+							await page.locator(".bnd-simple-composer:visible").waitFor({ timeout: 60000 });
+						}
 						await page.waitForFunction(dt => window.cur_frm?.doctype === dt, doctype, { timeout: 60000 });
-						await page.locator(".bnd-simple-composer:visible").waitFor({ timeout: 60000 });
+						await page.evaluate(value => {
+							frappe.ui.set_theme(value);
+							document.documentElement.setAttribute("data-theme-mode", value);
+						}, theme);
+						await page.waitForFunction(value => document.documentElement.getAttribute("data-theme") === value, theme);
 
 						const result = await page.evaluate(({ doctype, first, tax, direction, theme, width }) => {
 							const frm = window.cur_frm;
@@ -94,7 +100,8 @@ try {
 							sample?.removeAttribute("aria-invalid");
 							sample?.focus();
 							const focused = !sample || document.activeElement === sample && getComputedStyle(sample).outlineStyle === "solid";
-							const heights = controls.slice(0, 6).map(node => Math.round(node.getBoundingClientRect().height));
+							const heights = controls.filter(node => !["checkbox", "radio"].includes(node.type)).slice(0, 6)
+								.map(node => Math.round(node.getBoundingClientRect().height));
 							const heightSpread = heights.length ? Math.max(...heights) - Math.min(...heights) : 0;
 							const taxVisible = !tax || visible(wrappers[tax]);
 							const switcher = frm.$wrapper[0].querySelector('.bnd-simple-switch button[aria-pressed="false"]');

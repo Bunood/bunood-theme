@@ -56,7 +56,6 @@ SIDEBAR_FIELDS = [
     "sidebar_card_depth",
     "sidebar_pane_state",
     "sidebar_rail_trigger",
-    "sidebar_rail_button",
     "sidebar_pane_width",
     "sidebar_badges",
     "sidebar_filter",
@@ -71,7 +70,7 @@ SIDEBAR_FIELDS = [
 #: "Bunood Night" is the shipped default — the user's
 #: chosen combination, re-chosen on 2026-08-08: attached and solid rather than
 #: floating glass, a step wider, the pane following the theme colour, and no
-#: rail button (its rendering was broken; the rail still opens on hover).
+#: duplicate rail-edge button; the single page-head control owns pane state.
 #: "Bunood Light" keeps the earlier floating-glass look, so the old shipped
 #: appearance remains one click away rather than gone.
 _SIDEBAR_LOOKS = {
@@ -83,11 +82,10 @@ _SIDEBAR_LOOKS = {
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "4",
         # Always expanded, because the re-chosen look is "attached, solid, a
-        # step wider" — a pane that collapses to a 52px rail shows none of
+        # step wider" — a pane that collapses to the compact rail shows none of
         # those. The rail lives on in Bunood Light and the picker.
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         # Trigger and icon are inert while the mode has no rail and the button
         # is None — kept so flipping back restores a tuned look.
         "sidebar_pane_width": "5",
@@ -101,9 +99,8 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
-        "sidebar_pane_state": "Rail",
+        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -117,7 +114,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_card_depth": "2",
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -131,7 +127,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_card_depth": "1",
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -145,7 +140,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_card_depth": "2",
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -159,7 +153,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_card_depth": "2",
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -173,7 +166,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_card_depth": "2",
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -195,7 +187,6 @@ _SIDEBAR_LOOKS = {
         "sidebar_card_depth": "1",
         "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Counts",
         "sidebar_filter": 0,
@@ -253,7 +244,6 @@ ICON_FIELDS = [
     "icon_style",
     "icon_weight",
     "icon_source",
-    "icon_rail_button",
     "icon_crumbs",
 ]
 
@@ -269,7 +259,6 @@ ICON_DEFAULTS = {
     # made true everywhere for the first time.
     "icon_weight": "1.5",
     "icon_source": "Smart",
-    "icon_rail_button": "Chevron",
     "icon_crumbs": "First Crumb",
 }
 
@@ -1116,12 +1105,12 @@ PRINT_DEFAULTS = {
     "print_letterhead": "Bilingual Split",
     # THE PER-SECTION SWITCHES (the user's second-pass direction: every element
     # its own control). Read AT RENDER by the macros — no sync step, no second
-    # copy — so the neutral defaults below are exactly today's behaviour, and
-    # a pre-migrate site (field unseeded) stays on them by the `or default` in
-    # `_pset`. The QR's Hide is compliance-guarded in the macro itself: a
+    # copy. Print Language is the neutral title policy: one customer-facing
+    # language and direction per output. The QR's Hide is compliance-guarded
+    # in the macro itself: a
     # format that declares required=True keeps its QR regardless, because a
     # togglable legal mandate is a defect, not a setting.
-    "print_title_lang": "Both",
+    "print_title_lang": "Follow print language",
     "print_qr": "Show",
     "print_qr_place": "Head end",
     "print_qr_size": "Medium",

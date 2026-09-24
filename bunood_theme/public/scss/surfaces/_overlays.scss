@@ -263,6 +263,26 @@ html[data-theme] .fc-popover {
   --gray-300: var(--bnd-border);
 }
 
+// ── Repair 9: autocomplete lists always clear document content ──────────────
+// Frappe gives Awesomplete's list a local z-index that sits below our sticky
+// document and table chrome (`--bnd-z-bar`). On invoice forms this let the next
+// section's header paint over customer suggestions: the list was open and
+// interactive, but it visibly disappeared underneath ordinary content. This is
+// a functional overlay contract, so it survives the Overlay Style = Original
+// stand-down and applies to every Link control, including dialogs and grids.
+// `--bnd-z-panel` remains below Frappe modals; a list inside a modal stays in
+// that modal's stacking context while still clearing its local rows and heads.
+html[data-theme] .awesomplete > :is(ul, [role="listbox"]) {
+  z-index: var(--bnd-z-panel);
+}
+
+// Suggestions are one compact choice list, not a table. Frappe's per-row
+// bottom borders become long rules on wide Link fields and overpower the
+// labels; whitespace plus the native hover/selected state separates choices.
+html[data-theme] .awesomplete > [role="listbox"] > li {
+  border-bottom: 0;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // THE ANCHOR — item 28 slice 2. Everything below is scoped
 // html[data-bnd-overlay] and is a STYLE: absent attribute = stock, and the
@@ -361,6 +381,18 @@ html[data-bnd-overlay] .modal-minimize .modal-dialog .modal-content {
   border-end-start-radius: 0;
   border-end-end-radius: 0;
 }
+
+// Recovery for ERPNext's missing Mode of Payment mapping. The original error
+// can contain escaped newlines and a mixed-direction inline link; the desk
+// enhancer replaces it with safe text and one explicit native setup action.
+html[data-theme] .bnd-payment-account-dialog .modal-dialog { max-inline-size: 36rem; }
+html[data-theme] .bnd-payment-account-dialog .modal-message {
+  display: grid; gap: var(--bnd-sp-4); padding: var(--bnd-sp-4); text-align: start;
+}
+html[data-theme] .bnd-payment-account-dialog .modal-message p {
+  margin: 0; color: var(--bnd-ink); line-height: var(--bnd-leading-base);
+}
+html[data-theme] .bnd-payment-account-dialog .modal-message .btn { justify-self: start; }
 
 // The grid-row editor is a dialog in all but name (grid.scss:533 — fixed, 80%
 // wide, its own backdrop), so it takes the same object treatment. (0,2,1).

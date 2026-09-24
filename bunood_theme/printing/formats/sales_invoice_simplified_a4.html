@@ -1,9 +1,10 @@
 {#- Managed by bunood_theme: edits here are overwritten on every migrate.
     Duplicate this Print Format in Desk to customize per client.
-    بونود — فاتورة ضريبية مبسطة (A4). بيانات المشتري اختيارية (B2C)؛
+    بنود — فاتورة ضريبية مبسطة (A4). بيانات المشتري اختيارية (B2C)؛
     الـQR إلزامي — غيابه يطبع تحذيراً مرئياً بدل الصمت. -#}
 {% from "templates/bunood_print_macros.html" import doc_title, invoice_meta, party_block, items_table, totals_block, zatca_qr, head_row %}
-<div class="bnd-p bnd-p--a4">
+{% set is_ar = bunood_print_language() == "ar" %}
+<div class="bnd-p bnd-p--a4" dir="{{ 'rtl' if is_ar else 'ltr' }}" lang="{{ 'ar' if is_ar else 'en' }}">
   {#- A custom print format IS the whole page (printview.py: custom_format ->
       jinja from_string), so the letter head has to be emitted here: frappe
       passes it in the args, but only standard.html prints it.

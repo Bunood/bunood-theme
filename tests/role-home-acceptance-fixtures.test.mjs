@@ -4,6 +4,7 @@ import {
 	RunOwnedUserFixtures,
 	buildCleanupScript,
 	makeRoleHomeFixtureUsers,
+	makeV1RoleFixtureUsers,
 } from "../tools/run-owned-users.mjs";
 
 test("role-home fixture identities are unique to each run", () => {
@@ -14,6 +15,30 @@ test("role-home fixture identities are unique to each run", () => {
 	assert.notEqual(first.realEstate.email, second.realEstate.email);
 	assert.match(first.erp.email, new RegExp(first.runId));
 	assert.equal(first.erp.lastName, first.realEstate.lastName);
+});
+
+test("V1 operational fixtures use one least-privilege role basis per job", () => {
+	const users = makeV1RoleFixtureUsers("v1-role-matrix-01");
+	assert.deepEqual(Object.keys(users), ["runId", "cashier", "sales", "buyer", "warehouse", "accountant", "finance", "owner"]);
+	assert.deepEqual(users.cashier.roles, ["Bunood Cashier", "Bunood POS Operator"]);
+	assert.deepEqual(users.sales.roles, ["Sales User"]);
+	assert.deepEqual(users.buyer.roles, ["Purchase User"]);
+	assert.deepEqual(users.warehouse.roles, ["Stock User"]);
+	assert.deepEqual(users.accountant.roles, ["Accounts User"]);
+	assert.deepEqual(users.finance.roles, ["Accounts Manager", "Accounts User"]);
+	assert.deepEqual(users.owner.roles, ["Bunood Owner"]);
+	assert.equal(new Set(Object.values(users).filter(value => value?.email).map(value => value.email)).size, 7);
+	for (const spec of Object.values(users).filter(value => value?.email)) assert.equal(spec.requireRoles, true);
+});
+
+test("V1 fixture preflight checks every run-owned identity before creating any", () => {
+	const users = makeV1RoleFixtureUsers("v1-role-matrix-02"), calls = [];
+	const fixtures = new RunOwnedUserFixtures(script => { calls.push(script); return "ok"; }, users);
+	fixtures.preflight();
+	assert.equal(calls.length, 1);
+	for (const spec of Object.values(users).filter(value => value?.email)) assert.match(calls[0], new RegExp(spec.email));
+	assert.match(calls[0], /Missing required V1 fixture roles/);
+	assert.equal(fixtures.attempted.size, 0);
 });
 
 test("preflight refuses existing identities before any create is attempted", () => {

@@ -3,7 +3,9 @@
 # values instead of raising, so a print never breaks because of missing apps,
 # fields, or bad data.
 
+import base64
 import json
+import mimetypes
 from decimal import InvalidOperation
 
 import frappe
@@ -13,6 +15,41 @@ def bunood_print_language():
     """Read language at render time, not from a cached Jinja globals snapshot."""
     language = getattr(frappe.local, "lang", None) or "en"
     return "ar" if language.startswith("ar") else "en"
+
+
+def bunood_print_image_src(value):
+    """Return a PDF-safe source for a managed brand image.
+
+    Public and remote sources can remain URLs.  Private Frappe files cannot be
+    fetched by the isolated Chromium header renderer, even though the signed-in
+    browser preview can display them, so embed that tenant-owned asset at render
+    time.  This is intentionally for compact brand marks, not line-item images.
+    """
+    if not value or not isinstance(value, str):
+        return ""
+    if value.startswith(("data:image", "http://", "https://")):
+        return value
+    if not value.startswith(("/files/", "/private/files/")):
+        return value
+    try:
+        file_name = frappe.db.get_value("File", {"file_url": value}, "name")
+        if not file_name:
+            return value
+        file_doc = frappe.get_doc("File", file_name)
+        content = file_doc.get_content()
+        if isinstance(content, str):
+            content = content.encode()
+        mime = (
+            getattr(file_doc, "mime_type", None)
+            or mimetypes.guess_type(file_doc.get("file_name") or value)[0]
+            or "application/octet-stream"
+        )
+        if not mime.startswith("image/"):
+            return ""
+        return f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
+    except Exception:
+        frappe.log_error(title="bunood_theme: print image resolution failed"[:140])
+        return ""
 
 
 def bunood_amount_in_words(amount, currency, precision=2):
@@ -80,7 +117,14 @@ def bunood_zatca_qr_src(doc):
                 if name:
                     saf = frappe.get_doc("Sales Invoice Additional Fields", name)
                     for field in ("qr_image_src", "qr_code_image", "qr_image"):
-                        value = saf.get(field)
+                        # ksa_compliance exposes ``qr_image_src`` as a Python
+                        # @property backed by the stored TLV ``qr_code``.  A
+                        # Frappe virtual field is absent from ``Document.get``;
+                        # attribute access is the contract that invokes the
+                        # controller property and produces the printable PNG.
+                        value = getattr(saf, field, None) or saf.get(field)
+                        if callable(value):
+                            value = value()
                         if value and isinstance(value, str) and value.startswith(
                             ("/files/", "/private/files/", "http", "data:image")
                         ):

@@ -44,6 +44,7 @@
 // Viewport — Frappe's $grid-breakpoints. Keep in lockstep with upstream; the
 // guard reads these exact values as the only ones a @media width may carry.
 $bnd-bp: (
+	xs: 380px, // Invoice actions need a second row below this phone width.
 	sm: 576px,
 	md: 768px,
 	lg: 992px,
@@ -62,7 +63,8 @@ $bnd-cq: (
 	cmp: 760px, // the composer's rail-beside-stage grid -> one column (item 43 C1)
 	board: 544px, // placement board -> stacked (was an unnamed 34rem)
 	card: 250px,  // number card (Display metric) -> the value steps up a size
-	bill-rail: 1176px, // spreadsheet minimum + totals rail + workbench gap
+	bill-rail: 960px, // below this, the customer/preview rail becomes a drawer
+	pos-cards: 460px, // POS item pane: below this, one product card per row preserves full names and prices
 );
 
 @function bnd-bp($name) {

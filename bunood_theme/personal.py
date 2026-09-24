@@ -192,7 +192,7 @@ AXES = (
         "key": "bnd_pane_state",
         "kind": PREFERENCE,
         "label": "Side pane",
-        "values": ("Open", "Rail", "Hidden"),
+        "values": ("Open", "Hidden"),
         # COMFORT, not look. How much of the screen the pane takes is the same
         # kind of question as density -- it is about working room, not about
         # how the desk is styled -- and `personal.py`'s own rule for that
@@ -202,9 +202,8 @@ AXES = (
         "empty": "follow the site's sidebar_pane_state",
         "since": "item 42",
         "note": (
-            "The third state is what makes this worth having per person: one desk "
-            "wants every workspace listed, the next wants the screen. Rail was "
-            "already a per-site choice; Hidden is the one people ask for."
+            "Open uses the same full navigation on every route. Hidden gives the "
+            "page more working room without introducing a second sidebar design."
         ),
     },
     {
@@ -460,14 +459,12 @@ OFF_DESK_FIELDS = tuple(sorted(set(LOGIN_FIELDS) | set(WEB_FIELDS) | set(EMAIL_F
 #:   move desk chrome, so they are not a look; they are outside
 #:   :data:`SHAPE_FIELDS`, so they are not a personal shape either. Site-only is
 #:   the honest third answer rather than filing them wherever subtraction lands.
-#: * the language and appearance controls — these describe which languages the
-#:   tenant offers and where its global chrome is mounted. The language switch
-#:   changes a user's locale, but its offered set, drawing and placement remain
-#:   administrator-owned Theme Settings rather than fields a named look carries.
+#: * the language policy — which locales the tenant offers remains
+#:   administrator-owned. The language and appearance placements are SHAPE,
+#:   because every named layout writes them; language_style is LOOK.
 SITE_ONLY_FIELDS = (
     "accent_color",
     "accent_color_dark",
-    "appearance_placement",
     "apps_placement",
     "brand_color",
     "brand_color_dark",

@@ -48,6 +48,74 @@
 	/** Public namespace. Navbar Settings action items call into this. */
 	const bunood = (window.bunood_theme = window.bunood_theme || {});
 
+	// Native Link controls already know how to search with DocField filters,
+	// permissions and custom queries. A selected value should not make that
+	// picker harder to reach: click the value or the chevron to show choices;
+	// keep Frappe's own record link as a separate action.
+	function enhance_link_control(control) {
+		if (!control?.$input?.length || !control.$link_open?.length) return;
+		if (control.$input[0].dataset.bndLinkChoices) return;
+		control.$input[0].dataset.bndLinkChoices = "1";
+		const choose = document.createElement("a");
+		choose.className = "bnd-link-choose";
+		choose.href = "#";
+		choose.setAttribute("role", "button");
+		choose.setAttribute("aria-label", __("Show choices"));
+		choose.setAttribute("title", __("Show choices"));
+		choose.innerHTML = frappe.utils.icon("chevron-down", "xs");
+		control.$link.after(choose);
+		control.$link_open.attr("aria-label", __("Open selected record"));
+		control.$link_open.attr("title", __("Open selected record"));
+		const showChoices = () => {
+			if (control.$input.prop("disabled") || control.$input.prop("readOnly")) return;
+			control.$input[0].focus();
+			// An empty search TERM leaves the selected value and model intact.
+			control.on_input({ target: { value: "" } });
+		};
+		choose.addEventListener("click", event => {
+			event.preventDefault();
+			if (control.autocomplete_open) control.awesomplete.close();
+			else showChoices();
+		});
+		choose.addEventListener("keydown", event => {
+			if (event.key !== " ") return;
+			event.preventDefault();
+			showChoices();
+		});
+		control.$input.on("click.bnd-link-choices", () => {
+			if (control.$input.val() && !control.autocomplete_open) showChoices();
+		});
+		control.$input.on("keydown.bnd-link-choices", event => {
+			if (event.altKey && event.key === "ArrowDown") {
+				event.preventDefault();
+				showChoices();
+			}
+		});
+	}
+	function install_link_choice_behavior() {
+		const Link = window.frappe?.ui?.form?.ControlLink;
+		if (!Link?.prototype?.make_input) return false;
+		if (Link.prototype.__bnd_link_choices) return true;
+		const nativeMakeInput = Link.prototype.make_input;
+		Link.prototype.make_input = function (...args) {
+			nativeMakeInput.apply(this, args);
+			enhance_link_control(this);
+		};
+		Link.prototype.__bnd_link_choices = true;
+		// app_include_js and the first form can race on a cold load. Decorate
+		// controls that Frappe already constructed before this hook was ready.
+		const enhanceCurrentForm = frm => {
+			for (const control of Object.values(frm?.fields_dict || {})) {
+				if (control instanceof Link) enhance_link_control(control);
+			}
+		};
+		enhanceCurrentForm(window.cur_frm);
+		if (window.jQuery) window.jQuery(document).on("form-refresh.bnd-link-choices", (_event, frm) => {
+			setTimeout(() => enhanceCurrentForm(frm), 0);
+		});
+		return true;
+	}
+
 	// ERPNext ships Home with Item, Customer, Supplier and Sales Invoice links.
 	// Bunood Home already exposes those tasks as prominent actions, while the
 	// sparse sidebar leaves every module behind an All Apps detour. Replace only
@@ -63,24 +131,61 @@
 	const ROLE_WORKSPACES = {
 		erp: ["Home", "Selling", "Buying", "Stock", "Invoicing", "Financial Reports", "Reports", "ERPNext Settings"],
 		real_estate: ["Home", "Real Estate", "Invoicing", "Financial Reports", "Reports"],
+		cashier: ["Home", "Selling", "Stock", "Invoicing", "Reports"],
+		sales: ["Home", "Selling", "CRM", "Invoicing", "Reports"],
+		purchasing: ["Home", "Buying", "Stock", "Invoicing", "Reports"],
+		warehouse: ["Home", "Stock", "Buying", "Manufacturing", "Quality", "Reports"],
+		accounting: ["Home", "Invoicing", "Financial Reports", "Reports", "ZATCA"],
+		finance: ["Home", "Selling", "Buying", "Stock", "Invoicing", "Financial Reports", "Reports", "ZATCA"],
+		owner: ["Home", "Selling", "Buying", "Stock", "Invoicing", "Financial Reports", "Reports", "ZATCA"],
 	};
+	const OPERATIONAL_ROLE_PROFILES = [
+		["cashier", ["Bunood Cashier", "Cashier", "POS User"]],
+		["sales", ["Sales User"]],
+		["purchasing", ["Purchase User"]],
+		["warehouse", ["Stock User"]],
+		["accounting", ["Accounts User"]],
+		["finance", ["Accounts Manager"]],
+	];
 
 	function role_home_workspace(boot = window.frappe?.boot, roles = window.frappe?.user_roles || []) {
 		const allowed = (boot?.allowed_workspaces || []).map(row => row?.name).filter(Boolean);
 		const personal = String(boot?.bnd_personal?.home || "");
 		if (personal && allowed.includes(personal)) return personal;
-		if (!roles.includes("System Manager") && allowed.includes("Real Estate") &&
-			roles.includes("Accounts Manager") && !roles.some(role => ["Sales User", "Purchase User", "Stock User"].includes(role))) {
-			return "Real Estate";
-		}
+		// Accounts Manager is a finance permission, not an industry identity. A
+		// Real Estate landing page is selected only through the person's permitted
+		// workspace preference; inferring it from this broad role misroutes finance.
 		return allowed.includes("Home") ? "Home" : (allowed[0] || "Home");
 	}
 
-	function role_workspace_names(boot = window.frappe?.boot, roles = window.frappe?.user_roles || []) {
+	function role_navigation_profile(boot = window.frappe?.boot, roles = window.frappe?.user_roles || []) {
 		if (roles.includes("System Manager") || boot?.user?.name === "Administrator" ||
 			boot?.user?.email === "Administrator") return null;
-		const profile = role_home_workspace(boot, roles) === "Real Estate" ? "real_estate" : "erp";
-		return ROLE_WORKSPACES[profile];
+		if (role_home_workspace(boot, roles) === "Real Estate") return "real_estate";
+		const cashier = roles.some(role => ["Bunood Cashier", "Cashier", "POS User"].includes(role));
+		const owner = roles.includes("Bunood Owner");
+		if (cashier && owner) return "erp";
+		if (cashier) return "cashier";
+		if (owner) return "owner";
+		const frontline = ["Sales User", "Purchase User", "Stock User"];
+		if (roles.includes("Accounts Manager") && !roles.some(role => frontline.includes(role))) return "finance";
+		const matches = OPERATIONAL_ROLE_PROFILES.filter(([profile, candidates]) =>
+			!["cashier", "finance"].includes(profile) &&
+			candidates.some(role => roles.includes(role)));
+		// A person who performs several operational jobs needs the existing broad
+		// ERP navigator. A focused profile is only honest when one job dominates.
+		return matches.length === 1 ? matches[0][0] : "erp";
+	}
+
+	function role_workspace_names(boot = window.frappe?.boot, roles = window.frappe?.user_roles || []) {
+		const profile = role_navigation_profile(boot, roles);
+		if (!profile) return null;
+		const names = [...ROLE_WORKSPACES[profile]];
+		// A person's explicit permitted landing workspace must not disappear merely
+		// because their role profile normally keeps it out of the compact navigator.
+		const home = role_home_workspace(boot, roles);
+		if (home && !names.includes(home)) names.splice(1, 0, home);
+		return names;
 	}
 
 	function product_workspaces() {
@@ -378,7 +483,22 @@
 	(function patch_chart_colors() {
 		if (!window.frappe || typeof frappe.Chart !== "function") return;
 		const NAVIGABLE_TYPES = new Set(["bar", "line", "axis-mixed", "scatter"]);
+		const PART_TO_WHOLE_TYPES = new Set(["percentage", "pie", "donut"]);
+		const MONTH_KEYS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
 		let chart_uid = 0;
+
+		function localize_chart_periods(options) {
+			if (!options?.data?.labels || String(frappe.boot.lang || "").split(/[-_]/)[0] !== "ar") return options;
+			const formatter = new Intl.DateTimeFormat("ar-u-ca-gregory", { month: "long" });
+			let changed = false;
+			const labels = options.data.labels.map((label) => {
+				const match = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/.exec(String(label).trim());
+				if (!match) return label;
+				changed = true;
+				return `${formatter.format(new Date(2000, MONTH_KEYS.indexOf(match[1]), 15))} ${match[2]}`;
+			});
+			return changed ? { ...options, data: { ...options.data, labels } } : options;
+		}
 
 		function chart_host(parent, chart) {
 			if (parent && parent.nodeType === 1) return parent;
@@ -479,13 +599,20 @@
 		/**
 		 * A percentage chart has no truthful geometry when its accounting data is
 		 * signed, and frappe-charts divides an all-zero total into NaN segments.
-		 * Keep every finite signed value, but use the vendor's axis renderer for
-		 * those cases. The report table remains authoritative and untouched.
+		 * Keep every finite value for a bounded textual fallback instead of asking
+		 * the vendor to draw mathematically invalid part-to-whole geometry.
 		 */
 		function viable_chart_options(options) {
-			if (!options || options.type !== "percentage" || !options.data ||
-				!Array.isArray(options.data.datasets)) return { options, fallback: "" };
+			// frappe-charts' line geometry requires a distance between at least two
+			// x positions. A legitimate one-period report otherwise emits NaN SVG
+			// paths; the native bar renderer presents the same single observation.
+			if (options?.type === "line" && (options.data?.labels || []).length < 2) {
+				return { options: { ...options, type: "bar" }, fallback: "", empty: false };
+			}
+			if (!options || !PART_TO_WHOLE_TYPES.has(options.type) || !options.data ||
+				!Array.isArray(options.data.datasets)) return { options, fallback: "", empty: false };
 			let total = 0;
+			let magnitude = 0;
 			let signed = false;
 			let invalid = false;
 			const datasets = options.data.datasets.map((dataset) => ({
@@ -498,18 +625,55 @@
 					}
 					if (value < 0) signed = true;
 					total += value;
+					magnitude += Math.abs(value);
 					return value;
 				}),
 			}));
-			if (!signed && !invalid && total > 0) return { options, fallback: "" };
+			if (magnitude === 0) return { options, fallback: "", empty: true };
+			if (!signed && !invalid && total > 0) return { options, fallback: "", empty: false };
 			return {
 				options: {
 					...options,
-					type: "bar",
 					data: { ...options.data, datasets },
-					barOptions: { ...(options.barOptions || {}), stacked: 1 },
 				},
-				fallback: "signed-percentage",
+				fallback: "nonviable-part-to-whole",
+				empty: false,
+			};
+		}
+
+		function fallback_chart(parent, options, empty) {
+			const host = chart_host(parent, null);
+			if (!host) return null;
+			host.querySelector(":scope > .chart-container")?.remove();
+			const container = document.createElement("div");
+			container.className = "chart-container bnd-chart-fallback";
+			container.dataset.bndChartFallback = empty ? "empty" : "nonviable-part-to-whole";
+			container.setAttribute("role", "status");
+			if (empty) {
+				container.classList.add("bnd-chart-empty");
+				container.textContent = typeof __ === "function" ? __("No data") : "No data";
+			} else {
+				const list = document.createElement("ul");
+				const labels = options.data?.labels || [];
+				for (const dataset of options.data?.datasets || []) {
+					for (const [index, raw] of (dataset.values || []).entries()) {
+						const item = document.createElement("li");
+						const label = document.createElement("span");
+						label.textContent = [dataset.name, labels[index]].filter(Boolean).join(" · ");
+						const value = document.createElement("bdi");
+						value.textContent = new Intl.NumberFormat(frappe.boot?.lang || undefined).format(Number(raw) || 0);
+						item.append(label, value);
+						list.appendChild(item);
+					}
+				}
+				container.appendChild(list);
+			}
+			host.appendChild(container);
+			return {
+				container,
+				data: options.data,
+				destroy() { container.remove(); },
+				update(data) { this.data = data; },
 			};
 		}
 
@@ -605,7 +769,8 @@
 		const NativeChart = frappe.Chart;
 		function BndChart(parent, options) {
 			const viable = viable_chart_options(options);
-			options = viable.options;
+			options = localize_chart_periods(viable.options);
+			if (viable.empty || viable.fallback) return fallback_chart(parent, options, viable.empty);
 			const navigable = !!(options && NAVIGABLE_TYPES.has(options.type) && options.isNavigable !== false);
 			if (navigable) options.isNavigable = 0;
 			const given =
@@ -783,6 +948,11 @@
 	function theme_active() {
 		return !!(window.frappe && frappe.boot && frappe.boot.bnd_chrome);
 	}
+	// Synchronous, before the Desk shell paints its default Desktop grid.
+	if (theme_active() && /^\/(app|desk)\/?$/.test(location.pathname)) {
+		document.documentElement.setAttribute("data-bnd-home-pending", "");
+		setTimeout(() => document.documentElement.removeAttribute("data-bnd-home-pending"), 10000);
+	}
 
 	/**
 	 * The active layout's slug, or "" when the containers spell no shipped shape.
@@ -891,7 +1061,6 @@
 	// names here cost nothing while SEARCH_FALLBACKS' cost a wrong placement.
 	const LAYOUT_CONTAINERS = {
 		unifiedsidepane: ["bottombar", "sidepane"],
-		"rail+flyout": ["bottombar", "sidepane"],
 		taskbar: ["bottombar", "sidepane"],
 		toptaskbar: ["topbar", "bottombar", "sidepane"],
 		// The one layout with no side pane: it hides the whole container.
@@ -1346,7 +1515,7 @@
 		// mounts. Changing the route inside that transaction updates the URL but
 		// intermittently leaves Desktop rendered underneath it. Frappe's own
 		// post-request queue is the first point where the initial render is done.
-		frappe.after_ajax(() => frappe.set_route("Workspaces", home));
+		queue_home_landing(() => frappe.set_route("Workspaces", home));
 		return true;
 	}
 
@@ -1366,6 +1535,40 @@
 		const header = panel && panel.querySelector(".onb-header-main");
 		const actions = header && header.querySelector(".onb-header-actions");
 		if (!actions) return false;
+		const native_actions = actions.querySelectorAll(":scope > button");
+		if (native_actions[0]) {
+			native_actions[0].classList.add("bnd-onboarding-collapse");
+			native_actions[0].setAttribute("aria-label", __("Collapse"));
+			native_actions[0].setAttribute("title", __("Collapse"));
+		}
+		if (native_actions[1]) {
+			native_actions[1].classList.add("bnd-onboarding-close");
+			native_actions[1].setAttribute("aria-label", __("Close"));
+			native_actions[1].setAttribute("title", __("Close"));
+		}
+		// Completed onboarding is terminal. Frappe persists each skipped step but
+		// leaves the 100% panel open with a Reset All link; close that stale shell,
+		// and close immediately when Skip All launches those persistence calls.
+		if (panel.querySelector(".onb-progress-badge-complete")) {
+			native_actions[1]?.click();
+			return true;
+		}
+		const skip_all = panel.querySelector(".onb-skip");
+		if (skip_all && !skip_all.dataset.bndDismissBound) {
+			skip_all.dataset.bndDismissBound = "1";
+			skip_all.addEventListener("click", () => {
+				if (skip_all.textContent.trim() === __("Reset All")) return;
+				panel.hidden = true;
+				const close = () => native_actions[1]?.click();
+				if (frappe.after_ajax) frappe.after_ajax(close);
+				else window.setTimeout(close, 0);
+			});
+		}
+		const title = panel.querySelector(".onb-title > .text-base.font-medium");
+		const icon = panel.querySelector(".onb-title-icon");
+		if (/Stock Setup/i.test(title?.textContent || "") && !icon?.querySelector("svg")) {
+			icon.replaceChildren(home_icon("icon-stock", "bnd-stock-setup-glyph"));
+		}
 		if (actions.querySelector(".bnd-onboarding-refresh")) return true;
 		const label = __("Refresh progress");
 		const button = el("button", "bnd-onboarding-refresh", {
@@ -1419,8 +1622,23 @@
 	// Public outcome stamps for the doctype-specific bundles loaded after this
 	// desk bundle. They may hide a native action only after their replacement is
 	// mounted, and must release it when their simple surface stands down.
-	bunood.claim_native = bnd_own;
-	bunood.release_native = bnd_disown;
+	//
+	// These two owners carry their own complete document-action toolbar. A pinned
+	// form foot is another proxy for the same native primary action, so keeping it
+	// mounted creates two bottom action bars on a narrow screen. Re-sync the one
+	// shared foot mount whenever either owner changes; Advanced mode then restores
+	// the configured pinned foot without either feature knowing the other's DOM.
+	const FORM_ACTION_OWNERS = ["salesbill", "simpleform"];
+	function sync_native_owner(token, own) {
+		(own ? bnd_own : bnd_disown)(token);
+		if (FORM_ACTION_OWNERS.includes(token) && window.cur_frm) {
+			mount_docbar(window.cur_frm);
+			mount_docfoot(window.cur_frm);
+			mount_drawer(window.cur_frm);
+		}
+	}
+	bunood.claim_native = (token) => sync_native_owner(token, true);
+	bunood.release_native = (token) => sync_native_owner(token, false);
 
 	// ════════════════════════════════════════════════════════════════════════
 	// Sidebar style kit (item 10) — attribute application
@@ -1453,12 +1671,13 @@
 		},
 		sections: { "Plain": "plain", "Divided": "divided", "Cards": "cards" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
-		// Three states since item 42. The legacy spellings still resolve — the
-		// migration rewrites stored values, but a desk mid-upgrade (boot cached
-		// before the patch ran) must not lose its pane over a label.
+		// One visible sidebar, everywhere. "Rail" and its older spellings remain
+		// accepted as migration aliases, but resolve to the canonical full pane so
+		// a saved form can never silently replace the navigation with an icon-only
+		// renderer. Hidden is visibility, not a second sidebar design.
 		panestate: {
-			"Open": "open", "Rail": "rail", "Hidden": "hidden",
-			"Always Expanded": "open", "Hover-Expand": "rail", "Hover + Pin": "rail",
+			"Open": "open", "Rail": "open", "Hidden": "hidden",
+			"Always Expanded": "open", "Hover-Expand": "open", "Hover + Pin": "open",
 		},
 		railtrigger: { "Hover": "hover", "Click": "click", "Hover + Pin": "hoverpin" },
 		railbtn: { "None": "", "Edge": "edge", "Header": "header" },
@@ -1466,6 +1685,21 @@
 		iconsrc: { "Smart": "smart", "Original": "original", "Letters": "letters" },
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
 	};
+
+	/**
+	 * The sidebar has one visual contract across every route. Workspace data,
+	 * badges and filtering may differ, but stored appearance experiments cannot
+	 * turn the navigation into a second component on forms, lists or dashboards.
+	 */
+	const SB_STANDARD = Object.freeze({
+		placement: "attached",
+		material: "solid",
+		icons: "onactive",
+		active: "softpill",
+		sections: "plain",
+		wash: "off",
+		iconsrc: "smart",
+	});
 
 	/**
 	 * The style values currently IN EFFECT — boot's at load, possibly
@@ -1490,13 +1724,14 @@
 			}
 		}
 		const set = (name, value) => value && html.setAttribute("data-bnd-sb-" + name, value);
-		set("placement", SB_SLUGS.placement[sb.placement]);
-		set("material", SB_SLUGS.material[sb.material]);
+		html.setAttribute("data-bnd-sb-standard", "");
+		set("placement", SB_STANDARD.placement);
+		set("material", SB_STANDARD.material);
 		set("color", "on"); // the kit's on/off marker, not a colour
-		set("icons", SB_SLUGS.icons[sb.icons]);
-		set("active", SB_SLUGS.active[sb.active]);
-		set("sections", SB_SLUGS.sections[sb.sections]);
-		set("wash", SB_SLUGS.wash[sb.wash]);
+		set("icons", SB_STANDARD.icons);
+		set("active", SB_STANDARD.active);
+		set("sections", SB_STANDARD.sections);
+		set("wash", SB_STANDARD.wash);
 		const state = SB_SLUGS.panestate[sb.panestate] || "open";
 		set("panestate", state);
 		// Rail keeps its own anchor attribute plus the trigger the JS wires --
@@ -1511,13 +1746,10 @@
 				(sb.panestate === "Hover + Pin" ? "hoverpin" : "hover");
 			html.setAttribute("data-bnd-sb-railtrigger", trigger);
 		}
-		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
+		set("iconsrc", SB_STANDARD.iconsrc);
 		set("badges", SB_SLUGS.badges[sb.badges]);
 		if (parseInt(sb.filter, 10)) html.setAttribute("data-bnd-sb-filter", "");
-		const width = parseInt(sb.pane_width, 10);
-		if (width >= 1 && width <= 5) html.setAttribute("data-bnd-sb-width", String(width));
-		const intensity = parseInt(sb.intensity, 10);
-		if (intensity >= 1 && intensity <= 5) html.setAttribute("data-bnd-sb-intensity", String(intensity));
+		set("width", sb.pane_width);
 	}
 
 	// Apply boot's values NOW — same timing rule as layout/density: the CSS
@@ -1880,6 +2112,7 @@
 		// cluster is the fallback. A toggle in the wrong host is moved, not
 		// rebuilt — its observer and count ride along.
 		const host =
+			page.querySelector(".bnd-form-actionbar-actions") ||
 			page.querySelector(":scope > .bnd-docfoot > .bnd-docfoot-actions") ||
 			page.querySelector(":scope .bnd-dochead > .bnd-dochead-actions") ||
 			(frm.page.page_actions && frm.page.page_actions[0]);
@@ -2013,6 +2246,123 @@
 		return true;
 	}
 
+	// Master-data keys remain language-neutral in the database. Translate only
+	// their rendered presentation, so a saved `Network` Mode of Payment keeps
+	// the same links and accounting references while an Arabic desk reads شبكة.
+	const MODE_OF_PAYMENT_LABELS = {
+		"Bank Draft": __("Bank Draft"),
+		Cash: __("Cash"),
+		Cheque: __("Cheque"),
+		"Credit Card": __("Credit Card"),
+		Network: __("Network"),
+		"Wire Transfer": __("Wire Transfer"),
+	};
+
+	function localized_business_value(doctype, value) {
+		const text = String(value == null ? "" : value);
+		if (doctype === "Mode of Payment") return MODE_OF_PAYMENT_LABELS[text] || text;
+		if (doctype === "Account" && text.includes("Network Card Clearing")) {
+			return text.replace("Network Card Clearing", __("Network Card Clearing"));
+		}
+		return text;
+	}
+
+	function localized_doc_field_value(frm, df, value) {
+		if (frm.doctype === "Mode of Payment" && df.fieldname === "mode_of_payment") {
+			return localized_business_value("Mode of Payment", value);
+		}
+		if (df.fieldtype === "Link" && (df.options === "Mode of Payment" || df.options === "Account")) {
+			return localized_business_value(df.options, value);
+		}
+		return value;
+	}
+
+	function replace_exact_leaf_text(root, selector, source, target) {
+		if (!root || !target || source === target) return;
+		for (const node of root.querySelectorAll(selector)) {
+			if (node.children.length || node.textContent.trim() !== source) continue;
+			node.textContent = target;
+		}
+	}
+
+	function localize_mode_of_payment_options(frm) {
+		const fields = Object.values((frm && frm.fields_dict) || {}).filter((field) => {
+			const df = field && field.df;
+			return df && (
+				(df.fieldtype === "Link" && df.options === "Mode of Payment")
+				|| (frm.doctype === "Mode of Payment" && df.fieldname === "mode_of_payment")
+			);
+		});
+		for (const field of fields) {
+			const wrapper = field.wrapper && (field.wrapper[0] || field.wrapper);
+			if (!wrapper) continue;
+			for (const source of Object.keys(MODE_OF_PAYMENT_LABELS)) {
+				replace_exact_leaf_text(
+					wrapper,
+					'.awesomplete > [role="listbox"] :is(li, [role="option"], strong, span, p)',
+					source,
+					localized_business_value("Mode of Payment", source)
+				);
+			}
+		}
+	}
+
+	/**
+	 * Frappe translates field metadata, but document names and a few native
+	 * sidebar/grid labels arrive as raw text. This is deliberately DOM-only:
+	 * inputs, `data-name`, frm.doc and every link target stay canonical.
+	 */
+	function localize_form_presentation(frm) {
+		const root = frm && frm.page && frm.page.wrapper && frm.page.wrapper[0];
+		if (!root) return;
+		localize_mode_of_payment_options(frm);
+		replace_exact_leaf_text(root, ".form-sidebar *", "Last Edited By You", __("Last Edited By You"));
+		replace_exact_leaf_text(
+			root,
+			'[data-fieldname="default_account"] :is(.static-area, .control-value, .control-label, .ellipsis)',
+			"Default Account",
+			__("Default Account")
+		);
+		replace_exact_leaf_text(root, ".tooltip-content", "accounts", __("Accounts"));
+
+		if (frm.doctype === "Mode of Payment") {
+			const title_nodes = [
+				'.form-details.form-title-text > span',
+				'.form-title-text .ellipsis',
+				'[data-fieldname="mode_of_payment"] :is(.static-area, .control-value, .ellipsis)',
+				'.bnd-dochead-title bdi',
+				'.bnd-dochead-tile[data-fieldname="mode_of_payment"] .bnd-dochead-tile-value',
+				'.timeline-content :is(strong, b, span)',
+			].join(", ");
+			for (const source of Object.keys(MODE_OF_PAYMENT_LABELS)) {
+				replace_exact_leaf_text(root, title_nodes, source, localized_business_value("Mode of Payment", source));
+			}
+		}
+
+		for (const link of root.querySelectorAll('a[data-doctype="Account"][data-name]')) {
+			const source = link.textContent.trim();
+			const translated = localized_business_value("Account", source);
+			if (source && translated !== source) link.textContent = translated;
+		}
+	}
+
+	function install_form_presentation_localizer(frm) {
+		const root = frm && frm.page && frm.page.wrapper && frm.page.wrapper[0];
+		if (!root) return;
+		localize_form_presentation(frm);
+		if (frm.__bnd_presentation_mo || typeof MutationObserver === "undefined") return;
+		let queued = false;
+		frm.__bnd_presentation_mo = new MutationObserver(() => {
+			if (queued) return;
+			queued = true;
+			requestAnimationFrame(() => {
+				queued = false;
+				localize_form_presentation(frm);
+			});
+		});
+		frm.__bnd_presentation_mo.observe(root, { childList: true, subtree: true });
+	}
+
 	function mount_dochead(frm) {
 		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.main || !frm.page.main[0]) return;
 		const main = frm.page.main[0];
@@ -2034,11 +2384,14 @@
 		// A Single's docname IS its doctype name, untranslated — the settings
 		// form is the case that showed it — so a Single is named by its label.
 		const is_single = !!(frm.meta.issingle || frm.docname === frm.doctype);
-		const title = is_new
+		let title = is_new
 			? __("New") + " " + __(frm.doctype)
 			: is_single
 			? __(frm.doctype)
 			: String((title_field && doc[title_field]) || frm.docname || "");
+		if (!is_new && frm.doctype === "Mode of Payment") {
+			title = localized_business_value("Mode of Payment", title);
+		}
 		// The action slot outlives the rebuild: detached with its children,
 		// re-appended below.
 		const actions = head.querySelector(":scope > .bnd-dochead-actions") || el("div", "bnd-dochead-actions");
@@ -2061,7 +2414,11 @@
 		head.appendChild(h);
 		const meta = el("p", "bnd-dochead-meta");
 		const bits = is_single ? [] : [__(frm.doctype)];
-		if (!is_new && !is_single && title !== frm.docname) bits.push(frm.docname);
+		const display_docname =
+			frm.doctype === "Mode of Payment"
+				? localized_business_value("Mode of Payment", frm.docname)
+				: frm.docname;
+		if (!is_new && !is_single && title !== display_docname) bits.push(display_docname);
 		// prettyDate, not comment_when: the latter returns a <span> with a tooltip,
 		// and the meta line is text (the screenshot showed the markup verbatim).
 		if (!is_new && doc.modified && frappe.datetime && frappe.datetime.prettyDate) {
@@ -2085,6 +2442,7 @@
 					text = "";
 				}
 				// Text, never markup: a formatter's output is shown, not interpreted.
+				text = localized_doc_field_value(frm, df, text);
 				value.textContent = text.trim() ? text.trim() : "—";
 				tile.appendChild(value);
 				tiles.appendChild(tile);
@@ -2100,6 +2458,106 @@
 	}
 
 	// ── The foot bar (item 43 A8c) — mount 3 of 3 ─────────────────────────
+	// Forms without a purpose-built toolbar get one compact action bar immediately
+	// below the sticky page head. Its actions call the live frm, never a copied
+	// document or an independently implemented save path.
+	function docbar_wanted() {
+		const owned = new Set((document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+		return !FORM_ACTION_OWNERS.some(token => owned.has(token));
+	}
+
+	function docbar_sync(frm, bar) {
+		const actions = bunood.document_actions;
+		if (!actions || !bar.isConnected) return;
+		const state = actions.actionState(frm);
+		const commit = actions.canSaveAndSubmit(frm);
+		const native = frm.page.btn_primary?.[0];
+		const primary = bar.querySelector(".bnd-form-actionbar-primary");
+		const nativeLabel = native?.textContent?.trim() || "";
+		primary.textContent = commit ? __("Save and submit") : nativeLabel;
+		primary.hidden = !commit && (!nativeLabel || native?.classList.contains("hide"));
+		primary.disabled = bar.dataset.busy === "true" || !!native?.disabled;
+		for (const print of bar.querySelectorAll(".bnd-form-actionbar-print, .bnd-form-actionbar-menu-print")) print.hidden = !state.showPrint;
+		bar.querySelector(".bnd-form-actionbar-draft").hidden = !commit || !state.showSave;
+		bar.querySelector(".bnd-form-actionbar-new").hidden = !state.showNew;
+		bar.querySelector(".bnd-form-actionbar-name").textContent = frm.doc?.__islocal ? __(frm.doctype) : (frm.doc?.name || __(frm.doctype));
+		bar.querySelector(".bnd-form-actionbar-state").textContent = __(actions.documentState(frm).label);
+	}
+
+	function mount_docbar(frm) {
+		if (!frm?.page?.main?.[0] || !frm.meta || frm.meta.istable) return;
+		const main = frm.page.main[0];
+		let bar = main.querySelector(":scope > .bnd-form-actionbar");
+		if (!docbar_wanted()) {
+			bar?.remove();
+			frm.__bnd_docbar_mo?.disconnect();
+			frm.__bnd_docbar_mo = null;
+			bnd_disown("docbar");
+			return;
+		}
+		if (!bar) {
+			bar = el("section", "bnd-form-actionbar", { role: "toolbar", "aria-label": __("Document actions") });
+			const identity = el("div", "bnd-form-actionbar-identity");
+			identity.append(el("strong", "bnd-form-actionbar-name"), el("span", "bnd-form-actionbar-state"));
+			const controls = el("div", "bnd-form-actionbar-actions");
+			const primary = el("button", "bnd-form-actionbar-primary btn btn-primary", { type: "button" });
+			primary.addEventListener("click", async () => {
+				if (bar.dataset.busy === "true") return;
+				const contract = bunood.document_actions;
+				if (!contract?.canSaveAndSubmit(frm)) {
+					frm.page.btn_primary?.trigger("click");
+					return;
+				}
+				bar.dataset.busy = "true";
+				docbar_sync(frm, bar);
+				try { await contract.saveAndSubmit(frm); }
+				finally { bar.dataset.busy = "false"; docbar_sync(frm, bar); }
+			});
+			const print = el("button", "bnd-form-actionbar-print btn btn-default", { type: "button" });
+			print.textContent = __("Print");
+			print.addEventListener("click", () => frm.print_doc());
+			const more = el("details", "bnd-form-actionbar-more");
+			const summary = el("summary", "btn btn-default");
+			summary.textContent = __("Document actions");
+			const menu = el("div", "bnd-form-actionbar-menu");
+			const menuPrint = el("button", "bnd-form-actionbar-menu-print", { type: "button" });
+			menuPrint.textContent = __("Print");
+			menuPrint.addEventListener("click", () => { more.open = false; frm.print_doc(); });
+			const draft = el("button", "bnd-form-actionbar-draft", { type: "button" });
+			draft.textContent = __("Save draft");
+			draft.addEventListener("click", () => { more.open = false; frm.save("Save"); });
+			const next = el("button", "bnd-form-actionbar-new", { type: "button" });
+			next.textContent = __("New");
+			next.addEventListener("click", () => { more.open = false; frappe.new_doc(frm.doctype); });
+			menu.append(menuPrint, draft, next);
+			more.append(summary, menu);
+			more.addEventListener("keydown", event => {
+				if (event.key === "Escape") { more.open = false; summary.focus(); }
+			});
+			controls.append(primary, print, more);
+			bar.append(identity, controls);
+			main.prepend(bar);
+			bar.addEventListener("focusout", event => {
+				if (!bar.contains(event.relatedTarget)) more.open = false;
+			});
+		}
+		docbar_sync(frm, bar);
+		bnd_own("docbar");
+		if (!frm.__bnd_docbar_mo && frm.page.page_actions?.[0] && typeof MutationObserver !== "undefined") {
+			let queued = false;
+			frm.__bnd_docbar_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => { queued = false; if (bar.isConnected) docbar_sync(frm, bar); });
+			});
+			frm.__bnd_docbar_mo.observe(frm.page.page_actions[0], { attributes: true, childList: true, subtree: true, characterData: true });
+		}
+	}
+	document.addEventListener("pointerdown", event => {
+		const open = window.cur_frm?.page?.main?.[0]?.querySelector(":scope > .bnd-form-actionbar details[open]");
+		if (open && !open.contains(event.target)) open.open = false;
+	}, true);
+
 	// `form_foot` = Pinned Bar: a fixed bar above the bottom chrome — LIFTED by
 	// whatever chrome is already there (the status bar, the dock), measured at
 	// mount and on resize, never declared — carrying the page's primary action
@@ -2112,7 +2570,9 @@
 	// last) and only on form routes; a route change releases the claim, and the
 	// form's next refresh takes it again.
 	function docfoot_wanted() {
-		return document.documentElement.getAttribute("data-bnd-form-foot") === "pinned";
+		const owned = new Set((document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).filter(Boolean));
+		return document.documentElement.getAttribute("data-bnd-form-foot") === "pinned" &&
+			!FORM_ACTION_OWNERS.some((token) => owned.has(token));
 	}
 
 	function docfoot_facts(meta) {
@@ -2166,7 +2626,7 @@
 		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.wrapper || !frm.page.wrapper[0]) return;
 		const page = frm.page.wrapper[0];
 		let foot = page.querySelector(":scope > .bnd-docfoot");
-		const wanted = docfoot_wanted() && !!(frm.page.btn_primary && frm.page.btn_primary.length);
+		const wanted = docfoot_wanted() && !page.querySelector(".bnd-form-actionbar") && !!(frm.page.btn_primary && frm.page.btn_primary.length);
 		if (!wanted) {
 			if (foot) foot.remove();
 			if (frm.__bnd_foot_mo) {
@@ -2246,6 +2706,7 @@
 	function sync_form_mounts() {
 		if (!window.cur_frm) return;
 		mount_dochead(window.cur_frm);
+		mount_docbar(window.cur_frm);
 		mount_docfoot(window.cur_frm);
 		mount_drawer(window.cur_frm);
 	}
@@ -2257,8 +2718,10 @@
 		frappe.ui.form.on("*", {
 			refresh: (frm) => {
 				mount_dochead(frm);
+				mount_docbar(frm);
 				mount_docfoot(frm);
 				mount_drawer(frm);
+				install_form_presentation_localizer(frm);
 				// The dirty tick. Namespaced and `.off()`-first — `refresh` runs
 				// many times per document.
 				if (frm && frm.$wrapper) {
@@ -2278,6 +2741,18 @@
 		},
 		true
 	);
+	// The activity panel is not modal: a click elsewhere should leave the
+	// destination usable and dismiss the panel without moving focus back to its
+	// toggle. Resolve the active form on each event because Frappe caches pages.
+	document.addEventListener("pointerdown", (e) => {
+		if (document.documentElement.getAttribute(DRAWER_ATTR) !== "open") return;
+		const frm = window.cur_frm;
+		const footer = frm?.footer?.wrapper?.[0];
+		const toggle = drawer_current_toggle();
+		const path = e.composedPath?.() || [];
+		if (path.includes(footer) || path.includes(toggle)) return;
+		drawer_set_open(false);
+	}, true);
 
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
@@ -3034,46 +3509,28 @@
 		return route.length === 1 && String(route[0]).toLowerCase() === "desktop";
 	}
 
-	/**
-	 * Send the desk's EMPTY route to the Bunood home.
-	 *
-	 * WHY A REDIRECT AND NOT A SETTING. `frappe.boot.home_page` is the
-	 * supported lever, and it cannot reach this: `boot.add_home_page` resolves
-	 * the value through `frappe.desk.desk_page.get()`, so it names a **Page**
-	 * record, while our home is a **Workspace**. Measured on this site — the
-	 * only landing Page that exists is `desktop`, and there is no `Workspaces`
-	 * Page to point at. So the empty route is redirected here instead.
-	 *
-	 * NOTHING LOSES ITS ADDRESS. "All Apps" goes to `/apps`, Frappe's app
-	 * switcher, not to this grid — so it is untouched. The grid itself keeps
-	 * `/app/desktop`, which `on_desktop_route` now recognises, and a user who
-	 * asks for it explicitly is not bounced.
-	 */
+	// A bare Desk URL lands on the workspace; explicit /desktop remains All Apps.
+	let home_landing_queued = false;
+	function queue_home_landing(navigate) {
+		if (home_landing_queued) return;
+		home_landing_queued = true;
+		let done = false;
+		const finish = () => {
+			if (done) return;
+			done = true;
+			if (/^\/(app|desk)\/?$/.test(location.pathname)) navigate();
+			home_landing_queued = false;
+		};
+		frappe.after_ajax(finish);
+		// An unrelated long request must not keep the user on Desktop forever.
+		setTimeout(finish, 1000);
+	}
 	function land_on_home() {
 		if (!theme_active()) return;
-
-		// THE URL DECIDES, NOT THE ROUTER'S CURRENT ANSWER.
-		//
-		// `frappe.get_route()` is transiently EMPTY while v16's desk shell does
-		// its own boot routing, so keying on it alone made this steal
-		// navigations meant for other pages: a visit to /desk/todo was bounced
-		// to the home the moment the router had not resolved yet, and the
-		// caller then waited out its full timeout for a selector on a page it
-		// never opened. The suite has a comment about exactly this failure mode
-		// for its own navigations; this added a second source of it, and 21
-		// checks went red in one subset — every `container:` and `invariant:`
-		// case, all of them 30s selector timeouts rather than assertions.
-		//
-		// The pathname is what the USER asked for and does not flicker. Only
-		// the bare desk root lands on the home; any deeper address is left
-		// alone whatever the router happens to be reporting mid-boot.
+		// Frappe may report ["desktop"] before its URL settles; trust the URL.
 		const path = String(location.pathname || "").replace(/\/+$/, "");
 		if (path !== "/desk" && path !== "/app" && path !== "") return;
-
-		const route = frappe.get_route ? frappe.get_route() || [] : [];
-		const empty = !route.length || (route.length === 1 && !route[0]);
-		if (!empty) return;
-		go_home();
+		queue_home_landing(go_home);
 	}
 
 	/** Keep the legacy/user-facing Apps address as an alias for All Apps. */
@@ -3107,6 +3564,7 @@
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		const on_desktop = on_desktop_route(route);
 		document.documentElement.toggleAttribute("data-bnd-desktop", on_desktop);
+		document.documentElement.toggleAttribute("data-bnd-role-home", on_role_home_route());
 		// The Desktop page is cached. Never let the ownership stamp from that
 		// page leak onto an ordinary workspace while the router is swapping the
 		// visible container; `sync_desktop_shell` will claim it again after the
@@ -3207,7 +3665,13 @@
 		const mobile = is_narrow();
 		const bar = document.querySelector(".bnd-statusbar");
 		const search = document.querySelector(".bnd-search-field, .bnd-search-icon");
-		const desktop_shell = search && search.closest(".bnd-topbar, .bnd-statusbar, .bnd-dock, .page-head");
+		// A node inside a route-hidden bar is not a shell. The All Apps page keeps
+		// those bars in the DOM while suppressing them, so an existence check made
+		// us hide Frappe's navbar and then remove its Home fallback as well: the
+		// page had no visible way back. Client rects express the outcome we need
+		// without misclassifying fixed, genuinely visible chrome.
+		const desktop_shell = search && search.getClientRects().length &&
+			search.closest(".bnd-topbar, .bnd-statusbar, .bnd-dock, .page-head");
 		// On a phone, hiding Desktop's private navbar on the strength of search
 		// alone can expose a half-mounted navigation row. Claim global ownership
 		// only when the complete, stable four-destination contract is present.
@@ -3341,66 +3805,156 @@
 		frappe.set_route(ws_route(role_home_workspace()));
 	}
 
+	/** The base of a code ("ar" of "ar-SA"), which is how languages compare. */
+	function language_base(code) {
+		return String(code || "").split(/[-_]/)[0];
+	}
+
+	function language_dir(code) {
+		const rtl = (frappe.boot && frappe.boot.bnd_rtl_langs) || [];
+		return rtl.includes(language_base(code)) ? "rtl" : "ltr";
+	}
+
+	function language_name(language) {
+		return language.name || language.language_name || language.code;
+	}
+
+	/** Toggle for two languages; a checked menu for three or more. */
+	function language_pair() {
+		const { current, languages } = language_state();
+		const cur = language_base(current);
+		const others = languages.filter((language) => language_base(language.code) !== cur);
+		const here = languages.find((language) => language_base(language.code) === cur) || null;
+		const toggle = languages.length === 2 && others.length === 1;
+		return { languages, others, here, toggle, cur };
+	}
+
 	// A desk language change needs new translations and the matching RTL/LTR
 	// bundle. Persist only the signed-in User, then reload the same page.
 	let language_switch_pending = false;
-	function language_choice() {
-		const configured = Array.isArray(frappe.boot.bnd_language?.languages)
-			? frappe.boot.bnd_language.languages.filter((row) => row && row.code)
-			: [];
-		const current = String(frappe.boot.bnd_language?.current || frappe.boot.lang || "en").split(/[-_]/)[0];
-		const destination = configured.find((row) => String(row.code).split(/[-_]/)[0] !== current);
-		if (destination) {
-			const label = destination.name || destination.language_name || destination.code;
-			return { code: destination.code, label, title: __("Switch to {0}", [label]) };
-		}
-		return current === "ar"
-			? { code: "en", label: "English", title: __("Switch to English") }
-			: { code: "ar", label: "العربية", title: __("Switch to Arabic") };
-	}
-
-	async function switch_desk_language() {
-		if (language_switch_pending || !frappe.session?.user || frappe.session.user === "Guest") return;
+	async function switch_language(code, discard_dirty = false) {
+		if (language_switch_pending || !code || !frappe.session?.user || frappe.session.user === "Guest") return;
 		// Include cached forms: a user may have navigated away from an edit.
-		const dirty = Object.values(window.locals || {}).some(records =>
-			Object.values(records || {}).some(doc => doc?.__unsaved && !doc.parenttype));
-		if (dirty) {
-			frappe.msgprint(__("Save or discard your unsaved changes before switching language."));
+		const dirty = Object.values(window.locals || {}).some((records) =>
+			Object.values(records || {}).some((doc) => doc?.__unsaved && !doc.parenttype));
+		if (dirty && !discard_dirty) {
+			frappe.msgprint({
+				title: __("Unsaved changes"),
+				message: __("Save or discard your unsaved changes before switching language."),
+				indicator: "orange",
+				primary_action: {
+					label: __("Discard changes and switch"),
+					action: () => {
+						frappe.hide_msgprint();
+						switch_language(code, true);
+					},
+				},
+			});
 			return;
 		}
 		language_switch_pending = true;
-		const buttons = document.querySelectorAll('[data-bnd-part="language"]');
-		buttons.forEach(btn => { btn.disabled = true; btn.setAttribute("aria-busy", "true"); });
+		const buttons = [...document.querySelectorAll(".bnd-language-btn")];
+		for (const button of buttons) {
+			button.disabled = true;
+			button.setAttribute("aria-busy", "true");
+		}
 		try {
-			const choice = language_choice();
 			const response = await frappe.call({
 				method: "bunood_theme.api.set_language",
-				args: { code: choice.code },
+				args: { code },
 				freeze: true,
 				freeze_message: __("Switching language..."),
 			});
-			if (response.exc || response.message?.language !== choice.code) throw new Error("Language update failed");
+			if (!response || !response.message || response.message.language !== code) {
+				throw new Error("Language update failed");
+			}
 			window.location.reload();
 		} catch (error) {
 			frappe.msgprint(__("Could not switch language. Please try again."));
-		} finally {
 			language_switch_pending = false;
-			buttons.forEach(btn => { btn.disabled = false; btn.removeAttribute("aria-busy"); });
+			for (const button of buttons) {
+				button.disabled = false;
+				button.removeAttribute("aria-busy");
+			}
 		}
 	}
 
-	function build_language_button() {
-		const choice = language_choice();
-		const btn = el("button", "bnd-icon-btn bnd-language-btn", {
-			type: "button", title: choice.title, "aria-label": choice.title,
-			"data-bnd-part": "language",
+	/** Account-menu equivalents keep language reachable when its chosen bar is absent. */
+	function language_menu_items() {
+		const { languages, others, toggle, cur } = language_pair();
+		if (languages.length < 2) return [];
+		if (toggle) {
+			const name = language_name(others[0]);
+			return [{ label: __("Switch to {0}", [name]), icon: "icon-globe", run: () => switch_language(others[0].code) }];
+		}
+		return languages.map((language) => {
+			const checked = language_base(language.code) === cur;
+			return {
+				label: language_name(language),
+				icon: checked ? "icon-check" : undefined,
+				checked,
+				run: () => (checked ? null : switch_language(language.code)),
+			};
 		});
-		// Only the autonym changes language; the accessible label uses the UI's.
-		const label = el("span", "", { lang: choice.code, dir: choice.code === "ar" ? "rtl" : "ltr" });
-		label.textContent = choice.label;
-		btn.appendChild(label);
-		btn.addEventListener("click", switch_desk_language);
-		return btn;
+	}
+
+	function build_language(part = "language", extra_class = "") {
+		const { languages, others, here, toggle } = language_pair();
+		if (languages.length < 2) return null;
+		const shown = toggle ? others[0] : here || languages[0];
+		const shown_name = language_name(shown);
+		const attrs = { type: "button", "data-bnd-part": part };
+		if (toggle) {
+			attrs["aria-label"] = __("Switch to {0}", [shown_name]);
+			attrs.title = attrs["aria-label"];
+		} else {
+			attrs["aria-label"] = __("Language");
+			attrs.title = __("Language");
+			attrs["aria-haspopup"] = "menu";
+		}
+		const button = el("button", `bnd-icon-btn bnd-language-btn ${extra_class}`.trim(), attrs);
+		const icon = el("span", "bnd-lang-ico");
+		icon.appendChild(sprite_icon("icon-globe"));
+		button.appendChild(icon);
+		const code = el("span", "bnd-lang-code", { "aria-hidden": "true" });
+		code.textContent = language_base(shown.code).slice(0, 2).toUpperCase();
+		button.appendChild(code);
+		const name = el("span", "bnd-lang-name", {
+			lang: shown.code,
+			dir: language_dir(shown.code),
+			"aria-hidden": "true",
+		});
+		name.textContent = shown_name;
+		button.appendChild(name);
+		if (toggle) {
+			button.addEventListener("click", (event) => {
+				event.stopPropagation();
+				switch_language(others[0].code);
+			});
+		} else {
+			menu_trigger(button);
+			button.addEventListener("click", (event) => {
+				event.stopPropagation();
+				show_menu(button, language_menu_items());
+			});
+		}
+		return button;
+	}
+
+	function build_appearance() {
+		const button = el("button", "bnd-icon-btn bnd-appearance-btn", {
+			type: "button",
+			"data-bnd-part": "appearance",
+			"aria-label": __("Appearance"),
+			title: __("Appearance"),
+			"aria-haspopup": "dialog",
+		});
+		button.appendChild(sprite_icon("icon-monitor"));
+		button.addEventListener("click", (event) => {
+			event.stopPropagation();
+			bunood.appearance();
+		});
+		return button;
 	}
 
 	// ── The theme's dropdown menu ───────────────────────────────────────────
@@ -3511,7 +4065,7 @@
 				clearTimeout(fly_timer);
 				fly_timer = setTimeout(() => {
 					if (btn._children) open_fly_for(btn);
-					else close_fly(false);
+					else if (!btn.closest(".bnd-menu-fly")) close_fly(false);
 				}, 120);
 			});
 			btn.addEventListener("pointerleave", () => clearTimeout(fly_timer));
@@ -3755,7 +4309,7 @@
 
 		// The top bar stands down on phones and some layout presets. Keep the
 		// same account action reachable through the existing profile menu.
-		items.push({ label: language_choice().label, icon: "icon-web", run: switch_desk_language });
+		for (const item of language_menu_items()) items.push(item);
 		// ONE ENTRY, NOT THREE (item 38). This used to be "Appearance" (Frappe's
 		// own theme modal), "Sidebar Style" (a menu that applied the side pane
 		// only) and "Toggle Density" (a three-state cycle with a toast) — three
@@ -3796,7 +4350,7 @@
 			items.push({
 				label: __("Getting Started"),
 				icon: "icon-user-check",
-				run: () => proxy_click(".body-sidebar .onboarding-sidebar"),
+				run: () => proxy_click(".body-sidebar .onboarding-sidebar:not(.hidden)"),
 			});
 		}
 		items.push("divider");
@@ -3956,10 +4510,9 @@
 	 *             exact failure this whole rework exists to stop.
 	 *   <region>  place it there.
 	 *
-	 * Unlike search, these two do NOT walk a fallback chain. They have native
-	 * ERPNext equivalents, so "nowhere of ours" is a fine answer — and moving
-	 * a control the admin deliberately placed to somewhere they did not ask
-	 * for is worse than leaving it where the layout put it.
+	 * Notifications and identity are critical. If their requested bar is not on
+	 * this desk, they fall back to the pane's foot (or the page head while the
+	 * pane is Hidden) instead of exposing duplicate native rows or disappearing.
 	 */
 	/**
 	 * A tenant's active placement label — the narrow override while a phone-width
@@ -3983,13 +4536,19 @@
 		if (!region) return "absent";
 		// A Hidden pane LENDS its tenants to the page head (argument in _sidebar.scss).
 		if (region === "sidepane" && sb_pane_hidden()) return host_for("pagehead", "end") ? "pagehead" : "absent";
-		return host_for(region, zone) ? region : "absent";
+		if (host_for(region, zone)) return region;
+		if (tenant === "inbox" || tenant === "user") {
+			if (sb_pane_hidden() && host_for("pagehead", "end")) return "pagehead";
+			if (host_for("sidepane", "end")) return "sidepane";
+		}
+		return "absent";
 	}
 
 	/** The zone a tenant asked for, for the region it resolved to. */
 	function zone_for(tenant) {
 		const slot = parse_slot(active_placement(tenant));
 		if (slot.region === "sidepane" && sb_pane_hidden()) return "end"; // lent
+		if ((tenant === "inbox" || tenant === "user") && placement_for(tenant) === "sidepane" && slot.region !== "sidepane") return "end";
 		return slot.zone || "end";
 	}
 
@@ -4098,6 +4657,11 @@
 			Math.max(0, Math.min(innerWidth - 1, rect.left + rect.width / 2)),
 			Math.max(0, Math.min(innerHeight - 1, rect.top + rect.height / 2))
 		);
+		// ERPNext's dismissible Getting Started panel can temporarily cover the
+		// pane. That must not turn a persisted "Off" choice into a themed bell or
+		// avatar again: the native control is present, correctly sized and becomes
+		// reachable as soon as the operator closes onboarding.
+		if (hit?.closest?.(".user-onboarding")) return true;
 		return !!(hit && (control === hit || control.contains(hit) || hit.contains(control)));
 	}
 
@@ -4164,7 +4728,10 @@ function sb_zone_anchor(pane, zone, node) {
 	// Our end tenants become band cells.
 	if (zone === "end" && node.getAttribute) {
 		const part = node.getAttribute("data-bnd-part");
-		if (part === "bell" || part === "user" || part === "home" || part === "apps") {
+		if (
+			part === "bell" || part === "user" || part === "home" || part === "apps" ||
+			part === "language" || part === "appearance"
+		) {
 			return sb_band(pane).appendChild(node);
 		}
 	}
@@ -4251,8 +4818,11 @@ function sb_zone_anchor(pane, zone, node) {
 	// REGISTRY ORDER, not append-at-the-end: `registry.default_desk_order()` reads
 	// the components table top to bottom and `start` sits before `apps` there, so
 	// spelling it last here would be a second copy that disagrees about ties.
-	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps"];
-	const PART_TO_KEY = { search: "search", bell: "inbox", user: "user", home: "home", apps: "apps", start: "start" };
+	const DESK_ORDER_DEFAULT = ["search", "inbox", "user", "home", "start", "apps", "language", "appearance"];
+	const PART_TO_KEY = {
+		search: "search", bell: "inbox", user: "user", home: "home", apps: "apps",
+		start: "start", language: "language", "top-language": "language", appearance: "appearance",
+	};
 
 	function desk_order_rank() {
 		const stored = String((placement_state && placement_state.order) || "")
@@ -4318,6 +4888,15 @@ function sb_zone_anchor(pane, zone, node) {
 				);
 			}
 		}
+		// The language toggle is a permanent global action on wide screens. Keep
+		// it immediately after Notifications even when an older saved desk_order
+		// still lists Language after the account menu.
+		const topbar_end = document.querySelector('.bnd-topbar .bnd-zone[data-zone="end"]');
+		const bell = topbar_end?.querySelector(":scope > .bnd-bell");
+		const language = topbar_end?.querySelector(":scope > .bnd-topbar-language");
+		if (bell && language && bell.nextElementSibling !== language) {
+			bell.insertAdjacentElement("afterend", language);
+		}
 	}
 
 	function mount_placed_tenants() {
@@ -4335,7 +4914,19 @@ function sb_zone_anchor(pane, zone, node) {
 			// token is its own and releasing it costs nothing — the pane keeps its
 			// handle and Frappe's page-title toggle either way.
 			["start", "start", "bnd-sb-start", build_start],
+			["language", "language", "bnd-language-btn", build_language],
+			["appearance", "appearance", "bnd-appearance-btn", build_appearance],
 		]) {
+			// The permanent top bar now carries the single product identity. The
+			// configurable legacy Start tenant rendered the same mark elsewhere in
+			// the bar, which left two Bunood logos after replacing the workspace
+			// pill. Retire that duplicate whenever the permanent brand is present;
+			// if the top bar is genuinely absent, the legacy placement still works.
+			if (tenant === "start" && document.querySelector(".bnd-topbar-brand")) {
+				for (const node of document.querySelectorAll(".bnd-sb-start")) node.remove();
+				bnd_disown(token);
+				continue;
+			}
 			const region = placement_for(tenant);
 			// The panel stamp follows the OUTCOME of every branch below: only a
 			// mount that actually happened stamps its region, and every other
@@ -4373,7 +4964,8 @@ function sb_zone_anchor(pane, zone, node) {
 			// mobile Account semantics even when it did not need rebuilding.
 			if (tenant === "user") existing.forEach(sync_user_button);
 			// The page-head pane toggle is the sole recovery control while Hidden.
-			if (tenant === "start" && sb_pane_hidden()) {
+			const start_region = tenant === "start" ? parse_slot(active_placement("start")).region : "";
+			if (tenant === "start" && sb_pane_hidden() && (start_region === "sidepane" || start_region === "pagehead")) {
 				for (const node of existing) node.remove();
 				continue;
 			}
@@ -4405,6 +4997,14 @@ function sb_zone_anchor(pane, zone, node) {
 				// data-bnd-own). The first version of this guard did exactly
 				// that and turned Off into a no-op in every layout.
 				bnd_disown(token);
+				// Start, Language and Appearance replace no ERPNext control. Off is
+				// literal for them; native reachability applies only to the critical
+				// notification and identity tenants below.
+				if (tenant !== "inbox" && tenant !== "user") {
+					for (const node of existing) node.remove();
+					stamp("");
+					continue;
+				}
 				// A composite control can be the honest replacement too. On mobile,
 				// Account exposes Notifications and carries the unread badge, so keep
 				// the native drawer bell hidden and remove the redundant fifth item.
@@ -4462,6 +5062,10 @@ function sb_zone_anchor(pane, zone, node) {
 			const zone = zone_for(tenant);
 			if (!keeper) {
 				const node = build();
+				if (!node) {
+					stamp("");
+					continue;
+				}
 				node.setAttribute("data-bnd-zone", zone);
 				if (region === "sidepane") sb_zone_anchor(host, zone, node);
 				else host.appendChild(node);
@@ -4474,6 +5078,7 @@ function sb_zone_anchor(pane, zone, node) {
 			bnd_own(token);
 			stamp(region);
 		}
+		mount_language_beside_bell();
 		sb_band_prune();
 		enforce_desk_order();
 		ensure_skip_link();
@@ -4506,7 +5111,7 @@ function sb_zone_anchor(pane, zone, node) {
 		button.setAttribute("aria-expanded", expanded ? "true" : "false");
 		button.setAttribute("aria-label", label);
 		button.title = label;
-		if (button.classList.contains("bnd-pagehead-sidebar-toggle")) {
+		if (button.classList.contains("bnd-pagehead-sidebar-toggle") || button.classList.contains("bnd-topbar-sidebar-toggle")) {
 			const direction = sidebar_toggle_direction(state);
 			button.dataset.bndArrow = direction;
 			button.innerHTML = direction === "start" ? BND_DOUBLE_START_SVG : BND_DOUBLE_END_SVG;
@@ -4527,6 +5132,14 @@ function sb_zone_anchor(pane, zone, node) {
 		return mark;
 	}
 
+	/** The global top bar is the single identity owner when its Home control is
+	 * actually visible. A hidden/stale bar does not suppress the pane's fallback
+	 * identity, so every layout still retains one route home. */
+	function topbar_owns_brand() {
+		const start = document.querySelector(".bnd-topbar .bnd-topbar-brand, .bnd-topbar .bnd-sb-start");
+		return !!start && start.getClientRects().length > 0;
+	}
+
 	/** The start pill — the brand, and the way home. Argument in _sidebar.scss. */
 	function build_start() {
 		const name = frappe.boot.bnd_company || __("Home");
@@ -4542,17 +5155,129 @@ function sb_zone_anchor(pane, zone, node) {
 		btn.appendChild(label);
 		btn.addEventListener("click", (e) => {
 			e.stopPropagation();
-			frappe.set_route("");
+			go_home();
 		});
 		return btn;
 	}
 
-	/** The next desktop pane state. Mobile owns a separate native drawer. */
+	/** Permanent top-bar identity. The logo is also the single route Home. */
+	function build_topbar_brand() {
+		const name = frappe.boot.bnd_company || "Bunood";
+		const brand = el("button", "bnd-topbar-brand", {
+			type: "button",
+			"aria-label": name,
+			title: __("Home"),
+		});
+		brand.appendChild(brand_mark());
+		const label = el("span", "bnd-sb-brand-name");
+		label.textContent = name;
+		brand.appendChild(label);
+		brand.addEventListener("click", go_home);
+		return brand;
+	}
+
+	function build_sidebar_toggle(owner_class) {
+		const sidebar = document.querySelector(".body-sidebar");
+		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
+		const toggle = el("button", `bnd-sidebar-toggle ${owner_class}`, {
+			type: "button",
+			"data-bnd-part": "panetoggle",
+			"aria-controls": (sidebar && sidebar.id) || "bnd-primary-sidebar",
+		});
+		const container = document.querySelector(".body-sidebar-container");
+		const rail = document.documentElement.getAttribute("data-bnd-sb-panestate") === "rail";
+		const expanded = rail
+			? !!container?.classList.contains("bnd-rail-open")
+			: document.documentElement.getAttribute("data-bnd-sb-panestate") === "open";
+		sync_start_toggle(toggle, expanded);
+		return toggle;
+	}
+
+	/**
+	 * Keep one wide-screen language switch beside the actual visible Bunood
+	 * notification bell. The existing language engine remains authoritative;
+	 * this only couples two global utilities that must be found together. If an
+	 * administrator moves Notifications between the top bar and the side pane,
+	 * Language follows it. Narrow layouts retain their configured placement.
+	 */
+	function mount_language_beside_bell() {
+		if (is_narrow()) {
+			for (const button of document.querySelectorAll(".bnd-language-btn")) {
+				button.classList.remove("bnd-language-beside-bell", "bnd-topbar-language");
+				button.setAttribute("data-bnd-part", "language");
+			}
+			return false;
+		}
+		const bell = [...document.querySelectorAll(".bnd-bell")]
+			.find((node) => node.getClientRects().length > 0);
+		if (!bell?.parentElement) return false;
+
+		const candidates = [...document.querySelectorAll(".bnd-language-btn")];
+		let button = candidates.find((node) => node.parentElement === bell.parentElement) ||
+			candidates.find((node) => node.getClientRects().length > 0) || null;
+		for (const node of candidates) if (node !== button) node.remove();
+		const in_topbar = !!bell.closest(".bnd-topbar");
+		if (!button) {
+			button = build_language(in_topbar ? "top-language" : "language");
+			if (!button) {
+				bnd_disown("language");
+				return false;
+			}
+		}
+		button.classList.add("bnd-language-beside-bell");
+		button.classList.toggle("bnd-topbar-language", in_topbar);
+		button.setAttribute("data-bnd-part", in_topbar ? "top-language" : "language");
+		const zone = bell.getAttribute("data-bnd-zone");
+		if (zone) button.setAttribute("data-bnd-zone", zone);
+		else button.removeAttribute("data-bnd-zone");
+		if (bell.nextElementSibling !== button) bell.insertAdjacentElement("afterend", button);
+		bnd_own("language");
+		return true;
+	}
+
+	/**
+	 * One permanent navigation group in the global bar. It owns the sidebar
+	 * toggle and product identity on every wide desk page.
+	 * Page heads remain page context only and never duplicate these controls.
+	 */
+	function mount_topbar_route_tools() {
+		const bar = document.querySelector(".bnd-topbar");
+		if (!bar || is_narrow()) return false;
+		for (const node of document.querySelectorAll(".bnd-pagehead-sidebar-toggle")) node.remove();
+
+		let tools = bar.querySelector(":scope > .bnd-topbar-route-tools");
+		if (!tools) {
+			tools = el("div", "bnd-topbar-route-tools", { "aria-label": __("Workspace navigation") });
+			bar.insertBefore(tools, bar.firstChild);
+		}
+		tools.textContent = "";
+
+		if (container_on("sidepane")) {
+			const toggle = build_sidebar_toggle("bnd-topbar-sidebar-toggle");
+			toggle.addEventListener("click", (event) => {
+				event.stopPropagation();
+				bunood.pane_toggle();
+			});
+			tools.appendChild(toggle);
+			bnd_own("panetoggle");
+		} else {
+			bnd_disown("panetoggle");
+		}
+
+		tools.appendChild(build_topbar_brand());
+		// `mount_placed_tenants` may have run before the top bar was created.
+		// Remove its old brand immediately as well as suppressing future mounts.
+		for (const node of document.querySelectorAll(".bnd-sb-start")) node.remove();
+		bnd_disown("start");
+		enforce_desk_order();
+
+		return true;
+	}
+
+	/** The next pane state. Visible always means the one canonical full sidebar. */
 	function next_pane_state(current, narrow = is_narrow()) {
-		if (narrow) return current === "open" ? "Hidden" : "Open";
-		if (current === "open") return "Rail";
-		if (current === "rail") return "Hidden";
-		return "Open";
+		void narrow;
+		return current === "open" ? "Hidden" : "Open";
 	}
 
 	let pane_state_save_timer = 0;
@@ -4577,7 +5302,7 @@ function sb_zone_anchor(pane, zone, node) {
 		}, 250);
 	}
 
-	/** Cycle Open → Rail → Hidden → Open and remember the desktop choice. */
+	/** Toggle the canonical sidebar and remember the desktop choice. */
 	bunood.pane_toggle = function () {
 		if (!sb_state) return;
 		const html = document.documentElement;
@@ -4624,6 +5349,16 @@ function sb_zone_anchor(pane, zone, node) {
 		const languages = Array.isArray(b.languages) ? b.languages.filter((l) => l && l.code) : [];
 		return { style: b.style || "Globe", current, languages };
 	}
+
+	function apply_language_attrs(value) {
+		const slug = LANGUAGE_STYLE_SLUGS[(value && value.style) || "Globe"] || "globe";
+		document.documentElement.setAttribute("data-bnd-language-style", slug);
+	}
+
+	/** Live preview from the settings form: style changes do not need a rebuild. */
+	bunood.language_apply = function (values) {
+		apply_language_attrs({ style: (values && values.language_style) || "Globe" });
+	};
 	document.addEventListener("click", on_pagehead_sidebar_toggle, true);
 
 	function build_bell() {
@@ -4915,7 +5650,8 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function sync_user_button(avatar) {
 		const mobile = is_narrow();
-		avatar.setAttribute("aria-label", mobile ? __("Account") : __("User menu"));
+		const name = avatar.dataset.bndUserName || "";
+		avatar.setAttribute("aria-label", mobile ? __("Account") : __("User menu") + (name ? `: ${name}` : ""));
 		avatar.toggleAttribute("data-bnd-inbox-route", mobile);
 		let badge = avatar.querySelector(":scope > .bnd-inbox-badge");
 		if (mobile && !badge) {
@@ -4929,12 +5665,34 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function build_user() {
+		const session = frappe.session || {};
+		const user = frappe.boot?.user || {};
+		const name = session.user_fullname || user.full_name || user.first_name || session.user || __("Account");
+		const email = user.email || session.user_email || "";
+		const company = frappe.boot?.sysdefaults?.company || "";
+		const detail = email && email !== name ? email : company;
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
 			"data-bnd-part": "user",
 			"aria-label": __("User menu"),
 		});
+		avatar.dataset.bndUserName = name;
+		avatar.title = detail ? `${name}\n${detail}` : name;
 		avatar.innerHTML = user_avatar_html();
+		const summary = el("span", "bnd-user-summary", { "aria-hidden": "true" });
+		const name_line = el("span", "bnd-user-summary__name");
+		const name_bdi = el("bdi", "");
+		name_bdi.textContent = name;
+		name_line.append(name_bdi);
+		summary.append(name_line);
+		if (detail) {
+			const detail_line = el("span", "bnd-user-summary__detail");
+			const detail_bdi = el("bdi", "");
+			detail_bdi.textContent = detail;
+			detail_line.append(detail_bdi);
+			summary.append(detail_line);
+		}
+		avatar.append(summary);
 		const label = el("span", "bnd-mobile-nav-label");
 		label.textContent = __("Profile");
 		avatar.appendChild(label);
@@ -5159,11 +5917,11 @@ function sb_zone_anchor(pane, zone, node) {
 					text = __("Jobs OK");
 				}
 			}
-		} else if (seg.id === "errors") {
+			} else if (seg.id === "errors") {
 			const errors = status_signals && status_signals.errors;
 			if (errors !== null && errors !== undefined) {
 				if (errors > 0) {
-					text = __("Errors: {0}", [String(errors)]);
+					text = __("Recent errors: {0}", [String(errors)]);
 					// The tone belongs to the FACT, not to the style. Tying it
 					// to Quiet meant "Always On" — the style for people watching
 					// for trouble — rendered errors in plain text, and the
@@ -5348,12 +6106,6 @@ function sb_zone_anchor(pane, zone, node) {
 		// The shipped desk: everything is in the pane, so the pane is where a
 		// homeless search belongs.
 		unifiedsidepane: ["sbtop", "sbbottom", "botcenter", "botedge"],
-		// The rail is still a pane: it expands, and a search that lands in it is
-		// THE KEY CARRIES THE PLUS. `layout()` lowercases and strips WHITESPACE and
-		// nothing else, so "Rail + Flyout" arrives as `rail+flyout` — not a bare
-		// identifier, so it is quoted. assertLayoutSlugs checks it against the
-		// catalogue either way.
-		"rail+flyout": ["sbtop", "sbbottom", "botcenter", "botedge"],
 		// The taskbar IS the strip this layout is about.
 		taskbar: ["botcenter", "botedge", "sbtop", "sbbottom"],
 		toptaskbar: ["topcenter", "topedge", "botcenter", "botedge", "sbtop", "sbbottom"],
@@ -5430,12 +6182,21 @@ function sb_zone_anchor(pane, zone, node) {
 		return html.getAttribute("data-bnd-sb-panestate") === "hidden" && !html.hasAttribute("data-bnd-narrow");
 	}
 
+	/** The visible page title, independent of Frappe's sometimes-stale page
+	 * pointer. Sidebar mounting, hidden-state lending and route reconciliation
+	 * all share this resolver so a saved form cannot abort the entire sidebar
+	 * lifecycle while its page head is still being constructed. */
+	function visible_page_title() {
+		return [...document.querySelectorAll(".page-head .page-title")]
+			.find((title) => title.getBoundingClientRect().width > 0) || null;
+	}
+
 	/** The page title on screen, wherever it is — frappe.container.page lags a
 	 *  fresh load, and a Form or List route has no head until its meta arrives.
 	 *  What a hidden pane lends to the head is placed against the title that
 	 *  exists, never the pointer. Null while nothing is built yet. */
-	function visible_page_title() {
-		return [...document.querySelectorAll(".page-head .page-title")].find((t) => t.getBoundingClientRect().width > 0) || null;
+	function visible_page_actions() {
+		return [...document.querySelectorAll(".page-head .standard-items-section")].find((t) => t.getBoundingClientRect().width > 0) || null;
 	}
 
 	/** The slot the admin asked for, as a slug. */
@@ -5487,6 +6248,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 *     Classic. All three measured.
 	 */
 	function mount_search() {
+		// Phones always keep the four-cell Home / Apps / Search / Account contract.
+		if (is_narrow() && search_slot_host("botcenter")) {
+			mount_search_at("botcenter");
+			return;
+		}
 		if (!status_state) return;
 		const want = search_wanted_slot();
 		const order = [want].concat(search_fallback_order().filter((s) => s !== want));
@@ -5609,7 +6375,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 */
 	function mount_topbar() {
 		const header = document.querySelector(".main-section > header");
-		if (!header || header.querySelector(".bnd-topbar")) return;
+		if (!header) return;
+		if (header.querySelector(".bnd-topbar")) {
+			mount_topbar_route_tools();
+			return;
+		}
 		const bar = el("div", "bnd-topbar", { "data-bnd-part": "topbar", role: "navigation", "aria-label": __("Top bar") });
 		// No search here any more: mount_search() places it per the setting,
 		// which may well be this bar — but may equally be the sidebar or the
@@ -5624,12 +6394,12 @@ function sb_zone_anchor(pane, zone, node) {
 		// leading edge. That regression shipped in the first cut of item 14.
 		bar.appendChild(el("div", "bnd-search-center"));
 		reserve_cluster(bar);
-		zone_in(bar, "end").appendChild(build_language_button());
 		header.appendChild(bar);
 		// Stamped only now, with the bar in the document — the whole point of
 		// keying the stylesheet on the outcome. Everything above this line can
 		// return early.
 		container_mounted("topbar");
+		mount_topbar_route_tools();
 	}
 
 	// ── Status bar / bottom bar ─────────────────────────────────────────────
@@ -6051,8 +6821,22 @@ function sb_zone_anchor(pane, zone, node) {
 			let resolved = false;
 
 			for (const trail of trails) {
+				// Workspace titles are content, not identifiers. Frappe's native
+				// breadcrumb can emit this one raw even when the desk is Arabic.
+				for (const link of trail.querySelectorAll(".worksapce-breadcrumb")) {
+					const translated = __("Accounts Setup");
+					if (translated !== "Accounts Setup" && link.textContent.trim() === "Accounts Setup") {
+						link.textContent = translated;
+					}
+				}
 				const current_link = trail.querySelector("li:last-child > a");
-				if (current_link) current_link.setAttribute("aria-current", "page");
+				if (current_link) {
+					current_link.setAttribute("aria-current", "page");
+					// Record titles can mix Arabic, Latin codes and punctuation. Let
+					// their own first strong character determine direction, isolated
+					// from the chevron and neighbouring breadcrumb labels.
+					current_link.setAttribute("dir", "auto");
+				}
 				// 1. Resolution (always) — find the workspace crumb.
 				let ws_link = null;
 				let ws = null;
@@ -6500,6 +7284,13 @@ function sb_zone_anchor(pane, zone, node) {
 		return "label:" + (opt.value || opt.label || "");
 	}
 
+	/** Remove Frappe's presentation tags before applying our highlighting. */
+	function pal_plain_text(value) {
+		return new DOMParser()
+			.parseFromString(String(value || ""), "text/html")
+			.body.textContent || "";
+	}
+
 	/**
 	 * Map one frappe.search.utils option into a palette row model. The
 	 * marked label (match highlighting) comes from Frappe's own fuzzy_search
@@ -6510,13 +7301,13 @@ function sb_zone_anchor(pane, zone, node) {
 		// the localized label, and run highlighting over that presentation string;
 		// otherwise fuzzy_search replaces a translated label with its English
 		// marked_string (for example "Item" on an Arabic palette).
-		const display = __(opt.label || opt.value || "");
+		const display = pal_plain_text(__(opt.label || opt.value || ""));
 		let marked = frappe.utils.escape_html(display);
 		if (txt && frappe.search.utils.fuzzy_search) {
 			const scored = frappe.search.utils.fuzzy_search(txt, display, true);
 			if (scored && scored.marked_string) marked = scored.marked_string;
 		}
-		const plain = opt.value || opt.label || "";
+		const plain = pal_plain_text(opt.value || opt.label || "");
 		// The badge names what Enter does, so a "X Report" or "X Tree" row
 		// must not wear the generic List badge of its species. Match on the
 		// UNTRANSLATED opt.type Frappe supplies — the value string is
@@ -6613,7 +7404,7 @@ function sb_zone_anchor(pane, zone, node) {
 			// would need a vocabulary these options do not carry. HANDOVER §4 has
 			// the measurement. Words come from the capped SURVIVORS, never the
 			// pre-cap list — the key trap above, one field over.
-			const reads = (r) => String(r.plain || "").replace(/<[^>]*>/g, "").trim();
+			const reads = (r) => String(r.plain || "").trim();
 			const unseen = (words) => (r) => {
 				const t = reads(r);
 				return !t || (!words.has(t) && words.add(t));
@@ -7316,6 +8107,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	apply_inbox_attrs(inbox_state);
+	apply_language_attrs(language_state());
 
 	/** True when OUR panel owns the bell (inbox / page styles). */
 	function inbox_active() {
@@ -8006,6 +8798,10 @@ function sb_zone_anchor(pane, zone, node) {
 		inbox_observer = new MutationObserver((records) => {
 			if (inbox_paint_queued) return;
 			for (const record of records) {
+				let repair_needed = [...record.removedNodes].some((node) =>
+					node.nodeType === 1 &&
+					((node.matches && node.matches(".bnd-language-btn")) ||
+						(node.querySelector && node.querySelector(".bnd-language-btn"))));
 				for (const node of record.addedNodes) {
 					if (node.nodeType !== 1) continue;
 					// Frappe can replace the complete native notification row
@@ -8016,19 +8812,27 @@ function sb_zone_anchor(pane, zone, node) {
 					const native_arrived =
 						(node.matches && node.matches(".sidebar-notification, .sidebar-notification .item-anchor")) ||
 						(node.querySelector && node.querySelector(".sidebar-notification .item-anchor"));
+					const bell_arrived =
+						(node.matches && node.matches(".bnd-bell")) ||
+						(node.querySelector && node.querySelector(".bnd-bell"));
 					if (
 						native_arrived ||
+						bell_arrived ||
 						node.classList.contains("bnd-inbox-badge") ||
 						node.querySelector(".bnd-inbox-badge")
 					) {
-						inbox_paint_queued = true;
-						requestAnimationFrame(() => {
-							inbox_paint_queued = false;
-							inbox_ensure_badges();
-						});
-						return;
+						repair_needed = true;
+						break;
 					}
 				}
+				if (!repair_needed) continue;
+				inbox_paint_queued = true;
+				requestAnimationFrame(() => {
+					inbox_paint_queued = false;
+					inbox_ensure_badges();
+					mount_language_beside_bell();
+				});
+				return;
 			}
 		});
 		inbox_observer.observe(document.body, { childList: true, subtree: true });
@@ -8348,8 +9152,14 @@ function sb_zone_anchor(pane, zone, node) {
 			if (!n.closest(".bnd-compact-nav")) n.removeAttribute("aria-current");
 		}
 		if (!sb_active() || !container_on("sidepane") || sidebar_is_hidden()) return;
+		for (const row of document.querySelectorAll(".body-sidebar-top .bnd-home-current")) {
+			row.classList.remove("bnd-home-current");
+		}
 		const active = document.querySelector(".body-sidebar .standard-sidebar-item.active-sidebar");
 		if (!active) return;
+		if (home_profile_for_route() === "erp") {
+			active.closest(".sidebar-item-container")?.classList.add("bnd-home-current");
+		}
 		const holder = active.closest(".item-anchor") || active.querySelector(".item-anchor") || active;
 		holder.setAttribute("aria-current", "page");
 	}
@@ -8370,29 +9180,28 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_mount_head() {
 		const sidebar = document.querySelector(".body-sidebar");
 		if (!sidebar) return;
-		// Brand row, then place row (item 42) — argument in _sidebar.scss.
-		if (!sidebar.querySelector(".bnd-sb-brand")) {
+		// One identity owner. When the fixed top bar already carries Bunood, the
+		// pane starts with its workspace row instead of repeating the brand below
+		// the bar. If the top bar is absent, the pane keeps the fallback route home.
+		let pane_brand = sidebar.querySelector(".bnd-sb-brand");
+		if (topbar_owns_brand()) {
+			pane_brand?.remove();
+			pane_brand = null;
+		} else if (!pane_brand) {
 			// The brand is the pane's single, durable route to the dashboard. It
-			// remains a named 40px target when the pane becomes an icon rail, so a
-			// collapsed sidebar never turns the identity mark into dead decoration.
+			// remains available whenever no global bar owns the same action.
 			const brand = el("button", "bnd-sb-brand", {
 				type: "button",
 				title: __("Dashboard"),
 				"aria-label": __("Dashboard"),
 			});
-			const mark = el("span", "bnd-sb-brand-mark");
-			if (frappe.boot.bnd_logo) {
-				mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
-			} else {
-				mark.classList.add("bnd-sb-brand-initial");
-				mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
-			}
-			brand.appendChild(mark);
+			brand.appendChild(brand_mark());
 			const company = el("span", "bnd-sb-brand-name");
 			company.textContent = frappe.boot.bnd_company || __("Home");
 			brand.appendChild(company);
 			brand.addEventListener("click", go_home);
 			sidebar.insertBefore(brand, sidebar.firstChild);
+			pane_brand = brand;
 		}
 		if (!sidebar.querySelector(".bnd-sb-head")) {
 			const head = el("button", "bnd-sb-head", {
@@ -8673,7 +9482,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const page = (window.frappe && frappe.container && frappe.container.page) || null;
 		const title = page && page.querySelector(".page-head .page-title");
 		// The page-head toggle carries the way back; this is only its fallback.
-		if (!title || !sb_pane_hidden() || document.querySelector(".bnd-pagehead-sidebar-toggle")) {
+		if (!title || !sb_pane_hidden() || document.querySelector(".bnd-topbar-sidebar-toggle")) {
 			sb_teardown_pagehead_brand();
 			return;
 		}
@@ -8710,48 +9519,38 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const n of document.querySelectorAll(".bnd-ph-brand")) n.remove();
 	}
 
-	/** One desktop toggle, in flow beside the page-head workspace icon. */
 	function sb_mount_pagehead_toggle() {
+		if (mount_topbar_route_tools()) {
+			sb_teardown_pagehead_toggle();
+			return true;
+		}
 		const wanted = container_on("sidepane") && !is_narrow();
 		if (!wanted) {
 			sb_teardown_pagehead_toggle();
 			return true;
 		}
-		const page = (window.frappe && frappe.container && frappe.container.page) || null;
-		const title = page && page.querySelector(".page-head .page-title");
+		const title = visible_page_title();
 		if (!title) return false;
-		// Frappe may recreate this legacy edge control with a new sidebar on a
-		// route change. Once the page-head replacement is available it is both
-		// redundant and a second focus target, so retire every live copy.
-		for (const n of document.querySelectorAll(".bnd-pagehead-sidebar-toggle, .body-sidebar-container .collapse-sidebar-link")) {
-			if (!title.contains(n)) n.remove();
+		for (const node of document.querySelectorAll(".bnd-pagehead-sidebar-toggle, .body-sidebar-container .collapse-sidebar-link")) {
+			if (!title.contains(node)) node.remove();
 		}
 		let button = title.querySelector(":scope > .bnd-pagehead-sidebar-toggle");
 		if (!button) {
-			button = el("button", "bnd-pagehead-sidebar-toggle bnd-sidebar-toggle", {
-				type: "button",
-				"data-bnd-part": "panetoggle",
-			});
+			button = build_sidebar_toggle("bnd-pagehead-sidebar-toggle");
 			const workspace = title.querySelector(":scope > .sidebar-toggle-btn");
 			if (workspace) workspace.insertAdjacentElement("afterend", button);
 			else title.insertBefore(button, title.firstChild);
+		} else {
+			const state = document.documentElement.getAttribute("data-bnd-sb-panestate") || "open";
+			sync_start_toggle(button, state === "open");
 		}
-		const sidebar = document.querySelector(".body-sidebar");
-		if (sidebar && !sidebar.id) sidebar.id = "bnd-primary-sidebar";
-		button.setAttribute("aria-controls", (sidebar && sidebar.id) || "bnd-primary-sidebar");
-		const container = document.querySelector(".body-sidebar-container");
-		const rail = document.documentElement.getAttribute("data-bnd-sb-panestate") === "rail";
-		const expanded = rail
-			? !!container?.classList.contains("bnd-rail-open")
-			: document.documentElement.getAttribute("data-bnd-sb-panestate") === "open";
-		sync_start_toggle(button, expanded);
 		bnd_own("panetoggle");
 		return true;
 	}
 
 	function sb_teardown_pagehead_toggle() {
 		for (const node of document.querySelectorAll(".bnd-pagehead-sidebar-toggle")) node.remove();
-		bnd_disown("panetoggle");
+		if (!document.querySelector(".bnd-topbar-sidebar-toggle")) bnd_disown("panetoggle");
 	}
 
 	/** The pane's state, page-locally — argument in _sidebar.scss. */
@@ -8803,9 +9602,11 @@ function sb_zone_anchor(pane, zone, node) {
 		const ico = document.querySelector(".bnd-sb-head .bnd-sb-head-ico");
 		if (ico) {
 			ico.textContent = "";
-			const image = ws ? ws_original_icon(ws) : "";
+			// Selling's filled desktop tile becomes blank when recoloured white.
+			const head_symbol = ws && (ws.name === "Selling" || ws.title === "Selling") ? "icon-shopping-cart" : "";
+			const image = ws && !head_symbol ? ws_original_icon(ws) : "";
 			if (image) ico.appendChild(el("img", "bnd-sb-head-img", { src: image, alt: "" }));
-			else ico.appendChild(sprite_icon(ws ? ws_symbol(ws.icon) : "icon-home"));
+			else ico.appendChild(sprite_icon(head_symbol || (ws ? ws_symbol(ws.icon) : "icon-home")));
 		}
 		// The landmark shares this label: one writer, no drift.
 		const pane = document.querySelector(".body-sidebar");
@@ -8968,10 +9769,11 @@ function sb_zone_anchor(pane, zone, node) {
 	/** Claim the pane header from the DOM, never from having built it.
 	 *  Disowns on the negative branch. Argument: _layouts.scss. */
 	function claim_panehead() {
-		// Both rows, or the vendor's header comes back.
-		const both =
-			document.querySelector(".body-sidebar .bnd-sb-brand") && document.querySelector(".body-sidebar .bnd-sb-head");
-		if (both) bnd_own("panehead");
+		// The visible global brand replaces the native identity row immediately;
+		// the pane fallback may do so only once its workspace switcher is mounted.
+		const head = document.querySelector(".body-sidebar .bnd-sb-head");
+		const pane_identity = document.querySelector(".body-sidebar .bnd-sb-brand");
+		if (topbar_owns_brand() || (head && pane_identity)) bnd_own("panehead");
 		else bnd_disown("panehead");
 	}
 
@@ -9085,6 +9887,20 @@ function sb_zone_anchor(pane, zone, node) {
 			'.bnd-sb-band > [data-bnd-part="home"], .bnd-sb-band > [data-bnd-part="apps"]'
 		)) {
 			old_cell.remove();
+		}
+
+		// The utility placement can be refreshed independently by a live picker
+		// or a route remount. Reassert the pane head before anchoring Start rows:
+		// otherwise a refresh that lands between Frappe rebuilding the sidebar
+		// and our head lifecycle leaves Home/Apps above the list with no place
+		// row at all. Mounting is idempotent, and positioning the existing node
+		// makes the invariant explicit: brand/search, then utilities, then the
+		// place row, then the workspace list.
+		const live_pane = document.querySelector(".body-sidebar");
+		if (live_pane && sb_active() && container_on("sidepane")) {
+			sb_mount_head();
+			const live_head = live_pane.querySelector(":scope > .bnd-sb-head");
+			if (live_head) sb_place_head(live_pane, live_head);
 		}
 
 		// No fallback to the old shared key: boot stopped emitting it in slice 2,
@@ -9389,12 +10205,24 @@ function sb_zone_anchor(pane, zone, node) {
 		const railtrigger = document.documentElement.getAttribute("data-bnd-sb-railtrigger") || "hover";
 		// A coarse pointer has no hover to open with; those desks keep the toggle.
 		if (railtrigger !== "click" && window.matchMedia?.("(hover: hover)")?.matches) {
-			const rail_open = () => {
+			// A rail is crossed constantly while reaching the page. Open only after
+			// clear intent, and keep it around briefly while the pointer crosses the
+			// pane boundary. These timers replace the old instant open/close that made
+			// the navigation flicker and collapse beneath the pointer.
+			const RAIL_INTENT_MS = 120;
+			const RAIL_GRACE_MS = 280;
+			let open_timer = 0;
+			let close_timer = 0;
+			const clear_open = () => { window.clearTimeout(open_timer); open_timer = 0; };
+			const clear_close = () => { window.clearTimeout(close_timer); close_timer = 0; };
+			const rail_open_now = () => {
+				clear_close();
 				if (is_narrow() || sb_edit_active() || container.classList.contains("bnd-rail-open")) return;
 				container.classList.add("bnd-rail-open");
 				sync_toggle();
 			};
-			const rail_close = () => {
+			const rail_close_now = () => {
+				clear_open();
 				// Pinned, or the keyboard is inside it: closing would strand focus.
 				// `bnd-rail-pinned` already existed in sb_teardown_rail's remove()
 				// list with nothing setting it; reusing it keeps that line honest.
@@ -9404,10 +10232,21 @@ function sb_zone_anchor(pane, zone, node) {
 				container.classList.remove("bnd-rail-open");
 				sync_toggle();
 			};
+			const rail_open = () => {
+				clear_close();
+				if (open_timer || container.classList.contains("bnd-rail-open")) return;
+				open_timer = window.setTimeout(() => { open_timer = 0; rail_open_now(); }, RAIL_INTENT_MS);
+			};
+			const rail_close = () => {
+				clear_open();
+				clear_close();
+				close_timer = window.setTimeout(() => { close_timer = 0; rail_close_now(); }, RAIL_GRACE_MS);
+			};
 			on(container, "mouseenter", rail_open);
 			on(container, "mouseleave", rail_close);
-			on(container, "focusin", rail_open);
-			on(container, "focusout", () => setTimeout(rail_close, 0));
+			on(container, "focusin", () => { clear_open(); rail_open_now(); });
+			on(container, "focusout", rail_close);
+			container._bnd_rail_teardown.push(() => { clear_open(); clear_close(); });
 			if (railtrigger === "hoverpin") {
 				on(container, "click", (e) => {
 					if (e.target.closest(".bnd-sidebar-toggle")) return;
@@ -9744,7 +10583,7 @@ function sb_zone_anchor(pane, zone, node) {
 				/* capture may already be gone */
 			}
 			if (d.cancelled) return;
-			if (!d.latched) return; // a click — Frappe's toggle owns it
+			if (!d.latched) return; // a click is intentionally a resize no-op
 			// Swallow this gesture's click.
 			handle.addEventListener(
 				"click",
@@ -9977,6 +10816,9 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	document.addEventListener("click", (event) => {
+		if (event.target?.closest?.(".onboarding-sidebar")) try_for(enhance_onboarding_refresh);
+		event.target.closest(".bnd-bill-tools") ||
+			document.querySelector(".bnd-bill-tools[open]")?.removeAttribute("open");
 		if (!event.isTrusted) return;
 		const head = event.target?.closest?.(".body-sidebar .section-item > .standard-sidebar-item");
 		if (!head) return;
@@ -10038,12 +10880,11 @@ function sb_zone_anchor(pane, zone, node) {
 		sb_watch = null;
 	}
 
-	/** Put our parts in the pane. `only_volatile` is the route contract: a list
-	 *  rebuild touches what lived inside the list and nothing else. */
-	/** data-state (vendor truth) -> aria-expanded (what AT hears). */
 	function sb_mirror_disclosure() {
 		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
-			d.setAttribute("aria-expanded", d.getAttribute("data-state") === "opened" ? "true" : "false");
+			const open = d.dataset.state === "opened";
+			d.setAttribute("aria-expanded", String(open));
+			d.setAttribute("aria-label", __(open ? "Collapse" : "Expand"));
 		}
 	}
 
@@ -10053,13 +10894,6 @@ function sb_zone_anchor(pane, zone, node) {
 		const list = document.querySelector(".body-sidebar .sidebar-items");
 		if (!list || list.dataset.bndAria) return;
 		list.dataset.bndAria = "1";
-		// WATCH THE ATTRIBUTE, do not guess when it changes. This was a click
-		// listener that re-mirrored one frame later, and `sb_collapse_all` added a
-		// four-frame settle on top; both are guesses about how long the vendor takes
-		// to write `data-state`, and both were measured wrong — two sections stayed
-		// `aria-expanded="true"` after folding, which tells a screen reader the
-		// opposite of what the desk shows. An observer on the attribute itself
-		// cannot be early or late.
 		const seen = new MutationObserver(() => {
 			sb_mirror_disclosure();
 			sb_update_rollups();
@@ -10067,8 +10901,6 @@ function sb_zone_anchor(pane, zone, node) {
 		seen.observe(list, {
 			subtree: true,
 			attributes: true,
-			// `data-state` ONLY: mirroring writes `aria-expanded`, and watching that
-			// too would make this observer its own trigger.
 			attributeFilter: ["data-state"],
 		});
 	}
@@ -10402,8 +11234,6 @@ function sb_zone_anchor(pane, zone, node) {
 			intensity: v("sidebar_card_depth", "intensity"),
 			panestate: v("sidebar_pane_state", "panestate"),
 			rail_trigger: v("sidebar_rail_trigger", "rail_trigger"),
-			rail_button: v("sidebar_rail_button", "rail_button"),
-			rail_button_icon: v("icon_rail_button", "rail_button_icon"),
 			icon_source: v("icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
 			badges: v("sidebar_badges", "badges"),
@@ -10428,14 +11258,19 @@ function sb_zone_anchor(pane, zone, node) {
 	 * head kept neither brand nor map.
 	 */
 	function sb_follow_pane_state() {
+		// This is the one approved pane control. A fresh slow route can acquire its
+		// page head only after the initial chrome pass, so the lending retry must
+		// mount the control too—not only the tenants it sits beside.
+		sb_mount_pagehead_toggle();
+		// Retire the superseded combined brand/show control if an older cached page
+		// still carries it. Home and pane state now have separate, stable controls.
+		sb_teardown_pagehead_brand();
 		mount_search();
 		mount_placed_tenants();
 		if (guard_critical_reach()) {
 			mount_placed_tenants();
 			sidepane_sync("settings");
 		}
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
-		else sb_teardown_pagehead_brand();
 		sb_mount_pagehead_map();
 	}
 
@@ -10549,6 +11384,7 @@ function sb_zone_anchor(pane, zone, node) {
 	const HOME_ROUTE = "home";
 	let home_request = 0;
 	let home_status_resize_observer = null;
+	let home_chart_visibility_observer = null;
 	let home_greeting_timer = null;
 
 	function home_text(source) {
@@ -10565,6 +11401,9 @@ function sb_zone_anchor(pane, zone, node) {
 		billing_due: __("Billing due"),
 		overdue_collections: __("Overdue collections"),
 		sales_drafts: __("Sales drafts"),
+		quotation_drafts: __("Quotation drafts"),
+		payment_drafts: __("Payment drafts"),
+		open_quotations: __("Open quotations"),
 		purchase_drafts: __("Purchase drafts"),
 		overdue_receivables: __("Overdue receivables"),
 		payables_due: __("Payables due soon"),
@@ -10667,13 +11506,22 @@ function sb_zone_anchor(pane, zone, node) {
 		return slug === HOME_ROUTE;
 	}
 
-	function on_role_home_route() {
+	function home_profile_for_route() {
 		const route = (window.frappe && frappe.get_route ? frappe.get_route() : null) || [];
 		const head = String(route[0] || "").toLowerCase();
-		const workspace = head === "workspaces"
-			? route[1] === "private" ? route[2] : route[1]
-			: route[0];
-		return ws_route(workspace || "") === ws_route(role_home_workspace());
+		const workspace = /\/(?:desk|app)\/real-estate\/?$/i.test(location.pathname)
+			? "Real Estate"
+			: head === "workspaces" ? route[1] === "private" ? route[2] : route[1] : route[0] || "";
+		if (ws_route(workspace) === ws_route("Real Estate")) return "real_estate";
+		if (ws_route(workspace) === ws_route("Home")) return "erp";
+		const role_home = role_home_workspace();
+		return ws_route(workspace) === ws_route(role_home)
+			? role_home === "Real Estate" ? "real_estate" : "erp"
+			: null;
+	}
+
+	function on_role_home_route() {
+		return !!home_profile_for_route();
 	}
 
 	function home_host() {
@@ -10746,17 +11594,7 @@ function sb_zone_anchor(pane, zone, node) {
 		return known && home_sign.right ? `${text} ${sign}` : `${sign} ${text}`;
 	}
 
-	/**
-	 * @param {string|string[]} symbol - one sprite id, or candidates in
-	 *   preference order.
-	 *
-	 * CANDIDATES, FOR THE SAME REASON `HOME_TASKS` TAKES THEM. Sprite ids move
-	 * between upstream versions, and a `<use href>` naming a missing symbol
-	 * renders a SILENT EMPTY BOX — right size, no glyph. That shipped on
-	 * "Overdue invoices": Lucide renamed `alert-triangle` to `triangle-alert`
-	 * and this call site kept the old spelling. Resolving here rather than per
-	 * call site gives every home glyph the fallback.
-	 */
+	/** Resolve the first available sprite id so a renamed icon cannot leave an empty well. */
 	function home_icon(symbol, cls) {
 		const wrap = el("span", cls || "bnd-home-icon");
 		wrap.setAttribute("aria-hidden", "true");
@@ -10767,22 +11605,7 @@ function sb_zone_anchor(pane, zone, node) {
 		return wrap;
 	}
 
-	/**
-	 * The work a person actually opens Bunood to do, in the order they do it.
-	 *
-	 * WHY A TASK ROW AT ALL
-	 *   Measured on this desk: the first ACTIONABLE link sits ~580px into an
-	 *   800px viewport on Selling, Buying and Stock alike — above it, charts and
-	 *   number cards. Every door in the product is a NOUN ("Selling", "Buying"),
-	 *   so a person told "invoice this customer" has to already know ERPNext's
-	 *   information model to find the verb. This row is the verbs.
-	 *
-	 *   Capped at five, deliberately. A task row that grows into a menu has
-	 *   become the thing it replaced.
-	 *
-	 * `[doctype, label, symbol candidates, mode="new"]`. `single` opens a writable
-	 * Single DocType because Frappe never grants create on one.
-	 */
+	/** Daily actions, capped at five; `single` opens a writable Single DocType. */
 	const HOME_TASKS = {
 		erp: [
 			["Sales Invoice", "New sales invoice", ["icon-invoice", "icon-file", "icon-plus"]],
@@ -10800,17 +11623,7 @@ function sb_zone_anchor(pane, zone, node) {
 		],
 	};
 
-	/**
-	 * Build the task row, filtered to what this user may actually open.
-	 *
-	 * A door nobody can open is worse than no door: it teaches a user that the
-	 * product lies to them. New documents follow `can_create`; Single DocTypes
-	 * follow `can_write`. It also filters by doctype existence, so a
-	 * Frappe-only site (no ERPNext) renders the row it can rather than a row of
-	 * dead buttons.
-	 *
-	 * @param {HTMLElement} host - the actions container.
-	 */
+	/** Render only actions this user may open. */
 	function home_mount_tasks(host, profile) {
 		const grants = (window.frappe && frappe.boot && frappe.boot.user) || {};
 		const can_create = grants.can_create || [];
@@ -10870,13 +11683,13 @@ function sb_zone_anchor(pane, zone, node) {
 	const HOME_KPI_VISUALS = {
 		order_count: ["icon-shopping-cart", "blue"],
 		booked_value: ["icon-chart-no-axes-column-increasing", "teal"],
-		invoiced_value: ["icon-invoice", "brand"],
+		invoiced_value: [["icon-invoice", "icon-receipt", "icon-file"], "brand"],
 		outstanding_value: ["icon-receipt-text", "gold"],
 		average_order_value: ["icon-chart-column", "violet"],
 		active_properties: ["icon-building", "brand"],
 		available_units: ["icon-grid", "teal"],
 		active_leases: ["icon-file", "blue"],
-		billing_due: ["icon-invoice", "gold"],
+		billing_due: [["icon-invoice", "icon-receipt", "icon-file"], "gold"],
 		overdue_collections: ["icon-triangle-alert", "violet"],
 	};
 
@@ -10947,41 +11760,40 @@ function sb_zone_anchor(pane, zone, node) {
 	function home_stop_status_alignment() {
 		if (home_status_resize_observer) home_status_resize_observer.disconnect();
 		home_status_resize_observer = null;
+		if (home_chart_visibility_observer) home_chart_visibility_observer.disconnect();
+		home_chart_visibility_observer = null;
 	}
 
-	/** Anchor the custom total to the rendered ring, not to its wider panel. */
+	/** Anchor the total to the complete ring; one slice's box changes with the data. */
 	function home_align_status_total(visual, total, chart) {
-		const slice = chart.querySelector(".donut-path");
-		if (!visual.isConnected || !slice) return;
+		const ring = chart.querySelector(".donut-path")?.parentElement;
+		if (!visual.isConnected || !ring) return;
 		const visual_box = visual.getBoundingClientRect();
-		const slice_box = slice.getBoundingClientRect();
-		const center_x = slice_box.left + slice_box.width / 2;
-		const center_y = slice_box.top + slice_box.height / 2;
+		const ring_box = ring.getBoundingClientRect();
+		const center_x = ring_box.left + ring_box.width / 2;
+		const center_y = ring_box.top + ring_box.height / 2;
 		const rtl = getComputedStyle(visual).direction === "rtl";
 		total.style.setProperty("--bnd-home-status-center-inline",
 			`${rtl ? visual_box.right - center_x : center_x - visual_box.left}px`);
 		total.style.setProperty("--bnd-home-status-center-block", `${center_y - visual_box.top}px`);
-		total.dataset.bndAligned = "true";
 	}
 
-	/**
-	 * "Needs your attention" — the work, not the score.
-	 *
-	 * The summary strip above answers "how is the business doing". This answers
-	 * "what do I have to deal with", which is the question someone opening an
-	 * ERP at 9am actually has. Rows appear ONLY when they have something in
-	 * them: a panel listing three zeroes teaches a user to stop reading it, so
-	 * an empty one says so in a single line instead.
-	 *
-	 * @param {object} data - the payload from `api.get_home_dashboard`.
-	 */
+	/** Render only actionable non-zero queues. */
 	function home_attention_panel(data) {
 		const currency = data.currency;
-		const attn = home_panel("Needs your attention", "What to deal with today", "bnd-home-attn-panel");
+		const real_estate = data.profile === "real_estate";
+		const attn = home_panel(
+			real_estate ? __("Property operations needing attention") : "Needs your attention",
+			real_estate ? __("Leases, billing, collections and owner obligations") : "What to deal with today",
+			"bnd-home-attn-panel"
+		);
 		attn.head.appendChild(home_icon("icon-bell", "bnd-home-panel-mark"));
 		const list = el("div", "bnd-home-attn-list");
 		const icons = {
 			sales_drafts: "icon-edit",
+			quotation_drafts: ["icon-file-text", "icon-file"],
+			payment_drafts: ["icon-money", "icon-file"],
+			open_quotations: ["icon-file-text", "icon-file"],
 			purchase_drafts: "icon-edit",
 			overdue_receivables: ["icon-triangle-alert", "icon-circle-alert"],
 			payables_due: "icon-buying",
@@ -11037,6 +11849,41 @@ function sb_zone_anchor(pane, zone, node) {
 		],
 	};
 
+	// Process steps are navigation, not plain tags. A compact semantic icon
+	// lets operators find the next document by shape before reading every
+	// label; candidate lists keep renamed Frappe sprites from leaving a blank.
+	const HOME_LANE_VISUALS = {
+		"Quotation": ["icon-file-text", "icon-file"],
+		"Sales Order": ["icon-shopping-cart", "icon-file"],
+		"Delivery Note": ["icon-truck", "icon-package", "icon-file"],
+		"Sales Invoice": ["icon-invoice", "icon-receipt", "icon-file"],
+		"Payment Entry": ["icon-money", "icon-money-coins-1", "icon-file"],
+		"Material Request": ["icon-clipboard", "icon-file"],
+		"Request for Quotation": ["icon-message-square", "icon-file"],
+		"Supplier Quotation": ["icon-file-text", "icon-file"],
+		"Purchase Order": ["icon-shopping-cart", "icon-file"],
+		"Purchase Receipt": ["icon-package", "icon-file"],
+		"Purchase Invoice": ["icon-buying", "icon-invoice", "icon-file"],
+		"Item": ["icon-package", "icon-file"],
+		"Warehouse": ["icon-building", "icon-home", "icon-file"],
+		"Stock Entry": ["icon-stock", "icon-package", "icon-file"],
+		"Stock Reconciliation": ["icon-refresh-cw", "icon-file"],
+		"Journal Entry": ["icon-book-open", "icon-file"],
+		"Payment Reconciliation": ["icon-check-circle", "icon-file"],
+		"Period Closing Voucher": ["icon-calendar", "icon-file"],
+		"Property": ["icon-building", "icon-organization", "icon-file"],
+		"Real Estate Unit": ["icon-grid", "icon-home", "icon-file"],
+		"Customer": ["icon-users", "icon-user", "icon-file"],
+		"Lease Wizard": ["icon-file-plus", "icon-file"],
+		"Lease": ["icon-key", "icon-file"],
+		"Revenue Line": ["icon-invoice", "icon-receipt", "icon-file"],
+		"Billing Claim": ["icon-receipt", "icon-file"],
+		"Lease Security Deposit": ["icon-shield", "icon-money", "icon-file"],
+		"Payout Run": ["icon-play", "icon-money", "icon-file"],
+		"Owner Payout": ["icon-money", "icon-file"],
+		"Lease Revision": ["icon-edit", "icon-file"],
+	};
+
 	function home_can_read(doctype) {
 		const can = ((window.frappe && frappe.boot && frappe.boot.user) || {}).can_read || [];
 		return Array.isArray(can) && can.includes(doctype);
@@ -11047,23 +11894,87 @@ function sb_zone_anchor(pane, zone, node) {
 		frappe.set_route(singles.includes(doctype) ? "Form" : "List", doctype);
 	}
 
-	function home_process_panel(profile) {
-		const process = home_panel(__("Process lanes"), __("Continue work without hunting through modules"), "bnd-home-process-panel");
+	function home_open_queue(queue) {
+		if (queue.route) frappe.set_route(...queue.route);
+		else frappe.set_route("List", queue.doctype, queue.filters || {});
+	}
+
+	const HOME_LANE_QUEUES = {
+		erp: [
+			["open_quotations", "sales_drafts", "quotation_drafts", "overdue_receivables"],
+			["purchase_drafts", "payables_due"],
+			["stock_below_reorder"],
+			["zatca_exceptions", "payment_drafts"],
+		],
+		real_estate: [
+			["setup_gaps"],
+			["leases_expiring"],
+			["billing_due", "collections_overdue"],
+			["deposits_action"],
+			["owner_payouts"],
+			["ejar_exceptions"],
+		],
+	};
+
+	function home_process_panel(profile, data) {
+		const process = home_panel(
+			profile === "real_estate" ? __("Property and lease lifecycle") : __("Process lanes"),
+			profile === "real_estate" ? __("Move work from property setup through settlement") : __("Continue work without hunting through modules"),
+			"bnd-home-process-panel"
+		);
 		process.head.appendChild(home_icon("icon-workflow", "bnd-home-panel-mark"));
+		const queues = (data.attention || []).filter((queue) =>
+			Number(queue.count) > 0 && (queue.route || (queue.doctype && home_can_read(queue.doctype))));
+		const priority = profile === "real_estate"
+			? ["leases_expiring", "billing_due", "collections_overdue", "deposits_action", "owner_payouts"]
+			: ["open_quotations", "overdue_receivables", "stock_below_reorder", "purchase_drafts", "payables_due"];
+		const highlights = priority.map((key) => queues.find((queue) => queue.key === key)).filter(Boolean).slice(0, 3);
+		if (highlights.length) {
+			const actions = el("div", "bnd-home-process-highlights", { "aria-label": __("Needs your attention") });
+			for (const queue of highlights) {
+				const card = el("button", "bnd-home-process-highlight", { type: "button" });
+				const label = el("span", "bnd-home-process-highlight-label");
+				label.textContent = HOME_COPY[queue.key] || home_text(queue.label);
+				const count = el("strong", "bnd-home-process-highlight-count");
+				count.textContent = home_number(queue.count);
+				const action = el("span", "bnd-home-process-highlight-action");
+				action.textContent = __("Review");
+				card.append(label, count, action);
+				card.setAttribute("aria-label", `${label.textContent} · ${count.textContent} · ${action.textContent}`);
+				card.addEventListener("click", () => home_open_queue(queue));
+				actions.appendChild(card);
+			}
+			process.panel.appendChild(actions);
+		}
 		const lanes = el("div", "bnd-home-lanes");
-		for (const [label, steps] of HOME_LANES[profile] || HOME_LANES.erp) {
+		for (const [index, [label, steps]] of (HOME_LANES[profile] || HOME_LANES.erp).entries()) {
 			const lane = el("section", "bnd-home-lane");
 			const title = el("h3", "bnd-home-lane-title");
 			title.textContent = home_text(label);
 			const row = el("div", "bnd-home-lane-steps");
-			for (const doctype of steps.filter(home_can_read)) {
+			const allowed = steps.filter(home_can_read);
+			for (const doctype of allowed) {
 				const step = el("button", "bnd-home-lane-step", { type: "button" });
-				step.textContent = home_text(doctype);
+				step.appendChild(home_icon(HOME_LANE_VISUALS[doctype] || "icon-file", "bnd-home-action-icon"));
+				const step_label = el("span", "bnd-home-lane-label");
+				step_label.textContent = home_text(doctype);
+				step.appendChild(step_label);
 				step.addEventListener("click", () => home_open_doctype(doctype));
 				row.appendChild(step);
 			}
 			if (!row.children.length) continue;
-			lane.append(title, row);
+			const queue = (HOME_LANE_QUEUES[profile] || HOME_LANE_QUEUES.erp)[index]
+				?.map((key) => queues.find((item) => item.key === key)).find(Boolean);
+			const open = () => queue ? home_open_queue(queue) : home_open_doctype(allowed[0]);
+			const next = el("button", "bnd-home-lane-next", { type: "button" });
+			const next_label = queue ? (HOME_COPY[queue.key] || home_text(queue.label)) : home_text(allowed[0]);
+			next.textContent = queue ? `${__("Review")} · ${next_label} (${home_number(queue.count)})` : next_label;
+			next.addEventListener("click", open);
+			const surface = el("button", "bnd-home-lane-surface", {
+				type: "button", "aria-label": `${title.textContent} · ${next.textContent}`,
+			});
+			surface.addEventListener("click", open);
+			lane.append(surface, title, row, next);
 			lanes.appendChild(lane);
 		}
 		if (!lanes.children.length) {
@@ -11098,7 +12009,12 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function home_setup_panel(data) {
-		const setup = home_panel(__("Setup and administration"), __("Configuration stays separate from daily work"), "bnd-home-setup-panel");
+		const real_estate = data.profile === "real_estate";
+		const setup = home_panel(
+			real_estate ? __("Property management setup") : __("Setup and administration"),
+			real_estate ? __("Portfolio rules, accounts and operating defaults") : __("Configuration stays separate from daily work"),
+			"bnd-home-setup-panel"
+		);
 		setup.head.appendChild(home_icon("icon-setting-gear", "bnd-home-panel-mark"));
 		const actions = el("div", "bnd-home-link-actions");
 		const profile = data.profile || "erp";
@@ -11127,6 +12043,459 @@ function sb_zone_anchor(pane, zone, node) {
 		return setup.panel;
 	}
 
+	// First-use guidance is deliberately one ordered path, not five setup cards.
+	// The server supplies only persisted, permission-filtered state; this catalogue
+	// owns presentation and the native DocType each action opens.
+	const HOME_START_STEPS = {
+		company: {
+			label: __("Company details"),
+			description: __("Confirm the company you will sell from"),
+			action: __("Add company"),
+			doctype: "Company",
+		},
+		customer: {
+			label: __("First customer"),
+			description: __("Add the customer who will receive the invoice"),
+			action: __("Add customer"),
+			doctype: "Customer",
+		},
+		item: {
+			label: __("First product or service"),
+			description: __("Add what you sell; use the business name first"),
+			action: __("Add product or service"),
+			doctype: "Item",
+		},
+		invoice: {
+			label: __("First submitted invoice"),
+			description: __("Create and submit a valid sales invoice"),
+			action: __("Create invoice"),
+			doctype: "Sales Invoice",
+		},
+		payment: {
+			label: __("First recorded payment"),
+			description: __("Record the approved customer payment"),
+			action: __("Record payment"),
+			doctype: "Payment Entry",
+		},
+	};
+
+	const HOME_START_BLOCKED_COPY = {
+		unavailable: __("This step is not available on this site."),
+		"no-read": __("You do not have permission to view this step."),
+		"no-create": __("You can view this area, but an administrator must grant create access."),
+		"query-error": __("Could not check this step. Refresh and try again."),
+	};
+
+	/**
+	 * Render the shortest honest path from a configured company to a recorded
+	 * payment. Completed sites do not retain onboarding furniture on daily Home.
+	 */
+	function home_start_readiness(data) {
+		if (!data || data.state === "first-use-complete") return null;
+		const steps = Array.isArray(data.steps) ? data.steps : [];
+		if (!steps.length) return null;
+
+		const guide = home_panel(
+			__("Get ready to sell"),
+			__("One saved step at a time"),
+			"bnd-start-guide"
+		);
+		const heading = guide.head.querySelector(".bnd-home-panel-title");
+		if (heading) heading.id = "bnd-start-guide-title";
+		guide.panel.setAttribute("aria-labelledby", "bnd-start-guide-title");
+
+		const list = el("ol", "bnd-start-steps");
+		for (const [index, step] of steps.entries()) {
+			const meta = HOME_START_STEPS[step.key];
+			if (!meta) continue;
+			const state = ["complete", "next", "blocked", "waiting"].includes(step.state)
+				? step.state
+				: "waiting";
+			const row = el("li", `bnd-start-step is-${state}`);
+			if (state === "next" || state === "blocked") row.setAttribute("aria-current", "step");
+
+			const marker = el("span", "bnd-start-index", { "aria-hidden": "true" });
+			marker.textContent = state === "complete" ? "✓" : String(index + 1);
+			const copy = el("span", "bnd-start-copy");
+			const label = el("strong", "bnd-start-label");
+			label.textContent = meta.label;
+			const description = el("span", "bnd-start-description");
+			description.textContent = meta.description;
+			copy.append(label, description);
+			row.append(marker, copy);
+
+			if (state === "next") {
+				const action = el("button", "bnd-start-action", { type: "button" });
+				action.textContent = meta.action;
+				action.addEventListener("click", () => frappe.new_doc(meta.doctype));
+				row.appendChild(action);
+			} else {
+				const status = el("span", "bnd-start-status");
+				status.textContent = state === "complete"
+					? __("Saved")
+					: state === "blocked"
+						? HOME_START_BLOCKED_COPY[step.reason] || __("This step needs administrator help.")
+						: __("Later");
+				row.appendChild(status);
+			}
+			list.appendChild(row);
+		}
+
+		const note = el("p", "bnd-start-note");
+		note.textContent = __("This guide checks saved records. Tax, ZATCA, print and launch readiness are reviewed separately.");
+		guide.panel.append(list, note);
+		return guide.panel;
+	}
+
+	const HOME_LAUNCH_CHECKS = {
+		company: {
+			label: __("Company identity and fiscal setup"),
+			description: __("Company, country and currency are checked here; review fiscal year and branches."),
+		},
+		accounting: {
+			label: __("Accounts and dimensions"),
+			description: __("Review posting accounts, cost centres, dimensions and defaults with finance."),
+		},
+		tax_zatca: {
+			label: __("VAT, ZATCA and legal output"),
+			description: __("A qualified reviewer must confirm tax rules, phase, environment and credentials."),
+		},
+		stock: {
+			label: __("Warehouse, stock and valuation"),
+			description: __("Confirm warehouses, units, valuation and serial or batch rules, or record non-applicability."),
+		},
+		commercial: {
+			label: __("Items, prices and commercial policy"),
+			description: __("Confirm sellable items, barcodes, prices, discounts and commercial rules."),
+		},
+		parties: {
+			label: __("Customers, suppliers and terms"),
+			description: __("Review party identity, addresses, terms, credit and duplicate controls."),
+		},
+		payments: {
+			label: __("Cash, payments and POS"),
+			description: __("Review payment methods, cash and bank accounts, POS profiles and settlement ownership."),
+		},
+		access: {
+			label: __("Users, roles and approvals"),
+			description: __("Review company and warehouse scope, approvals and segregation of duties."),
+		},
+		output: {
+			label: __("Print, numbering and language"),
+			description: __("Review Arabic and English output, numbering, communications and legal identity."),
+		},
+		operations: {
+			label: __("Privacy, backup and support"),
+			description: __("Confirm privacy, retention, security, restore, incidents and support with evidence."),
+		},
+		integrations: {
+			label: __("Integrations and credentials"),
+			description: __("Confirm every required provider, credential owner, failure path and reconciliation."),
+		},
+		first_transaction: {
+			label: __("First transaction and handoff"),
+			description: __("Complete invoice, payment, print, statement, reversal and support handoff checks."),
+		},
+	};
+
+	const HOME_LAUNCH_STATES = {
+		observed: __("Found"),
+		missing: __("Needs setup"),
+		review: __("Review required"),
+		blocked: __("No access"),
+		unavailable: __("Not available"),
+		"not-assessed": __("Not checked here"),
+	};
+
+	const HOME_WORK_STATES = {
+		Open: __("Open task"),
+		Working: __("In progress"),
+		"Pending Review": __("Pending review"),
+		Overdue: __("Overdue task"),
+		Completed: __("Completed task"),
+		Cancelled: __("Cancelled task"),
+	};
+
+	const HOME_REVIEW_DECISIONS = {
+		Accepted: __("Accepted"),
+		"Needs Work": __("Needs work"),
+		"Not Applicable": __("Not applicable"),
+		Reopened: __("Reopened"),
+	};
+
+	const HOME_LAUNCH_ROLES = {
+		"business-owner": __("Business owner"),
+		"finance-reviewer": __("Finance reviewer"),
+		"tax-and-zatca-reviewer": __("Tax and ZATCA reviewer"),
+		"inventory-reviewer": __("Inventory reviewer"),
+		"sales-and-pricing-owner": __("Sales and pricing owner"),
+		"sales-and-procurement-owner": __("Sales and procurement owner"),
+		"finance-and-pos-owner": __("Finance and POS owner"),
+		"system-and-security-owner": __("System and security owner"),
+		"finance-and-tax-reviewer": __("Finance and tax reviewer"),
+		"system-and-privacy-owner": __("System and privacy owner"),
+		"integration-owner": __("Integration owner"),
+		"implementation-lead": __("Implementation lead"),
+	};
+
+	const HOME_LAUNCH_CONSEQUENCES = {
+		"wrong-identity-currency-period-or-branch": __("Documents may use the wrong identity, currency, period or branch"),
+		"posting-unavailable-or-wrong-accounts-and-dimensions": __("Transactions may not post, or may use the wrong accounts and dimensions"),
+		"incorrect-tax-or-rejected-regulated-output": __("Tax may be incorrect or regulated output may be rejected"),
+		"incorrect-stock-quantity-value-or-traceability": __("Stock quantity, value or traceability may be incorrect"),
+		"unavailable-items-or-incorrect-pricing-and-discounts": __("Items may be unavailable or prices and discounts may be wrong"),
+		"incorrect-party-history-terms-credit-or-duplicates": __("Party history, terms, credit or duplicate handling may be wrong"),
+		"unreconciled-cash-card-bank-or-provider-settlement": __("Cash, card, bank or provider settlement may not reconcile"),
+		"excessive-or-insufficient-access-and-approval-conflict": __("Users may have too much or too little access, or conflicting approvals"),
+		"incorrect-numbering-language-communication-or-legal-output": __("Numbering, language, communications or legal output may be wrong"),
+		"failed-recovery-privacy-security-or-support-response": __("Recovery, privacy, security or support response may fail"),
+		"unowned-provider-failure-secret-or-reconciliation-gap": __("Provider failures, credentials or reconciliation gaps may have no owner"),
+		"go-live-errors-reach-customers-stock-and-ledgers": __("Go-live errors may reach customers, stock and accounting ledgers"),
+	};
+
+	const HOME_ZATCA_FINDINGS = {
+		missing_app: __("Connector not installed; review applicability"),
+		needs_company: __("Select a company first"),
+		needs_settings: __("Settings not created"),
+		disabled: __("Integration disabled"),
+		needs_onboarding: __("Sandbox onboarding incomplete"),
+		needs_csid: __("Production credentials incomplete"),
+		ready: __("Production credentials detected; review still required"),
+		"query-error": __("Could not check this area"),
+	};
+
+	function home_launch_finding(check) {
+		if (check.reason === "query-error") return __("Could not check this area");
+		if (check.key === "tax_zatca") {
+			const zatca_state = String(check.detail || "").replace("tax-template-and-zatca-", "");
+			if (HOME_ZATCA_FINDINGS[zatca_state]) {
+				return check.reason === "configured-review"
+					? __("Tax and ZATCA signals found; qualified review required")
+					: HOME_ZATCA_FINDINGS[zatca_state];
+			}
+			return __("Review tax and ZATCA applicability and setup");
+		}
+		if (check.key === "accounting" && check.state === "review") {
+			return __("Finance review is still required");
+		}
+		if (check.key === "parties" && check.state === "review") {
+			return __("Review terms, credit and duplicate controls");
+		}
+		if (check.key === "payments" && check.state === "review") {
+			return __("Review payment, POS and settlement setup");
+		}
+		if (check.key === "access" && check.state === "review") {
+			return __("Review roles, scope and segregation");
+		}
+		if (check.key === "output" && check.state === "review") {
+			return check.reason === "configured-review"
+				? __("Invoice format found; review still required")
+				: __("Review invoice print and legal output");
+		}
+		if (check.key === "first_transaction" && check.state === "review") {
+			return check.reason === "configured-review"
+				? __("Invoice and payment found; complete the remaining checks")
+				: __("Complete and review the first transaction");
+		}
+		if (check.key === "operations") return __("Operational evidence is checked outside this screen");
+		if (check.key === "integrations") return __("Provider evidence is checked outside this screen");
+		return HOME_LAUNCH_STATES[check.state] || __("Review required");
+	}
+
+	function home_launch_work_plan(data) {
+		const plan = data && data.work_plan;
+		if (!plan || !plan.available || plan.query_error) return null;
+		const bar = el("div", "bnd-launch-plan");
+		const copy = el("span", "bnd-launch-plan-copy");
+		const title = el("strong", "bnd-launch-plan-title");
+		const description = el("span", "bnd-launch-plan-description");
+		if (plan.project) {
+			title.textContent = __("Readiness work plan");
+			description.textContent = __("Assignments, due dates and evidence are kept in the native project and tasks.");
+		} else {
+			title.textContent = __("Turn this review into assigned work");
+			description.textContent = __("Create one native project with a task for each review area.");
+		}
+		copy.append(title, description);
+		bar.appendChild(copy);
+
+		if (plan.project && Array.isArray(plan.project.route)) {
+			const action = el("button", "bnd-launch-plan-action", { type: "button" });
+			action.textContent = __("Open work plan");
+			action.addEventListener("click", () => frappe.set_route(...plan.project.route));
+			bar.appendChild(action);
+		} else if (plan.can_create) {
+			const action = el("button", "bnd-launch-plan-action", { type: "button" });
+			action.textContent = __("Create work plan");
+			action.addEventListener("click", () => {
+				frappe.confirm(
+					__("Create a native project and 12 readiness tasks for {0}?", [plan.company]),
+					() => {
+						action.disabled = true;
+						action.textContent = __("Creating work plan…");
+						frappe.call({
+							method: "bunood_theme.api.start_readiness_review",
+							args: { company: plan.company },
+							callback: () => mount_home_dashboard(true),
+							error: () => {
+								action.disabled = false;
+								action.textContent = __("Create work plan");
+							},
+						});
+					}
+				);
+			});
+			bar.appendChild(action);
+		}
+		return bar;
+	}
+
+	function home_prepare_readiness_decision(action, company, domain, idle_label) {
+		action.disabled = true;
+		action.textContent = __("Opening review…");
+		frappe.call({
+			method: "bunood_theme.api.prepare_readiness_decision",
+			args: { company, domain },
+			callback: ({ message }) => {
+				if (message && Array.isArray(message.route)) frappe.set_route(...message.route);
+			},
+			error: () => {
+				action.disabled = false;
+				action.textContent = idle_label;
+			},
+		});
+	}
+
+	/** A compact evidence disclosure; observations are never launch approval. */
+	function home_launch_readiness(data, first_use_complete) {
+		const checks = Array.isArray(data && data.checks) ? data.checks : [];
+		if (!checks.length) return null;
+		const review = el("details", "bnd-launch-review");
+		review.open = !!first_use_complete;
+		const summary = el("summary", "bnd-launch-summary");
+		const heading_copy = el("span", "bnd-launch-heading");
+		const title = el("strong", "bnd-launch-title");
+		title.textContent = __("Before live sales");
+		const subtitle = el("span", "bnd-launch-subtitle");
+		subtitle.textContent = __("What Bunood can confirm and what still needs review");
+		heading_copy.append(title, subtitle);
+		const counts = el("span", "bnd-launch-counts");
+		const attention = el("span", "bnd-launch-count");
+		attention.textContent = `${home_number(data.attention_count)} ${__("need setup")}`;
+		const qualified = el("span", "bnd-launch-count");
+		qualified.textContent = `${home_number(data.review_count)} ${__("need review")}`;
+		counts.append(attention, qualified);
+		summary.append(heading_copy, counts);
+		review.appendChild(summary);
+
+		const plan = home_launch_work_plan(data);
+		if (plan) review.appendChild(plan);
+		const work_plan = (data && data.work_plan) || {};
+
+		const list = el("ul", "bnd-launch-checks");
+		for (const check of checks) {
+			const meta = HOME_LAUNCH_CHECKS[check.key];
+			if (!meta) continue;
+			const row = el("li", `bnd-launch-check is-${check.state || "review"}`);
+			const route = Array.isArray(check.route) && check.route.length ? check.route : null;
+			const content = el("div", "bnd-launch-check-content");
+			const copy = el("span", "bnd-launch-check-copy");
+			const label = el("strong", "bnd-launch-check-label");
+			label.textContent = meta.label;
+			const description = el("span", "bnd-launch-check-description");
+			description.textContent = meta.description;
+			const consequence = el("span", "bnd-launch-consequence");
+			consequence.textContent = __("If unresolved: {0}", [
+				HOME_LAUNCH_CONSEQUENCES[check.unresolved_consequence] || __("the business process may fail"),
+			]);
+			copy.append(label, description, consequence);
+			const side = el("span", "bnd-launch-check-side");
+			const finding = el("span", "bnd-launch-finding");
+			finding.textContent = home_launch_finding(check);
+			const owner = el("span", "bnd-launch-owner");
+			owner.textContent = __("Responsible role: {0}", [
+				HOME_LAUNCH_ROLES[check.responsible_role] || __("Business owner"),
+			]);
+			side.append(finding, owner);
+			const work = check.work;
+			if (work) {
+				const work_status = el("span", "bnd-launch-work");
+				work_status.textContent = __("Work status: {0}", [
+					HOME_WORK_STATES[work.status] || work.status || __("Open task"),
+				]);
+				const assignees = Array.isArray(work.assignees) ? work.assignees : [];
+				const assignment = el("span", "bnd-launch-work");
+				assignment.textContent = assignees.length
+					? __("Assigned to: {0}", [assignees.join(", ")])
+					: __("Assign in the task");
+				side.append(work_status, assignment);
+				if (Number.isFinite(Number(work.evidence_count))) {
+					const evidence = el("span", "bnd-launch-work");
+					evidence.textContent = __("Evidence files: {0}", [home_number(work.evidence_count)]);
+					side.appendChild(evidence);
+				}
+				if (work.review) {
+					const review_status = el("span", "bnd-launch-work");
+					if (work.review.reopen_required) {
+						review_status.textContent = __("Review needs reopening");
+					} else if (work.review.verification === "not-visible") {
+						review_status.textContent = __("Review recorded; evidence is not visible");
+					} else {
+						review_status.textContent = __("Review decision: {0}", [
+							HOME_REVIEW_DECISIONS[work.review.decision] || work.review.decision,
+						]);
+					}
+					side.appendChild(review_status);
+				}
+			}
+			const actions = el("span", "bnd-launch-actions");
+			if (route) {
+				const action = el("button", "bnd-launch-action", { type: "button" });
+				action.textContent = check.action_mode === "change" ? __("Open setup") : __("View details");
+				action.addEventListener("click", () => frappe.set_route(...route));
+				actions.appendChild(action);
+			}
+			if (work && Array.isArray(work.route)) {
+				const action = el("button", "bnd-launch-action", { type: "button" });
+				action.textContent = __("Open work");
+				action.addEventListener("click", () => frappe.set_route(...work.route));
+				actions.appendChild(action);
+			}
+			if (work && work.review && Array.isArray(work.review.route)) {
+				const action = el("button", "bnd-launch-action", { type: "button" });
+				action.textContent = __("Open review");
+				action.addEventListener("click", () => frappe.set_route(...work.review.route));
+				actions.appendChild(action);
+			}
+			const may_prepare_review = work && work.can_record_review && work_plan.company;
+			const needs_next_review =
+				!work ||
+				!work.review ||
+				work.review.reopen_required ||
+				!["Accepted", "Not Applicable"].includes(work.review.decision);
+			if (may_prepare_review && needs_next_review) {
+				const action = el("button", "bnd-launch-action", { type: "button" });
+				const label = work.review && work.review.reopen_required
+					? __("Reopen review")
+					: __("Record review");
+				action.textContent = label;
+				action.addEventListener("click", () =>
+					home_prepare_readiness_decision(action, work_plan.company, check.key, label)
+				);
+				actions.appendChild(action);
+			}
+			if (actions.childElementCount) side.appendChild(actions);
+			content.append(copy, side);
+			row.appendChild(content);
+			list.appendChild(row);
+		}
+
+		const note = el("p", "bnd-launch-note");
+		note.textContent = __("These are permission-filtered observations. Task completion and a domain review receipt are not tax, ZATCA, accounting or whole-launch approval.");
+		review.append(list, note);
+		return review;
+	}
+
 	function home_render_dashboard(root, data) {
 		home_stop_status_alignment();
 		root.replaceChildren();
@@ -11134,36 +12503,80 @@ function sb_zone_anchor(pane, zone, node) {
 		home_sign_from(data);
 		const currency = data.currency || "SAR";
 		const profile = data.profile || "erp";
+		root.setAttribute("data-bnd-home-profile", profile);
 
 		const intro = el("header", "bnd-home-intro");
 		const intro_copy = el("div", "bnd-home-intro-copy");
 		const eyebrow = el("span", "bnd-home-eyebrow");
 		eyebrow.textContent = data.company || home_text("Bunood");
 		const title = el("h1", "bnd-home-title");
-		title.textContent = home_greeting_text();
+		title.textContent = profile === "real_estate" ? __("Real estate operations") : home_greeting_text();
 		const subtitle = el("p", "bnd-home-subtitle");
-		subtitle.textContent = home_text("Your business at a glance");
+		subtitle.textContent = profile === "real_estate"
+			? __("Portfolio, leases, billing and collections in one place")
+			: home_text("Your business at a glance");
 		intro_copy.append(eyebrow, title, subtitle);
 		intro.appendChild(intro_copy);
 		root.appendChild(intro);
 
-		root.appendChild(home_attention_panel(data));
-
-		const summary = el("section", "bnd-home-summary", { "aria-label": home_text("Financial summary") });
-		for (const metric of data.kpis || []) summary.appendChild(home_metric(metric, currency));
-		root.appendChild(summary);
-		root.appendChild(home_process_panel(profile));
-
-		const tasks = home_panel(__("Frequent actions"), __("Start the work you do most often"), "bnd-home-actions-panel");
+		const tasks = home_panel(
+			profile === "real_estate" ? __("Property actions") : __("Frequent actions"),
+			profile === "real_estate" ? __("Start the property work you do most often") : __("Start the work you do most often"),
+			"bnd-home-actions-panel"
+		);
 		const task_actions = el("div", "bnd-home-intro-actions");
 		home_mount_tasks(task_actions, profile);
 		tasks.panel.appendChild(task_actions);
 		root.appendChild(tasks.panel);
 
+		// Real estate has a separate property lifecycle. The commerce first-use
+		// spine belongs only on the general ERP Home and disappears when finished.
+		if (profile === "erp") {
+			const start_readiness = home_start_readiness(data.start_readiness);
+			if (start_readiness) root.appendChild(start_readiness);
+			const launch_readiness = home_launch_readiness(
+				data.launch_readiness,
+				data.start_readiness && data.start_readiness.state === "first-use-complete"
+			);
+			if (launch_readiness) root.appendChild(launch_readiness);
+		}
+
+		const summary = el("section", "bnd-home-summary", { "aria-label": home_text("Financial summary") });
+		for (const metric of data.kpis || []) summary.appendChild(home_metric(metric, currency));
+		const attention = home_attention_panel(data);
+		if (profile === "real_estate") {
+			root.classList.add("is-real-estate");
+			const portfolio = home_panel(
+				__("Portfolio overview"),
+				__("Live operating position across properties and leases"),
+				"bnd-re-portfolio"
+			);
+			const portfolio_body = el("div", "bnd-re-portfolio-body");
+			summary.classList.add("is-real-estate");
+			portfolio_body.append(summary, attention);
+			portfolio.panel.appendChild(portfolio_body);
+			root.appendChild(portfolio.panel);
+		} else {
+			root.classList.remove("is-real-estate");
+			root.append(attention, summary);
+		}
+		root.appendChild(home_process_panel(profile, data));
+
 		const grid = el("div", "bnd-home-grid");
 		const trend = home_panel("Sales trend", "Last six months", "bnd-home-trend");
-		trend.head.appendChild(home_icon("icon-chart-column", "bnd-home-panel-mark"));
+		const trend_cue = el("span", "bnd-home-report-cue", { "aria-hidden": "true" });
+		trend_cue.append(home_icon("icon-chart-column", "bnd-home-panel-mark"), __("Review"));
+		trend.head.appendChild(trend_cue);
 		const trend_rows = Array.isArray(data.trend) ? data.trend : [];
+		const trend_open = el("button", "bnd-home-report-open", {
+			type: "button", "aria-label": `${__("Review")} ${__("Sales trend")}`,
+		});
+		trend_open.addEventListener("click", () => frappe.set_route("List", "Sales Invoice", {
+			docstatus: 1,
+			...(data.invoice_scope?.company ? { company: data.invoice_scope.company } : {}),
+			...(trend_rows.length ? { posting_date: ["between", [trend_rows[0].from_date, trend_rows.at(-1).to_date]] } : {}),
+		}));
+		trend.panel.appendChild(trend_open);
 		const trend_chart = el("div", "bnd-home-chart bnd-home-trend-chart", {
 			"aria-label": home_text("Sales trend"),
 		});
@@ -11171,7 +12584,18 @@ function sb_zone_anchor(pane, zone, node) {
 		grid.appendChild(trend.panel);
 
 		const status = home_panel("Invoice status", "Current sales invoices", "bnd-home-status");
-		status.head.appendChild(home_icon("icon-receipt", "bnd-home-panel-mark"));
+		const status_cue = el("span", "bnd-home-report-cue", { "aria-hidden": "true" });
+		status_cue.append(home_icon("icon-receipt", "bnd-home-panel-mark"), __("Review"));
+		status.head.appendChild(status_cue);
+		const status_open = el("button", "bnd-home-report-open", {
+			type: "button", "aria-label": `${__("Review")} ${__("Invoice status")}`,
+		});
+		status_open.addEventListener("click", () => frappe.set_route("List", "Sales Invoice", {
+			docstatus: 1,
+			...(data.invoice_scope?.company ? { company: data.invoice_scope.company } : {}),
+			...(data.invoice_scope?.from_date ? { posting_date: [">=", data.invoice_scope.from_date] } : {}),
+		}));
+		status.panel.appendChild(status_open);
 		const status_body = el("div", "bnd-home-status-body");
 		const status_visual = el("div", "bnd-home-status-visual");
 		const status_chart = el("div", "bnd-home-chart bnd-home-status-chart", {
@@ -11248,28 +12672,18 @@ function sb_zone_anchor(pane, zone, node) {
 		recent.panel.appendChild(recent_list);
 		grid.appendChild(recent.panel);
 
-		// THE "QUICK ACTIONS" PANEL IS GONE, and its two creation entries with
-		// it. It offered "Create invoice" and "Record payment" — the same two
-		// doctypes the task row at the top of this page now offers as "New
-		// sales invoice" and "Receive payment". Two labels for one action is
-		// worse than either alone: a user cannot tell whether they differ, so
-		// they hesitate over both. Nine buttons in two rows was exactly the
-		// "too much, nothing pops" the task row exists to answer.
-		//
-		// Its other two entries were navigation, not creation — the Account
-		// list and the General Ledger — and both are one click away in the side
-		// pane, which now carries its labels on every workspace.
-		// WORK BEFORE REPORTING. The trend and status panels are built above
-		// because their data arrives with everything else, but they must READ
-		// after the two panels someone opens this page to act on: what needs
-		// attention, and what just happened. Moving the nodes rather than
-		// reordering the construction keeps each panel's build next to the data
-		// it reads — and moving them changes the tab order with the visual
-		// order, which a CSS `order` would not have done.
+		// Work precedes reporting in both visual and keyboard order.
 		recent.panel.remove();
 		root.appendChild(recent.panel);
 
-		const reports = home_panel("Reports", __("Monitor performance and open the exact ledger"), "bnd-home-reports-panel");
+		const reports = home_panel(
+			profile === "real_estate" ? __("Property reports") : "Reports",
+			profile === "real_estate" ? __("Open portfolio, lease and owner reporting") : __("Monitor performance and open the exact ledger"),
+			"bnd-home-reports-panel"
+		);
+		reports.head.appendChild(home_action(__("Report Studio"),
+			["icon-chart-no-axes-column-increasing", "icon-table"],
+			() => frappe.set_route("bnd-report-studio"), true));
 		reports.panel.appendChild(home_report_actions(profile));
 		if (profile === "erp") reports.panel.appendChild(grid);
 		root.appendChild(reports.panel);
@@ -11278,64 +12692,91 @@ function sb_zone_anchor(pane, zone, node) {
 
 		// Native workspaces, dashboards, reports and Home now share Frappe Charts.
 		requestAnimationFrame(() => {
-			if (!trend_chart.isConnected || typeof frappe.Chart !== "function") return;
-			new frappe.Chart(trend_chart, {
-				bndAriaLabel: home_text("Sales trend"), type: "bar", height: 320, colors: [],
-				data: {
-					labels: trend_rows.map((item) => home_text(item.label || "")),
-					datasets: [{ name: home_text("Sales"), values: trend_rows.map((item) => Number(item.value) || 0) }],
-				},
-				axisOptions: { xAxisMode: "tick", yAxisMode: "span", xIsSeries: 1 },
-				barOptions: { spaceRatio: 0.45 },
-				tooltipOptions: { formatTooltipY: (value) => home_money(value, currency) },
-			});
-			trend_chart.addEventListener("data-select", (event) => {
-				const point = trend_rows[Number(event.index ?? (event.detail && event.detail.index))];
-				if (point) frappe.set_route("List", "Sales Invoice", {
-					docstatus: 1,
-					posting_date: ["between", [point.from_date, point.to_date]],
-				});
-			});
-
 			const visible_statuses = status_rows
 				.map((item) => ({ item, value: Number(invoice_status[item[1]]) || 0 }))
 				.filter((entry) => entry.value > 0);
-			if (visible_statuses.length) {
-				new frappe.Chart(status_chart, {
-					bndAriaLabel: home_text("Invoice status"),
-					type: "donut",
-					height: 280,
-					strokeWidth: 34,
-					showLegend: 0,
-					colors: visible_statuses.map((entry) => entry.item[3]),
-					data: {
-						labels: visible_statuses.map((entry) => home_text(entry.item[0])),
-						datasets: [{
-							name: home_text("Current sales invoices"),
-							values: visible_statuses.map((entry) => entry.value),
-						}],
-					},
-				});
-				const align_total = () => requestAnimationFrame(() =>
-					home_align_status_total(status_visual, status_total_copy, status_chart));
-				align_total();
-				if (typeof ResizeObserver !== "undefined") {
-					home_status_resize_observer = new ResizeObserver(align_total);
-					home_status_resize_observer.observe(status_chart);
+			let charts_rendered = false;
+			let visibility_observer = null;
+			const stop_visibility_observer = () => {
+				if (visibility_observer) visibility_observer.disconnect();
+				if (home_chart_visibility_observer === visibility_observer) home_chart_visibility_observer = null;
+				visibility_observer = null;
+			};
+			const render_charts = () => {
+				if (charts_rendered) return;
+				if (home_profile_for_route() !== profile || !root.getClientRects().length) return;
+				if (!trend_chart.isConnected || typeof frappe.Chart !== "function") {
+					stop_visibility_observer();
+					return;
 				}
-				status_chart.addEventListener("data-select", (event) => {
-					const point = visible_statuses[Number(event.index ?? (event.detail && event.detail.index))];
-					if (point) home_open_invoice_list(data, point.item[1]);
+				// A connected node can still live in an inactive Desk page. Frappe Charts
+				// subtracts padding from its measured width, yielding negative SVG sizes.
+				if (trend_chart.clientWidth <= 32 || (visible_statuses.length && status_chart.clientWidth <= 32)) return;
+				charts_rendered = true;
+				stop_visibility_observer();
+				new frappe.Chart(trend_chart, {
+					bndAriaLabel: home_text("Sales trend"), type: "bar", height: 320, colors: [],
+					data: {
+						labels: trend_rows.map((item) => home_text(item.label || "")),
+						datasets: [{ name: home_text("Sales"), values: trend_rows.map((item) => Number(item.value) || 0) }],
+					},
+					axisOptions: { xAxisMode: "tick", yAxisMode: "span", xIsSeries: 1 },
+					barOptions: { spaceRatio: 0.45 },
+					tooltipOptions: { formatTooltipY: (value) => home_money(value, currency) },
 				});
-			} else {
-				const empty = el("p", "bnd-home-chart-empty");
-				empty.textContent = home_text("No invoice data yet");
-				status_chart.appendChild(empty);
+				trend_chart.addEventListener("data-select", (event) => {
+					const point = trend_rows[Number(event.index ?? (event.detail && event.detail.index))];
+					if (point) frappe.set_route("List", "Sales Invoice", {
+						docstatus: 1,
+						posting_date: ["between", [point.from_date, point.to_date]],
+					});
+				});
+
+				if (visible_statuses.length) {
+					new frappe.Chart(status_chart, {
+						bndAriaLabel: home_text("Invoice status"),
+						type: "donut",
+						height: 280,
+						strokeWidth: 34,
+						showLegend: 0,
+						colors: visible_statuses.map((entry) => entry.item[3]),
+						data: {
+							labels: visible_statuses.map((entry) => home_text(entry.item[0])),
+							datasets: [{
+								name: home_text("Current sales invoices"),
+								values: visible_statuses.map((entry) => entry.value),
+							}],
+						},
+					});
+					const align_total = () => requestAnimationFrame(() =>
+						home_align_status_total(status_visual, status_total_copy, status_chart));
+					align_total();
+					if (typeof ResizeObserver !== "undefined") {
+						home_status_resize_observer = new ResizeObserver(align_total);
+						home_status_resize_observer.observe(status_chart);
+					}
+					status_chart.addEventListener("data-select", (event) => {
+						const point = visible_statuses[Number(event.index ?? (event.detail && event.detail.index))];
+						if (point) home_open_invoice_list(data, point.item[1]);
+					});
+				} else {
+					const empty = el("p", "bnd-home-chart-empty");
+					empty.textContent = home_text("No invoice data yet");
+					status_chart.appendChild(empty);
+				}
+			};
+			render_charts();
+			if (!charts_rendered && trend_chart.isConnected && typeof frappe.Chart === "function" && typeof ResizeObserver !== "undefined") {
+				visibility_observer = new ResizeObserver(render_charts);
+				home_chart_visibility_observer = visibility_observer;
+				visibility_observer.observe(trend_chart);
+				if (visible_statuses.length) visibility_observer.observe(status_chart);
 			}
 		});
 	}
 
 	function home_render_error(root) {
+		home_stop_status_alignment();
 		home_clear_greeting_timer();
 		root.replaceChildren();
 		const state = system_state({
@@ -11350,7 +12791,8 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function mount_home_dashboard(force) {
-		if (!on_role_home_route()) {
+		const profile = home_profile_for_route();
+		if (!profile) {
 			home_clear_greeting_timer();
 			home_stop_status_alignment();
 			for (const host of document.querySelectorAll(".bnd-home-host")) host.classList.remove("bnd-home-host");
@@ -11361,7 +12803,7 @@ function sb_zone_anchor(pane, zone, node) {
 		if (!host) return false;
 		host.classList.add("bnd-home-host");
 		let root = host.querySelector(":scope > .bnd-home-dashboard");
-		if (root && !force) {
+		if (root && !force && root.dataset.bndHomeProfile === profile) {
 			home_refresh_greeting();
 			home_schedule_greeting();
 			return true;
@@ -11370,6 +12812,10 @@ function sb_zone_anchor(pane, zone, node) {
 			root = el("main", "bnd-home-dashboard", { "aria-label": home_text("Bunood dashboard") });
 			host.appendChild(root);
 		}
+		// The requested home is now mounted; reveal it only after the native
+		// Desktop grid has been replaced, avoiding the All Apps first-paint flash.
+		document.documentElement.removeAttribute("data-bnd-home-pending");
+		root.dataset.bndHomeProfile = profile;
 		home_stop_status_alignment();
 		home_clear_greeting_timer();
 		root.replaceChildren();
@@ -11381,17 +12827,21 @@ function sb_zone_anchor(pane, zone, node) {
 		});
 		root.appendChild(loading);
 		const request = ++home_request;
-		const profile = role_home_workspace() === "Real Estate" ? "real_estate" : "erp";
 		frappe.call({
 			method: profile === "real_estate"
 				? "bunood_real_estate.real_estate.home.get_operational_home"
 				: "bunood_theme.api.get_home_dashboard",
 			callback: (response) => {
-				if (request !== home_request || !root.isConnected || !on_role_home_route()) return;
-				home_render_dashboard(root, response.message || {});
+				if (request !== home_request || !root.isConnected || home_profile_for_route() !== profile) return;
+				const data = response.message || {};
+				if (data.profile && data.profile !== profile) return;
+				if (!data.profile) data.profile = profile;
+				home_render_dashboard(root, data);
 			},
 			error: () => {
-				if (request === home_request && root.isConnected) home_render_error(root);
+				if (request === home_request && root.isConnected && home_profile_for_route() === profile) {
+					home_render_error(root);
+				}
 			},
 		});
 		return true;
@@ -11558,7 +13008,7 @@ function sb_zone_anchor(pane, zone, node) {
 	 * slice 2c every container answers for itself and a layout is a preset that
 	 * wrote those settings at the moment it was picked.
 	 */
-	let report_workbench_loading = null;
+	const deferred_asset_loads = new Map();
 
 	// Frappe v16 deliberately removes Bootstrap's document-level focus guard
 	// when a modal opens. That leaves keyboard users able to tab into the desk
@@ -11602,6 +13052,34 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
+	function repair_payment_account_feedback(modal) {
+		const message = modal.querySelector(".modal-message, .msgprint");
+		if (!message || message.dataset.bndPaymentRecovery === "true") return;
+		const raw = message.textContent || "";
+		if (!/default Cash or Bank account|الحساب البنكي أو النقدي|حسابًا نقديًا أو بنكيًا/i.test(raw)) return;
+
+		const originalLink = message.querySelector("a");
+		const mode = originalLink?.textContent?.trim() || window.cur_frm?.doc?.mode_of_payment || __("Mode of Payment");
+		const company = window.cur_frm?.doc?.company || frappe.defaults?.get_user_default?.("Company") || "";
+		const title = modal.querySelector(".modal-title");
+		if (title) title.textContent = `${__("Payment account required")} · ${mode}`;
+		modal.classList.add("bnd-payment-account-dialog");
+		message.dataset.bndPaymentRecovery = "true";
+		message.replaceChildren();
+		const copy = document.createElement("p");
+		copy.dir = "auto";
+		copy.textContent = __("Default Cash or Bank account required. Payment method: {0}. Company: {1}.", [mode, company || __("Company")]);
+		const action = document.createElement("button");
+		action.type = "button";
+		action.className = "btn btn-primary btn-sm";
+		action.textContent = __("Open payment method settings");
+		action.addEventListener("click", () => {
+			frappe.hide_msgprint?.();
+			frappe.set_route("Form", "Mode of Payment", mode);
+		});
+		message.append(copy, action);
+	}
+
 	function label_dialog_controls(modal) {
 		for (const button of modal.querySelectorAll("button")) {
 			if (button.textContent.trim() || button.getAttribute("aria-label") || button.getAttribute("aria-labelledby")) continue;
@@ -11634,6 +13112,7 @@ function sb_zone_anchor(pane, zone, node) {
 	}
 
 	function enhance_interaction_dialog_content(modal) {
+		repair_payment_account_feedback(modal);
 		mark_dialog_feedback(modal);
 		label_dialog_controls(modal);
 	}
@@ -11745,6 +13224,62 @@ function sb_zone_anchor(pane, zone, node) {
 	function sync_interaction_overlays() {
 		sync_interaction_dialogs();
 		sync_filter_popovers();
+		repair_dashboard_chart_recovery();
+	}
+
+	function repair_dashboard_chart_recovery() {
+		const selectors = [
+			".dashboard-chart .text-danger",
+			".chart-container .text-danger",
+			".chart-wrapper .text-danger",
+		];
+		for (const node of document.querySelectorAll(selectors.join(","))) {
+			if (node.dataset.bndChartRecovery === "true") continue;
+			const raw = node.textContent || "";
+			if (!/Account is not set for the dashboard chart|لم يتم تعيين الحساب لمخطط لوحة المعلومات/i.test(raw)) continue;
+			node.dataset.bndChartRecovery = "true";
+			node.classList.add("bnd-chart-recovery");
+			node.replaceChildren();
+			const copy = document.createElement("p");
+			copy.textContent = __("Bank balance needs a valid company bank account.");
+			const action = document.createElement("button");
+			action.type = "button";
+			action.className = "btn btn-primary btn-sm";
+			action.textContent = __("Open company bank settings");
+			action.addEventListener("click", () => {
+				const company = frappe.defaults?.get_user_default?.("Company");
+				if (company) frappe.set_route("Form", "Company", company);
+				else frappe.set_route("List", "Company");
+			});
+			node.append(copy, action);
+		}
+	}
+
+	function align_grid_link_popup(input) {
+		if (!input?.matches?.('.grid-row input[role="combobox"][aria-owns]')) return;
+		const list = document.getElementById(input.getAttribute("aria-owns"));
+		const popup = list?.parentElement;
+		const host = popup?.parentElement;
+		if (!list || !popup?.classList.contains("awesomplete") || !host?.classList.contains("grid-field")) return;
+
+		const host_box = host.getBoundingClientRect();
+		const input_box = input.getBoundingClientRect();
+		const popup_box = popup.getBoundingClientRect();
+		const width = Math.min(popup_box.width, host_box.width);
+		const anchored = document.documentElement.dir === "rtl"
+			? input_box.right - host_box.left - width
+			: input_box.left - host_box.left;
+		const left = Math.max(0, Math.min(anchored, host_box.width - width));
+		popup.style.left = `${left}px`;
+		popup.style.right = "auto";
+		popup.style.maxWidth = `${host_box.width}px`;
+		popup.dataset.bndGridLinkPopup = "aligned";
+	}
+
+	function queue_grid_link_popup(event) {
+		const input = event.target;
+		if (!input?.matches?.('.grid-row input[role="combobox"][aria-owns]')) return;
+		requestAnimationFrame(() => align_grid_link_popup(input));
 	}
 
 	function install_interaction_dialog_show() {
@@ -11778,6 +13313,14 @@ function sb_zone_anchor(pane, zone, node) {
 			subtree: true,
 		});
 		sync_interaction_overlays();
+		// Frappe v16 moves a grid Link's Awesomplete panel into `.grid-field`
+		// using the input's physical left edge, then gives the panel a 250px
+		// minimum width. In RTL, a narrow cell therefore grows out through the
+		// form control's clipped right edge and cuts off the start of every Arabic
+		// result. Re-anchor the moved panel to the input's logical edge and clamp it
+		// to the grid host. The native list, filtering and selection remain intact.
+		document.addEventListener("focusin", queue_grid_link_popup);
+		document.addEventListener("awesomplete-open", queue_grid_link_popup);
 		document.addEventListener("pointerdown", () => { interaction_input_mode = "pointer"; }, true);
 
 		document.addEventListener("keydown", (event) => {
@@ -11828,16 +13371,214 @@ function sb_zone_anchor(pane, zone, node) {
 		return true;
 	}
 
+	/** Load one immutable CSS/JS group once; all route loaders share this guard. */
+	function load_deferred_assets(key, sources, ready) {
+		if (ready() || deferred_asset_loads.has(key)) return true;
+		if (!sources.length || sources.some(source => !source) || typeof frappe.require !== "function") return false;
+		const request = frappe.require(sources.length === 1 ? sources[0] : sources);
+		deferred_asset_loads.set(key, Promise.resolve(request).finally(() => deferred_asset_loads.delete(key)));
+		return true;
+	}
+
 	/** Load the seven-report enhancement only when Frappe enters query-report. */
 	function load_report_workbench() {
 		const route = frappe.get_route ? frappe.get_route() || [] : [];
 		if (route[0] !== "query-report") return false;
-		if (bunood.report_workbench_loaded || report_workbench_loading) return true;
-		const source = frappe.boot?.bnd_report_js;
-		if (!source || typeof frappe.require !== "function") return false;
-		report_workbench_loading = frappe.require(source).then(() => {
-			report_workbench_loading = null;
-		});
+		return load_deferred_assets(
+			"report-workbench",
+			[frappe.boot?.bnd_report_js],
+			() => Boolean(bunood.report_workbench_loaded)
+		);
+	}
+
+	/** Load the described report catalogue only on the native Reports workspace. */
+	function load_report_landing() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		if (route[0] !== "Workspaces" || route[1] !== "Reports") return false;
+		return load_deferred_assets(
+			"report-landing",
+			[frappe.boot?.bnd_report_landing_css, frappe.boot?.bnd_report_landing_js],
+			() => Boolean(bunood.report_landing_loaded)
+		);
+	}
+
+	// ── Point of Sale catalogue legibility ───────────────────────────────
+	// A few imports and the acceptance fixtures use one-pixel colour swatches
+	// as `image` values. Frappe treats any successfully loaded file as a real
+	// product photo and stretches that single pixel over the whole 8rem image
+	// well. A broken-image handler cannot help because these files are valid.
+	// Treat only genuinely unusable micro-images as absent, leaving every real
+	// product image (including deliberately green ones) untouched.
+	let pos_gallery_root = null;
+	let pos_gallery_observer = null;
+
+	function pos_item_initial(label) {
+		const words = String(label || "")
+			.trim()
+			.split(/\s+/u)
+			.filter(Boolean);
+		return words.slice(0, 2).map(word => Array.from(word)[0] || "").join("").toLocaleUpperCase() || "•";
+	}
+
+	function repair_pos_thumbnail(image) {
+		if (!(image instanceof HTMLImageElement) || !image.matches(".item-display > img.item-img")) return;
+		if (image.dataset.bndPosThumbnail === "ready") return;
+
+		const assess = () => {
+			if (!image.isConnected || !image.complete || !image.naturalWidth || !image.naturalHeight) return;
+			image.dataset.bndPosThumbnail = "ready";
+			if (image.naturalWidth > 8 || image.naturalHeight > 8) return;
+
+			const display = image.closest(".item-display");
+			const item = image.closest(".item-wrapper");
+			if (!display || display.classList.contains("bnd-pos-thumbnail-fallback")) return;
+			const label = image.alt || item?.getAttribute("title") || item?.dataset.itemCode || "";
+			const initial = document.createElement("span");
+			initial.className = "bnd-pos-thumb-initial";
+			initial.setAttribute("aria-hidden", "true");
+			initial.textContent = pos_item_initial(label);
+			display.classList.add("abbr", "bnd-pos-thumbnail-fallback");
+			display.setAttribute("role", "img");
+			display.setAttribute("aria-label", label);
+			display.setAttribute("title", label);
+			display.replaceChildren(initial);
+		};
+
+		if (image.complete) assess();
+		else if (image.dataset.bndPosThumbnail !== "waiting") {
+			image.dataset.bndPosThumbnail = "waiting";
+			image.addEventListener("load", assess, { once: true });
+		}
+	}
+
+	function repair_pos_item(item) {
+		if (!item?.matches?.(".item-wrapper")) return;
+		const name = item.querySelector(".item-name");
+		const detail = item.querySelector(".item-detail");
+		const full_name = String(item.getAttribute("title") || "").trim();
+		const item_code = String(item.dataset?.itemCode || item.getAttribute("data-item-code") || "").trim();
+		if (name && full_name && /(?:\.{3}|…)$/u.test(name.textContent.trim())) name.textContent = full_name;
+
+		let code = detail?.querySelector(".bnd-pos-item-code");
+		if (!name || !detail || !item_code || item_code === full_name) {
+			code?.remove();
+			return;
+		}
+		if (!code) {
+			code = document.createElement("div");
+			code.className = "bnd-pos-item-code";
+			detail.insertBefore(code, name.nextSibling);
+		}
+		code.textContent = `${__("Item code")}: ${item_code}`;
+	}
+
+	function repair_pos_gallery(root) {
+		if (!root) return;
+		const direct_item = root.matches?.(".item-wrapper") ? root : root.closest?.(".item-wrapper");
+		const items = direct_item ? [direct_item] : root.querySelectorAll?.(".item-wrapper") || [];
+		for (const item of items) repair_pos_item(item);
+
+		const selector = root.matches?.(".items-selector") ? root : root.closest?.(".items-selector");
+		const search = selector?.querySelector(".search-field input");
+		if (search) {
+			const label = __("Search by item name, code or barcode");
+			search.setAttribute("placeholder", label);
+			search.setAttribute("aria-label", label);
+		}
+		if (root instanceof HTMLImageElement) repair_pos_thumbnail(root);
+		if (root.querySelectorAll) {
+			for (const image of root.querySelectorAll(".item-display > img.item-img")) repair_pos_thumbnail(image);
+		}
+	}
+
+	function install_pos_gallery_guard() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		if (route[0] !== "point-of-sale") {
+			if (pos_gallery_observer) pos_gallery_observer.disconnect();
+			pos_gallery_observer = null;
+			pos_gallery_root = null;
+			return true;
+		}
+
+		const root = document.querySelector(".point-of-sale-app > .items-selector");
+		if (!root) return false;
+		if (root !== pos_gallery_root) {
+			if (pos_gallery_observer) pos_gallery_observer.disconnect();
+			pos_gallery_root = root;
+			pos_gallery_observer = new MutationObserver(records => {
+				for (const record of records) {
+					if (record.type === "characterData") repair_pos_gallery(record.target.parentElement);
+					else if (record.type === "attributes") repair_pos_gallery(record.target);
+					else for (const node of record.addedNodes) repair_pos_gallery(node);
+				}
+			});
+			pos_gallery_observer.observe(root, {
+				childList: true,
+				subtree: true,
+				characterData: true,
+				attributes: true,
+				attributeFilter: ["title", "data-item-code"],
+			});
+		}
+		repair_pos_gallery(root);
+		return true;
+	}
+
+	function sync_print_language_choice(field) {
+		const input = field?.querySelector("input");
+		const group = field?.querySelector(".bnd-print-language");
+		if (!input || !group) return;
+		const selected = String(field.querySelector(".control-value [data-value]")?.dataset.value || input.value || "")
+			.toLowerCase().split("-")[0];
+		for (const button of group.querySelectorAll("button[data-language]")) {
+			button.setAttribute("aria-pressed", String(button.dataset.language === selected));
+		}
+	}
+
+	function mount_print_language_choice() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const sidebar = document.querySelector(".print-preview-sidebar");
+		if (route[0] !== "print" && !sidebar) return true;
+		const field = sidebar?.querySelector('[data-fieldname="language"]');
+		const input = field?.querySelector("input");
+		if (!input || !input.value) return false;
+
+		let group = field.querySelector(".bnd-print-language");
+		if (!group) {
+			group = document.createElement("div");
+			group.className = "bnd-print-language";
+			group.setAttribute("role", "group");
+			group.setAttribute("aria-label", __("Language"));
+			for (const [code, label, dir] of [["en", "English", "ltr"], ["ar", "العربية", "rtl"]]) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "bnd-print-language__option";
+				button.dataset.language = code;
+				button.lang = code;
+				button.dir = dir;
+				button.textContent = label;
+				button.addEventListener("click", () => {
+					if (input.value !== code) {
+						if (window.jQuery) window.jQuery(input).val(code).trigger("change");
+						else {
+							input.value = code;
+							input.dispatchEvent(new Event("change", { bubbles: true }));
+						}
+					}
+					sync_print_language_choice(field);
+				});
+				group.append(button);
+			}
+			field.append(group);
+			field.classList.add("bnd-print-language-ready");
+			const sync = () => setTimeout(() => sync_print_language_choice(field));
+			if (window.jQuery) {
+				window.jQuery(input).on("change.bndPrintLanguage", sync);
+				window.jQuery(sidebar.querySelector('[data-fieldname="print_format"] input'))
+					.on("change.bndPrintLanguage", sync);
+			} else input.addEventListener("change", sync);
+		}
+		sync_print_language_choice(field);
 		return true;
 	}
 
@@ -11862,10 +13603,14 @@ function sb_zone_anchor(pane, zone, node) {
 		apply_viewport_mode();
 
 		observe_sidebar_width();
+		try_for(install_link_choice_behavior, 40, 150);
 		observe_list_accessibility();
 		try_for(install_list_recovery, 40, 150);
 		try_for(install_interaction_accessibility, 40, 150);
+		try_for(install_pos_gallery_guard, 40, 150);
+		try_for(mount_print_language_choice, 40, 150);
 		load_report_workbench();
+		load_report_landing();
 		// Set up BEFORE the bars mount: its MutationObserver is what notices
 		// them arriving, so there is no ordering to maintain below.
 		observe_bottom_reserve();
@@ -11992,12 +13737,15 @@ function sb_zone_anchor(pane, zone, node) {
 		if (window.jQuery) window.jQuery(document).on("page-change", lend_to_arrived_page);
 		if (frappe.router && frappe.router.on) {
 			frappe.router.on("change", () => {
+				if (!/^\/(app|desk)\/?$/.test(location.pathname) && !on_role_home_route())
+					document.documentElement.removeAttribute("data-bnd-home-pending");
 				if (redirect_apps_alias()) return;
 				close_menu();
 				drawer_set_open(false);
 				// The foot's claim is a form's; a list's primary action is the
 				// same class and must never be hidden by a cached form's foot.
 				bnd_disown("docfoot");
+				bnd_disown("docbar");
 				// And the path's, for the same reason: a doctype with no path of
 				// its own must not inherit a cached one's hidden pill.
 				bnd_disown("stagepath");
@@ -12027,7 +13775,10 @@ function sb_zone_anchor(pane, zone, node) {
 				try_for(enhance_onboarding_refresh, 40, 150);
 				try_for(install_list_recovery, 40, 150);
 				try_for(install_interaction_dialog_show, 40, 150);
+				try_for(install_pos_gallery_guard, 40, 150);
+				try_for(mount_print_language_choice, 40, 150);
 				load_report_workbench();
+				load_report_landing();
 				sb_resolve_workspace_from_route();
 				// The settings map (item 43 B3) is the first pane part that is
 				// conditional on the ROUTE, so the ladder alone cannot place it:
@@ -12069,6 +13820,7 @@ function sb_zone_anchor(pane, zone, node) {
 	// "shell ready" event, so wait for its anchor elements with a bounded
 	// poll, then mount. If the desk never appears (website page, login), the
 	// budget runs out and nothing happens — which is correct there.
+	try_for(() => theme_active() && install_link_choice_behavior(), 80, 100);
 	if (!redirect_apps_alias()) try_for(() => {
 		if (!window.frappe || !frappe.boot || !document.querySelector(".body-sidebar-container")) {
 			return false;

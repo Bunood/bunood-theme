@@ -8,6 +8,7 @@ import frappe
 from frappe.tests.classes.integration_test_case import IntegrationTestCase
 
 from bunood_theme.api import (
+	_dashboard_count,
 	_can_prove_complete_stock_scope,
 	_stock_below_reorder,
 	_stock_below_reorder_names,
@@ -223,6 +224,14 @@ class TestERPHomeContract(IntegrationTestCase):
 		stock = next(queue for queue in data["attention"] if queue["key"] == "stock_below_reorder")
 		self.assertEqual(stock["doctype"], "Item")
 		self.assertIn("admin_health", data)
+
+	def test_aggregate_draft_count_matches_the_permission_filtered_list(self) -> None:
+		company = frappe.get_list("Company", pluck="name", limit=1)[0]
+		filters = {"company": company, "docstatus": 0}
+		self.assertEqual(
+			_dashboard_count("Sales Invoice", filters=filters),
+			len(frappe.get_list("Sales Invoice", filters=filters, pluck="name", limit=0)),
+		)
 
 	def test_each_attention_count_matches_the_exact_permission_filtered_list(self) -> None:
 		data = get_home_dashboard()

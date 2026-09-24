@@ -2,11 +2,17 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const css=fs.readFileSync('bunood_theme/public/scss/components/_inputs.scss','utf8');
+const formCss=fs.readFileSync('bunood_theme/public/scss/surfaces/_form.scss','utf8');
 
 test('native forms, Quick Entry and composed forms share state selectors',()=>{
   for(const scope of ['.form-layout','.modal-dialog','.bnd-simple-composer'])assert.match(css,new RegExp(scope.replace('.','\\.')));
   for(const state of [':hover',':focus-visible','.has-error','aria-invalid="true"','[readonly]',':disabled','aria-busy="true"'])
     assert.ok(css.includes(state),`missing ${state}`);
+});
+
+test('composed simple pages paint a real field edge',()=>{
+  assert.match(formCss,/:is\(\.form-layout, \.bnd-simple-composer\) \.frappe-control/);
+  assert.match(formCss,/border: var\(--bnd-line\) solid var\(--bnd-form-field-border\)/);
 });
 
 test('focus and validation use design tokens and disabled fields remain legible',()=>{

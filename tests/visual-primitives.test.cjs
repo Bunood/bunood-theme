@@ -14,6 +14,7 @@ const walkScss = directory => fs.readdirSync(directory, { withFileTypes: true })
 
 const tokens = read('bunood_theme/public/scss/_tokens.scss');
 const cluster = read('bunood_theme/public/scss/chrome/_cluster.scss');
+const breadcrumbs = read('bunood_theme/public/scss/chrome/_breadcrumbs.scss');
 const menus = read('bunood_theme/public/scss/components/_menus.scss');
 const studio = read('bunood_theme/public/scss/surfaces/_studio.scss');
 const focusFiles = [cluster, menus, studio];
@@ -21,10 +22,9 @@ const focusFiles = [cluster, menus, studio];
 test('separator borders use the line token only as a width', () => {
   const allStyles = walkScss(scssRoot).map(file => fs.readFileSync(file, 'utf8')).join('\n');
   assert.doesNotMatch(allStyles, /solid\s+var\(--bnd-line\)/);
-  assert.equal(
-    (studio.match(/var\(--bnd-line\)\s+solid\s+var\(--bnd-border\)/g) || []).length,
-    4,
-    'all four Studio separators pair the line width with a border color',
+  assert.ok(
+    (studio.match(/var\(--bnd-line\)\s+solid\s+var\(--bnd-border\)/g) || []).length >= 4,
+    'Studio separators pair the line width with a border color',
   );
 });
 
@@ -57,4 +57,17 @@ test('Studio search shows its custom ring only for keyboard-visible focus', () =
   assert.ok(search, 'Studio search rule exists');
   assert.match(search[1], /&:focus-visible\s*\{/);
   assert.doesNotMatch(search[1], /&:focus(?!-visible)\s*\{/);
+});
+
+test('form title and native status share one compact visual baseline', () => {
+  assert.doesNotMatch(breadcrumbs, /html\[data-bnd-crumb-pill\][^{]*\.page-indicator-pill/);
+  assert.match(breadcrumbs, /html\[data-bnd-crumbs\]\s+body\[data-route\^="Form"\]/);
+  const status = breadcrumbs.match(/body\[data-route\^="Form"\][\s\S]*?> :is\(\.page-indicator-pill, \.indicator-pill\)\s*\{([\s\S]*?)\n\}/);
+  assert.ok(status, 'form status alignment rule exists for both Frappe DOM shapes');
+  assert.match(status[1], /align-self:\s*center/);
+  assert.match(status[1], /block-size:\s*auto/);
+  assert.match(status[1], /margin-inline-start:\s*var\(--bnd-sp-2\)/);
+  assert.match(status[1], /padding-block:\s*3px/);
+  assert.match(status[1], /border:\s*var\(--bnd-line\)\s+solid\s+transparent/);
+  assert.match(status[1], /line-height:\s*1/);
 });

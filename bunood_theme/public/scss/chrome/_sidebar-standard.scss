@@ -1,0 +1,324 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// CANONICAL SIDEBAR
+//
+// One component across dashboards, lists, reports and forms. Route data may
+// change; geometry, hierarchy, interaction states and icon treatment do not.
+// This partial intentionally loads after the historical sidebar option matrix
+// and replaces its visual branches with one maintained contract.
+// ============================================================================
+
+html[data-bnd-sb-standard][data-bnd-sb-color] {
+  --bnd-sb-row-h: 40px;
+  --bnd-sb-icon-box: 30px;
+  --bnd-sb-icon-size: 19px;
+  --bnd-sb-pane-pad: 12px;
+  --bnd-sb-radius: 16px;
+  --bnd-sb-canonical-bg: color-mix(in srgb, var(--bnd-brand) 3%, var(--bnd-pane));
+  --bnd-sb-hover: color-mix(in srgb, var(--bnd-ink) 6%, transparent);
+  --bnd-sb-selected: color-mix(in srgb, var(--bnd-brand) 12%, transparent);
+  --bnd-sb-selected-border: color-mix(in srgb, var(--bnd-brand) 30%, transparent);
+
+  .body-sidebar-container {
+    background: var(--bnd-sb-canonical-bg);
+    border-inline-end: var(--bnd-line) solid var(--bnd-border);
+    box-shadow: none;
+  }
+
+  .body-sidebar-container .body-sidebar {
+    gap: 0;
+    padding: var(--bnd-sb-pane-pad);
+    background: transparent;
+  }
+
+  // The workspace switcher is a quiet control, not a second primary action.
+  .body-sidebar .bnd-sb-head {
+    inline-size: 100%;
+    min-block-size: 48px;
+    margin: 4px 0 var(--bnd-sp-5);
+    padding: 8px 10px;
+    gap: 10px;
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-lg);
+    background: var(--bnd-raised);
+    color: var(--bnd-ink);
+    box-shadow: var(--bnd-shadow-sm);
+    font-size: var(--bnd-text-base);
+    font-weight: var(--bnd-weight-semibold);
+    transition: background-color var(--bnd-dur-fast) ease, border-color var(--bnd-dur-fast) ease, box-shadow var(--bnd-dur-fast) ease;
+
+    &:hover {
+      background: color-mix(in srgb, var(--bnd-brand) 5%, var(--bnd-raised));
+      border-color: color-mix(in srgb, var(--bnd-brand) 24%, var(--bnd-border));
+      box-shadow: var(--bnd-shadow-md);
+    }
+
+    &:focus-visible {
+      outline: var(--bnd-line-2) solid var(--bnd-brand-ink);
+      outline-offset: 2px;
+    }
+
+    .bnd-sb-head-ico {
+      inline-size: 32px;
+      block-size: 32px;
+      border-radius: 9px;
+      background: var(--bnd-sb-selected);
+      color: var(--bnd-brand-ink);
+
+      svg {
+        inline-size: var(--bnd-sb-icon-size);
+        block-size: var(--bnd-sb-icon-size);
+        color: currentColor;
+        --icon-stroke: currentColor;
+      }
+
+      img {
+        inline-size: var(--bnd-sb-icon-size);
+        block-size: var(--bnd-sb-icon-size);
+        filter: none;
+        opacity: 1;
+      }
+    }
+
+    .bnd-sb-head-name {
+      min-inline-size: 0;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: var(--bnd-leading-base);
+    }
+
+    .bnd-sb-head-chev {
+      inline-size: 24px;
+      block-size: 24px;
+      color: var(--bnd-ink-muted);
+      border-radius: var(--bnd-radius-md);
+
+      svg { inline-size: 14px; block-size: 14px; }
+    }
+  }
+
+  .body-sidebar-top {
+    inline-size: calc(100% + 4px);
+    margin-inline: -2px;
+    padding: 0 2px 16px;
+    gap: 0;
+  }
+
+  .body-sidebar-top .standard-items-sections,
+  .body-sidebar-top .sidebar-items {
+    inline-size: 100%;
+  }
+
+  // One row geometry and one icon box for every destination.
+  .body-sidebar .standard-sidebar-item {
+    min-block-size: var(--bnd-sb-row-h);
+    margin-block: 1px;
+    padding: 0;
+    border: var(--bnd-line) solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--bnd-sb-ink-muted);
+    font-size: var(--bnd-text-sm);
+    font-weight: var(--bnd-weight-normal);
+    transition: background-color var(--bnd-dur-fast) ease, border-color var(--bnd-dur-fast) ease, color var(--bnd-dur-fast) ease;
+
+    .item-anchor {
+      inline-size: 100%;
+      block-size: auto;
+      min-block-size: calc(var(--bnd-sb-row-h) - 2px);
+      padding-block: var(--bnd-sp-1);
+      padding-inline: 7px 9px;
+      gap: 9px;
+      border-radius: inherit;
+      overflow: visible;
+    }
+
+    .sidebar-item-label {
+      min-inline-size: 0;
+      // Arabic glyph ink extends beyond the tight Latin line box. Clipping the
+      // label therefore removed bowls and dots even when the full word fit.
+      // Let destinations grow vertically and wrap instead of hiding their end.
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      line-height: var(--bnd-leading-base);
+    }
+
+    .sidebar-item-icon,
+    .bnd-sb-chip {
+      display: grid;
+      place-items: center;
+      flex: 0 0 var(--bnd-sb-icon-box);
+      inline-size: var(--bnd-sb-icon-box);
+      block-size: var(--bnd-sb-icon-box);
+      margin: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--bnd-sb-ink-muted);
+
+      svg,
+      img {
+        inline-size: var(--bnd-sb-icon-size);
+        block-size: var(--bnd-sb-icon-size);
+        margin: 0;
+      }
+
+      svg,
+      svg use,
+      svg .current-color {
+        color: currentColor;
+        stroke: currentColor;
+        --icon-stroke: currentColor;
+      }
+    }
+
+    &:hover {
+      border-color: transparent;
+      background: var(--bnd-sb-hover);
+      color: var(--bnd-sb-ink);
+    }
+
+    &:focus-within {
+      outline: var(--bnd-line-2) solid var(--bnd-brand-ink);
+      outline-offset: 1px;
+    }
+  }
+
+  // Current destination: restrained surface, contrast-fitted pane text, and a
+  // clear white pictogram. There is no route-specific color or alternate shape.
+  .body-sidebar .standard-sidebar-item.active-sidebar,
+  .body-sidebar .sidebar-item-container.bnd-home-current .standard-sidebar-item.active-sidebar {
+    border: var(--bnd-line) solid var(--bnd-sb-selected-border);
+    border-radius: 10px;
+    background: var(--bnd-sb-selected);
+    // Brand ink is fitted against the pane itself; on the selected brand wash
+    // it measured 4.12:1. The pane's primary ink keeps the label above AA.
+    color: var(--bnd-sb-ink);
+    box-shadow: none;
+    font-weight: var(--bnd-weight-semibold);
+
+    .sidebar-item-icon {
+      background: var(--bnd-brand-solid);
+      color: var(--bnd-on-brand);
+    }
+  }
+
+  // Sections organize destinations without becoming differently colored cards.
+  .body-sidebar-top .sidebar-items > .sidebar-item-container.section-item {
+    margin-block: 12px 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .body-sidebar .sidebar-item-container.section-item > .standard-sidebar-item {
+    min-block-size: 30px;
+    margin-block: 0 3px;
+    border: 0;
+    border-block-start: var(--bnd-line) solid var(--bnd-border);
+    border-radius: 0;
+    color: var(--bnd-ink-muted);
+    background: transparent;
+
+    .item-anchor {
+      min-block-size: 30px;
+      padding-block-start: 7px;
+      padding-inline: 7px 6px;
+      // Frappe marks `.section-break` with muted gray `!important`; this scoped
+      // reset returns the native anchor to the section's fitted Bunood ink.
+      color: inherit !important;
+    }
+
+    .sidebar-item-icon {
+      inline-size: 22px;
+      block-size: 22px;
+      flex-basis: 22px;
+      border-radius: 6px;
+      color: var(--bnd-brand-ink);
+
+      svg,
+      img { inline-size: 16px; block-size: 16px; }
+    }
+
+    .sidebar-item-label {
+      color: inherit;
+      font-size: var(--bnd-text-xs);
+      font-weight: var(--bnd-weight-semibold);
+      text-transform: uppercase;
+    }
+
+    &:hover {
+      background: transparent;
+      color: var(--bnd-ink);
+    }
+  }
+
+  .body-sidebar .sidebar-child-item {
+    margin-inline-start: 0;
+  }
+
+  // Search and optional workspace filtering share the same input treatment.
+  .body-sidebar .navbar-search-bar > .standard-sidebar-item,
+  .bnd-sb-filter-input {
+    min-block-size: var(--bnd-sb-row-h);
+    margin: 0 0 12px;
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: 10px;
+    background: var(--bnd-raised);
+    box-shadow: none;
+
+    &:hover,
+    &:focus {
+      border-color: color-mix(in srgb, var(--bnd-brand) 32%, var(--bnd-border));
+    }
+  }
+
+  .body-sidebar .navbar-search-bar > .standard-sidebar-item .item-anchor {
+    block-size: var(--bnd-sb-row-h);
+    padding-inline: 8px 10px;
+  }
+
+  .bnd-sb-filter {
+    margin-inline: 0;
+  }
+
+  // Footer utilities are one quiet dock with the same cell geometry.
+  .body-sidebar .bnd-sb-band {
+    margin-block-start: auto;
+    padding: 8px;
+    gap: 6px;
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-lg);
+    background: var(--bnd-raised);
+    box-shadow: var(--bnd-shadow-sm);
+
+    > button {
+      inline-size: 36px;
+      block-size: 36px;
+      border-radius: 9px;
+      color: var(--bnd-ink-muted);
+
+      &:hover {
+        background: var(--bnd-sb-hover);
+        color: var(--bnd-ink);
+      }
+    }
+  }
+}
+
+// The mobile drawer inherits the same component; its shell still belongs to
+// Frappe's native off-canvas behavior from _sidebar-layout.scss.
+html[data-bnd-sb-standard][data-bnd-narrow] .body-sidebar-container.expanded .body-sidebar {
+  padding: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-bnd-sb-standard] .body-sidebar :is(.bnd-sb-head, .standard-sidebar-item) {
+    transition: none;
+  }
+}

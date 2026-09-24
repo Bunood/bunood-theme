@@ -465,14 +465,6 @@ LAYOUT_CHROME = {
     # there has ever been, which is not what "the pane opens as a sheet from the
     # dock" means. At rest the desk looks identical either way.
     "Floating Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 1},
-    # The fifth row, and slice 8's field is what makes it expressible: it is
-    # Unified Side Pane with the pane at its Rail state. Until `sidebar_pane_state`
-    # existed this row was byte-identical to Unified's and `check_layout_identity`
-    # refused it — correctly, because a row nothing can tell apart is not a row.
-    # The rail's one expansion control lives in the top bar. Shipping the rail
-    # without that host either strands navigation or forces the pane open, so
-    # this shape includes the control surface it actually needs.
-    "Rail + Flyout": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
 }
 
 
@@ -496,7 +488,6 @@ LAYOUT_PANE = {
     "Taskbar": "Hidden",
     "Top Taskbar": "Hidden",
     "Floating Bar": "Hidden",
-    "Rail + Flyout": "Rail",
 }
 
 
@@ -558,16 +549,6 @@ LAYOUT_TENANTS = {
         "inbox_placement": "Top Bar End",
         "user_placement": "Top Bar End",
         "search_placement": "Top Bar Center",
-        "language_placement": "Bottom Bar End",
-        "appearance_placement": "Bottom Bar End",
-    },
-    "Rail + Flyout": {
-        # The same tenants as Unified: this row differs by the pane's STATE, which
-        # is what LAYOUT_PANE says and what tells the two apart.
-        "start_placement": "Off",
-        "inbox_placement": "Side Pane End",
-        "user_placement": "Side Pane End",
-        "search_placement": "Side Pane Start",
         "language_placement": "Bottom Bar End",
         "appearance_placement": "Bottom Bar End",
     },

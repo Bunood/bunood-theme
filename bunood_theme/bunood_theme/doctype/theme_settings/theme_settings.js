@@ -1518,7 +1518,10 @@ function bnd_settings_note(key, frm) {
  */
 function bnd_tr_layout(name) {
 	if (!name) return "";
-	return name === "Custom" ? __("Custom") : __(name);
+	// Theme names may share an English word with a different ERP meaning.
+	// Ask for the theme-name context on both derived and card paths; Frappe
+	// falls back to the bare message when a contextual row is not required.
+	return name === "Custom" ? __("Custom") : __(name, null, "theme name");
 }
 
 /**
@@ -3099,27 +3102,6 @@ const BND_LAYOUTS = [
 			"</svg>",
 	},
 	{
-		value: "Rail + Flyout",
-		blurb: () => __("A slim rail of icons that expands when you reach it. The pane is there when you want it and 52px when you do not."),
-		svg:
-			'<svg viewBox="0 0 120 76">' +
-			'<rect x="1" y="1" width="118" height="74" rx="4" fill="none" stroke="currentColor" opacity=".25"/>' +
-			'<rect x="2" y="2" width="13" height="72" fill="currentColor" opacity=".1"/>' +
-			'<rect x="5" y="5" width="7" height="7" rx="2" fill="var(--primary, #3d8150)"/>' +
-			'<rect x="5" y="17" width="7" height="7" rx="2" fill="currentColor" opacity=".28"/>' +
-			'<rect x="5" y="27" width="7" height="7" rx="2" fill="currentColor" opacity=".2"/>' +
-			'<rect x="5" y="37" width="7" height="7" rx="2" fill="currentColor" opacity=".2"/>' +
-			'<rect x="17" y="8" width="30" height="52" rx="3" fill="currentColor" opacity=".07"/>' +
-			'<rect x="20" y="12" width="22" height="4" rx="2" fill="currentColor" opacity=".22"/>' +
-			'<rect x="20" y="21" width="18" height="3" fill="currentColor" opacity=".14"/>' +
-			'<rect x="20" y="28" width="18" height="3" fill="currentColor" opacity=".14"/>' +
-			'<rect x="54" y="8" width="60" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="54" y="16" width="60" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="54" y="24" width="60" height="4" fill="currentColor" opacity=".1"/>' +
-			'<rect x="17" y="69" width="101" height="5" fill="currentColor" opacity=".14"/>' +
-			"</svg>",
-	},
-	{
 		value: "Floating Bar",
 		blurb: () => __("No side pane — workspaces, search, notifications and profile float in a bottom pill. Full-width pages."),
 		svg:
@@ -3438,18 +3420,6 @@ const BND_SB_GROUPS = [
 		],
 	},
 	{
-		field: "sidebar_rail_button",
-		zone: "rail",
-		title: () => __("Rail expand button"),
-		desc: () => __("An always-visible expand/collapse control on the rail."),
-		options: [
-			{ value: "None", name: () => __("None"), thumb: bnd_sb_pane("currentColor", "opacity:.14") },
-			{ value: "Edge", name: () => __("Edge"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:50%;inset-inline-start:24px;translate:0 -50%"></span>' },
-			{ value: "Header", name: () => __("Header"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:8px;inset-inline-start:20px"></span>' },
-		],
-	},
-	// Rail button icon moved to the Icons axis (item 23).
-	{
 		field: "sidebar_badges",
 		zone: "links",
 		title: () => __("Count badges"),
@@ -3706,7 +3676,7 @@ const BND_THEME_ART = {
 	"Bunood Day": { name: () => __("Bunood Day"), pane: "glass", card: "float", rows: "plain", blurb: () => __("The same design in daylight — a floating card lifted off the page instead of attached solid.") },
 	"Focus": { name: () => __("Focus"), pane: "plain", card: "hairline", rows: "rule", blurb: () => __("Dense hairlines, monochrome glyphs, nothing raised.") },
 	"Canvas": { name: () => __("Canvas"), pane: "tint", card: "open", rows: "none", blurb: () => __("Unframed and text-forward — the container does the framing.") },
-	"Ledger": { name: () => __("Ledger"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
+	"Ledger": { name: () => __("Ledger", null, "theme name"), pane: "tint", card: "hairline", rows: "zebra", blurb: () => __("Ruled and precise: zebra rows, weighted tiles.") },
 	"Elevated": { name: () => __("Elevated"), pane: "glass", card: "float", rows: "plain", blurb: () => __("Soft tiles, filled empties, rounded elevation throughout.") },
 	"Carbon": { name: () => __("Carbon"), pane: "dark", card: "hairline", rows: "rule", blurb: () => __("Structured and sharp — a grid you can feel, on a deep pane.") },
 	"Records": { name: () => __("Records"), pane: "tint", card: "sheet", rows: "rule", blurb: () => __("Document-centric: a paper sheet on a headed board.") },
@@ -3922,17 +3892,16 @@ const BND_SIDEBAR_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
-	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",
+	"sidebar_pane_width", "sidebar_badges",
 	"sidebar_filter",
 ];
-const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs"];
+const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_crumbs"];
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.ICON_DEFAULTS. */
 const BND_ICON_DEFAULTS = {
 	icon_style: "Filled Color",
 	icon_weight: "1.5",
 	icon_source: "Smart",
-	icon_rail_button: "Chevron",
 	icon_crumbs: "First Crumb",
 };
 
@@ -3992,16 +3961,6 @@ const BND_ICON_GROUPS = [
 			{ value: "First Crumb", name: () => __("First crumb"), glyph: "▣›b" },
 			{ value: "Every Crumb", name: () => __("Every crumb"), glyph: "▣›▣" },
 			{ value: "Off", name: () => __("Off"), glyph: "a›b" },
-		],
-	},
-	{
-		field: "icon_rail_button",
-		title: () => __("Rail button icon"),
-		desc: () => __("The glyph on the side pane's collapse button."),
-		options: [
-			{ value: "Chevron", name: () => __("Chevron"), glyph: "›" },
-			{ value: "Menu", name: () => __("Menu"), glyph: "☰" },
-			{ value: "Arrows", name: () => __("Arrows"), glyph: "⇄" },
 		],
 	},
 ];
@@ -4093,8 +4052,8 @@ function bnd_render_icons_picker(frm, host) {
 }
 
 /**
- * LIVE PREVIEW. The Icons fields feed THREE runtimes — the sidebar (style,
- * source, rail button), the breadcrumb (module icon), and the document-level
+ * LIVE PREVIEW. The Icons fields feed THREE runtimes — the sidebar (style and
+ * missing-icon source), the breadcrumb (module icon), and the document-level
  * weight — so this calls all three apply hooks. Each reads only its own fields
  * and its `set` is a no-op on an absent value, so a partial icon-values object
  * never disturbs a pane's other settings.
@@ -6369,7 +6328,7 @@ const BND_PRINT_DEFAULTS = {
 	print_heading_style: "Original",
 	print_accent: "Brand panels",
 	print_letterhead: "Bilingual Split",
-	print_title_lang: "Both",
+	print_title_lang: "Follow print language",
 	print_qr: "Show",
 	print_qr_place: "Head end",
 	print_qr_size: "Medium",
@@ -7653,7 +7612,7 @@ const BND_PRINT_GROUPS = [
 	{
 		field: "print_title_lang",
 		title: () => __("Document title"),
-		desc: () => __("Which halves of the bilingual title render on the Bunood formats."),
+		desc: () => __("Follow Print Language for a clean Arabic or English document; use an override only when a customer requires it."),
 	},
 	{
 		field: "print_qr",
@@ -8614,7 +8573,7 @@ const BND_STATUS_SELECTS = [
 
 const BND_STATUS_TOGGLES = [
 	{ field: "status_segments_jobs", name: () => __("Background jobs"), desc: () => __("Failed and running counts. System Managers only — nobody else is even asked about.") },
-	{ field: "status_segments_errors", name: () => __("Errors"), desc: () => __("Unseen error count, using ERPNext's own permission-filtered counter.") },
+	{ field: "status_segments_errors", name: () => __("Errors"), desc: () => __("Unseen errors from the last 24 hours, using ERPNext's own permission-filtered counter.") },
 	{ field: "status_segments_scheduler", name: () => __("Scheduler"), desc: () => __("Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only.") },
 	{ field: "status_segments_connection", name: () => __("Live updates"), desc: () => __("Says when the realtime connection is down. The desk still works — what stops is anything updating on its own.") },
 	{ field: "status_segments_density", name: () => __("Density toggle"), desc: () => __("Click to cycle row density.") },

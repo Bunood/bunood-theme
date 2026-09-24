@@ -1,5 +1,13 @@
 # Bunood V2 UI Handoff
 
+> **Superseded for the production MVP.** This file describes the older
+> multi-layout theme line and `demo.bunood.test`. For the current standardized
+> shell, invoice workflow, release candidate, active gates, and remaining owner/
+> physical acceptance, use
+> [`docs/BUNOOD-PRODUCTION-MVP-AUTHORITATIVE-HANDOFF-2026-09-19.md`](docs/BUNOOD-PRODUCTION-MVP-AUTHORITATIVE-HANDOFF-2026-09-19.md)
+> and
+> [`docs/BUNOOD-MVP-RELEASE-RECEIPT-DRAFT-2026-09-20.md`](docs/BUNOOD-MVP-RELEASE-RECEIPT-DRAFT-2026-09-20.md).
+
 **Prepared:** 2026-08-30  
 **Repository:** `bunood-theme-ui`  
 **Active branch:** `feat/theme-login-dashboard`  
@@ -354,4 +362,3 @@ The overhaul is ready to merge only when:
 - Local deployment survives after the deploy shell exits.
 - New bundle hashes are served and referenced by the rendered pages.
 - The commit/push identity is `mrbrokenrightarm`.
-

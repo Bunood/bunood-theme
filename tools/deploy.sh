@@ -71,6 +71,20 @@ for c in "${APP_CONTAINERS[@]}"; do
 done
 APP_CONTAINERS=("${PRESENT[@]}")
 
+# The frontend owns an independent copy of the app tree. Shipping only `dist/`
+# leaves its raw public modules stale (or missing), even though the backend and
+# workers are current. Desk sessions can then keep executing the older form
+# composer after a deploy. Keep every app container on the same source tree;
+# the explicit dist copy below remains the fast, verified asset delivery path.
+SOURCE_CONTAINERS=("${APP_CONTAINERS[@]}")
+if docker inspect "$FRONTEND" >/dev/null 2>&1; then
+	SEEN_FRONTEND=0
+	for c in "${SOURCE_CONTAINERS[@]}"; do
+		[[ "$c" == "$FRONTEND" ]] && SEEN_FRONTEND=1
+	done
+	[[ "$SEEN_FRONTEND" == "1" ]] || SOURCE_CONTAINERS+=("$FRONTEND")
+fi
+
 # ── Build ───────────────────────────────────────────────────────────────────
 if [[ "${1:-}" != "--no-build" ]]; then
 	say "building"
@@ -127,7 +141,7 @@ else
 	TAR="$(mktemp -t bnd-XXXXXX.tgz)"
 	trap 'rm -f "$TAR"' EXIT
 	tar -czf "$TAR" bunood_theme
-	for c in "${APP_CONTAINERS[@]}"; do
+	for c in "${SOURCE_CONTAINERS[@]}"; do
 		docker cp "$TAR" "$c:/tmp/bnd.tgz" >/dev/null
 		docker exec "$c" bash -lc 'cd /home/frappe/frappe-bench/apps/bunood_theme && tar -xzf /tmp/bnd.tgz'
 		say "shipped -> $c"

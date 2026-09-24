@@ -14,7 +14,7 @@ import frappe
 from frappe import _
 
 
-ACCEPTED = {"Accepted", "Accepted with warnings", "Duplicate"}
+ACCEPTED = {"Accepted", "Accepted with warnings"}
 SENDABLE = {"Ready For Batch", "Resend", "Corrected"}
 
 
@@ -41,6 +41,11 @@ def classify_status(
         return "needs_csid"
     if invoice_status in ACCEPTED:
         return "accepted_with_warnings" if invoice_status == "Accepted with warnings" else "accepted"
+    if invoice_status == "Duplicate":
+        # A duplicate transport result is not proof of the original result.  It
+        # must be reconciled to an earlier response for this exact UUID/payload
+        # before the UI may call the invoice accepted.
+        return "duplicate_response"
     if invoice_status == "Rejected":
         return "rejected"
     if invoice_status == "Clearance switched off":

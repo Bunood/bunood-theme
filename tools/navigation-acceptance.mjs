@@ -98,6 +98,9 @@ async function openDeskPage(page, route = "/desk/home") {
 async function paneSnapshot(page) {
 	return page.evaluate(() => {
 		const container = document.querySelector(".body-sidebar-container");
+		const toggles = [...document.querySelectorAll(
+			".bnd-topbar .bnd-topbar-sidebar-toggle, .page-head .bnd-pagehead-sidebar-toggle"
+		)];
 		const visible = node => {
 			if (!node) return false;
 			const style = getComputedStyle(node);
@@ -108,16 +111,17 @@ async function paneSnapshot(page) {
 			direction: getComputedStyle(document.documentElement).direction,
 			paneVisible: visible(container),
 			width: container ? Math.round(container.getBoundingClientRect().width) : 0,
-			toggles: document.querySelectorAll(".page-head .bnd-pagehead-sidebar-toggle").length,
+			toggles: toggles.filter(visible).length,
 			nativeCompetitors: [...document.querySelectorAll(".body-sidebar-container .collapse-sidebar-link")].filter(visible).length,
-			compactEntries: document.querySelectorAll(".bnd-compact-nav .bnd-rail-entry").length,
-			arrow: document.querySelector(".page-head .bnd-pagehead-sidebar-toggle")?.dataset.bndArrow || "",
+			arrow: toggles.find(visible)?.dataset.bndArrow || "",
 		};
 	});
 }
 
 async function clickPaneToggle(page, expected) {
-	await page.locator(".page-head .bnd-pagehead-sidebar-toggle").click();
+	await page.locator(
+		".bnd-topbar .bnd-topbar-sidebar-toggle:visible, .page-head .bnd-pagehead-sidebar-toggle:visible"
+	).click();
 	await page.waitForFunction(
 		state => document.documentElement.getAttribute("data-bnd-sb-panestate") === state,
 		expected,
@@ -136,11 +140,6 @@ async function assertDesktopCycle(page, direction) {
 	assert(shot.toggles === 1 && shot.nativeCompetitors === 0, "desktop must expose one control: " + JSON.stringify(shot));
 	assert(shot.arrow === "start", "Open arrow must point to logical start: " + JSON.stringify(shot));
 
-	shot = await clickPaneToggle(page, "rail");
-	assert(shot.paneVisible && shot.width >= 88 && shot.width <= 104, "Rail has wrong geometry: " + JSON.stringify(shot));
-	assert(shot.compactEntries >= 4, "Rail lacks named permitted destinations: " + JSON.stringify(shot));
-	assert(shot.arrow === "start", "Rail arrow must continue toward logical start: " + JSON.stringify(shot));
-
 	shot = await clickPaneToggle(page, "hidden");
 	assert(!shot.paneVisible && shot.toggles === 1, "Hidden must remove the pane and keep one recovery control: " + JSON.stringify(shot));
 	assert(shot.arrow === "end", "Hidden arrow must point toward logical end: " + JSON.stringify(shot));
@@ -150,7 +149,7 @@ async function assertDesktopCycle(page, direction) {
 }
 
 async function assertAppsHomeHistory(page) {
-	await page.evaluate(() => window.bunood_theme.pane_state("Rail", { persist: true }));
+	await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { persist: true }));
 	await page.waitForTimeout(600);
 	await page.goto(URL_BASE + "/desk/desktop", { waitUntil: "domcontentloaded", timeout: 60000 });
 	await page.waitForSelector('[data-bnd-part="home"]', { timeout: 30000 });
@@ -175,15 +174,15 @@ async function assertAppsHomeHistory(page) {
 		"All Apps Home has wrong geometry or accessible name: " + JSON.stringify(homeGeometry));
 	await homes.click();
 	await page.waitForURL(/\/desk\/selling(?:[/?#]|$)/, { timeout: 20000 });
-	assert((await paneSnapshot(page)).state === "rail", "Apps to Home lost the per-user pane state");
+	assert((await paneSnapshot(page)).state === "hidden", "Apps to Home lost the per-user pane state");
 
 	await page.goBack({ waitUntil: "domcontentloaded" });
 	await page.waitForURL(/\/desk\/desktop(?:[/?#]|$)/, { timeout: 20000 });
 	assert(await page.locator('[data-bnd-part="home"]:visible').count() === 1, "Back navigation lost the Home return");
 	await page.goForward({ waitUntil: "domcontentloaded" });
 	await page.waitForURL(/\/desk\/selling(?:[/?#]|$)/, { timeout: 20000 });
-	assert((await paneSnapshot(page)).state === "rail", "Forward navigation lost sidebar state");
-	assert(storedPaneState() === "Rail", "the settled desktop state was not stored for the fixture user");
+	assert((await paneSnapshot(page)).state === "hidden", "Forward navigation lost sidebar state");
+	assert(storedPaneState() === "Hidden", "the settled desktop state was not stored for the fixture user");
 }
 
 async function visibleDesktopTiles(page) {
@@ -347,15 +346,88 @@ async function assertMobile(browser) {
 				const style = getComputedStyle(node);
 				return style.display !== "none" && style.visibility !== "hidden" && node.getClientRects().length > 0;
 			};
+			const mobileCells = [...document.querySelectorAll(
+				'.bnd-statusbar [data-bnd-part="home"], .bnd-statusbar [data-bnd-part="apps"], .bnd-statusbar [data-bnd-part="search"], .bnd-statusbar [data-bnd-part="user"]'
+			)].filter(visible);
+			const widths = mobileCells.map(node => Math.round(node.getBoundingClientRect().width));
+			const icons = mobileCells.map(node => {
+				const icon = node.querySelector("svg, .avatar");
+				if (!icon) return 0;
+				const rect = icon.getBoundingClientRect();
+				return Math.round(Math.max(rect.width, rect.height));
+			});
 			return {
-				bunoodToggles: document.querySelectorAll(".bnd-pagehead-sidebar-toggle").length,
+				bunoodToggles: document.querySelectorAll(".bnd-pagehead-sidebar-toggle, .bnd-topbar-sidebar-toggle").length,
 				nativeToggle: visible(document.querySelector(".page-head .sidebar-toggle-btn")),
 				narrow: document.documentElement.hasAttribute("data-bnd-narrow"),
 				state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+				mobileCells: mobileCells.length,
+				widthSpread: widths.length ? Math.max(...widths) - Math.min(...widths) : null,
+				iconSpread: icons.length ? Math.max(...icons) - Math.min(...icons) : null,
+				overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
 			};
 		});
-		assert(state.narrow && state.bunoodToggles === 0 && state.nativeToggle, "mobile drawer ownership is wrong: " + JSON.stringify(state));
-		assert(storedPaneState() === "Rail", "loading mobile changed the desktop preference");
+		assert(
+			state.narrow && state.bunoodToggles === 0 && !state.nativeToggle,
+			"mobile must not expose a competing sidebar toggle: " + JSON.stringify(state)
+		);
+		assert(
+			state.mobileCells === 4 && state.widthSpread <= 2 && state.iconSpread <= 2,
+			"mobile navigation cells are not uniform: " + JSON.stringify(state)
+		);
+		assert(state.overflow <= 1, "mobile shell overflows: " + JSON.stringify(state));
+		assert(storedPaneState() === "Hidden", "loading mobile changed the desktop preference");
+
+		// The Apps route has its own native navbar and desktop-home ownership
+		// stamps. Those desktop-only rules once hid the mobile Home destination
+		// and left a three-cell bar shifted by one sidebar width. Exercise the
+		// actual transition rather than accepting only the Home route.
+		await page.locator('.bnd-statusbar [data-bnd-part="apps"]:visible').click();
+		await page.waitForURL(/\/desk\/desktop(?:[/?#]|$)/, { timeout: 20000 });
+		await page.waitForSelector(".desktop-wrapper .desktop-icon:visible", { timeout: 30000 });
+		await page.waitForTimeout(600);
+		const appsState = await page.evaluate(() => {
+			const visible = node => {
+				if (!node) return false;
+				const style = getComputedStyle(node);
+				return style.display !== "none" && style.visibility !== "hidden" && node.getClientRects().length > 0;
+			};
+			const bar = document.querySelector(".bnd-statusbar");
+			const barRect = bar?.getBoundingClientRect();
+			const cells = [...document.querySelectorAll(
+				'.bnd-statusbar [data-bnd-part="home"], .bnd-statusbar [data-bnd-part="apps"], ' +
+				'.bnd-statusbar [data-bnd-part="search"], .bnd-statusbar [data-bnd-part="user"]'
+			)].filter(visible);
+			const widths = cells.map(node => node.getBoundingClientRect().width);
+			const main = document.querySelector(".main-section");
+			if (main) main.scrollTop = main.scrollHeight;
+			const tiles = [...document.querySelectorAll(".desktop-wrapper .desktop-icon")].filter(visible);
+			const lastRect = tiles.at(-1)?.getBoundingClientRect();
+			return {
+				parts: cells.map(node => node.dataset.bndPart).sort(),
+				widthSpread: widths.length ? Math.max(...widths) - Math.min(...widths) : null,
+				barLeft: barRect?.left,
+				barRight: barRect?.right,
+				viewportWidth: innerWidth,
+				current: document.querySelector('.bnd-statusbar [aria-current="page"]')?.dataset.bndPart || "",
+				lastBottom: lastRect?.bottom,
+				barTop: barRect?.top,
+			};
+		});
+		assert(
+			JSON.stringify(appsState.parts) === JSON.stringify(["apps", "home", "search", "user"]) &&
+			appsState.widthSpread <= 2,
+			"Apps route lost the four equal mobile destinations: " + JSON.stringify(appsState)
+		);
+		assert(
+			Math.abs(appsState.barLeft) <= 1 && Math.abs(appsState.barRight - appsState.viewportWidth) <= 1,
+			"Apps route mobile bar does not span the viewport: " + JSON.stringify(appsState)
+		);
+		assert(appsState.current === "apps", "Apps route current marker is wrong: " + JSON.stringify(appsState));
+		assert(
+			appsState.lastBottom <= appsState.barTop + 1,
+			"Apps grid cannot scroll its final card above the mobile bar: " + JSON.stringify(appsState)
+		);
 		assert(errors.length === 0, "mobile browser errors: " + JSON.stringify(errors));
 	} finally {
 		await context.close();
@@ -382,7 +454,7 @@ try {
 	const arabicErrors = collectErrors(arabicPage);
 	await openDeskPage(arabicPage);
 	await assertDesktopCycle(arabicPage, "rtl");
-	await arabicPage.evaluate(() => window.bunood_theme.pane_state("Rail", { persist: true }));
+	await arabicPage.evaluate(() => window.bunood_theme.pane_state("Hidden", { persist: true }));
 	await arabicPage.waitForTimeout(600);
 	assert(arabicErrors.length === 0, "Arabic desktop browser errors: " + JSON.stringify(arabicErrors));
 	await arabic.close();
@@ -394,7 +466,7 @@ try {
 	console.log(JSON.stringify({
 		status: "passed",
 		user: USER,
-		states: ["Open", "Rail", "Hidden", "Open"],
+		states: ["Open", "Hidden", "Open"],
 		directions: ["ltr", "rtl"],
 		viewports: ["1440x900", "1024x800", "430x900"],
 		apps_home_history: "passed",

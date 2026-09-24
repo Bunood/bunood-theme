@@ -10,3 +10,9 @@ test("deploy targets every app container in the selected stack", () => {
 	assert.match(source, /APP_CONTAINERS=\(\s*"\$BACKEND"/);
 	assert.match(source, /"\$\{STACK_PREFIX\}-scheduler-1"/);
 });
+
+test("deploy keeps the frontend app source in sync with backend workers", () => {
+	assert.match(source, /SOURCE_CONTAINERS=\("\$\{APP_CONTAINERS\[@\]\}"\)/);
+	assert.match(source, /SOURCE_CONTAINERS\+=\("\$FRONTEND"\)/);
+	assert.match(source, /for c in "\$\{SOURCE_CONTAINERS\[@\]\}"/);
+});

@@ -5,6 +5,12 @@ Invoice** form. It delegates UBL generation, signing, invoice counters, QR data,
 reporting, clearance, retries, and validation records to the maintained
 `ksa_compliance` app. Bunood never sends CSID tokens or secrets to the browser.
 
+The controlling Bunood specification is
+[`BUNOOD-V1-SAUDI-ZATCA-OPERATIONS-CONTRACT-2026-09-20.md`](./BUNOOD-V1-SAUDI-ZATCA-OPERATIONS-CONTRACT-2026-09-20.md).
+Use that contract for lifecycle states, duplicate handling, evidence,
+reconciliation, production approvals, and acceptance criteria. This shorter
+page is only the operator-oriented setup guide.
+
 ZATCA applies to invoices issued by the company. The panel therefore appears on
 Sales Invoices, not ordinary Purchase Invoices received from suppliers.
 
@@ -58,9 +64,13 @@ Saudi National Address and registration.
    Fields** record for XML validation details, QR presence, UUID, warnings, and
    errors. In Batch mode, **Send to ZATCA** queues the connector's native send
    operation; already accepted invoices are never resent.
-6. Confirm the final state is accepted, accepted with warnings, or rejected.
+6. Confirm the exact final state. **Accepted with warnings** is usable only
+   after its warnings are reviewed; it is not a clean acceptance. A
+   **duplicate response** is a separate reconcile-first state and must never be
+   shown or counted as accepted merely because the API did not reject it.
    Correct rejected documents through ERPNext's amendment/credit-note rules;
-   do not edit a submitted invoice in place.
+   do not edit a submitted invoice in place. Keep delayed simplified invoices
+   in the retry queue with their attempt history until reporting is resolved.
 
 ## Production boundary
 
@@ -69,3 +79,7 @@ generation. It does not certify the company's tax configuration, legal identity
 data, invoice classification, or operational procedures. Production activation
 requires the entity's real Fatoora credentials and an accounting/compliance
 review. Never copy sandbox credentials into Production or log CSID secrets.
+
+This documentation is operational guidance, not legal or tax advice. Saudi
+production activation and any claim of regulatory conformity require review by
+the company's qualified Saudi tax/compliance adviser and authorized approver.

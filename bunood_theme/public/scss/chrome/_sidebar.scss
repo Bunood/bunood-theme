@@ -331,7 +331,10 @@ html[data-bnd-sb-color] .bnd-sb-band {
   // the foot. Usable width is W - 2*pane-pad - 2*band-pad - the border by our
   // numbers; the foot check measures all four edges, and the gap token carries
   // the arithmetic that makes the cluster fit the narrowest pane.
-  inset-block-end: var(--bnd-sb-pane-pad);
+  inset-block-end: 0;
+  order: 100;
+  flex: 0 0 auto;
+  margin-block-start: auto;
   display: flex;
   align-items: center;
   // Six tenants can be placed here (item 44 added two). At the narrowest pane
@@ -377,20 +380,69 @@ html[data-bnd-sb-color] .bnd-sb-band {
   // 24px and rounds `.avatar-frame` fully; both are overridden here, on
   // the one element we build, never on the vendor's nodes elsewhere.
   > .bnd-avatar-btn {
-    inline-size: var(--bnd-sb-tile);
+    flex: 1 1 120px;
+    inline-size: auto;
+    min-inline-size: 0;
     block-size: var(--bnd-sb-tile);
     padding: 0;
+    padding-inline-end: var(--bnd-sp-2);
+    justify-content: flex-start;
+    gap: var(--bnd-sp-2);
     border-radius: var(--bnd-radius-lg);
     overflow: hidden;
+    color: var(--bnd-sb-ink);
+    text-align: start;
 
     .avatar,
     .avatar-frame {
-      inline-size: 100%;
-      block-size: 100%;
+      flex: 0 0 var(--bnd-sb-tile);
+      inline-size: var(--bnd-sb-tile);
+      block-size: var(--bnd-sb-tile);
       border-radius: inherit;
       font-size: var(--bnd-text-base);
     }
+    .bnd-user-summary {
+      display: flex;
+      min-inline-size: 0;
+      flex: 1 1 auto;
+      flex-direction: column;
+      justify-content: center;
+      line-height: 1.25;
+    }
+    .bnd-user-summary__name,
+    .bnd-user-summary__detail {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .bnd-user-summary__name {
+      font-size: var(--bnd-text-sm);
+      font-weight: var(--bnd-weight-medium);
+    }
+    .bnd-user-summary__detail {
+      color: var(--bnd-sb-ink-muted);
+      font-size: var(--bnd-text-xs);
+    }
   }
+}
+
+// When both global utilities live in the account card, keep them together.
+// The narrow pane cannot fit the account identity and two 36px controls in
+// one row; reserve the first row for identity instead of orphaning the bell.
+html[data-bnd-sb-color] .bnd-sb-band:has(> .bnd-language-btn):has(> .bnd-bell) {
+  > .bnd-avatar-btn { flex-basis: 100%; }
+  > [data-bnd-part="language"] { order: 2; }
+  > [data-bnd-part="bell"] { order: 3; margin-inline-start: 0; }
+  > [data-bnd-part="home"] { order: 4; }
+  > [data-bnd-part="apps"] { order: 5; }
+  > [data-bnd-part="appearance"] { order: 6; }
+}
+
+html[data-bnd-sb-color] .body-sidebar > .body-sidebar-bottom {
+  order: 99;
+  flex: 0 0 auto;
+  margin-block-start: auto;
 }
 
 // The rail is NOT a second design: the same cells flip to a column, the
@@ -422,9 +474,13 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
     }
     &[data-bnd-part="user"] {
       order: 9;
+      flex: 0 0 auto;
+      inline-size: var(--bnd-sb-tile);
+      padding-inline-end: 0;
       margin-block-start: auto;
     }
   }
+  .bnd-user-summary { display: none; }
 }
 
 // The width stop must actually WIN. The container is a flex child with
@@ -694,7 +750,11 @@ html[data-bnd-sb-color] .bnd-sb-brand .bnd-sb-brand-hide {
     color: var(--bnd-sb-ink);
   }
 }
-html[data-bnd-sb-panestate="open"] .body-sidebar-container {
+// Desktop width-resizing needs a clipping floor. The narrow container is a
+// zero-width anchor for Frappe's absolutely positioned off-canvas drawer; if
+// it inherits this clip, the hamburger still adds `.expanded` but every pixel
+// of the drawer is cut away. Leave the mobile owner completely native.
+html[data-bnd-sb-panestate="open"]:not([data-bnd-narrow]) .body-sidebar-container {
   flex-shrink: 0;
   // THE FLOOR'S OTHER HALF (item 40). A flex item's implicit
   // min-inline-size is `auto` — Frappe's widest child (the onboarding
@@ -732,17 +792,17 @@ html[data-bnd-sb-panestate="open"] .body-sidebar-container {
 
 // THE DRAG (item 40, the user's free-pixel call — VS Code, not a detent).
 // The engine rides Frappe's own `.sidebar-resize-handle`, whose whole
-// shipped life was click-to-toggle. The 4px LATCH is the discriminator
-// between that click and our drag — movement, never time — so under 4px
-// the press is Frappe's collapse untouched, and over it the collapse is
-// swallowed for that gesture only. clientX NEVER MIRRORS, so the math
+// shipped life was click-to-toggle. Pane state now belongs to the single
+// page-head control, so the 4px latch distinguishes a harmless edge click
+// from a resize drag; the native collapse click is always suppressed.
+// clientX NEVER MIRRORS, so the math
 // derives direction from the container (in RTL the pane widens leftward);
 // Escape cancels to the pre-drag width with nothing persisted. The pixel
 // persists through api.set_personal's RANGE branch into bnd_sb_width, and
 // sb_apply_width re-applies it on every admin preview — which is defect
 // 23's whole fix: without that, any settings click reverted a person's
 // width until reload. Keyboard is the APG splitter (physical arrows with
-// derived direction, Home/End to the bounds, Enter = Frappe's toggle,
+// derived direction and Home/End to the bounds,
 // Up/Down deliberately not consumed); WCAG 2.5.7's pointer alternative is
 // the context menu on the strip — the five stops as named presets plus
 // "Use the site's width", rendered from boot with zero network, because a
@@ -1010,8 +1070,8 @@ html[data-bnd-sb-color] .bnd-sb-head {
   padding-inline: var(--bnd-sp-2);
   border: none;
   border-radius: var(--bnd-radius-lg);
-  background: transparent;
-  color: var(--bnd-sb-ink);
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
   // The module's name is the pane's heading, one step above the rows (the user
   // asked for it larger, 2026-09-05), with the module's own icon before it.
   font-size: var(--bnd-text-md);
@@ -1020,7 +1080,7 @@ html[data-bnd-sb-color] .bnd-sb-head {
   cursor: pointer;
 
   &:hover {
-    background: color-mix(in srgb, var(--bnd-sb-ink) 7%, transparent);
+    background: var(--bnd-brand-ink);
   }
 
   .bnd-sb-head-ico {
@@ -1029,19 +1089,32 @@ html[data-bnd-sb-color] .bnd-sb-head {
     inline-size: var(--bnd-sb-head-ico);
     block-size: var(--bnd-sb-head-ico);
     flex: none;
+    color: var(--bnd-on-brand);
 
     svg {
       inline-size: 18px;
       block-size: 18px;
       margin: 0; // the vendor's `.icon { margin: 0 auto }` -- _cluster.scss, the menu
-      color: var(--bnd-sb-ink-muted);
+      color: var(--bnd-on-brand);
+      // Frappe sprites paint from --icon-stroke rather than inherited color.
+      // Bind both channels to the fitted on-brand token so the selected
+      // green module row never carries a dark glyph on its dark fill.
+      --icon-stroke: currentColor;
     }
+
+    svg use,
+    svg .current-color { stroke: currentColor; }
 
     img {
       inline-size: 100%;
       block-size: 100%;
       border-radius: var(--bnd-radius-sm);
       object-fit: contain;
+      // Workspace-provided image icons bypass currentColor. On this selected
+      // brand row they become one quiet, high-contrast white pictogram rather
+      // than retaining a dark source asset against the green fill.
+      filter: grayscale(1) brightness(0) invert(1);
+      opacity: .96;
     }
   }
 
@@ -1169,7 +1242,7 @@ html[data-bnd-sb-color] .bnd-sb-utils-bar {
   gap: var(--bnd-sp-1);
   margin-inline-end: var(--bnd-sp-2);
 }
-html[data-theme] .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
+html[data-theme]:not([data-bnd-narrow]) .bnd-statusbar .bnd-sb-utils-bar .bnd-icon-btn {
   inline-size: 22px;
   block-size: 22px;
 
@@ -1422,6 +1495,17 @@ html[data-bnd-sb-active="foldertab"][data-bnd-sb-placement="attached"]
   border-radius: var(--bnd-radius-lg) 0 0 var(--bnd-radius-lg);
   margin-inline-end: calc(-1 * var(--bnd-sp-2));
   box-shadow: var(--bnd-shadow-sm);
+}
+
+html[data-bnd-sb-color] .body-sidebar .sidebar-item-container.bnd-home-current .standard-sidebar-item.active-sidebar {
+  border: 0;
+  border-radius: var(--bnd-radius-md);
+  background: color-mix(in srgb, var(--bnd-brand) 12%, transparent);
+  // `--bnd-brand-ink` is fitted as text on the pane, not on a wash of itself;
+  // the shipped green measured only 4.12:1 here. Keep the brand in the fill
+  // and use the pane's contrast-fitted text token for the label and icon.
+  color: var(--bnd-sb-ink);
+  box-shadow: none;
 }
 
 // ── Sections: layout, wash, depth ───────────────────────────────────────────
@@ -1904,82 +1988,6 @@ html[data-bnd-rail][data-bnd-own~="panetoggle"]:not([data-bnd-narrow]) .body-sid
 // bunood.js. It used to say "and the apps rail", which the rail's deletion
 // (item 40) made false.
 
-// ── Rail expand button ──────────────────────────────────────────────────────
-// Mounted by bunood.js when the tenant chooses one (or picks the Button-only
-// trigger). Placement, shape and glyph are all Theme Settings options; the
-// element carries them as modifier classes so the CSS stays a flat list.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  position: absolute;
-  z-index: calc(var(--bnd-z-flyout) + 1);
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: var(--bnd-line) solid var(--bnd-sb-line);
-  background: var(--bnd-sb-card-base);
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-  box-shadow: var(--bnd-shadow-sm);
-  // One shape since item 40: all eight shipped looks chose Circle, and the
-  // other two rendered through a CONCATENATED class the focus-ring guard
-  // cannot see. The radius lives on the identity class instead.
-  border-radius: var(--bnd-radius-pill);
-
-  svg {
-    inline-size: 13px;
-    block-size: 13px;
-    transition: rotate var(--bnd-dur-base) var(--bnd-ease);
-  }
-
-  &:hover {
-    color: var(--bnd-sb-ink);
-  }
-}
-
-// Placements. Edge rides the pane's end border, vertically centred; top sits
-// in the header row; bottom is pinned above the pane's end.
-//
-// TWO POSITIONS EACH, because the pane and the button have different parents.
-// The button is absolute against the CONTAINER, which stays at the rail's
-// 52px; the open pane is an overlay that grows to --bnd-sb-w PAST it. With
-// only the at-rest offset, opening slid the pane out from under the button
-// and left it floating over the workspace list, 40px from the left edge — a
-// chevron on top of "Material Request", measured 2026-08-08, and the broken
-// render reported that day. So each placement states where it sits at REST
-// (against the rail) and where it sits OPEN (against the pane's real edge,
-// derived from the same two widths the pane itself uses), with the same
-// duration as the pane's growth so the button glides with the edge it rides.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  transition: inset-inline-end var(--bnd-dur-base) var(--bnd-ease);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-edge {
-  inset-inline-end: -12px;
-  inset-block-start: 50%;
-  translate: 0 -50%;
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-edge,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-edge {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
-}
-// The head placement, named for where it sits rather than for a compass
-// point (item 40). BOTTOM IS GONE, and it was measured out rather than
-// dropped on taste: at `inset-inline-end: 50%` it sat over the foot's own
-// controls — Frappe's collapse link and resize handle both live there.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-header {
-  inset-inline-end: var(--bnd-sp-1);
-  inset-block-start: var(--bnd-sp-2);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-header,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-header {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-
-
-// Open state: the chevron/arrow glyphs flip to point back.
-.bnd-rail-open .bnd-railbtn svg {
-  rotate: 180deg;
-}
-
 // ── Icon source overrides ───────────────────────────────────────────────────
 // "Original" hands the icon area back to Frappe untouched — every chip rule
 // above is reverted. Letter chips are the Smart mode's fallback and the
@@ -2018,14 +2026,10 @@ html[data-bnd-sb-color] .bnd-sb-letter {
   text-transform: uppercase;
 }
 
-// ── The Desktop page owns its own chrome ────────────────────────────────────
-// Route "" is v16's Desktop (#page-desktop): it ships its OWN navbar, its own
-// search, and hides the normal sidebar. Every piece of Bunood chrome stands
-// down there — bunood.js stamps data-bnd-desktop on <html> for that route.
-// Measured 2026-07-30: without this, our topbar duplicated the Desktop's
-// search header and the apps rail overlaid its icon grid.
+// ── The Desktop page uses the same global top bar ───────────────────────────
+// The route-specific status and dock bars stand down, while the permanent top
+// bar remains and takes ownership of Frappe's private Desktop navbar.
 html[data-bnd-desktop] {
-  .bnd-topbar,
   .bnd-statusbar,
   .bnd-dock {
     display: none;

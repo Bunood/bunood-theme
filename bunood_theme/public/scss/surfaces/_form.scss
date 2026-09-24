@@ -842,19 +842,19 @@ html[data-bnd-form][data-bnd-form-fields="inline"] {
 }
 
 // The box, riding the density contract's `.frappe-control` chain one attribute
-// heavier. Read-only values take their own fill so a value that cannot be
-// edited never wears an editable box.
-html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control input.form-control:not([type="checkbox"]),
-html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control select.form-control,
-html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control textarea.form-control {
+// heavier. Composed Simple pages reuse the same native controls outside the
+// form layout, so they join this one anatomy rule instead of inventing a
+// second field treatment. Read-only values take their own fill so a value that
+// cannot be edited never wears an editable box.
+html[data-bnd-form][data-bnd-form-fields] :is(.form-layout, .bnd-simple-composer) .frappe-control
+  :is(input.form-control:not([type="checkbox"]), select.form-control, textarea.form-control) {
   background: var(--bnd-form-field-bg);
   border: var(--bnd-line) solid var(--bnd-form-field-border);
   border-radius: var(--bnd-form-field-radius);
   transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
-html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control input.form-control:not([type="checkbox"]):hover,
-html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control select.form-control:hover,
-html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control textarea.form-control:hover {
+html[data-bnd-form][data-bnd-form-fields] .form-layout .frappe-control
+  :is(input.form-control:not([type="checkbox"]), select.form-control, textarea.form-control):hover {
   background: var(--bnd-form-field-hover-bg, var(--bnd-form-field-bg));
   border-color: var(--bnd-form-field-hover-border, var(--bnd-form-field-border));
 }
@@ -941,18 +941,17 @@ html[data-bnd-form][data-bnd-form-fields="rows"] .std-form-layout .form-layout .
 // paint is a working-set variable; the layout is one grid.
 html[data-bnd-form][data-bnd-form-header] .bnd-dochead {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   grid-template-areas:
-    "title actions"
-    "meta actions"
-    "tiles tiles"
-    "stage stage";
-  column-gap: var(--bnd-sp-4);
-  row-gap: var(--bnd-sp-1);
+    "title meta actions"
+    "tiles tiles tiles"
+    "stage stage stage";
+  column-gap: var(--bnd-sp-3);
+  row-gap: 0;
   align-items: center;
   // Inset to the form's own edge (the tab row and the cards sit 15px in from
   // the column; measured) and off the page head by a step.
-  margin-block: var(--bnd-sp-3) var(--bnd-sp-4);
+  margin-block: var(--bnd-sp-2) var(--bnd-sp-3);
   margin-inline: var(--bnd-sp-4);
   padding: var(--bnd-form-head-pad, 0);
   border-radius: var(--bnd-form-head-radius, 0);
@@ -989,14 +988,14 @@ html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tiles {
   grid-area: tiles;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--bnd-label-w), 1fr));
-  gap: var(--bnd-sp-3);
-  margin-block-start: var(--bnd-sp-3);
+  gap: var(--bnd-sp-2);
+  margin-block-start: var(--bnd-sp-2);
 }
 html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tiles:empty {
   display: none;
 }
 html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tile {
-  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
   border-radius: var(--bnd-radius-md);
   background: var(--bnd-form-tile-bg, var(--bnd-raised));
   border: var(--bnd-line) solid var(--bnd-form-tile-border, var(--bnd-border));
@@ -1019,7 +1018,7 @@ html[data-bnd-form][data-bnd-form-header] .bnd-dochead-tile-value {
 // The working sets. Title Block: nothing painted, no tiles (the mount builds
 // none). Highlights Band: tiles on the raised tone. Hero Band: the band.
 html[data-bnd-form][data-bnd-form-header="band"] {
-  --bnd-form-head-pad: var(--bnd-sp-5);
+  --bnd-form-head-pad: var(--bnd-sp-3) var(--bnd-sp-4);
   --bnd-form-head-radius: var(--bnd-radius-lg);
   --bnd-form-band-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
   --bnd-form-band-ink: var(--bnd-ink);
@@ -1037,6 +1036,45 @@ html[data-bnd-form][data-bnd-form-header="band"][data-bnd-form-tone="dark"] {
   --bnd-form-tile-border: transparent;
 }
 
+// A task workbench or invoice already names the new document and carries its
+// actions. Remove only an empty duplicate band; saved records may put Activity
+// in its action slot, and highlight tiles or a stage path must remain visible.
+html[data-bnd-form] body[data-route*="/new-"] .page-container:is(.bnd-composed-simple-active, .bnd-bill-simple-active)
+  .bnd-dochead:has(.bnd-dochead-actions:empty):not(:has(.bnd-dochead-tile, .bnd-stagepath)) {
+  display: none;
+}
+
+@include bnd-until(md) {
+  html[data-bnd-form][data-bnd-form-header] .bnd-dochead {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "title actions" "meta meta" "tiles tiles" "stage stage";
+    row-gap: var(--bnd-sp-1);
+  }
+}
+
+// This shared Saudi-tax field is a sentence, not a short switch caption. In
+// Arabic keep the checkbox at the logical start and let punctuation inherit
+// the label's RTL paragraph direction instead of visually jumping to the left.
+html[dir="rtl"][data-bnd-form] .frappe-control[data-fieldtype="Check"][data-fieldname="exempt_from_sales_tax"] .checkbox > label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--bnd-sp-2);
+  inline-size: 100%;
+  direction: rtl;
+  text-align: start;
+}
+html[dir="rtl"][data-bnd-form] .frappe-control[data-fieldtype="Check"][data-fieldname="exempt_from_sales_tax"] :is(.input-area, .disp-area) {
+  flex: 0 0 auto;
+  margin-inline: 0;
+}
+html[dir="rtl"][data-bnd-form] .frappe-control[data-fieldtype="Check"][data-fieldname="exempt_from_sales_tax"] .label-area {
+  direction: rtl;
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
 // ── The stage path (item 43 A8b) ────────────────────────────────────────────
 // Chevrons by clip-path. The polygon is physical, so the mirror is written
 // out for RTL rather than hoped for; the notch is one token. The current step
@@ -1048,7 +1086,7 @@ html[data-bnd-form][data-bnd-form-header] .bnd-stagepath {
   display: flex;
   flex-wrap: wrap;
   gap: var(--bnd-sp-1);
-  margin: var(--bnd-sp-3) 0 0;
+  margin: var(--bnd-sp-2) 0 0;
   padding: 0;
   list-style: none;
   font-size: var(--bnd-body-help, var(--text-sm));
@@ -1131,6 +1169,76 @@ html[data-bnd-form-stage="path"][data-bnd-own~="stagepath"]
 // exception. Recorded because the first repair invented a `.editable-form`
 // class that does not exist in this bundle.
 
+// One document-action edge on native and Advanced forms. Purpose-built Simple
+// workbenches own their own sticky action strips, so this bar stands down there.
+body[data-route^="Form"] .bnd-form-actionbar {
+  position: sticky;
+  inset-block-start: var(--page-head-height);
+  z-index: var(--bnd-z-bar);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2) var(--bnd-sp-4);
+  min-block-size: calc(var(--bnd-control-h) + var(--bnd-sp-4));
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  background: var(--bnd-surface);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-bnd-own~="docbar"] body[data-route^="Form"] .page-actions .primary-action { display: none; }
+.bnd-form-actionbar-identity,
+.bnd-form-actionbar-actions { display: flex; align-items: center; gap: var(--bnd-sp-2); min-inline-size: 0; }
+.bnd-form-actionbar-identity { flex: 1 1 10rem; }
+.bnd-form-actionbar-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--bnd-text-sm); }
+.bnd-form-actionbar-state { flex: none; color: var(--bnd-ink-muted); font-size: var(--bnd-text-xs); }
+.bnd-form-actionbar-actions { flex: 0 0 auto; margin-inline-start: auto; }
+.bnd-form-actionbar-actions > button,
+.bnd-form-actionbar-more > summary { min-block-size: var(--bnd-control-h); }
+.bnd-form-actionbar-actions > button[hidden],
+.bnd-form-actionbar-menu > button[hidden] { display: none; }
+.bnd-form-actionbar-more { position: relative; }
+.bnd-form-actionbar-more > summary { display: inline-flex; align-items: center; cursor: pointer; list-style: none; }
+.bnd-form-actionbar-more > summary::-webkit-details-marker { display: none; }
+.bnd-form-actionbar-menu {
+  position: absolute;
+  inset-block-start: calc(100% + var(--bnd-sp-1));
+  inset-inline-end: 0;
+  z-index: var(--bnd-z-panel);
+  display: grid;
+  inline-size: max-content;
+  min-inline-size: 10rem;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  box-shadow: var(--bnd-shadow-md);
+}
+.bnd-form-actionbar-menu > button {
+  inline-size: 100%;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 0;
+  border-radius: var(--bnd-radius-sm);
+  color: var(--bnd-ink);
+  background: transparent;
+  text-align: start;
+  cursor: pointer;
+}
+.bnd-form-actionbar-menu > button:hover { background: var(--bnd-hover); }
+html[data-theme] :is(
+  .bnd-form-actionbar-primary,
+  .bnd-form-actionbar-print,
+  .bnd-form-actionbar-menu-print,
+  .bnd-form-actionbar-draft,
+  .bnd-form-actionbar-new
+):focus-visible { outline: 2px solid var(--bnd-accent); outline-offset: 1px; }
+.bnd-form-actionbar-more > summary:focus-visible { outline: 2px solid var(--bnd-accent); outline-offset: 1px; }
+@include bnd-from(sm) { .bnd-form-actionbar-menu-print { display: none; } }
+@include bnd-until(sm) {
+  .bnd-form-actionbar-actions { inline-size: 100%; justify-content: flex-end; }
+  .bnd-form-actionbar-actions > button { flex: 1 1 auto; }
+  .bnd-form-actionbar-print { display: none; }
+}
+
 // ── The pinned foot (item 43 A8c) ───────────────────────────────────────────
 // The status bar's own idiom: fixed, inset by the pane's live width, lifted
 // above whatever chrome is already at the edge by a measured custom property
@@ -1195,4 +1303,27 @@ html[data-theme] .bnd-docfoot-primary:focus-visible {
 // live, and only on a form: a list's "+ New" carries the same class.
 html[data-bnd-own~="docfoot"] body[data-route^="Form"] .page-actions .primary-action {
   display: none;
+}
+
+// Item creation from an invoice is a short, task-focused quick entry. Frappe
+// keeps its native fields and save path; this scoped layout puts identity,
+// stock unit and optional price/opening balance within one glance.
+.modal.bnd-item-quick-entry .modal-dialog {
+  inline-size: min(760px, calc(100vw - 24px));
+  max-inline-size: none;
+}
+.modal.bnd-item-quick-entry .form-column > form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--bnd-sp-4);
+  row-gap: var(--bnd-sp-2);
+}
+.modal.bnd-item-quick-entry .form-column > form > .frappe-control {
+  min-inline-size: 0;
+  margin: 0;
+}
+@include bnd-until(md) {
+  .modal.bnd-item-quick-entry .form-column > form {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

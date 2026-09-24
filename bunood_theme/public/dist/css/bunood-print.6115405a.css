@@ -1,0 +1,1249 @@
+@charset "UTF-8";
+.print-format .text-muted {
+  color: var(--bnd-ink-muted);
+}
+
+.print-format thead.table-header td {
+  color: var(--bnd-ink-muted);
+}
+
+/* The release review found the OTHER two #7c7c7c surfaces the first cut
+   missed on the same vendor block: the terms block, beatable at (0,2,0)... */
+.print-format .info-card {
+  color: var(--bnd-ink-muted);
+}
+
+/* ...and the 'Total in words' label, which the vendor locks with a BODY
+   `!important` LITERAL no head rule can beat unescalated. This is the
+   sanctioned pattern's fourth site (GUIDELINES §1.3): a vendor `!important`
+   literal, a measured WCAG failure (4.17:1), and no escalation path — a
+   print document has no `.bunood` root to climb through. Specificity then
+   decides between the two importants: (0,2,0) beats (0,1,0). */
+.print-format .title {
+  color: var(--bnd-ink-muted) !important;
+}
+
+.print-format h1,
+.print-format h2,
+.print-format h3,
+.print-format h4,
+.print-format .print-heading {
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.print-format tr,
+.print-format img,
+.print-format blockquote,
+.print-format pre,
+.print-format figure {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.print-format p,
+.print-format li {
+  orphans: 3;
+  widows: 3;
+}
+
+/* Brand fonts, self-hosted TTF (wkhtmltopdf's WebKit cannot read woff2).
+   Tajawal is Bunood's Arabic print face: a modern Google Font with quieter
+   geometry than Cairo at invoice-title weights. Fetched over HTTP by the PDF
+   engine; fontconfig on the PDF host is the deterministic safety net. */
+@font-face {
+  font-family: "Tajawal";
+  src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tajawal";
+  src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-Medium.ttf") format("truetype");
+  font-weight: 500 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tajawal";
+  src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Tajawal";
+  src: url("/assets/bunood_theme/fonts/tajawal/Tajawal-ExtraBold.ttf") format("truetype");
+  font-weight: 800 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Cairo";
+  src: url("/assets/bunood_theme/fonts/cairo/Cairo-Variable.ttf") format("truetype");
+  font-weight: 200 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Amiri";
+  src: url("/assets/bunood_theme/fonts/amiri/Amiri-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Amiri";
+  src: url("/assets/bunood_theme/fonts/amiri/Amiri-Bold.ttf") format("truetype");
+  font-weight: 700;
+  font-display: swap;
+}
+/* Riyal U+20C1 — obeys this sheet's engine rules, and deviates in exactly one way.
+ *
+ * (Merged verbatim from the parallel session's bunood_print_style.css work,
+ * which this substituted sheet replaced — the face, its ordering argument and
+ * its measurements carry over unchanged.)
+ *
+ * This face shipped woff2-ONLY for a day, on the belief that compose.yaml's
+ * chromium_path made Chromium the renderer. It does not: Frappe chooses the
+ * engine by Print Settings.pdf_generator (Select wkhtmltopdf|chrome), which
+ * DEFAULTS TO wkhtmltopdf and is set nowhere in this stack. So the rule above
+ * still holds, and the woff2-only face was simply not embedded — measured at
+ * 0.12.6, a 9017-byte PDF carrying no riyal face, i.e. a missing-glyph box
+ * where the currency symbol belongs, on every invoice.
+ *
+ * THE DEVIATION: the sibling faces answer an http failure with fontconfig —
+ * "ALSO install an Arabic font on the PDF server". That safety net cannot
+ * exist here. U+20C1 is a 2025 codepoint and no system font on any PDF server
+ * carries it, so an http failure for THIS face is unrecoverable rather than
+ * merely degraded. Hence the fallback is inline base64 (the whole face is 1560
+ * bytes) instead of a second url(): a data URI has no fetch to fail.
+ *
+ * Order is load-bearing: Chromium takes the woff2 first and never decodes the
+ * blob; Qt WebKit skips the format it cannot read and takes the opentype.
+ * Both measured. Blob == fonts/riyal/bunood-riyal.otf, shipped alongside for
+ * provenance; both flavours come from Saudi_Riyal_Symbol-official.svg via
+ * bunood_setup/tools/build_riyal_font.py. */
+@font-face {
+  font-family: "Bunood Riyal";
+  src: url("/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2") format("woff2"), url(data:font/otf;base64,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) format("opentype");
+  font-weight: 400;
+  font-display: swap;
+  unicode-range: U+20C1;
+}
+/* Site-wide retypeset — the point of a system-default Print Style. Everything
+   below stays bnd-p-namespaced so third-party formats are never touched
+   structurally. */
+.print-format {
+  font-family: "Tajawal", "Bunood Riyal", "Cairo", "Noto Sans Arabic", sans-serif;
+  color: var(--bnd-ink);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.print-format .num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* One print request has one direction.  Numeric/ID cells remain explicitly
+   LTR, while the physical alignments below mirror for the old WebKit engine. */
+.bnd-p[dir=rtl] {
+  direction: rtl;
+  text-align: right;
+}
+
+.bnd-p[dir=ltr] {
+  direction: ltr;
+  text-align: left;
+}
+
+/* ===== bilingual title ===== */
+.bnd-p-title {
+  text-align: center;
+  margin: 6px 0 12px;
+}
+
+.bnd-p-title__ar {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--bnd-brand-ink);
+}
+
+.bnd-p-title__en {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bnd-ink-muted);
+  text-transform: uppercase;
+}
+
+/* ===== head row (meta + QR) — TABLE, not flex ===== */
+.bnd-p-head {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bnd-p-head td {
+  border: none;
+  padding: 0;
+  vertical-align: top;
+}
+
+.bnd-p-head__qr {
+  width: 130px;
+  text-align: left;
+}
+
+.bnd-p[dir=ltr] .bnd-p-head__qr {
+  text-align: right;
+}
+
+.bnd-p-qr {
+  border: 1px solid var(--bnd-border);
+  padding: 3px;
+}
+
+.bnd-p-qr-missing {
+  width: 120px;
+  border: 2px dashed var(--bnd-critical);
+  color: var(--bnd-critical);
+  font-size: 9px;
+  font-weight: 700;
+  text-align: center;
+  padding: 8px 6px;
+}
+
+/* ===== meta box ===== */
+.bnd-p-meta {
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.bnd-p-meta td {
+  border: 1px solid var(--bnd-border);
+  padding: 4px 10px;
+}
+
+.bnd-p-meta td:first-child {
+  color: var(--bnd-ink-muted);
+  background: var(--bnd-surface);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ===== party block ===== */
+.bnd-p-party {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px;
+  table-layout: fixed;
+}
+
+.bnd-p-party td {
+  border: 1px solid var(--bnd-border);
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.bnd-p-party__h {
+  font-size: 10px;
+  font-weight: 700;
+  /* Was the legacy gold. `--bnd-accent` is fitted for marks (3:1), not text;
+     until slice 3 ships a text-fitted secondary, the party heading rides the
+     brand ink — AA guaranteed by an item-17 gate row, not by luck. */
+  color: var(--bnd-brand-ink);
+  margin-bottom: 3px;
+}
+
+.bnd-p-party__n {
+  font-weight: 700;
+}
+
+.bnd-p-party__a {
+  color: var(--bnd-ink-muted);
+  font-size: 11px;
+}
+
+/* ===== items table ===== */
+.bnd-p-items {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 6px 0 10px;
+}
+
+.bnd-p-items th {
+  border: 1px solid var(--bnd-brand-ink);
+  border-bottom-width: 2px;
+  padding: 6px 8px;
+  background: var(--bnd-surface);
+  color: var(--bnd-brand-ink);
+  font-weight: 700;
+  font-size: 11px;
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.bnd-p-items td {
+  border: 1px solid var(--bnd-border);
+  padding: 6px 8px;
+}
+
+.bnd-p-items .c {
+  text-align: center;
+  width: 28px;
+}
+
+.bnd-p-items .n {
+  text-align: left;
+  direction: ltr;
+  white-space: nowrap;
+}
+
+.bnd-p[dir=ltr] .bnd-p-items .n {
+  text-align: right;
+}
+
+.bnd-p-items__d {
+  color: var(--bnd-ink-muted);
+  font-size: 10px;
+}
+
+/* ===== totals (old-WebKit prefixed margin first, standard last) ===== */
+.bnd-p-totals {
+  border-collapse: collapse;
+  -webkit-margin-start: auto;
+  margin-inline-start: auto;
+  min-width: 46%;
+}
+
+.bnd-p[dir=rtl] .bnd-p-totals {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.bnd-p[dir=ltr] .bnd-p-totals {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.bnd-p-totals td {
+  border: 1px solid var(--bnd-border);
+  padding: 5px 10px;
+}
+
+.bnd-p-totals td:first-child {
+  color: var(--bnd-ink-muted);
+}
+
+.bnd-p-totals .g td {
+  /* Totals belong to the document brand. Using the interactive accent here
+     produced a bright blue streak in otherwise green tenant PDFs. */
+  border-top: 2px solid var(--bnd-brand-solid);
+  font-weight: 800;
+  color: var(--bnd-brand-ink);
+  font-size: 13px;
+}
+
+.bnd-p-words {
+  margin-top: 6px;
+  padding: 6px 10px;
+  border: 1px dashed var(--bnd-border);
+  color: var(--bnd-ink-muted);
+  font-size: 11px;
+}
+
+/* ===== signatures ===== */
+.bnd-p-sigs {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 34px;
+  text-align: center;
+  color: var(--bnd-ink-muted);
+  font-size: 11px;
+}
+
+.bnd-p-sigs td {
+  padding: 0 16px;
+}
+
+.bnd-p-sigs__line {
+  border-bottom: 1px solid var(--bnd-ink);
+  margin-bottom: 5px;
+  height: 26px;
+}
+
+/* ===== voucher amount box ===== */
+.bnd-p-amountbox {
+  border: 2px solid var(--bnd-brand-ink);
+  border-radius: 6px;
+  padding: 10px 16px;
+  text-align: center;
+  margin: 10px 0;
+}
+
+.bnd-p-amountbox__v {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--bnd-brand-ink);
+  direction: ltr;
+}
+
+.bnd-p-amountbox__l {
+  font-size: 10px;
+  color: var(--bnd-ink-muted);
+}
+
+/* ===== thermal (80mm) — PURE BLACK ink, a hardware constant: 203dpi
+   monochrome heads have no grayscale (mid-greys dither or vanish); brand
+   colour stays on A4/browser. The literals here are sanctioned — see the
+   header. ===== */
+.bnd-p--thermal {
+  width: 72mm;
+  margin: 0 auto;
+  font-size: 10.5px;
+  text-align: center;
+  color: #000;
+}
+
+.bnd-p-th-co {
+  font-weight: 800;
+  font-size: 13px;
+  color: #000;
+}
+
+.bnd-p-th-sub {
+  color: #000;
+  font-size: 9.5px;
+}
+
+.bnd-p-th-title {
+  font-weight: 800;
+  font-size: 12px;
+  margin: 3px 0;
+}
+
+.bnd-p-th-title span {
+  font-weight: 600;
+  font-size: 9.5px;
+  color: #000;
+}
+
+.bnd-p-th-rule {
+  border-top: 1px dashed #000;
+  margin: 5px 0;
+}
+
+.bnd-p-th-item__n {
+  text-align: right;
+  font-weight: 700;
+}
+
+.bnd-p--thermal[dir=ltr] .bnd-p-th-item__n {
+  text-align: left;
+}
+
+/* label/amount pairs — TABLE (flex collapses in wkhtmltopdf) */
+.bnd-p-th-l {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.bnd-p-th-l td {
+  border: none;
+  padding: 1px 0;
+}
+
+.bnd-p-th-l .s {
+  text-align: right;
+}
+
+.bnd-p-th-l .e {
+  text-align: left;
+}
+
+.bnd-p--thermal[dir=ltr] .bnd-p-th-l .s {
+  text-align: left;
+}
+
+.bnd-p--thermal[dir=ltr] .bnd-p-th-l .e {
+  text-align: right;
+}
+
+.bnd-p-th-l--g {
+  font-weight: 800;
+  font-size: 12.5px;
+  border-top: 1px solid #000;
+  margin-top: 3px;
+}
+
+.bnd-p-th-l--g td {
+  padding-top: 3px;
+}
+
+.bnd-p--thermal .bnd-p-qr,
+.bnd-p--thermal .bnd-p-qr-missing {
+  margin: 6px auto 2px;
+  display: block;
+}
+
+/* ===== dot-matrix base (pre-printed / continuous forms) — Courier has no
+   Arabic glyphs: Cairo/Noto shape the Arabic, digits stay monospaced. Pure
+   black for the same hardware reason as thermal. ===== */
+.bnd-p--matrix {
+  font-family: "Tajawal", "Bunood Riyal", "Courier New", "Cairo", monospace;
+  font-size: 11px;
+  color: #000;
+}
+
+.bnd-p--matrix table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.bnd-p--matrix th,
+.bnd-p--matrix td {
+  border: none;
+  padding: 2px 6px;
+}
+
+.bnd-p--matrix th {
+  border-bottom: 1px solid #000;
+  text-align: right;
+}
+
+/*BND hd=rule*/
+.print-format .letter-head {
+  border-bottom: 2px solid var(--bnd-brand-solid);
+  padding-bottom: 8px;
+}
+
+/*BND-END*/
+/*BND hd=band*/
+.print-format .letter-head {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  padding: 10px 12px;
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*BND-END*/
+/*BND hd=wash-card*/
+.print-format .letter-head {
+  background: var(--bnd-pane);
+  border-radius: 6px;
+  padding: 10px 12px;
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*BND-END*/
+/*BND hd=frame*/
+.print-format .letter-head {
+  border: 1px solid var(--bnd-ink);
+  padding: 8px 12px;
+}
+
+/*BND-END*/
+/*BND hd=hairline*/
+.print-format .letter-head {
+  border-bottom: 1px solid var(--bnd-border);
+  padding-bottom: 6px;
+}
+
+/*BND-END*/
+/*BND hd=rail*/
+/* The theme's own Edge Rail signature (item 15) on paper: a brand rail down
+   the reading-start edge. Physical on purpose -- wkhtml has no logical
+   properties -- and PAIRED per direction, the guard-sanctioned pattern.
+   DECIDED, NOT OVERLOOKED (review finding): the rail keys on the DOCUMENT's
+   dir, while a .bnd-p format pins its own rtl — so an English-session print
+   of a Bunood invoice rails the left edge of a bilingual page. WebKit 534
+   has no :has() to let the page read its wrapper, and a second rail on the
+   wrapper would double up; the document edge wins, documented here. */
+.print-format {
+  border-left: 3px solid var(--bnd-brand-solid);
+}
+
+[dir=rtl] .print-format {
+  border-left: none;
+  border-right: 3px solid var(--bnd-brand-solid);
+}
+
+.print-format .letter-head {
+  border-bottom: 1px solid var(--bnd-border);
+  padding-bottom: 6px;
+}
+
+/*BND-END*/
+/*BND tb=open*/
+.print-format table.table-bordered th,
+.print-format table.table-bordered td,
+.print-format .items-table th,
+.print-format .items-table td,
+.print-format .bnd-p-items th,
+.print-format .bnd-p-items td {
+  border: none;
+}
+
+/* The vendor paints two things OUTSIDE the cells this pole clears — a
+   td:not(:first-of-type) left border at (0,2,2) that out-specifies the line
+   above, and the header fill on the thead ELEMENT itself. Both re-cleared
+   at matching-or-better specificity (review findings, walked live). */
+.print-format table.table-bordered td:not(:first-of-type),
+.print-format .items-table td:not(:first-of-type),
+.print-format .info-table td:not(:first-of-type),
+.print-format .tax-table td:not(:first-of-type) {
+  border-left: none;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  background: none;
+  color: var(--bnd-ink-muted);
+  text-transform: uppercase;
+  font-size: 10px;
+  border-bottom: 1px solid var(--bnd-border);
+}
+
+/*BND-END*/
+/*BND tb=ruled*/
+.print-format table.table-bordered td,
+.print-format .items-table td,
+.print-format .bnd-p-items td {
+  border: none;
+  border-bottom: 1px solid var(--bnd-border);
+}
+
+.print-format table.table-bordered td:not(:first-of-type),
+.print-format .items-table td:not(:first-of-type),
+.print-format .info-table td:not(:first-of-type),
+.print-format .tax-table td:not(:first-of-type) {
+  border-left: none;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  border: none;
+  background: none;
+  border-bottom: 2px solid var(--bnd-brand-solid);
+  color: var(--bnd-brand-ink);
+}
+
+/*BND-END*/
+/*BND tb=boxed*/
+.print-format table.table-bordered th,
+.print-format table.table-bordered td,
+.print-format .items-table th,
+.print-format .items-table td,
+.print-format .bnd-p-items th,
+.print-format .bnd-p-items td {
+  border: 1px solid var(--bnd-border);
+}
+
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  background: var(--bnd-pane);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  .print-format table.table-bordered th,
+  .print-format .items-table thead td {
+    background-color: var(--bnd-pane) !important;
+  }
+}
+/*BND-END*/
+/*BND tb=zebra*/
+.print-format table.table-bordered tbody tr:nth-child(odd) td,
+.print-format .items-table tbody tr:nth-child(odd) td,
+.print-format .bnd-p-items tbody tr:nth-child(odd) td {
+  background: var(--bnd-pane);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
+/* Bootstrap 3 (inside frappe's print bundle) ships
+   `@media print { .table td { background-color: #fff !important } }`, and
+   both PDF engines run print media — without this escalation the zebra
+   VANISHES on paper while the preview shows it. `@media print` is a
+   sanctioned `!important` place (GUIDELINES §1.3), and this is exactly the
+   collision it exists for. */
+@media print {
+  .print-format table.table-bordered tbody tr:nth-child(odd) td,
+  .print-format .items-table tbody tr:nth-child(odd) td {
+    background-color: var(--bnd-pane) !important;
+  }
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  border: none;
+  background: none;
+  border-bottom: 2px solid var(--bnd-brand-solid);
+  color: var(--bnd-brand-ink);
+}
+
+/*BND-END*/
+/*BND tb=washed*/
+.print-format table.table-bordered,
+.print-format .items-table,
+.print-format .bnd-p-items {
+  background: var(--bnd-pane);
+  /* border-radius is inert on a collapsed-border table — the review caught
+     the first cut relying on it anyway. Separate + zero spacing keeps the
+     collapsed look and lets the corners round. */
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 6px;
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* The wash must live on the CELLS too: Bootstrap's print reset paints every
+   `.table td` opaque white with !important, which tiled over a table-level
+   wash and blanked the shipped default on paper (review, walked through
+   frappe's print bundle). Cells carry the wash, and the @media print block
+   below out-escalates the reset where it applies. */
+.print-format table.table-bordered th,
+.print-format table.table-bordered td,
+.print-format .items-table th,
+.print-format .items-table td,
+.print-format .bnd-p-items th,
+.print-format .bnd-p-items td {
+  border: none;
+  background: var(--bnd-pane);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-format table.table-bordered td:not(:first-of-type),
+.print-format .items-table td:not(:first-of-type),
+.print-format .info-table td:not(:first-of-type),
+.print-format .tax-table td:not(:first-of-type) {
+  border-left: none;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
+@media print {
+  .print-format table.table-bordered th,
+  .print-format table.table-bordered td,
+  .print-format .items-table th,
+  .print-format .items-table td {
+    background-color: var(--bnd-pane) !important;
+  }
+}
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  background: var(--bnd-hover);
+  color: var(--bnd-brand-ink);
+}
+
+/*BND-END*/
+/*BND tt=open*/
+.print-format .bnd-p-totals td {
+  border: none;
+}
+
+.print-format .bnd-p-totals .g td {
+  border-top: 1px solid var(--bnd-border);
+}
+
+/*BND-END*/
+/*BND tt=boxed*/
+.print-format .bnd-p-totals td {
+  border: 1px solid var(--bnd-border);
+}
+
+.print-format .bnd-p-totals .g td {
+  border-top: 2px solid var(--bnd-brand-solid);
+}
+
+/*BND-END*/
+/*BND tt=inverse*/
+.print-format .bnd-p-totals .g td {
+  background: var(--bnd-ink);
+  color: var(--bnd-surface);
+  border-color: var(--bnd-ink);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*BND-END*/
+/*BND tt=washed-panel*/
+.print-format .bnd-p-totals .g td {
+  background: var(--bnd-pane);
+  color: var(--bnd-brand-ink);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*BND-END*/
+/*BND hg=brand-ink*/
+.print-format .print-heading h2,
+.print-format .print-heading {
+  color: var(--bnd-brand-ink);
+}
+
+/*BND-END*/
+/*BND hg=small-caps*/
+.print-format .print-heading h2 {
+  font-size: 15px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.print-format .bnd-p-title__ar {
+  font-size: 15px;
+}
+
+/*BND-END*/
+/*BND hg=serif*/
+.print-format .print-heading h2,
+.print-format .bnd-p-title__ar,
+.print-format .bnd-p-title__en {
+  font-family: "Amiri", Georgia, serif;
+}
+
+/*BND-END*/
+/*BND hg=poster*/
+.print-format .print-heading h2 {
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.print-format .bnd-p-title__ar {
+  font-size: 26px;
+}
+
+/*BND-END*/
+/*BND acc=ink-only*/
+/* Toner-saving: every brand-coloured element pulled back to ink. Appended
+   after the section poles so source order wins the ties it must. */
+.print-format .bnd-p-title__ar,
+.print-format .bnd-p-party__h,
+.print-format .bnd-p-totals .g td,
+.print-format .bnd-p-amountbox__v,
+.print-format .print-heading h2,
+.print-format .print-heading,
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  color: var(--bnd-ink);
+}
+
+.print-format .letter-head,
+.print-format .bnd-p-items th,
+.print-format table.table-bordered th,
+.print-format .items-table thead td {
+  background: none;
+}
+
+.print-format .letter-head {
+  color: var(--bnd-ink);
+  border-color: var(--bnd-ink);
+}
+
+.print-format .bnd-p-items th {
+  border-color: var(--bnd-ink);
+}
+
+.print-format .bnd-p-totals .g td {
+  /* And no fill: composed over tt=Inverse the first cut left the ink
+     background under ink text — the review's ink-on-ink finding. */
+  background: none;
+  border-top-color: var(--bnd-ink);
+}
+
+/* The brand marks the first cut missed (review): the Ruled/Zebra header
+   underline on the vendor tables, and the Rail pole's edge itself. */
+.print-format table.table-bordered th,
+.print-format .items-table thead td {
+  border-bottom-color: var(--bnd-ink);
+}
+
+.print-format {
+  border-left-color: var(--bnd-ink);
+}
+
+[dir=rtl] .print-format {
+  border-right-color: var(--bnd-ink);
+}
+
+/*BND-END*/
+/*BND acc=brand-panels*/
+/* The strongest brand presence: filled table heads carrying the jointly
+   fitted pair (3:1 as a fill, 4.5:1 under its label -- one gate row since
+   item 17), and the amount box washed to match. */
+.print-format table.table-bordered th,
+.print-format .items-table thead td,
+.print-format .bnd-p-items th {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  border-color: var(--bnd-brand-solid);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.print-format thead.table-header {
+  background: none;
+}
+
+/* The fill must survive print media (Bootstrap's white-cell reset — see the
+   Washed pole's note; same sanction, same collision). */
+@media print {
+  .print-format table.table-bordered th,
+  .print-format .items-table thead td {
+    background-color: var(--bnd-brand-solid) !important;
+  }
+}
+.print-format .bnd-p-amountbox {
+  background: var(--bnd-pane);
+  border-color: var(--bnd-brand-solid);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/*BND-END*/
+.print-format .bnd-invoice {
+  direction: ltr;
+  text-align: left;
+  font-family: "Tajawal", "Cairo", "Noto Sans Arabic", "DejaVu Sans", sans-serif;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--bnd-ink);
+}
+
+.bnd-invoice table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  direction: inherit;
+}
+
+.bnd-invoice td,
+.bnd-invoice th {
+  vertical-align: top;
+  text-align: left;
+  padding: 7px 9px;
+}
+
+.bnd-invoice .bnd-inv-en,
+.bnd-invoice .bnd-inv-ar {
+  display: block;
+}
+
+.bnd-invoice .bnd-inv-en {
+  direction: ltr;
+}
+
+.bnd-invoice .bnd-inv-ar {
+  direction: rtl;
+  font-size: 10px;
+}
+
+.bnd-invoice .bnd-inv-title {
+  margin: 0 0 12px;
+}
+
+.bnd-invoice .bnd-inv-title td {
+  padding: 0 0 10px;
+  border-bottom: 2px solid var(--bnd-brand-solid);
+}
+
+.bnd-invoice h1 {
+  font-size: 21px;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: var(--bnd-brand-ink);
+}
+
+.bnd-invoice .bnd-inv-reference {
+  font-size: 12px;
+}
+
+.bnd-invoice .bnd-inv-meta {
+  margin: 0 0 12px;
+}
+
+.bnd-invoice .bnd-inv-meta td {
+  border: 1px solid var(--bnd-border);
+  background: var(--bnd-pane);
+}
+
+.bnd-invoice .bnd-inv-meta strong {
+  display: block;
+  margin-top: 5px;
+}
+
+.bnd-invoice .bnd-inv-parties {
+  margin: 0 0 14px;
+}
+
+.bnd-invoice .bnd-inv-parties td {
+  border: 1px solid var(--bnd-border);
+  width: 50%;
+}
+
+.bnd-invoice .bnd-inv-party-heading {
+  color: var(--bnd-brand-ink);
+  font-weight: 700;
+  margin-bottom: 7px;
+}
+
+.bnd-invoice .bnd-inv-party-name {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bnd-invoice .bnd-inv-address {
+  margin-top: 5px;
+}
+
+.bnd-invoice .bnd-inv-missing {
+  color: var(--bnd-ink-muted);
+  margin-top: 6px;
+  font-size: 10px;
+}
+
+.bnd-invoice .bnd-inv-id {
+  margin-top: 6px;
+  font-size: 10px;
+}
+
+.bnd-invoice .bnd-inv-id > span[dir=ltr] {
+  display: block;
+}
+
+.bnd-invoice .bnd-inv-items {
+  margin: 0 0 14px;
+}
+
+.bnd-invoice .bnd-inv-items thead {
+  display: table-header-group;
+}
+
+.bnd-invoice .bnd-inv-items th {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  font-weight: 700;
+  border: 1px solid var(--bnd-brand-solid);
+}
+
+.bnd-invoice .bnd-inv-items td {
+  border: 1px solid var(--bnd-border);
+}
+
+.bnd-invoice .bnd-inv-items tbody tr:nth-child(even) td {
+  background: var(--bnd-pane);
+}
+
+.bnd-invoice .bnd-inv-items th:nth-child(n+3) {
+  text-align: right;
+}
+
+.bnd-invoice .bnd-inv-num,
+.bnd-invoice .bnd-inv-number {
+  direction: ltr;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bnd-invoice .bnd-inv-item-name {
+  font-weight: 600;
+}
+
+.bnd-invoice .bnd-inv-item-code,
+.bnd-invoice .bnd-inv-description {
+  color: var(--bnd-ink-muted);
+  font-size: 10px;
+  overflow-wrap: break-word;
+}
+
+.bnd-invoice .bnd-inv-totals {
+  width: 56%;
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.bnd-invoice .bnd-inv-totals th {
+  width: 65%;
+  font-weight: 400;
+}
+
+.bnd-invoice .bnd-inv-totals td {
+  width: 35%;
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.bnd-invoice .bnd-inv-totals th,
+.bnd-invoice .bnd-inv-totals td {
+  border-bottom: 1px solid var(--bnd-border);
+  padding: 5px 9px;
+}
+
+.bnd-invoice .bnd-inv-grand th,
+.bnd-invoice .bnd-inv-grand td {
+  background: var(--bnd-pane);
+  font-weight: 700;
+  border-top: 2px solid var(--bnd-brand-solid);
+}
+
+.bnd-invoice .bnd-inv-grand td {
+  font-size: 15px;
+}
+
+.bnd-invoice .bnd-inv-currency {
+  font-size: 11px;
+}
+
+.bnd-invoice .bnd-inv-money {
+  display: inline-block;
+  direction: ltr;
+  white-space: nowrap;
+}
+
+.bnd-invoice .bnd-inv-riyal {
+  font-family: "Bunood Riyal";
+  font-size: 1em;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.bnd-invoice .bnd-inv-words,
+.bnd-invoice .bnd-inv-discount,
+.bnd-invoice .bnd-inv-extra {
+  padding: 8px 9px;
+  border-bottom: 1px solid var(--bnd-border);
+  margin-bottom: 10px;
+}
+
+.bnd-invoice .bnd-inv-words {
+  margin-top: 6px;
+}
+
+.bnd-invoice .bnd-inv-words th {
+  width: 35%;
+  font-weight: 400;
+}
+
+.bnd-invoice .bnd-inv-words td {
+  width: 65%;
+  vertical-align: middle;
+}
+
+.bnd-invoice .bnd-inv-discount th {
+  width: 70%;
+  font-weight: 400;
+  font-size: 10px;
+}
+
+.bnd-invoice .bnd-inv-discount td {
+  width: 30%;
+  text-align: right;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.bnd-invoice .bnd-inv-summary {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.bnd-invoice .bnd-inv-status {
+  color: var(--bnd-critical);
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.bnd-invoice .bnd-inv-tax-note {
+  margin-top: 4px;
+  font-size: 9px;
+  color: var(--bnd-ink-muted);
+}
+
+.bnd-invoice .bnd-inv-terms {
+  margin-top: 14px;
+}
+
+.bnd-invoice .bnd-inv-qr {
+  margin-top: 10px;
+}
+
+.bnd-invoice .bnd-inv-items th,
+.bnd-invoice .bnd-inv-meta td,
+.bnd-invoice .bnd-inv-grand td,
+.bnd-invoice .bnd-inv-grand th {
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  .bnd-invoice .bnd-inv-items th,
+  .bnd-invoice .bnd-inv-items th span {
+    color: var(--bnd-on-brand) !important;
+  }
+  .bnd-invoice .bnd-inv-items th {
+    background-color: var(--bnd-brand-solid) !important;
+  }
+}
+.bnd-invoice[dir=rtl] {
+  direction: rtl;
+  text-align: right;
+}
+
+.bnd-invoice[dir=rtl] h1,
+.bnd-invoice[dir=rtl] .bnd-inv-totals {
+  font-family: "Tajawal", "Bunood Riyal", "Cairo", "Noto Sans Arabic", sans-serif;
+}
+
+.bnd-invoice[dir=rtl] td,
+.bnd-invoice[dir=rtl] th,
+.bnd-invoice[dir=rtl] .bnd-inv-reference {
+  text-align: right;
+}
+
+.bnd-invoice[dir=rtl] .bnd-inv-num,
+.bnd-invoice[dir=rtl] .bnd-inv-items th:nth-child(n+3),
+.bnd-invoice[dir=rtl] .bnd-inv-totals td,
+.bnd-invoice[dir=rtl] .bnd-inv-discount td {
+  text-align: left;
+}
+
+.bnd-invoice[dir=rtl] .bnd-inv-totals {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.bnd-invoice .bnd-inv-label {
+  display: block;
+}

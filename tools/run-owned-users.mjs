@@ -41,12 +41,52 @@ export function makeRoleHomeFixtureUsers(runId = randomUUID().replaceAll("-", ""
 	});
 }
 
+/**
+ * Least-privilege starting fixtures for the V1 role-navigation matrix.
+ *
+ * The cashier uses the separate Bunood POS Operator authority role for the
+ * complete invoice/opening/closing lifecycle. Bunood Cashier remains an
+ * authority-free experience marker. Broad Sales, Stock, Accounts, and Manager
+ * roles are deliberately absent. The owner remains a marker-only fixture until
+ * its governed read/approve role is designed.
+ */
+export function makeV1RoleFixtureUsers(runId = randomUUID().replaceAll("-", "")) {
+	assertRunId(runId);
+	const marker = `bnd-v1-role-${runId}`;
+	const spec = (key, label, workspace, roles) => Object.freeze({
+		key,
+		email: `bunood-v1-${key}-qa-${runId}@example.com`,
+		firstName: label,
+		lastName: marker,
+		defaultWorkspace: workspace,
+		roles: Object.freeze([...roles]),
+		requireRoles: true,
+	});
+	return Object.freeze({
+		runId,
+		cashier: spec("cashier", "V1 Cashier QA", "Selling", ["Bunood Cashier", "Bunood POS Operator"]),
+		sales: spec("sales", "V1 Sales QA", "Selling", ["Sales User"]),
+		buyer: spec("buyer", "V1 Buyer QA", "Buying", ["Purchase User"]),
+		warehouse: spec("warehouse", "V1 Warehouse QA", "Stock", ["Stock User"]),
+		accountant: spec("accountant", "V1 Accountant QA", "Invoicing", ["Accounts User"]),
+		finance: spec("finance", "V1 Finance QA", "Financial Reports", ["Accounts Manager", "Accounts User"]),
+		owner: spec("owner", "V1 Owner QA", "Home", ["Bunood Owner"]),
+	});
+}
+
+function fixtureSpecs(users) {
+	return Object.values(users || {}).filter(value => value && typeof value === "object" && value.email);
+}
+
 export function buildPreflightScript(users) {
 	return [
 		"specs = json.loads(" + pythonJson(users) + ")",
 		"collisions = [spec['email'] for spec in specs if frappe.db.exists('User', spec['email'])]",
 		"if collisions:",
 		"    raise RuntimeError('Refusing role-home fixture collision: ' + ', '.join(collisions))",
+		"missing_roles = sorted({role for spec in specs if spec.get('requireRoles') for role in spec['roles'] if not frappe.db.exists('Role', role)})",
+		"if missing_roles:",
+		"    raise RuntimeError('Missing required V1 fixture roles: ' + ', '.join(missing_roles))",
 		"print('clear')",
 	].join("\n") + "\n";
 }
@@ -56,6 +96,9 @@ export function buildCreateScript(spec) {
 		"spec = json.loads(" + pythonJson(spec) + ")",
 		"if frappe.db.exists('User', spec['email']):",
 		"    raise RuntimeError('Refusing role-home fixture collision: ' + spec['email'])",
+		"missing_roles = [role for role in spec['roles'] if spec.get('requireRoles') and not frappe.db.exists('Role', role)]",
+		"if missing_roles:",
+		"    raise RuntimeError('Missing required V1 fixture roles: ' + ', '.join(missing_roles))",
 		"was_in_test = frappe.in_test",
 		"frappe.in_test = True",
 		"try:",
@@ -113,7 +156,7 @@ export class RunOwnedUserFixtures {
 	}
 
 	preflight() {
-		return this.runBench(buildPreflightScript([this.users.erp, this.users.realEstate]));
+		return this.runBench(buildPreflightScript(fixtureSpecs(this.users)));
 	}
 
 	create(spec) {

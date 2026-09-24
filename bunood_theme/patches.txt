@@ -134,3 +134,46 @@ bunood_theme.patches.v0_11_0.heal_unknown_placements
 # off, and a new default-on Check would have put one back. Asks the neighbour
 # it sits beside: density off means this site did not ask for width either.
 bunood_theme.patches.v0_46_1.width_follows_density
+
+# One visible sidebar component. The retired Rail value used a second,
+# icon-only renderer that made saved forms look like a different application.
+# Rewrite both the site value and per-user preferences before the Select loses
+# that option, so later Theme Settings saves remain valid.
+bunood_theme.patches.v0_46_2.unify_sidebar
+
+# Launch documents: correct the Arabic brand spelling in managed print-format
+# names. The regular post-migrate sync then installs the quotation/statement
+# formats and adopts all commercial defaults in one idempotent pass.
+bunood_theme.patches.v0_46_8.launch_documents
+
+# Customer-facing launch documents must follow the requested print language.
+# The old shipped default, Both, produced mixed-language A4 and thermal output.
+bunood_theme.patches.v0_46_10.follow_print_language
+
+# POS receipts must not collapse physical cash and card-terminal settlements
+# into one balance. Create the Network clearing asset, map both native payment
+# methods, and expose them on every active POS Profile.
+bunood_theme.patches.v0_46_11.pos_payment_ledgers
+
+# SAR is a two-decimal currency. Keep invoices at exact halala precision and
+# remove whole-riyal round-off adjustments from new Sales/Purchase/POS bills.
+bunood_theme.patches.v0_46_12.exact_halala_totals
+
+# Credit sales are receivables, not a payment method. Replace the invoice's
+# open-ended Mode of Payment link with the supported settlement choices so
+# unmapped test methods cannot reach the posting flow.
+bunood_theme.patches.v0_46_16.credit_sales
+
+# Keep master-data keys language-neutral. Rename the legacy Arabic Network
+# payment method through Frappe so every Link follows it, while Arabic remains
+# the translated label on Arabic pages.
+bunood_theme.patches.v0_46_33.network_mode_english
+
+# Standard Sales Invoice recovery and the Bank Balance dashboard both depend on
+# native company mappings. Complete Credit Card's company row and a missing
+# Company.default_bank_account from the already-managed clearing ledger.
+bunood_theme.patches.v0_46_34.payment_account_recovery
+
+# A native walk-in Customer and vacancy-only defaults for new Sales Invoices
+# and POS Profiles. Existing named customers and configured profile choices win.
+bunood_theme.patches.v0_46_35.cash_customer_defaults

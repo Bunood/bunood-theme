@@ -32,20 +32,68 @@ frappe.pages["bnd-report-studio"].on_page_load = function (wrapper) {
 			"</div>";
 	};
 
-	const src = frappe.boot && frappe.boot.bnd_studio_js;
-	if (!src) {
-		// boot.py is try-wrapped: a failed theme boot means no key. Fail open,
-		// loudly enough to be actionable.
-		fail(__("The Report Studio bundle is not registered. Rebuild the theme's assets."));
-		return;
-	}
+	const bootAssets = () => ({
+		css: frappe.boot && frappe.boot.bnd_studio_css,
+		js: frappe.boot && frappe.boot.bnd_studio_js,
+	});
 
-	frappe.require(src, () => {
-		const api = window.bunood_theme;
-		if (!api || typeof api.report_studio_render !== "function") {
-			fail(__("The Report Studio failed to load. Check the browser console."));
+	const currentAssets = () => frappe.call({
+		method: "bunood_theme.api.get_report_studio_assets",
+		type: "GET",
+	}).then((response) => response.message || bootAssets())
+		.catch(() => bootAssets());
+
+	const load = (path, kind) => new Promise((resolve, reject) => {
+		if (!path) {
+			reject(new Error(`Missing Report Studio ${kind} asset`));
 			return;
 		}
-		api.report_studio_render(container, page);
+
+		const wanted = new URL(path, window.location.origin);
+		const selector = kind === "css" ? 'link[rel="stylesheet"]' : "script[src]";
+		const existing = [...document.querySelectorAll(selector)].find((node) => {
+			const candidate = new URL(kind === "css" ? node.href : node.src, window.location.origin);
+			return candidate.pathname === wanted.pathname;
+		});
+
+		// Do not trust frappe.assets._executed here. Frappe deliberately resolves
+		// failed requests for backward compatibility and records them as executed,
+		// which is exactly how a Studio can render raw controls and intrinsic SVGs.
+		if (existing && (kind === "js" || existing.sheet)) {
+			resolve();
+			return;
+		}
+		if (existing) existing.remove();
+
+		const node = document.createElement(kind === "css" ? "link" : "script");
+		node.dataset.bndStudioAsset = kind;
+		if (kind === "css") {
+			node.rel = "stylesheet";
+			node.href = wanted.href;
+		} else {
+			node.src = wanted.href;
+			node.async = true;
+		}
+		node.addEventListener("load", resolve, { once: true });
+		node.addEventListener("error", () => {
+			node.remove();
+			reject(new Error(`Failed to load Report Studio ${kind} asset`));
+		}, { once: true });
+		document.head.append(node);
 	});
+
+	currentAssets()
+		// CSS first: the catalogue must never expose intrinsic SVG dimensions.
+		.then((assets) => load(assets.css, "css").then(() => load(assets.js, "js")))
+		.then(() => {
+			const api = window.bunood_theme;
+			if (!api || typeof api.report_studio_render !== "function") {
+				throw new Error("Report Studio renderer is unavailable");
+			}
+			api.report_studio_render(container, page);
+		})
+		.catch((error) => {
+			console.error("Report Studio asset load failed", error);
+			fail(__("The Report Studio failed to load. Check the browser console."));
+		});
 };

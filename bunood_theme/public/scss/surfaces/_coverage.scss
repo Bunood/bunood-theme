@@ -1,3 +1,5 @@
+@use "../breakpoints" as *;
+
 // Native tree, attachment picker, activity and POS structures. Variables own
 // colour; these rules supply missing spacing, boundaries and selection shape.
 html[data-bnd-views] .tree {
@@ -54,6 +56,38 @@ html[data-bnd-form] .point-of-sale-app {
   }
   .item-price, .grand-total, .total-amount { font-variant-numeric: var(--bnd-numeric); unicode-bidi: isolate; }
 }
+// Keep Frappe's native print-language control as the source of truth while
+// presenting the site's two supported choices as an immediate, equal action.
+html[data-theme] .print-preview-sidebar [data-fieldname="language"].bnd-print-language-ready {
+  > .control-input-wrapper { display: none; }
+  > .bnd-print-language {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bnd-sp-2);
+    direction: ltr;
+  }
+  .bnd-print-language__option {
+    min-block-size: var(--bnd-control-h);
+    padding-inline: var(--bnd-sp-3);
+    color: var(--bnd-ink);
+    background: var(--bnd-surface);
+    border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+    border-radius: var(--bnd-radius-md);
+    font-weight: var(--bnd-weight-medium);
+  }
+  .bnd-print-language__option[aria-pressed="true"] {
+    color: var(--bnd-on-deep);
+    background: var(--bnd-brand-deep);
+    border-color: var(--bnd-brand-deep);
+  }
+  .bnd-print-language__option:is(:hover, :focus-visible) {
+    border-color: var(--bnd-brand-solid);
+  }
+  .bnd-print-language__option:focus-visible {
+    outline: var(--bnd-line-2) solid var(--bnd-accent);
+    outline-offset: var(--bnd-line);
+  }
+}
 // Frappe leaves the container position:static when the current layout does not
 // claim Bunood's sidepane chrome. The absolutely positioned onboarding child
 // would then use the viewport as its containing block: visually transparent,
@@ -62,51 +96,112 @@ html[data-bnd-form] .point-of-sale-app {
 html[data-bnd-ws] .body-sidebar-container {
   position: relative;
 }
-html[data-bnd-ws] .body-sidebar-container .user-onboarding {
-  position: absolute;
-  inset: 0;
-  inline-size: 100%;
-  block-size: 100%;
-  min-block-size: 0;
-  z-index: var(--bnd-z-panel);
-}
-html[data-bnd-ws] .body-sidebar-container .user-onboarding .onb-panel {
+html[data-bnd-desk] .body-sidebar-container .user-onboarding {
   position: static;
-  inline-size: 100%;
-  max-inline-size: 100%;
-  block-size: 100%;
-  max-block-size: 100%;
-  overflow-y: auto;
+  pointer-events: none;
+}
+// Vue empties this wrapper when Getting Started is closed but leaves the
+// absolutely positioned element behind. At full sidebar size it remained an
+// invisible pointer shield over Home, Notifications and every workspace row.
+// An empty popup owns no pixels and no events; the next vendor mount removes
+// this state automatically by adding its panel child again.
+html[data-bnd-desk] .body-sidebar-container .user-onboarding:empty {
+  display: none;
+  pointer-events: none;
+}
+html[data-bnd-desk] .body-sidebar-container .user-onboarding .onb-panel {
+  position: fixed;
+  inset-block: auto calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5));
+  inset-inline: auto var(--bnd-sp-5);
+  box-sizing: border-box;
+  inline-size: min(420px, calc(100vw - 2 * var(--bnd-sp-5)));
+  max-block-size: min(74dvh, 680px);
+  z-index: var(--bnd-z-panel);
+  pointer-events: auto;
   background: var(--bnd-surface);
   color: var(--bnd-ink);
   border: var(--bnd-line-strong) solid var(--bnd-border-strong);
   border-radius: var(--bnd-radius-lg);
   box-shadow: var(--bnd-shadow-md);
-  .onb-title { gap: var(--bnd-sp-3); }
-  .onb-steps { gap: var(--bnd-sp-3); }
-  .onb-group { padding-block: var(--bnd-sp-3); border-radius: var(--bnd-radius-md); }
-  .onb-step-text { overflow-wrap: anywhere; }
-  .bnd-onboarding-refresh {
+	overflow: hidden;
+	.onb-header-main {
+		position: relative;
+		z-index: 2;
+		flex: none;
+		min-block-size: var(--bnd-control-h);
+		padding-block-end: var(--bnd-sp-2);
+		background: inherit;
+	}
+  .onb-header-actions {
+    display: flex;
+		flex: none;
+		align-items: center;
+    gap: var(--bnd-sp-1);
+  }
+  .onb-header-actions button {
     display: grid;
     inline-size: var(--bnd-control-h);
     block-size: var(--bnd-control-h);
     place-items: center;
+    margin: 0;
     padding: 0;
     color: var(--bnd-ink-muted);
-    background: transparent;
-    border: var(--bnd-line) solid transparent;
     border-radius: var(--bnd-radius-sm);
-    cursor: pointer;
+		opacity: 1;
+		visibility: visible;
   }
-  .bnd-onboarding-refresh:is(:hover, :focus-visible) {
+	.onb-header-actions button svg {
+		display: block;
+		inline-size: var(--bnd-sp-4);
+		block-size: var(--bnd-sp-4);
+	}
+  .onb-header-actions button:is(:hover, :focus-visible) {
     color: var(--bnd-brand-ink);
     background: var(--bnd-hover);
-    border-color: var(--bnd-border-strong);
   }
+  .onb-header-actions button:focus-visible,
   .bnd-onboarding-refresh:focus-visible {
     outline: var(--bnd-line-2) solid var(--bnd-accent);
     outline-offset: var(--bnd-line);
   }
+  .onb-title { margin-block-end: var(--bnd-sp-5); }
+	.onb-collapsible { flex: 1 1 auto; min-block-size: 0; overflow: hidden; }
+	.onb-collapsible--expanded {
+		display: flex;
+		flex-direction: column;
+		overscroll-behavior: contain;
+	}
+	.onb-collapsible .body {
+		display: flex;
+		flex: 1 1 auto;
+		min-block-size: 0;
+		flex-direction: column;
+		padding-block-end: var(--bnd-sp-2);
+		overflow: hidden;
+	}
+  .bnd-stock-setup-glyph {
+    display: grid;
+    inline-size: calc(var(--bnd-control-h) + var(--bnd-sp-4));
+    block-size: calc(var(--bnd-control-h) + var(--bnd-sp-4));
+    place-items: center;
+    margin-block-end: var(--bnd-sp-3);
+    color: var(--bnd-on-brand);
+    background: var(--bnd-brand);
+    border-radius: var(--bnd-radius-lg);
+  }
+  .bnd-stock-setup-glyph > svg {
+    inline-size: var(--bnd-sp-6);
+    block-size: var(--bnd-sp-6);
+  }
+  .onb-steps {
+		min-block-size: 0;
+		gap: var(--bnd-sp-2);
+		padding-block-end: var(--bnd-sp-4);
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+  .onb-group { padding: var(--bnd-sp-3); border-radius: var(--bnd-radius-md); }
+  .onb-step-text { overflow-wrap: anywhere; }
   .bnd-onboarding-refresh-icon,
   .bnd-onboarding-refresh-icon > svg {
     inline-size: var(--bnd-sp-4);
@@ -122,4 +217,20 @@ html[data-bnd-ws] .body-sidebar-container .user-onboarding .onb-panel {
   }
   .bnd-onboarding-status:empty { display: none; }
 }
-html[data-bnd-ws] .body-sidebar-container:has(> .user-onboarding .onb-panel) > .overlay { display: none; }
+// A completed or fully skipped checklist is finished, not a persistent card.
+// JS closes the Vue component; this rule prevents even a one-frame reappearance
+// while cached workspace state is being reconciled with the server response.
+html[data-bnd-desk] .body-sidebar-container .user-onboarding .onb-panel:has(.onb-progress-badge-complete) {
+  display: none;
+}
+html[data-bnd-desk] .body-sidebar-container:has(> .user-onboarding .onb-panel) > .overlay { display: none; }
+
+@include bnd-until(sm) {
+  html[data-bnd-desk] .body-sidebar-container .user-onboarding .onb-panel {
+		inset-block: auto var(--bnd-sp-3);
+		inset-inline: var(--bnd-sp-3);
+		inline-size: auto;
+    max-block-size: min(78dvh, 680px);
+    border-radius: var(--bnd-radius-xl);
+  }
+}

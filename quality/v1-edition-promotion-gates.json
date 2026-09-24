@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "authority": "docs/BUNOOD-V1-MEGA-PLAN-2026-09-20.md",
+  "market_evidence": "docs/BUNOOD-V1-SAUDI-MARKET-RESEARCH-SYNTHESIS-2026-09-20.md",
+  "status_registry": "quality/v1-work-order-status.json",
+  "disclaimer": "Planning promotion targets only. This is not implementation evidence, an acceptance receipt, a compliance certification, a supported-scope statement, or a release decision.",
+  "product_model": {
+    "core_sequence": ["start", "operate", "control"],
+    "add_on_tracks": ["connect"],
+    "same_native_documents_permissions_and_ledgers": true,
+    "experience_change_cannot_fork_business_data": true,
+    "experience_change_cannot_require_destructive_migration": true,
+    "simple_mode_cannot_weaken_accounting_stock_tax_or_permission_authority": true,
+    "promotion_requires_candidate_bound_execution_evidence": true,
+    "add_on_requires_relevant_accepted_base_and_domain_dependencies": true
+  },
+  "editions": [
+    {
+      "id": "start",
+      "name": "Start",
+      "positioning": "A micro retail or service business can activate, sell, collect, issue compliant output, recover, and understand today's position without learning ERP structure.",
+      "primary_users": ["owner", "cashier", "sales"],
+      "prerequisite_editions": [],
+      "introduced_work_orders": [
+        "WO-00", "WO-01", "WO-10", "WO-12", "WO-13", "WO-15", "WO-23", "WO-30",
+        "FND-01", "FND-02", "FND-03", "FND-04", "FND-05",
+        "OTC-01", "OTC-02", "OTC-03", "OTC-04",
+        "KSA-01", "KSA-02", "KSA-03", "KSA-04",
+        "BI-02", "BI-03", "BI-04"
+      ],
+      "promotion_evidence": [
+        "exact-candidate-release-identity-staging-deploy-rollback-restore-monitoring-and-support-receipt",
+        "fresh-permitted-admin-bilingual-resumable-activation-to-first-useful-outcome-without-developer-intervention",
+        "real-cashier-and-sales-invoice-pos-payment-return-shift-receipt-statement-and-recovery-journeys-on-accepted-devices",
+        "exact-stock-tax-zatca-payment-ledger-outstanding-provider-clearing-cash-bank-and-gl-reconciliation-for-applicable-flows",
+        "owner-cash-sales-receivable-stock-and-exception-values-reconcile-to-permission-filtered-native-destinations",
+        "arabic-english-rtl-ltr-phone-compact-tablet-desktop-keyboard-touch-accessibility-performance-and-real-user-acceptance"
+      ],
+      "state": "planning-target-only"
+    },
+    {
+      "id": "operate",
+      "name": "Operate",
+      "positioning": "A small multi-role company can migrate, delegate, buy, receive, stock, sell, pay, collect, and reconcile one complete operating cycle.",
+      "primary_users": ["owner", "buyer", "warehouse", "sales", "accountant"],
+      "prerequisite_editions": ["start"],
+      "introduced_work_orders": [
+        "WO-11", "WO-14", "WO-20", "WO-21", "WO-22", "FIN-03", "FIN-04", "KSA-05"
+      ],
+      "promotion_evidence": [
+        "clean-and-dirty-dry-run-import-duplicate-idempotent-retry-opening-reconciliation-cutover-and-approved-rollback-rehearsals",
+        "request-quote-order-receipt-inspection-bill-payment-return-transfer-transit-count-reorder-and-correction-normal-and-exception-cycles",
+        "statement-import-duplicate-quarantine-explainable-candidate-split-merge-partial-create-unmatch-difference-and-review-reconciliation",
+        "exact-quantity-value-tax-payable-receivable-payment-stock-ledger-payment-ledger-bank-clearing-and-gl-reconciliation",
+        "least-privilege-buyer-warehouse-sales-accountant-owner-approval-record-scope-and-negative-permission-evidence",
+        "bilingual-role-handoff-training-support-volume-performance-recovery-and-controlled-period-signoff"
+      ],
+      "state": "planning-target-only"
+    },
+    {
+      "id": "control",
+      "name": "Control",
+      "positioning": "A medium company's accountant and controller can govern dimensions, exceptions, reporting, privacy, and two consecutive closes without a shadow ledger.",
+      "primary_users": ["accountant", "finance", "owner", "administrator"],
+      "prerequisite_editions": ["operate"],
+      "introduced_work_orders": [
+        "FIN-01", "FIN-02", "FIN-05", "FIN-06", "FIN-07", "FIN-08", "FIN-09", "FIN-10",
+        "BI-01", "BI-05", "KSA-06", "KSA-07"
+      ],
+      "promotion_evidence": [
+        "two-consecutive-candidate-bound-normal-and-exception-month-end-closes-under-qualified-accountant-review",
+        "company-branch-dimension-currency-budget-asset-accrual-deferred-fx-tax-period-lock-reopen-and-journal-control-evidence",
+        "ar-ap-bank-cash-stock-assets-tax-payroll-and-other-applicable-subledgers-reconcile-to-native-gl-and-statements",
+        "versioned-metric-and-custom-report-request-review-test-publish-disable-retire-and-output-parity-governance",
+        "pdpl-rights-processing-retention-transfer-breach-access-backup-redaction-and-ledger-safe-disposition-exercises",
+        "controller-accountant-owner-admin-permission-segregation-bilingual-usability-load-recovery-audit-and-external-review"
+      ],
+      "state": "planning-target-only"
+    },
+    {
+      "id": "connect",
+      "name": "Connect",
+      "positioning": "A company can add a customer portal, Saudi people/payroll, or supported external providers without weakening the accepted base experience.",
+      "primary_users": ["employee", "customer", "payroll", "finance", "administrator", "support"],
+      "prerequisite_editions": ["start"],
+      "introduced_work_orders": [
+        "WO-31", "OTC-05", "HR-01", "HR-02", "HR-03", "HR-04", "HR-05"
+      ],
+      "promotion_evidence": [
+        "named-customer-demand-provider-current-api-commercial-authorization-sandbox-and-controlled-production-scope",
+        "least-privilege-consent-credential-secret-data-minimization-cross-customer-isolation-revoke-and-audit-evidence",
+        "mapping-initial-sync-incremental-sync-idempotency-ordering-retry-dead-letter-replay-rate-limit-and-conflict-evidence",
+        "exact-external-event-portal-document-contract-payroll-wps-gosi-payment-stock-tax-bank-clearing-and-gl-reconciliation-as-applicable",
+        "failure-delay-duplicate-rejection-expiry-revocation-provider-outage-degraded-mode-recovery-and-customer-communication-exercises",
+        "provider-government-interface-support-owner-sla-upgrade-load-privacy-qualified-review-and-separate-promotion-receipt"
+      ],
+      "state": "planning-target-only"
+    }
+  ]
+}

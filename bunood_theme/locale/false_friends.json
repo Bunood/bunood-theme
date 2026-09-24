@@ -127,8 +127,12 @@
    "defend": true
   },
   "Ledger": {
-   "reason": "erpnext دفتر الأستاذ is the general-ledger account book; the Ledger look is a ruled page — دفتر",
+   "reason": "erpnext دفتر الأستاذ is the general-ledger account book and is correct on accounting screens; the visual theme uses the context \"theme name\" to mean a ruled page — دفتر",
    "defend": false
+  },
+  "Standard": {
+   "reason": "frappe أساسي means basic or essential; a standard option or format is قياسي, and a doctype Select option cannot request a translation context",
+   "defend": true
   },
   "Notifications": {
    "reason": "Frappe إخطارات is inconsistent with Bunood's product wording; our notification surface uses إشعارات",
@@ -144,6 +148,18 @@
   },
   "Could not refresh this report": {
    "reason": "System-state recovery copy is Bunood-owned and must stay consistent across list and report surfaces",
+   "defend": true
+  },
+  "Please set default Cash or Bank account in Mode of Payment {0}": {
+   "reason": "upstream Arabic contains literal escaped newlines and repeats the full English sentence",
+   "defend": true
+  },
+  "Account is not set for the dashboard chart {0}": {
+   "reason": "upstream inserts an HTML link into a chart error surface that renders it as text",
+   "defend": true
+  },
+  "Bank Balance": {
+   "reason": "the standard ERPNext dashboard title must not remain English on the Arabic Accounts dashboard",
    "defend": true
   }
  }

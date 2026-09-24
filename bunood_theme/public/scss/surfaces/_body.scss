@@ -137,6 +137,40 @@ html[data-bnd-body-width] body:not(.full-width) .form-layout .form-section:has(.
   max-inline-size: var(--bnd-wide-w);
 }
 
+// PAYMENT ENTRY IS ONE CONTINUOUS ACCOUNTING WORKFLOW, not a reading card
+// followed by a detached wide table. Its amount, references and write-off
+// sections are scanned together, so changing the edge midway through the form
+// makes the reference card look like a different page. The status strip has a
+// second wrinkle: `.form-dashboard-section` was capped above, but its painted
+// parent `.form-dashboard` still stretched across the column. Constrain the
+// painted box as well as every native section to the same reading edge. This is
+// deliberately route-scoped; data-heavy tables on other doctypes keep the wide
+// edge described above.
+html[data-bnd-body-width] body:not(.full-width)[data-route^="Form/Payment Entry/"] .form-layout :is(
+  .form-dashboard,
+  .form-section,
+  .form-section:has(.frappe-control[data-fieldtype="Table"]),
+  .form-section:has(.form-grid)
+) {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
+}
+
+// A SALES INVOICE IS ALSO ONE CONTINUOUS SCANNING WORKFLOW. Its item and tax
+// tables already take the wide edge, but the surrounding customer, totals and
+// optional sections fell back to the reading edge while the generated document
+// summary had no cap at all. On a wide screen this produced three unrelated
+// card widths inside one invoice. Keep every native section and the review
+// summary on the same wide edge; simple mode is unaffected because it owns a
+// separate composer and hides the native form layout.
+html[data-bnd-body-width] body:not(.full-width)[data-route^="Form/Sales Invoice/"] .form-layout :is(
+  .form-section,
+  .bnd-form-summary
+) {
+  max-inline-size: var(--bnd-wide-w);
+  margin-inline: auto;
+}
+
 // ── DESK PAGES: the family the structure-based rules cannot see ─────────────
 //
 // A `Page` is neither a list nor a form, so every rule above misses it by

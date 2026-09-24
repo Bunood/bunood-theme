@@ -10,17 +10,52 @@ html.bunood[data-theme] .frappe-control .control-value.like-disabled-input {
   min-block-size: var(--bnd-control-h);
 }
 
+// The chevron selects; Frappe's original arrow still opens the record.
+// The chooser stays visible even before a value is selected. The native
+// record/clear actions remain available beside it when Frappe shows them.
+html.bunood[data-theme] .link-field > .bnd-link-choose {
+  position: absolute;
+  inset-block: 2px;
+  inset-inline-end: 3px;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 1.75rem;
+  border-radius: var(--bnd-radius-sm);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink-muted);
+}
+html.bunood[data-theme] .link-field:has(> .bnd-link-choose) > .link-btn {
+  inset-inline-end: 2rem;
+}
+html.bunood[data-theme] .link-field > .bnd-link-choose:hover,
+html.bunood[data-theme] .link-field > .bnd-link-choose:focus-visible {
+  color: var(--bnd-accent);
+  background: var(--bnd-active);
+}
+html.bunood[data-theme] .link-field > .bnd-link-choose:focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+html.bunood[data-theme] .link-field:has(.bnd-link-choose) > .awesomplete > input.form-control {
+  padding-inline-end: 4rem;
+}
+
 // Native forms, Quick Entry and the reversible Simple composer share one
 // state vocabulary. Frappe keeps ownership of value, permission and
 // validation; these selectors consume only its real attributes/classes.
-html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+// The location is a zero-specificity scope: these are defaults.  A selected
+// surface anatomy (for example form fields) must be able to override them
+// without an escalating selector contest.
+html.bunood[data-theme] :where(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
   :is(input.form-control:not([type="checkbox"]):not([type="radio"]), select.form-control, textarea.form-control) {
   background-color: var(--bnd-surface);
   border-color: var(--bnd-border);
   transition: background-color var(--bnd-dur-fast) var(--bnd-ease),
     border-color var(--bnd-dur-fast) var(--bnd-ease), box-shadow var(--bnd-dur-fast) var(--bnd-ease);
 }
-html.bunood[data-theme] :is(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
+html.bunood[data-theme] :where(.form-layout, .modal-dialog, .bnd-simple-composer) .frappe-control
   :is(input.form-control, select.form-control, textarea.form-control):not(:disabled):not([readonly]):hover {
   background-color: var(--bnd-active);
   border-color: var(--bnd-border-strong);

@@ -78,6 +78,12 @@ html[data-theme] .bnd-avatar-btn {
   }
 }
 
+// The identity copy belongs only to the wide account card in the side pane.
+// Other placements keep the same compact avatar trigger.
+html[data-theme] .bnd-user-summary {
+  display: none;
+}
+
 // Labels belong to the four-cell phone navigation only.  Leaving these inline
 // on a desktop made the account label paint outside its fixed avatar button,
 // where it could cover the notification control and even the viewport edge.
@@ -546,6 +552,15 @@ html[data-bnd-language-style="globe-name"] .bnd-language-btn {
   padding-inline: var(--bnd-sp-2);
 }
 
+// The wide desk language switch is a permanent global action beside the bell.
+// It always reads AR/EN so its purpose is obvious without relying on a globe.
+// Narrow fallback placements shed this class and retain their configured style.
+html[data-theme] .bnd-language-beside-bell {
+  .bnd-lang-ico,
+  .bnd-lang-name { display: none; }
+  .bnd-lang-code { display: inline; }
+}
+
 html[data-theme] .bnd-icon-btn:focus-visible,
 html[data-theme] .bnd-avatar-btn:focus-visible,
 html[data-theme] .bnd-search-field:focus-visible,
@@ -614,8 +629,16 @@ html[data-theme] .bnd-zone[data-zone="center"] {
   // the bell and the avatar sit there, and a 420px field over a 500px bar
   // covers them. `.bnd-search-center`, the slot this replaced, always read
   // `min(420px, 46%)`; this is that number, back where it works.
-  max-inline-size: 46%;
   justify-content: center;
+}
+
+// Only search needs a percentage cap. Applying it to an icon-only centre
+// shrinks a 28px bell/avatar to a few pixels when the page-head cluster has no
+// other in-flow children; the icon then paints outside the slot and makes the
+// desk horizontally scroll. Ordinary centred controls keep their intrinsic
+// size, while the search slot retains the collision guard described above.
+html[data-theme] .bnd-zone[data-zone="center"]:has(> .bnd-search-field) {
+  max-inline-size: 46%;
 }
 
 // ONE CENTRE PER BAR (item 42, slice 1b — the switch matrix's first finding).
@@ -633,10 +656,13 @@ html[data-theme] .bnd-zone[data-zone="center"] {
 // the zone centres against the BAR rather than the cluster: the two bars'
 // clusters give up their positioning context (the top bar is `relative`, the
 // status bar is `fixed`, so the bar is the containing block either way). The
-// page-head and dock clusters keep theirs — their centre means the cluster's
-// centre, and a bell centred over a page title is a different decision.
+// page-head cluster does too: its end-actions slot can be only one gap wide,
+// so centring against that slot pushes an icon past the viewport. Its sticky
+// page head is the containing block. The dock keeps its cluster context, but
+// its centre zone is in normal flow below because a dock is a pill, not a bar.
 html[data-theme] .bnd-topbar .bnd-cluster,
-html[data-theme] .bnd-statusbar .bnd-cluster {
+html[data-theme] .bnd-statusbar .bnd-cluster,
+html[data-theme] .page-head .bnd-cluster {
   position: static;
 }
 

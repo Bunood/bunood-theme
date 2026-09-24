@@ -47,6 +47,9 @@
 // on the rest, from one stylesheet. A tile is a tile wherever it sits.
 $desktop-item: ".desktop-icon";
 
+// Bare Desk is a workspace landing; hide the temporary Desktop grid.
+html[data-bnd-home-pending] .desktop-wrapper { visibility: hidden !important; }
+
 // Frappe's private All Apps navbar is the fail-open shell when the configured
 // Bunood bars are all disabled. Give that shell the one route it otherwise
 // lacks: a clear, labelled return to the operational Home dashboard. The
@@ -96,7 +99,10 @@ html[data-bnd-desk][data-bnd-desktop-home][data-bnd-own~="desktophome"] .desktop
   display: none;
 }
 
-html[data-bnd-desk][data-bnd-desktop-home] [data-bnd-part="home"]:not(.bnd-desktop-native-home) {
+// The fallback belongs to Frappe's wide private navbar. On narrow screens the
+// stable four-destination bottom bar is the shell, so its Home cell must remain
+// visible while the fallback ownership stamp is being released.
+html[data-bnd-desk]:not([data-bnd-narrow])[data-bnd-desktop-home] [data-bnd-part="home"]:not(.bnd-desktop-native-home) {
   display: none !important;
 }
 
@@ -218,9 +224,11 @@ html[data-bnd-desk] {
 // same bound.
 html[data-bnd-desktop][data-bnd-narrow] .desktop-wrapper {
   // The fixed navigation owns the viewport edge. A real end inset lets the
-  // final module caption scroll fully above it instead of stopping flush
-  // against the bar and looking clipped.
-  padding-block-end: var(--bnd-sp-6);
+  // final module card scroll fully clear of it. `.main-section` already stops
+  // at the bar's top edge, but a spacing-only inset still left the last row
+  // visually cut against that edge while scrolling. Include the measured bar
+  // height so the final row can settle above the navigation with a full gap.
+  padding-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-sp-6));
 
   .desktop-container {
     inline-size: 100%;

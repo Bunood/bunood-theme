@@ -19,6 +19,84 @@ inside a release named for item 29. That commit predates the decision, so its
 version files still read 0.20.0. The invariant resumes at v0.30.0. This is
 written down rather than left to be rediscovered as a bug.
 
+## [0.46.35] — 2026-09-20 — Restrained geometry and Arabic payment presentation (patch)
+
+### Fixed
+
+- Replaced decorative capsule geometry with the theme's restrained 4px control
+  radius while preserving true circles for semantic numbered steps and dots.
+- Completed the Arabic presentation of the Mode of Payment form, including the
+  account workspace, native labels, canonical Cash/Network methods, and Network
+  Card Clearing account name.
+- Kept canonical master-data keys and link targets unchanged: localization is
+  applied only to rendered text, never to `frm.doc` or database values.
+
+## [0.46.34] — 2026-09-20 — Narrow sidebar drawer recovery (patch)
+
+### Fixed
+
+- Restored Frappe's native workspace drawer at widths below 768px. The desktop
+  resize floor no longer clips the absolutely positioned mobile drawer after
+  the workspace-menu button expands it.
+- Added a responsive regression contract that keeps desktop clipping scoped
+  away from the narrow drawer.
+
+## [0.46.33] — 2026-09-20 — Language-neutral payment master data (patch)
+
+### Fixed
+
+- Renamed the legacy Arabic `شبكة` Mode of Payment to the canonical English
+  `Network` key through Frappe's document rename path, preserving every linked
+  POS, payment, and ledger reference.
+- Added the Arabic `شبكة` translation for `Network`, so English pages no longer
+  mix Arabic master-data labels while Arabic pages retain the expected wording.
+- Updated the invoice settlement selector and existing saved selections without
+  changing the Network Card Clearing account or Cash default.
+
+## [0.46.32] — 2026-09-20 — Mapped invoice workbench acceptance (patch)
+
+### Fixed
+
+- Kept the Simple/Advanced Sales and Purchase Invoice workbench available when
+  native ERPNext mapping fields point back to an order, receipt, or delivery.
+  The workbench continues to edit the same `frm.doc`; source-row references and
+  native over-billing, stock, tax, permission, save, and submit validation remain
+  authoritative.
+- Added mapped Sales Order and Purchase Order regression coverage so a native
+  quotation/order-to-invoice flow cannot silently fall back to Advanced-only UI.
+- Repaired the managed default-print Property Setters to target the DocType
+  itself. Sales Invoice, Quotation, and Payment Entry now open their approved
+  Bunood formats by default instead of silently falling back to Standard.
+
+## [0.46.31] — 2026-09-20 — Production MVP presentation and invoice handoff (patch)
+
+### Shipped
+
+- Standardized Desk on one permanent top bar and one responsive sidebar, with
+  matching Arabic/English navigation and four equal mobile destinations.
+- Completed the native Sales and Purchase Invoice workbench: Simple/Advanced
+  modes share the same ERPNext document, the item sheet keeps one harmless ready
+  row, state-aware save/submit/payment actions remain reachable, and a large
+  native subtotal/discount/VAT/total summary follows the lines.
+- Added native-filter dashboard queues and Quotation/Sales Invoice list presets
+  without introducing a parallel Bunood data store.
+- Completed the bilingual quotation, invoice, payment receipt, customer statement,
+  A4 and 80 mm print family, including language-aware direction and ZATCA QR output.
+- Added explicit Cash/Network POS ledgers, native credit-sale receivables, and exact
+  halala invoice totals.
+- Added a rollback-safe native Quotation → Sales Invoice → Payment Entry verifier.
+  It proves mapped lines, discount, VAT, full allocation, zero outstanding, and
+  unchanged document/GL counts after rollback; persistent financial acceptance
+  still requires the owner's explicit approval.
+
+### Verification
+
+- Active invoice, action, list, home, shell, onboarding, print, and setup suites pass.
+- Twelve English/Arabic commercial PDFs pass direction, language, dimensions,
+  identity, QR, bounds, and source non-mutation checks.
+- Production assets build within their documented payload ceilings and are served
+  by the release candidate under content-hashed URLs.
+
 **Item numbers below are as of the release date.** `ROADMAP.md` items were renumbered
 to work order on 2026-08-13; entries here keep the numbers that were current when they
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve

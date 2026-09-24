@@ -182,10 +182,10 @@ def restore_form_order():
 #: competing with it — and any customer WITH terms overwrites it on selection,
 #: because that recalculation runs after this default is applied.
 #:
-#: Nothing else needed one. The other required fields measured on a new invoice
-#: — company, series, posting date, currency, price list, both exchange rates —
-#: already arrive filled; ``customer`` is the question the form exists to ask,
-#: and ``debit_to`` resolves from it.
+#: The other required fields measured on a new invoice — company, series,
+#: posting date, currency, price list, both exchange rates — already arrive
+#: filled. The separate walk-in customer setup claims an empty customer default;
+#: selecting a named customer still resolves ``debit_to`` from that customer.
 DEFAULTS = {
     "Sales Invoice": {"due_date": "Today"},
 }

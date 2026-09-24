@@ -1,0 +1,36 @@
+{
+ "content": null,
+ "creation": "2026-09-20 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "asset",
+ "idx": 0,
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "bnd-asset-workbench",
+ "owner": "Administrator",
+ "page_name": "bnd-asset-workbench",
+ "roles": [
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Asset User"
+  },
+  {
+   "role": "Asset Manager"
+  },
+  {
+   "role": "Auditor"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Fixed asset workbench"
+}

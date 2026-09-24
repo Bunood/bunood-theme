@@ -58,6 +58,12 @@ const LEDGER = join(ROOT, "payload-budget.json");
  * repeat this. Add the file to a bucket, or the build fails and says so.
  */
 const BUCKETS = [
+	// Both report surfaces are route-scoped; each owns an independently bounded
+	// stylesheet so the global Desk sheet does not absorb page-only layout.
+	{ dir: ["css"], prefix: "bnd-report-landing.", key: "report_landing_css" },
+	{ dir: ["css"], prefix: "bnd-studio.", key: "studio_css" },
+	// Lazily loaded only by the dedicated Bunood POS route.
+	{ dir: ["css"], prefix: "bnd-pos.", key: "pos_css" },
 	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
 	{ dir: ["css"], prefix: "bunood-email.", key: "email_css" },
 	// Substitution INPUT, not wire bytes: printing/sheet.py reads this file and
@@ -71,6 +77,15 @@ const BUCKETS = [
 	{ dir: ["js"], prefix: "bnd-report.", key: "report_js" },
 	// Lazily loaded by the Report Studio route, never by the global desk.
 	{ dir: ["js"], prefix: "bnd-studio.", key: "studio_js" },
+	{ dir: ["js"], prefix: "bnd-report-landing.", key: "report_landing_js" },
+	// Lazily loaded by the banking cockpit; the global desk never pays for it.
+	{ dir: ["js"], prefix: "bnd-banking.", key: "banking_js" },
+	// Lazily loaded by the finance-close cockpit.
+	{ dir: ["js"], prefix: "bnd-finance-close.", key: "finance_close_js" },
+	// Lazily loaded by the native Journal Entry workbench.
+	{ dir: ["js"], prefix: "bnd-journal-workbench.", key: "journal_workbench_js" },
+	// Lazily loaded only by the dedicated Bunood POS route.
+	{ dir: ["js"], prefix: "bnd-pos.", key: "pos_js" },
 ];
 
 export function measure() {
@@ -118,7 +133,11 @@ export function measure() {
  * history row's comparability at the release that introduced a second sheet.
  */
 export const CEILING_KEYS = [
-	"css_gzip", "js_gzip", "report_js_gzip", "studio_js_gzip", "web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
+	"css_gzip", "js_gzip", "report_js_gzip", "studio_js_gzip",
+	"report_landing_css_gzip", "report_landing_js_gzip", "studio_css_gzip",
+	"banking_js_gzip", "finance_close_js_gzip", "journal_workbench_js_gzip",
+	"pos_css_gzip", "pos_js_gzip",
+	"web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
 ];
 
 /**
@@ -134,6 +153,10 @@ export function checkPayload() {
 	const now = measure();
 	const over = [];
 	for (const key of CEILING_KEYS) {
+		if (!Number.isFinite(ledger.ceiling[key])) {
+			over.push(`${key}: no finite ceiling is recorded`);
+			continue;
+		}
 		if (now[key] > ledger.ceiling[key]) {
 			over.push(`${key}: ${now[key]} > ceiling ${ledger.ceiling[key]} (+${now[key] - ledger.ceiling[key]} bytes)`);
 		}

@@ -1,0 +1,1014 @@
+:root {
+  --bnd-brand: #3d8150;
+  --bnd-accent: #0088f2;
+  --bnd-brand-solid: #3d8150;
+  --bnd-on-brand: #ffffff;
+  --bnd-brand-ink: #387649;
+  --bnd-brand-deep: #295036;
+  --bnd-on-deep: #ffffff;
+  --bnd-brand-deep-tile: #264732;
+  --bnd-desktop-icon-bg: #3d8150;
+  --bnd-desktop-icon-ink: #ffffff;
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
+  --bnd-surface: #ffffff;
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 2%, #ffffff);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 8%, #ffffff);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 7%, #ffffff);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 14%, #ffffff);
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 12%, #eef1ee);
+  --bnd-ink: #16181d;
+  --bnd-ink-muted: #494d57;
+  --bnd-ink-subtle: #666a71;
+  --bnd-ink-inverse: #ffffff;
+  --bnd-line: 0.5px;
+  --bnd-line-strong: 1px;
+  --bnd-line-2: 2px;
+  --bnd-focus-offset: 2px;
+  --bnd-auth-form-min: 320px;
+  --bnd-border: rgba(0, 0, 0, 0.09);
+  --bnd-border-strong: rgba(0, 0, 0, 0.16);
+  --bnd-icon-w-hairline: 1.25px;
+  --bnd-icon-w-regular: 1.5px;
+  --bnd-icon-w-medium: 1.75px;
+  --bnd-icon-w-bold: 2px;
+  --bnd-sp-1: 0.25rem;
+  --bnd-sp-2: 0.5rem;
+  --bnd-sp-3: 0.75rem;
+  --bnd-sp-4: 1rem;
+  --bnd-sp-5: 1.5rem;
+  --bnd-sp-6: 2rem;
+  --bnd-sp-7: 3rem;
+  --bnd-text-xs: 0.6875rem;
+  --bnd-text-sm: 0.8125rem;
+  --bnd-text-base: 0.875rem;
+  --bnd-text-md: 1rem;
+  --bnd-text-lg: 1.125rem;
+  --bnd-text-xl: 1.375rem;
+  --bnd-text-2xl: 1.75rem;
+  --bnd-weight-normal: 400;
+  --bnd-weight-medium: 500;
+  --bnd-weight-semibold: 600;
+  --bnd-leading-tight: 1.25;
+  --bnd-leading-base: 1.5;
+  --bnd-numeric: tabular-nums;
+  --bnd-content-w: 1040px;
+  --bnd-wide-w: 1400px;
+  --bnd-label-w: 160px;
+  --bnd-form-indicator: 20px;
+  --bnd-form-col-pad: 15px;
+  --bnd-form-thumb: 40px;
+  --bnd-activity-w: 340px;
+  --bnd-drawer-w: 420px;
+  --bnd-form-hero: 1.5rem;
+  --bnd-stage-notch: 10px;
+  --bnd-foot-h: 56px;
+  --bnd-radius-sm: 4px;
+  --bnd-radius-md: 6px;
+  --bnd-radius-lg: 10px;
+  --bnd-radius-xl: 14px;
+  --bnd-radius-pill: var(--bnd-radius-sm);
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --bnd-shadow-md: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 8px -2px rgba(0, 0, 0, 0.06),
+    0 12px 24px -6px rgba(0, 0, 0, 0.06);
+  --bnd-shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px -6px rgba(0, 0, 0, 0.1),
+    0 32px 64px -12px rgba(0, 0, 0, 0.14);
+  --bnd-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bnd-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bnd-dur-fast: 120ms;
+  --bnd-dur-base: 180ms;
+  --bnd-dur-slow: 280ms;
+  --bnd-dur-loop: 1600ms;
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+  --bnd-topbar-h: 44px;
+  --bnd-statusbar-h: 26px;
+  --bnd-bottombar-h: 40px;
+  --bnd-dock-h: 56px;
+  --bnd-sidebar-live-w: 220px;
+  --bnd-bottom-reserve: 0px;
+  --bnd-toast-inset: 20px;
+  --bnd-toast-gap: 8px;
+  --bnd-scrim: rgba(16, 26, 22, 0.62);
+  --bnd-scrim-blur: rgba(16, 26, 22, 0.42);
+  --bnd-tap: 44px;
+  --bnd-sb-w: 220px;
+  --bnd-sb-cell: 36px;
+  --bnd-sb-band-pad: 6px;
+  --bnd-sb-band-gap: 6px;
+  --bnd-sb-pane-pad: 8px;
+  --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;
+  --bnd-sb-head-ico: 22px;
+  --bnd-menu-ico: 20px;
+  --bnd-sb-search-h: 32px;
+  --bnd-acct-w: 280px;
+  --bnd-sb-rail-w: 96px;
+  --bnd-sb-radius: 14px;
+  --bnd-z-bar: 990;
+  --bnd-z-flyout: 1030;
+  --bnd-z-panel: 1040;
+  --bnd-z-palette: 1045;
+  --bnd-cat-1: #2a78d6;
+  --bnd-cat-2: #eb6834;
+  --bnd-cat-3: #1baf7a;
+  --bnd-cat-4: #eda100;
+  --bnd-cat-5: #e87ba4;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #4a3aa7;
+  --bnd-cat-0: var(--bnd-ink-subtle);
+  --bnd-status-green: #16794c;
+  --bnd-status-cyan: #267a94;
+  --bnd-status-blue: #0070cc;
+  --bnd-status-orange: #bd3e0c;
+  --bnd-status-yellow: #ab6e05;
+  --bnd-status-gray: #525252;
+  --bnd-status-grey: #525252;
+  --bnd-status-red: #b52a2a;
+  --bnd-status-pink: #9c2671;
+  --bnd-status-darkgrey: #383838;
+  --bnd-status-purple: #6e399d;
+  --bnd-status-light-blue: #007be0;
+  --bnd-cat-tint: 14%;
+  --bnd-cat-wash: 7%;
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #332288;
+  --bnd-series-3: #9a8e53;
+  --bnd-series-4: #117733;
+  --bnd-series-5: #6394ad;
+  --bnd-series-6: #882255;
+  --bnd-series-7: #3f9d8d;
+  --bnd-series-other: #808080;
+  --bnd-good: #1a7f45;
+  --bnd-warn: #965e00;
+  --bnd-serious: #c2410c;
+  --bnd-critical: #b42318;
+  --bnd-on-critical: #ffffff;
+}
+
+html[data-theme=dark] {
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+  --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+  --bnd-ink: #e8eaec;
+  --bnd-ink-muted: #b8bdc4;
+  --bnd-ink-subtle: #9197a1;
+  --bnd-brand-solid: #60a471;
+  --bnd-on-brand: #16181d;
+  --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
+  --bnd-accent: #0090ff;
+  --bnd-border: rgba(255, 255, 255, 0.1);
+  --bnd-border-strong: rgba(255, 255, 255, 0.18);
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+  --bnd-scrim: rgba(4, 8, 7, 0.72);
+  --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+  --bnd-status-green: #67a88a;
+  --bnd-status-cyan: #6aa4b5;
+  --bnd-status-blue: #56a1dd;
+  --bnd-status-orange: #d68869;
+  --bnd-status-yellow: #c19446;
+  --bnd-status-gray: #9b9b9b;
+  --bnd-status-grey: #9b9b9b;
+  --bnd-status-red: #d58686;
+  --bnd-status-pink: #c887b0;
+  --bnd-status-darkgrey: #ebebeb;
+  --bnd-status-purple: #ad8fc8;
+  --bnd-status-light-blue: #ddedfb;
+  --bnd-cat-1: #3987e5;
+  --bnd-cat-2: #d95926;
+  --bnd-cat-3: #199e70;
+  --bnd-cat-4: #c98500;
+  --bnd-cat-5: #d55181;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #9085e9;
+  --bnd-cat-tint: 20%;
+  --bnd-cat-wash: 11%;
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #8075b5;
+  --bnd-series-3: #ddcc77;
+  --bnd-series-4: #388e55;
+  --bnd-series-5: #88ccee;
+  --bnd-series-6: #ad688b;
+  --bnd-series-7: #44aa99;
+  --bnd-series-other: #808080;
+  --bnd-good: #4ac07d;
+  --bnd-warn: #e0a33a;
+  --bnd-serious: #f08a5d;
+  --bnd-critical: #f2736a;
+  --bnd-on-critical: #16181d;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme=automatic] {
+    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+    --bnd-ink: #e8eaec;
+    --bnd-ink-muted: #b8bdc4;
+    --bnd-ink-subtle: #9197a1;
+    --bnd-brand-solid: #60a471;
+    --bnd-on-brand: #16181d;
+    --bnd-brand-ink: #6fa27d;
+    --bnd-brand-deep: #6e8876;
+    --bnd-on-deep: #16181d;
+    --bnd-brand-deep-tile: #829989;
+    --bnd-accent: #0090ff;
+    --bnd-border: rgba(255, 255, 255, 0.1);
+    --bnd-border-strong: rgba(255, 255, 255, 0.18);
+    --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+    --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+    --bnd-scrim: rgba(4, 8, 7, 0.72);
+    --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+    --bnd-status-green: #67a88a;
+    --bnd-status-cyan: #6aa4b5;
+    --bnd-status-blue: #56a1dd;
+    --bnd-status-orange: #d68869;
+    --bnd-status-yellow: #c19446;
+    --bnd-status-gray: #9b9b9b;
+    --bnd-status-grey: #9b9b9b;
+    --bnd-status-red: #d58686;
+    --bnd-status-pink: #c887b0;
+    --bnd-status-darkgrey: #ebebeb;
+    --bnd-status-purple: #ad8fc8;
+    --bnd-status-light-blue: #ddedfb;
+    --bnd-cat-1: #3987e5;
+    --bnd-cat-2: #d95926;
+    --bnd-cat-3: #199e70;
+    --bnd-cat-4: #c98500;
+    --bnd-cat-5: #d55181;
+    --bnd-cat-6: #008300;
+    --bnd-cat-7: #9085e9;
+    --bnd-cat-tint: 20%;
+    --bnd-cat-wash: 11%;
+    --bnd-series-1: #cc6677;
+    --bnd-series-2: #8075b5;
+    --bnd-series-3: #ddcc77;
+    --bnd-series-4: #388e55;
+    --bnd-series-5: #88ccee;
+    --bnd-series-6: #ad688b;
+    --bnd-series-7: #44aa99;
+    --bnd-series-other: #808080;
+    --bnd-good: #4ac07d;
+    --bnd-warn: #e0a33a;
+    --bnd-serious: #f08a5d;
+    --bnd-critical: #f2736a;
+    --bnd-on-critical: #16181d;
+  }
+}
+html[data-bnd-body-scale="13"] {
+  --bnd-body-value: 0.8125rem;
+  --bnd-body-label: 0.75rem;
+  --bnd-body-help: 0.71875rem;
+  --bnd-body-head: 0.875rem;
+  --bnd-body-title: 1.125rem;
+  --bnd-body-table: 0.78125rem;
+  --bnd-body-table-head: 0.6875rem;
+  --bnd-form-hero: 1.375rem;
+}
+
+html[data-bnd-body-scale="14"] {
+  --bnd-body-value: 0.875rem;
+  --bnd-body-label: 0.78125rem;
+  --bnd-body-help: 0.75rem;
+  --bnd-body-head: 0.9375rem;
+  --bnd-body-title: 1.25rem;
+  --bnd-form-hero: 1.5rem;
+  --bnd-body-table: 0.8125rem;
+  --bnd-body-table-head: 0.71875rem;
+}
+
+html[data-bnd-body-scale="16"] {
+  --bnd-body-value: 1rem;
+  --bnd-body-label: 0.875rem;
+  --bnd-body-help: 0.8125rem;
+  --bnd-body-head: 1.0625rem;
+  --bnd-body-title: 1.375rem;
+  --bnd-form-hero: 1.75rem;
+  --bnd-body-table: 0.9375rem;
+  --bnd-body-table-head: 0.8125rem;
+}
+
+html[data-bnd-density=comfortable] {
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+  --bnd-sb-cell: 36px;
+  --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;
+  --bnd-sb-head-ico: 22px;
+  --bnd-menu-ico: 20px;
+  --bnd-sb-search-h: 32px;
+}
+
+html[data-bnd-density=compact] {
+  --bnd-row-h: 24px;
+  --bnd-control-h: 26px;
+  --bnd-pad-y: 3px;
+  --bnd-sb-cell: 32px;
+  --bnd-sb-tile: 36px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --bnd-dur-fast: 0ms;
+    --bnd-dur-base: 0ms;
+    --bnd-dur-slow: 0ms;
+    --bnd-dur-loop: 0ms;
+  }
+}
+html[data-bnd-motion=reduce] {
+  --bnd-dur-fast: 0ms;
+  --bnd-dur-base: 0ms;
+  --bnd-dur-slow: 0ms;
+  --bnd-dur-loop: 0ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  body.bnd-auth:not(.bnd-auth-theme-light):not(.bnd-auth-theme-dark) {
+    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+    --bnd-ink: #e8eaec;
+    --bnd-ink-muted: #b8bdc4;
+    --bnd-ink-subtle: #9197a1;
+    --bnd-brand-solid: #60a471;
+    --bnd-on-brand: #16181d;
+    --bnd-brand-ink: #6fa27d;
+    --bnd-brand-deep: #6e8876;
+    --bnd-on-deep: #16181d;
+    --bnd-brand-deep-tile: #829989;
+    --bnd-accent: #0090ff;
+    --bnd-border: rgba(255, 255, 255, 0.1);
+    --bnd-border-strong: rgba(255, 255, 255, 0.18);
+    --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+    --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+    --bnd-scrim: rgba(4, 8, 7, 0.72);
+    --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+    --bnd-status-green: #67a88a;
+    --bnd-status-cyan: #6aa4b5;
+    --bnd-status-blue: #56a1dd;
+    --bnd-status-orange: #d68869;
+    --bnd-status-yellow: #c19446;
+    --bnd-status-gray: #9b9b9b;
+    --bnd-status-grey: #9b9b9b;
+    --bnd-status-red: #d58686;
+    --bnd-status-pink: #c887b0;
+    --bnd-status-darkgrey: #ebebeb;
+    --bnd-status-purple: #ad8fc8;
+    --bnd-status-light-blue: #ddedfb;
+    --bnd-cat-1: #3987e5;
+    --bnd-cat-2: #d95926;
+    --bnd-cat-3: #199e70;
+    --bnd-cat-4: #c98500;
+    --bnd-cat-5: #d55181;
+    --bnd-cat-6: #008300;
+    --bnd-cat-7: #9085e9;
+    --bnd-cat-tint: 20%;
+    --bnd-cat-wash: 11%;
+    --bnd-series-1: #cc6677;
+    --bnd-series-2: #8075b5;
+    --bnd-series-3: #ddcc77;
+    --bnd-series-4: #388e55;
+    --bnd-series-5: #88ccee;
+    --bnd-series-6: #ad688b;
+    --bnd-series-7: #44aa99;
+    --bnd-series-other: #808080;
+    --bnd-good: #4ac07d;
+    --bnd-warn: #e0a33a;
+    --bnd-serious: #f08a5d;
+    --bnd-critical: #f2736a;
+    --bnd-on-critical: #16181d;
+  }
+}
+body.bnd-auth-theme-dark {
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+  --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+  --bnd-ink: #e8eaec;
+  --bnd-ink-muted: #b8bdc4;
+  --bnd-ink-subtle: #9197a1;
+  --bnd-brand-solid: #60a471;
+  --bnd-on-brand: #16181d;
+  --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
+  --bnd-accent: #0090ff;
+  --bnd-border: rgba(255, 255, 255, 0.1);
+  --bnd-border-strong: rgba(255, 255, 255, 0.18);
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+  --bnd-scrim: rgba(4, 8, 7, 0.72);
+  --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+  --bnd-status-green: #67a88a;
+  --bnd-status-cyan: #6aa4b5;
+  --bnd-status-blue: #56a1dd;
+  --bnd-status-orange: #d68869;
+  --bnd-status-yellow: #c19446;
+  --bnd-status-gray: #9b9b9b;
+  --bnd-status-grey: #9b9b9b;
+  --bnd-status-red: #d58686;
+  --bnd-status-pink: #c887b0;
+  --bnd-status-darkgrey: #ebebeb;
+  --bnd-status-purple: #ad8fc8;
+  --bnd-status-light-blue: #ddedfb;
+  --bnd-cat-1: #3987e5;
+  --bnd-cat-2: #d95926;
+  --bnd-cat-3: #199e70;
+  --bnd-cat-4: #c98500;
+  --bnd-cat-5: #d55181;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #9085e9;
+  --bnd-cat-tint: 20%;
+  --bnd-cat-wash: 11%;
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #8075b5;
+  --bnd-series-3: #ddcc77;
+  --bnd-series-4: #388e55;
+  --bnd-series-5: #88ccee;
+  --bnd-series-6: #ad688b;
+  --bnd-series-7: #44aa99;
+  --bnd-series-other: #808080;
+  --bnd-good: #4ac07d;
+  --bnd-warn: #e0a33a;
+  --bnd-serious: #f08a5d;
+  --bnd-critical: #f2736a;
+  --bnd-on-critical: #16181d;
+}
+
+body.bnd-auth {
+  --bnd-auth-card: var(--bnd-page);
+  --bnd-auth-field: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-auth-card));
+  --bnd-auth-alarm: color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface));
+  --bg-color: var(--bnd-page);
+  --fg-color: var(--bnd-surface);
+  --text-color: var(--bnd-ink);
+  --heading-color: var(--bnd-ink);
+  --control-bg: var(--bnd-auth-field);
+  --ink-gray-5: var(--bnd-ink-muted);
+  --ink-gray-6: var(--bnd-ink-muted);
+  --ink-gray-4: var(--bnd-ink-subtle);
+  --red-50: var(--bnd-auth-alarm);
+  --ink-red-4: var(--bnd-critical);
+  --outline-red-2: var(--bnd-critical);
+  --surface-white: var(--bnd-auth-field);
+  --outline-gray-2: var(--bnd-border-strong);
+}
+
+body.bnd-auth .page-card {
+  color: var(--bnd-ink-muted);
+}
+
+body.bnd-auth .bnd-auth-language-switch {
+  position: fixed;
+  z-index: 4;
+  inset-block-start: var(--bnd-sp-4);
+  inset-inline-start: var(--bnd-sp-4);
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-auth-field);
+}
+
+body.bnd-auth .bnd-auth-language-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 36px;
+  min-inline-size: 78px;
+  padding-inline: var(--bnd-sp-3);
+  border-radius: calc(var(--bnd-radius-md) - 3px);
+  color: var(--bnd-ink-muted);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+body.bnd-auth .bnd-auth-language-choice:hover {
+  background: color-mix(in srgb, var(--bnd-ink) 6%, transparent);
+}
+
+body.bnd-auth .bnd-auth-language-choice[aria-current=true] {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+body.bnd-auth .bnd-auth-hero {
+  display: none;
+}
+
+body.bnd-auth .page-card .page-card-head-text::after {
+  content: var(--bnd-login-tagline, none);
+  display: block;
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+
+body.bnd-auth .page-card .page-card-body :is(input[type=text], input[type=email], input[type=password]) {
+  color: var(--bnd-ink);
+  unicode-bidi: isolate;
+}
+
+body.bnd-auth .page-card .page-card-body ::placeholder {
+  color: var(--bnd-ink-muted);
+  opacity: 1;
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login) {
+  background: var(--bnd-ink);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active) {
+  background: var(--bnd-ink-muted);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled) {
+  background: var(--bnd-ink);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :focus, :active) {
+  background: var(--bnd-ink-muted);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-login-option {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-login-option:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-body .login-success-banner {
+  background-color: color-mix(in srgb, var(--bnd-good) 12%, var(--bnd-surface));
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-body .login-success-banner svg {
+  fill: var(--bnd-good);
+}
+
+body.bnd-auth .page-card .page-card-body .login-error-banner svg {
+  fill: var(--bnd-critical);
+}
+
+body.bnd-auth .page-card .password-strength-container .password-strength-bar-track {
+  background: var(--bnd-auth-field);
+}
+
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) {
+  --bnd-auth-ground: var(--bnd-page);
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+body.bnd-auth-panel {
+  --bnd-auth-ground: var(--bnd-page);
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+body.bnd-auth-plate {
+  --bnd-auth-ground: color-mix(
+    in srgb,
+    var(--bnd-brand-solid) 12%,
+    color-mix(in srgb, var(--bnd-ink) 7%, var(--bnd-page))
+  );
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-lg);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+body.bnd-auth-split {
+  --bnd-auth-ground: var(--bnd-page);
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) {
+  background-color: var(--bnd-auth-ground);
+}
+
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
+  background-color: var(--bnd-auth-card);
+  box-shadow: var(--bnd-auth-ring), var(--bnd-auth-shadow);
+  border-radius: var(--bnd-auth-radius);
+}
+
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-block-size: 100vh;
+  padding-block-start: 0;
+}
+
+@media (width >= 768px) {
+  body.bnd-auth-split .page-content-wrapper {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-block-size: 100vh;
+    padding-block-start: 0;
+  }
+  body.bnd-auth-split .page-content-wrapper > .page-breadcrumbs {
+    display: none;
+  }
+  body.bnd-auth-split .page-content-wrapper > main {
+    flex: none;
+    inline-size: min(620px, 50%);
+    min-inline-size: calc(var(--bnd-auth-form-min) + 2 * clamp(var(--bnd-sp-6), 6vw, 76px));
+    max-inline-size: none;
+    margin-inline-start: 0;
+    margin-inline-end: auto;
+    padding-inline: clamp(var(--bnd-sp-6), 6vw, 76px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: var(--bnd-auth-card);
+    box-shadow: var(--bnd-shadow-lg);
+    z-index: 1;
+  }
+  body.bnd-auth-split .page-content-wrapper > .bnd-auth-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--bnd-sp-3);
+    text-align: center;
+    /* Typography */
+    color: var(--bnd-on-brand); /* White text */
+    flex: 1;
+    margin-block: var(--bnd-sp-2);
+    margin-inline-end: var(--bnd-sp-2);
+    border-start-end-radius: 24px;
+    border-end-end-radius: 24px;
+    /* Solid brand green background */
+    background-color: var(--bnd-brand-solid) !important;
+    /* Beautiful subtle dot-grid overlay using radial gradients */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px) !important;
+    background-size: 32px 32px !important;
+  }
+  body.bnd-auth-split .bnd-auth-hero h2 {
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2rem, 3.2vw, 3.25rem);
+    font-weight: 750;
+    line-height: 1.25;
+  }
+  body.bnd-auth-split .bnd-auth-hero p {
+    margin: 0;
+    color: inherit;
+    font-size: 1.05rem;
+  }
+  body.bnd-auth-split :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
+    background-color: transparent;
+    box-shadow: none;
+    max-inline-size: 430px;
+    inline-size: 100%;
+    margin-inline: auto;
+    padding-inline: 0;
+  }
+  body.bnd-auth-split .page-card .page-card-head {
+    margin-block-end: var(--bnd-sp-6);
+    text-align: start;
+  }
+  body.bnd-auth-split .page-card .page-card-head h4 {
+    font-size: 28px;
+    font-weight: 750;
+  }
+  body.bnd-auth-split .page-card .page-card-head .page-card-subtitle {
+    margin-block-start: var(--bnd-sp-2);
+  }
+  body.bnd-auth-split .page-card .page-card-body .form-control,
+  body.bnd-auth-split .page-card .page-card-actions .btn {
+    min-block-size: 46px;
+    border-radius: var(--bnd-radius-md);
+  }
+}
+@media (width < 576px) {
+  body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password) .page-card {
+    background-color: var(--bnd-auth-card);
+    box-shadow: none;
+    border-radius: 0;
+  }
+  body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
+    display: block;
+    min-block-size: auto;
+  }
+}
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login),
+body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disabled) {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active),
+body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :focus, :active) {
+  background: color-mix(in srgb, var(--bnd-ink) 12%, var(--bnd-brand-solid));
+  color: var(--bnd-on-brand);
+}
+
+body.bnd-auth .page-card .page-card-body input[type=email],
+body.bnd-auth .page-card .page-card-body input[type=text][id=login_email] {
+  direction: ltr !important;
+  text-align: end;
+}
+
+/* Fix the default blue focus ring on input fields */
+body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible,
+body.bnd-auth .form-control:focus {
+  border-color: var(--bnd-brand-solid) !important;
+  outline: 2px solid var(--bnd-brand-solid) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  body.bnd-web:is(.bnd-web-panel, .bnd-web-plate):not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
+    --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+    --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+    --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+    --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+    --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+    --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+    --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+    --bnd-ink: #e8eaec;
+    --bnd-ink-muted: #b8bdc4;
+    --bnd-ink-subtle: #9197a1;
+    --bnd-brand-solid: #60a471;
+    --bnd-on-brand: #16181d;
+    --bnd-brand-ink: #6fa27d;
+    --bnd-brand-deep: #6e8876;
+    --bnd-on-deep: #16181d;
+    --bnd-brand-deep-tile: #829989;
+    --bnd-accent: #0090ff;
+    --bnd-border: rgba(255, 255, 255, 0.1);
+    --bnd-border-strong: rgba(255, 255, 255, 0.18);
+    --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+    --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+    --bnd-scrim: rgba(4, 8, 7, 0.72);
+    --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+    --bnd-status-green: #67a88a;
+    --bnd-status-cyan: #6aa4b5;
+    --bnd-status-blue: #56a1dd;
+    --bnd-status-orange: #d68869;
+    --bnd-status-yellow: #c19446;
+    --bnd-status-gray: #9b9b9b;
+    --bnd-status-grey: #9b9b9b;
+    --bnd-status-red: #d58686;
+    --bnd-status-pink: #c887b0;
+    --bnd-status-darkgrey: #ebebeb;
+    --bnd-status-purple: #ad8fc8;
+    --bnd-status-light-blue: #ddedfb;
+    --bnd-cat-1: #3987e5;
+    --bnd-cat-2: #d95926;
+    --bnd-cat-3: #199e70;
+    --bnd-cat-4: #c98500;
+    --bnd-cat-5: #d55181;
+    --bnd-cat-6: #008300;
+    --bnd-cat-7: #9085e9;
+    --bnd-cat-tint: 20%;
+    --bnd-cat-wash: 11%;
+    --bnd-series-1: #cc6677;
+    --bnd-series-2: #8075b5;
+    --bnd-series-3: #ddcc77;
+    --bnd-series-4: #388e55;
+    --bnd-series-5: #88ccee;
+    --bnd-series-6: #ad688b;
+    --bnd-series-7: #44aa99;
+    --bnd-series-other: #808080;
+    --bnd-good: #4ac07d;
+    --bnd-warn: #e0a33a;
+    --bnd-serious: #f08a5d;
+    --bnd-critical: #f2736a;
+    --bnd-on-critical: #16181d;
+  }
+}
+body.bnd-web-theme-dark:is(.bnd-web-panel, .bnd-web-plate) {
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+  --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+  --bnd-ink: #e8eaec;
+  --bnd-ink-muted: #b8bdc4;
+  --bnd-ink-subtle: #9197a1;
+  --bnd-brand-solid: #60a471;
+  --bnd-on-brand: #16181d;
+  --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
+  --bnd-accent: #0090ff;
+  --bnd-border: rgba(255, 255, 255, 0.1);
+  --bnd-border-strong: rgba(255, 255, 255, 0.18);
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+  --bnd-scrim: rgba(4, 8, 7, 0.72);
+  --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+  --bnd-status-green: #67a88a;
+  --bnd-status-cyan: #6aa4b5;
+  --bnd-status-blue: #56a1dd;
+  --bnd-status-orange: #d68869;
+  --bnd-status-yellow: #c19446;
+  --bnd-status-gray: #9b9b9b;
+  --bnd-status-grey: #9b9b9b;
+  --bnd-status-red: #d58686;
+  --bnd-status-pink: #c887b0;
+  --bnd-status-darkgrey: #ebebeb;
+  --bnd-status-purple: #ad8fc8;
+  --bnd-status-light-blue: #ddedfb;
+  --bnd-cat-1: #3987e5;
+  --bnd-cat-2: #d95926;
+  --bnd-cat-3: #199e70;
+  --bnd-cat-4: #c98500;
+  --bnd-cat-5: #d55181;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #9085e9;
+  --bnd-cat-tint: 20%;
+  --bnd-cat-wash: 11%;
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #8075b5;
+  --bnd-series-3: #ddcc77;
+  --bnd-series-4: #388e55;
+  --bnd-series-5: #88ccee;
+  --bnd-series-6: #ad688b;
+  --bnd-series-7: #44aa99;
+  --bnd-series-other: #808080;
+  --bnd-good: #4ac07d;
+  --bnd-warn: #e0a33a;
+  --bnd-serious: #f08a5d;
+  --bnd-critical: #f2736a;
+  --bnd-on-critical: #16181d;
+}
+
+body.bnd-web {
+  --bnd-web-ground: transparent;
+  --bnd-web-card: transparent;
+  --bnd-web-ring: none;
+  --bnd-web-shadow: none;
+  --bnd-web-radius: 0;
+}
+
+body.bnd-web-panel {
+  --bnd-web-ground: var(--bnd-page);
+  --bnd-web-card: var(--bnd-surface);
+  --bnd-web-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-web-shadow: var(--bnd-shadow-sm);
+  --bnd-web-radius: var(--bnd-radius-lg);
+}
+
+body.bnd-web-plate {
+  --bnd-web-ground: var(--bnd-pane);
+  --bnd-web-card: var(--bnd-surface);
+  --bnd-web-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-web-shadow: var(--bnd-shadow-md);
+  --bnd-web-radius: var(--bnd-radius-lg);
+}
+
+body:is(.bnd-web-panel, .bnd-web-plate) {
+  --bg-color: var(--bnd-web-ground);
+  --fg-color: var(--bnd-web-card);
+  --text-color: var(--bnd-ink);
+  --control-bg: var(--bnd-pane);
+  --border-color: var(--bnd-border);
+  --text-muted: var(--bnd-ink-muted);
+  --text-light: var(--bnd-ink-subtle);
+  --avatar-frame-color: var(--bnd-ink-subtle);
+}
+
+body:is(.bnd-web-panel, .bnd-web-plate) .navbar-light {
+  background-color: var(--bnd-web-card);
+}
+body:is(.bnd-web-panel, .bnd-web-plate) :is(.dropdown-menu, .card, .list-group-item, .modal-content, .popover, .page-link, .table td, .table th) {
+  background-color: var(--bnd-web-card);
+}
+body:is(.bnd-web-panel, .bnd-web-plate) :is(a, h1, h2, h3, h4, h5, h6) {
+  color: var(--bnd-ink);
+}
+body:is(.bnd-web-panel, .bnd-web-plate) :is(.navbar-brand, .hero-title, .my-account-header, .ellipsis, .sidebar-item a.active) {
+  color: var(--bnd-ink);
+}
+body:is(.bnd-web-panel, .bnd-web-plate) .navbar-nav .nav-link {
+  color: var(--bnd-ink);
+}
+body:is(.bnd-web-panel, .bnd-web-plate) .avatar-frame {
+  background-color: var(--bnd-pane);
+}
+
+body.bnd-web-header-branded .navbar-light {
+  background-color: var(--bnd-brand-solid);
+  border-color: color-mix(in srgb, var(--bnd-on-brand) 18%, transparent);
+}
+body.bnd-web-header-branded .navbar-light :is(.navbar-brand, .navbar-nav .nav-link, .navbar-toggler) {
+  color: var(--bnd-on-brand);
+}
+body.bnd-web-header-branded .navbar-light .navbar-toggler {
+  border-color: color-mix(in srgb, var(--bnd-on-brand) 40%, transparent);
+}
+
+body:is(.bnd-web-panel, .bnd-web-plate) {
+  background-color: var(--bnd-web-ground);
+  color: var(--bnd-ink);
+}
+
+body:is(.bnd-web-panel, .bnd-web-plate) .page-content-wrapper > main:not(:has(.portal-container)) {
+  background-color: var(--bnd-web-card);
+  box-shadow: var(--bnd-web-ring), var(--bnd-web-shadow);
+  border-radius: var(--bnd-web-radius);
+  padding-block: var(--bnd-sp-5);
+  margin-block: var(--bnd-sp-5);
+}
+
+body:is(.bnd-web-panel, .bnd-web-plate) .page-content-wrapper > main:has(.portal-container) {
+  background-color: transparent;
+}
+
+body:is(.bnd-web-panel, .bnd-web-plate) .portal-container {
+  background-color: var(--bnd-web-card);
+  box-shadow: var(--bnd-web-ring), var(--bnd-web-shadow);
+  border-radius: var(--bnd-web-radius);
+}
+
+body.bnd-web {
+  --text-light: var(--bnd-ink-subtle);
+  --avatar-frame-color: var(--bnd-ink-subtle);
+}
+body.bnd-web :is(.hero-subtitle, .footer-col-right) {
+  color: var(--bnd-ink-muted);
+}
+body.bnd-web .text-muted {
+  color: var(--bnd-ink-muted) !important;
+}
+
+body.bnd-web :is(.btn, .form-control, a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+  box-shadow: none;
+}

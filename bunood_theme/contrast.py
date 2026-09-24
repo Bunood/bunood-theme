@@ -74,6 +74,7 @@ def parse_color(text: str, variables: dict[str, str] | None = None, _depth: int 
 
     Supported:
         ``#rgb`` · ``#rrggbb`` · ``#rrggbbaa`` · ``rgb(…)`` · ``rgba(…)`` ·
+        computed ``color(srgb …)`` ·
         ``color-mix(in srgb, <colour> <pct>%, <colour>)`` · ``var(--name)`` and
         ``var(--name, <fallback>)`` resolved against ``variables`` ·
         ``transparent``, the only named colour accepted.
@@ -163,6 +164,30 @@ def parse_color(text: str, variables: dict[str, str] | None = None, _depth: int 
             if "%" in parts[3]:
                 a /= 100
         return (r, g, b, a)
+
+    # Chromium may preserve CSS Color 4 syntax in computed styles instead of
+    # serialising it as rgb()/rgba(). This is the concrete, device-independent
+    # sRGB form only; other colour spaces still fail closed because converting
+    # them correctly requires a colour-management transform, not digit scraping.
+    if s.lower().startswith("color(srgb"):
+        number = r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?%?"
+        match = re.fullmatch(
+            rf"color\(\s*srgb\s+({number})\s+({number})\s+({number})(?:\s*/\s*({number}))?\s*\)",
+            s,
+            re.IGNORECASE,
+        )
+        if not match:
+            raise ValueError(f"bad computed sRGB colour {s!r}")
+
+        def channel(value: str) -> float:
+            return float(value[:-1]) * 2.55 if value.endswith("%") else float(value) * 255
+
+        r, g, b = (channel(value) for value in match.group(1, 2, 3))
+        alpha_text = match.group(4)
+        alpha = 1.0
+        if alpha_text is not None:
+            alpha = float(alpha_text[:-1]) / 100 if alpha_text.endswith("%") else float(alpha_text)
+        return (r, g, b, alpha)
 
     if s.startswith("color-mix("):
         return _parse_color_mix(s, variables, _depth)

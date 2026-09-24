@@ -4,11 +4,11 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 test('production asset build ships the bill and simplified-form controllers', () => {
   const build = fs.readFileSync('build.mjs', 'utf8');
-  assert.match(build, /DESK_JS_SOURCES = \["bunood\.js", "sales_bill\.js", "simple_forms\.js"\]/);
+  for (const source of ['bunood.js','document_actions.js','list_presets.js','sales_bill.js','simple_forms.js']) assert.match(build, new RegExp(`"${source.replace('.', '\\.')}"`));
   assert.match(build, /key === "bunood"[\s\S]*?await readDeskJs\(\)/);
   assert.match(build, /key: "bnd-studio", src: "report_studio\.js", pyid: "STUDIO_JS"/);
   const boot = fs.readFileSync('bunood_theme/boot.py', 'utf8');
-  assert.match(boot, /from bunood_theme\.assets import STUDIO_JS[\s\S]*?bootinfo\.bnd_studio_js = STUDIO_JS/);
+  assert.match(boot, /from bunood_theme\.assets import STUDIO_CSS, STUDIO_JS[\s\S]*?bootinfo\.bnd_studio_js = STUDIO_JS[\s\S]*?bootinfo\.bnd_studio_css = STUDIO_CSS/);
 });
 test('ZATCA calls the package module that actually owns the whitelisted facade', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
@@ -16,14 +16,44 @@ test('ZATCA calls the package module that actually owns the whitelisted facade',
   assert.match(source, /bunood_theme\.zatca\.status\.queue_invoice/);
   assert.doesNotMatch(source, /bunood_theme\.zatca\.(?:get_status|queue_invoice)/);
 });
+test('sales bill uses the full document width while its mode switch follows the invoice grid', () => {
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(css, /body:not\(\.full-width\) \.bnd-bill \{[\s\S]*?max-inline-size: none;[\s\S]*?margin-inline: auto;/);
+  assert.match(css, /body:not\(\.full-width\) \.bnd-bill-mode \{[\s\S]*?max-inline-size: var\(--bnd-wide-w\);[\s\S]*?margin-inline: auto;/);
+  assert.match(css, /data-route\^="Form\/Sales Invoice\/"[\s\S]*?data-route\^="Form\/Purchase Invoice\/"[\s\S]*?\.layout-main-section > \.bnd-dochead \{[\s\S]*?inline-size: 100%;[\s\S]*?max-inline-size: none;[\s\S]*?margin-inline: 0;/);
+});
+test('invoice item suggestions overlay the rows without expanding the table', () => {
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(css, /\.bnd-bill-lines \{[\s\S]*?overflow: visible;/);
+  assert.match(css, /\.bnd-bill-lines \.awesomplete > ul \{[^}]*max-block-size: 14rem;[^}]*overflow-y: auto;/);
+  assert.doesNotMatch(css, /\.bnd-bill-lines:has\(\.awesomplete/);
+});
+test('sales bill mode switch follows the active view and exposes one selected state', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(source, /this\.placeMode\(simple\)/);
+  assert.match(source, /this\.native\?\.querySelector\?\.\("\.form-tabs-list"\)/);
+  assert.match(source, /tabs\.classList\.add\("bnd-bill-mode-row"\)/);
+  assert.match(source, /tabs\.append\(this\.mode\)/);
+  assert.match(source, /this\.root\.before\(this\.mode\)/);
+  assert.match(source, /simpleButton\?\.classList\.toggle\("bnd-bill-primary", simple\)/);
+  assert.match(source, /advancedButton\?\.classList\.toggle\("bnd-bill-primary", !simple\)/);
+  assert.match(css, /\.bnd-bill-mode \{[\s\S]*?justify-content: flex-start/);
+  assert.match(css, /\.form-tabs-list\.bnd-bill-mode-row \{[\s\S]*?display: flex;[\s\S]*?max-inline-size: var\(--bnd-wide-w\)/);
+  assert.match(css, /\.form-tabs-list\.bnd-bill-mode-row > \.bnd-bill-mode\[data-bnd-inline="true"\] \{[\s\S]*?inline-size: auto/);
+  assert.match(css, /\.bnd-bill-mode > \.bnd-bill-button\[aria-pressed="false"\] \{[\s\S]*?background: var\(--bnd-surface\)/);
+  assert.match(css, /\.bnd-bill-mode > \.bnd-bill-button\[aria-pressed="true"\] \{[\s\S]*?color: var\(--bnd-on-deep\);[\s\S]*?background: var\(--bnd-brand-deep\)/);
+});
 test('redesigned bill keeps essential native controls visible without duplicating option controls', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const desk = fs.readFileSync('bunood_theme/public/js/bunood.js', 'utf8');
   assert.match(source, /primaryFields = \["posting_date", "due_date",.*"bill_no", "bill_date"/);
   assert.match(source, /this\.bindControl\(essentials, source, this\.doc\)/);
-  assert.match(source, /if \(primaryFields\.includes\(name\)\) continue/);
+  assert.match(source, /if \(primaryFields\.includes\(name\) \|\| this\.inlineStockOptions\.has\(name\)\) continue/);
   assert.match(source, /toolsTrigger\.focus\(\)/);
   assert.match(source, /tools\.open = false/);
   assert.match(source, /tools\.addEventListener\("click", e => \{[\s\S]*?toolsTrigger\.focus\(\);[\s\S]*?\}, true\)/);
+  assert.match(desk, /event\.target\.closest\("\.bnd-bill-tools"\) \|\|[\s\S]*?querySelector\("\.bnd-bill-tools\[open\]"\)\?\.removeAttribute\("open"\)/);
   assert.match(source, /toolsTrigger\.setAttribute\("role", "button"\)/);
   assert.match(source, /toolsTrigger\.setAttribute\("aria-haspopup", "true"\)/);
   assert.match(source, /toolsTrigger\.setAttribute\("aria-controls", toolBody\.id\)/);
@@ -31,9 +61,9 @@ test('redesigned bill keeps essential native controls visible without duplicatin
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
   assert.match(css, /container-type: inline-size/);
   assert.match(source, /bnd-bill-panel bnd-bill-party", null, main/);
-  assert.match(css, /bnd-bill-line-remove \{\s*grid-column: 9; grid-row: 1/);
-  assert.match(css, /min-inline-size: 55rem/);
-  assert.match(css, /\.bnd-bill-lines \{[\s\S]*?overflow: auto/);
+  assert.match(css, /bnd-bill-line-actions \{\s*grid-column: 9; grid-row: 1/);
+  assert.match(css, /\.bnd-bill-line-head,[\s\S]*?min-inline-size: 0/);
+  assert.match(css, /\.bnd-bill-lines \{[\s\S]*?max-block-size: none;[\s\S]*?overflow: visible/);
   assert.match(css, /@container.*bnd-cq\(bar-3\)/);
   assert.match(css, /bnd-bill-tools-body \{ position: static; inline-size: 100%/);
 });
@@ -44,10 +74,42 @@ test('shared workbench makes party context compact and items spreadsheet-first',
   assert.match(source, /bnd-bill-line-head/);
   assert.match(source, /bnd-bill-row-number/);
   assert.match(source, /bnd-bill-mobile-total/);
-  assert.match(css, /\.bnd-bill-line-head \{[\s\S]*?position: sticky/);
+  assert.match(css, /\.bnd-bill-line-head \{[\s\S]*?position: static/);
   assert.match(css, /\.bnd-bill-essentials \{[\s\S]*?repeat\(4,minmax\(0,1fr\)\)/);
-  assert.match(css, /\.bnd-bill-rail \{[\s\S]*?position: sticky/);
-  assert.match(css, /@container \(width < #\{bp\.bnd-cq\(bill-rail\)\}\)[\s\S]*?\.bnd-bill-layout \{ grid-template-columns: 1fr; \}/);
+  assert.match(css, /\.bnd-bill-essentials \{[\s\S]*?align-items: end/);
+  assert.match(css, /\.bnd-bill-layout \{[^}]*grid-template-columns: minmax\(0,1fr\)/);
+  assert.match(css, /\.bnd-bill-rail \{[\s\S]*?position: fixed/);
+  assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-rail-toggle \{[\s\S]*?display: inline-grid !important;/);
+  assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-rail-toggle \{[\s\S]*?grid-template-columns: 1\.125rem auto 1\.125rem;/);
+  assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-rail-toggle \{[\s\S]*?border-color: var\(--bnd-border\);/);
+});
+test('invoice context shows the native default warehouse without bypassing field permission', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const arabic = fs.readFileSync('bunood_theme/translations/ar.csv', 'utf8');
+  const { profiles } = context.window.bunood_theme.sales_bill;
+  for (const type of ['Sales Invoice', 'Purchase Invoice']) {
+    assert.equal(profiles[type].context.at(-1), 'set_warehouse');
+  }
+  assert.match(source, /isWarehouse = name === "set_warehouse"/);
+  assert.match(source, /get_field_display_status\(\{ \.\.\.field\.df, hidden_due_to_dependency: 0 \}, doc, frm\.perm\)/);
+  assert.match(source, /isWarehouse \? __\("Default warehouse"\) : __\(field\.df\.label\)/);
+  assert.match(source, /doc\[name\] \? this\.format\(doc\[name\], field\.df\) : __\("Not set"\)/);
+  assert.match(arabic, /^Default warehouse,المستودع الافتراضي,/m);
+  assert.match(arabic, /^Not set,غير محدد,/m);
+});
+test('simple Sales Invoice exposes one native stock movement control beside the items', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(source, /bnd-bill-stock-settings/);
+  assert.match(source, /frm\.fields_dict\.update_stock/);
+  assert.match(source, /frm\.fields_dict\.set_warehouse/);
+  assert.match(source, /get_field_display_status\([\s\S]*?\.\.\.warehouseSource\.df, hidden_due_to_dependency: 0[\s\S]*?this\.doc, frm\.perm/);
+  assert.match(source, /primaryFields\.includes\(name\) \|\| this\.inlineStockOptions\.has\(name\)/);
+  assert.match(source, /renderStockSettings\(\)[\s\S]*?warehouse\.hidden = !enabled/);
+  assert.match(source, /No stock movement will be posted/);
+  assert.match(source, /On submission, quantities are deducted from stock/);
+  assert.match(css, /\.bnd-bill-stock-settings \{[\s\S]*?grid-template-columns:/);
+  assert.match(css, /\.bnd-bill-stock-source\[hidden\] \{ display: none !important; \}/);
 });
 test('phone invoices use one expanded line card and a persistent action total', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
@@ -62,10 +124,25 @@ test('phone invoices use one expanded line card and a persistent action total', 
   assert.match(css, /\.bnd-bill-line:not\(\.is-expanded\) \.bnd-bill-line-body \{ display: none; \}/);
   assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-line-body \{\s*grid-template-columns: repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-mobile-total \{\s*display: flex;/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-mobile-total \{[\s\S]*?margin-inline-start: var\(--bnd-sp-5\);[\s\S]*?margin-inline-end: var\(--bnd-sp-5\);[\s\S]*?padding-inline-start: var\(--bnd-sp-4\);[\s\S]*?border-inline-start:/);
   assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-toolbar \{[\s\S]*?inline-size: auto/);
   assert.match(css, /@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-line-total \{[^}]*gap: var\(--bnd-sp-2\)/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(sm\)\)[\s\S]*?\.bnd-bill-mobile-total \{[\s\S]*?min-inline-size: max-content/);
+  assert.match(css, /@media \(width < bp\.bnd-bp\(sm\)\)[\s\S]*?\.bnd-bill-mobile-total \{[\s\S]*?margin-inline: var\(--bnd-sp-5\)/);
+  assert.match(css, /\.bnd-bill-rail-toggle \.bnd-bill-action-label,[\s\S]*?\.bnd-bill-tools > summary \.bnd-bill-action-label \{ display: none; \}/);
+  assert.match(source, /railButton\.setAttribute\("aria-label", __\("Customer & preview"\)\)/);
+  assert.match(source, /toolsTrigger\.setAttribute\("aria-label", __\("Invoice tools"\)\)/);
+  assert.match(source, /frappe\.utils\.icon\("more-horizontal", "sm"\)/);
 });
-test('spreadsheet keyboard flow commits a cell and advances without stealing open picker arrows', () => {
+test('custom form action toolbars replace rather than stack with the pinned document foot', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/bunood.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(source, /const FORM_ACTION_OWNERS = \["salesbill", "simpleform"\]/);
+  assert.match(source, /function sync_native_owner\(token, own\)[\s\S]*?FORM_ACTION_OWNERS\.includes\(token\)[\s\S]*?mount_docfoot\(window\.cur_frm\)/);
+  assert.match(source, /function docfoot_wanted\(\)[\s\S]*?!FORM_ACTION_OWNERS\.some/);
+  assert.match(css, /html\[data-theme\]\[data-bnd-own~="salesbill"\] \.bnd-docfoot \{ display: none !important; \}/);
+});
+test('spreadsheet keyboard flow commits a cell and advances through the direct-entry sheet', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   assert.match(source, /this\.doc\.__islocal && !this\.doc\[this\.profile\.party\][\s\S]*?this\.partyControl\?\.set_focus\(\)/);
   assert.match(source, /window\.addEventListener\?\.\("keydown", e => \{[\s\S]*?instances\.get\(frm\)[\s\S]*?workbench\?\.shortcut\(e\)/);
@@ -83,12 +160,159 @@ test('spreadsheet keyboard flow commits a cell and advances without stealing ope
   assert.match(source, /Promise\.resolve\(\)[\s\S]*?control\.set_value\(control\.get_value\(\)\)[\s\S]*?focusNextLineControl\(control\)/);
   assert.match(source, /document\.activeElement === inputElement[\s\S]*?focusNextLineControl\(control\)/);
   assert.match(source, /const focus = document\.activeElement;[\s\S]*?this\.render\(\);[\s\S]*?focus\.focus\(\{ preventScroll: true \}\)/);
-  assert.match(source, /async addItem\(\) \{[\s\S]*?if \(this\.queue\.count\) await this\.queue\.tail;[\s\S]*?if \(!this\.active\(\)\) return;/);
+  assert.match(source, /async addBlankLine\(focus = false\) \{[\s\S]*?if \(this\.queue\.count\) await this\.queue\.tail;[\s\S]*?if \(!this\.active\(\)\) return;/);
+  assert.match(source, /focusItemEntry\(\)[\s\S]*?entry\.control\.set_focus\(\)/);
+  assert.match(source, /ensureEntryRow\(focus = false\)[\s\S]*?rows\[rows\.length - 1\]/);
+});
+test('invoice item entry removes helper rows on save and does not recreate a deleted row', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.doesNotMatch(source, /fieldname: "quick_bill_item"/);
+  assert.doesNotMatch(source, /__\("Add item"\)/);
+  assert.match(source, /__\("Add line"\)/);
+  assert.match(source, /placeholder: __\("Description or search items"\)/);
+  assert.match(source, /items\.append\(this\.lines, search, lineHint\)/);
+  assert.match(source, /const rows = draft \? \(doc\.items \|\| \[\]\) : \(doc\.items \|\| \[\]\)\.filter/);
+  assert.match(source, /async pruneBlankRows\(\)[\s\S]*?filter\(row => !row\.item_code\)[\s\S]*?removeNativeRow\(row\)/);
+  assert.match(source, /await this\.pruneBlankRows\(\);[\s\S]*?missing = this\.missingRequiredField\(\)/);
+  assert.match(source, /completedItem = !!doc\.item_code[\s\S]*?this\.ensureEntryRow\(\)/);
+  assert.match(source, /bnd-bill-item-name/);
+  assert.match(source, /Item code.*row\.item_code/);
+  assert.doesNotMatch(source, /if \(draft && canAdd\(frm\) && !rows\.some\(row => !row\.item_code\)\) queueMicrotask/);
+  const deletion = source.match(/async deleteItem\(row\)[\s\S]*?(?=\n\t\tasync removeNativeRow)/)?.[0] || '';
+  assert.doesNotMatch(deletion, /this\.ensureEntryRow\(\)/);
+  assert.match(source, /__\("Save and submit"\)/);
+  assert.match(source, /__\("Save, submit and print"\)/);
+  assert.match(source, /__\("Save and create new"\)/);
+});
+test('invoice workbench completes the document requirements for item creation preview and settlement choice', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  const setup = fs.readFileSync('bunood_theme/printing/install.py', 'utf8');
+  assert.match(source, /this\.newItemButton = button\(__\("New item"\)/);
+  assert.match(source, /frappe\.ui\.form\.make_quick_entry\("Item"/);
+  assert.match(source, /this\.preview = node\("section", "bnd-bill-preview"/);
+  assert.match(source, /renderPreview\(rows\)/);
+  assert.match(css, /\.bnd-bill-preview \{/);
+  assert.match(source, /paymentMethod: "bunood_settlement_method"/);
+  assert.match(source, /window\.cur_frm\.set_value\("mode_of_payment", preferred\)/);
+  assert.match(setup, /"fieldname": "bunood_settlement_method"/);
+  assert.match(setup, /"fieldtype": "Select"/);
+  assert.match(setup, /MIXED_PAYMENT = "Mixed Payment"/);
+  assert.match(setup, /SETTLEMENT_METHODS = \(CREDIT_SALE, "Cash", "Network", MIXED_PAYMENT\)/);
+  assert.match(setup, /"default": CREDIT_SALE/);
+});
+test('invoice rail is a responsive customer and preview drawer with truthful final-print handoff', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(source, /__\("Customer & preview"\)/);
+  assert.match(source, /selectRailTab\("preview"\)/);
+  assert.match(source, /dataset\.bndRailOpen/);
+  assert.match(source, /__\("This is a live draft summary, not the final PDF layout\."\)/);
+  assert.match(source, /__\("Open print preview"\)[\s\S]*?\(\) => this\.print\(\)/);
+  assert.match(css, /\.bnd-bill-rail \{[\s\S]*?position: fixed/);
+  assert.match(css, /data-bnd-rail-open="true"[^}]*\.bnd-bill-rail \{ transform: translateX\(0\)/);
+});
+test('invoice preview opens without a scrim-only blank frame', () => {
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  const scrim = css.match(/\.bnd-bill-rail-scrim \{([\s\S]*?)\}/)?.[1] || '';
+  const rail = css.match(/\.bnd-bill-rail \{([\s\S]*?)\}/)?.[1] || '';
+  const openScrim = css.match(/\.bnd-bill\[data-bnd-rail-open="true"\] \.bnd-bill-rail-scrim \{([\s\S]*?)\}/)?.[1] || '';
+
+  assert.match(scrim, /opacity:\s*0/);
+  assert.match(scrim, /visibility:\s*hidden/);
+  assert.match(scrim, /pointer-events:\s*none/);
+  assert.match(rail, /transition:\s*none/);
+  assert.match(openScrim, /opacity:\s*1/);
+  assert.match(openScrim, /visibility:\s*visible/);
+  assert.match(openScrim, /pointer-events:\s*auto/);
+  assert.doesNotMatch(openScrim, /display:\s*block/);
+});
+test('invoice sheet increments matching products and derives payment creation from settlement', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /mergeDuplicateItem\(doc\)/);
+  assert.match(source, /name === "item_code" && doc\.item_code === value[\s\S]*?mergeDuplicateItem\(doc\)[\s\S]*?this\.pending\.get\(key\) !== raw/);
+  assert.doesNotMatch(source, /async duplicateItem\(row\)/);
+  assert.doesNotMatch(source, /button\(__\("Add one"\), view\.actions/);
+  assert.match(source, /\["paid_amount", "outstanding_amount"\]/);
+  assert.match(source, /__\("Credit sale"\)/);
+  assert.match(source, /const settlement = settlementValue\(this\.doc\);[\s\S]*?const createPayment = settlementCreatesPayment\(settlement\)/);
+  assert.match(source, /await submitConfirmed\(this\.frm\);[\s\S]*?if \(mixedAmounts\) await this\.postMixedPayment\(mixedAmounts\);[\s\S]*?else await makePaymentEntry\(this\.frm\)/);
+});
+test('credit is not passed to Payment Entry as a fake mode of payment', () => {
+  const {settlementCreatesPayment, mixedPaymentSelected, receiptMethod} = context.window.bunood_theme.sales_bill;
+  assert.equal(settlementCreatesPayment('On Credit'), false);
+  assert.equal(settlementCreatesPayment(''), false);
+  assert.equal(receiptMethod('On Credit'), '');
+  assert.equal(settlementCreatesPayment('Cash'), true);
+  assert.equal(receiptMethod('Network'), 'Network');
+  assert.equal(settlementCreatesPayment('Mixed Payment'), true);
+  assert.equal(mixedPaymentSelected('Mixed Payment'), true);
+  assert.equal(receiptMethod('Mixed Payment'), '', 'workflow choice is never sent as a Mode of Payment');
+});
+test('mixed settlement posts through the native Payment Entry endpoint and exposes both receipts', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /method: "bunood_theme\.payments\.post_mixed_invoice_payment"/);
+  assert.match(source, /network_reference_no/);
+  assert.match(source, /await this\.frm\.reload_doc\(\)/);
+  assert.match(source, /frappe\.set_route\("Form", "Payment Entry", entry\.name\)/);
+  assert.match(source, /Two original ERPNext Payment Entries will be posted and linked to this invoice\./);
+  assert.match(source, /value\.textContent = this\.format\(balance, \{ fieldtype: "Currency"/);
+  assert.match(source, /value\.dir = "ltr"/);
+  assert.match(source, /node\("small", "", this\.format\(entry\.amount, \{ fieldtype: "Currency"/);
+  assert.match(source, /dialog\.show\(\);[\s\S]*?requestAnimationFrame\(update\)/);
+  assert.doesNotMatch(source, /textContent = frappe\.format\(balance/);
+  assert.doesNotMatch(source, /set_value\("mode_of_payment", MIXED_PAYMENT\)/);
+});
+test('mixed payment amounts automatically preserve the invoice total', () => {
+  const { balancedPaymentPair } = context.window.bunood_theme.sales_bill;
+  assert.deepEqual(Array.from(balancedPaymentPair(40, 57.5, 2)), [40, 17.5]);
+  assert.deepEqual(Array.from(balancedPaymentPair(10, 57.5, 2)), [10, 47.5]);
+  assert.deepEqual(Array.from(balancedPaymentPair(80, 57.5, 2)), [57.5, 0]);
+  assert.deepEqual(Array.from(balancedPaymentPair(-3, 57.5, 2)), [0, 57.5]);
+  assert.deepEqual(Array.from(balancedPaymentPair(0.1, 0.3, 2)), [0.1, 0.2]);
+});
+
+test('mixed payment resolves values before the dialog hide cancellation callback', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const action = source.match(/primary_action:\s*values\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onhide:/)?.[1] || '';
+  assert.ok(action.indexOf('finish({ cash_amount: cash') >= 0, 'mixed action must resolve entered values');
+  assert.ok(action.indexOf('finish({ cash_amount: cash') < action.indexOf('dialog.hide()'), 'values must resolve before onhide can cancel');
+});
+test('invoice customer panel reads the native customer ledger and opens its statement', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /bunood_theme\.api\.get_customer_account_summary/);
+  assert.match(source, /frappe\.set_route\("query-report", "General Ledger", \{/);
+  assert.match(source, /party_type: "Customer"/);
+  assert.match(source, /__\("Amount due from customer"\)/);
 });
 test('removing a populated bill row requires explicit confirmation', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   assert.match(source, /removeItem\(row\)[\s\S]*?frappe\.confirm\(\s*__\("Remove \{0\} from this invoice\?"/);
   assert.match(source, /deleteItem\(row\)[\s\S]*?native\.remove\(\)/);
+});
+test('blank invoice rows are removed while completed item rows are retained', async () => {
+  const {BillWorkbench}=context.window.bunood_theme.sales_bill;
+  const w=Object.create(BillWorkbench.prototype);
+  const complete={name:'item',item_code:'ITEM-1'}, first={name:'blank-1',item_code:''}, second={name:'blank-2'};
+  const items=[first,complete,second]; let refreshes=0, renders=0;
+  w.frm={doc:{items},refresh_field(name){assert.equal(name,'items');refreshes++;}};
+  w.removeNativeRow=async row=>{w.frm.doc.items=w.frm.doc.items.filter(item=>item!==row);};
+  w.render=()=>renders++;
+  assert.equal(await w.pruneBlankRows(),2);
+  assert.deepEqual(w.frm.doc.items,[complete]);
+  assert.equal(refreshes,1);
+  assert.equal(renders,1);
+});
+test('the ready row must be last and is appended once after a completed line', async () => {
+  const {BillWorkbench}=context.window.bunood_theme.sales_bill;
+  const w=Object.create(BillWorkbench.prototype), frm=form();
+  const olderBlank={name:'blank-1',item_code:''}, complete={name:'item',item_code:'ITEM-1'}, trailing={name:'blank-2',item_code:''};
+  Object.assign(w,{frm,doc:frm.doc,active:()=>true,entryRowPromise:null});
+  frm.doc.items=[olderBlank,complete]; let adds=0;
+  w.addBlankLine=async()=>{adds++;return trailing;};
+  await w.ensureEntryRow(); assert.equal(adds,1,'an earlier blank is not the trailing ready row');
+  frm.doc.items.push(trailing);
+  assert.equal(await w.ensureEntryRow(),trailing); assert.equal(adds,1,'an existing trailing row is reused');
 });
 const context = {
   window: { bunood_theme: {} },
@@ -100,8 +324,9 @@ const context = {
   clearTimeout,
 };
 // Expose the existing class only inside the test VM, without a new public API.
-vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8').replace('api.sales_bill = {', 'api.sales_bill = { BillWorkbench, instances,'), context);
-const { eligible, actionState, SerialChanges, saveDraft, totalField, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage } = context.window.bunood_theme.sales_bill;
+vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/document_actions.js', 'utf8'), context);
+vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8').replace('api.sales_bill = {', 'api.sales_bill = { BillWorkbench, instances, mergeableItemLines,'), context);
+const { eligible, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, applyVatTreatment } = context.window.bunood_theme.sales_bill;
 
 test('new-party tax field uses native metadata without duplicates or permission bypass', () => {
   const method=context.window.bunood_theme.sales_bill.BillWorkbench.prototype.addPartyTaxField;
@@ -118,6 +343,41 @@ test('new-party tax field uses native metadata without duplicates or permission 
     delete entry.fields_dict.tax_id; status='Read'; method.call({profile:{partyDoctype:'Supplier'}},entry); assert.equal(added.length,1);
     status='Write'; df.hidden=1; method.call({profile:{partyDoctype:'Supplier'}},entry); assert.equal(added.length,1);
   } finally { context.frappe.meta=previousMeta; context.frappe.perm=previousPerm; }
+});
+
+test('new-item quick entry carries selling price, opening quantity, unit and company warehouse through native Item fields', () => {
+  const method=context.window.bunood_theme.sales_bill.BillWorkbench.prototype.addItemStockAndPriceFields;
+  const previousMeta=context.frappe.meta, previousPerm=context.frappe.perm;
+  try {
+    context.frappe.meta={get_docfield:(_doctype,name)=>({fieldname:name,fieldtype:name==='opening_stock'?'Float':'Currency',hidden:name==='opening_stock'?1:0})};
+    context.frappe.perm={get_perm:()=>[],get_field_display_status:df=>df.hidden?'None':'Write'};
+    const fields={stock_uom:{df:{fieldname:'stock_uom'},get_value:()=> 'Nos'}};
+    const entry={doc:{doctype:'Item'},fields_dict:fields,
+      add_fields(added){for(const df of added)fields[df.fieldname]={df,value:df.default||'',get_value(){return this.value;},set_value(value){this.value=value;}};},
+      toggle_reqd(name,required){fields[name].df.reqd=required;},
+      update_doc(){for(const [name,field] of Object.entries(fields))this.doc[name]=field.get_value();return this.doc;}};
+    const workbench={frm:{doctype:'Sales Invoice'},doc:{company:'Bunood Development',set_warehouse:'Stores - BDEV',selling_price_list:'Standard Selling'}};
+    method.call(workbench,entry);
+    assert.equal(fields.stock_uom.get_value(),'Nos','the native stock unit stays in the dialog');
+    for(const name of ['standard_rate','opening_stock','valuation_rate','__bnd_opening_warehouse'])assert.ok(fields[name],name);
+    assert.equal(fields.opening_stock.df.hidden,0,'native hidden opening stock is exposed only in this quick entry');
+    assert.equal(fields.__bnd_opening_warehouse.value,'Stores - BDEV');
+    assert.equal(fields.__bnd_opening_warehouse.df.reqd,false);
+    fields.opening_stock.value=4; fields.opening_stock.df.onchange();
+    assert.equal(fields.__bnd_opening_warehouse.df.reqd,true);
+    assert.equal(fields.valuation_rate.df.reqd,true);
+    fields.standard_rate.value=50; fields.valuation_rate.value=30;
+    const item=entry.update_doc();
+    assert.equal(item.standard_rate,50);
+    assert.equal(item.opening_stock,4);
+    assert.equal(item.valuation_rate,30);
+    assert.equal(item.__bnd_opening_warehouse,undefined,'dialog-only warehouse must not be sent as an Item field');
+    assert.equal(item.item_defaults[0].company,'Bunood Development');
+    assert.equal(item.item_defaults[0].default_warehouse,'Stores - BDEV');
+    assert.equal(item.item_defaults[0].default_price_list,'Standard Selling');
+    method.call(workbench,entry);
+    assert.equal(Object.keys(fields).filter(name=>name==='__bnd_opening_warehouse').length,1);
+  } finally {context.frappe.meta=previousMeta;context.frappe.perm=previousPerm;}
 });
 
 function lifecycleWorkbench() {
@@ -137,10 +397,12 @@ test('Save and Submit direct missing party/items to the right control after unlo
     const w = lifecycleWorkbench(); let focused;
     w.profile = {party, partyDoctype: party === 'customer' ? 'Customer' : 'Supplier'};
     w.doc[party] = hasParty ? 'TEST' : ''; w.doc.items = []; w.doc.docstatus = 0;
-    w.active = () => true; w.flush = async () => {}; w.busy = () => {}; w.render = () => {};
+    w.active = () => true; w.flush = async () => {}; w.pruneBlankRows = async () => {}; w.busy = () => {}; w.render = () => {};
     w.message = text => {w.lastMessage = text;};
     const focus = name => () => {assert.equal(w.saving, false); focused = name;};
-    w.partyControl = {set_focus: focus('party')}; w.picker = {set_focus: focus('item')};
+    w.partyControl = {set_focus: focus('party')};
+    w.addLineButton = {focus: focus('item')};
+    w.entryControl = () => hasParty ? {control:{set_focus: focus('item')}} : null;
     w.frm.save = w.frm.savesubmit = () => assert.fail('invalid bill must not save or submit');
     await w[method]();
     assert.equal(focused, hasParty ? 'item' : 'party');
@@ -153,6 +415,45 @@ test('required-field check accepts complete bills and tolerates an absent item a
   delete w.doc.items; assert.match(w.missingRequiredField().message, /Add at least/);
   w.doc.items = [{item_code:''}]; assert.match(w.missingRequiredField().message, /Add at least/);
   w.doc.items.push({item_code:'ITEM'}); assert.equal(w.missingRequiredField(), null);
+});
+test('native mandatory validation cannot strand Save Draft in a pending busy state', async () => {
+  const previousUi=context.frappe.ui;
+  let checks=0, saves=0;
+  try {
+    context.frappe.ui={form:{check_mandatory(frm){checks++;assert.equal(frm.doc.name,'INV-BLOCKED');return false;}}};
+    const frm={doc:{name:'INV-BLOCKED'},save(){saves++;return new Promise(()=>{});}};
+    await assert.rejects(saveDraft(frm),/Complete the required fields/);
+    assert.equal(checks,1);
+    assert.equal(saves,0,'the known non-settling native save path must not start');
+  } finally {context.frappe.ui=previousUi;}
+});
+test('Save Draft continues through the native save when mandatory validation passes', async () => {
+  const previousUi=context.frappe.ui;
+  try {
+    context.frappe.ui={form:{check_mandatory:()=>true}};
+    const frm={doc:{name:'INV-OK',__islocal:false},is_dirty:()=>false,save:async (_action,success)=>success({})};
+    await saveDraft(frm);
+  } finally {context.frappe.ui=previousUi;}
+});
+test('workbench submit auto-accepts only its exact native confirmation and restores Frappe confirm', async () => {
+  const previousConfirm=context.frappe.confirm;
+  let submitted=0, delegated=0;
+  const nativeConfirm=(message,yes)=>{delegated++;return yes();};
+  try {
+    context.frappe.confirm=nativeConfirm;
+    const frm={docname:'ACC-SINV-TEST',savesubmit(){
+      return new Promise(resolve=>context.frappe.confirm('Permanently Submit ACC-SINV-TEST?',()=>{submitted++;resolve();}));
+    }};
+    await submitConfirmed(frm);
+    assert.equal(submitted,1);
+    assert.equal(delegated,0,'the explicit submit action is already the user confirmation');
+    assert.equal(context.frappe.confirm,nativeConfirm,'the global confirmation handler must be restored immediately');
+
+    frm.savesubmit=()=>new Promise(resolve=>context.frappe.confirm('Review another condition?',resolve));
+    await submitConfirmed(frm);
+    assert.equal(delegated,1,'unrelated confirmations still use Frappe normally');
+    assert.equal(context.frappe.confirm,nativeConfirm);
+  } finally {context.frappe.confirm=previousConfirm;}
 });
 test('document replacement or native rename retires old control closures without rebinding them', () => {
   for(const rename of [false,true]) {
@@ -188,6 +489,35 @@ test('late retired callbacks cannot evict a newer controller or reveal its nativ
   second.setMode=()=>assert.fail('non-owner changed shared mode'); second.dispose();
   assert.equal(registry.get(second.frm),replacement);
 });
+test('invoice autocomplete closes when scrolling detaches it from its native field', () => {
+  const {BillWorkbench}=context.window.bunood_theme.sales_bill;
+  const w=Object.create(BillWorkbench.prototype);
+  const originalDocument={...context.document}, originalWindow={
+    innerWidth:context.window.innerWidth, innerHeight:context.window.innerHeight,
+  };
+  let blurred=0;
+  const input={
+    getAttribute(name){return {role:'combobox','aria-expanded':'true','aria-owns':'item-results'}[name] || null;},
+    getBoundingClientRect(){return {top:-20,bottom:10,left:100,right:400};},
+    blur(){blurred++;},
+  };
+  try {
+    Object.assign(w,{simple:true,active:()=>true,root:{contains:node=>node===input},
+      scrollHost:{getBoundingClientRect:()=>({top:0,bottom:500,left:0,right:900})}});
+    Object.assign(context.document,{activeElement:input,getElementById:id=>id==='item-results'?{hidden:false}:null});
+    context.window.innerWidth=900; context.window.innerHeight=500;
+    assert.equal(w.closeDetachedAutocomplete(),true);
+    assert.equal(blurred,1,'native blur owns popup closing and ARIA cleanup');
+
+    input.getBoundingClientRect=()=>({top:100,bottom:130,left:100,right:400});
+    assert.equal(w.closeDetachedAutocomplete(),false);
+    assert.equal(blurred,1,'a fully visible native field keeps its menu open');
+  } finally {
+    for(const key of Object.keys(context.document)) delete context.document[key];
+    Object.assign(context.document,originalDocument);
+    context.window.innerWidth=originalWindow.innerWidth; context.window.innerHeight=originalWindow.innerHeight;
+  }
+});
 test('Submit and Advanced stop after document ownership changes during flush', async () => {
   for(const method of ['submit','fullInvoice']) {
     const w=lifecycleWorkbench(); let release,active=true,calls=0;
@@ -212,6 +542,58 @@ test('Submit cannot continue on a replacement after native save resolves', async
   await task; assert.equal(submits,0);
 });
 
+test('Save and Submit follows its own native new-document rename into Submit', async () => {
+  const w=lifecycleWorkbench();
+  const previousUi=context.frappe.ui, previousModel=context.frappe.model, previousCurrent=context.window.cur_frm;
+  let dirty=true, submits=0;
+  try {
+    context.frappe.ui={form:{check_mandatory:()=>true}};
+    context.frappe.model={new_names:{}};
+    context.window.cur_frm=w.frm;
+    w.profile={party:'customer',partyDoctype:'Customer'};
+    Object.assign(w.doc,{doctype:'Sales Invoice',docstatus:0,__islocal:true,customer:'TEST',items:[{item_code:'ITEM'}]});
+    w.flush=async()=>{}; w.pruneBlankRows=async()=>{}; w.busy=()=>{}; w.render=()=>{}; w.message=()=>{};
+    w.frm.is_dirty=()=>dirty;
+    w.frm.save=async (_kind,callback)=>{
+      const localName=w.frm.doc.name;
+      const saved={...w.frm.doc,name:'ACC-SINV-TEST',__islocal:false,docstatus:0};
+      context.frappe.model.new_names[localName]=saved.name;
+      w.frm.doc=saved; w.frm.docname=saved.name; dirty=false;
+      callback({});
+      // A native form refresh may retire the controller whose button initiated the save.
+      w.closed=true;
+    };
+    w.frm.savesubmit=async()=>{submits++;w.frm.doc.docstatus=1;};
+    await w.submit();
+    assert.equal(submits,1,'the native Submit call must follow the successful native Save rename');
+    assert.equal(w.frm.doc.docstatus,1);
+  } finally {
+    context.frappe.ui=previousUi; context.frappe.model=previousModel; context.window.cur_frm=previousCurrent;
+  }
+});
+test('Save, Submit and Print waits for successful submission before opening native print', async () => {
+  const w=lifecycleWorkbench();
+  const previousConfirm=context.frappe.confirm, previousCurrent=context.window.cur_frm;
+  let printed=0, submitted=0, shownPrompts=0;
+  try {
+    context.window.cur_frm=w.frm;
+    context.frappe.confirm=(message,yes)=>{shownPrompts++;return yes();};
+    w.profile={party:'customer',partyDoctype:'Customer'};
+    Object.assign(w.doc,{doctype:'Sales Invoice',docstatus:0,__islocal:false,customer:'TEST',items:[{item_code:'ITEM'}]});
+    w.frm.docname=w.doc.name;
+    w.active=()=>true; w.flush=async()=>{}; w.pruneBlankRows=async()=>{}; w.busy=()=>{}; w.render=()=>{}; w.message=()=>{};
+    w.frm.is_dirty=()=>false;
+    w.frm.savesubmit=()=>new Promise(resolve=>context.frappe.confirm('Permanently Submit INV-OLD?',()=>{
+      submitted++; w.frm.doc.docstatus=1; resolve(w.frm);
+    }));
+    w.frm.print_doc=()=>{printed++;};
+    assert.equal(await w.submitAndPrint(),true);
+    assert.equal(submitted,1);
+    assert.equal(printed,1,'print must start only after the invoice is submitted');
+    assert.equal(shownPrompts,0,'the explicit combined action must not show a second submit confirmation');
+  } finally {context.frappe.confirm=previousConfirm;context.window.cur_frm=previousCurrent;}
+});
+
 test('invoice sheet puts identity before actions and marks draft-only editing affordances', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
   assert.ok(source.indexOf('const intro =') < source.indexOf('const toolbar ='));
@@ -225,11 +607,12 @@ test('invoice sheet puts identity before actions and marks draft-only editing af
 });
 test('invoice tool actions use bundled, labelled Frappe icons', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
-  for (const icon of ['user','delete','printer','credit-card','percent','rotate-ccw','search']) {
+  for (const icon of ['user','delete','printer','coins','percent','rotate-ccw','search']) {
     assert.match(source,new RegExp(`this\\.action\\([^\\n]+"${icon}"`));
   }
-  assert.match(source,/frappe\.utils\.icon\(icon, "sm"\)/);
-  assert.match(source,/bnd-bill-action-icon[^\n]+aria-hidden/);
+  const actions=fs.readFileSync('bunood_theme/public/js/document_actions.js','utf8');
+  assert.match(actions,/frappe\.utils\.icon\(icon, "sm"\)/);
+  assert.match(actions,/bnd-bill-action-icon[\s\S]+aria-hidden/);
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
   assert.match(scss,/\.bnd-bill-action-icon[^}]*place-items:\s*center/);
   assert.match(scss,/\.bnd-bill-tools-body \.bnd-bill-action-label \{ flex: 1; \}/);
@@ -242,13 +625,14 @@ test('ZATCA states are actionable and technical metadata is manager-only', () =>
     const w=Object.create(proto);
     w.zatcaData={state,settings:{server:'Sandbox',sync:'Live'},invoice:{},...extra};
     let error=false;
-    w.zatcaStatus={classList:{toggle(_name,value){error=value;}},textContent:''};
+    let warning=false;
+    w.zatcaStatus={classList:{toggle(name,value){if(name==='bnd-bill-error')error=value;if(name==='bnd-bill-warning')warning=value;}},textContent:''};
     w.zatcaMeta={textContent:''}; w.zatcaButton={textContent:'',hidden:false};
     w.busy=()=>{}; w.loadZatca=()=>{}; w.zatcaTimer=null;
     proto.renderZatca.call(w);
     clearTimeout(w.zatcaTimer);
     return {status:w.zatcaStatus.textContent,meta:w.zatcaMeta.textContent,
-      action:w.zatcaButton.textContent,hidden:w.zatcaButton.hidden,error};
+      action:w.zatcaButton.textContent,hidden:w.zatcaButton.hidden,error,warning};
   };
   const setup={
     missing_app:['The ZATCA connector is not installed on this site.','',true,true],
@@ -269,14 +653,15 @@ test('ZATCA states are actionable and technical metadata is manager-only', () =>
   assert.equal(sendable.action,'Send to ZATCA');
   assert.equal(sendable.meta,'Queued');
   assert.equal(render('ready_to_send',{can_queue:true,invoice},['Accounts Manager']).meta,'Sandbox · Live · Queued');
-  for (const [state,status,error] of [
-    ['accepted','ZATCA accepted this invoice.',false],
-    ['accepted_with_warnings','ZATCA accepted this invoice with warnings.',false],
-    ['rejected','ZATCA rejected this invoice. Open the validation record before correcting it.',true],
-    ['clearance_off','ZATCA clearance is switched off. Review the validation record and company settings.',false],
+  for (const [state,status,error,warning] of [
+    ['accepted','ZATCA accepted this invoice.',false,false],
+    ['accepted_with_warnings','ZATCA accepted this invoice with warnings.',false,true],
+    ['duplicate_response','ZATCA returned a duplicate response. Reconcile it with the original submission before treating this invoice as accepted.',false,true],
+    ['rejected','ZATCA rejected this invoice. Open the validation record before correcting it.',true,false],
+    ['clearance_off','ZATCA clearance is switched off. Review the validation record and company settings.',false,true],
   ]) {
     const view=render(state,{invoice});
-    assert.deepEqual([view.status,view.action,view.error],[status,'View ZATCA record',error],state);
+    assert.deepEqual([view.status,view.action,view.error,view.warning],[status,'View ZATCA record',error,warning],state);
   }
 });
 
@@ -418,9 +803,10 @@ function form(extra = {}) {
     perm: [{ write: 1, create: 1 }], save_disabled: false,
     fields_dict: { customer: { get_status: () => 'Write' }, items: { get_status: () => 'Write', grid: { is_editable: () => true, df: {} } } } };
 }
-test('quick bill excludes posted, return, POS, mapped and restricted invoices', () => {
+test('quick bill supports mapped rows while excluding posted, return, POS and restricted invoices', () => {
   assert.equal(eligible(form()), true);
-  for (const extra of [{docstatus:1},{is_return:1},{is_pos:1},{amended_from:'INV'},{is_debit_note:1},{items:[{sales_order:'SO-1'}]}]) assert.equal(eligible(form(extra)), false);
+  assert.equal(eligible(form({items:[{item_code:'ITEM-1',sales_order:'SO-1',so_detail:'SO-ITEM-1'}]})), true);
+  for (const extra of [{docstatus:1},{is_return:1},{is_pos:1},{amended_from:'INV'},{is_debit_note:1}]) assert.equal(eligible(form(extra)), false);
   const restricted = form(); restricted.fields_dict.items.grid.is_editable = () => false;
   assert.equal(eligible(restricted), false);
   const disabled = form(); disabled.save_disabled = true;
@@ -433,41 +819,77 @@ test('purchase invoices use the same native workbench contract', () => {
   assert.equal(context.window.bunood_theme.sales_bill.supports(f), true);
   assert.equal(eligible(f), true);
   f.doc.items = [{ purchase_order: 'PO-1' }];
-  assert.equal(context.window.bunood_theme.sales_bill.supports(f), false);
+  assert.equal(context.window.bunood_theme.sales_bill.supports(f), true);
+  assert.equal(eligible(f), true);
 });
-test('the default bill workbench is inline and exposes native actions', () => {
+test('the default bill workbench stays inline while the explicit split action uses a bounded dialog', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
-  assert.doesNotMatch(source,/new frappe\.ui\.Dialog/);
+  assert.match(source,/async promptMixedPayment\(\)[\s\S]*?new frappe\.ui\.Dialog/);
   for (const action of ['frm.savesubmit()','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','frappe.ui.Scanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 });
-test('both invoice profiles expose the native base price before line discounts', () => {
+test('both invoice profiles default line discounts to native currency amounts', () => {
   const {profiles} = context.window.bunood_theme.sales_bill;
   for (const type of ['Sales Invoice', 'Purchase Invoice']) {
     assert.ok(profiles[type].lineFields.includes('price_list_rate'), type);
-    assert.ok(profiles[type].lineFields.indexOf('price_list_rate') < profiles[type].lineFields.indexOf('discount_percentage'));
+    assert.ok(profiles[type].lineFields.indexOf('price_list_rate') < profiles[type].lineFields.indexOf('discount_amount'));
+    assert.ok(profiles[type].lineFields.includes('discount_amount'), type);
+    assert.ok(!profiles[type].lineFields.includes('discount_percentage'), type);
     assert.ok(profiles[type].lineFields.includes('rate'));
   }
+  assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /discount_amount: \(\) => __\("Discount Amount"\)/);
+});
+
+test('invoice sheet presents unit price before discount inputs', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.equal((source.match(/lineFields: \["qty", "rate", "price_list_rate", "discount_amount", "warehouse"\]/g) || []).length, 2);
+});
+
+test('print is a visible operational action beside payment and disabled commits remain legible', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(source, /this\.printButton = this\.action\(commitActions, __\("Print"\)/);
+  assert.match(source, /this\.paymentButton = this\.action\(commitActions, __\("Record payment"\)/);
+  assert.match(source, /this\.saveButton = this\.action\(documentActions, __\("Save draft"\), "F2", "save"/);
+  assert.doesNotMatch(source, /this\.saveButton = this\.action\(commitActions/);
+  assert.match(source, /this\.submitPrintButton = this\.action\(commitActions, __\("Save, submit and print"\)/);
+  assert.match(source, /this\.submitPrintButton\.hidden = !showSubmit/);
+  assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-action-submit-print \{[\s\S]*?border-color: var\(--bnd-brand-solid\)/);
+  assert.match(css, /\.bnd-bill-action-submit-print \.bnd-bill-action-label,[\s\S]*?display: none/);
+  assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-action-save:disabled[\s\S]*?opacity:\s*1/);
+});
+
+test('preview scrim keeps its backdrop while hovered and mixed allocation has a dedicated status layout', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.match(css, /data-bnd-rail-open="true"\][\s\S]*?rail-scrim:is\(:hover, :focus, :focus-visible\)/);
+  assert.match(source, /remaining\.classList\.add\("bnd-mixed-payment-balance"\)/);
+  assert.match(css, /\.bnd-mixed-payment-balance[\s\S]*?gap:\s*var\(--bnd-sp-4\)/);
 });
 test('nonzero discount without a positive finite base is rejected before native mutation', async () => {
   const {setLineValue} = context.window.bunood_theme.sales_bill;
-  for (const base of [undefined, null, '', 0, '0', -1, NaN, Infinity]) {
-    const row = {rate:100, price_list_rate:base, discount_percentage:0};
-    let calls = 0;
-    await assert.rejects(() => setLineValue(row,'discount_percentage',10,async () => { calls++; row.rate=0; }, () => 'Write'), /price before discount/i);
-    assert.equal(calls,0); assert.equal(row.rate,100); assert.equal(row.discount_percentage,0);
+  for (const field of ['discount_percentage','discount_amount']) {
+    for (const base of [undefined, null, '', 0, '0', -1, NaN, Infinity]) {
+      const row = {rate:100, price_list_rate:base, discount_percentage:0, discount_amount:0};
+      let calls = 0;
+      await assert.rejects(() => setLineValue(row,field,10,async () => { calls++; row.rate=0; }, () => 'Write'), /price before discount/i);
+      assert.equal(calls,0); assert.equal(row.rate,100); assert.equal(row[field],0);
+    }
   }
+  for (const value of [-1,NaN,Infinity]) await assert.rejects(
+    () => setLineValue({price_list_rate:100},'discount_amount',value,async()=>assert.fail('invalid native call')),
+    /discount amount of zero or more/i);
 });
 test('missing-base guidance follows current native editability, not invoice type', async () => {
   const {setLineValue} = context.window.bunood_theme.sales_bill;
   for (const type of ['Sales Invoice Item','Purchase Invoice Item']) {
     for (const status of ['Read','None',undefined]) {
-      const row={doctype:type,rate:100,price_list_rate:0,discount_percentage:0};
+      const row={doctype:type,rate:100,price_list_rate:0,discount_amount:0};
       await assert.rejects(
-        () => setLineValue(row,'discount_percentage',10,async()=>assert.fail('must not mutate'),()=>status),
-        error => /selected price list/.test(error.message) && /Discount \(%\) to 0/.test(error.message) && !/Enter a price|advanced/i.test(error.message));
-      assert.equal(row.rate,100); assert.equal(row.discount_percentage,0);
+        () => setLineValue(row,'discount_amount',10,async()=>assert.fail('must not mutate'),()=>status),
+        error => /selected price list/.test(error.message) && /Discount Amount to 0/.test(error.message) && !/Enter a price|advanced/i.test(error.message));
+      assert.equal(row.rate,100); assert.equal(row.discount_amount,0);
     }
-    await assert.rejects(() => setLineValue({doctype:type},'discount_percentage',10,async()=>assert.fail('must not mutate'),()=> 'Write'), /Enter a price before discount/);
+    await assert.rejects(() => setLineValue({doctype:type},'discount_amount',10,async()=>assert.fail('must not mutate'),()=> 'Write'), /Enter a price before discount/);
   }
 });
 test('row field status resolves current native metadata and respects grid locks or missing fields', () => {
@@ -490,19 +912,19 @@ test('row field status resolves current native metadata and respects grid locks 
 });
 test('queued discount checks editability at execution and clearing zero still delegates', async () => {
   const {setLineValue} = context.window.bunood_theme.sales_bill;
-  const queue=new SerialChanges(()=>true,()=>{}), row={price_list_rate:0,rate:100,discount_percentage:0};
+  const queue=new SerialChanges(()=>true,()=>{}), row={price_list_rate:0,rate:100,discount_amount:0};
   let status='Write';
   const first=queue.run(async()=>{status='Read';});
-  const discount=queue.run(()=>setLineValue(row,'discount_percentage',10,async()=>assert.fail('must not mutate'),()=>status));
+  const discount=queue.run(()=>setLineValue(row,'discount_amount',10,async()=>assert.fail('must not mutate'),()=>status));
   await first; await assert.rejects(discount,/selected price list/);
   let cleared=false;
-  await setLineValue(row,'discount_percentage',0,async value=>{assert.equal(value,0);cleared=true;},()=>{throw Error('unneeded status read');});
+  await setLineValue(row,'discount_amount',0,async value=>{assert.equal(value,0);cleared=true;},()=>{throw Error('unneeded status read');});
   assert.equal(cleared,true); assert.equal(row.rate,100);
   assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /setLineValue\(doc, name, value, nativeSet, \(\) => rowFieldStatus\(frm, doc, "price_list_rate"\)\)/);
 });
 test('valid pricing edits delegate unchanged to the native setter, without calculating a second price', async () => {
   const {setLineValue} = context.window.bunood_theme.sales_bill;
-  for (const [field,value,base] of [['discount_percentage',10,100],['discount_percentage',0,0],['price_list_rate',100,0],['rate',19.99,0],['qty',0.125,0]]) {
+  for (const [field,value,base] of [['discount_amount',10,100],['discount_amount',0,0],['discount_percentage',10,100],['price_list_rate',100,0],['rate',19.99,0],['qty',0.125,0]]) {
     const row = {rate:100,price_list_rate:base}; const calls=[];
     const result = await setLineValue(row,field,value,async incoming => { calls.push(incoming); return 'native-result'; });
     assert.deepEqual(calls,[value]); assert.equal(result,'native-result'); assert.equal(row.rate,100);
@@ -516,9 +938,9 @@ test('a queued base-price edit is applied before the following discount is valid
   const row={price_list_rate:0,rate:100}, order=[];
   const queue=new SerialChanges(()=>true,()=>{});
   const base=queue.run(()=>setLineValue(row,'price_list_rate',100,async value=>{row.price_list_rate=value;order.push('base');}));
-  const discount=queue.run(()=>setLineValue(row,'discount_percentage',10,async value=>{row.discount_percentage=value;order.push('discount');}));
+  const discount=queue.run(()=>setLineValue(row,'discount_amount',10,async value=>{row.discount_amount=value;order.push('discount');}));
   await Promise.all([base,discount]);
-  assert.deepEqual(order,['base','discount']); assert.equal(row.discount_percentage,10); assert.equal(row.rate,100);
+  assert.deepEqual(order,['base','discount']); assert.equal(row.discount_amount,10); assert.equal(row.rate,100);
 });
 test('Payment delegates to the native invoice controller with its receiver and return value', () => {
   const {makePaymentEntry} = context.window.bunood_theme.sales_bill;
@@ -541,7 +963,7 @@ test('native asynchronous Payment errors remain observable', async () => {
   const nativeError = new Error('native payment refused');
   const frm = {doc:{docstatus:1},cscript:{make_payment_entry:async () => {throw nativeError;}}};
   await assert.rejects(makePaymentEntry(frm), error=>error===nativeError);
-  assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /try \{ return await makePaymentEntry\(this\.frm\); \}/);
+  assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /return await makePaymentEntry\(this\.frm\);/);
 });
 test('sales invoices expose the credential-free Bunood ZATCA facade', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
@@ -550,12 +972,15 @@ test('sales invoices expose the credential-free Bunood ZATCA facade', () => {
   assert.match(source,/Sales Invoice Additional Fields/);
   assert.doesNotMatch(source,/production_security_token|production_secret|security_token/);
 });
-test('a clean saved draft replaces Save with Submit until it is edited', () => {
+test('drafts can be saved or submitted in one step while clean drafts hide redundant Save', () => {
   const state = (doc, dirty) => JSON.parse(JSON.stringify(actionState(doc, dirty)));
-  assert.deepEqual(state({docstatus:0,__islocal:1}, false), {draft:true,savedDraft:false,showSave:true,showSubmit:false});
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  assert.deepEqual(state({docstatus:0,__islocal:1}, false), {draft:true,savedDraft:false,showSave:true,showSubmit:true});
   assert.deepEqual(state({docstatus:0,__islocal:0}, false), {draft:true,savedDraft:true,showSave:false,showSubmit:true});
-  assert.deepEqual(state({docstatus:0,__islocal:0}, true), {draft:true,savedDraft:false,showSave:true,showSubmit:false});
+  assert.deepEqual(state({docstatus:0,__islocal:0}, true), {draft:true,savedDraft:false,showSave:true,showSubmit:true});
   assert.deepEqual(state({docstatus:1,__islocal:0}, false), {draft:false,savedDraft:false,showSave:false,showSubmit:false});
+  assert.match(css, /\.bnd-bill-action\[hidden\] \{ display: none !important; \}/);
+  assert.equal((css.match(/\.bnd-bill-action\[hidden\]/g) || []).length, 1);
 });
 test('zero rounded total is retained and disabled rounding uses grand total', () => {
   const f = form({grand_total:0.2, rounded_total:0}); f.fields_dict.rounded_total = {};
@@ -563,12 +988,53 @@ test('zero rounded total is retained and disabled rounding uses grand total', ()
   f.doc.disable_rounded_total=1; assert.equal(totalField(f), 'grand_total');
   f.doc.disable_rounded_total='0'; assert.equal(totalField(f), 'rounded_total');
 });
+test('draft invoices switch to exact halala totals through the native flag', async () => {
+  const {ensureExactHalalas} = context.window.bunood_theme.sales_bill;
+  const changes=[];
+  const draft={doc:{docstatus:0,disable_rounded_total:0},fields_dict:{disable_rounded_total:{}},set_value:async (...args)=>{changes.push(args); draft.doc.disable_rounded_total=args[1];}};
+  assert.equal(await ensureExactHalalas(draft),true);
+  assert.deepEqual(changes,[['disable_rounded_total',1]]);
+  assert.equal(await ensureExactHalalas(draft),false);
+  const submitted={...draft,doc:{docstatus:1,disable_rounded_total:0}};
+  assert.equal(await ensureExactHalalas(submitted),false);
+});
 test('native grid add and delete restrictions are respected', () => {
   const f = form(); assert.equal(canAdd(f), true); assert.equal(canRemove(f), true);
   f.fields_dict.items.grid.df.cannot_add_rows=1; assert.equal(canAdd(f), false);
   f.fields_dict.items.grid.df.cannot_delete_rows=1; assert.equal(canRemove(f), false);
   f.fields_dict.items.grid.df={}; f.fields_dict.items.grid.cannot_add_rows=true;
   assert.equal(canAdd(f), false);
+});
+test('matching item lines merge only when their commercial details match', () => {
+  const {mergeableItemLines} = context.window.bunood_theme.sales_bill;
+  const line={item_code:'ITEM-1',uom:'Nos',conversion_factor:1,rate:50,price_list_rate:50,
+		discount_percentage:0,discount_amount:0,warehouse:'Stores - BDEV',item_tax_template:'KSA VAT'};
+  assert.equal(mergeableItemLines(line,{...line,qty:1}),true);
+  for (const changed of [
+    {rate:49},{price_list_rate:60},{discount_percentage:10},{discount_amount:5},{uom:'Box'},
+    {warehouse:'Showroom - BDEV'},{batch_no:'BATCH-1'},{delivery_date:'2026-09-20'},
+  ]) assert.equal(mergeableItemLines(line,{...line,...changed}),false,JSON.stringify(changed));
+  assert.equal(mergeableItemLines(line,{...line,item_code:'ITEM-2'}),false);
+});
+test('duplicate item selection increases native quantity and removes only the redundant row', async () => {
+  const {BillWorkbench}=context.window.bunood_theme.sales_bill, w=Object.create(BillWorkbench.prototype), frm=form();
+  const existing={name:'row-1',doctype:'Sales Invoice Item',item_code:'ITEM-1',qty:2,uom:'Nos',rate:50,price_list_rate:50,discount_percentage:0,warehouse:'Stores'};
+  const duplicate={...existing,name:'row-2',qty:1}, ready={name:'row-3',doctype:'Sales Invoice Item',item_code:'',qty:null};
+  frm.doc.items=[existing,duplicate,ready];
+  frm.fields_dict.items.grid.grid_rows_by_docname={'row-2':{remove(){frm.doc.items=frm.doc.items.filter(row=>row.name!=='row-2');}}};
+  frm.fields_dict.items.grid.get_docfield=()=>({fieldname:'qty'});
+  frm.refresh_field=name=>assert.equal(name,'items');
+  Object.assign(w,{frm,doc:frm.doc,active:()=>true,forgetRow(name){this.forgot=name;},mobileExpanded:''});
+  const previous={meta:context.frappe.meta,perm:context.frappe.perm,model:context.frappe.model};
+  context.frappe.meta={get_docfield:()=>({fieldname:'qty'})};
+  context.frappe.perm={get_field_display_status:()=> 'Write'};
+  context.frappe.model={set_value:async (_type,name,field,value)=>{frm.doc.items.find(row=>row.name===name)[field]=value;}};
+  try {
+    const result=await w.mergeDuplicateItem(duplicate);
+    assert.equal(result,existing); assert.equal(existing.qty,3);
+    assert.deepEqual(frm.doc.items.map(row=>row.name),['row-1','row-3']);
+    assert.equal(w.forgot,'row-2'); assert.equal(w.mobileExpanded,'row-1');
+  } finally {Object.assign(context.frappe,previous);}
 });
 test('VAT stays visible and uses the configured native tax rate', () => {
   assert.equal(hasTaxConfiguration({}), false);
@@ -578,6 +1044,97 @@ test('VAT stays visible and uses the configured native tax rate', () => {
   assert.equal(taxLabel({taxes:[{description:'Shipping',rate:5}]}, 'Taxes and charges'), 'Taxes and charges');
   assert.equal(showSummary('total_taxes_and_charges', {total_taxes_and_charges:0}), true);
   assert.equal(showSummary('discount_amount', {discount_amount:0}), false);
+});
+test('the simple VAT choice reflects the configured native category and template', () => {
+  const profiles={
+    standard:{template:'KSA VAT 15% - BDEV',tax_category:'KSA VAT 15%',rate:15},
+    exempt:{template:'KSA VAT Exempt - BDEV',tax_category:'KSA VAT Exempt',rate:0},
+  };
+  assert.equal(vatTreatment({taxes_and_charges:'KSA VAT 15% - BDEV'},profiles),'standard');
+  assert.equal(vatTreatment({taxes_and_charges:'KSA VAT 15% - BDEV',taxes:[{description:'Output VAT',included_in_print_rate:1}]},profiles),'included');
+  assert.equal(vatTreatment({tax_category:'KSA VAT Exempt'},profiles),'exempt');
+  assert.equal(vatTreatment({tax_category:'Zero-rated exports'},profiles),'');
+  assert.equal(vatTreatment({tax_category:'KSA VAT 15%',taxes_and_charges:'Special regional tax'},profiles,'taxes_and_charges'),'');
+});
+test('changing VAT treatment clears stale item tax overrides before native recalculation', async () => {
+  const profiles={standard:{template:'Standard',tax_category:'Standard category',rate:15},exempt:{template:'Exempt',tax_category:'Exempt category',rate:0}};
+  const row={name:'ROW-1',doctype:'Sales Invoice Item',item_tax_template:'Old 15%',item_tax_rate:'{"Output VAT": 15}'};
+  let dirty=0, refreshes=[], itemMapSawCleared=false, calculations=0;
+  const frm={
+    doctype:'Sales Invoice',doc:{docstatus:0,company:'Bunood',customer:'Customer 1',tax_category:'Standard category',taxes_and_charges:'Standard',exempt_from_sales_tax:0,items:[row]},
+    fields_dict:{exempt_from_sales_tax:{}},dirty(){dirty++;},refresh_field(name){refreshes.push(name);},refresh_fields(){refreshes.push('*');},
+    async set_value(name,value){this.doc[name]=value;},
+    cscript:{
+      async update_item_tax_map(){itemMapSawCleared=row.item_tax_template===''&&row.item_tax_rate==='{}';},
+      calculate_taxes_and_totals(){calculations++;},
+    },
+  };
+  assert.equal(clearItemTaxOverrides(frm),true);
+  row.item_tax_template='Old 15%'; row.item_tax_rate='{"Output VAT": 15}';
+  await applyVatTreatment(frm,'exempt',profiles);
+  assert.equal(itemMapSawCleared,true);
+  assert.equal(frm.doc.tax_category,'Exempt category');
+  assert.equal(frm.doc.taxes_and_charges,'Exempt');
+  assert.equal(frm.doc.exempt_from_sales_tax,1);
+  assert.equal(calculations,1);
+  assert.ok(dirty>=2);
+  assert.ok(refreshes.includes('taxes'));
+});
+test('VAT-inclusive pricing changes only native VAT rows', async () => {
+  const vat={doctype:'Sales Taxes and Charges',name:'VAT-1',description:'Output VAT',included_in_print_rate:0};
+  const shipping={doctype:'Sales Taxes and Charges',name:'SHIP-1',description:'Shipping',included_in_print_rate:0};
+  const frm={doc:{taxes:[vat,shipping]},refresh_field(name){assert.equal(name,'taxes');}};
+  const previousModel=context.frappe.model; const writes=[];
+  context.frappe.model={set_value:async (_doctype,name,field,value)=>{
+    const row=frm.doc.taxes.find(candidate=>candidate.name===name); row[field]=value; writes.push([name,field,value]);
+  }};
+  try {
+    assert.equal(await setVatIncludedInPrice(frm,true),1);
+    assert.equal(vat.included_in_print_rate,1);
+    assert.equal(shipping.included_in_print_rate,0);
+    assert.deepEqual(writes,[['VAT-1','included_in_print_rate',1]]);
+    assert.equal(await setVatIncludedInPrice(frm,true),0,'reselecting the mode is idempotent');
+    assert.equal(await setVatIncludedInPrice(frm,false),1);
+    assert.equal(vat.included_in_print_rate,0);
+  } finally { context.frappe.model=previousModel; }
+});
+test('simple invoices offer three clear VAT price modes while Advanced retains native detail', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
+  const css=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(source,/role", "radiogroup"/);
+  assert.match(source,/__\("VAT added to price"\)/);
+  assert.match(source,/__\("Price includes VAT"\)/);
+  assert.match(source,/__\("VAT exempt \(0%\)"\)/);
+  assert.match(source,/"included_in_print_rate"/);
+  assert.match(source,/bunood_theme\.vat\.get_vat_treatments/);
+  assert.match(source,/tax_category: frm => scheduleVatNormalization\(frm, "tax_category"\)/);
+  assert.match(source,/taxes_and_charges: frm => scheduleVatNormalization\(frm, "taxes_and_charges"\)/);
+  assert.match(source,/exempt_from_sales_tax\(frm\)/);
+  assert.match(source,/\["apply_discount_on", "additional_discount_percentage", "discount_amount"\]/);
+  assert.doesNotMatch(source,/\["apply_discount_on", "additional_discount_percentage", "discount_amount", "taxes_and_charges"\]/);
+  assert.match(css,/\.bnd-vat-treatment-options > button\.is-selected/);
+});
+test('the item sheet ends with a concise native invoice calculation', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  const arabic=fs.readFileSync('bunood_theme/translations/ar.csv','utf8');
+  assert.match(source,/items\.append\(this\.lines, search, lineHint\);[\s\S]*?bnd-bill-amount-summary/);
+  assert.match(source,/\["total", __\("Items total"\)\]/);
+  assert.match(source,/\["discount_amount", __\("Discount Amount"\)\]/);
+  assert.match(source,/\["net_total", __\("Net before VAT"\)\]/);
+  assert.match(source,/\["total_taxes_and_charges", null\]/);
+  assert.match(source,/frm\.fields_dict\[name\]\?\.df \|\| frappe\.meta\.get_docfield\(frm\.doctype, name, doc\.name\)/);
+  assert.match(source,/taxLabel\(doc, __\(df\.label\)\)/);
+  assert.match(source,/const optional = \["rounding_adjustment", "paid_amount", "outstanding_amount"\]/);
+  assert.match(source,/name === "discount_amount" && !Number\(doc\[name\]\)/);
+  assert.match(source,/name === "net_total" && roundMoney\(doc\[name\]\) === roundMoney\(doc\.total\)/);
+  assert.match(source,/name === "outstanding_amount" && roundMoney\(doc\[name\]\) === roundMoney\(doc\[totalName\]\)/);
+  assert.match(source,/name === "discount_amount" \? -Math\.abs\(Number\(doc\[name\]\)\)/);
+  assert.match(source,/this\.money\(node\("strong", "", null, this\.amountGrand\), doc\[totalName\] \|\| 0, totalDf\)/);
+  assert.match(scss,/\.bnd-bill-amount-breakdown \{[\s\S]*?grid-template-columns: repeat\(auto-fit,minmax\(min\(100%,14rem\),1fr\)\)/);
+  assert.match(scss,/\.bnd-bill-amount-grand \{[\s\S]*?background: var\(--bnd-brand-deep\)/);
+  assert.match(arabic,/^Items total,إجمالي قيمة الأصناف,/m);
+  assert.match(arabic,/^Net before VAT,الصافي قبل الضريبة,/m);
 });
 test('Simple mode rejects ambiguous VAT rows before native save', () => {
   assert.equal(taxConfigurationIssue({ taxes_and_charges: 'KSA VAT', taxes: [] }).code, 'empty_template');
@@ -591,12 +1148,22 @@ test('Simple mode rejects ambiguous VAT rows before native save', () => {
   assert.deepEqual(Array.from(conflict.rows), [2, 4]);
   assert.match(taxIssueMessage(conflict), /2, 4/);
 });
-test('the Remove action gets its own spreadsheet column so item identity aligns with field controls', () => {
+test('line actions get their own spreadsheet column so item identity aligns with field controls', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
-  assert.match(source, /button\(__\("Remove"\), view\.body,/);
-  assert.match(source, /bnd-bill-item-label/);
-  assert.match(scss, /\.bnd-bill-line-remove \{\s*grid-column: 9; grid-row: 1/);
+  assert.match(source, /button\(__\("Remove"\), view\.actions,/);
+  assert.doesNotMatch(source, /view\.duplicate/);
+  assert.doesNotMatch(source, /button\(__\("Add one"\), view\.actions,/);
+  assert.match(source, /bnd-bill-item-meta/);
+  assert.match(source, /fieldname === "item_code"/);
+  assert.match(scss, /\.bnd-bill-line-actions \{\s*grid-column: 9; grid-row: 1/);
+});
+test('white gray and focused row surfaces paint every invoice column', () => {
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(scss, /\.bnd-bill-line \{[\s\S]*?--bnd-bill-row-bg: var\(--bnd-surface\);[\s\S]*?background: var\(--bnd-bill-row-bg\)/);
+  assert.match(scss, /\.bnd-bill-line:nth-of-type\(even\) \{ --bnd-bill-row-bg: var\(--bnd-raised\); \}/);
+  assert.match(scss, /\.bnd-bill-line:focus-within \{ --bnd-bill-row-bg: var\(--bnd-hover\); \}/);
+  assert.match(scss, /\.bnd-bill-line-body,\s*\.bnd-bill-line-body > div \{ background: var\(--bnd-bill-row-bg\); \}/);
 });
 test('mutations run in order, recover after rejection, and reject stale work', async () => {
   let active = true, release; const order = [];
@@ -611,6 +1178,18 @@ test('mutations run in order, recover after rejection, and reject stale work', a
   await assert.rejects(queue.run(async () => order.push('stale')));
   assert.equal(order.includes('stale'), false);
   assert.equal(queue.count, 0);
+});
+test('saving does not wait for unrelated desk AJAX after native save resolves', async () => {
+  const previous = context.frappe.after_ajax;
+  let waits = 0;
+  context.frappe.after_ajax = async () => { waits++; };
+  try {
+    const queue = new SerialChanges(() => true, () => {});
+    await queue.run(async () => {}, { settle: false });
+    assert.equal(waits, 0);
+    await queue.run(async () => {});
+    assert.equal(waits, 1, 'field mutations still wait for their dependent AJAX');
+  } finally { context.frappe.after_ajax = previous; }
 });
 test('resolved native save is not proof that a draft was saved', async () => {
   const failed = form(); failed.is_dirty = () => true;
@@ -702,6 +1281,18 @@ test('an untouched focused dependent price refreshes from native calculation ins
   assert.equal(rate.get_value(),76);
   assert.equal(rate.get_value(),rate.get_model_value(),'flush must not see a false edit');
   assert.equal(context.document.activeElement,rate.$input[0]);
+});
+test('flush ignores the untouched ready row but still validates real typing in it', async () => {
+  const {workbench:w,row,bind}=boundWorkbench();
+  row.item_code=''; row.qty=null; row.rate=null;
+  const qty=bind('qty'),rate=bind('rate');
+  await w.flush();
+  assert.equal(w.invalid.size,0,'display-only zeroes on the ready row are not edits');
+  assert.equal(row.qty,null); assert.equal(row.rate,null);
+
+  qty.$input.val('0'); w.pending.set('row-06:qty','0');
+  await w.flush();
+  assert.match(w.invalid.get('row-06:qty')?.message || '',/quantity above zero/);
 });
 test('focused equivalent formatting, pending typing and rejected raw values survive dependent refresh', () => {
   const {workbench:w,row,bind}=boundWorkbench(), rate=bind('rate'), key='row-06:rate';
@@ -823,14 +1414,31 @@ test('inline error growth does not bottom-align neighboring invoice controls', (
   assert.match(scss,/\.bnd-bill-cell > \.frappe-control,[\s\S]*?display: block;[\s\S]*?min-block-size: 0/);
   assert.match(scss,/\.bnd-bill-line \.frappe-control :is\([^}]*block-size:\s*var\(--bnd-control-h\)/);
 });
-test('spreadsheet rows use a shared sticky header and level control track', () => {
+test('spreadsheet rows use a full-width control track without an internal scroller', () => {
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
-  assert.match(scss,/--bnd-bill-grid:\s*3rem minmax\(14rem,2\.5fr\) repeat\(4,minmax\(4\.5rem,\.8fr\)\) minmax\(7rem,1fr\) minmax\(6\.5rem,1fr\) 4\.5rem/);
+  assert.match(scss,/--bnd-bill-grid:\s*2rem minmax\(9rem,2\.5fr\) repeat\(4,minmax\(3rem,\.8fr\)\) minmax\(6rem,1fr\) minmax\(5rem,1fr\) 4\.5rem/);
   assert.match(scss,/\.bnd-bill-line-head,[\s\S]*?grid-template-columns:\s*var\(--bnd-bill-grid\)/);
-  assert.match(scss,/\.bnd-bill-line-head \{[\s\S]*?position: sticky;[\s\S]*?inset-block-start: 0/);
+  assert.match(scss,/\.bnd-bill-line-head \{[\s\S]*?position: static/);
+  assert.match(scss,/\.bnd-bill-lines \{[\s\S]*?max-block-size: none;[\s\S]*?overflow: visible/);
   assert.match(scss,/\.bnd-bill-line \.frappe-control :is\([^}]*block-size:\s*var\(--bnd-control-h\)/);
   assert.match(scss,/\.bnd-bill-line \.frappe-control \.control-value[^}]*white-space:\s*nowrap/);
   assert.match(scss,/@media \(width < bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-cell \.control-label,[\s\S]*?position: static/);
+});
+test('short desktop invoices keep the document header in flow above the item sheet', () => {
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(scss,/@media \(height < bp\.bnd-bp\(sm\)\) and \(width >= bp\.bnd-bp\(md\)\)[\s\S]*?\.bnd-bill-intro \{\s*position: static;\s*inset-block-start: auto;/);
+});
+test('settlement choice is half-width and shares its row with the native invoice number', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
+  const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(scss,/\.bnd-bill-essentials > \[data-fieldname="bunood_settlement_method"\] \{ min-inline-size: 0; \}/);
+  assert.doesNotMatch(scss,/data-fieldname="bunood_settlement_method"[^}]*grid-column:\s*span 2/);
+  assert.match(scss,/\.bnd-bill-essentials > \[data-fieldname="bunood_settlement_method"\] \.help-box \{ display: none; \}/);
+  assert.match(scss,/\.bnd-bill-essentials > \[data-fieldname="bunood_settlement_method"\] select \{ inline-size: 100%; max-inline-size: 100%; \}/);
+  assert.match(source,/bnd-bill-invoice-number/);
+  assert.match(source,/__\("Invoice number"\)/);
+  assert.match(source,/doc\.__islocal \? __\("Assigned after saving"\) : doc\.name/);
+  assert.match(scss,/\.bnd-bill-static-value \{[\s\S]*?min-block-size: var\(--bnd-control-h\)/);
 });
 
 // Disabling a containing fieldset removes browser focus. Model that side effect,
@@ -839,7 +1447,7 @@ function editingWorkbench(nativeSet) {
   const fixture = boundWorkbench(nativeSet), w = fixture.workbench;
   w.profile = {party:'customer'}; w.frm.doc.customer = 'TEST';
   w.root = element(); w.rowViews = new Map([['row-06',{remove:{}}]]);
-  for (const name of ['addButton','saveButton','submitButton','newButton','advancedButton','scanButton','newPartyButton','zatcaButton']) w[name] = {};
+  for (const name of ['addLineButton','saveButton','submitButton','submitPrintButton','newButton','advancedButton','scanButton','newPartyButton','zatcaButton']) w[name] = {};
   let disabled = false;
   w.editor = {get disabled(){return disabled;},set disabled(value){disabled=value;if(value)context.document.activeElement=null;}};
   w.busy = context.window.bunood_theme.sales_bill.BillWorkbench.prototype.busy;
@@ -856,12 +1464,12 @@ test('queued recalculation keeps typing focus while structural and commit action
     assert.equal(w.editor.disabled,false,'queued input must not disable its fieldset');
     assert.equal(context.document.activeElement,qty.$input[0]);
     assert.equal(w.root.getAttribute('aria-busy'),'true');
-    for(const name of ['addButton','saveButton','submitButton','newButton','advancedButton','scanButton','newPartyButton','zatcaButton']) assert.equal(w[name].disabled,true,name);
+    for(const name of ['addLineButton','saveButton','submitButton','submitPrintButton','newButton','advancedButton','scanButton','newPartyButton','zatcaButton']) assert.equal(w[name].disabled,true,name);
     assert.equal(w.rowViews.get('row-06').remove.disabled,true);
   } finally {release();await task;}
   assert.equal(w.root.getAttribute('aria-busy'),'false');
   assert.equal(w.editor.disabled,false);
-  for(const name of ['addButton','saveButton','submitButton','newButton','advancedButton','scanButton','newPartyButton','zatcaButton']) assert.equal(w[name].disabled,false,name);
+  for(const name of ['addLineButton','saveButton','submitButton','submitPrintButton','newButton','advancedButton','scanButton','newPartyButton','zatcaButton']) assert.equal(w[name].disabled,false,name);
   assert.equal(w.rowViews.get('row-06').remove.disabled,false);
 });
 test('saving closing and flushing still lock the editor independently of queued work', () => {

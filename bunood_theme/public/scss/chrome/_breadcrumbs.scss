@@ -55,6 +55,10 @@ html[data-bnd-crumbs] .navbar-breadcrumbs {
     color: var(--bnd-ink-muted);
     transition: color var(--bnd-dur-fast) ease, background-color var(--bnd-dur-fast) ease;
   }
+
+  li:last-child > a[dir="auto"] {
+    unicode-bidi: isolate;
+  }
 }
 
 // The module chip (mounted by JS per the icon-scope option): a small
@@ -118,6 +122,16 @@ html[data-bnd-crumbs] .bnd-crumb-copy {
 
 html[data-bnd-crumbs] .page-head .title-area:hover .bnd-crumb-copy {
   opacity: 1;
+}
+
+// Workspace names are the page-head destination, not a left-side breadcrumb.
+// Centre the complete control against the bar while the edge controls remain
+// independently aligned in their own groups.
+html[data-theme] #page-Workspaces .title-area {
+  position: absolute;
+  inset-inline: 0;
+  inline-size: fit-content;
+  margin: auto;
 }
 
 // ── Separators ──────────────────────────────────────────────────────────────
@@ -320,16 +334,26 @@ html[data-bnd-crumbs="pills"] .navbar-breadcrumbs {
 
 // ── Status pill in the trail row ────────────────────────────────────────────
 // Frappe already renders the docstatus indicator as a sibling of the trail
-// inside .title-area (span.page-indicator-pill). The flag pushes it to the
-// row's end and calms its shape — proxy, never rebuild.
+// inside .title-area. Current v16 replaces the template's
+// `.page-indicator-pill` class at runtime and leaves a bare `.indicator-pill`,
+// so the selector deliberately accepts either shape. Match the crumb's 3px
+// padding, 1px edge and compact line-height: Frappe's stock 20px box contains
+// a 21.84px Arabic line box, which makes the status text sit visibly lower
+// than the record name even though the flex boxes themselves are centred.
+// Proxy only; the native status node and semantics remain untouched.
 
-html[data-bnd-crumb-pill] .page-head .page-indicator-pill {
-  margin-inline-start: auto;
-
-  .indicator-pill {
-    border-radius: var(--bnd-radius-pill);
-    font-weight: var(--bnd-weight-medium);
-  }
+html[data-bnd-crumbs] body[data-route^="Form"] .page-head .title-area
+  > :is(.page-indicator-pill, .indicator-pill) {
+  align-self: center;
+  flex: none;
+  block-size: auto;
+  margin: 0;
+  margin-inline-start: var(--bnd-sp-2);
+  padding-block: 3px;
+  border: var(--bnd-line) solid transparent;
+  border-radius: var(--bnd-radius-pill);
+  font-weight: var(--bnd-weight-medium);
+  line-height: 1;
 }
 
 // The sidebar belongs to the page shell, so its control lives in that shell as

@@ -1,0 +1,402 @@
+{
+  "schema_version": 1,
+  "authority": "docs/BUNOOD-V1-MEGA-PLAN-2026-09-20.md",
+  "execution_ledger": "docs/BUNOOD-V1-EXECUTION-LEDGER-2026-09-20.md",
+  "program_authority_map": "quality/v1-program-authority-map.json",
+  "saudi_market_research_synthesis": "docs/BUNOOD-V1-SAUDI-MARKET-RESEARCH-SYNTHESIS-2026-09-20.md",
+  "edition_promotion_gates": "quality/v1-edition-promotion-gates.json",
+  "role_matrix": "docs/BUNOOD-V1-ROLE-ACCEPTANCE-MATRIX-2026-09-20.md",
+  "product_grammar": "docs/BUNOOD-V1-UNIVERSAL-PRODUCT-GRAMMAR-2026-09-20.md",
+  "terminology_governance": "docs/BUNOOD-V1-BILINGUAL-TERMINOLOGY-GOVERNANCE-2026-09-20.md",
+  "user_research_protocol": "docs/BUNOOD-V1-USER-RESEARCH-AND-USABILITY-PROTOCOL-2026-09-20.md",
+  "performance_reliability_slo": "docs/BUNOOD-V1-PERFORMANCE-RELIABILITY-SLO-2026-09-20.md",
+  "performance_budget": "quality/v1-performance-budget.json",
+  "performance_receipt_template": "quality/templates/v1-performance-receipt.template.json",
+  "pdpl_operations_contract": "docs/BUNOOD-V1-SAUDI-PDPL-OPERATIONS-CONTRACT-2026-09-20.md",
+  "pdpl_control_register": "quality/v1-pdpl-control-register.json",
+  "expert_finance_close_contract": "docs/BUNOOD-V1-EXPERT-FINANCE-AND-CLOSE-CONTRACT-2026-09-20.md",
+  "finance_close_control_register": "quality/v1-finance-close-control-register.json",
+  "saudi_people_payroll_contract": "docs/BUNOOD-V1-SAUDI-PEOPLE-PAYROLL-CONTRACT-2026-09-20.md",
+  "saudi_payroll_control_register": "quality/v1-saudi-payroll-control-register.json",
+  "onboarding_migration_contract": "docs/BUNOOD-V1-GUIDED-ONBOARDING-AND-MIGRATION-CONTRACT-2026-09-20.md",
+  "onboarding_migration_control_register": "quality/v1-onboarding-migration-control-register.json",
+  "saudi_zatca_operations_contract": "docs/BUNOOD-V1-SAUDI-ZATCA-OPERATIONS-CONTRACT-2026-09-20.md",
+  "zatca_control_register": "quality/v1-zatca-control-register.json",
+  "cash_bank_payment_reconciliation_contract": "docs/BUNOOD-V1-CASH-BANK-PAYMENT-RECONCILIATION-CONTRACT-2026-09-20.md",
+  "cash_bank_payment_control_register": "quality/v1-cash-bank-payment-control-register.json",
+  "procurement_inventory_operations_contract": "docs/BUNOOD-V1-PROCUREMENT-INVENTORY-OPERATIONS-CONTRACT-2026-09-20.md",
+  "procurement_inventory_control_register": "quality/v1-procurement-inventory-control-register.json",
+  "pos_retail_operations_contract": "docs/BUNOOD-V1-POS-RETAIL-OPERATIONS-CONTRACT-2026-09-20.md",
+  "pos_retail_control_register": "quality/v1-pos-retail-control-register.json",
+  "order_to_cash_customer_operations_contract": "docs/BUNOOD-V1-ORDER-TO-CASH-AND-CUSTOMER-OPERATIONS-CONTRACT-2026-09-20.md",
+  "order_to_cash_control_register": "quality/v1-order-to-cash-control-register.json",
+  "reporting_decision_support_contract": "docs/BUNOOD-V1-REPORTING-AND-DECISION-SUPPORT-CONTRACT-2026-09-20.md",
+  "decision_support_control_register": "quality/v1-decision-support-control-register.json",
+  "integration_connector_operations_contract": "docs/BUNOOD-V1-INTEGRATION-AND-CONNECTOR-OPERATIONS-CONTRACT-2026-09-20.md",
+  "integration_connector_control_register": "quality/v1-integration-connector-control-register.json",
+  "production_operations_support_contract": "docs/BUNOOD-V1-PRODUCTION-OPERATIONS-AND-SUPPORT-CONTRACT-2026-09-20.md",
+  "production_operations_control_register": "quality/v1-production-operations-control-register.json",
+  "work_order_catalog": "docs/BUNOOD-V1-WORK-ORDER-CATALOG-2026-09-20.md",
+  "detailed_work_orders": "docs/ERP-MARKET-RECOMMENDATIONS-WORK-ORDERS-2026-09-20.md",
+  "work_order_status": "quality/v1-work-order-status.json",
+  "disclaimer": "This file declares target coverage. It is not a test receipt and contains no pass claims.",
+  "personas": [
+    "cashier",
+    "sales",
+    "buyer",
+    "warehouse",
+    "accountant",
+    "finance",
+    "owner",
+    "administrator"
+  ],
+  "dimensions": {
+    "languages": [
+      { "id": "en", "direction": "ltr" },
+      { "id": "ar", "direction": "rtl" }
+    ],
+    "viewports": [
+      { "id": "desktop", "width": 1440, "height": 900 },
+      { "id": "tablet", "width": 1024, "height": 900 },
+      { "id": "compact", "width": 700, "height": 900 },
+      { "id": "phone", "width": 430, "height": 900 }
+    ],
+    "themes": ["light", "dark"],
+    "system_states": [
+      "loading",
+      "configured-empty",
+      "setup-incomplete",
+      "validation-error",
+      "permission-denied",
+      "recoverable-error",
+      "conflict",
+      "partial-success",
+      "offline-delayed-integration",
+      "integration-rejected"
+    ]
+  },
+  "coverage_profiles": {
+    "full-bilingual-responsive": {
+      "languages": ["en", "ar"],
+      "viewports": ["desktop", "tablet", "compact", "phone"],
+      "themes": ["light", "dark"]
+    }
+  },
+  "contracts": {
+    "shell": [
+      "Exactly one top bar and one navigation owner are visible.",
+      "Breadcrumbs, search, sidebar or drawer, and mobile destinations agree with the active route and effective permission.",
+      "Unsaved-route handling preserves or deliberately discards the document only after an explicit decision."
+    ],
+    "form": [
+      "The same native document is used by Simple and Advanced modes.",
+      "The form follows identity, business context, primary work, totals and validation, and action zones.",
+      "Fields align to a shared grid and advanced detail is progressively disclosed without hiding mandatory context."
+    ],
+    "actions": [
+      "One primary action states its outcome and reflects document state and effective permission.",
+      "Secondary and dangerous actions are grouped predictably and remain keyboard reachable.",
+      "Loading, success, validation, denial, conflict, and failure restore a usable interface and focus."
+    ],
+    "data-entry": [
+      "Names are prominent and identifiers remain available as secondary traceability.",
+      "Keyboard, barcode, autocomplete, and row-entry behavior never introduce a second business document model.",
+      "Untouched ready rows do not block save, post, totals, or print."
+    ],
+    "states": [
+      "Every applicable declared system state has an explicit consequence and recovery path.",
+      "Permission denial is not used for an empty result and integration delay is not described as total offline failure.",
+      "Retry is idempotent and cannot duplicate a document, payment, stock move, or integration submission."
+    ],
+    "visual": [
+      "The workspace is neutral-first; dark green is reserved for brand, current selection, primary action, or success.",
+      "Ordinary controls are not decorative pills and content is not fragmented into unnecessary cards.",
+      "Spacing, alignment, field widths, type hierarchy, and Arabic glyph line height remain coherent at every declared width."
+    ],
+    "i18n": [
+      "All owned static copy is translated and no English label leaks into an Arabic surface or vice versa.",
+      "Direction, alignment, icons, arrows, mixed numbers, currency, dates, and truncation work in LTR and RTL.",
+      "Business names and source data are not mistranslated merely to make the interface monolingual."
+    ],
+    "accessibility": [
+      "Semantic names, landmarks, headings, labels, focus order, and visible focus are correct.",
+      "All core actions work by keyboard and touch without an icon-only mystery action.",
+      "Contrast, reduced motion, zoom, and reflow pass the declared surface gate."
+    ],
+    "permissions": [
+      "Presentation is the intersection of the role profile and server-provided permissions.",
+      "Each allowed action has a positive server probe and each forbidden action has a negative server probe.",
+      "Company, warehouse, POS Profile, and other record scopes include allowed and forbidden fixtures."
+    ],
+    "reconciliation": [
+      "Displayed totals drill to the exact permitted source records.",
+      "Authoritative native documents, stock ledger, general ledger, outstanding balances, tax, and reports reconcile where applicable.",
+      "Cleanup removes only run-owned fixtures and proves persistent counts are unchanged."
+    ]
+  },
+  "surfaces": [
+    {
+      "id": "canonical-shell",
+      "family": "shell",
+      "route": { "type": "Desk", "name": "Home and representative routes" },
+      "personas": ["cashier", "sales", "buyer", "warehouse", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "lifecycle_states": ["default", "drawer-open", "unsaved-navigation"],
+      "required_contracts": ["shell", "states", "visual", "i18n", "accessibility", "permissions"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/home-entry-regression.test.mjs tests/sidebar-rebuild.test.cjs tests/breadcrumb-context.test.cjs tests/interaction_accessibility.test.cjs",
+          "artifacts": ["tests/home-entry-regression.test.mjs", "tests/sidebar-rebuild.test.cjs", "tests/breadcrumb-context.test.cjs", "tests/interaction_accessibility.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/navigation-acceptance.mjs",
+          "artifacts": ["tools/navigation-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "role-home",
+      "family": "role-home",
+      "route": { "type": "Workspace", "name": "Role default home" },
+      "personas": ["cashier", "sales", "buyer", "warehouse", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "lifecycle_states": ["loading", "configured", "empty", "error"],
+      "required_contracts": ["shell", "actions", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/home-entry-regression.test.mjs tests/home-kpi.test.cjs tests/role-home-acceptance-fixtures.test.mjs",
+          "artifacts": ["tests/home-entry-regression.test.mjs", "tests/home-kpi.test.cjs", "tests/role-home-acceptance-fixtures.test.mjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/role-home-acceptance.mjs",
+          "artifacts": ["tools/role-home-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "sales-invoice",
+      "family": "transaction-form",
+      "route": { "type": "Form", "doctype": "Sales Invoice" },
+      "personas": ["sales", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "modes": ["simple", "advanced"],
+      "lifecycle_states": ["new", "draft", "submitted", "cancelled", "return"],
+      "required_contracts": ["shell", "form", "actions", "data-entry", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/sales_bill.test.cjs tests/document_actions.test.cjs",
+          "artifacts": ["tests/sales_bill.test.cjs", "tests/document_actions.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/bill-keyboard-acceptance.mjs",
+          "artifacts": ["tools/bill-keyboard-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "purchase-invoice",
+      "family": "transaction-form",
+      "route": { "type": "Form", "doctype": "Purchase Invoice" },
+      "personas": ["buyer", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "modes": ["simple", "advanced"],
+      "lifecycle_states": ["new", "draft", "submitted", "cancelled", "return"],
+      "required_contracts": ["shell", "form", "actions", "data-entry", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/sales_bill.test.cjs tests/document_actions.test.cjs",
+          "artifacts": ["tests/sales_bill.test.cjs", "tests/document_actions.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/bill-keyboard-acceptance.mjs",
+          "artifacts": ["tools/bill-keyboard-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "stock-entry",
+      "family": "transaction-form",
+      "route": { "type": "Form", "doctype": "Stock Entry" },
+      "personas": ["warehouse", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "modes": ["simple", "advanced"],
+      "lifecycle_states": ["new", "draft", "submitted", "cancelled"],
+      "required_contracts": ["shell", "form", "actions", "data-entry", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/simple_forms.test.cjs",
+          "artifacts": ["tests/simple_forms.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/stock-entry-live-acceptance.mjs",
+          "artifacts": ["tools/stock-entry-live-acceptance.mjs", "tests/stock-entry-live-acceptance.test.mjs", "bunood_theme/public/js/stock_entry_compat.js", "tests/stock-entry-settings-compat.test.cjs", "bunood_theme/api.py", "bunood_theme/hooks.py"]
+        }
+      ]
+    },
+    {
+      "id": "payment-entry",
+      "family": "transaction-form",
+      "route": { "type": "Form", "doctype": "Payment Entry" },
+      "personas": ["accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "modes": ["simple", "advanced"],
+      "lifecycle_states": ["new", "draft", "submitted", "cancelled"],
+      "required_contracts": ["shell", "form", "actions", "data-entry", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/simple_forms.test.cjs tests/document_actions.test.cjs",
+          "artifacts": ["tests/simple_forms.test.cjs", "tests/document_actions.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "planned",
+          "rationale": "The current invoice rehearsal proves one mapped payment, but no persona-scoped bilingual responsive Payment Entry journey and denial suite exists."
+        }
+      ]
+    },
+    {
+      "id": "customer",
+      "family": "master-form",
+      "route": { "type": "Form", "doctype": "Customer" },
+      "personas": ["cashier", "sales", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "modes": ["simple", "advanced"],
+      "lifecycle_states": ["new", "saved", "disabled"],
+      "required_contracts": ["shell", "form", "actions", "states", "visual", "i18n", "accessibility", "permissions"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/simple_forms.test.cjs tests/form-hierarchy.test.cjs",
+          "artifacts": ["tests/simple_forms.test.cjs", "tests/form-hierarchy.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/form-bilingual-acceptance.mjs",
+          "artifacts": ["tools/form-bilingual-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "item",
+      "family": "master-form",
+      "route": { "type": "Form", "doctype": "Item" },
+      "personas": ["sales", "buyer", "warehouse", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "modes": ["simple", "advanced"],
+      "lifecycle_states": ["new", "saved", "disabled"],
+      "required_contracts": ["shell", "form", "actions", "states", "visual", "i18n", "accessibility", "permissions"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/simple_forms.test.cjs tests/form-hierarchy.test.cjs",
+          "artifacts": ["tests/simple_forms.test.cjs", "tests/form-hierarchy.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/form-bilingual-acceptance.mjs && node tools/item-live-acceptance.mjs",
+          "artifacts": ["tools/form-bilingual-acceptance.mjs", "tools/item-live-acceptance.mjs", "tests/item-live-acceptance.test.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "dense-core-list",
+      "family": "list",
+      "route": { "type": "List", "name": "Customer, Supplier, Item, Sales Invoice, and Purchase Invoice" },
+      "personas": ["sales", "buyer", "warehouse", "accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "lifecycle_states": ["loading", "populated", "empty", "filtered", "error"],
+      "required_contracts": ["shell", "actions", "data-entry", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/dense-list.test.cjs tests/invoice_list.test.cjs tests/list_presets.test.cjs",
+          "artifacts": ["tests/dense-list.test.cjs", "tests/invoice_list.test.cjs", "tests/list_presets.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/dense-list-acceptance.mjs",
+          "artifacts": ["tools/dense-list-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "general-ledger-report",
+      "family": "report",
+      "route": { "type": "Query Report", "name": "General Ledger" },
+      "personas": ["accountant", "finance", "owner", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "lifecycle_states": ["loading", "populated", "empty", "invalid-filter", "error"],
+      "required_contracts": ["shell", "actions", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/report_workbench.test.cjs",
+          "artifacts": ["tests/report_workbench.test.cjs"]
+        },
+        {
+          "id": "live",
+          "state": "available",
+          "command": "node tools/report-workbench-acceptance.mjs",
+          "artifacts": ["tools/report-workbench-acceptance.mjs"]
+        }
+      ]
+    },
+    {
+      "id": "point-of-sale",
+      "family": "pos",
+      "route": { "type": "Page", "name": "point-of-sale" },
+      "personas": ["cashier", "finance", "administrator"],
+      "coverage_profile": "full-bilingual-responsive",
+      "lifecycle_states": ["opening", "selling", "held", "payment", "submitted", "return", "closing", "error"],
+      "required_contracts": ["shell", "form", "actions", "data-entry", "states", "visual", "i18n", "accessibility", "permissions", "reconciliation"],
+      "gates": [
+        {
+          "id": "structural",
+          "state": "available",
+          "command": "node --test tests/pos.test.cjs tests/pos-role-permission-acceptance.test.mjs",
+          "artifacts": ["tests/pos.test.cjs", "tests/pos-role-permission-acceptance.test.mjs"]
+        },
+        {
+          "id": "role-authority",
+          "state": "available",
+          "command": "node tools/pos-role-permission-acceptance.mjs",
+          "artifacts": ["tools/pos-role-permission-acceptance.mjs", "bunood_theme/pos_permissions.py"]
+        },
+        {
+          "id": "live",
+          "state": "planned",
+          "rationale": "A run-owned cashier shift-to-close journey with stock, tender, invoice, receipt, return, closing, and ledger reconciliation does not yet exist."
+        }
+      ]
+    }
+  ]
+}
