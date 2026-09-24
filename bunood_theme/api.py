@@ -2245,3 +2245,27 @@ def composer_pages() -> dict:
     pages.append(form_page("ticket", _("Helpdesk ticket"), "HD Ticket", _("Helpdesk is not installed.")))
     pages.append(form_page("crm", _("CRM deal"), "CRM Deal", _("CRM is not installed.")))
     return {"pages": pages}
+
+
+@frappe.whitelist()
+def journal_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native Journal Entry work queues."""
+    from bunood_theme.journal_workbench import get_journal_workbench
+
+    return get_journal_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native close evidence."""
+    from bunood_theme.finance_close import get_finance_close_cockpit
+
+    return get_finance_close_cockpit(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )

@@ -71,6 +71,8 @@ const BUCKETS = [
 	{ dir: ["js"], prefix: "bnd-report.", key: "report_js" },
 	// Lazily loaded by the Report Studio route, never by the global desk.
 	{ dir: ["js"], prefix: "bnd-studio.", key: "studio_js" },
+	{ dir: ["js"], prefix: "bnd-finance-close.", key: "finance_close_js" },
+	{ dir: ["js"], prefix: "bnd-journal-workbench.", key: "journal_workbench_js" },
 ];
 
 export function measure() {
@@ -118,7 +120,9 @@ export function measure() {
  * history row's comparability at the release that introduced a second sheet.
  */
 export const CEILING_KEYS = [
-	"css_gzip", "js_gzip", "report_js_gzip", "studio_js_gzip", "web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
+	"css_gzip", "js_gzip", "report_js_gzip", "studio_js_gzip",
+	"finance_close_js_gzip", "journal_workbench_js_gzip",
+	"web_css_gzip", "auth_js_gzip", "email_css_gzip", "print_css_gzip",
 ];
 
 /**

@@ -2053,6 +2053,8 @@ const JS_ENTRIES = [
 	{ key: "bnd-report", src: "report_workbench.js", pyid: "REPORT_JS" },
 	// Report Studio is page-scoped: its route loads this hashed asset on demand.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
+	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
 	// Loaded only by _auth_context. It keeps the public login bilingual without
 	// shipping the desk bundle or Frappe's full website navbar to that page.
 	{ key: "bunood-auth", src: "bunood_auth.js", pyid: "AUTH_JS" },

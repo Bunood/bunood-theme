@@ -1,0 +1,30 @@
+{
+ "content": null,
+ "creation": "2026-09-20 00:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "icon": "book-open",
+ "idx": 0,
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "bnd-journal-workbench",
+ "owner": "Administrator",
+ "page_name": "bnd-journal-workbench",
+ "roles": [
+  {
+   "role": "Accounts User"
+  },
+  {
+   "role": "Accounts Manager"
+  },
+  {
+   "role": "Auditor"
+  }
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Journal workbench"
+}
