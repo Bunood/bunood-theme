@@ -6334,6 +6334,37 @@ html[data-bnd-own~=docfoot] body[data-route^=Form] .page-actions .primary-action
   display: none;
 }
 
+html[data-theme] .print-preview-sidebar [data-fieldname=language].bnd-print-language-ready > .control-input-wrapper {
+  display: none;
+}
+html[data-theme] .print-preview-sidebar [data-fieldname=language].bnd-print-language-ready > .bnd-print-language {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bnd-sp-2);
+  direction: ltr;
+}
+html[data-theme] .print-preview-sidebar [data-fieldname=language].bnd-print-language-ready .bnd-print-language__option {
+  min-block-size: var(--bnd-control-h);
+  padding-inline: var(--bnd-sp-3);
+  color: var(--bnd-ink);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .print-preview-sidebar [data-fieldname=language].bnd-print-language-ready .bnd-print-language__option[aria-pressed=true] {
+  color: var(--bnd-on-deep);
+  background: var(--bnd-brand-deep);
+  border-color: var(--bnd-brand-deep);
+}
+html[data-theme] .print-preview-sidebar [data-fieldname=language].bnd-print-language-ready .bnd-print-language__option:is(:hover, :focus-visible) {
+  border-color: var(--bnd-brand-solid);
+}
+html[data-theme] .print-preview-sidebar [data-fieldname=language].bnd-print-language-ready .bnd-print-language__option:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: var(--bnd-line);
+}
+
 html[data-bnd-body-width=compact] {
   --bnd-content-w: 900px;
   --bnd-wide-w: 1200px;
