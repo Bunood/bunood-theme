@@ -51,6 +51,7 @@ app_include_js = [THEME_JS]
 # native list controllers, retain their bulk actions, and use ListView's column
 # API so phone rows expose amount + document ID without rewriting rendered DOM.
 doctype_list_js = {
+    "Quotation": "public/js/quotation_list.js",
     "Sales Invoice": "public/js/sales_invoice_list.js",
     "Purchase Invoice": "public/js/purchase_invoice_list.js",
 }

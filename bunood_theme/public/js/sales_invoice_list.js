@@ -27,4 +27,5 @@
 		return result;
 	};
 	settings.__bnd_priority_columns = true;
+	window.bunood_theme?.list_presets?.register(settings, "Sales Invoice");
 })();

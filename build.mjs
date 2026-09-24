@@ -2062,7 +2062,7 @@ const JS_ENTRIES = [
 // source files makes them testable, but the shipped THEME_JS must contain all
 // three. A previous merge retained the source/tests while silently reverting
 // this composition step, so invoices fell back to the native form in production.
-const DESK_JS_SOURCES = ["bunood.js", "sales_bill.js", "simple_forms.js"];
+const DESK_JS_SOURCES = ["bunood.js", "list_presets.js", "sales_bill.js", "simple_forms.js"];
 
 async function readDeskJs() {
 	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))
