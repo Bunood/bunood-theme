@@ -33,7 +33,13 @@ from bunood_theme import zatca
 
 STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
-DEFAULT_SALES_FORMAT = "بونود - فاتورة ضريبية (A4)"
+DEFAULT_SALES_FORMAT = "بنود - فاتورة ضريبية (A4)"
+DEFAULT_QUOTATION_FORMAT = "بنود - عرض سعر (A4)"
+DEFAULT_PAYMENT_FORMAT = "بنود - سند قبض-صرف"
+CUSTOMER_STATEMENT_FORMAT = "بنود - كشف حساب عميل"
+CREDIT_SALE = "On Credit"
+MIXED_PAYMENT = "Mixed Payment"
+SETTLEMENT_METHODS = (CREDIT_SALE, "Cash", "Network", MIXED_PAYMENT)
 # Company has tax_id for VAT but nothing for the commercial registration;
 # this app adds the dedicated field so the letter head has one to read.
 # (Merged from the parallel session, 2026-08-26.)
@@ -63,14 +69,26 @@ FORMATS = [
     # legal/POS choices rather than making Purchase Invoice fall back to stock.
     {"name": "Bunood Purchase Invoice (A4)", "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html"},
     {"name": "Bunood Sales Invoice (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_a4.html"},
-    {"name": "بونود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
-    {"name": "بونود - فاتورة ضريبية مبسطة (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html"},
-    {"name": "بونود - فاتورة ضريبية (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
-    {"name": "بونود - فاتورة مبسطة (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_thermal.html"},
-    {"name": "بونود - فاتورة (نقطي)", "doctype": "Sales Invoice", "file": "sales_invoice_matrix.html"},
-    {"name": "بونود - سند قبض-صرف", "doctype": "Payment Entry", "file": "payment_entry_voucher.html"},
-    {"name": "بونود - سند قيد", "doctype": "Journal Entry", "file": "journal_entry_voucher.html"},
+    {"name": "بنود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
+    {"name": "بنود - فاتورة ضريبية مبسطة (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html"},
+    {"name": "بنود - فاتورة ضريبية (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
+    {"name": "بنود - فاتورة مبسطة (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_thermal.html"},
+    {"name": "بنود - فاتورة (نقطي)", "doctype": "Sales Invoice", "file": "sales_invoice_matrix.html"},
+    {"name": DEFAULT_QUOTATION_FORMAT, "doctype": "Quotation", "file": "quotation_a4.html"},
+    {"name": DEFAULT_PAYMENT_FORMAT, "doctype": "Payment Entry", "file": "payment_entry_voucher.html"},
+    {"name": "بنود - سند قيد", "doctype": "Journal Entry", "file": "journal_entry_voucher.html"},
+    {"name": CUSTOMER_STATEMENT_FORMAT, "report": "General Ledger", "file": "customer_statement.html"},
 ]
+
+LEGACY_FORMAT_NAMES = {
+    "بونود - فاتورة ضريبية (A4)": DEFAULT_SALES_FORMAT,
+    "بونود - فاتورة ضريبية مبسطة (A4)": "بنود - فاتورة ضريبية مبسطة (A4)",
+    "بونود - فاتورة ضريبية (حراري 80مم)": "بنود - فاتورة ضريبية (حراري 80مم)",
+    "بونود - فاتورة مبسطة (حراري 80مم)": "بنود - فاتورة مبسطة (حراري 80مم)",
+    "بونود - فاتورة (نقطي)": "بنود - فاتورة (نقطي)",
+    "بونود - سند قبض-صرف": DEFAULT_PAYMENT_FORMAT,
+    "بونود - سند قيد": "بنود - سند قيد",
+}
 
 
 def _read(*parts, base=BASE):
@@ -113,6 +131,9 @@ def sync_print_theme():
                 title=("bunood_theme: print format sync failed: " + spec["name"])[:140],
                 message=frappe.get_traceback(),
             )
+    adopt_business_print_formats()
+    configure_payment_entry_for_mvp()
+    configure_sales_invoice_for_mvp()
 
 
 # fontconfig reads $XDG_DATA_HOME/fonts. compose points that at the shared
@@ -189,34 +210,140 @@ def _is_displaceable(current):
     return bool(frappe.db.get_value("Print Style", current, "standard"))
 
 
-def adopt_sales_invoice_print_format() -> None:
-    """Use Bunood's A4 invoice when ERPNext still owns the default choice.
-
-    The setup wizard installs a system-generated Property Setter pointing to
-    ``Sales Invoice with Item Image``. Replacing that stock setter is safe;
-    any administrator-created (non-system) setter is preserved.
-    """
-    if not frappe.db.exists("Print Format", DEFAULT_SALES_FORMAT):
+def _adopt_default_print_format(doctype: str, format_name: str) -> None:
+    """Adopt a managed format unless an administrator owns the override."""
+    if not frappe.db.exists("Print Format", format_name):
         return
     setter = frappe.db.get_value(
         "Property Setter",
-        {"doc_type": "Sales Invoice", "property": "default_print_format"},
-        ["name", "value", "is_system_generated"],
+        {"doc_type": doctype, "property": "default_print_format"},
+        ["name", "value", "is_system_generated", "doctype_or_field"],
         as_dict=True,
     )
     if setter and not setter.is_system_generated:
         return
-    if setter and setter.value == DEFAULT_SALES_FORMAT:
+    if setter and setter.value == format_name and setter.doctype_or_field == "DocType":
         return
     frappe.make_property_setter(
         {
-            "doctype": "Sales Invoice",
+            "doctype": doctype,
+            "doctype_or_field": "DocType",
             "property": "default_print_format",
-            "value": DEFAULT_SALES_FORMAT,
+            "value": format_name,
             "property_type": "Data",
         },
         is_system_generated=True,
     )
+    frappe.clear_cache(doctype=doctype)
+
+
+def adopt_sales_invoice_print_format() -> None:
+    """Compatibility entry point retained for the existing v0.44.6 patch.
+
+    The setup wizard installs a system-generated Property Setter pointing to
+    ``Sales Invoice with Item Image``. Replacing that stock setter is safe;
+    any administrator-created (non-system) setter is preserved. The setter must
+    target ``DocType``: an empty-field ``DocField`` setter is persisted but never
+    reaches ``frappe.get_meta(...).default_print_format``.
+    """
+    _adopt_default_print_format("Sales Invoice", DEFAULT_SALES_FORMAT)
+
+
+def adopt_business_print_formats() -> None:
+    """Make every day-one commercial document open on the branded format."""
+    _adopt_default_print_format("Sales Invoice", DEFAULT_SALES_FORMAT)
+    _adopt_default_print_format("Quotation", DEFAULT_QUOTATION_FORMAT)
+    _adopt_default_print_format("Payment Entry", DEFAULT_PAYMENT_FORMAT)
+
+
+def configure_payment_entry_for_mvp() -> None:
+    """Require an explicit payment method and make Cash the safe first choice.
+
+    The account remains ERPNext's responsibility: choosing a mode resolves its
+    company mapping, while paid_from/paid_to remain visible in simple mode.
+    """
+    if not frappe.db.exists("DocType", "Payment Entry"):
+        return
+    for prop, value, property_type in (("reqd", "1", "Check"), ("default", "Cash", "Text")):
+        frappe.make_property_setter(
+            {
+                "doctype": "Payment Entry",
+                "fieldname": "mode_of_payment",
+                "property": prop,
+                "value": value,
+                "property_type": property_type,
+            },
+            is_system_generated=True,
+        )
+    frappe.clear_cache(doctype="Payment Entry")
+
+
+def configure_sales_invoice_for_mvp() -> None:
+    """Configure one truthful settlement choice for the invoice workbench.
+
+    ``On Credit`` and ``Mixed Payment`` are workflow choices, deliberately not
+    Mode of Payment masters. The first leaves ERPNext's receivable outstanding;
+    the second submits one Cash and one Network Payment Entry through the native
+    mapper and controller. Cash and Network are the actual payment methods
+    provisioned by :mod:`bunood_theme.payments`. A Select keeps unmapped or
+    accidental Mode of Payment records out of the sales UI, where they would
+    otherwise fail only after the operator tried to post.
+    """
+    if not frappe.db.exists("DocType", "Sales Invoice"):
+        return
+
+    # The stock Standard print format derives its columns from child metadata.
+    # Keep the human-facing name as the product identity there too; Bunood's
+    # managed formats retain the code as a quieter secondary reference.
+    if frappe.db.exists("DocType", "Sales Invoice Item"):
+        for fieldname, print_hide in (("item_name", "0"), ("item_code", "1")):
+            frappe.make_property_setter(
+                {
+                    "doctype": "Sales Invoice Item",
+                    "fieldname": fieldname,
+                    "property": "print_hide",
+                    "value": print_hide,
+                    "property_type": "Check",
+                },
+                is_system_generated=True,
+            )
+        frappe.clear_cache(doctype="Sales Invoice Item")
+
+    legacy_name = "Sales Invoice-bunood_payment_method"
+    if frappe.db.exists("Custom Field", legacy_name):
+        legacy = frappe.get_doc("Custom Field", legacy_name)
+        if not legacy.hidden:
+            legacy.hidden = 1
+            legacy.save(ignore_permissions=True)
+
+    name = "Sales Invoice-bunood_settlement_method"
+    values = {
+        "label": "Settlement Method",
+        "fieldtype": "Select",
+        "options": "\n".join(SETTLEMENT_METHODS),
+        "default": CREDIT_SALE,
+        "insert_after": "due_date",
+        "allow_on_submit": 1,
+        "description": "On Credit posts to Accounts Receivable. Cash or Network opens a native Payment Entry. Mixed Payment posts two native Payment Entries after explicit confirmation.",
+    }
+    if frappe.db.exists("Custom Field", name):
+        field = frappe.get_doc("Custom Field", name)
+        changed = False
+        for key, value in values.items():
+            if field.get(key) != value:
+                field.set(key, value)
+                changed = True
+        if changed:
+            field.save(ignore_permissions=True)
+    else:
+        frappe.get_doc(
+            {
+                "doctype": "Custom Field",
+                "dt": "Sales Invoice",
+                "fieldname": "bunood_settlement_method",
+                **values,
+            }
+        ).insert(ignore_permissions=True)
     frappe.clear_cache(doctype="Sales Invoice")
 
 
@@ -412,14 +539,19 @@ def _adopt_letterhead_default():
 
 
 def _sync_format(spec):
-    # Skip formats whose doctype isn't installed on this site (app subsets).
-    if not frappe.db.exists("DocType", spec["doctype"]):
+    is_report = bool(spec.get("report"))
+    target = spec.get("report") if is_report else spec.get("doctype")
+    target_type = "Report" if is_report else "DocType"
+    if not target or not frappe.db.exists(target_type, target):
         return
 
     html = _read("formats", spec["file"], base=spec.get("dir", BASE))
     values = {
-        "doc_type": spec["doctype"],
-        "print_format_type": "Jinja",
+        "print_format_for": "Report" if is_report else "DocType",
+        # Report print formats use Frappe's client-side microtemplate engine;
+        # document formats use server-side Jinja. Mixing the two makes report
+        # templates fail validation before they ever reach the print dialog.
+        "print_format_type": "JS" if is_report else "Jinja",
         # custom_format=1 is REQUIRED: without it Frappe ignores `html` and
         # renders the generic standard layout (frappe/www/printview.py).
         "custom_format": 1,
@@ -433,6 +565,11 @@ def _sync_format(spec):
         # tenant host inside the isolated backend container and fails downloads.
         "pdf_generator": "chrome",
     }
+    if is_report:
+        values["report"] = target
+        values["doc_type"] = None
+    else:
+        values["doc_type"] = target
     if frappe.db.exists("Module Def", MODULE):
         values["module"] = MODULE
 

@@ -51,7 +51,7 @@ class ZatcaStateTests(unittest.TestCase):
         self.assertEqual(self.state(submitted=True), "preparing")
         self.assertEqual(self.state(invoice_status="Ready For Batch", submitted=True), "ready_to_send")
         self.assertEqual(self.state(invoice_status="Accepted"), "accepted")
-        self.assertEqual(self.state(invoice_status="Duplicate"), "accepted")
+        self.assertEqual(self.state(invoice_status="Duplicate"), "duplicate_response")
         self.assertEqual(self.state(invoice_status="Accepted with warnings"), "accepted_with_warnings")
         self.assertEqual(self.state(invoice_status="Rejected"), "rejected")
         self.assertEqual(self.state(invoice_status="Clearance switched off"), "clearance_off")

@@ -134,3 +134,6 @@ bunood_theme.patches.v0_11_0.heal_unknown_placements
 # off, and a new default-on Check would have put one back. Asks the neighbour
 # it sits beside: density off means this site did not ask for width either.
 bunood_theme.patches.v0_46_1.width_follows_density
+
+# Align legacy bilingual print-title defaults with the selected output language.
+bunood_theme.patches.v0_46_10.follow_print_language

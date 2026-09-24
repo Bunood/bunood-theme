@@ -196,6 +196,7 @@ doc_events = {
 jinja = {
     "methods": [
         "bunood_theme.printing.jinja.bunood_print_language",
+        "bunood_theme.printing.jinja.bunood_print_image_src",
         "bunood_theme.printing.jinja.bunood_amount_in_words",
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",

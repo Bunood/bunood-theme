@@ -6369,7 +6369,7 @@ const BND_PRINT_DEFAULTS = {
 	print_heading_style: "Original",
 	print_accent: "Brand panels",
 	print_letterhead: "Bilingual Split",
-	print_title_lang: "Both",
+	print_title_lang: "Follow print language",
 	print_qr: "Show",
 	print_qr_place: "Head end",
 	print_qr_size: "Medium",
@@ -7653,7 +7653,7 @@ const BND_PRINT_GROUPS = [
 	{
 		field: "print_title_lang",
 		title: () => __("Document title"),
-		desc: () => __("Which halves of the bilingual title render on the Bunood formats."),
+		desc: () => __("Follow Print Language for a clean Arabic or English document; use an override only when a customer requires it."),
 	},
 	{
 		field: "print_qr",

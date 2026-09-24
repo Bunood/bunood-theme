@@ -21,22 +21,32 @@
     pre-migrate site (field not yet seeded) on today's behaviour. -#}
 {% macro _pset(field, default) -%}{{ frappe.db.get_single_value("Theme Settings", field) or default }}{%- endmacro %}
 
-{#- Bilingual document title. `print_title_lang` picks which halves render —
-    Both / Arabic only / English only (item 35). -#}
+{#- One print request has one presentation language.  Keep this decision in
+    the shared layer so every managed format follows the same rule, including
+    cached Jinja templates rendered after an in-process language switch. -#}
+{% macro _label(ar, en) -%}
+{%- set is_ar = (bunood_print_language() if bunood_print_language is defined else (frappe.local.lang or "en")).startswith("ar") -%}
+{{ (ar if is_ar else en) | e }}
+{%- endmacro %}
+
+{#- Document title.  The production default follows Print Language so Arabic
+    output is fully RTL and English output fully LTR.  The three explicit
+    overrides remain available for tenants that intentionally need them. -#}
 {% macro doc_title(ar, en) -%}
-{%- set tl = _pset("print_title_lang", "Both") | trim -%}
-<div class="bnd-p-title">{% if tl != "English only" %}<div class="bnd-p-title__ar">{{ ar | e }}</div>{% endif %}{% if tl != "Arabic only" %}<div class="bnd-p-title__en">{{ en | e }}</div>{% endif %}</div>
+{%- set tl = _pset("print_title_lang", "Follow print language") | trim -%}
+{%- set is_ar = (bunood_print_language() if bunood_print_language is defined else (frappe.local.lang or "en")).startswith("ar") -%}
+<div class="bnd-p-title">{% if tl == "Both" or tl == "Arabic only" or (tl == "Follow print language" and is_ar) %}<div class="bnd-p-title__ar">{{ ar | e }}</div>{% endif %}{% if tl == "Both" or tl == "English only" or (tl == "Follow print language" and not is_ar) %}<div class="bnd-p-title__en">{{ en | e }}</div>{% endif %}</div>
 {%- endmacro %}
 
 {#- Invoice meta box: number / dates / credit-note reference / supply date -#}
 {% macro invoice_meta(doc) -%}
 <table class="bnd-p-meta">
-  <tr><td>رقم الفاتورة / Invoice No</td><td dir="ltr">{{ doc.name | e }}</td></tr>
-  {% if doc.get("return_against") %}<tr><td>مرجع الفاتورة الأصلية / Original Invoice</td><td dir="ltr">{{ doc.return_against | e }}</td></tr>{% endif %}
-  {% if doc.get("posting_date") %}<tr><td>التاريخ / Date</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>{% endif %}
-  {% if doc.get("posting_time") %}<tr><td>الوقت / Time</td><td dir="ltr">{{ doc.get_formatted("posting_time") }}</td></tr>{% endif %}
-  {% if doc.get("custom_supply_date") %}<tr><td>تاريخ التوريد / Supply Date</td><td dir="ltr">{{ doc.get_formatted("custom_supply_date") }}</td></tr>{% endif %}
-  {% if doc.get("due_date") %}<tr><td>الاستحقاق / Due</td><td dir="ltr">{{ doc.get_formatted("due_date") }}</td></tr>{% endif %}
+  <tr><td>{{ _label("رقم الفاتورة", "Invoice number") }}</td><td dir="ltr">{{ doc.name | e }}</td></tr>
+  {% if doc.get("return_against") %}<tr><td>{{ _label("مرجع الفاتورة الأصلية", "Original invoice") }}</td><td dir="ltr">{{ doc.return_against | e }}</td></tr>{% endif %}
+  {% if doc.get("posting_date") %}<tr><td>{{ _label("التاريخ", "Date") }}</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>{% endif %}
+  {% if doc.get("posting_time") %}<tr><td>{{ _label("الوقت", "Time") }}</td><td dir="ltr">{{ doc.get_formatted("posting_time") }}</td></tr>{% endif %}
+  {% if doc.get("custom_supply_date") %}<tr><td>{{ _label("تاريخ التوريد", "Supply date") }}</td><td dir="ltr">{{ doc.get_formatted("custom_supply_date") }}</td></tr>{% endif %}
+  {% if doc.get("due_date") %}<tr><td>{{ _label("الاستحقاق", "Due date") }}</td><td dir="ltr">{{ doc.get_formatted("due_date") }}</td></tr>{% endif %}
 </table>
 {%- endmacro %}
 
@@ -56,8 +66,8 @@
 {%- set sz = {"Small": 90, "Large": 130}.get(_pset("print_qr_size", "Medium") | trim, size) -%}
 {%- if show != "Hide" or required -%}
 {%- set qr = bunood_zatca_qr_src(doc) if bunood_zatca_qr_src is defined else (doc.get("ksa_einv_qr") or doc.get("custom_zatca_qr") or doc.get("custom_qr_code")) -%}
-{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ sz }}px;height:{{ sz }}px">
-{% elif required %}<div class="bnd-p-qr-missing">رمز الاستجابة QR غير متوفر — لا تصلح فاتورة ضريبية مبسطة<br>QR missing — not valid as a simplified tax invoice</div>{% endif %}
+{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="{{ _label('رمز الاستجابة السريعة للفاتورة', 'Invoice QR code') }}" style="width:{{ sz }}px;height:{{ sz }}px">
+{% elif required %}<div class="bnd-p-qr-missing">{{ _label("رمز الاستجابة السريعة غير متوفر — لا تصلح كفاتورة ضريبية مبسطة", "QR code missing — not valid as a simplified tax invoice") }}</div>{% endif %}
 {%- endif -%}
 {%- endmacro %}
 
@@ -87,17 +97,17 @@
 <table class="bnd-p-party">
   <tr>
     <td>
-      <div class="bnd-p-party__h">البائع / <span class="bnd-p-lat">Seller</span></div>
+      <div class="bnd-p-party__h">{{ _label("البائع", "Seller") }}</div>
       <div class="bnd-p-party__n">{{ doc.get("company") | e }}</div>
-      <div>الرقم الضريبي / VAT: {% if doc.get("company_tax_id") %}<span dir="ltr">{{ doc.company_tax_id | e }}</span>{% else %}<b>غير مُعدّ / NOT SET</b>{% endif %}</div>
+      <div>{{ _label("الرقم الضريبي", "VAT number") }}: {% if doc.get("company_tax_id") %}<span dir="ltr">{{ doc.company_tax_id | e }}</span>{% else %}<b>{{ _label("غير مُعدّ", "Not set") }}</b>{% endif %}</div>
       {% if doc.get("company_address_display") %}<div class="bnd-p-party__a">{{ doc.get("company_address_display") }}</div>{% endif %}
     </td>
     <td>
-      <div class="bnd-p-party__h">المشتري / <span class="bnd-p-lat">Buyer</span></div>
+      <div class="bnd-p-party__h">{{ _label("المشتري", "Buyer") }}</div>
       <div class="bnd-p-party__n">{{ (doc.get("customer_name") or doc.get("party_name") or "") | e }}</div>
       {% if not simplified %}
-        {% if doc.get("tax_id") %}<div>الرقم الضريبي / VAT: <span dir="ltr">{{ doc.tax_id | e }}</span></div>
-        {% elif doc.get("custom_buyer_cr") %}<div>السجل التجاري / CR: <span dir="ltr">{{ doc.custom_buyer_cr | e }}</span></div>{% endif %}
+        {% if doc.get("tax_id") %}<div>{{ _label("الرقم الضريبي", "VAT number") }}: <span dir="ltr">{{ doc.tax_id | e }}</span></div>
+        {% elif doc.get("custom_buyer_cr") %}<div>{{ _label("السجل التجاري", "Commercial registration") }}: <span dir="ltr">{{ doc.custom_buyer_cr | e }}</span></div>{% endif %}
         {% if doc.get("address_display") %}<div class="bnd-p-party__a">{{ doc.get("address_display") }}</div>{% endif %}
       {% endif %}
     </td>
@@ -111,15 +121,15 @@
 {%- set vmap = bunood_item_vat_map(doc) if bunood_item_vat_map is defined else {} -%}
 <table class="bnd-p-items">
   <thead><tr>
-    <th class="c">#</th><th>الصنف / Item</th><th class="n">الكمية<br>Qty</th>
-    <th class="n">السعر<br>Rate</th><th class="n">الضريبة٪<br>VAT%</th><th class="n">الإجمالي<br>Amount</th>
+    <th class="c">#</th><th>{{ _label("الصنف", "Item") }}</th><th class="n">{{ _label("الكمية", "Quantity") }}</th>
+    <th class="n">{{ _label("السعر", "Rate") }}</th><th class="n">{{ _label("الضريبة٪", "VAT %") }}</th><th class="n">{{ _label("الإجمالي", "Amount") }}</th>
   </tr></thead>
   <tbody>
   {% for row in doc.items %}
     {%- set v = vmap.get(row.get("item_code")) if vmap else None -%}
     <tr>
       <td class="c">{{ loop.index }}</td>
-      <td>{{ row.item_name | e }}{% if row.get("description") and row.description != row.item_name %}<div class="bnd-p-items__d">{{ row.description }}</div>{% endif %}</td>
+      <td><strong>{{ (row.item_name or row.item_code) | e }}</strong>{% if row.get("item_code") and row.item_code != row.item_name %}<div class="bnd-p-items__d">{{ _label("رمز الصنف", "Item code") }}: <span dir="ltr">{{ row.item_code | e }}</span></div>{% endif %}{% if row.get("description") and row.description != row.item_name %}<div class="bnd-p-items__d">{{ row.description }}</div>{% endif %}</td>
       <td class="n num">{{ row.get_formatted("qty") }}</td>
       <td class="n num">{{ row.get_formatted("rate", doc) }}</td>
       <td class="n num">{% if v %}{{ v.rate }}%{% else %}&mdash;{% endif %}</td>
@@ -137,17 +147,17 @@
 {%- set use_rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") -%}
 {%- set totals_tbl -%}
 <table class="bnd-p-totals">
-  <tr><td>الإجمالي قبل الضريبة / Subtotal</td><td class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</td></tr>
-  {% if doc.get("discount_amount") %}<tr><td>الخصم / Discount</td><td class="num" dir="ltr">{{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
-  <tr><td>ضريبة القيمة المضافة / VAT{% if vt and vt.rate %} ({{ vt.rate }}%){% endif %}</td>
+  <tr><td>{{ _label("الإجمالي قبل الضريبة", "Subtotal") }}</td><td class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</td></tr>
+  {% if doc.get("discount_amount") %}<tr><td>{{ _label("الخصم", "Discount") }}</td><td class="num" dir="ltr">{{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
+  <tr><td>{{ _label("ضريبة القيمة المضافة", "VAT") }}{% if vt and vt.rate %} ({{ vt.rate }}%){% endif %}</td>
       <td class="num" dir="ltr">{% if vt and vt.vat %}{{ vt.vat }}{% else %}{{ doc.get_formatted("total_taxes_and_charges") }}{% endif %}</td></tr>
-  {% if vt and vt.vat_base %}<tr><td>الضريبة بالريال / VAT (SAR)</td><td class="num" dir="ltr">{{ vt.vat_base }}</td></tr>{% endif %}
+  {% if vt and vt.vat_base %}<tr><td>{{ _label("الضريبة بالريال", "VAT in SAR") }}</td><td class="num" dir="ltr">{{ vt.vat_base }}</td></tr>{% endif %}
   {% if use_rounded %}
-  <tr><td>الإجمالي / Total</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
-  {% if doc.get("rounding_adjustment") %}<tr><td>تسوية التقريب / Rounding</td><td class="num" dir="ltr">{{ doc.get_formatted("rounding_adjustment") }}</td></tr>{% endif %}
-  <tr class="g"><td>الإجمالي المستحق / Grand Total</td><td class="num" dir="ltr">{{ doc.get_formatted("rounded_total") }}</td></tr>
+  <tr><td>{{ _label("الإجمالي", "Total") }}</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
+  {% if doc.get("rounding_adjustment") %}<tr><td>{{ _label("تسوية التقريب", "Rounding adjustment") }}</td><td class="num" dir="ltr">{{ doc.get_formatted("rounding_adjustment") }}</td></tr>{% endif %}
+  <tr class="g"><td>{{ _label("الإجمالي المستحق", "Grand total") }}</td><td class="num" dir="ltr">{{ doc.get_formatted("rounded_total") }}</td></tr>
   {% else %}
-  <tr class="g"><td>الإجمالي المستحق / Grand Total</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
+  <tr class="g"><td>{{ _label("الإجمالي المستحق", "Grand total") }}</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
   {% endif %}
 </table>
 {%- endset -%}
@@ -169,16 +179,18 @@
     rather than doc.company / doc.company_tax_id is what stops the receipt and
     the A4 letter head drifting apart as fields are added. -#}
 {% macro thermal_head(doc, title_ar, title_en) -%}
+{%- set is_ar = (bunood_print_language() if bunood_print_language is defined else (frappe.local.lang or "en")).startswith("ar") -%}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set _logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+{%- set _logo_src = bunood_print_image_src(_logo) if _logo and bunood_print_image_src is defined else _logo -%}
 {%- set _vat = (_c.get("tax_id") if _c else "") or doc.get("company_tax_id") -%}
 {%- set _cr = (_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") -%}
-{% if _logo %}<div class="bnd-p-th-logo"><img src="{{ _logo | e }}" alt=""></div>{% endif %}
+{% if _logo_src %}<div class="bnd-p-th-logo"><img src="{{ _logo_src | e }}" alt=""></div>{% endif %}
 <div class="bnd-p-th-co">{{ (_c.company_name if _c else doc.get("company")) | e }}</div>
-<div class="bnd-p-th-sub">الرقم الضريبي: {% if _vat %}<span dir="ltr">{{ _vat | e }}</span>{% else %}<b>غير مُعدّ</b>{% endif %}</div>
-{% if _cr %}<div class="bnd-p-th-sub">السجل التجاري: <span dir="ltr">{{ _cr | e }}</span></div>{% endif %}
+<div class="bnd-p-th-sub">{{ _label("الرقم الضريبي", "VAT number") }}: {% if _vat %}<span dir="ltr">{{ _vat | e }}</span>{% else %}<b>{{ _label("غير مُعدّ", "Not set") }}</b>{% endif %}</div>
+{% if _cr %}<div class="bnd-p-th-sub">{{ _label("السجل التجاري", "Commercial registration") }}: <span dir="ltr">{{ _cr | e }}</span></div>{% endif %}
 <div class="bnd-p-th-rule"></div>
-<div class="bnd-p-th-title">{{ title_ar | e }}<br><span>{{ title_en | e }}</span></div>
+<div class="bnd-p-th-title">{{ (title_ar if is_ar else title_en) | e }}</div>
 <div class="bnd-p-th-sub" dir="ltr">{{ doc.name | e }}</div>
 {% if doc.get("posting_date") %}<div class="bnd-p-th-sub" dir="ltr">{{ doc.get_formatted("posting_date") }} {{ doc.get_formatted("posting_time") if doc.get("posting_time") else "" }}</div>{% endif %}
 <div class="bnd-p-th-rule"></div>
@@ -203,7 +215,7 @@
 {%- endif -%}
 {% if _parts or _phone or _email %}
 <div class="bnd-p-th-rule"></div>
-{% if _parts %}<div class="bnd-p-th-sub">{{ _parts | join("، ") | e }}</div>{% endif %}
+{% if _parts %}<div class="bnd-p-th-sub">{{ _parts | join("، " if (bunood_print_language() if bunood_print_language is defined else (frappe.local.lang or "en")).startswith("ar") else ", ") | e }}</div>{% endif %}
 {% if _phone %}<div class="bnd-p-th-sub" dir="ltr">{{ _phone | e }}</div>{% endif %}
 {% if _email %}<div class="bnd-p-th-sub" dir="ltr">{{ _email | e }}</div>{% endif %}
 {% endif %}
@@ -213,7 +225,8 @@
 {#- Thermal item lines — table-based (flex is dropped by wkhtmltopdf) -#}
 {% macro thermal_items(doc) -%}
 {% for row in doc.items %}
-<div class="bnd-p-th-item__n">{{ row.item_name | e }}</div>
+<div class="bnd-p-th-item__n">{{ (row.item_name or row.item_code) | e }}</div>
+{% if row.get("item_code") and row.item_code != row.item_name %}<div class="bnd-p-items__d" dir="ltr">{{ row.item_code | e }}</div>{% endif %}
 <table class="bnd-p-th-l"><tr>
   <td class="s"><span class="num" dir="ltr">{{ row.get_formatted("qty") }} × {{ row.get_formatted("rate", doc) }}</span></td>
   <td class="e"><span class="num" dir="ltr">{{ row.get_formatted("amount", doc) }}</span></td>
@@ -227,12 +240,12 @@
 {%- set vt = bunood_vat_totals(doc) if bunood_vat_totals is defined else None -%}
 {%- set use_rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") -%}
 <table class="bnd-p-th-l">
-  <tr><td class="s">قبل الضريبة</td><td class="e"><span class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</span></td></tr>
-  <tr><td class="s">ضريبة القيمة المضافة{% if vt and vt.rate %} {{ vt.rate }}%{% endif %}</td>
+  <tr><td class="s">{{ _label("قبل الضريبة", "Subtotal") }}</td><td class="e"><span class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</span></td></tr>
+  <tr><td class="s">{{ _label("ضريبة القيمة المضافة", "VAT") }}{% if vt and vt.rate %} {{ vt.rate }}%{% endif %}</td>
       <td class="e"><span class="num" dir="ltr">{% if vt and vt.vat %}{{ vt.vat }}{% else %}{{ doc.get_formatted("total_taxes_and_charges") }}{% endif %}</span></td></tr>
 </table>
 <table class="bnd-p-th-l bnd-p-th-l--g">
-  <tr><td class="s">الإجمالي</td><td class="e"><span class="num" dir="ltr">{{ doc.get_formatted("rounded_total") if use_rounded else doc.get_formatted("grand_total") }}</span></td></tr>
+  <tr><td class="s">{{ _label("الإجمالي", "Total") }}</td><td class="e"><span class="num" dir="ltr">{{ doc.get_formatted("rounded_total") if use_rounded else doc.get_formatted("grand_total") }}</span></td></tr>
 </table>
 {%- endmacro %}
 
@@ -241,7 +254,8 @@
     its own labels keeps them untouched — an explicit argument outranks a
     site-wide default, always. -#}
 {% macro sig_row(labels=None) -%}
-{%- set default_labels = ["المستلم / Received By", "المحاسب / Accountant", "المدير المالي / Finance Manager"] -%}
+{%- set is_ar = (bunood_print_language() if bunood_print_language is defined else (frappe.local.lang or "en")).startswith("ar") -%}
+{%- set default_labels = ["المستلم", "المحاسب", "المدير المالي"] if is_ar else ["Received by", "Accountant", "Finance manager"] -%}
 {%- if labels is none -%}
   {%- set pref = _pset("print_signatures", "Three lines") | trim -%}
   {%- if pref == "None" -%}{%- set labels = [] -%}
