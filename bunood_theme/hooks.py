@@ -58,6 +58,12 @@ doctype_js = {
     "Stock Entry": "public/js/stock_entry_compat.js",
 }
 
+# Native Sales Invoice and Quotation list quick-filter queues.
+doctype_list_js = {
+    "Quotation": "public/js/quotation_list.js",
+    "Sales Invoice": "public/js/sales_invoice_list.js",
+}
+
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
 # Each entry below is enabled in the commit that ships its file.
