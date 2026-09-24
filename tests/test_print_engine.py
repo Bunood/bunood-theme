@@ -182,9 +182,17 @@ class PrintEngineTests(unittest.TestCase):
 		self.assertEqual(fixture["state"]["print_title_lang"], "Follow print language")
 
 	def test_managed_customer_documents_declare_language_and_direction(self):
+		# Integration v0.48.0: only the capability's NEW documents follow Print
+		# Language. The official formats are main's Arabic-first bilingual
+		# layouts, unchanged, pinned RTL by print.scss's base `.bnd-p` rule.
 		formats = ROOT / "bunood_theme/printing/formats"
+		for filename in ("quotation_a4.html",):
+			template = (formats / filename).read_text(encoding="utf-8")
+			with self.subTest(filename=filename):
+				self.assertIn("bunood_print_language()", template)
+				self.assertIn('dir="{{ \'rtl\' if is_ar else \'ltr\' }}"', template)
+				self.assertIn('lang="{{ \'ar\' if is_ar else \'en\' }}"', template)
 		for filename in (
-			"quotation_a4.html",
 			"payment_entry_voucher.html",
 			"sales_invoice_tax_a4.html",
 			"sales_invoice_simplified_a4.html",
@@ -193,9 +201,10 @@ class PrintEngineTests(unittest.TestCase):
 		):
 			template = (formats / filename).read_text(encoding="utf-8")
 			with self.subTest(filename=filename):
-				self.assertIn("bunood_print_language()", template)
-				self.assertIn('dir="{{ \'rtl\' if is_ar else \'ltr\' }}"', template)
-				self.assertIn('lang="{{ \'ar\' if is_ar else \'en\' }}"', template)
+				self.assertNotIn("bunood_print_language()", template)
+				self.assertIn('<div class="bnd-p bnd-p--', template)
+		sheet = (ROOT / "bunood_theme/public/scss/print/print.scss").read_text(encoding="utf-8")
+		self.assertRegex(sheet, r"(?m)^\.bnd-p \{\n\tdirection: rtl;\n\}")
 
 	def test_report_statement_uses_javascript_language_switch_without_jinja(self):
 		template = (

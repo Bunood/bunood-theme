@@ -115,6 +115,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Official formats are Arabic-first and carry no `dir`: pinned RTL, exactly as
+   on main (integration v0.48.0 keeps this base rule). The new managed formats
+   set `dir` from Print Language and the attribute rules below win. */
+.bnd-p {
+  direction: rtl;
+}
+
 /* One print request has one direction.  Numeric/ID cells remain explicitly
    LTR, while the physical alignments below mirror for the old WebKit engine. */
 .bnd-p[dir=rtl] {

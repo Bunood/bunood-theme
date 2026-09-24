@@ -1,10 +1,8 @@
 {#- Managed by bunood_theme: edits here are overwritten on every migrate.
-    بنود — سند قبض/صرف (Payment Entry). العنوان يتبدّل حسب نوع الحركة. -#}
-{% from "templates/bunood_print_macros.html" import sig_row %}
-{% set is_ar = bunood_print_language() == "ar" %}
+    بونود — سند قبض/صرف (Payment Entry). العنوان يتبدّل حسب نوع الحركة. -#}
+{% from "templates/bunood_print_macros.html" import doc_title, sig_row %}
 {% set is_receive = doc.payment_type == "Receive" %}
-{% set is_pay = doc.payment_type == "Pay" %}
-<div class="bnd-p bnd-p--a4" dir="{{ 'rtl' if is_ar else 'ltr' }}" lang="{{ 'ar' if is_ar else 'en' }}">
+<div class="bnd-p bnd-p--a4">
   {#- A custom print format IS the whole page (printview.py: custom_format ->
       jinja from_string), so the letter head has to be emitted here: frappe
       passes it in the args, but only standard.html prints it.
@@ -18,23 +16,24 @@
     <div class="letter-head">{{ letter_head }}</div>
   </div>
   {% endif %}
-  <div class="bnd-p-title"><div class="{{ 'bnd-p-title__ar' if is_ar else 'bnd-p-title__en' }}">{{ (("سند قبض" if is_receive else ("سند صرف" if is_pay else "سند تحويل داخلي")) if is_ar else ("RECEIPT VOUCHER" if is_receive else ("PAYMENT VOUCHER" if is_pay else "INTERNAL TRANSFER"))) | e }}</div></div>
+  {{ doc_title("سند قبض" if is_receive else ("سند صرف" if doc.payment_type == "Pay" else "سند تحويل داخلي"),
+               "RECEIPT VOUCHER" if is_receive else ("PAYMENT VOUCHER" if doc.payment_type == "Pay" else "INTERNAL TRANSFER")) }}
   <table class="bnd-p-meta">
-    <tr><td>{{ "رقم السند" if is_ar else "Voucher number" }}</td><td dir="ltr">{{ doc.name | e }}</td></tr>
-    <tr><td>{{ "التاريخ" if is_ar else "Date" }}</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>
-    {% if doc.get("mode_of_payment") %}<tr><td>{{ "طريقة الدفع" if is_ar else "Payment method" }}</td><td>{{ doc.mode_of_payment | e }}</td></tr>{% endif %}
-    {% if doc.get("reference_no") %}<tr><td>{{ "رقم المرجع" if is_ar else "Reference number" }}</td><td dir="ltr">{{ doc.reference_no | e }}{% if doc.get("reference_date") %} — {{ doc.get_formatted("reference_date") }}{% endif %}</td></tr>{% endif %}
+    <tr><td>رقم السند / Voucher No</td><td dir="ltr">{{ doc.name | e }}</td></tr>
+    <tr><td>التاريخ / Date</td><td dir="ltr">{{ doc.get_formatted("posting_date") }}</td></tr>
+    {% if doc.get("mode_of_payment") %}<tr><td>طريقة الدفع / Mode</td><td>{{ doc.mode_of_payment | e }}</td></tr>{% endif %}
+    {% if doc.get("reference_no") %}<tr><td>رقم المرجع / Ref</td><td dir="ltr">{{ doc.reference_no | e }}{% if doc.get("reference_date") %} — {{ doc.get_formatted("reference_date") }}{% endif %}</td></tr>{% endif %}
   </table>
 
   <div class="bnd-p-amountbox">
-    <div class="bnd-p-amountbox__l">{{ (("استلمنا من" if is_receive else ("صرفنا إلى" if is_pay else "تحويل داخلي")) if is_ar else ("Received from" if is_receive else ("Paid to" if is_pay else "Internal transfer"))) }}</div>
+    <div class="bnd-p-amountbox__l">{{ "استلمنا من" if is_receive else "صرفنا إلى" }} / {{ "Received From" if is_receive else "Paid To" }}</div>
     <div class="bnd-p-party__n">{{ (doc.get("party_name") or doc.get("party") or "—") | e }}</div>
     <div class="bnd-p-amountbox__v num">{{ doc.get_formatted("paid_amount") }} {{ doc.get("paid_from_account_currency") or "" }}</div>
   </div>
 
   {% if doc.get("references") %}
   <table class="bnd-p-items">
-    <thead><tr><th>{{ "المستند" if is_ar else "Reference" }}</th><th class="n">{{ "المبلغ المخصص" if is_ar else "Allocated amount" }}</th></tr></thead>
+    <thead><tr><th>المستند / Against</th><th class="n">المبلغ / Allocated</th></tr></thead>
     <tbody>
     {% for r in doc.references %}
       <tr><td>{{ r.reference_doctype | e }} — <span dir="ltr">{{ r.reference_name | e }}</span></td>
@@ -44,8 +43,8 @@
   </table>
   {% endif %}
 
-  {% if doc.get("remarks") %}<div class="bnd-p-words">{{ "البيان" if is_ar else "Remarks" }}: {{ doc.remarks | e }}</div>{% endif %}
-  {{ sig_row(["المستلم", "المحاسب", "المدير المالي"] if is_ar else ["Received by", "Accountant", "Finance manager"]) }}
+  {% if doc.get("remarks") %}<div class="bnd-p-words">البيان: {{ doc.remarks | e }}</div>{% endif %}
+  {{ sig_row() }}
   {#- Page footer: address/phone/email, same contract as the header above. -#}
   {% if not no_letterhead and footer %}
   <div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}>

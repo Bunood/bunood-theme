@@ -57,7 +57,14 @@
 {%- set logo_src = bunood_print_image_src(logo) if logo and bunood_print_image_src is defined else logo -%}
 {%- set vat = ((_c.get("tax_id") if _c else "") or "") -%}
 {%- set cr = ((_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") or "") -%}
-{%- set _rtl = bunood_print_language() == "ar" -%}
+{#- Integration v0.48.0: honour the tenant's print_title_lang. "Both" (main's
+    shipped value, kept by every existing tenant) renders the official bilingual
+    identity: RTL, Arabic labels, Arabic AND English names. "Follow print
+    language" (the new default for new sites) is the capability's one-language
+    header. -#}
+{%- set _tl = (frappe.db.get_single_value("Theme Settings", "print_title_lang") or "Follow print language") | trim -%}
+{%- set _both = _tl == "Both" -%}
+{%- set _rtl = _both or _tl == "Arabic only" or (_tl == "Follow print language" and bunood_print_language() == "ar") -%}
 {%- set _dir = "rtl" if _rtl else "ltr" -%}
 {%- set _start = "right" if _rtl else "left" -%}
 {%- set _end = "left" if _rtl else "right" -%}
@@ -83,6 +90,7 @@
     <tr>
       <td style="width:{{ '72%' if logo_src else '100%' }}; text-align:{{ _start }}; vertical-align:middle; line-height:1.45;">
         {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700;">{{ display_name | e }}</div>{% endif %}
+        {% if _both and name_ar and name_en %}<div dir="ltr" style="font-size:12px; font-weight:600; color:var(--bnd-ink-muted);">{{ name_en | e }}</div>{% endif %}
         {{ identity_numbers() }}
       </td>
       {% if logo_src %}<td style="width:28%; text-align:{{ _end }}; vertical-align:middle;">
@@ -98,6 +106,7 @@
 <div dir="{{ _dir }}" class="bnd-lh-center" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
   {% if logo_src %}<div><img src="{{ logo_src | e }}" alt="{{ name_en | e }}" style="max-height:44px;"></div>{% endif %}
   {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700; line-height:1.4;">{{ display_name | e }}</div>{% endif %}
+  {% if _both and name_ar and name_en %}<div dir="ltr" style="font-size:12px; font-weight:600; color:var(--bnd-ink-muted);">{{ name_en | e }}</div>{% endif %}
   {{ identity_numbers() }}
   <div style="border-top:2px solid var(--bnd-brand-solid); margin-top:8px; width:46%; margin-left:auto; margin-right:auto;"></div>
 </div>
