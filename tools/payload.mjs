@@ -60,6 +60,7 @@ const LEDGER = join(ROOT, "payload-budget.json");
 const BUCKETS = [
 	{ dir: ["css"], prefix: "bnd-report-landing.", key: "report_landing_css" },
 	{ dir: ["css"], prefix: "bnd-studio.", key: "studio_css" },
+	{ dir: ["css"], prefix: "bnd-pos.", key: "pos_css" },
 	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
 	{ dir: ["css"], prefix: "bunood-email.", key: "email_css" },
 	// Substitution INPUT, not wire bytes: printing/sheet.py reads this file and
@@ -77,6 +78,7 @@ const BUCKETS = [
 	{ dir: ["js"], prefix: "bnd-banking.", key: "banking_js" },
 	{ dir: ["js"], prefix: "bnd-finance-close.", key: "finance_close_js" },
 	{ dir: ["js"], prefix: "bnd-journal-workbench.", key: "journal_workbench_js" },
+	{ dir: ["js"], prefix: "bnd-pos.", key: "pos_js" },
 ];
 
 export function measure() {
@@ -127,6 +129,7 @@ export const CEILING_KEYS = [
 	"css_gzip", "js_gzip", "studio_js_gzip", "studio_css_gzip",
 	"report_landing_css_gzip", "report_landing_js_gzip", "banking_js_gzip",
 	"finance_close_js_gzip", "journal_workbench_js_gzip",
+	"pos_css_gzip", "pos_js_gzip",
 	"web_css_gzip", "email_css_gzip", "print_css_gzip",
 ];
 

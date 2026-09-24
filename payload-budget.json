@@ -193,6 +193,8 @@
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,
 		"studio_css_gzip": 5800,
+		"pos_css_gzip": 5700,
+		"pos_js_gzip": 9200,
 		"web_css_gzip": 4200,
 		"banking_js_gzip": 5000,
 		"finance_close_js_gzip": 3700,

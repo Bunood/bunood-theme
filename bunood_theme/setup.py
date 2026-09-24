@@ -286,6 +286,9 @@ def after_install() -> None:
     # an install, and defaults are claimed only from vacancy (a stock print
     # style, a site with no default letter head).
     sync_print_theme()
+    # Integration v0.48.0: pos-retail's tenant setup is HELD (see
+    # ensure_pos_retail below) -- it creates payment modes, GL accounts, a cash
+    # customer, a POS role and custom fields, and disables whole-riyal rounding.
     print("\n✅ Bunood Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
@@ -541,6 +544,9 @@ def after_migrate() -> None:
     # (drift self-heals; local edits to MANAGED records are overwritten by
     # design — duplicate a format to customize, see printing/README.md).
     sync_print_theme()
+    # Integration v0.48.0: pos-retail's tenant setup is HELD (see
+    # ensure_pos_retail below) -- it creates payment modes, GL accounts, a cash
+    # customer, a POS role and custom fields, and disables whole-riyal rounding.
     # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
     # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
     # .rtl_patch now reaches them at RENDER time (see that module and
@@ -679,3 +685,27 @@ def _seed_defaults() -> None:
     except Exception as e:
         # Never let seeding block an install or a migrate.
         frappe.log_error(str(e), "Bunood Theme seed defaults")
+
+
+def ensure_pos_retail() -> None:
+    """pos-retail's tenant setup, HELD in integration v0.48.0.
+
+    Not called from after_install or after_migrate. Running it changes existing
+    tenants' accounting configuration (Cash/Network Mode of Payment + ledgers,
+    a cash customer, the Bunood POS Operator role and its Custom DocPerms, POS
+    custom fields, and Global Defaults/POS Profile disable_rounded_total). Run
+    deliberately, per site, only with the owner's approval:
+    ``bench --site <site> execute bunood_theme.setup.ensure_pos_retail``.
+    """
+    from bunood_theme.payments import ensure_pos_payment_setup
+    from bunood_theme.cash_customer import ensure_cash_customer_defaults
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+    from bunood_theme.pos_permissions import ensure_pos_operator_permissions
+    from bunood_theme.pos import ensure_pos_hold_field, ensure_pos_reference_field
+
+    ensure_pos_payment_setup()
+    ensure_cash_customer_defaults()
+    ensure_exact_halala_defaults()
+    ensure_pos_operator_permissions()
+    ensure_pos_reference_field()
+    ensure_pos_hold_field()

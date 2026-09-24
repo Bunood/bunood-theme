@@ -138,3 +138,12 @@ bunood_theme.patches.v0_46_1.width_follows_density
 # would rewrite every existing tenant's print_title_lang from Both to Follow print
 # language. New sites get the new default from the DocType; existing sites keep
 # their value. Register the patch only with the owner's approval.
+
+# Integration v0.48.0: HELD -- pos-retail's five data patches change existing
+# tenants' accounting setup and are not registered until the owner approves:
+#   bunood_theme.patches.v0_46_11.pos_payment_ledgers      (Cash/Network modes + ledgers)
+#   bunood_theme.patches.v0_46_12.exact_halala_totals      (disable whole-riyal rounding)
+#   bunood_theme.patches.v0_46_33.network_mode_english     (rename Mode of Payment شبكة -> Network)
+#   bunood_theme.patches.v0_46_34.payment_account_recovery (payment account mappings)
+#   bunood_theme.patches.v0_46_35.cash_customer_defaults   (cash customer + POS profile default)
+# Their names carry the experimental line's numbering; renumber on approval.

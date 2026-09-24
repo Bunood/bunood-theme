@@ -111,6 +111,7 @@ const ENTRIES = [
 	{ key: "bnd-report-landing", src: "report_landing.scss", pyid: "REPORT_LANDING_CSS" },
 	// Report Studio is styled only on its own page, before the renderer mounts.
 	{ key: "bnd-studio", src: "studio.scss", pyid: "STUDIO_CSS" },
+	{ key: "bnd-pos", src: "pos_workbench.scss", pyid: "POS_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -2061,6 +2062,7 @@ const JS_ENTRIES = [
 	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
 	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
 	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
+	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
 ];
 
 // Capability controllers stay testable as focused source files while shipping

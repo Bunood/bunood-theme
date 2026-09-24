@@ -135,6 +135,10 @@ doc_events = {
         # cached map; drop it when a DocType's icon could have changed.
         "on_update": "bunood_theme.api.clear_icon_cache",
     },
+    # Integration v0.48.0: HELD -- pos-retail's validate hook
+    # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
+    # Invoice would switch every new invoice to exact-halala totals (no
+    # whole-riyal rounding). Register it only with the owner's approval.
 }
 
 # ── Print Jinja helpers ─────────────────────────────────────────────────────────

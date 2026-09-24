@@ -8724,3 +8724,283 @@ msgstr "يجب أن يكون نوع المعاملة مبيعات أو مشتر�
 #, fuzzy
 msgid "Negative"
 msgstr "سالب"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Enter valid Cash and Network amounts."
+msgstr "أدخل مبالغ صحيحة للنقد والشبكة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Submit the Sales Invoice before recording payment."
+msgstr "اعتمد فاتورة المبيعات قبل تسجيل الدفعة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Use the native return and refund workflow for a return invoice."
+msgstr "استخدم مسار المرتجعات واسترداد المبلغ الأصلي لفاتورة المرتجع."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Use the native POS payment rows to split a POS invoice."
+msgstr "استخدم صفوف الدفع الأصلية في نقطة البيع لتقسيم سداد فاتورة نقطة البيع."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This invoice has no outstanding amount to receive."
+msgstr "لا يوجد مبلغ مستحق للتحصيل في هذه الفاتورة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "A mixed payment needs a Cash amount and a Network amount above zero."
+msgstr "يتطلب الدفع المختلط مبلغًا نقديًا ومبلغ شبكة أكبر من صفر."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Cash and Network must total the outstanding amount of {0} {1}."
+msgstr "يجب أن يساوي مجموع النقد والشبكة المبلغ المستحق وقدره {0} {1}."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Enter the Network transaction reference number."
+msgstr "أدخل الرقم المرجعي لعملية الشبكة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This invoice has an available early-payment discount. Use the native Payment Entry workflow so the discount is applied once."
+msgstr "تحتوي هذه الفاتورة على خصم متاح للسداد المبكر. استخدم مسار سند الدفع الأصلي حتى يُطبّق الخصم مرة واحدة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Cash and Network must both have a default account for this company."
+msgstr "يجب أن يكون لكل من النقد والشبكة حساب افتراضي لهذه الشركة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Cash and Network must post to different accounts."
+msgstr "يجب ترحيل النقد والشبكة إلى حسابين مختلفين."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "The mixed payment did not fully settle the invoice."
+msgstr "لم تسوِّ الدفعة المختلطة الفاتورة بالكامل."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "The POS request is not valid."
+msgstr "طلب نقطة البيع غير صالح."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Choose an available POS Profile."
+msgstr "اختر ملف نقطة بيع متاحاً."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This POS Profile is disabled."
+msgstr "ملف نقطة البيع هذا معطّل."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This POS Profile is not assigned to your user."
+msgstr "ملف نقطة البيع هذا غير مسند إلى مستخدمك."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Open the POS shift before creating or changing a sale."
+msgstr "افتح وردية نقطة البيع قبل إنشاء عملية بيع أو تعديلها."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Review and close the current POS shift before opening another POS Profile."
+msgstr "راجع وردية نقطة البيع الحالية وأغلقها قبل فتح ملف نقطة بيع آخر."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Reference"
+msgstr "المرجع"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Review and close the outdated POS shift before opening a new shift."
+msgstr "راجع وردية نقطة البيع القديمة وأغلقها قبل فتح وردية جديدة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "The POS Profile needs at least one payment method."
+msgstr "يحتاج ملف نقطة البيع إلى طريقة دفع واحدة على الأقل."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "The POS cart is not valid."
+msgstr "سلة نقطة البيع غير صالحة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Add at least one item to the cart."
+msgstr "أضف صنفاً واحداً على الأقل إلى السلة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This cart has too many lines. Start a second sale."
+msgstr "تحتوي هذه السلة على أسطر كثيرة جداً. ابدأ عملية بيع ثانية."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Invalid number: {0}"
+msgstr "رقم غير صالح: {0}"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Item unavailable in this POS Profile: {0}"
+msgstr "الصنف غير متاح في ملف نقطة البيع هذا: {0}"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Choose a customer before saving the sale."
+msgstr "اختر عميلاً قبل حفظ عملية البيع."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "You cannot use this customer."
+msgstr "لا يمكنك استخدام هذا العميل."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "One cart line is not valid."
+msgstr "أحد أسطر السلة غير صالح."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Every cart line needs an item."
+msgstr "يجب أن يحتوي كل سطر في السلة على صنف."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Quantity must be greater than zero."
+msgstr "يجب أن تكون الكمية أكبر من صفر."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Selling price missing for item: {0}"
+msgstr "سعر البيع غير موجود للصنف: {0}"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Rate"
+msgstr "السعر"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Rate cannot be negative."
+msgstr "لا يمكن أن يكون السعر سالباً."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Discount must be between 0 and 100."
+msgstr "يجب أن تكون نسبة الخصم بين 0 و100."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Only a held draft can be changed."
+msgstr "لا يمكن تعديل إلا مسودة معلّقة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This held sale belongs to another cashier or POS Profile."
+msgstr "هذه العملية المعلّقة تخص كاشيراً أو ملف نقطة بيع آخر."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Payment details are not valid."
+msgstr "تفاصيل الدفع غير صالحة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Payment method unavailable in this POS Profile: {0}"
+msgstr "طريقة الدفع غير متاحة في ملف نقطة البيع هذا: {0}"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Payment amount"
+msgstr "مبلغ الدفع"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Payment amount cannot be negative."
+msgstr "لا يمكن أن يكون مبلغ الدفع سالباً."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Enter a payment amount."
+msgstr "أدخل مبلغ الدفع."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Payment must cover the full sale total."
+msgstr "يجب أن يغطي الدفع إجمالي عملية البيع بالكامل."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This held sale is not available."
+msgstr "هذه العملية المعلّقة غير متاحة."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "This receipt type cannot be returned."
+msgstr "لا يمكن إنشاء مرتجع من هذا النوع من الإيصالات."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Choose a submitted sale receipt to return."
+msgstr "اختر إيصال بيع معتمداً لإنشاء المرتجع."
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Bunood POS"
+msgstr "نقطة بيع بنود"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Collect payment"
+msgstr "تحصيل الدفع"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Hold sale"
+msgstr "تعليق العملية"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Network"
+msgstr "شبكة"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Open shift"
+msgstr "فتح الوردية"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Payment reference: {0}"
+msgstr "مرجع الدفع: {0}"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Quick Sale"
+msgstr "بيع سريع"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Receipts and returns"
+msgstr "الإيصالات والمرتجعات"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Quantity"
+msgstr "الكمية"
+
+#. src: capability/pos-retail
+#, fuzzy
+msgid "Discount"
+msgstr "الخصم"
