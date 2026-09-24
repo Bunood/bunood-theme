@@ -1528,7 +1528,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Form Foot",
-   "options": "Off\nPinned Bar"
+   "options": "Off\nPinned Bar\nAction Bar"
   },
   {
    "default": "1",

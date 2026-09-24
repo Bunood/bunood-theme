@@ -175,11 +175,13 @@
 		"walks a real instance s prototype chain instead. 43 gzip bytes after the",
 		"argument moved to surfaces/_charts.scss, which Sass strips.",
 		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager.",
-		"Native Sales Invoice and Quotation list queues raise measured desk JS from 131176 to 132889 gzip bytes. The 133100 ceiling leaves 211 bytes of headroom."
+		"Native Sales Invoice and Quotation list queues raise measured desk JS from 131176 to 132889 gzip bytes. The 133100 ceiling leaves 211 bytes of headroom.",
+		"The shared native form action contract and sticky bar delegate save/submit to Frappe's native form methods. Main's measured desk JS rises from 131176 to 134203 gzip bytes; the new 134400 ceiling allows 197 bytes of headroom.",
+		"INTEGRATION v0.48.0: both capabilities ship in the one desk entry, so their raises add: js 131400 + 1700 (list queues) + 3000 (form actions) = 136100. Re-measured after the combined build; see the integration commit."
 	],
 	"ceiling": {
 		"css_gzip": 31500,
-		"js_gzip": 133100,
+		"js_gzip": 136100,
 		"studio_js_gzip": 27000,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,

@@ -2056,9 +2056,11 @@ const JS_ENTRIES = [
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
 ];
 
-// Keep the list-filter controller testable while shipping it with the global
-// desk runtime. Invoice workbenches are separate capabilities.
-const DESK_JS_SOURCES = ["bunood.js", "list_presets.js"];
+// Capability controllers stay testable as focused source files while shipping
+// with the global desk entry, concatenated in this order after bunood.js:
+// list_presets.js (native list quick-filter queues) and document_actions.js
+// (the shared native-form action contract). Invoice workbenches are separate.
+const DESK_JS_SOURCES = ["bunood.js", "list_presets.js", "document_actions.js"];
 
 async function readDeskJs() {
 	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))

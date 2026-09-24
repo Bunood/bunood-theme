@@ -1371,7 +1371,7 @@
 				["header", "form_header", { "Original": "", "Title Block": "title", "Highlights Band": "facts", "Hero Band": "band" }],
 				["tone", "form_header_tone", { "Tinted": "tint", "Brand-dark": "dark" }],
 				["stage", "form_stage", { "Off": "", "Status Path": "path" }],
-				["foot", "form_foot", { "Off": "", "Pinned Bar": "pinned" }],
+				["foot", "form_foot", { "Off": "", "Pinned Bar": "pinned", "Action Bar": "actions" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
 			// The drawer (item 43 A6) and the header (A8a) are MOUNTS: an
@@ -1881,6 +1881,118 @@
 	}
 
 	// ── The foot bar (item 43 A8c) — mount 3 of 3 ─────────────────────────
+	// Native and Advanced forms share one action edge. Simple invoice and task
+	// workbenches already own their toolbar and stand this one down.
+	// Opt-in (integration v0.48.0): the bar is the `Action Bar` value of the same
+	// `form_foot` picker that offers the Pinned Bar, so the shipped default and
+	// every existing tenant's choice keep the forms exactly as they were.
+	function docbar_wanted(frm) {
+		const wrapper = frm?.$wrapper?.[0];
+		return document.documentElement.getAttribute("data-bnd-form-foot") === "actions" &&
+			!wrapper?.classList.contains("bnd-bill-simple-active") &&
+			!wrapper?.classList.contains("bnd-composed-simple-active");
+	}
+
+	function docbar_sync(frm, bar) {
+		const actions = bunood.document_actions;
+		if (!actions || !bar.isConnected) return;
+		const state = actions.actionState(frm);
+		const commit = actions.canSaveAndSubmit(frm);
+		const native = frm.page.btn_primary?.[0];
+		const primary = bar.querySelector(".bnd-form-actionbar-primary");
+		const nativeLabel = native?.textContent?.trim() || "";
+		primary.textContent = commit ? __("Save and submit") : nativeLabel;
+		primary.hidden = !commit && (!nativeLabel || native?.classList.contains("hide"));
+		primary.disabled = bar.dataset.busy === "true" || !!native?.disabled;
+		for (const print of bar.querySelectorAll(".bnd-form-actionbar-print, .bnd-form-actionbar-menu-print")) print.hidden = !state.showPrint;
+		bar.querySelector(".bnd-form-actionbar-draft").hidden = !commit || !state.showSave;
+		bar.querySelector(".bnd-form-actionbar-new").hidden = !state.showNew;
+		bar.querySelector(".bnd-form-actionbar-name").textContent = frm.doc?.__islocal ? __(frm.doctype) : (frm.doc?.name || __(frm.doctype));
+		bar.querySelector(".bnd-form-actionbar-state").textContent = __(actions.documentState(frm).label);
+	}
+
+	function mount_docbar(frm) {
+		if (!frm?.page?.main?.[0] || !frm.meta || frm.meta.istable) return;
+		const main = frm.page.main[0];
+		const wrapper = frm.$wrapper?.[0];
+		if (wrapper && !frm.__bnd_docbar_mode_mo && typeof MutationObserver !== "undefined") {
+			frm.__bnd_docbar_mode_mo = new MutationObserver(() => {
+				mount_docbar(frm);
+				mount_docfoot(frm);
+			});
+			frm.__bnd_docbar_mode_mo.observe(wrapper, { attributes: true, attributeFilter: ["class"] });
+		}
+		let bar = main.querySelector(":scope > .bnd-form-actionbar");
+		if (!docbar_wanted(frm)) {
+			bar?.remove();
+			frm.__bnd_docbar_mo?.disconnect();
+			frm.__bnd_docbar_mo = null;
+			bnd_disown("docbar");
+			return;
+		}
+		if (!bar) {
+			bar = el("section", "bnd-form-actionbar", { role: "toolbar", "aria-label": __("Document actions") });
+			const identity = el("div", "bnd-form-actionbar-identity");
+			identity.append(el("strong", "bnd-form-actionbar-name"), el("span", "bnd-form-actionbar-state"));
+			const controls = el("div", "bnd-form-actionbar-actions");
+			const primary = el("button", "bnd-form-actionbar-primary btn btn-primary", { type: "button" });
+			primary.addEventListener("click", async () => {
+				if (bar.dataset.busy === "true") return;
+				const contract = bunood.document_actions;
+				if (!contract?.canSaveAndSubmit(frm)) {
+					frm.page.btn_primary?.trigger("click");
+					return;
+				}
+				bar.dataset.busy = "true";
+				docbar_sync(frm, bar);
+				try { await contract.saveAndSubmit(frm); }
+				finally { bar.dataset.busy = "false"; docbar_sync(frm, bar); }
+			});
+			const print = el("button", "bnd-form-actionbar-print btn btn-default", { type: "button" });
+			print.textContent = __("Print");
+			print.addEventListener("click", () => frm.print_doc());
+			const more = el("details", "bnd-form-actionbar-more");
+			const summary = el("summary", "btn btn-default");
+			summary.textContent = __("Document actions");
+			const menu = el("div", "bnd-form-actionbar-menu");
+			const menuPrint = el("button", "bnd-form-actionbar-menu-print", { type: "button" });
+			menuPrint.textContent = __("Print");
+			menuPrint.addEventListener("click", () => { more.open = false; frm.print_doc(); });
+			const draft = el("button", "bnd-form-actionbar-draft", { type: "button" });
+			draft.textContent = __("Save draft");
+			draft.addEventListener("click", () => { more.open = false; frm.save("Save"); });
+			const next = el("button", "bnd-form-actionbar-new", { type: "button" });
+			next.textContent = __("New");
+			next.addEventListener("click", () => { more.open = false; frappe.new_doc(frm.doctype); });
+			menu.append(menuPrint, draft, next);
+			more.append(summary, menu);
+			more.addEventListener("keydown", event => {
+				if (event.key === "Escape") { more.open = false; summary.focus(); }
+			});
+			controls.append(primary, print, more);
+			bar.append(identity, controls);
+			main.prepend(bar);
+			bar.addEventListener("focusout", event => {
+				if (!bar.contains(event.relatedTarget)) more.open = false;
+			});
+		}
+		docbar_sync(frm, bar);
+		bnd_own("docbar");
+		if (!frm.__bnd_docbar_mo && frm.page.page_actions?.[0] && typeof MutationObserver !== "undefined") {
+			let queued = false;
+			frm.__bnd_docbar_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => { queued = false; if (bar.isConnected) docbar_sync(frm, bar); });
+			});
+			frm.__bnd_docbar_mo.observe(frm.page.page_actions[0], { attributes: true, childList: true, subtree: true, characterData: true });
+		}
+	}
+	document.addEventListener("pointerdown", event => {
+		const open = window.cur_frm?.page?.main?.[0]?.querySelector(":scope > .bnd-form-actionbar details[open]");
+		if (open && !open.contains(event.target)) open.open = false;
+	}, true);
+
 	// `form_foot` = Pinned Bar: a fixed bar above the bottom chrome — LIFTED by
 	// whatever chrome is already there (the status bar, the dock), measured at
 	// mount and on resize, never declared — carrying the page's primary action
@@ -1947,7 +2059,7 @@
 		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.wrapper || !frm.page.wrapper[0]) return;
 		const page = frm.page.wrapper[0];
 		let foot = page.querySelector(":scope > .bnd-docfoot");
-		const wanted = docfoot_wanted() && !!(frm.page.btn_primary && frm.page.btn_primary.length);
+		const wanted = docfoot_wanted() && !page.querySelector(".bnd-form-actionbar") && !!(frm.page.btn_primary && frm.page.btn_primary.length);
 		if (!wanted) {
 			if (foot) foot.remove();
 			if (frm.__bnd_foot_mo) {
@@ -2027,6 +2139,7 @@
 	function sync_form_mounts() {
 		if (!window.cur_frm) return;
 		mount_dochead(window.cur_frm);
+		mount_docbar(window.cur_frm);
 		mount_docfoot(window.cur_frm);
 		mount_drawer(window.cur_frm);
 	}
@@ -2038,6 +2151,7 @@
 		frappe.ui.form.on("*", {
 			refresh: (frm) => {
 				mount_dochead(frm);
+				mount_docbar(frm);
 				mount_docfoot(frm);
 				mount_drawer(frm);
 				// The dirty tick. Namespaced and `.off()`-first — `refresh` runs

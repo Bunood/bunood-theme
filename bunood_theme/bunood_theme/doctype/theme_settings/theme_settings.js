@@ -5362,6 +5362,7 @@ const BND_FORM_GROUPS = [
 		options: [
 			{ value: "Off", name: () => __("Off") },
 			{ value: "Pinned Bar", name: () => __("Pinned Bar") },
+			{ value: "Action Bar", name: () => __("Action Bar") },
 		],
 	},
 ];

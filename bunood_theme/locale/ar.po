@@ -7508,3 +7508,74 @@ msgstr "دفتر"
 #. src: false-friends
 msgid "Standard"
 msgstr "قياسي"
+
+#. src: capability/reference-field-guidance
+#, fuzzy
+msgid "Enter the two-letter ISO country code, such as SA for Saudi Arabia—not a numeric code. Search for the country first to avoid a duplicate."
+msgstr "أدخل رمز الدولة المكوّن من حرفين وفق معيار ISO، مثل SA للسعودية، وليس رقماً. ابحث عن الدولة أولاً لتجنّب تكرارها."
+
+#. src: capability/reference-field-guidance
+#, fuzzy
+msgid "Only non-group Stock accounts for this warehouse's company appear here. Create the account as type Stock first, then return and select it. Leave blank to use the parent warehouse or company default."
+msgstr "تظهر هنا فقط حسابات المخزون غير المجمّعة التابعة لشركة هذا المستودع. أنشئ الحساب بنوع «مخزون» أولاً، ثم عُد لاختياره. اترك الحقل فارغاً لاستخدام حساب المستودع الأب أو إعداد الشركة الافتراضي."
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Awaiting response"
+msgstr "بانتظار الرد"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Converted"
+msgstr "محوّل"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Expiring soon"
+msgstr "تنتهي قريبًا"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Lost"
+msgstr "غير ناجح"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Overdue"
+msgstr "متأخرة"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Paid"
+msgstr "مدفوعة"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Partially paid"
+msgstr "مدفوعة جزئيًا"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "Quick filters"
+msgstr "عوامل تصفية سريعة"
+
+#. src: capability/document-list-queues
+#, fuzzy
+msgid "This month"
+msgstr "هذا الشهر"
+
+#. src: capability/form-actions
+#, fuzzy
+msgid "Save and submit"
+msgstr "حفظ واعتماد"
+
+#. src: capability/form-actions
+#, fuzzy
+msgid "Save draft"
+msgstr "حفظ المسودة"
+
+#. In theme_settings.js — form_foot option that opts a site into the form-actions bar
+#. src: integration-v0.48.0
+#, fuzzy
+msgid "Action Bar"
+msgstr "شريط الإجراءات"
