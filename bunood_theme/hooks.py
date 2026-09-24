@@ -47,6 +47,12 @@ app_include_css = [THEME_CSS]
 # build.mjs like the CSS.
 app_include_js = [THEME_JS]
 
+# Explain native reference-field constraints without replacing validation.
+doctype_js = {
+    "Warehouse": "public/js/reference_field_guidance.js",
+    "Country": "public/js/reference_field_guidance.js",
+}
+
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
 # Each entry below is enabled in the commit that ships its file.
