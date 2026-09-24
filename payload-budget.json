@@ -178,8 +178,10 @@
 	],
 	"ceiling": {
 		"css_gzip": 31500,
-		"js_gzip": 131400,
+		"js_gzip": 131550,
 		"studio_js_gzip": 27000,
+		"report_landing_css_gzip": 3100,
+		"report_landing_js_gzip": 2150,
 		"web_css_gzip": 4200,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
