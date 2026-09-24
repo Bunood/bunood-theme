@@ -8689,3 +8689,38 @@ msgstr "المسودات غير المتوازنة"
 #, fuzzy
 msgid "Use Journal Entry when the accounting treatment requires deliberate debit and credit control."
 msgstr "استخدم قيد اليومية عندما تتطلب المعالجة المحاسبية تحكمًا مقصودًا في المدين والدائن."
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Company not found."
+msgstr "الشركة غير موجودة."
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Follow Print Language for a clean Arabic or English document; use an override only when a customer requires it."
+msgstr "اتبع لغة الطباعة للحصول على مستند عربي أو إنجليزي متسق؛ استخدم التجاوز فقط عندما يطلبه العميل."
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Follow print language"
+msgstr "اتبع لغة الطباعة"
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Not permitted"
+msgstr "غير مسموح"
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Set by the picker above. Follow Print Language keeps Arabic output RTL and English output LTR; explicit overrides remain available when required."
+msgstr "يُضبط من المُنتقي أعلاه. يحافظ اتباع لغة الطباعة على اتجاه العربية من اليمين إلى اليسار والإنجليزية من اليسار إلى اليمين؛ وتظل التجاوزات الصريحة متاحة عند الحاجة."
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Transaction type must be Sales or Purchase."
+msgstr "يجب أن يكون نوع المعاملة مبيعات أو مشتريات."
+
+#. src: capability/printing-documents
+#, fuzzy
+msgid "Negative"
+msgstr "سالب"

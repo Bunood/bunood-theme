@@ -1121,7 +1121,7 @@ PRINT_DEFAULTS = {
     # `_pset`. The QR's Hide is compliance-guarded in the macro itself: a
     # format that declares required=True keeps its QR regardless, because a
     # togglable legal mandate is a defect, not a setting.
-    "print_title_lang": "Both",
+    "print_title_lang": "Follow print language",
     "print_qr": "Show",
     "print_qr_place": "Head end",
     "print_qr_size": "Medium",

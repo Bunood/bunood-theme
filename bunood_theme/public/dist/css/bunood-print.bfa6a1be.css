@@ -115,10 +115,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Bunood formats are Arabic-first: pinned RTL regardless of the print-dialog
-   language (numeric/ID cells carry explicit dir="ltr" in the markup). */
-.bnd-p {
+/* One print request has one direction.  Numeric/ID cells remain explicitly
+   LTR, while the physical alignments below mirror for the old WebKit engine. */
+.bnd-p[dir=rtl] {
   direction: rtl;
+  text-align: right;
+}
+
+.bnd-p[dir=ltr] {
+  direction: ltr;
+  text-align: left;
 }
 
 /* ===== bilingual title ===== */
@@ -155,6 +161,10 @@
 .bnd-p-head__qr {
   width: 130px;
   text-align: left;
+}
+
+.bnd-p[dir=ltr] .bnd-p-head__qr {
+  text-align: right;
 }
 
 .bnd-p-qr {
@@ -260,6 +270,10 @@
   white-space: nowrap;
 }
 
+.bnd-p[dir=ltr] .bnd-p-items .n {
+  text-align: right;
+}
+
 .bnd-p-items__d {
   color: var(--bnd-ink-muted);
   font-size: 10px;
@@ -271,6 +285,16 @@
   -webkit-margin-start: auto;
   margin-inline-start: auto;
   min-width: 46%;
+}
+
+.bnd-p[dir=rtl] .bnd-p-totals {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.bnd-p[dir=ltr] .bnd-p-totals {
+  margin-left: auto;
+  margin-right: 0;
 }
 
 .bnd-p-totals td {
@@ -385,6 +409,10 @@
   font-weight: 700;
 }
 
+.bnd-p--thermal[dir=ltr] .bnd-p-th-item__n {
+  text-align: left;
+}
+
 /* label/amount pairs — TABLE (flex collapses in wkhtmltopdf) */
 .bnd-p-th-l {
   width: 100%;
@@ -402,6 +430,14 @@
 
 .bnd-p-th-l .e {
   text-align: left;
+}
+
+.bnd-p--thermal[dir=ltr] .bnd-p-th-l .s {
+  text-align: left;
+}
+
+.bnd-p--thermal[dir=ltr] .bnd-p-th-l .e {
+  text-align: right;
 }
 
 .bnd-p-th-l--g {

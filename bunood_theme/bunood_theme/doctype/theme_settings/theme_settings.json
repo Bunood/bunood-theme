@@ -891,13 +891,13 @@
    "options": "Frappe's own\nBilingual Split\nCentered Mark\nHairline Minimal"
   },
   {
-   "default": "Both",
-   "description": "Set by the picker above. Which halves of the bilingual document title render on the Bunood formats.",
+   "default": "Follow print language",
+   "description": "Set by the picker above. Follow Print Language keeps Arabic output RTL and English output LTR; explicit overrides remain available when required.",
    "fieldname": "print_title_lang",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Print Title Language",
-   "options": "Both\nArabic only\nEnglish only"
+   "options": "Follow print language\nBoth\nArabic only\nEnglish only"
   },
   {
    "default": "Show",

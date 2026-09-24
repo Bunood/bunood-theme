@@ -9511,6 +9511,64 @@ function sb_zone_anchor(pane, zone, node) {
 	 * slice 2c every container answers for itself and a layout is a preset that
 	 * wrote those settings at the moment it was picked.
 	 */
+	function sync_print_language_choice(field) {
+		const input = field?.querySelector("input");
+		const group = field?.querySelector(".bnd-print-language");
+		if (!input || !group) return;
+		const selected = String(field.querySelector(".control-value [data-value]")?.dataset.value || input.value || "")
+			.toLowerCase().split("-")[0];
+		for (const button of group.querySelectorAll("button[data-language]")) {
+			button.setAttribute("aria-pressed", String(button.dataset.language === selected));
+		}
+	}
+
+	function mount_print_language_choice() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const sidebar = document.querySelector(".print-preview-sidebar");
+		if (route[0] !== "print" && !sidebar) return true;
+		const field = sidebar?.querySelector('[data-fieldname="language"]');
+		const input = field?.querySelector("input");
+		if (!input || !input.value) return false;
+
+		let group = field.querySelector(".bnd-print-language");
+		if (!group) {
+			group = document.createElement("div");
+			group.className = "bnd-print-language";
+			group.setAttribute("role", "group");
+			group.setAttribute("aria-label", __("Language"));
+			for (const [code, label, dir] of [["en", "English", "ltr"], ["ar", "العربية", "rtl"]]) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "bnd-print-language__option";
+				button.dataset.language = code;
+				button.lang = code;
+				button.dir = dir;
+				button.textContent = label;
+				button.addEventListener("click", () => {
+					if (input.value !== code) {
+						if (window.jQuery) window.jQuery(input).val(code).trigger("change");
+						else {
+							input.value = code;
+							input.dispatchEvent(new Event("change", { bubbles: true }));
+						}
+					}
+					sync_print_language_choice(field);
+				});
+				group.append(button);
+			}
+			field.append(group);
+			field.classList.add("bnd-print-language-ready");
+			const sync = () => setTimeout(() => sync_print_language_choice(field));
+			if (window.jQuery) {
+				window.jQuery(input).on("change.bndPrintLanguage", sync);
+				window.jQuery(sidebar.querySelector('[data-fieldname="print_format"] input'))
+					.on("change.bndPrintLanguage", sync);
+			} else input.addEventListener("change", sync);
+		}
+		sync_print_language_choice(field);
+		return true;
+	}
+
 	function mount_chrome() {
 		// Not "which containers", and since item 37 not the attribute either:
 		// empty means boot failed or the theme is inactive, and a stock desk
@@ -9615,6 +9673,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// The notification kit owns the bell (and the badge Frappe lacks).
 		mount_inbox();
 		stamp_appearance_route();
+		try_for(mount_print_language_choice, 40, 150);
 		apply_home_route();
 
 		// THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
@@ -9659,6 +9718,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// routes to Appearance — so the claim on Frappe's Display item is
 				// re-measured rather than assumed (item 38).
 				stamp_appearance_route();
+				try_for(mount_print_language_choice, 40, 150);
 				sb_resolve_workspace_from_route();
 				// The settings map (item 43 B3) is the first pane part that is
 				// conditional on the ROUTE, so the ladder alone cannot place it:

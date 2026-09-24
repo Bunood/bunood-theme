@@ -3,9 +3,84 @@
 # values instead of raising, so a print never breaks because of missing apps,
 # fields, or bad data.
 
+import base64
 import json
+import mimetypes
+from decimal import InvalidOperation
 
 import frappe
+
+
+def bunood_print_language():
+    """Read language at render time, not from a cached Jinja globals snapshot."""
+    language = getattr(frappe.local, "lang", None) or "en"
+    return "ar" if language.startswith("ar") else "en"
+
+
+def bunood_print_image_src(value):
+    """Return a PDF-safe source for a managed brand image.
+
+    Public and remote sources can remain URLs.  Private Frappe files cannot be
+    fetched by the isolated Chromium header renderer, even though the signed-in
+    browser preview can display them, so embed that tenant-owned asset at render
+    time.  This is intentionally for compact brand marks, not line-item images.
+    """
+    if not value or not isinstance(value, str):
+        return ""
+    if value.startswith(("data:image", "http://", "https://")):
+        return value
+    if not value.startswith(("/files/", "/private/files/")):
+        return value
+    try:
+        file_name = frappe.db.get_value("File", {"file_url": value}, "name")
+        if not file_name:
+            return value
+        file_doc = frappe.get_doc("File", file_name)
+        content = file_doc.get_content()
+        if isinstance(content, str):
+            content = content.encode()
+        mime = (
+            getattr(file_doc, "mime_type", None)
+            or mimetypes.guess_type(file_doc.get("file_name") or value)[0]
+            or "application/octet-stream"
+        )
+        if not mime.startswith("image/"):
+            return ""
+        return f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
+    except Exception:
+        frappe.log_error(title="bunood_theme: print image resolution failed"[:140])
+        return ""
+
+
+def bunood_amount_in_words(amount, currency, precision=2):
+    """Print-only wording of the same payable number the template displays."""
+    try:
+        # Integration v0.48.0: amount_words lives only on the experimental line,
+        # not on main. Until it is approved and ported, Arabic SAR falls through
+        # to ERPNext's own wording below instead of raising ImportError and
+        # taking the whole invoice render down.
+        from bunood_theme.printing.amount_words import arabic_sar_words
+    except ImportError:
+        arabic_sar_words = None
+
+    if arabic_sar_words and currency == "SAR" and bunood_print_language() == "ar":
+        from frappe.locale import get_number_format
+
+        try:
+            displayed = frappe.utils.fmt_money(amount, precision=precision)
+            number_format = get_number_format()
+            if number_format.thousands_separator:
+                displayed = displayed.replace(number_format.thousands_separator, "")
+            if number_format.decimal_separator:
+                displayed = displayed.replace(number_format.decimal_separator, ".")
+            return arabic_sar_words(displayed)
+        except (ValueError, InvalidOperation, OverflowError):
+            return ""
+
+    words = frappe.utils.money_in_words(abs(amount), currency)
+    if currency == "SAR":
+        words = words.replace("SAR", "Saudi riyals")
+    return (frappe._("Negative") + " " if amount < 0 else "") + words
 
 
 def bunood_zatca_qr_src(doc):
@@ -49,7 +124,14 @@ def bunood_zatca_qr_src(doc):
                 if name:
                     saf = frappe.get_doc("Sales Invoice Additional Fields", name)
                     for field in ("qr_image_src", "qr_code_image", "qr_image"):
-                        value = saf.get(field)
+                        # ksa_compliance exposes ``qr_image_src`` as a Python
+                        # @property backed by the stored TLV ``qr_code``.  A
+                        # Frappe virtual field is absent from ``Document.get``;
+                        # attribute access is the contract that invokes the
+                        # controller property and produces the printable PNG.
+                        value = getattr(saf, field, None) or saf.get(field)
+                        if callable(value):
+                            value = value()
                         if value and isinstance(value, str) and value.startswith(
                             ("/files/", "/private/files/", "http", "data:image")
                         ):

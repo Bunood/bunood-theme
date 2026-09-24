@@ -182,11 +182,13 @@
 		"INTEGRATION v0.48.0: both capabilities ship in the one desk entry, so their raises add: js 131400 + 1700 (list queues) + 3000 (form actions) = 136100. Re-measured after the combined build; see the integration commit.",
 		"INTEGRATION v0.48.0: reports-dashboard's own +150 on js (its route loader in the desk entry) added to the summed ceiling: 136100 + 150 = 136250.",
 		"INTEGRATION v0.48.0: banking raises css 31500 -> 31800 (its surface in the global sheet) and adds banking_js_gzip 5000 for its route bundle; js keeps the summed 136250.",
-		"INTEGRATION v0.48.0: finance-operations adds its +200 css to banking's: 31500 + 300 + 200 = 32000; finance_close_js_gzip 3700 and journal_workbench_js_gzip 4500 kept as shipped."
+		"INTEGRATION v0.48.0: finance-operations adds its +200 css to banking's: 31500 + 300 + 200 = 32000; finance_close_js_gzip 3700 and journal_workbench_js_gzip 4500 kept as shipped.",
+		"AND js 131400 -> 132000 for the print-language choice on the native print preview route. The two equal buttons drive Frappe's existing language field and require roughly 459 additional gzip bytes in the global desk script.",
+		"INTEGRATION v0.48.0: printing-documents' print-language choice adds its +600 js to the summed ceiling: 136250 + 600 = 136850."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
-		"js_gzip": 136250,
+		"js_gzip": 136850,
 		"studio_js_gzip": 27000,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,

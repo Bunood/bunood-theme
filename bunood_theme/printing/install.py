@@ -33,6 +33,13 @@ from bunood_theme import zatca
 
 STYLE_NAME = "Bunood"
 MODULE = "Bunood Theme"
+DEFAULT_SALES_FORMAT = "بونود - فاتورة ضريبية (A4)"
+DEFAULT_QUOTATION_FORMAT = "بنود - عرض سعر (A4)"
+DEFAULT_PAYMENT_FORMAT = "بونود - سند قبض-صرف"
+CUSTOMER_STATEMENT_FORMAT = "بنود - كشف حساب عميل"
+CREDIT_SALE = "On Credit"
+MIXED_PAYMENT = "Mixed Payment"
+SETTLEMENT_METHODS = (CREDIT_SALE, "Cash", "Network", MIXED_PAYMENT)
 # Company has tax_id for VAT but nothing for the commercial registration;
 # this app adds the dedicated field so the letter head has one to read.
 # (Merged from the parallel session, 2026-08-26.)
@@ -55,14 +62,36 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 STOCK_STYLES = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome")
 
 FORMATS = [
+    # Integration v0.48.0: the seven pre-existing formats keep their official
+    # record names (the branch renamed بونود -> بنود without migrating the old
+    # records, which would list every format twice). New formats carry chrome.
+    # Shared bilingual A4 formats. These records were removed when the old main
+    # branch did not ship their include target; the template is now part of the
+    # app again, and both the release PDF matrix and finance verification use
+    # these stable names. Keep the Arabic ZATCA formats below as additional
+    # legal/POS choices rather than making Purchase Invoice fall back to stock.
+    {"name": "Bunood Purchase Invoice (A4)", "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html", "pdf_generator": "chrome"},
+    {"name": "Bunood Sales Invoice (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_a4.html", "pdf_generator": "chrome"},
     {"name": "بونود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
     {"name": "بونود - فاتورة ضريبية مبسطة (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html"},
     {"name": "بونود - فاتورة ضريبية (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
     {"name": "بونود - فاتورة مبسطة (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_thermal.html"},
     {"name": "بونود - فاتورة (نقطي)", "doctype": "Sales Invoice", "file": "sales_invoice_matrix.html"},
-    {"name": "بونود - سند قبض-صرف", "doctype": "Payment Entry", "file": "payment_entry_voucher.html"},
+    {"name": DEFAULT_QUOTATION_FORMAT, "doctype": "Quotation", "file": "quotation_a4.html", "pdf_generator": "chrome"},
+    {"name": DEFAULT_PAYMENT_FORMAT, "doctype": "Payment Entry", "file": "payment_entry_voucher.html"},
     {"name": "بونود - سند قيد", "doctype": "Journal Entry", "file": "journal_entry_voucher.html"},
+    {"name": CUSTOMER_STATEMENT_FORMAT, "report": "General Ledger", "file": "customer_statement.html", "pdf_generator": "chrome"},
 ]
+
+LEGACY_FORMAT_NAMES = {
+    "بونود - فاتورة ضريبية (A4)": DEFAULT_SALES_FORMAT,
+    "بونود - فاتورة ضريبية مبسطة (A4)": "بنود - فاتورة ضريبية مبسطة (A4)",
+    "بونود - فاتورة ضريبية (حراري 80مم)": "بنود - فاتورة ضريبية (حراري 80مم)",
+    "بونود - فاتورة مبسطة (حراري 80مم)": "بنود - فاتورة مبسطة (حراري 80مم)",
+    "بونود - فاتورة (نقطي)": "بنود - فاتورة (نقطي)",
+    "بونود - سند قبض-صرف": DEFAULT_PAYMENT_FORMAT,
+    "بونود - سند قيد": "بنود - سند قيد",
+}
 
 
 def _read(*parts, base=BASE):
@@ -73,7 +102,16 @@ def _read(*parts, base=BASE):
 
 
 def sync_print_theme():
-    """Create/refresh the Bunood Print Style + Print Formats + Letter Head."""
+    """Create/refresh the Bunood Print Style + Print Formats + Letter Head.
+
+    Integration v0.48.0: the capability's site-wide configuration steps --
+    ``_sync_pdf_generator`` (Print Settings engine -> chrome, repeat header),
+    ``adopt_business_print_formats`` (default formats), and the two
+    ``configure_*_for_mvp`` steps (Payment Entry mode reqd/Cash, Sales Invoice
+    settlement field) -- change tenant configuration outside the print theme and
+    are HELD pending the owner's approval. They stay defined and can be run
+    deliberately with ``bench execute``; migrate does not call them.
+    """
     try:
         _sync_style()
     except Exception:
@@ -104,11 +142,17 @@ def sync_print_theme():
 # sites volume so every container that renders a PDF sees the same directory;
 # see bunood_erpnext/compose.yaml. (Merged from the parallel session.)
 FONT_SUBDIR = os.path.join(".local", "share", "fonts")
-RIYAL_OTF = os.path.join("public", "fonts", "riyal", "bunood-riyal.otf")
+PRINT_FONT_FILES = (
+    os.path.join("public", "fonts", "riyal", "bunood-riyal.otf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-Regular.ttf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-Medium.ttf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-Bold.ttf"),
+    os.path.join("public", "fonts", "tajawal", "Tajawal-ExtraBold.ttf"),
+)
 
 
-def _install_riyal_font():
-    """Register the riyal face with fontconfig for the wkhtmltopdf path.
+def _install_print_fonts():
+    """Register the Bunood print faces with fontconfig for wkhtmltopdf.
 
     chrome takes the woff2 from the @font-face and needs none of this. Under
     wkhtmltopdf no @font-face can work at all: frappe injects
@@ -121,27 +165,32 @@ def _install_riyal_font():
     the riyal as a missing glyph under wkhtmltopdf -- exactly the old
     behaviour.
     """
-    src = os.path.join(os.path.dirname(BASE), RIYAL_OTF)
-    if not os.path.exists(src):
-        return
     dest_dir = os.path.join(frappe.utils.get_bench_path(), "sites", FONT_SUBDIR)
-    dest = os.path.join(dest_dir, os.path.basename(src))
     try:
-        with open(src, "rb") as fh:
-            want = fh.read()
-        if os.path.exists(dest):
-            with open(dest, "rb") as fh:
-                if fh.read() == want:
-                    return  # already current; keep this a true no-op
         os.makedirs(dest_dir, exist_ok=True)
-        with open(dest, "wb") as fh:
-            fh.write(want)
+        changed = False
+        for relative_path in PRINT_FONT_FILES:
+            src = os.path.join(os.path.dirname(BASE), relative_path)
+            if not os.path.exists(src):
+                continue
+            with open(src, "rb") as fh:
+                want = fh.read()
+            dest = os.path.join(dest_dir, os.path.basename(src))
+            if os.path.exists(dest):
+                with open(dest, "rb") as fh:
+                    if fh.read() == want:
+                        continue
+            with open(dest, "wb") as fh:
+                fh.write(want)
+            changed = True
+        if not changed:
+            return
         # Best effort: fontconfig rescans a stale directory on its own, so a
         # missing fc-cache costs a little startup time, not correctness.
         subprocess.run(["fc-cache", "-f", dest_dir], capture_output=True, timeout=60)
     except Exception:
         frappe.log_error(
-            title="bunood_theme: riyal font not registered with fontconfig",
+            title="bunood_theme: print fonts not registered with fontconfig",
             message=frappe.get_traceback(),
         )
 
@@ -163,10 +212,147 @@ def _is_displaceable(current):
     return bool(frappe.db.get_value("Print Style", current, "standard"))
 
 
+def _adopt_default_print_format(doctype: str, format_name: str) -> None:
+    """Adopt a managed format unless an administrator owns the override."""
+    if not frappe.db.exists("Print Format", format_name):
+        return
+    setter = frappe.db.get_value(
+        "Property Setter",
+        {"doc_type": doctype, "property": "default_print_format"},
+        ["name", "value", "is_system_generated", "doctype_or_field"],
+        as_dict=True,
+    )
+    if setter and not setter.is_system_generated:
+        return
+    if setter and setter.value == format_name and setter.doctype_or_field == "DocType":
+        return
+    frappe.make_property_setter(
+        {
+            "doctype": doctype,
+            "doctype_or_field": "DocType",
+            "property": "default_print_format",
+            "value": format_name,
+            "property_type": "Data",
+        },
+        is_system_generated=True,
+    )
+    frappe.clear_cache(doctype=doctype)
+
+
+def adopt_sales_invoice_print_format() -> None:
+    """Compatibility entry point retained for the existing v0.44.6 patch.
+
+    The setup wizard installs a system-generated Property Setter pointing to
+    ``Sales Invoice with Item Image``. Replacing that stock setter is safe;
+    any administrator-created (non-system) setter is preserved. The setter must
+    target ``DocType``: an empty-field ``DocField`` setter is persisted but never
+    reaches ``frappe.get_meta(...).default_print_format``.
+    """
+    _adopt_default_print_format("Sales Invoice", DEFAULT_SALES_FORMAT)
+
+
+def adopt_business_print_formats() -> None:
+    """Make every day-one commercial document open on the branded format."""
+    _adopt_default_print_format("Sales Invoice", DEFAULT_SALES_FORMAT)
+    _adopt_default_print_format("Quotation", DEFAULT_QUOTATION_FORMAT)
+    _adopt_default_print_format("Payment Entry", DEFAULT_PAYMENT_FORMAT)
+
+
+def configure_payment_entry_for_mvp() -> None:
+    """Require an explicit payment method and make Cash the safe first choice.
+
+    The account remains ERPNext's responsibility: choosing a mode resolves its
+    company mapping, while paid_from/paid_to remain visible in simple mode.
+    """
+    if not frappe.db.exists("DocType", "Payment Entry"):
+        return
+    for prop, value, property_type in (("reqd", "1", "Check"), ("default", "Cash", "Text")):
+        frappe.make_property_setter(
+            {
+                "doctype": "Payment Entry",
+                "fieldname": "mode_of_payment",
+                "property": prop,
+                "value": value,
+                "property_type": property_type,
+            },
+            is_system_generated=True,
+        )
+    frappe.clear_cache(doctype="Payment Entry")
+
+
+def configure_sales_invoice_for_mvp() -> None:
+    """Configure one truthful settlement choice for the invoice workbench.
+
+    ``On Credit`` and ``Mixed Payment`` are workflow choices, deliberately not
+    Mode of Payment masters. The first leaves ERPNext's receivable outstanding;
+    the second submits one Cash and one Network Payment Entry through the native
+    mapper and controller. Cash and Network are the actual payment methods
+    provisioned by :mod:`bunood_theme.payments`. A Select keeps unmapped or
+    accidental Mode of Payment records out of the sales UI, where they would
+    otherwise fail only after the operator tried to post.
+    """
+    if not frappe.db.exists("DocType", "Sales Invoice"):
+        return
+
+    # The stock Standard print format derives its columns from child metadata.
+    # Keep the human-facing name as the product identity there too; Bunood's
+    # managed formats retain the code as a quieter secondary reference.
+    if frappe.db.exists("DocType", "Sales Invoice Item"):
+        for fieldname, print_hide in (("item_name", "0"), ("item_code", "1")):
+            frappe.make_property_setter(
+                {
+                    "doctype": "Sales Invoice Item",
+                    "fieldname": fieldname,
+                    "property": "print_hide",
+                    "value": print_hide,
+                    "property_type": "Check",
+                },
+                is_system_generated=True,
+            )
+        frappe.clear_cache(doctype="Sales Invoice Item")
+
+    legacy_name = "Sales Invoice-bunood_payment_method"
+    if frappe.db.exists("Custom Field", legacy_name):
+        legacy = frappe.get_doc("Custom Field", legacy_name)
+        if not legacy.hidden:
+            legacy.hidden = 1
+            legacy.save(ignore_permissions=True)
+
+    name = "Sales Invoice-bunood_settlement_method"
+    values = {
+        "label": "Settlement Method",
+        "fieldtype": "Select",
+        "options": "\n".join(SETTLEMENT_METHODS),
+        "default": CREDIT_SALE,
+        "insert_after": "due_date",
+        "allow_on_submit": 1,
+        "description": "On Credit posts to Accounts Receivable. Cash or Network opens a native Payment Entry. Mixed Payment posts two native Payment Entries after explicit confirmation.",
+    }
+    if frappe.db.exists("Custom Field", name):
+        field = frappe.get_doc("Custom Field", name)
+        changed = False
+        for key, value in values.items():
+            if field.get(key) != value:
+                field.set(key, value)
+                changed = True
+        if changed:
+            field.save(ignore_permissions=True)
+    else:
+        frappe.get_doc(
+            {
+                "doctype": "Custom Field",
+                "dt": "Sales Invoice",
+                "fieldname": "bunood_settlement_method",
+                **values,
+            }
+        ).insert(ignore_permissions=True)
+    frappe.clear_cache(doctype="Sales Invoice")
+
+
 def _sync_style(settings=None):
     from bunood_theme.printing.sheet import print_css
 
-    _install_riyal_font()
+    _install_print_fonts()
     css = print_css(settings)
     if not css:
         # Stand-down: sheet.print_css already logged why. Never write emptiness
@@ -238,9 +424,10 @@ def _sync_letterhead(settings=None):
     this returns before touching anything.
     """
     from bunood_theme.email import RASTER_SUFFIXES, substitute, tokens
+    from bunood_theme.presets import PRINT_DEFAULTS
 
     doc = settings or frappe.get_cached_doc("Theme Settings")
-    pole = doc.get("print_letterhead") or "Bilingual Split"
+    pole = doc.get("print_letterhead") or PRINT_DEFAULTS["print_letterhead"]
     if pole not in LETTERHEAD_SLUGS:
         # "Frappe's own" — and any future value this table does not know reads
         # as a stand-down rather than a guess, the assembly doctrine.
@@ -354,14 +541,19 @@ def _adopt_letterhead_default():
 
 
 def _sync_format(spec):
-    # Skip formats whose doctype isn't installed on this site (app subsets).
-    if not frappe.db.exists("DocType", spec["doctype"]):
+    is_report = bool(spec.get("report"))
+    target = spec.get("report") if is_report else spec.get("doctype")
+    target_type = "Report" if is_report else "DocType"
+    if not target or not frappe.db.exists(target_type, target):
         return
 
     html = _read("formats", spec["file"], base=spec.get("dir", BASE))
     values = {
-        "doc_type": spec["doctype"],
-        "print_format_type": "Jinja",
+        "print_format_for": "Report" if is_report else "DocType",
+        # Report print formats use Frappe's client-side microtemplate engine;
+        # document formats use server-side Jinja. Mixing the two makes report
+        # templates fail validation before they ever reach the print dialog.
+        "print_format_type": "JS" if is_report else "Jinja",
         # custom_format=1 is REQUIRED: without it Frappe ignores `html` and
         # renders the generic standard layout (frappe/www/printview.py).
         "custom_format": 1,
@@ -369,17 +561,21 @@ def _sync_format(spec):
         "html": html,
         "disabled": 0,
         "default_print_language": "ar",
-        # Engine is resolved PER PRINT FORMAT by print_utils.get_print, never
-        # from Print Settings, and frappe ships a patch that stamps every
-        # format with "wkhtmltopdf" -- so this field is the only place the
-        # choice takes effect, and it is managed here so it self-heals on
-        # migrate. (Merged from the parallel session, which measured the
-        # chrome generator DROPPING the page footer on the same invoice --
-        # stock "Standard" loses its footer under chrome too, the control
-        # that settles it -- so chrome means no address, phone or email on
-        # any printout. wkhtmltopdf it is.)
-        "pdf_generator": "wkhtmltopdf",
+        # A Print Format overrides Print Settings, so each managed format must
+        # repeat the release engine explicitly. The production image includes
+        # Chromium and publishes chromium_path; wkhtmltopdf cannot resolve the
+        # tenant host inside the isolated backend container and fails downloads.
+        # Integration v0.48.0: official formats keep main's engine decision
+        # (wkhtmltopdf -- chrome was measured dropping the page footer). Only the
+        # capability's NEW formats, designed and regression-tested on chrome,
+        # declare it in their spec. Print Settings is not touched.
+        "pdf_generator": spec.get("pdf_generator", "wkhtmltopdf"),
     }
+    if is_report:
+        values["report"] = target
+        values["doc_type"] = None
+    else:
+        values["doc_type"] = target
     if frappe.db.exists("Module Def", MODULE):
         values["module"] = MODULE
 
@@ -393,6 +589,28 @@ def _sync_format(spec):
     else:
         pf = frappe.get_doc({"doctype": "Print Format", "name": spec["name"], **values})
         pf.insert(ignore_permissions=True, ignore_if_duplicate=True)
+
+
+def _sync_pdf_generator():
+    """Keep the site-wide fallback aligned with the release PDF engine.
+
+    Frappe uses this value for Standard and for every format without its own
+    engine selection. This stack deliberately ships Chromium only; allowing the
+    wkhtmltopdf default to survive makes an otherwise valid Print action fail at
+    the network-fetch stage. The compact managed letterhead cancels Frappe
+    v16's negative isolated-header margin, so the supported repeat mode can
+    carry the identity and page footer across every A4 page.
+    """
+    settings = frappe.get_single("Print Settings")
+    changed = False
+    if settings.meta.has_field("pdf_generator") and settings.pdf_generator != "chrome":
+        settings.pdf_generator = "chrome"
+        changed = True
+    if settings.meta.has_field("repeat_header_footer") and not settings.repeat_header_footer:
+        settings.repeat_header_footer = 1
+        changed = True
+    if changed:
+        settings.save(ignore_permissions=True)
 
 
 def resync_print_brand(settings=None):
