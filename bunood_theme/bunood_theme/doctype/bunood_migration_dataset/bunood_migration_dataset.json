@@ -1,0 +1,152 @@
+{
+ "actions": [],
+ "creation": "2026-09-20 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "dependency_stage",
+  "dataset_name",
+  "load_method",
+  "target_doctype",
+  "import_type",
+  "identity_rule_reference",
+  "duplicate_disposition",
+  "source_entity",
+  "source_snapshot_hash",
+  "source_row_count",
+  "mapping_version",
+  "source_owner",
+  "material_opening",
+  "reviewer",
+  "manifest_reference",
+  "profiling_reference",
+  "control_total_reference",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "dependency_stage",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Dependency stage",
+   "options": "01 — Company, fiscal year and legal identity\n02 — Chart, dimensions, tax and defaults\n03 — Units, groups, warehouses and dimensions\n04 — Customers, suppliers, addresses and terms\n05 — Items, variants, barcodes, serials and batches\n06 — Price lists, item prices and policies\n07 — Opening stock through native stock documents\n08 — Opening receivables and payables through native tools\n09 — Cash, bank, advances and remaining trial balance\n10 — Assets and other approved modules\n11 — Users, permissions, integrations and queues",
+   "reqd": 1
+  },
+  {
+   "fieldname": "dataset_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Dataset",
+   "reqd": 1
+  },
+  {
+   "fieldname": "load_method",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Native load path",
+   "options": "Data Import\nOpening Invoice Creation Tool\nStock Reconciliation\nJournal Entry or approved native opening\nManual controlled setup\nExternal archive only",
+   "reqd": 1
+  },
+  {
+   "fieldname": "target_doctype",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Target DocType",
+   "options": "DocType"
+  },
+  {
+   "fieldname": "import_type",
+   "fieldtype": "Select",
+   "label": "Import type",
+   "options": "\nInsert New Records\nUpdate Existing Records\nInsert or Update Records"
+  },
+  {
+   "description": "Controlled evidence that names the stable business identifiers used for matching. Display names alone are not an identity rule.",
+   "fieldname": "identity_rule_reference",
+   "fieldtype": "Small Text",
+   "label": "Approved identity rule reference"
+  },
+  {
+   "description": "Must agree with the native import type so an insert, update or mixed retry cannot silently change duplicate handling.",
+   "fieldname": "duplicate_disposition",
+   "fieldtype": "Select",
+   "label": "Duplicate disposition",
+   "options": "\nReject existing matches\nUpdate approved matches only\nInsert unmatched and update approved matches"
+  },
+  {
+   "fieldname": "source_entity",
+   "fieldtype": "Data",
+   "label": "Source entity"
+  },
+  {
+   "description": "Lowercase SHA-256 of the frozen source extract. Do not paste source data or credentials here.",
+   "fieldname": "source_snapshot_hash",
+   "fieldtype": "Data",
+   "label": "Source snapshot SHA-256"
+  },
+  {
+   "fieldname": "source_row_count",
+   "fieldtype": "Int",
+   "label": "Source rows",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "mapping_version",
+   "fieldtype": "Data",
+   "label": "Mapping version"
+  },
+  {
+   "fieldname": "source_owner",
+   "fieldtype": "Link",
+   "label": "Data owner",
+   "options": "User"
+  },
+  {
+   "default": "0",
+   "fieldname": "material_opening",
+   "fieldtype": "Check",
+   "label": "Material opening data"
+  },
+  {
+   "description": "Required for material opening data and must be different from the person submitting the packet.",
+   "fieldname": "reviewer",
+   "fieldtype": "Link",
+   "label": "Opening-data reviewer",
+   "options": "User"
+  },
+  {
+   "description": "Controlled location of the frozen extract manifest, not the source data itself.",
+   "fieldname": "manifest_reference",
+   "fieldtype": "Small Text",
+   "label": "Extract manifest reference"
+  },
+  {
+   "fieldname": "profiling_reference",
+   "fieldtype": "Small Text",
+   "label": "Profiling and mapping evidence"
+  },
+  {
+   "description": "Required for material opening data. Identify approved quantities, values or balances used later for reconciliation.",
+   "fieldname": "control_total_reference",
+   "fieldtype": "Small Text",
+   "label": "Approved control totals"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Migration Dataset",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "idx",
+ "sort_order": "ASC",
+ "states": []
+}
