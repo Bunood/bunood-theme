@@ -108,6 +108,7 @@ const ENTRIES = [
 	// properties and nothing rtlcss-processes an inline Print Style), carrying
 	// `assertPrintSafeCss` instead — see that guard for the whole argument.
 	{ key: "bunood-print", src: "print/print.scss", pyid: "PRINT_CSS" },
+	{ key: "bnd-pos", src: "pos_workbench.scss", pyid: "POS_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -2053,6 +2054,7 @@ const JS_ENTRIES = [
 	{ key: "bnd-report", src: "report_workbench.js", pyid: "REPORT_JS" },
 	// Report Studio is page-scoped: its route loads this hashed asset on demand.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
 	// Loaded only by _auth_context. It keeps the public login bilingual without
 	// shipping the desk bundle or Frappe's full website navbar to that page.
 	{ key: "bunood-auth", src: "bunood_auth.js", pyid: "AUTH_JS" },

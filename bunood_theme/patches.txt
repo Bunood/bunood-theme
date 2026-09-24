@@ -134,3 +134,10 @@ bunood_theme.patches.v0_11_0.heal_unknown_placements
 # off, and a new default-on Check would have put one back. Asks the neighbour
 # it sits beside: density off means this site did not ask for width either.
 bunood_theme.patches.v0_46_1.width_follows_density
+
+# Retail setup and exact SAR halala totals on existing sites.
+bunood_theme.patches.v0_46_11.pos_payment_ledgers
+bunood_theme.patches.v0_46_12.exact_halala_totals
+bunood_theme.patches.v0_46_33.network_mode_english
+bunood_theme.patches.v0_46_34.payment_account_recovery
+bunood_theme.patches.v0_46_35.cash_customer_defaults

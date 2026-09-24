@@ -268,6 +268,11 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_studio_js = STUDIO_JS
 
+        from bunood_theme.assets import POS_CSS, POS_JS
+
+        bootinfo.bnd_pos_css = POS_CSS
+        bootinfo.bnd_pos_js = POS_JS
+
         # Frappe's query-report controller is a preloaded standard page, so its
         # Page record hook is never fetched on route entry. Expose the separately
         # hashed enhancement here; bunood.js requests it only for query-report.

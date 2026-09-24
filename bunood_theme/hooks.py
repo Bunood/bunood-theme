@@ -167,11 +167,20 @@ doc_events = {
         "after_delete": "bunood_theme.api.clear_workspace_cache",
     },
     "Sales Invoice": {
-        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
+        "validate": [
+            "bunood_theme.rounding.enforce_exact_halalas",
+            "bunood_theme.tax_validation.validate_invoice_taxes",
+        ],
         "before_print": "bunood_theme.zatca.print_guard.before_print",
     },
     "Purchase Invoice": {
-        "validate": "bunood_theme.tax_validation.validate_invoice_taxes",
+        "validate": [
+            "bunood_theme.rounding.enforce_exact_halalas",
+            "bunood_theme.tax_validation.validate_invoice_taxes",
+        ],
+    },
+    "POS Invoice": {
+        "validate": "bunood_theme.rounding.enforce_exact_halalas",
     },
 }
 

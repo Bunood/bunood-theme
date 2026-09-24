@@ -293,6 +293,18 @@ def after_install() -> None:
     # an install, and defaults are claimed only from vacancy (a stock print
     # style, a site with no default letter head).
     sync_print_theme()
+    from bunood_theme.payments import ensure_pos_payment_setup
+    from bunood_theme.cash_customer import ensure_cash_customer_defaults
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+    from bunood_theme.pos_permissions import ensure_pos_operator_permissions
+    from bunood_theme.pos import ensure_pos_hold_field, ensure_pos_reference_field
+
+    ensure_pos_payment_setup()
+    ensure_cash_customer_defaults()
+    ensure_exact_halala_defaults()
+    ensure_pos_operator_permissions()
+    ensure_pos_reference_field()
+    ensure_pos_hold_field()
     print("\n✅ Bunood Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
@@ -307,6 +319,13 @@ def after_setup_wizard(_args=None) -> None:
     stock/default style. A later administrator choice remains untouched.
     """
     sync_print_theme()
+    from bunood_theme.payments import ensure_pos_payment_setup
+    from bunood_theme.cash_customer import ensure_cash_customer_defaults
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+
+    ensure_pos_payment_setup()
+    ensure_cash_customer_defaults()
+    ensure_exact_halala_defaults()
     try:
         from bunood_theme.printing.install import (
             STYLE_NAME,
@@ -581,6 +600,18 @@ def after_migrate() -> None:
     # (drift self-heals; local edits to MANAGED records are overwritten by
     # design — duplicate a format to customize, see printing/README.md).
     sync_print_theme()
+    from bunood_theme.payments import ensure_pos_payment_setup
+    from bunood_theme.cash_customer import ensure_cash_customer_defaults
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+    from bunood_theme.pos_permissions import ensure_pos_operator_permissions
+    from bunood_theme.pos import ensure_pos_hold_field, ensure_pos_reference_field
+
+    ensure_pos_payment_setup()
+    ensure_cash_customer_defaults()
+    ensure_exact_halala_defaults()
+    ensure_pos_operator_permissions()
+    ensure_pos_reference_field()
+    ensure_pos_hold_field()
     # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
     # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
     # .rtl_patch now reaches them at RENDER time (see that module and
