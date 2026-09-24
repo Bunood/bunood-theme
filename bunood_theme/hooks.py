@@ -47,6 +47,13 @@ app_include_css = [THEME_CSS]
 # build.mjs like the CSS.
 app_include_js = [THEME_JS]
 
+# ERPNext's Stock Entry setup reads two Stock Settings values for Stock Users,
+# who normally cannot open that configuration form. Scope the adapter to the
+# Stock Entry form and keep the server read field- and permission-bounded.
+doctype_js = {
+    "Stock Entry": "public/js/stock_entry_compat.js",
+}
+
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
 # Each entry below is enabled in the commit that ships its file.
