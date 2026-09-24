@@ -2054,6 +2054,7 @@ const JS_ENTRIES = [
 	// page frappe.require()s it on first visit — the global desk payload pays
 	// nothing. Still a plain hashed copy: the no-esbuild policy holds.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
 ];
 
 /**

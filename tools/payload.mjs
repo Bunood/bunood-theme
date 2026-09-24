@@ -70,6 +70,8 @@ const BUCKETS = [
 	// frappe.require()s it, so it rides its own ceiling — the desk bundle's
 	// budget stays exactly the bytes every desk user pays.
 	{ dir: ["js"], prefix: "bnd-studio.", key: "studio_js" },
+	// The bank-reconciliation page loads this bundle only when opened.
+	{ dir: ["js"], prefix: "bnd-banking.", key: "banking_js" },
 ];
 
 export function measure() {
@@ -116,7 +118,10 @@ export function measure() {
  * would bound a number no single page ever pays, and would break every
  * history row's comparability at the release that introduced a second sheet.
  */
-export const CEILING_KEYS = ["css_gzip", "js_gzip", "studio_js_gzip", "web_css_gzip", "email_css_gzip", "print_css_gzip"];
+export const CEILING_KEYS = [
+	"css_gzip", "js_gzip", "studio_js_gzip", "banking_js_gzip",
+	"web_css_gzip", "email_css_gzip", "print_css_gzip",
+];
 
 /**
  * Compare the just-built bundle's gzip bytes against the ceiling. Pure: no

@@ -1714,3 +1714,32 @@ def composer_pages() -> dict:
     pages.append(form_page("ticket", _("Helpdesk ticket"), "HD Ticket", _("Helpdesk is not installed.")))
     pages.append(form_page("crm", _("CRM deal"), "CRM Deal", _("CRM is not installed.")))
     return {"pages": pages}
+
+
+@frappe.whitelist()
+def bank_reconciliation_workbench(
+    company: str,
+    bank_account: str | None = None,
+    from_date=None,
+    to_date=None,
+) -> dict:
+    """Permission-filtered preflight for native bank reconciliation."""
+    from bunood_theme.banking import get_bank_reconciliation_workbench
+
+    return get_bank_reconciliation_workbench(
+        company=company,
+        bank_account=bank_account,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def create_bank_statement_import(company: str, bank_account: str) -> dict:
+    """Create a native Bank Statement Import draft with native permissions."""
+    from bunood_theme.banking import prepare_bank_statement_import
+
+    return prepare_bank_statement_import(
+        company=company,
+        bank_account=bank_account,
+    )
