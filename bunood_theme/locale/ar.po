@@ -7609,3 +7609,353 @@ msgstr "لا توجد تقارير تطابق بحثك."
 #, fuzzy
 msgid "Retry"
 msgstr "إعادة المحاولة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Import the bank statement, then return here to review the unmatched queue."
+msgstr "استورد كشف الحساب البنكي، ثم عد إلى هنا لمراجعة قائمة المعاملات غير المطابقة."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Import the statement, review unmatched transactions, then finish the accounting in ERPNext's native reconciliation workspace."
+msgstr "استورد كشف الحساب، وراجع المعاملات غير المطابقة، ثم أكمل المعالجة المحاسبية في مساحة التسوية الأصلية في ERPNext."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Try again, or use the native banking workspace."
+msgstr "حاول مرة أخرى، أو استخدم مساحة عمل البنوك الأصلية."
+
+#. src: capability/banking
+#, fuzzy
+msgid "0–30 days"
+msgstr "من 0 إلى 30 يومًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "31–60 days"
+msgstr "من 31 إلى 60 يومًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "61–90 days"
+msgstr "من 61 إلى 90 يومًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Age"
+msgstr "العمر"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Allocated"
+msgstr "المخصص"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Bank reconciliation"
+msgstr "تسوية الحساب البنكي"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Bank transaction"
+msgstr "معاملة بنكية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Banking actions"
+msgstr "إجراءات الحساب البنكي"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Banking evidence could not be loaded"
+msgstr "تعذر تحميل أدلة تسوية الحساب البنكي"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Before this period"
+msgstr "قبل هذه الفترة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Book net movement"
+msgstr "صافي الحركة الدفترية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Bunood summarizes evidence. ERPNext remains the accounting system of record."
+msgstr "تعرض بنود ملخص الأدلة، ويظل ERPNext نظام السجل المحاسبي المعتمد."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Cash and bank control"
+msgstr "ضبط النقد والبنوك"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Choose a bank account"
+msgstr "اختر حسابًا بنكيًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Choose a company and period first"
+msgstr "اختر الشركة والفترة أولًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Choose an active company bank account"
+msgstr "اختر حسابًا بنكيًا نشطًا للشركة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Company and bank account are required"
+msgstr "الشركة والحساب البنكي مطلوبان"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Company bank account"
+msgstr "حساب الشركة البنكي"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Company is required"
+msgstr "الشركة مطلوبة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Create or enable a company bank account before importing a statement."
+msgstr "أنشئ حسابًا بنكيًا للشركة أو فعّله قبل استيراد كشف الحساب."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Date"
+msgstr "التاريخ"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Debit minus credit; not a reconciliation difference"
+msgstr "المدين ناقص الدائن؛ وليس فرق تسوية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "From date must be before or equal to To date"
+msgstr "يجب أن يكون تاريخ البداية قبل تاريخ النهاية أو مساويًا له"
+
+#. src: capability/banking
+#, fuzzy
+msgid "From date"
+msgstr "من تاريخ"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Import bank statement"
+msgstr "استيراد كشف حساب بنكي"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Imported deposits"
+msgstr "الإيداعات المستوردة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Imported withdrawals"
+msgstr "المسحوبات المستوردة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Loading bank reconciliation evidence…"
+msgstr "جارٍ تحميل أدلة تسوية الحساب البنكي…"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Maximum reconciliation period in days: {0}"
+msgstr "الحد الأقصى لفترة التسوية بالأيام: {0}"
+
+#. src: capability/banking
+#, fuzzy
+msgid "No company bank account is available"
+msgstr "لا يتوفر حساب بنكي للشركة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "No open imported transactions in this period."
+msgstr "لا توجد معاملات مستوردة مفتوحة في هذه الفترة."
+
+#. src: capability/banking
+#, fuzzy
+msgid "No open imported transactions"
+msgstr "لا توجد معاملات مستوردة مفتوحة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "No recent native statement import records were found for this account."
+msgstr "لم يُعثر على سجلات حديثة لاستيراد كشف الحساب الأصلي لهذا الحساب."
+
+#. src: capability/banking
+#, fuzzy
+msgid "No statement transactions in this period"
+msgstr "لا توجد معاملات كشف حساب في هذه الفترة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Not available"
+msgstr "غير متاح"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Older open items"
+msgstr "البنود المفتوحة الأقدم"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Only the first 200 open transactions are shown. Use the native workspace for the full queue."
+msgstr "تُعرض أول 200 معاملة مفتوحة فقط. استخدم مساحة العمل الأصلية لعرض القائمة كاملة."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Open bank accounts"
+msgstr "فتح الحسابات البنكية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Open general ledger"
+msgstr "فتح الأستاذ العام"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Open reconciliation workspace"
+msgstr "فتح مساحة عمل التسوية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Open statement amount"
+msgstr "المبلغ المفتوح في كشف الحساب"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Open transaction ageing"
+msgstr "أعمار المعاملات المفتوحة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Open transactions"
+msgstr "المعاملات المفتوحة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Over 90 days"
+msgstr "أكثر من 90 يومًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Period summary"
+msgstr "ملخص الفترة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Preparing the native statement import…"
+msgstr "جارٍ إعداد استيراد كشف الحساب الأصلي…"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Recent statement imports"
+msgstr "عمليات استيراد كشف الحساب الأخيرة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Reconciliation filters"
+msgstr "مرشحات التسوية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Reconciliation work is waiting"
+msgstr "توجد أعمال تسوية معلّقة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Review period"
+msgstr "مراجعة الفترة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Review the open statement transactions and finish their matches in the native workspace."
+msgstr "راجع معاملات كشف الحساب المفتوحة وأكمل مطابقتها في مساحة العمل الأصلية."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Review the period and continue in the native workspace."
+msgstr "راجع الفترة وتابع العمل في مساحة العمل الأصلية."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Select a bank account"
+msgstr "اختر حسابًا بنكيًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Select the company account whose statement you want to review."
+msgstr "اختر حساب الشركة الذي تريد مراجعة كشفه."
+
+#. src: capability/banking
+#, fuzzy
+msgid "Statement amount"
+msgstr "مبلغ كشف الحساب"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Statement movement in"
+msgstr "الحركة الواردة في كشف الحساب"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Statement movement out"
+msgstr "الحركة الصادرة في كشف الحساب"
+
+#. src: capability/banking
+#, fuzzy
+msgid "The banking workspace bundle is not registered. Rebuild the theme assets."
+msgstr "حزمة مساحة عمل البنوك غير مسجلة. أعد بناء ملفات السمة."
+
+#. src: capability/banking
+#, fuzzy
+msgid "The banking workspace failed to load. Check the browser console."
+msgstr "تعذر تحميل مساحة عمل البنوك. راجع وحدة تحكم المتصفح."
+
+#. src: capability/banking
+#, fuzzy
+msgid "This bank account is unavailable for the selected company"
+msgstr "هذا الحساب البنكي غير متاح للشركة المحددة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "This is not a close approval. Review book-only entries and complete the native reconciliation before signing off."
+msgstr "هذه ليست موافقة إقفال. راجع القيود الدفترية غير الموجودة في الكشف وأكمل التسوية الأصلية قبل الاعتماد."
+
+#. src: capability/banking
+#, fuzzy
+msgid "To date"
+msgstr "إلى تاريخ"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Transaction"
+msgstr "المعاملة"
+
+#. src: capability/banking
+#, fuzzy
+msgid "Unmatched and partially matched transactions"
+msgstr "المعاملات غير المطابقة والمطابقة جزئيًا"
+
+#. src: capability/banking
+#, fuzzy
+msgid "View bank transactions"
+msgstr "عرض المعاملات البنكية"
+
+#. src: capability/banking
+#, fuzzy
+msgid "You do not have permission to import bank statements"
+msgstr "ليست لديك صلاحية استيراد كشوف الحساب البنكي"
+
+#. src: capability/banking
+#, fuzzy
+msgid "You do not have permission to read bank transactions"
+msgstr "ليست لديك صلاحية عرض المعاملات البنكية"

@@ -2058,6 +2058,7 @@ const JS_ENTRIES = [
 	// nothing. Still a plain hashed copy: the no-esbuild policy holds.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
 	{ key: "bnd-report-landing", src: "report_landing.js", pyid: "REPORT_LANDING_JS" },
+	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
 ];
 
 // Capability controllers stay testable as focused source files while shipping
