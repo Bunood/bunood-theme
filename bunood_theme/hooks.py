@@ -47,10 +47,15 @@ app_include_css = [THEME_CSS]
 # build.mjs like the CSS.
 app_include_js = [THEME_JS]
 
-# Explain native reference-field constraints without replacing validation.
+# Form-scoped adapters, one registry (each capability adds its own key).
+# Warehouse/Country: explain native reference-field constraints without
+# replacing validation. Stock Entry: ERPNext's setup reads two Stock Settings
+# values for Stock Users, who normally cannot open that configuration form;
+# the adapter keeps the server read field- and permission-bounded.
 doctype_js = {
     "Warehouse": "public/js/reference_field_guidance.js",
     "Country": "public/js/reference_field_guidance.js",
+    "Stock Entry": "public/js/stock_entry_compat.js",
 }
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
