@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"Capability branch: the banking workbench adds a route-scoped JavaScript bundle and its scoped rules to the Desk CSS. Measured Desk CSS is 40,326 gzip bytes, so its ceiling moves from 40,000 to 40,500; the banking bundle is capped at 5,000.",
 		"The payload budget (GUIDELINES §2.5). `ceiling` is a HARD gate on the",
 		"built bundle's gzip bytes — tools/payload.mjs --check fails when the",
 		"build crosses it, and the suite runs that check on every verify.",
@@ -182,8 +183,9 @@
 		"AND js 127100 -> 128700 for item 45's width control beside density: the per-user width axis (bnd_body_width, under the personal_comfort lock), its cycle derived from the body kit's own slug map, the status-bar segment gated on both the segment field and the lock, the Appearance dialog's row and preview, and the boot resync that stops BOTH cycles reading a stale seed after a dialog save. ~1350 gzip after the prose was cut to pointers. The layer is not a choice: the status bar is on every desk, so an icon there that wrote Theme Settings would throw for everyone but a System Manager."
 	],
 	"ceiling": {
-		"css_gzip": 40000,
+		"css_gzip": 40500,
 		"js_gzip": 187000,
+		"banking_js_gzip": 5000,
 		"web_css_gzip": 4900,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000

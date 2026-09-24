@@ -268,6 +268,11 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_studio_js = STUDIO_JS
 
+        # Banking workbench is loaded only on its Page route.
+        from bunood_theme.assets import BANKING_JS
+
+        bootinfo.bnd_banking_js = BANKING_JS
+
         # Frappe's query-report controller is a preloaded standard page, so its
         # Page record hook is never fetched on route entry. Expose the separately
         # hashed enhancement here; bunood.js requests it only for query-report.
