@@ -24,6 +24,66 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.48.0] — 2026-09-25 — eleven capabilities, integrated onto the deployed line
+
+The eleven `capability/main/*` branches (MrBrokenrightArm, 2026-09-24), each one
+commit on top of v0.47.1, merged one at a time onto the deployed baseline and
+adapted to it. Takes the next free MINOR, as item 46 took v0.47.0. Nothing from
+the `capability/production/*` line (base `18209bd`, 52 unreviewed commits) or
+from `snapshot/localhost-8088-20260924` is in this release.
+
+### Added
+
+- **Commercial documents:** `Bunood Sales Invoice (A4)` and `Bunood Purchase
+  Invoice (A4)` (`templates/bunood_invoice_a4.html`), a Quotation A4, a
+  Customer Statement (General Ledger report format), `vat.py`, and the
+  print-language choice on the print preview. The four new formats render on
+  chrome; they are offered, not made default.
+- **Report surfaces:** a searchable Reports dashboard (route-loaded), Report
+  Studio search / "All reports" / a11y states with its styles moved out of the
+  global sheet into `bnd-studio.css`, and the read-only `bnd-banking`,
+  `bnd-finance-close` and `bnd-journal-workbench` pages with their shortcuts on
+  the Reports workspace.
+- **Forms and lists:** quick-filter queues on Sales Invoice and Quotation lists;
+  the shared form action bar as an OPT-IN third value of `form_foot`
+  ("Action Bar") — the default and every tenant's current choice are unchanged.
+- **Reference guidance:** Warehouse account and Country code descriptions; a
+  field-bounded, permission-checked Stock Settings read for Stock Entry.
+- **Onboarding and migration core:** 8 DocTypes, 4 namespaced roles with no
+  DocPerm, hidden read-only Custom Fields on Project, Task and Data Import.
+- **POS and quick sale:** the pages, bundles and modules — inert (see Held).
+
+### Kept as on v0.47.1 (adaptations)
+
+- The seven official print formats, their record names (بونود) and their
+  wkhtmltopdf engine, and `bunood_print_macros.html`, byte for byte. The
+  letterhead honours `print_title_lang`: "Both", every existing tenant's value,
+  renders the official bilingual identity.
+- Print Settings, default print formats, Payment Entry and Sales Invoice
+  configuration, Global Defaults rounding, Modes of Payment.
+- `ar.csv` is re-emitted from `locale/ar.po`; the capability branches had edited
+  only the generated CSV. 757 new PO entries are `#, fuzzy` pending review.
+
+### Held — in the code, not run, each needs the owner's approval
+
+- printing: `_sync_pdf_generator` (Print Settings -> chrome + repeat header),
+  `adopt_business_print_formats`, `configure_payment_entry_for_mvp`,
+  `configure_sales_invoice_for_mvp`; patch `v0_46_10.follow_print_language`.
+- pos-retail: `setup.ensure_pos_retail()` (payment modes and ledgers, cash
+  customer, POS Operator role and Custom DocPerms, POS fields, exact-halala
+  defaults); the `enforce_exact_halalas` validate hook on Sales/Purchase/POS
+  Invoice; patches `v0_46_11/12/33/34/35` (incl. renaming شبكة -> Network).
+- Missing on this line: `printing/amount_words.py` (Arabic SAR words fall back
+  to ERPNext's wording) and `verification/finance_matrix.py`.
+
+### Verified
+
+Build reproducible (dist clean), payload within every ceiling, contrast, i18n
+coverage (2000 strings), 13 JS and 106 Python test files. `bench migrate` on the
+local bench (0.46.7 -> this tree): exit 0, no new Error Log, the held settings
+unchanged; official and new invoices rendered to PDF in Arabic and English. The
+migrate found the Reports workspace `modified` stamp unbumped (fixed).
+
 ## [0.47.1] — 2026-09-20 — the studio dresses like the desk (patch)
 
 ### Fixed — the August wardrobe, retired
