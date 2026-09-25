@@ -79,7 +79,10 @@ def bunood_amount_in_words(amount, currency, precision=2):
 
     words = frappe.utils.money_in_words(abs(amount), currency)
     if currency == "SAR":
-        words = words.replace("SAR", "Saudi riyals")
+        # Arabic prints reach here only while amount_words is absent (see the
+        # import above); ERPNext's Arabic wording then needs an Arabic unit.
+        unit = "ريال سعودي" if bunood_print_language() == "ar" else "Saudi riyals"
+        words = words.replace("SAR", unit)
     return (frappe._("Negative") + " " if amount < 0 else "") + words
 
 
