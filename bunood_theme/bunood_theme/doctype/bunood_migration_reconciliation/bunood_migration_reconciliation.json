@@ -1,0 +1,367 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:BND-MREC-{YYYY}-{#####}",
+ "creation": "2026-09-20 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "overview_tab",
+  "claim_notice",
+  "title",
+  "migration_run",
+  "company",
+  "control_state",
+  "column_break_overview",
+  "candidate_reference",
+  "cutover_at",
+  "material_opening_present",
+  "environment_section",
+  "source_site",
+  "source_database_digest",
+  "column_break_environment",
+  "reconciliation_site",
+  "reconciliation_database_digest",
+  "evidence_tab",
+  "rehearsal_count",
+  "rehearsal_digest",
+  "scope_digest",
+  "rehearsal_snapshot",
+  "controls_section",
+  "controls_notice",
+  "controls",
+  "summary_section",
+  "applicable_controls",
+  "exact_controls",
+  "variance_controls",
+  "column_break_summary",
+  "not_applicable_controls",
+  "pending_controls",
+  "review_tab",
+  "authority_confirmed",
+  "qualification_basis",
+  "decision_reason",
+  "evidence_reference",
+  "receipt_section",
+  "prepared_by",
+  "prepared_at",
+  "column_break_receipt",
+  "reviewer",
+  "reviewed_at",
+  "receipt_digest",
+  "result_snapshot"
+ ],
+ "fields": [
+  {
+   "fieldname": "overview_tab",
+   "fieldtype": "Tab Break",
+   "label": "Reconciliation"
+  },
+  {
+   "description": "This evidence packet compares approved source controls with permissioned native reports on the isolated rehearsal database. It is not a parallel ledger or production approval.",
+   "fieldname": "claim_notice",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted\">Use the same company, currency, sign convention, cutover time and report filters on both sides. A submitted receipt preserves exact controls or owned variances; it never authorizes production cutover.</p>"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Reconciliation title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "migration_run",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Migration run",
+   "options": "Bunood Migration Run",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "default": "draft",
+   "fieldname": "control_state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Control state",
+   "options": "draft\nexception\nreconciled",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_overview",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "candidate_reference",
+   "fieldtype": "Small Text",
+   "label": "Candidate reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "cutover_at",
+   "fieldtype": "Datetime",
+   "label": "Cutover at",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "material_opening_present",
+   "fieldtype": "Check",
+   "label": "Material opening data present",
+   "read_only": 1
+  },
+  {
+   "fieldname": "environment_section",
+   "fieldtype": "Section Break",
+   "label": "Environment boundary"
+  },
+  {
+   "fieldname": "source_site",
+   "fieldtype": "Data",
+   "label": "Source site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_database_digest",
+   "fieldtype": "Data",
+   "label": "Source database digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_environment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reconciliation_site",
+   "fieldtype": "Data",
+   "label": "Reconciliation site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reconciliation_database_digest",
+   "fieldtype": "Data",
+   "label": "Reconciliation database digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "evidence_tab",
+   "fieldtype": "Tab Break",
+   "label": "Evidence"
+  },
+  {
+   "fieldname": "rehearsal_count",
+   "fieldtype": "Int",
+   "label": "Successful rehearsals",
+   "read_only": 1
+  },
+  {
+   "description": "SHA-256 of every successful dataset rehearsal receipt used by this packet.",
+   "fieldname": "rehearsal_digest",
+   "fieldtype": "Data",
+   "label": "Rehearsal evidence digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scope_digest",
+   "fieldtype": "Data",
+   "label": "Scope digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rehearsal_snapshot",
+   "fieldtype": "Code",
+   "hidden": 1,
+   "label": "Canonical rehearsal snapshot",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "controls_section",
+   "fieldtype": "Section Break",
+   "label": "Source-to-native controls"
+  },
+  {
+   "description": "The starter rows are summaries, not sufficient detail by themselves. Add rows for each required company, account, currency, party, item, warehouse, batch, ageing bucket or accounting dimension.",
+   "fieldname": "controls_notice",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted\">Record the approved source total, the matching native report value, and the exact filters used. Add dimension-level rows where the source control is split. Record zero—not a blank—when zero is the approved value.</p>"
+  },
+  {
+   "fieldname": "controls",
+   "fieldtype": "Table",
+   "label": "Reconciliation controls",
+   "options": "Bunood Migration Control Result",
+   "reqd": 1
+  },
+  {
+   "fieldname": "summary_section",
+   "fieldtype": "Section Break",
+   "label": "Control summary"
+  },
+  {
+   "fieldname": "applicable_controls",
+   "fieldtype": "Int",
+   "label": "Applicable controls",
+   "read_only": 1
+  },
+  {
+   "fieldname": "exact_controls",
+   "fieldtype": "Int",
+   "label": "Exact controls",
+   "read_only": 1
+  },
+  {
+   "fieldname": "variance_controls",
+   "fieldtype": "Int",
+   "label": "Controls with variance",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_summary",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "not_applicable_controls",
+   "fieldtype": "Int",
+   "label": "Not-applicable controls",
+   "read_only": 1
+  },
+  {
+   "fieldname": "pending_controls",
+   "fieldtype": "Int",
+   "label": "Pending controls",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_tab",
+   "fieldtype": "Tab Break",
+   "label": "Review and receipt"
+  },
+  {
+   "default": "0",
+   "description": "Confirms authority to review this evidence only; it is not production go-live approval.",
+   "fieldname": "authority_confirmed",
+   "fieldtype": "Check",
+   "label": "I confirm my reconciliation authority"
+  },
+  {
+   "fieldname": "qualification_basis",
+   "fieldtype": "Small Text",
+   "label": "Qualification and authority basis"
+  },
+  {
+   "fieldname": "decision_reason",
+   "fieldtype": "Small Text",
+   "label": "Reconciliation conclusion"
+  },
+  {
+   "description": "Protected folder, report pack or audit reference; do not paste personal data or credentials.",
+   "fieldname": "evidence_reference",
+   "fieldtype": "Data",
+   "label": "Protected evidence pack reference"
+  },
+  {
+   "fieldname": "receipt_section",
+   "fieldtype": "Section Break",
+   "label": "Immutable receipt"
+  },
+  {
+   "fieldname": "prepared_by",
+   "fieldtype": "Link",
+   "label": "Prepared by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "prepared_at",
+   "fieldtype": "Datetime",
+   "label": "Prepared at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_receipt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reviewer",
+   "fieldtype": "Link",
+   "label": "Reviewed by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_at",
+   "fieldtype": "Datetime",
+   "label": "Reviewed at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "receipt_digest",
+   "fieldtype": "Data",
+   "label": "Receipt digest",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "result_snapshot",
+   "fieldtype": "Code",
+   "label": "Canonical reconciliation snapshot",
+   "options": "JSON",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Migration Reconciliation",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Bunood Migration Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "migration_run,company,control_state,reconciliation_site",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1,
+ "track_seen": 1
+}

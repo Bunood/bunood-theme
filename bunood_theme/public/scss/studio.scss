@@ -1,0 +1,5 @@
+// Report Studio owns this route-scoped sheet. Its Page controller loads the
+// styles before rendering, so intrinsic SVG dimensions and report tables never
+// flash while unrelated Desk routes avoid paying the payload cost.
+@use "tokens";
+@use "surfaces/studio";

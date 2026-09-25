@@ -108,6 +108,10 @@ const ENTRIES = [
 	// properties and nothing rtlcss-processes an inline Print Style), carrying
 	// `assertPrintSafeCss` instead — see that guard for the whole argument.
 	{ key: "bunood-print", src: "print/print.scss", pyid: "PRINT_CSS" },
+	{ key: "bnd-report-landing", src: "report_landing.scss", pyid: "REPORT_LANDING_CSS" },
+	// Report Studio is styled only on its own page, before the renderer mounts.
+	{ key: "bnd-studio", src: "studio.scss", pyid: "STUDIO_CSS" },
+	{ key: "bnd-pos", src: "pos_workbench.scss", pyid: "POS_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -2054,7 +2058,24 @@ const JS_ENTRIES = [
 	// page frappe.require()s it on first visit — the global desk payload pays
 	// nothing. Still a plain hashed copy: the no-esbuild policy holds.
 	{ key: "bnd-studio", src: "report_studio.js", pyid: "STUDIO_JS" },
+	{ key: "bnd-report-landing", src: "report_landing.js", pyid: "REPORT_LANDING_JS" },
+	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
+	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
+	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
+	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
 ];
+
+// Capability controllers stay testable as focused source files while shipping
+// with the global desk entry, concatenated in this order after bunood.js:
+// list_presets.js (native list quick-filter queues) and document_actions.js
+// (the shared native-form action contract). Invoice workbenches are separate.
+const DESK_JS_SOURCES = ["bunood.js", "list_presets.js", "document_actions.js"];
+
+async function readDeskJs() {
+	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))
+		.join("\n")
+		.replace(/\r\n/g, "\n");
+}
 
 /**
  * Hash and copy one JS entry to dist, reaping older hashes of the same entry.
@@ -2065,7 +2086,7 @@ async function buildJsEntry({ key, src, pyid }) {
 	// Normalize to LF before hashing: a CRLF Windows checkout and CI's LF
 	// checkout must produce the SAME content hash, or the dist-drift gate
 	// fails on every push made from Windows (CI run #1 did exactly that).
-	const source = (await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
+	const source = (key === "bunood" ? await readDeskJs() : await readFile(join(JS, src), "utf8")).replace(/\r\n/g, "\n");
 	const digest = hash8(source);
 	const filename = `${key}.${digest}.js`;
 

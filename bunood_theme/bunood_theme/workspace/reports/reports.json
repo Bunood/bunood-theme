@@ -1,7 +1,7 @@
 {
  "app": "bunood_theme",
  "charts": [],
- "content": "[{\"id\":\"bndReportsHead\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Report Studio\",\"col\":4}},{\"id\":\"bndReportsVat\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return\",\"col\":4}},{\"id\":\"bndReportsStmt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Statement of Account\",\"col\":4}}]",
+ "content": "[{\"id\":\"bndBanking\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bank Reconciliation\",\"col\":4}},{\"id\":\"bndClose\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Finance and close\",\"col\":4}},{\"id\":\"bndJournal\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Journal workbench\",\"col\":4}},{\"id\":\"bndReportsHead\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Report Studio\",\"col\":4}},{\"id\":\"bndReportsVat\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return\",\"col\":4}},{\"id\":\"bndReportsStmt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Statement of Account\",\"col\":4}}]",
  "creation": "2026-08-27 13:30:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -14,7 +14,7 @@
  "is_hidden": 0,
  "label": "Reports",
  "links": [],
- "modified": "2026-08-27 13:30:00.000000",
+ "modified": "2026-09-25 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Reports",
@@ -27,6 +27,27 @@
  "roles": [],
  "sequence_id": 3.0,
  "shortcuts": [
+  {
+   "color": "Green",
+   "doc_view": "",
+   "label": "Finance and close",
+   "link_to": "bnd-finance-close",
+   "type": "Page"
+  },
+  {
+   "color": "Green",
+   "doc_view": "",
+   "label": "Journal workbench",
+   "link_to": "bnd-journal-workbench",
+   "type": "Page"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "",
+   "label": "Bank Reconciliation",
+   "link_to": "bnd-banking",
+   "type": "Page"
+  },
   {
    "color": "Blue",
    "doc_view": "",

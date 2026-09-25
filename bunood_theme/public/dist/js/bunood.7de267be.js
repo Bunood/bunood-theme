@@ -1371,7 +1371,7 @@
 				["header", "form_header", { "Original": "", "Title Block": "title", "Highlights Band": "facts", "Hero Band": "band" }],
 				["tone", "form_header_tone", { "Tinted": "tint", "Brand-dark": "dark" }],
 				["stage", "form_stage", { "Off": "", "Status Path": "path" }],
-				["foot", "form_foot", { "Off": "", "Pinned Bar": "pinned" }],
+				["foot", "form_foot", { "Off": "", "Pinned Bar": "pinned", "Action Bar": "actions" }],
 			],
 			check: ["ckreveal", "form_grid_checkbox_reveal"],
 			// The drawer (item 43 A6) and the header (A8a) are MOUNTS: an
@@ -1881,6 +1881,118 @@
 	}
 
 	// ── The foot bar (item 43 A8c) — mount 3 of 3 ─────────────────────────
+	// Native and Advanced forms share one action edge. Simple invoice and task
+	// workbenches already own their toolbar and stand this one down.
+	// Opt-in (integration v0.48.0): the bar is the `Action Bar` value of the same
+	// `form_foot` picker that offers the Pinned Bar, so the shipped default and
+	// every existing tenant's choice keep the forms exactly as they were.
+	function docbar_wanted(frm) {
+		const wrapper = frm?.$wrapper?.[0];
+		return document.documentElement.getAttribute("data-bnd-form-foot") === "actions" &&
+			!wrapper?.classList.contains("bnd-bill-simple-active") &&
+			!wrapper?.classList.contains("bnd-composed-simple-active");
+	}
+
+	function docbar_sync(frm, bar) {
+		const actions = bunood.document_actions;
+		if (!actions || !bar.isConnected) return;
+		const state = actions.actionState(frm);
+		const commit = actions.canSaveAndSubmit(frm);
+		const native = frm.page.btn_primary?.[0];
+		const primary = bar.querySelector(".bnd-form-actionbar-primary");
+		const nativeLabel = native?.textContent?.trim() || "";
+		primary.textContent = commit ? __("Save and submit") : nativeLabel;
+		primary.hidden = !commit && (!nativeLabel || native?.classList.contains("hide"));
+		primary.disabled = bar.dataset.busy === "true" || !!native?.disabled;
+		for (const print of bar.querySelectorAll(".bnd-form-actionbar-print, .bnd-form-actionbar-menu-print")) print.hidden = !state.showPrint;
+		bar.querySelector(".bnd-form-actionbar-draft").hidden = !commit || !state.showSave;
+		bar.querySelector(".bnd-form-actionbar-new").hidden = !state.showNew;
+		bar.querySelector(".bnd-form-actionbar-name").textContent = frm.doc?.__islocal ? __(frm.doctype) : (frm.doc?.name || __(frm.doctype));
+		bar.querySelector(".bnd-form-actionbar-state").textContent = __(actions.documentState(frm).label);
+	}
+
+	function mount_docbar(frm) {
+		if (!frm?.page?.main?.[0] || !frm.meta || frm.meta.istable) return;
+		const main = frm.page.main[0];
+		const wrapper = frm.$wrapper?.[0];
+		if (wrapper && !frm.__bnd_docbar_mode_mo && typeof MutationObserver !== "undefined") {
+			frm.__bnd_docbar_mode_mo = new MutationObserver(() => {
+				mount_docbar(frm);
+				mount_docfoot(frm);
+			});
+			frm.__bnd_docbar_mode_mo.observe(wrapper, { attributes: true, attributeFilter: ["class"] });
+		}
+		let bar = main.querySelector(":scope > .bnd-form-actionbar");
+		if (!docbar_wanted(frm)) {
+			bar?.remove();
+			frm.__bnd_docbar_mo?.disconnect();
+			frm.__bnd_docbar_mo = null;
+			bnd_disown("docbar");
+			return;
+		}
+		if (!bar) {
+			bar = el("section", "bnd-form-actionbar", { role: "toolbar", "aria-label": __("Document actions") });
+			const identity = el("div", "bnd-form-actionbar-identity");
+			identity.append(el("strong", "bnd-form-actionbar-name"), el("span", "bnd-form-actionbar-state"));
+			const controls = el("div", "bnd-form-actionbar-actions");
+			const primary = el("button", "bnd-form-actionbar-primary btn btn-primary", { type: "button" });
+			primary.addEventListener("click", async () => {
+				if (bar.dataset.busy === "true") return;
+				const contract = bunood.document_actions;
+				if (!contract?.canSaveAndSubmit(frm)) {
+					frm.page.btn_primary?.trigger("click");
+					return;
+				}
+				bar.dataset.busy = "true";
+				docbar_sync(frm, bar);
+				try { await contract.saveAndSubmit(frm); }
+				finally { bar.dataset.busy = "false"; docbar_sync(frm, bar); }
+			});
+			const print = el("button", "bnd-form-actionbar-print btn btn-default", { type: "button" });
+			print.textContent = __("Print");
+			print.addEventListener("click", () => frm.print_doc());
+			const more = el("details", "bnd-form-actionbar-more");
+			const summary = el("summary", "btn btn-default");
+			summary.textContent = __("Document actions");
+			const menu = el("div", "bnd-form-actionbar-menu");
+			const menuPrint = el("button", "bnd-form-actionbar-menu-print", { type: "button" });
+			menuPrint.textContent = __("Print");
+			menuPrint.addEventListener("click", () => { more.open = false; frm.print_doc(); });
+			const draft = el("button", "bnd-form-actionbar-draft", { type: "button" });
+			draft.textContent = __("Save draft");
+			draft.addEventListener("click", () => { more.open = false; frm.save("Save"); });
+			const next = el("button", "bnd-form-actionbar-new", { type: "button" });
+			next.textContent = __("New");
+			next.addEventListener("click", () => { more.open = false; frappe.new_doc(frm.doctype); });
+			menu.append(menuPrint, draft, next);
+			more.append(summary, menu);
+			more.addEventListener("keydown", event => {
+				if (event.key === "Escape") { more.open = false; summary.focus(); }
+			});
+			controls.append(primary, print, more);
+			bar.append(identity, controls);
+			main.prepend(bar);
+			bar.addEventListener("focusout", event => {
+				if (!bar.contains(event.relatedTarget)) more.open = false;
+			});
+		}
+		docbar_sync(frm, bar);
+		bnd_own("docbar");
+		if (!frm.__bnd_docbar_mo && frm.page.page_actions?.[0] && typeof MutationObserver !== "undefined") {
+			let queued = false;
+			frm.__bnd_docbar_mo = new MutationObserver(() => {
+				if (queued) return;
+				queued = true;
+				requestAnimationFrame(() => { queued = false; if (bar.isConnected) docbar_sync(frm, bar); });
+			});
+			frm.__bnd_docbar_mo.observe(frm.page.page_actions[0], { attributes: true, childList: true, subtree: true, characterData: true });
+		}
+	}
+	document.addEventListener("pointerdown", event => {
+		const open = window.cur_frm?.page?.main?.[0]?.querySelector(":scope > .bnd-form-actionbar details[open]");
+		if (open && !open.contains(event.target)) open.open = false;
+	}, true);
+
 	// `form_foot` = Pinned Bar: a fixed bar above the bottom chrome — LIFTED by
 	// whatever chrome is already there (the status bar, the dock), measured at
 	// mount and on resize, never declared — carrying the page's primary action
@@ -1947,7 +2059,7 @@
 		if (!frm || !frm.page || !frm.meta || frm.meta.istable || !frm.page.wrapper || !frm.page.wrapper[0]) return;
 		const page = frm.page.wrapper[0];
 		let foot = page.querySelector(":scope > .bnd-docfoot");
-		const wanted = docfoot_wanted() && !!(frm.page.btn_primary && frm.page.btn_primary.length);
+		const wanted = docfoot_wanted() && !page.querySelector(".bnd-form-actionbar") && !!(frm.page.btn_primary && frm.page.btn_primary.length);
 		if (!wanted) {
 			if (foot) foot.remove();
 			if (frm.__bnd_foot_mo) {
@@ -2027,6 +2139,7 @@
 	function sync_form_mounts() {
 		if (!window.cur_frm) return;
 		mount_dochead(window.cur_frm);
+		mount_docbar(window.cur_frm);
 		mount_docfoot(window.cur_frm);
 		mount_drawer(window.cur_frm);
 	}
@@ -2038,6 +2151,7 @@
 		frappe.ui.form.on("*", {
 			refresh: (frm) => {
 				mount_dochead(frm);
+				mount_docbar(frm);
 				mount_docfoot(frm);
 				mount_drawer(frm);
 				// The dirty tick. Namespaced and `.off()`-first — `refresh` runs
@@ -9397,6 +9511,64 @@ function sb_zone_anchor(pane, zone, node) {
 	 * slice 2c every container answers for itself and a layout is a preset that
 	 * wrote those settings at the moment it was picked.
 	 */
+	function sync_print_language_choice(field) {
+		const input = field?.querySelector("input");
+		const group = field?.querySelector(".bnd-print-language");
+		if (!input || !group) return;
+		const selected = String(field.querySelector(".control-value [data-value]")?.dataset.value || input.value || "")
+			.toLowerCase().split("-")[0];
+		for (const button of group.querySelectorAll("button[data-language]")) {
+			button.setAttribute("aria-pressed", String(button.dataset.language === selected));
+		}
+	}
+
+	function mount_print_language_choice() {
+		const route = frappe.get_route ? frappe.get_route() || [] : [];
+		const sidebar = document.querySelector(".print-preview-sidebar");
+		if (route[0] !== "print" && !sidebar) return true;
+		const field = sidebar?.querySelector('[data-fieldname="language"]');
+		const input = field?.querySelector("input");
+		if (!input || !input.value) return false;
+
+		let group = field.querySelector(".bnd-print-language");
+		if (!group) {
+			group = document.createElement("div");
+			group.className = "bnd-print-language";
+			group.setAttribute("role", "group");
+			group.setAttribute("aria-label", __("Language"));
+			for (const [code, label, dir] of [["en", "English", "ltr"], ["ar", "العربية", "rtl"]]) {
+				const button = document.createElement("button");
+				button.type = "button";
+				button.className = "bnd-print-language__option";
+				button.dataset.language = code;
+				button.lang = code;
+				button.dir = dir;
+				button.textContent = label;
+				button.addEventListener("click", () => {
+					if (input.value !== code) {
+						if (window.jQuery) window.jQuery(input).val(code).trigger("change");
+						else {
+							input.value = code;
+							input.dispatchEvent(new Event("change", { bubbles: true }));
+						}
+					}
+					sync_print_language_choice(field);
+				});
+				group.append(button);
+			}
+			field.append(group);
+			field.classList.add("bnd-print-language-ready");
+			const sync = () => setTimeout(() => sync_print_language_choice(field));
+			if (window.jQuery) {
+				window.jQuery(input).on("change.bndPrintLanguage", sync);
+				window.jQuery(sidebar.querySelector('[data-fieldname="print_format"] input'))
+					.on("change.bndPrintLanguage", sync);
+			} else input.addEventListener("change", sync);
+		}
+		sync_print_language_choice(field);
+		return true;
+	}
+
 	function mount_chrome() {
 		// Not "which containers", and since item 37 not the attribute either:
 		// empty means boot failed or the theme is inactive, and a stock desk
@@ -9501,6 +9673,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// The notification kit owns the bell (and the badge Frappe lacks).
 		mount_inbox();
 		stamp_appearance_route();
+		try_for(mount_print_language_choice, 40, 150);
 		apply_home_route();
 
 		// THE PANE STAYS ON THE ALL APPS DESK PAGE (the user, 2026-09-08). Frappe's
@@ -9545,6 +9718,7 @@ function sb_zone_anchor(pane, zone, node) {
 				// routes to Appearance — so the claim on Frappe's Display item is
 				// re-measured rather than assumed (item 38).
 				stamp_appearance_route();
+				try_for(mount_print_language_choice, 40, 150);
 				sb_resolve_workspace_from_route();
 				// The settings map (item 43 B3) is the first pane part that is
 				// conditional on the ROUTE, so the ladder alone cannot place it:
@@ -9579,6 +9753,28 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
+	// The Reports dashboard is fetched only on its workspace. If the optional
+	// bundle cannot load, the native workspace stays visible and usable.
+	let report_landing_loading = null;
+	function load_reports_dashboard() {
+		const route = frappe.get_route?.() || [];
+		if (route[0] !== "Workspaces" || route[1] !== "Reports") return false;
+		if (bunood.report_landing_loaded || report_landing_loading) return true;
+		const css = frappe.boot?.bnd_report_landing_css;
+		const js = frappe.boot?.bnd_report_landing_js;
+		if (!css || !js || typeof frappe.require !== "function") return false;
+		report_landing_loading = Promise.resolve(frappe.require([css, js]))
+			.catch(error => console.error("Reports dashboard assets failed to load", error))
+			.finally(() => { report_landing_loading = null; });
+		return true;
+	}
+	try_for(() => {
+		if (!window.frappe?.boot || !frappe.router?.on) return false;
+		frappe.router.on("change", load_reports_dashboard);
+		load_reports_dashboard();
+		return true;
+	}, 80, 150);
+
 	// The desk is built by Frappe's JS after DOMContentLoaded with no single
 	// "shell ready" event, so wait for its anchor elements with a bounded
 	// poll, then mount. If the desk never appears (website page, login), the
@@ -9590,4 +9786,279 @@ function sb_zone_anchor(pane, zone, node) {
 		mount_chrome();
 		return true;
 	}, 80, 150);
+})();
+
+/* global frappe, __ */
+(() => {
+	"use strict";
+	const api = window.bunood_theme = window.bunood_theme || {};
+
+	function localToday() {
+		if (frappe.datetime?.get_today) return frappe.datetime.get_today();
+		const now = new Date();
+		const pad = value => String(value).padStart(2, "0");
+		return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+	}
+
+	function addDays(date, days) {
+		if (frappe.datetime?.add_days) return frappe.datetime.add_days(date, days);
+		const value = new Date(`${date}T12:00:00`);
+		value.setDate(value.getDate() + days);
+		return value.toISOString().slice(0, 10);
+	}
+
+	function presetsFor(doctype, today = localToday()) {
+		const monthStart = `${today.slice(0, 8)}01`;
+		if (doctype === "Sales Invoice") {
+			return [
+				{ key: "draft", label: "Draft", tone: "neutral", filters: [["docstatus", "=", 0]] },
+				{ key: "unpaid", label: "Unpaid", tone: "info", filters: [["docstatus", "=", 1], ["status", "in", ["Unpaid", "Unpaid and Discounted"]]] },
+				{ key: "partially_paid", label: "Partially paid", tone: "warning", filters: [["docstatus", "=", 1], ["status", "in", ["Partly Paid", "Partly Paid and Discounted"]]] },
+				{ key: "overdue", label: "Overdue", tone: "danger", filters: [["docstatus", "=", 1], ["outstanding_amount", ">", 0], ["due_date", "<", today]] },
+				{ key: "paid", label: "Paid", tone: "success", filters: [["docstatus", "=", 1], ["status", "=", "Paid"]] },
+				{ key: "this_month", label: "This month", tone: "accent", filters: [["posting_date", "between", [monthStart, today]]] },
+			];
+		}
+		if (doctype === "Quotation") {
+			return [
+				{ key: "draft", label: "Draft", tone: "neutral", filters: [["docstatus", "=", 0]] },
+				{ key: "awaiting_response", label: "Awaiting response", tone: "info", filters: [["docstatus", "=", 1], ["status", "=", "Open"]] },
+				{ key: "expiring_soon", label: "Expiring soon", tone: "warning", filters: [["docstatus", "=", 1], ["status", "in", ["Open", "Replied"]], ["valid_till", "between", [today, addDays(today, 7)]]] },
+				{ key: "converted", label: "Converted", tone: "success", filters: [["docstatus", "=", 1], ["status", "in", ["Partially Ordered", "Ordered"]]] },
+				{ key: "lost", label: "Lost", tone: "danger", filters: [["docstatus", "=", 1], ["status", "=", "Lost"]] },
+			];
+		}
+		return [];
+	}
+
+	function normalizedFilters(doctype, preset) {
+		return (preset?.filters || []).map(filter => [doctype, ...filter]);
+	}
+
+	function comparable(value) {
+		return JSON.stringify(value, (_key, item) => typeof item === "number" ? String(item) : item);
+	}
+
+	function containsFilters(actual, expected) {
+		const rows = (actual || []).map(filter => filter.length === 3 ? ["", ...filter] : filter);
+		return expected.every(wanted => rows.some(filter =>
+			filter[1] === wanted[1] &&
+			String(filter[2]) === String(wanted[2]) &&
+			comparable(filter[3]) === comparable(wanted[3])
+		));
+	}
+
+	function activeKey(listview, presets = presetsFor(listview?.doctype)) {
+		const actual = listview?.filter_area?.get?.() || [];
+		if (!actual.length) return "all";
+		const match = presets.find(preset => containsFilters(actual, normalizedFilters(listview.doctype, preset)));
+		return match?.key || "";
+	}
+
+	async function applyPreset(listview, preset) {
+		if (!listview?.filter_area) return [];
+		const filters = normalizedFilters(listview.doctype, preset);
+		await listview.filter_area.clear(false);
+		if (filters.length) await listview.filter_area.set(filters);
+		await listview.refresh();
+		return filters;
+	}
+
+	function mount(listview) {
+		const presets = presetsFor(listview?.doctype);
+		const pageForm = listview?.page?.page_form?.[0] || listview?.page?.page_form;
+		if (!presets.length || !pageForm?.parentElement || typeof document === "undefined") return null;
+
+		let nav = pageForm.parentElement.querySelector(`:scope > .bnd-list-presets[data-doctype="${listview.doctype}"]`);
+		if (!nav) {
+			nav = document.createElement("nav");
+			nav.className = "bnd-list-presets";
+			nav.dataset.doctype = listview.doctype;
+			nav.setAttribute("aria-label", __("Quick filters"));
+			pageForm.before(nav);
+		}
+
+		nav.replaceChildren();
+		const label = document.createElement("span");
+		label.className = "bnd-list-presets-label";
+		label.textContent = __("Quick filters");
+		nav.appendChild(label);
+
+		const current = activeKey(listview, presets);
+		for (const preset of [{ key: "all", label: "All", tone: "neutral", filters: [] }, ...presets]) {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = `bnd-list-preset is-${preset.tone}`;
+			button.dataset.presetKey = preset.key;
+			button.textContent = __(preset.label);
+			button.setAttribute("aria-pressed", String(current === preset.key));
+			button.addEventListener("click", async () => {
+				nav.setAttribute("aria-busy", "true");
+				for (const item of nav.querySelectorAll("button")) item.disabled = true;
+				try {
+					await applyPreset(listview, preset);
+				} finally {
+					nav.removeAttribute("aria-busy");
+					for (const item of nav.querySelectorAll("button")) item.disabled = false;
+				}
+			});
+			nav.appendChild(button);
+		}
+		return nav;
+	}
+
+	function register(settings, doctype) {
+		if (!settings || settings.__bnd_list_presets) return;
+		const nativeOnload = settings.onload;
+		const nativeBeforeRender = settings.before_render;
+		let current;
+		settings.onload = function (listview) {
+			const result = nativeOnload?.call(this, listview);
+			current = listview;
+			mount(listview);
+			return result;
+		};
+		settings.before_render = function () {
+			const result = nativeBeforeRender?.apply(this, arguments);
+			if (current?.doctype === doctype) mount(current);
+			return result;
+		};
+		settings.__bnd_list_presets = true;
+	}
+
+	api.list_presets = { activeKey, applyPreset, containsFilters, mount, normalizedFilters, presetsFor, register };
+})();
+
+// Shared form-action contract. State and labels stay presentation-only; the
+// one-step commit delegates persistence and submission to native frm methods.
+/* global __ */
+(() => {
+	"use strict";
+	const api = window.bunood_theme = window.bunood_theme || {};
+
+	const TONES = new Map([
+		["draft", "neutral"], ["not saved", "neutral"],
+		["submitted", "info"], ["posted", "info"], ["open", "info"],
+		["sent", "accent"],
+		["partially paid", "warning"], ["partly paid", "warning"], ["expired", "warning"],
+		["paid", "success"], ["completed", "success"], ["ordered", "success"], ["converted", "success"],
+		["overdue", "danger"], ["lost", "danger"],
+		["cancelled", "cancelled"], ["canceled", "cancelled"],
+	]);
+
+	function permitted(frm, type) {
+		try {
+			if (typeof frm?.has_perm === "function") return !!frm.has_perm(type);
+		} catch (_error) { /* Native action still validates permission at invocation. */ }
+		const permission = frm?.perm?.[0];
+		return permission && Object.hasOwn(permission, type) ? !!permission[type] : true;
+	}
+
+	function documentState(frm) {
+		const doc = frm?.doc || {};
+		const status = Number(doc.docstatus);
+		let label;
+		if (status === 2) label = "Cancelled";
+		else if (status === 0) label = "Draft";
+		else if (frm?.doctype === "Sales Invoice") {
+			const native = String(doc.status || "").trim();
+			if (/overdue/i.test(native)) label = "Overdue";
+			else if (Number(doc.outstanding_amount) <= 0 && doc.outstanding_amount != null) label = "Paid";
+			else if (Number(doc.paid_amount) > 0) label = "Partially paid";
+			else label = native || "Submitted";
+		} else {
+			label = String(doc.status || "").trim() || "Submitted";
+		}
+		const key = label.toLocaleLowerCase("en");
+		return { label, tone: TONES.get(key) || (status === 1 ? "info" : "neutral") };
+	}
+
+	function actionState(frm, options = {}) {
+		const doc = frm?.doc || {};
+		const status = Number(doc.docstatus);
+		const local = !!doc.__islocal;
+		const dirty = typeof frm?.is_dirty === "function" ? !!frm.is_dirty() : false;
+		const draft = status === 0;
+		const showSave = draft && (local || dirty) && !frm?.save_disabled && permitted(frm, local ? "create" : "write");
+		const showSubmit = draft && !local && !dirty && !!frm?.meta?.is_submittable && permitted(frm, "submit");
+		const showCreateInvoice = status === 1 && !!options.canCreateInvoice;
+		const showRecordPayment = status === 1 && !!options.canRecordPayment && Number(doc.outstanding_amount) !== 0;
+		const showPrintReceipt = frm?.doctype === "Payment Entry" && status === 1 && !local;
+		const primary = showSave ? "save" : showSubmit ? "submit" : showCreateInvoice ? "create-invoice" :
+			showRecordPayment ? "record-payment" : showPrintReceipt ? "print" : "";
+		return {
+			primary,
+			showSave,
+			showSubmit,
+			showCreateInvoice,
+			showRecordPayment,
+			showNew: permitted(frm, "create"),
+			showPrint: !local,
+			showDuplicate: !local && permitted(frm, "create"),
+			showDelete: draft && !local && permitted(frm, "delete"),
+			showCancel: status === 1 && !!frm?.meta?.is_submittable && permitted(frm, "cancel"),
+		};
+	}
+
+	function canSaveAndSubmit(frm) {
+		const local = !!frm?.doc?.__islocal;
+		return Number(frm?.doc?.docstatus) === 0 && !!frm?.meta?.is_submittable &&
+			!frm?.save_disabled && permitted(frm, "submit") && permitted(frm, local ? "create" : "write");
+	}
+
+	function submitWithoutConfirmation(frm) {
+		// The button itself is the user's submit decision. Accept only Frappe's
+		// exact submit prompt; other confirmations (including custom validation)
+		// must still reach the native dialog.
+		const nativeConfirm = frappe.confirm;
+		if (typeof nativeConfirm !== "function") return Promise.resolve(frm.savesubmit());
+		const prompt = __("Permanently Submit {0}?", [frm.docname]);
+		let accepted = false;
+		frappe.confirm = function (message, yes) {
+			if (!accepted && message === prompt) {
+				accepted = true;
+				return yes();
+			}
+			return nativeConfirm.apply(this, arguments);
+		};
+		try { return Promise.resolve(frm.savesubmit()); }
+		finally { frappe.confirm = nativeConfirm; }
+	}
+
+	async function saveAndSubmit(frm) {
+		if (!canSaveAndSubmit(frm)) return false;
+		if (frm.doc.__islocal || frm.is_dirty?.()) {
+			// Native save can leave its promise pending after a mandatory-field
+			// failure. Check first, then verify persistence before submitting.
+			if (typeof frappe.ui?.form?.check_mandatory === "function" &&
+				!frappe.ui.form.check_mandatory(frm)) return false;
+			await frm.save("Save");
+			if (typeof frappe.after_ajax === "function") await frappe.after_ajax();
+			if (frm.doc.__islocal || frm.is_dirty?.() || Number(frm.doc.docstatus) !== 0) return false;
+		}
+		return submitWithoutConfirmation(frm);
+	}
+
+	function decorateAction(button, { label, key = "", icon = "" } = {}) {
+		if (icon) {
+			const iconNode = document.createElement("span");
+			iconNode.className = "bnd-bill-action-icon";
+			iconNode.innerHTML = frappe.utils.icon(icon, "sm");
+			iconNode.setAttribute("aria-hidden", "true");
+			button.append(iconNode);
+		}
+		const labelNode = document.createElement("span");
+		labelNode.className = "bnd-bill-action-label";
+		labelNode.textContent = label;
+		button.append(labelNode);
+		if (key) {
+			const keyNode = document.createElement("kbd");
+			keyNode.textContent = key;
+			button.append(keyNode);
+			button.setAttribute("aria-keyshortcuts", key);
+		}
+		return button;
+	}
+
+	api.document_actions = { actionState, canSaveAndSubmit, saveAndSubmit, submitWithoutConfirmation, decorateAction, documentState, permitted };
 })();

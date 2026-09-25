@@ -269,10 +269,28 @@ def extend_bootinfo(bootinfo):
         # the stale-assets.json trap ARCHITECTURE.md documents. Behaviour flag
         # territory, not appearance — the flash rule does not apply, since the
         # studio only exists after a navigation.
-        from bunood_theme.assets import STUDIO_JS
+        from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
 
         bootinfo.bnd_studio_js = STUDIO_JS
+        bootinfo.bnd_studio_css = STUDIO_CSS
 
+        from bunood_theme.assets import REPORT_LANDING_CSS, REPORT_LANDING_JS
+
+        bootinfo.bnd_report_landing_css = REPORT_LANDING_CSS
+        bootinfo.bnd_report_landing_js = REPORT_LANDING_JS
+        # Banking workbench is loaded only on its Page route.
+        from bunood_theme.assets import BANKING_JS
+
+        bootinfo.bnd_banking_js = BANKING_JS
+        # Accounting workbenches load only on their dedicated Page routes.
+        from bunood_theme.assets import FINANCE_CLOSE_JS, JOURNAL_WORKBENCH_JS
+
+        bootinfo.bnd_finance_close_js = FINANCE_CLOSE_JS
+        bootinfo.bnd_journal_workbench_js = JOURNAL_WORKBENCH_JS
+        from bunood_theme.assets import POS_CSS, POS_JS
+
+        bootinfo.bnd_pos_css = POS_CSS
+        bootinfo.bnd_pos_js = POS_JS
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them

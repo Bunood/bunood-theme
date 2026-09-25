@@ -32,6 +32,47 @@ See ARCHITECTURE.md section 10.
 import frappe
 from frappe import _
 
+
+STOCK_ENTRY_SETTING_FIELDS = frozenset(
+    {"sample_retention_warehouse", "disable_serial_no_and_batch_selector"}
+)
+
+
+@frappe.whitelist()
+def get_stock_entry_setting(fieldname: str):
+    """Return one non-secret native setting required by the Stock Entry UI."""
+
+    if fieldname not in STOCK_ENTRY_SETTING_FIELDS:
+        frappe.throw("Unsupported Stock Entry setting", frappe.PermissionError)
+    if not frappe.has_permission("Stock Entry", "read"):
+        frappe.throw("Not permitted to read Stock Entry settings", frappe.PermissionError)
+    value = frappe.db.get_single_value("Stock Settings", fieldname)
+    if (
+        fieldname == "sample_retention_warehouse"
+        and value
+        and not frappe.has_permission("Warehouse", "read", value)
+    ):
+        return None
+    return value
+
+
+@frappe.whitelist(methods=["GET"])
+def get_report_studio_assets() -> dict:
+    """Return current immutable assets for a Desk session with stale boot hashes."""
+
+    from bunood_theme.assets import STUDIO_CSS, STUDIO_JS
+
+    return {"css": STUDIO_CSS, "js": STUDIO_JS}
+
+
+@frappe.whitelist(methods=["GET"])
+def get_pos_assets() -> dict:
+    """Return current immutable cashier assets for long-lived Desk sessions."""
+
+    from bunood_theme.assets import POS_CSS, POS_JS
+
+    return {"css": POS_CSS, "js": POS_JS}
+
 # ── Cache keys ──────────────────────────────────────────────────────────────────
 # Namespaced so a bench-wide redis flush of our keys never touches Frappe's.
 CACHE_WS_MAP = "bnd_doctype_workspace_map"
@@ -1714,3 +1755,112 @@ def composer_pages() -> dict:
     pages.append(form_page("ticket", _("Helpdesk ticket"), "HD Ticket", _("Helpdesk is not installed.")))
     pages.append(form_page("crm", _("CRM deal"), "CRM Deal", _("CRM is not installed.")))
     return {"pages": pages}
+
+
+@frappe.whitelist()
+def bank_reconciliation_workbench(
+    company: str,
+    bank_account: str | None = None,
+    from_date=None,
+    to_date=None,
+) -> dict:
+    """Permission-filtered preflight for native bank reconciliation."""
+    from bunood_theme.banking import get_bank_reconciliation_workbench
+
+    return get_bank_reconciliation_workbench(
+        company=company,
+        bank_account=bank_account,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def create_bank_statement_import(company: str, bank_account: str) -> dict:
+    """Create a native Bank Statement Import draft with native permissions."""
+    from bunood_theme.banking import prepare_bank_statement_import
+
+    return prepare_bank_statement_import(
+        company=company,
+        bank_account=bank_account,
+    )
+
+
+@frappe.whitelist()
+def journal_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native Journal Entry work queues."""
+    from bunood_theme.journal_workbench import get_journal_workbench
+
+    return get_journal_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
+
+@frappe.whitelist()
+def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native close evidence."""
+    from bunood_theme.finance_close import get_finance_close_cockpit
+
+    return get_finance_close_cockpit(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+@frappe.whitelist()
+def start_readiness_review(company: str) -> dict:
+    from bunood_theme.readiness_work import start_readiness_review as start
+
+    return start(company)
+
+
+@frappe.whitelist()
+def prepare_readiness_decision(company: str, domain: str) -> dict:
+    from bunood_theme.readiness_review import prepare_readiness_decision as prepare
+
+    return prepare(company, domain)
+
+
+@frappe.whitelist()
+def prepare_native_data_import(run_name: str, dataset_row_name: str) -> dict:
+    from bunood_theme.migration_scope import prepare_native_data_import as prepare
+
+    return prepare(run_name, dataset_row_name)
+
+
+@frappe.whitelist()
+def prepare_corrected_migration_packet(
+    run_name: str, prior_rehearsal_receipt_digest: str, correction_reason: str
+) -> dict:
+    from bunood_theme.migration_scope import prepare_corrected_migration_packet as prepare
+
+    return prepare(run_name, prior_rehearsal_receipt_digest, correction_reason)
+
+
+@frappe.whitelist()
+def start_isolated_migration_rehearsal(run_name: str, dataset_row_name: str) -> dict:
+    from bunood_theme.migration_rehearsal import start_isolated_migration_rehearsal as start
+
+    return start(run_name, dataset_row_name)
+
+
+@frappe.whitelist()
+def capture_isolated_migration_rehearsal(rehearsal_name: str) -> dict:
+    from bunood_theme.migration_rehearsal import capture_isolated_migration_rehearsal as capture
+
+    return capture(rehearsal_name)
+
+
+@frappe.whitelist()
+def download_isolated_migration_failed_rows(rehearsal_name: str):
+    from bunood_theme.migration_rehearsal import download_isolated_migration_failed_rows as download
+
+    return download(rehearsal_name)
+
+
+@frappe.whitelist()
+def prepare_migration_reconciliation(rehearsal_name: str) -> dict:
+    from bunood_theme.migration_reconciliation import prepare_migration_reconciliation as prepare
+
+    return prepare(rehearsal_name)

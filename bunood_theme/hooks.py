@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.47.1"
+app_version = "0.48.0"
 
 required_apps = []
 
@@ -46,6 +46,23 @@ app_include_css = [THEME_CSS]
 # Density override applier + user-menu toggle (checklist item 4). Hashed by
 # build.mjs like the CSS.
 app_include_js = [THEME_JS]
+
+# Form-scoped adapters, one registry (each capability adds its own key).
+# Warehouse/Country: explain native reference-field constraints without
+# replacing validation. Stock Entry: ERPNext's setup reads two Stock Settings
+# values for Stock Users, who normally cannot open that configuration form;
+# the adapter keeps the server read field- and permission-bounded.
+doctype_js = {
+    "Warehouse": "public/js/reference_field_guidance.js",
+    "Country": "public/js/reference_field_guidance.js",
+    "Stock Entry": "public/js/stock_entry_compat.js",
+}
+
+# Native Sales Invoice and Quotation list quick-filter queues.
+doctype_list_js = {
+    "Quotation": "public/js/quotation_list.js",
+    "Sales Invoice": "public/js/sales_invoice_list.js",
+}
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
@@ -118,6 +135,10 @@ doc_events = {
         # cached map; drop it when a DocType's icon could have changed.
         "on_update": "bunood_theme.api.clear_icon_cache",
     },
+    # Integration v0.48.0: HELD -- pos-retail's validate hook
+    # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
+    # Invoice would switch every new invoice to exact-halala totals (no
+    # whole-riyal rounding). Register it only with the owner's approval.
 }
 
 # ── Print Jinja helpers ─────────────────────────────────────────────────────────
@@ -140,6 +161,9 @@ doc_events = {
 # /rtl_patch.py for the full picture and why one hook alone isn't enough.
 jinja = {
     "methods": [
+        "bunood_theme.printing.jinja.bunood_print_language",
+        "bunood_theme.printing.jinja.bunood_print_image_src",
+        "bunood_theme.printing.jinja.bunood_amount_in_words",
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",
         "bunood_theme.printing.jinja.bunood_item_vat_map",

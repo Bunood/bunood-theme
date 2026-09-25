@@ -74,7 +74,7 @@
   "print_heading_style": "Original",
   "print_accent": "Brand panels",
   "print_letterhead": "Bilingual Split",
-  "print_title_lang": "Both",
+  "print_title_lang": "Follow print language",
   "print_qr": "Show",
   "print_qr_place": "Head end",
   "print_qr_size": "Medium",

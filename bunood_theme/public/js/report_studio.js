@@ -350,7 +350,7 @@
 		{ id: "month", label: () => __("This Month") },
 		{ id: "quarter", label: () => __("This Quarter") },
 		{ id: "year", label: () => __("This Year") },
-		{ id: "custom", label: () => __("Custom") },
+		{ id: "custom", label: () => __("Custom Period") },
 	];
 
 	// ── Small utilities ─────────────────────────────────────────────────────
@@ -543,8 +543,7 @@
 			.then((r) => r.message || { columns: [], result: [] });
 	}
 
-	function buildFilters(report, state) {
-		const [from, to] = periodRange(state.period, state.custom);
+	function filtersForRange(report, state, from, to) {
 		let base;
 		switch (report.filter_mode) {
 			case "asOn":
@@ -576,7 +575,12 @@
 				filters.account = [entity.name];
 			}
 		}
-		return { filters, from, to };
+		return filters;
+	}
+
+	function buildFilters(report, state) {
+		const [from, to] = periodRange(state.period, state.custom);
+		return { filters: filtersForRange(report, state, from, to), from, to };
 	}
 
 	// يقرأ الكيان من حالة الصفحة — يُربط عند التركيب لأن buildFilters خارج الإغلاق.
@@ -1368,60 +1372,125 @@
 		function gallery() {
 			container.innerHTML = "";
 			container.classList.remove("bnd-studio--viewer-open");
+			container.removeAttribute("aria-busy");
 
 			const hero = el("header", "bnd-studio__hero");
-			hero.append(el("h2", "bnd-studio__title", __("Report Studio")));
-			hero.append(
+			const heroCopy = el("div", "bnd-studio__hero-copy");
+			heroCopy.append(el("h2", "bnd-studio__title", __("Report Studio")));
+			heroCopy.append(
 				el("p", "bnd-studio__subtitle", __("The numbers that run the business — read, not hunted."))
 			);
+			const availableCount = state.available
+				? ALL_REPORTS.filter((report) => state.available.has(report.name)).length
+				: 0;
+			const heroCount = el("span", "bnd-studio__hero-count", __("Reports: {0}", [availableCount]));
+			hero.append(heroCopy, heroCount);
 			container.append(hero);
 
+			const galleryTools = el("div", "bnd-studio__gallery-tools");
+			const gallerySearch = el("input", "bnd-studio__search");
+			gallerySearch.type = "search";
+			gallerySearch.placeholder = __("Search reports");
+			gallerySearch.setAttribute("aria-label", __("Search reports"));
+			const galleryCount = el("span", "bnd-studio__count");
+			galleryCount.setAttribute("role", "status");
+			galleryCount.setAttribute("aria-live", "polite");
+			galleryTools.append(gallerySearch, galleryCount);
+			container.append(galleryTools);
+
 			const rail = el("nav", "bnd-studio__domains");
-			for (const domain of DOMAINS) {
+			rail.setAttribute("aria-label", __("Reports"));
+			const galleryDomains = [
+				{ id: "all", label: () => __("All reports"), reports: ALL_REPORTS },
+				...DOMAINS,
+			];
+			for (const domain of galleryDomains) {
 				const chip = el("button", "bnd-studio__domain", domain.label());
 				chip.type = "button";
+				const selectDomain = (selected) => {
+					state.domain = selected.id;
+					rail.querySelectorAll(".bnd-studio__domain").forEach((button) => {
+						const active = button.dataset.domain === selected.id;
+						button.classList.toggle("is-active", active);
+						button.setAttribute("aria-pressed", active ? "true" : "false");
+					});
+					paintCards(gallerySearch.value);
+				};
+				chip.dataset.domain = domain.id;
+				chip.setAttribute("aria-pressed", domain.id === state.domain ? "true" : "false");
 				if (domain.id === state.domain) chip.classList.add("is-active");
 				if (domain.soon) {
 					chip.classList.add("is-soon");
 					chip.append(el("span", "bnd-studio__soon", __("Soon")));
 					chip.disabled = true;
 				} else {
-					chip.addEventListener("click", () => {
-						state.domain = domain.id;
-						gallery();
-					});
+					chip.addEventListener("click", () => selectDomain(domain));
 				}
 				rail.append(chip);
 			}
 			container.append(rail);
 
 			const grid = el("div", "bnd-studio__grid");
-			const domain = DOMAINS.find((d) => d.id === state.domain);
-			for (const report of domain.reports) {
-				const card = el("button", "bnd-studio__card");
-				card.type = "button";
-				card.style.setProperty("--bnd-studio-cat", `var(--bnd-cat-${report.cat})`);
-				const missing = state.available && !state.available.has(report.name);
-				const glyph = el("span", "bnd-studio__glyph");
-				glyph.append(cardGlyph(report.cat));
-				card.append(glyph);
-				const body = el("span", "bnd-studio__card-body");
-				body.append(el("span", "bnd-studio__card-title", report.title()));
-				body.append(el("span", "bnd-studio__card-desc", report.desc()));
-				card.append(body);
-				card.append(el("span", "bnd-studio__card-go", ARROW.go()));
-				if (missing) {
-					card.classList.add("is-missing");
-					card.disabled = true;
-					card.title = __("This report is not installed on this site");
-				} else {
-					card.addEventListener("click", () => {
-						// عبر المسار لا مباشرةً: الفتح خطوة تاريخ يرجع عنها المتصفح.
-						frappe.set_route(...routeParts(report, null));
-					});
+			const paintCards = (query = "") => {
+				grid.innerHTML = "";
+				const needle = query.trim().toLocaleLowerCase();
+				const domain = galleryDomains.find((item) => item.id === state.domain) || galleryDomains[0];
+				const source = needle ? ALL_REPORTS : domain.reports;
+				const reports = source.filter(report =>
+					!needle || `${report.name} ${report.title()} ${report.desc()}`.toLocaleLowerCase().includes(needle)
+				);
+				galleryCount.textContent = __("Reports: {0}", [reports.length]);
+				for (const report of reports) {
+					const card = el("button", "bnd-studio__card");
+					card.type = "button";
+					card.dataset.reportKey = report.key;
+					card.style.setProperty("--bnd-studio-cat", `var(--bnd-cat-${report.cat})`);
+					const missing = state.available && !state.available.has(report.name);
+					const glyph = el("span", "bnd-studio__glyph");
+					glyph.append(cardGlyph(report.cat));
+					card.append(glyph);
+					const body = el("span", "bnd-studio__card-body");
+					if (needle || state.domain === "all") {
+						const owner = DOMAINS.find((item) => item.id === report.domain_id);
+						if (owner) body.append(el("span", "bnd-studio__card-domain", owner.label()));
+					}
+					body.append(el("span", "bnd-studio__card-title", report.title()));
+					body.append(el("span", "bnd-studio__card-desc", report.desc()));
+					if (missing) body.append(el("span", "bnd-studio__card-status", __("Not installed")));
+					card.append(body);
+					const go = el("span", "bnd-studio__card-go", ARROW.go());
+					go.setAttribute("aria-hidden", "true");
+					card.append(go);
+					if (missing) {
+						card.classList.add("is-missing");
+						card.disabled = true;
+						card.title = __("This report is not installed on this site");
+					} else {
+						card.addEventListener("click", () => {
+							// عبر المسار لا مباشرةً: الفتح خطوة تاريخ يرجع عنها المتصفح.
+							frappe.set_route(...routeParts(report, null));
+						});
+					}
+					grid.append(card);
 				}
-				grid.append(card);
-			}
+				if (!reports.length) {
+					const empty = el("p", "bnd-studio__gallery-empty", __("No reports match your search."));
+					empty.setAttribute("role", "status");
+					grid.append(empty);
+				}
+			};
+			paintCards();
+			gallerySearch.addEventListener("input", () => paintCards(gallerySearch.value));
+			gallerySearch.addEventListener("keydown", (event) => {
+				if (event.key !== "Escape" || !gallerySearch.value) return;
+				gallerySearch.value = "";
+				paintCards();
+			});
+			container.onkeydown = (event) => {
+				if (event.key !== "/" || /^(INPUT|SELECT|TEXTAREA)$/.test(event.target.tagName)) return;
+				event.preventDefault();
+				gallerySearch.focus();
+			};
 			container.append(grid);
 		}
 
@@ -1456,6 +1525,7 @@
 			const report = state.report;
 			container.innerHTML = "";
 			container.classList.add("bnd-studio--viewer-open");
+			container.onkeydown = null;
 
 			// ترويسة الورق: لا تظهر على الشاشة، وتتصدر كل طبعة A4 — هوية المنشأة
 			// ورقمها الضريبي والفترة وطابع الوقت، فالورقة تحمل نسبها بنفسها.
@@ -1515,21 +1585,28 @@
 				actions.append(b);
 				return b;
 			};
-			btn(__("Refresh"), () => load());
-			btn(__("Print"), () => window.print());
-			btn(__("Export Excel"), () => exportExcel());
-			btn(__("Presentation"), () => presentation());
-			btn(__("Classic view"), () => frappe.set_route("query-report", report.name));
+			const refreshButton = btn(__("Refresh"), () => load(), "is-primary");
+			const printButton = btn(__("Print"), () => window.print());
+			const exportButton = btn(__("Export Excel"), () => exportExcel());
+			const presentationButton = btn(__("Presentation"), () => presentation());
+			btn(__("Classic view"), () => frappe.set_route("query-report", report.name), "is-quiet");
+			const resultActions = [printButton, exportButton, presentationButton];
+			resultActions.forEach((button) => { button.disabled = true; });
 			head.append(actions);
 			container.append(head);
 			container.append(printfoot);
 
 			const controls = el("div", "bnd-studio__controls");
+			const periodControl = el("div", "bnd-studio__control-group");
+			periodControl.append(el("span", "bnd-studio__control-label", __("Period")));
 			const chips = el("div", "bnd-studio__chips");
+			chips.setAttribute("role", "group");
+			chips.setAttribute("aria-label", __("Period"));
 			for (const period of PERIODS) {
 				const chip = el("button", "bnd-studio__chip", period.label());
 				chip.type = "button";
 				if (period.id === state.period) chip.classList.add("is-active");
+				chip.setAttribute("aria-pressed", period.id === state.period ? "true" : "false");
 				chip.addEventListener("click", () => {
 					if (period.id === "custom") {
 						frappe.prompt(
@@ -1551,9 +1628,12 @@
 				});
 				chips.append(chip);
 			}
-			controls.append(chips);
+			periodControl.append(chips);
+			controls.append(periodControl);
 
 			if (state.companies.length > 1) {
+				const companyControl = el("label", "bnd-studio__control-group");
+				companyControl.append(el("span", "bnd-studio__control-label", __("Company")));
 				const select = el("select", "bnd-studio__company");
 				for (const name of state.companies) {
 					const option = el("option", null, name);
@@ -1566,7 +1646,8 @@
 					fetchTaxId();
 					load();
 				});
-				controls.append(select);
+				companyControl.append(select);
+				controls.append(companyControl);
 			}
 			container.append(controls);
 
@@ -1701,6 +1782,9 @@
 			}
 
 			function skeleton() {
+				container.setAttribute("aria-busy", "true");
+				refreshButton.disabled = true;
+				resultActions.forEach((button) => { button.disabled = true; });
 				kpisEl.innerHTML = "";
 				for (let i = 0; i < 4; i++) kpisEl.append(el("div", "bnd-studio__kpi is-skeleton"));
 				chartCard.innerHTML = "";
@@ -1713,7 +1797,7 @@
 				skeleton();
 				const { filters, from, to } = buildFilters(report, state);
 				const [prevFrom, prevTo] = previousRange(from, to);
-				const prevFilters = Object.assign({}, filters, { from_date: prevFrom, to_date: prevTo });
+				const prevFilters = filtersForRange(report, state, prevFrom, prevTo);
 
 				Promise.all([
 					runReport(report.name, filters),
@@ -1734,6 +1818,9 @@
 						drawChart(agg);
 						drawTable(agg);
 						updatePrinthead(agg);
+						container.removeAttribute("aria-busy");
+						refreshButton.disabled = false;
+						resultActions.forEach((button) => { button.disabled = false; });
 					})
 					.catch((err) => {
 						const message =
@@ -1742,9 +1829,21 @@
 						chartCard.innerHTML = "";
 						tableCard.innerHTML = "";
 						const alert = el("div", "bnd-studio__error");
+						alert.setAttribute("role", "alert");
 						alert.append(el("strong", null, __("Nothing to show")));
 						alert.append(el("span", null, message));
+						const recovery = el("div", "bnd-studio__error-actions");
+						const retry = el("button", "bnd-studio__action is-primary", __("Retry"));
+						retry.type = "button";
+						retry.addEventListener("click", () => load());
+						const classic = el("button", "bnd-studio__action", __("Classic view"));
+						classic.type = "button";
+						classic.addEventListener("click", () => frappe.set_route("query-report", report.name));
+						recovery.append(retry, classic);
+						alert.append(recovery);
 						tableCard.append(alert);
+						container.removeAttribute("aria-busy");
+						refreshButton.disabled = false;
 					});
 			}
 
