@@ -23,8 +23,27 @@
 {%- endmacro %}
 {% set purchase = doc.doctype == "Purchase Invoice" %}
 {% set rounded = doc.get("rounded_total") and not doc.get("disable_rounded_total") %}
-{% set title_en = ("Purchase Return" if purchase else "Sales Return") if doc.get("is_return") else ("Purchase Invoice" if purchase else "Sales Invoice") %}
-{% set title_ar = ("مرتجع مشتريات" if purchase else "مرتجع مبيعات") if doc.get("is_return") else ("فاتورة مشتريات" if purchase else "فاتورة مبيعات") %}
+{#- ZATCA: a sale by a VAT-registered seller is a TAX invoice. Same wording as
+    the official formats: فاتورة ضريبية / TAX INVOICE when the buyer carries a
+    VAT number (standard, B2B), فاتورة ضريبية مبسطة when it does not
+    (simplified, B2C), and إشعار دائن (مبسط) for a return. A seller with no VAT
+    number issues a plain sales invoice. Purchase documents are the supplier's
+    record, not ours to title as a tax invoice. -#}
+{% set seller_vat = doc.get("company_tax_id") %}
+{% set simplified = not doc.get("tax_id") %}
+{% if purchase %}
+{% set title_en = "Purchase Return" if doc.get("is_return") else "Purchase Invoice" %}
+{% set title_ar = "مرتجع مشتريات" if doc.get("is_return") else "فاتورة مشتريات" %}
+{% elif not seller_vat %}
+{% set title_en = "Sales Return" if doc.get("is_return") else "Sales Invoice" %}
+{% set title_ar = "مرتجع مبيعات" if doc.get("is_return") else "فاتورة مبيعات" %}
+{% elif doc.get("is_return") %}
+{% set title_en = "Simplified Credit Note" if simplified else "Credit Note" %}
+{% set title_ar = "إشعار دائن مبسط" if simplified else "إشعار دائن" %}
+{% else %}
+{% set title_en = "Simplified Tax Invoice" if simplified else "Tax Invoice" %}
+{% set title_ar = "فاتورة ضريبية مبسطة" if simplified else "فاتورة ضريبية" %}
+{% endif %}
 <div class="bnd-invoice" dir="{{ direction }}" lang="{{ lang }}">
   {% if not no_letterhead and letter_head %}
   <div {% if print_settings and print_settings.repeat_header_footer %}id="header-html" class="hidden-pdf"{% endif %}><div class="letter-head">{{ letter_head }}</div></div>
