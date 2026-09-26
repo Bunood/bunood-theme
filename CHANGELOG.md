@@ -24,6 +24,74 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.48.1] — 2026-09-26 — the statement picker, and the way into a document and back (patch)
+
+### Fixed — a search field 192 pixels tall
+
+`.bnd-studio__search` carries `flex: 1 1 12rem`, written for the table-tools
+bar, which is a ROW. The picker is a COLUMN, so that basis governed the field's
+HEIGHT: an empty rectangle with a placeholder floating in its corner, which is
+what the owner saw on production. Above it sat a second blank slab — the chart
+card, emptied by `renderPicker()` and never hidden, and it is a bordered, padded
+box. The input is now bare inside a shell that owns the border and the ring, and
+the card takes `.is-empty`.
+
+### The picker is the report's first screen, not a gate in front of it
+
+One column instead of a card grid, because a vertical scan for a name is what
+arrow keys can walk. Each row carries an initial mark tinted by entity kind from
+the categorical palette — assigned per kind, never cycled. Keyboard alone
+suffices: ↑/↓ walk, Enter opens, Esc clears, focus lands in the field on
+arrival, and the whole thing is wired as a real combobox so the row under the
+cursor is announced without the hands leaving the keys. Search matches the
+READABLE name as well as the record id, ordered by most recently touched, is
+debounced at 160ms (it was one server call per keystroke) and drops late
+responses by serial. Ghost rows the size of real ones while loading; `dir="auto"`
+on names, because a Latin name in an RTL row threw its period to the wrong end.
+
+The cash and bank shortcuts sit on the SAME band as the four kinds, divided by a
+hairline: both answer "who is this statement for?", and a shortcut is an
+alternative to searching rather than a step after it.
+
+### Every reference cell opens its document — derived, not listed
+
+A report's columns already say which cells are references: `Link` carries the
+doctype in `options`, `Dynamic Link` carries the NAME of the column that holds it
+(the statement's `voucher_no` points at `voucher_type`). Reading that made every
+reference in every studio report clickable in one change. The cell is a real
+anchor with a real href, so Ctrl-click opens a tab exactly as the classic report
+does; the plain click is taken over and routed through `frappe.set_route`,
+because a full page load discards the module state and the studio bundle is not
+loaded on a form page at all — the way back would be lost before it was offered.
+
+### The way back is a button, because the desk has none
+
+A form's breadcrumbs lead to the doctype list, not to the report you came from.
+The studio now leaves its own anchor on the document: a floating pill naming the
+report, mounted on form routes only when the arrival came from a report, removed
+the moment you leave forms by any other path. It is our element outside Frappe's
+DOM, above the desk's declared bottom reserve, and it lives in the studio bundle
+— no desk chrome is touched.
+
+Three defects here were found by tests and not by looking: the pill mounted at
+the inline START, the side the sidebar occupies in both directions, so it
+rendered and could not be clicked; the click handler cleared the remembered route
+BEFORE navigating, so the pill vanished and the page stayed; and the module state
+was spliced inside `render`, so the wiring hit the temporal dead zone on first
+paint and the gallery failed to draw.
+
+### Two stale assertions, older than this release
+
+The suite clicked the period chip by exact text «مخصص» while v0.48.0 renamed it
+«فترة مخصصة» — `setDataPeriod` failed and took THIRTY of thirty-one tests with
+it. And the gallery test counted three domain chips after v0.48.0 added «كل
+التقارير» as a fourth. The count is now an identity check over `data-domain`,
+because a count is a second copy of a fact and this is what one costs. Suite
+32/32, the new drill-down test included.
+
+Ceilings: `studio_js` 27000 → 31000, `studio_css` 5800 → 6300, each raised in the
+commit that spends it.
+
 ## [0.48.0] — 2026-09-25 — eleven capabilities, integrated onto the deployed line
 
 The eleven `capability/main/*` branches (MrBrokenrightArm, 2026-09-24), each one
