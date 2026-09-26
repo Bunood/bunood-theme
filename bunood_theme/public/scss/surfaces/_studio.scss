@@ -370,6 +370,43 @@
 		white-space: nowrap;
 	}
 
+	// الفعل منفصلٌ عن الاختيار، فله سطره: يُعلَّم النوع ثم يُضغط «عرض التقرير».
+	.bnd-studio__types-foot {
+		display: flex;
+		justify-content: flex-end;
+		margin-block-start: var(--bnd-sp-3);
+		padding-block-start: var(--bnd-sp-3);
+		border-block-start: var(--bnd-line) solid var(--bnd-border);
+	}
+
+	.bnd-studio__open {
+		padding-block: var(--bnd-sp-2);
+		padding-inline: var(--bnd-sp-5);
+		border: var(--bnd-line) solid var(--bnd-brand-solid);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-brand-solid);
+		color: var(--bnd-on-brand);
+		font-size: var(--bnd-text-sm);
+		font-weight: var(--bnd-weight-medium);
+		cursor: pointer;
+
+		&:hover:not(:disabled) {
+			background: color-mix(in srgb, var(--bnd-brand-solid) 88%, var(--bnd-ink));
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
+
+		&:disabled {
+			border-color: var(--bnd-border);
+			background: var(--bnd-pane);
+			color: var(--bnd-ink-subtle);
+			cursor: default;
+		}
+	}
+
 	// ── Viewer head ─────────────────────────────────────────────────────────
 	.bnd-studio__viewhead {
 		display: flex;

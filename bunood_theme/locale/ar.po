@@ -11400,3 +11400,7 @@ msgstr "الأصناف الراكدة"
 #. src: js/report_studio.js
 msgid "Items that have not sold for a while, by territory"
 msgstr "أصناف لم تُبَع منذ مدة، حسب منطقة البيع"
+
+#. src: js/report_studio.js
+msgid "Show report"
+msgstr "عرض التقرير"

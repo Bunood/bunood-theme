@@ -603,6 +603,37 @@ html[data-bnd-motion=reduce] {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.bnd-studio .bnd-studio__types-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-block-start: var(--bnd-sp-3);
+  padding-block-start: var(--bnd-sp-3);
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+}
+.bnd-studio .bnd-studio__open {
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-5);
+  border: var(--bnd-line) solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  cursor: pointer;
+}
+.bnd-studio .bnd-studio__open:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bnd-brand-solid) 88%, var(--bnd-ink));
+}
+.bnd-studio .bnd-studio__open:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
+.bnd-studio .bnd-studio__open:disabled {
+  border-color: var(--bnd-border);
+  background: var(--bnd-pane);
+  color: var(--bnd-ink-subtle);
+  cursor: default;
+}
 .bnd-studio .bnd-studio__viewhead {
   display: flex;
   flex-wrap: wrap;
