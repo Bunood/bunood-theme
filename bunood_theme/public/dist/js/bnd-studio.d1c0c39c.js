@@ -1520,6 +1520,29 @@
 			return svg;
 		}
 
+		// أيقونات المنتقي: مسارٌ واحد يرث currentColor — بلا خط أيقونات ولا
+		// طلب شبكة، وبنفس سماكة cardGlyph فيقرأ السطران كأسرةٍ واحدة.
+		function pickerIcon(name, cls) {
+			const PATHS = {
+				search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm5.5 12.5L21 21",
+				close: "M6 6l12 12M18 6L6 18",
+				go: "M9 6l6 6-6 6",
+			};
+			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+			svg.setAttribute("viewBox", "0 0 24 24");
+			svg.setAttribute("fill", "none");
+			svg.setAttribute("stroke", "currentColor");
+			svg.setAttribute("stroke-width", "1.8");
+			svg.setAttribute("stroke-linecap", "round");
+			svg.setAttribute("stroke-linejoin", "round");
+			svg.setAttribute("aria-hidden", "true");
+			if (cls) svg.setAttribute("class", cls);
+			const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+			path.setAttribute("d", PATHS[name] || PATHS.go);
+			svg.append(path);
+			return svg;
+		}
+
 		// ---- The viewer ------------------------------------------------------
 		function viewer() {
 			const report = state.report;
@@ -1674,39 +1697,97 @@
 			}
 
 			// ---- منتقي صاحب الكشف ------------------------------------------
+			// كشفُ الحساب يكون عن أحدٍ دائماً، فما لم يعرف الاستوديو عمّن فليس
+			// لديه ما يرسمه. فالمنتقي ليس بوابةً تسبق التقرير بل شاشته الأولى،
+			// ويستحق مكانه بأن يكون أسرع من القائمة التي يستبدلها: اكتب حرفين،
+			// أو خذ حساباً من التي تُفتح كل يوم. ولوحة المفاتيح وحدها تكفي —
+			// سهمان وإدخال، دون أن تفارق يدك الكتابة.
 			function renderPicker() {
 				kpisEl.innerHTML = "";
 				chartCard.innerHTML = "";
+				// بطاقة المخطط صندوقٌ بحدٍّ وحشوة: تُفرَّغ ولا تُخفى فترتسم
+				// شريطاً أبيض فارغاً فوق المنتقي — رآه المالك على الإنتاج.
+				chartCard.classList.add("is-empty");
 				tableCard.innerHTML = "";
-				const panel = el("div", "bnd-studio__picker");
-				panel.append(el("h3", "bnd-studio__picker-title", __("Who is this statement for?")));
+
+				const panel = el("section", "bnd-studio__picker");
+				const head = el("header", "bnd-studio__picker-head");
+				head.append(el("h3", "bnd-studio__picker-title", __("Who is this statement for?")));
+				head.append(
+					el("p", "bnd-studio__picker-lede", __("Type a name, or take one of the shortcuts."))
+				);
+				panel.append(head);
 
 				let kind = KINDS[0];
+				let cursor = -1;
+				let serial = 0;
+				let timer = null;
 
+				// نوع الكيان: أربع رقاقات، المختارة بتعبئة العلامة — اصطلاح
+				// الاختيار نفسه في كل الاستوديو، فلا يتعلم المستخدم شيئاً جديداً.
 				const chips = el("div", "bnd-studio__chips");
+				const chipFor = new Map();
 				for (const k of KINDS) {
 					const chip = el("button", "bnd-studio__chip", k.label());
 					chip.type = "button";
+					chip.setAttribute("aria-pressed", String(k === kind));
 					if (k === kind) chip.classList.add("is-active");
 					chip.addEventListener("click", () => {
+						if (kind === k) return;
 						kind = k;
-						chips.querySelectorAll(".bnd-studio__chip").forEach((c) => c.classList.remove("is-active"));
-						chip.classList.add("is-active");
+						for (const [other, node] of chipFor) {
+							node.classList.toggle("is-active", other === k);
+							node.setAttribute("aria-pressed", String(other === k));
+						}
 						search.value = "";
+						clear.hidden = true;
+						search.focus();
 						refresh("");
 					});
+					chipFor.set(k, chip);
 					chips.append(chip);
 				}
 				panel.append(chips);
 
-				const search = el("input", "bnd-studio__search");
+				// الحقل غلافٌ يضم الأيقونة والمسح، لا إدخالٌ عارٍ بينهما.
+				// وحده كان يرث `flex: 1 1 12rem` من شريط أدوات الجدول، وفي
+				// حاويةٍ عمودية يصير ذلك الأساس ارتفاعاً — صندوقٌ بطول 12rem،
+				// وهو ما رآه المالك في لقطته.
+				const field = el("div", "bnd-studio__picker-field");
+				field.append(pickerIcon("search", "bnd-studio__picker-glyph"));
+				const search = el("input", "bnd-studio__search bnd-studio__picker-search");
 				search.type = "search";
+				search.autocomplete = "off";
 				search.placeholder = __("Search…");
-				panel.append(search);
+				search.setAttribute("aria-label", __("Search…"));
+				field.append(search);
+				const clear = el("button", "bnd-studio__picker-clear");
+				clear.type = "button";
+				clear.hidden = true;
+				clear.setAttribute("aria-label", __("Clear"));
+				clear.append(pickerIcon("close"));
+				clear.addEventListener("click", () => {
+					search.value = "";
+					clear.hidden = true;
+					search.focus();
+					refresh("");
+				});
+				field.append(clear);
+				panel.append(field);
 
 				const quick = el("div", "bnd-studio__picker-quick");
+				const count = el("p", "bnd-studio__picker-count");
 				const list = el("div", "bnd-studio__picker-list");
-				panel.append(quick, list);
+				list.id = "bnd-studio-picker-list";
+				list.setAttribute("role", "listbox");
+				// النمط المعياري: الحقل يحتفظ بالتركيز والقائمة تُقاد بـ
+				// aria-activedescendant — فقارئ الشاشة يسمع الصف دون أن تفارق
+				// اليدُ الكتابة.
+				search.setAttribute("role", "combobox");
+				search.setAttribute("aria-expanded", "true");
+				search.setAttribute("aria-controls", list.id);
+				search.setAttribute("aria-autocomplete", "list");
+				panel.append(quick, count, list);
 				tableCard.append(panel);
 
 				const choose = (name, label) => {
@@ -1746,39 +1827,131 @@
 					})
 					.catch(() => {});
 
-				function refresh(q) {
+				// الاسم المقروء لكل نوع: البحث والعرض كلاهما عليه، فمن يبحث عن
+				// «عبدالله» لا يعرف أن معرّف السجل قد يكون رقم تسلسل.
+				const TITLE_FIELD = {
+					Customer: "customer_name",
+					Supplier: "supplier_name",
+					Employee: "employee_name",
+					Account: "account_name",
+				};
+
+				function ghosts(n) {
 					list.innerHTML = "";
-					const args = { fields: ["name"], limit: 20 };
+					for (let i = 0; i < n; i++) list.append(el("div", "bnd-studio__picker-ghost"));
+				}
+
+				function items() {
+					return list.querySelectorAll(".bnd-studio__picker-item");
+				}
+
+				function focusRow(next) {
+					const nodes = items();
+					if (!nodes.length) return;
+					cursor = (next + nodes.length) % nodes.length;
+					nodes.forEach((node, index) => {
+						node.classList.toggle("is-active", index === cursor);
+						node.setAttribute("aria-selected", String(index === cursor));
+					});
+					search.setAttribute("aria-activedescendant", nodes[cursor].id);
+					nodes[cursor].scrollIntoView({ block: "nearest" });
+				}
+
+				function refresh(q) {
+					const mine = ++serial;
+					cursor = -1;
+					search.removeAttribute("aria-activedescendant");
+					ghosts(6);
+					count.textContent = "";
+					const title = TITLE_FIELD[kind.doctype];
+					const args = {
+						fields: title ? ["name", title] : ["name"],
+						limit: 24,
+						// الأحدث لمساً أولاً: أقرب ما يكون إلى «الأخيرة» بلا سجلٍّ
+						// جديد نحفظه، والمحاسب يعود إلى من عمل عليه للتو.
+						order_by: "modified desc",
+					};
 					if (kind.doctype === "Account") {
 						args.filters = { company: state.company, is_group: 0 };
-						args.fields = ["name", "account_name"];
-					} else if (kind.doctype === "Employee") {
-						args.fields = ["name", "employee_name"];
 					}
 					if (q) {
-						args.filters = Object.assign(args.filters || {}, { name: ["like", "%" + q + "%"] });
+						args.or_filters = [["name", "like", "%" + q + "%"]];
+						if (title) args.or_filters.push([title, "like", "%" + q + "%"]);
 					}
 					frappe.db
 						.get_list(kind.doctype, args)
 						.then((rows) => {
+							if (mine !== serial) return; // نتيجةٌ متأخرة لبحثٍ سابق
+							list.innerHTML = "";
 							if (!rows || !rows.length) {
 								list.append(el("div", "bnd-studio__picker-hint", __("Nothing found")));
 								return;
 							}
-							for (const row of rows) {
-								const label = row.account_name || row.employee_name || row.name;
-								const item = el("button", "bnd-studio__picker-item");
+							count.textContent = __("Results: {0}", [
+								new Intl.NumberFormat(frappe.boot.lang || "en").format(rows.length),
+							]);
+							rows.forEach((row, index) => {
+								const label = String((title && row[title]) || row.name);
+								const item = el("button", "bnd-studio__picker-item is-kind-" + kind.id);
 								item.type = "button";
-								item.append(el("span", null, label));
-								if (label !== row.name) item.append(el("span", "bnd-studio__picker-sub", row.name));
+								item.id = "bnd-studio-picker-opt-" + index;
+								item.setAttribute("role", "option");
+								item.setAttribute("aria-selected", "false");
+								// الحرف الأول علامةً: يعطي الصف وزناً بصرياً يُمسح
+								// بالعين أسرع من سطرٍ من النص وحده.
+								item.append(el("span", "bnd-studio__picker-mark", label.trim().charAt(0) || "؟"));
+								const body = el("span", "bnd-studio__picker-body");
+								const name = el("span", "bnd-studio__picker-name", label);
+								// عزل ثنائي الاتجاه: اسمٌ لاتيني داخل صفٍّ عربي
+								// كان يطرح نقطته إلى أول السطر (.Palmer Ltd).
+								name.setAttribute("dir", "auto");
+								body.append(name);
+								if (label !== row.name) {
+									const sub = el("span", "bnd-studio__picker-sub", row.name);
+									sub.setAttribute("dir", "auto");
+									body.append(sub);
+								}
+								item.append(body);
+								item.append(pickerIcon("go", "bnd-studio__picker-go"));
 								item.addEventListener("click", () => choose(row.name, label));
 								list.append(item);
-							}
+							});
 						})
-						.catch(() => list.append(el("div", "bnd-studio__picker-hint", __("Nothing found"))));
+						.catch(() => {
+							if (mine !== serial) return;
+							list.innerHTML = "";
+							list.append(el("div", "bnd-studio__picker-hint", __("Nothing found")));
+						});
 				}
-				search.addEventListener("input", () => refresh(search.value.trim()));
+
+				search.addEventListener("input", () => {
+					clear.hidden = !search.value;
+					clearTimeout(timer);
+					// نبضة قصيرة: الكتابة السريعة كانت تطلب من الخادم مرةً لكل حرف.
+					timer = setTimeout(() => refresh(search.value.trim()), 160);
+				});
+				search.addEventListener("keydown", (event) => {
+					if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+						event.preventDefault();
+						focusRow(cursor + (event.key === "ArrowDown" ? 1 : -1));
+					} else if (event.key === "Enter") {
+						const nodes = items();
+						const target = nodes[cursor] || nodes[0];
+						if (target) {
+							event.preventDefault();
+							target.click();
+						}
+					} else if (event.key === "Escape" && search.value) {
+						event.preventDefault();
+						search.value = "";
+						clear.hidden = true;
+						refresh("");
+					}
+				});
+
 				refresh("");
+				// التركيز بعد الرسم: الحقل هو أول ما تحتاجه اليد، ولا شيء قبله.
+				window.setTimeout(() => search.focus(), 0);
 			}
 
 			function skeleton() {

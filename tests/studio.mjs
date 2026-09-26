@@ -294,7 +294,9 @@ async function main() {
 	// الفترة تُضبط من واجهة الاستوديو نفسها (رقاقة «مخصص») إلى شهر البيانات —
 	// فتصير الجولة مستقلة عن تقويم اليوم إلى الأبد.
 	const setDataPeriod = async () => {
-		await page.click('.bnd-studio__chips .bnd-studio__chip >> text="مخصص"');
+		// مطابقة جزئية لا حرفية: الملصق صار «فترة مخصصة» في v0.48.0 والاختبار
+		// كان يطلب «مخصص» بالضبط، فسقط ثلاثون اختباراً عند ضبط الفترة وحدها.
+		await page.click(".bnd-studio__chips .bnd-studio__chip >> text=مخصص");
 		await page.waitForFunction(() => window.cur_dialog && cur_dialog.$wrapper.is(":visible"));
 		// عبر فرابي نفسه — لا طباعة في حقول تاريخ تفتح منتقيات وتبتر القيم.
 		await page.evaluate(async ([from, to]) => {
@@ -323,11 +325,15 @@ async function main() {
 	const rowCount = () => page.$$eval(".bnd-studio__table tbody tr:not(.is-spacer)", (r) => r.length);
 
 	// ── Boot ──
-	await test("البوابة تفتح بثلاثة نطاقات وبطاقاتها كاملة", async () => {
+	await test("البوابة تفتح بنطاقاتها كلها وبطاقاتها كاملة", async () => {
 		await page.goto(`${URL_BASE}/app/bnd-report-studio`, { waitUntil: "domcontentloaded" });
 		await page.waitForSelector(".bnd-studio__grid", { timeout: 30000 });
-		const domains = await page.$$eval(".bnd-studio__domain", (n) => n.length);
-		if (domains !== 3) throw new Error(`domains=${domains}`);
+		// الهوية لا العدد: عدٌّ مجرد يسقط كلما أضيفت رقاقة — وقد سقط فعلاً حين
+		// وصلت «كل التقارير» في v0.48.0، فأخفى ثلاثين اختباراً خلف رقم.
+		const ids = await page.$$eval(".bnd-studio__domain", (n) => n.map((b) => b.dataset.domain));
+		for (const want of ["all", "sales", "buying", "accounting"]) {
+			if (!ids.includes(want)) throw new Error(`النطاق ${want} غائب: ${ids.join(",")}`);
+		}
 		const rtl = await page.$eval("html", (h) => h.dir);
 		if (rtl !== "rtl") throw new Error(`dir=${rtl} — Administrator is Arabic`);
 	});
