@@ -294,7 +294,9 @@ async function main() {
 	// الفترة تُضبط من واجهة الاستوديو نفسها (رقاقة «مخصص») إلى شهر البيانات —
 	// فتصير الجولة مستقلة عن تقويم اليوم إلى الأبد.
 	const setDataPeriod = async () => {
-		await page.click('.bnd-studio__chips .bnd-studio__chip >> text="مخصص"');
+		// مطابقة جزئية لا حرفية: الملصق صار «فترة مخصصة» في v0.48.0 والاختبار
+		// كان يطلب «مخصص» بالضبط، فسقط ثلاثون اختباراً عند ضبط الفترة وحدها.
+		await page.click(".bnd-studio__chips .bnd-studio__chip >> text=مخصص");
 		await page.waitForFunction(() => window.cur_dialog && cur_dialog.$wrapper.is(":visible"));
 		// عبر فرابي نفسه — لا طباعة في حقول تاريخ تفتح منتقيات وتبتر القيم.
 		await page.evaluate(async ([from, to]) => {
@@ -323,11 +325,15 @@ async function main() {
 	const rowCount = () => page.$$eval(".bnd-studio__table tbody tr:not(.is-spacer)", (r) => r.length);
 
 	// ── Boot ──
-	await test("البوابة تفتح بثلاثة نطاقات وبطاقاتها كاملة", async () => {
+	await test("البوابة تفتح بنطاقاتها كلها وبطاقاتها كاملة", async () => {
 		await page.goto(`${URL_BASE}/app/bnd-report-studio`, { waitUntil: "domcontentloaded" });
 		await page.waitForSelector(".bnd-studio__grid", { timeout: 30000 });
-		const domains = await page.$$eval(".bnd-studio__domain", (n) => n.length);
-		if (domains !== 3) throw new Error(`domains=${domains}`);
+		// الهوية لا العدد: عدٌّ مجرد يسقط كلما أضيفت رقاقة — وقد سقط فعلاً حين
+		// وصلت «كل التقارير» في v0.48.0، فأخفى ثلاثين اختباراً خلف رقم.
+		const ids = await page.$$eval(".bnd-studio__domain", (n) => n.map((b) => b.dataset.domain));
+		for (const want of ["all", "sales", "buying", "accounting"]) {
+			if (!ids.includes(want)) throw new Error(`النطاق ${want} غائب: ${ids.join(",")}`);
+		}
 		const rtl = await page.$eval("html", (h) => h.dir);
 		if (rtl !== "rtl") throw new Error(`dir=${rtl} — Administrator is Arabic`);
 	});
@@ -443,6 +449,38 @@ async function main() {
 	await test("المبيعات حسب منطقة المبيعات يعرض", async () => {
 		await openCard("المبيعات حسب منطقة المبيعات");
 		if ((await tiles()).length < 1) throw new Error("tiles missing");
+		await goBack();
+	});
+
+	// ── الغوص من التقرير إلى المستند، والعودة منه ──
+	await test("خلية المرجع تفتح مستندها، وزر العودة يرجع خطوةً واحدة", async () => {
+		await openCard("سجل المبيعات");
+		const href = await page.$eval(".bnd-studio__table a.bnd-studio__link", (a) =>
+			a.getAttribute("href")
+		);
+		// مرساةٌ حقيقية بعنوانٍ صحيح: هذا ما يجعل Ctrl+نقرة تفتح تبويباً.
+		if (!/^\/app\/[a-z0-9-]+\/.+/.test(href)) throw new Error("رابط غير صالح: " + href);
+		await page.click(".bnd-studio__table a.bnd-studio__link");
+		await page.waitForSelector(".bnd-studio__return", { timeout: 15000 });
+		if (!page.url().includes("/sales-invoice/")) {
+			throw new Error("لم يُفتح المستند: " + page.url());
+		}
+		// الزر يجب أن يكون قابلاً للنقر لا مدفوناً تحت الشريط الجانبي — دفنه
+		// أول تشغيلٍ لهذا الاختبار، والنظر وحده لم يكن ليكشفه.
+		// المستند يستقر قبل أن نغادره: المغادرة أثناء تركيبه تجعل سكربتات
+		// إرب نكست المؤجلة تنادي add_custom_button على نموذجٍ زال — خطأ طرفي
+		// ليس من صنعنا، ولا يصنعه قارئٌ يقرأ قبل أن يعود.
+		await page.waitForFunction(() => window.cur_frm && cur_frm.doc && cur_frm.doc.name, {
+			timeout: 15000,
+		});
+		await page.waitForTimeout(800);
+		await page.click(".bnd-studio__return");
+		// موضوع هذا الاختبار الملاحة لا محتوى الجدول: العودة تعيد تشغيل التقرير،
+		// وانتظارُ صفٍّ بعينه يجعل الاختبار رهينةَ زمن الخادم — فينتظر ما ينتظره
+		// بقية الحزمة: أن يستقر العارض على حالةٍ صادقة.
+		await waitViewer();
+		if (!page.url().includes("bnd-report-studio")) throw new Error("لم يعد: " + page.url());
+		if (await page.$(".bnd-studio__return")) throw new Error("شريط العودة بقي بعد العودة");
 		await goBack();
 	});
 

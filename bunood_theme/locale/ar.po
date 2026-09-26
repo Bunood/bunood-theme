@@ -11284,3 +11284,11 @@ msgstr "الضريبة والفوترة الإلكترونية"
 #, fuzzy
 msgid "Amount"
 msgstr "المبلغ"
+
+#. src: js/report_studio.js
+msgid "Type a name, or take one of the shortcuts."
+msgstr "اكتب اسماً، أو خذ أحد المختصرات."
+
+#. src: js/report_studio.js
+msgid "Back to {0}"
+msgstr "العودة إلى {0}"
