@@ -133,6 +133,130 @@
 					desc: () => __("Opportunities, quotations and orders by sales territory"),
 					hints: { topn: { by: "territory" } },
 				},
+				// ── الموجة الأولى: أنواع تقارير المبيعات ────────────────────────
+				// بطلب المالك بعد مسحٍ للسوق: أربعة عشر تقريراً كانت مبنيةً في
+				// إرب نكست ولم توصَّل. لا منطق جديد هنا — توصيلٌ وتسمية.
+				// كل مرشّح أدناه مقيسٌ من مصدر تقريره ومثبتٌ بتشغيله على البنش:
+				// ما لم يُرَ وهو يعمل لم يدخل هذه القائمة.
+				{
+					name: "POS Register",
+					title: () => __("POS Register"),
+					cat: 4,
+					desc: () => __("Every point-of-sale invoice with its cashier, profile and payments"),
+					hints: {
+						date: "posting_date",
+						topn: { by: "customer", value: "grand_total" },
+					},
+				},
+				{
+					name: "Sales Payment Summary",
+					title: () => __("Sales Payment Summary"),
+					cat: 3,
+					desc: () => __("What was collected, split by mode of payment"),
+					hints: { topn: { by: "mode_of_payment", value: "paid_amount" } },
+				},
+				{
+					name: "Sales Person Commission Summary",
+					title: () => __("Sales Person Commission Summary"),
+					cat: 5,
+					extra_filters: { doc_type: "Sales Invoice" },
+					desc: () => __("Commission earned by each sales person on submitted invoices"),
+					hints: { topn: { by: "sales_person" } },
+				},
+				{
+					name: "Item-wise Sales History",
+					title: () => __("Item-wise Sales History"),
+					cat: 1,
+					desc: () => __("Ordered, delivered and billed quantities for every item"),
+					hints: { topn: { by: "item_code", value: "amount" } },
+				},
+				{
+					name: "Sales Analytics",
+					title: () => __("Sales Analytics"),
+					cat: 0,
+					// التقرير شجرةٌ بمجاميعها: لا تُجمع أرقامه بحدسٍ خارجي.
+					careful: true,
+					extra_filters: {
+						tree_type: "Customer",
+						doc_type: "Sales Invoice",
+						value_quantity: "Value",
+						range: "Monthly",
+					},
+					desc: () => __("Sales by customer across months, with the period-on-period change"),
+				},
+				{
+					name: "Sales Invoice Trends",
+					title: () => __("Sales Invoice Trends"),
+					cat: 0,
+					careful: true,
+					extra_filters: {
+						period: "Monthly",
+						based_on: "Item",
+						group_by: "",
+						fiscal_year: String(new Date().getFullYear()),
+					},
+					desc: () => __("Invoiced value by item across the months of the fiscal year"),
+				},
+				{
+					name: "Customer Ledger Summary",
+					title: () => __("Customer Ledger Summary"),
+					cat: 2,
+					careful: true,
+					desc: () => __("Opening, invoiced, paid and closing balance for every customer"),
+				},
+				{
+					name: "Customer Acquisition and Loyalty",
+					title: () => __("Customer Acquisition and Loyalty"),
+					cat: 6,
+					extra_filters: { view_type: "Monthly" },
+					desc: () => __("New customers each month, and what the returning ones spent"),
+					hints: { topn: { by: "new_customers" } },
+				},
+				{
+					name: "Customers Without Any Sales Transactions",
+					title: () => __("Customers Without Any Sales Transactions"),
+					cat: 6,
+					desc: () => __("Customers on the books who have never bought"),
+				},
+				{
+					name: "Quotation Trends",
+					title: () => __("Quotation Trends"),
+					cat: 7,
+					careful: true,
+					extra_filters: {
+						period: "Monthly",
+						based_on: "Item",
+						group_by: "",
+						fiscal_year: String(new Date().getFullYear()),
+					},
+					desc: () => __("Quoted value by item across the months of the fiscal year"),
+				},
+				{
+					name: "Lost Quotations",
+					title: () => __("Lost Quotations"),
+					cat: 7,
+					// هذا التقرير يقرأ مداه بنفسه (timespan) ولا يعرف from/to —
+					// فالفترة المختارة لا تحكمه، وهذا مذكورٌ في وصفه لا مسكوتٌ عنه.
+					extra_filters: { timespan: "Last Year", group_by: "Lost Reason" },
+					desc: () => __("Quotations lost in the last year, and the reasons given"),
+					hints: { topn: { by: "lost_reason" } },
+				},
+				{
+					name: "Delivered Items To Be Billed",
+					title: () => __("Delivered Items To Be Billed"),
+					cat: 3,
+					// posting_date لا from/to: التقرير يسأل عن الوضع حتى تاريخ.
+					filter_mode: "postingDate",
+					desc: () => __("What left the warehouse and has not been invoiced yet"),
+					hints: { topn: { by: "customer", value: "amount" } },
+				},
+				{
+					name: "Inactive Sales Items",
+					title: () => __("Inactive Sales Items"),
+					cat: 1,
+					filter_mode: "inactiveItems",
+					desc: () => __("Items that have not sold for a while, by territory"),
+				},
 			],
 		},
 		{
@@ -555,6 +679,17 @@
 			case "dateRange":
 				base = { company: state.company, filter_based_on: "Date Range",
 					period_start_date: from, period_end_date: to, periodicity: "Yearly" };
+				break;
+			case "postingDate":
+				// «حتى تاريخ» لا «بين تاريخين»: التقرير يسأل عن وضعٍ قائم، ونهايةُ
+				// الفترة المختارة هي ذلك التاريخ.
+				base = { company: state.company, posting_date: to };
+				break;
+			case "inactiveItems":
+				// التقرير يقيس ركوداً بعدد أيام لا بفترة، ويطلب منطقة بيعٍ بعينها —
+				// فالفترة المختارة لا تحكمه، وهذا مقولٌ في وصفه.
+				base = { company: state.company, based_on: "Sales Invoice", days: 30,
+					territory: state.territory || "All Territories" };
 				break;
 			case "trialBalance":
 				base = { company: state.company, from_date: from, to_date: to,
