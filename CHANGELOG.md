@@ -24,6 +24,48 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.48.4] — 2026-09-26 — five more ways to read the same sales (patch)
+
+### Two needed no code at all
+
+`Sales Analytics` takes a `tree_type`, and its options include Item Group and
+Customer Group — so «مبيعات الأقسام» and «المبيعات حسب مجموعة العملاء» are the
+same proven report seen through another lens. Reading a filter's option list is
+cheaper than writing a report, and it was the first thing checked.
+
+### Three composers, over columns listed from a live run
+
+`taxSplit` divides invoices by tax ACTUALLY COMPUTED on them, not by the tax
+category they declare: the category is intent and the computation is fact, and
+the person reconciling a VAT return is asking about the fact. The threshold is
+half a halala, not zero, or an invoice whose tax rounds to nothing counts as
+taxable. The effective rate divides by the taxable invoices' net alone —
+dividing by the whole net mixes exempt with taxable and yields a number that
+means nothing.
+
+`topInvoices` sorts, keeps twenty-five, and drops the report's own total row:
+the total of twenty-five invoices is not the total of the period, and showing it
+as one would be a lie. The tiles stay measured over the whole period.
+
+`invoiceCount` counts rather than sums — how many, on how many days, the busiest
+day, the average invoice, and a per-day series. The table keeps the real
+invoices; synthetic day rows would look like a report without being one.
+
+### One is absent, and the reason is recorded
+
+Free-quantity sales: no ERPNext report exposes `is_free_item`, grepped across
+every report in the app. It needs a report of our own, which is a different kind
+of slice than a config line.
+
+### Two invariants now guarded
+
+Every invoice is either taxable or not, so the two counts must sum to the row
+count — this is what the half-halala threshold buys, and a compare-to-zero
+breaks it. And the largest invoice can never be below the average, which catches
+a reversed sort. Suite 34/34; sales offers 25 report types.
+
+Ceiling: `studio_js` 34000 → 36000 (35,513).
+
 ## [0.48.3] — 2026-09-26 — the report picker, the drill-down, and thirteen reports that were already built (patch)
 
 ### The statement picker, rebuilt as the report's first screen
