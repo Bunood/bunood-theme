@@ -1747,7 +1747,12 @@
 					chipFor.set(k, chip);
 					chips.append(chip);
 				}
-				panel.append(chips);
+				// شريطٌ واحد يحمل الأنواع والمختصرات: كلاهما جوابٌ عن «لمن؟»،
+				// فلا يُفصل أحدهما تحت البحث كأنه خطوةٌ تالية له — المختصر
+				// بديلٌ عن البحث لا أثرٌ من آثاره. (بطلب المالك، وهو محق.)
+				const band = el("div", "bnd-studio__picker-band");
+				band.append(chips);
+				panel.append(band);
 
 				// الحقل غلافٌ يضم الأيقونة والمسح، لا إدخالٌ عارٍ بينهما.
 				// وحده كان يرث `flex: 1 1 12rem` من شريط أدوات الجدول، وفي
@@ -1776,6 +1781,7 @@
 				panel.append(field);
 
 				const quick = el("div", "bnd-studio__picker-quick");
+				band.append(quick);
 				const count = el("p", "bnd-studio__picker-count");
 				const list = el("div", "bnd-studio__picker-list");
 				list.id = "bnd-studio-picker-list";
@@ -1787,7 +1793,7 @@
 				search.setAttribute("aria-expanded", "true");
 				search.setAttribute("aria-controls", list.id);
 				search.setAttribute("aria-autocomplete", "list");
-				panel.append(quick, count, list);
+				panel.append(count, list);
 				tableCard.append(panel);
 
 				const choose = (name, label) => {

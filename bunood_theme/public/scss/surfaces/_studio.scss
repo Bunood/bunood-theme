@@ -758,8 +758,17 @@
 		font-size: var(--bnd-text-sm);
 	}
 
-	// رقاقات النوع في الوسط: أربعة خيارات متساوية الوزن، لا قائمةٌ منسدلة
-	// تخفي ثلاثةً منها خلف نقرة.
+	// الشريط: الأنواع ثم المختصرات في سطرٍ واحد، يلتفّ عند الضيق. الفاصل
+	// الشعري يقول إن المجموعتين ليستا شيئاً واحداً — يسارها اختيارُ نوع،
+	// ويمينها قفزةٌ مباشرة إلى حسابٍ بعينه.
+	.bnd-studio__picker-band {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: center;
+		gap: var(--bnd-sp-2) var(--bnd-sp-3);
+	}
+
 	.bnd-studio__picker .bnd-studio__chips {
 		justify-content: center;
 	}
@@ -852,6 +861,14 @@
 		align-items: center;
 		justify-content: center;
 		gap: var(--bnd-sp-2);
+		padding-inline-start: var(--bnd-sp-3);
+		border-inline-start: var(--bnd-line) solid var(--bnd-border);
+
+		// يُملأ بعد جلب الحسابات: فارغاً كان يترك فاصلاً معلّقاً بلا ما يفصله،
+		// ومواقع بلا صناديق ولا بنوك لا تملؤه أبداً.
+		&:empty {
+			display: none;
+		}
 	}
 
 	.bnd-studio__picker-hint {

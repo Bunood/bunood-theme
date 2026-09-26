@@ -908,6 +908,13 @@ html[data-bnd-motion=reduce] {
   color: var(--bnd-ink-muted);
   font-size: var(--bnd-text-sm);
 }
+.bnd-studio .bnd-studio__picker-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-2) var(--bnd-sp-3);
+}
 .bnd-studio .bnd-studio__picker .bnd-studio__chips {
   justify-content: center;
 }
@@ -979,6 +986,11 @@ html[data-bnd-motion=reduce] {
   align-items: center;
   justify-content: center;
   gap: var(--bnd-sp-2);
+  padding-inline-start: var(--bnd-sp-3);
+  border-inline-start: var(--bnd-line) solid var(--bnd-border);
+}
+.bnd-studio .bnd-studio__picker-quick:empty {
+  display: none;
 }
 .bnd-studio .bnd-studio__picker-hint {
   color: var(--bnd-ink-subtle);
