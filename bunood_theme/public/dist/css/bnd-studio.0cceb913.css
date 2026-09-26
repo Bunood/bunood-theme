@@ -436,8 +436,12 @@ html[data-bnd-motion=reduce] {
 }
 .bnd-studio .bnd-studio__grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
-  gap: var(--bnd-sp-3);
+  grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+  gap: calc(var(--bnd-sp-1) / 2) var(--bnd-sp-3);
+  padding: var(--bnd-sp-3);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-surface);
 }
 .bnd-studio .bnd-studio__gallery-empty {
   grid-column: 1/-1;
@@ -448,80 +452,121 @@ html[data-bnd-motion=reduce] {
   color: var(--bnd-ink-muted);
   text-align: center;
 }
-.bnd-studio .bnd-studio__card {
-  position: relative;
+.bnd-studio .bnd-studio__pick {
   display: flex;
   align-items: center;
-  gap: var(--bnd-sp-3);
-  padding: var(--bnd-sp-4);
-  border: var(--bnd-line) solid var(--bnd-border);
-  border-radius: var(--bnd-radius-lg);
-  background: var(--bnd-surface);
+  gap: var(--bnd-sp-2);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-2);
+  border: var(--bnd-line) solid transparent;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
   color: inherit;
   text-align: start;
   cursor: pointer;
   transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
-.bnd-studio .bnd-studio__card:hover:not(:disabled) {
+.bnd-studio .bnd-studio__pick:hover:not(:disabled) {
   background: var(--bnd-hover);
-  border-color: var(--bnd-border-strong);
 }
-.bnd-studio .bnd-studio__card:hover:not(:disabled) .bnd-studio__card-go {
-  opacity: 1;
-}
-.bnd-studio .bnd-studio__card:focus-visible {
+.bnd-studio .bnd-studio__pick:focus-visible {
   outline: 2px solid var(--bnd-accent);
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
-.bnd-studio .bnd-studio__card.is-missing {
+.bnd-studio .bnd-studio__pick.is-chosen {
+  background: color-mix(in srgb, var(--bnd-brand) 8%, transparent);
+  border-color: color-mix(in srgb, var(--bnd-brand-solid) 40%, var(--bnd-border));
+}
+.bnd-studio .bnd-studio__pick.is-missing {
   opacity: 0.45;
   cursor: default;
 }
-.bnd-studio .bnd-studio__glyph {
+.bnd-studio .bnd-studio__pick-box {
   flex: none;
-  display: grid;
-  place-items: center;
-  inline-size: calc(var(--bnd-sp-6) + var(--bnd-sp-2));
-  block-size: calc(var(--bnd-sp-6) + var(--bnd-sp-2));
-  border-radius: var(--bnd-radius-md);
-  background: color-mix(in srgb, var(--bnd-studio-cat) var(--bnd-cat-tint), transparent);
-  color: color-mix(in srgb, var(--bnd-studio-cat) 80%, var(--bnd-ink));
+  position: relative;
+  inline-size: var(--bnd-sp-4);
+  block-size: var(--bnd-sp-4);
+  border: 1px solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-sm);
+  background: var(--bnd-surface);
+  transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
 }
-.bnd-studio .bnd-studio__glyph svg {
-  inline-size: 55%;
+.bnd-studio .bnd-studio__pick.is-chosen .bnd-studio__pick-box {
+  border-color: var(--bnd-brand-solid);
+  background: var(--bnd-brand-solid);
+}
+.bnd-studio .bnd-studio__pick.is-chosen .bnd-studio__pick-box::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 12%;
+  inset-inline-start: 32%;
+  inline-size: 28%;
   block-size: 55%;
+  border: 2px solid var(--bnd-on-brand);
+  border-block-start: none;
+  border-inline-start: none;
+  transform: rotate(45deg);
 }
-.bnd-studio .bnd-studio__card-body {
+.bnd-studio .bnd-studio__pick-label {
   display: flex;
   flex-direction: column;
-  gap: var(--bnd-sp-1);
+  gap: calc(var(--bnd-sp-1) / 2);
   min-inline-size: 0;
 }
-.bnd-studio .bnd-studio__card-domain {
+.bnd-studio .bnd-studio__pick-title {
+  overflow: hidden;
+  font-size: var(--bnd-text-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bnd-studio .bnd-studio__pick-domain {
   color: color-mix(in srgb, var(--bnd-studio-cat) 76%, var(--bnd-ink));
   font-size: var(--bnd-text-xs);
   font-weight: var(--bnd-weight-medium);
 }
-.bnd-studio .bnd-studio__card-title {
-  font-size: var(--bnd-text-md);
-  font-weight: var(--bnd-weight-medium);
-}
-.bnd-studio .bnd-studio__card-desc {
-  color: var(--bnd-ink-muted);
-  font-size: var(--bnd-text-sm);
-  line-height: var(--bnd-leading-base);
-}
-.bnd-studio .bnd-studio__card-status {
-  align-self: flex-start;
-  margin-block-start: var(--bnd-sp-1);
+.bnd-studio .bnd-studio__pick-status {
   color: var(--bnd-critical);
   font-size: var(--bnd-text-xs);
 }
-.bnd-studio .bnd-studio__card-go {
+.bnd-studio .bnd-studio__galleryfoot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  margin-block-start: var(--bnd-sp-4);
+}
+.bnd-studio .bnd-studio__chosen {
+  flex: 1 1 14rem;
+  margin: 0;
+  min-inline-size: 0;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+}
+.bnd-studio .bnd-studio__open {
+  flex: none;
   margin-inline-start: auto;
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-5);
+  border: var(--bnd-line) solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  cursor: pointer;
+}
+.bnd-studio .bnd-studio__open:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--bnd-brand-solid) 88%, var(--bnd-ink));
+}
+.bnd-studio .bnd-studio__open:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
+.bnd-studio .bnd-studio__open:disabled {
+  border-color: var(--bnd-border);
+  background: var(--bnd-pane);
   color: var(--bnd-ink-subtle);
-  opacity: 0.72;
-  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+  cursor: default;
 }
 .bnd-studio .bnd-studio__viewhead {
   display: flex;
@@ -1213,13 +1258,8 @@ html[data-bnd-motion=reduce] {
     grid-template-columns: 1fr;
     gap: var(--bnd-sp-3);
   }
-  .bnd-studio .bnd-studio__card {
-    gap: var(--bnd-sp-3);
-    padding: var(--bnd-sp-3);
-  }
-  .bnd-studio .bnd-studio__glyph {
-    inline-size: var(--bnd-sp-7);
-    block-size: var(--bnd-sp-7);
+  .bnd-studio .bnd-studio__pick {
+    padding-block: var(--bnd-sp-2);
   }
   .bnd-studio .bnd-studio__controls,
   .bnd-studio .bnd-studio__control-group,

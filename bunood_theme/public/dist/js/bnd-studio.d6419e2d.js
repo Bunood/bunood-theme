@@ -1509,7 +1509,62 @@
 			}
 			container.append(rail);
 
+			// ── قائمة اختيار نوع التقرير ─────────────────────────────────────
+			// بطلب المالك، ومعه نموذجٌ من نظامٍ آخر: التقارير كلها على شاشةٍ
+			// واحدة، والاختيار مربعٌ يُعلَّم لا بطاقةٌ بأيقونةٍ لكل تقرير. اثنتان
+			// وعشرون بطاقةً بأيقوناتها تملأ الشاشة قبل أن تُقرأ؛ اثنتان وعشرون
+			// تسميةً في شبكةٍ واحدة تُمسح بنظرة.
+			//
+			// واحدٌ يُختار لا عدة: العارض يرسم تقريراً واحداً، فالمجموعة
+			// radiogroup في الدلالة وإن كان مربعها مربع تعليم في الصورة — قارئ
+			// الشاشة يسمع «واحدٌ من اثنين وعشرين» لا «مُعلَّم/غير مُعلَّم».
 			const grid = el("div", "bnd-studio__grid");
+			grid.setAttribute("role", "radiogroup");
+			grid.setAttribute("aria-label", __("Report type"));
+
+			const foot = el("div", "bnd-studio__galleryfoot");
+			const chosenLine = el("p", "bnd-studio__chosen");
+			const openButton = el("button", "bnd-studio__open", __("Show report"));
+			openButton.type = "button";
+			openButton.disabled = true;
+			foot.append(chosenLine, openButton);
+
+			let chosenKey = null;
+
+			const reportByKey = (key) => ALL_REPORTS.find((r) => r.key === key) || null;
+
+			const openChosen = () => {
+				const report = reportByKey(chosenKey);
+				if (!report) return;
+				// عبر المسار لا مباشرةً: الفتح خطوة تاريخ يرجع عنها المتصفح.
+				frappe.set_route(...routeParts(report, null));
+			};
+			openButton.addEventListener("click", openChosen);
+
+			const markChosen = (key) => {
+				chosenKey = key;
+				for (const row of grid.querySelectorAll(".bnd-studio__pick")) {
+					const on = row.dataset.reportKey === key;
+					row.classList.toggle("is-chosen", on);
+					row.setAttribute("aria-checked", String(on));
+					// خطوة تبويب واحدة للمجموعة كلها: المختار وحده يحملها،
+					// والأسهم تتنقل داخلها — سلوك مجموعة الاختيار المعياري.
+					row.tabIndex = on ? 0 : -1;
+				}
+				const report = reportByKey(key);
+				chosenLine.textContent = report ? report.desc() : "";
+				openButton.disabled = !report;
+			};
+
+			const moveChoice = (step) => {
+				const rows = [...grid.querySelectorAll(".bnd-studio__pick:not(:disabled)")];
+				if (!rows.length) return;
+				const at = rows.findIndex((r) => r.dataset.reportKey === chosenKey);
+				const next = rows[(at + step + rows.length) % rows.length];
+				markChosen(next.dataset.reportKey);
+				next.focus();
+			};
+
 			const paintCards = (query = "") => {
 				grid.innerHTML = "";
 				const needle = query.trim().toLocaleLowerCase();
@@ -1519,44 +1574,63 @@
 					!needle || `${report.name} ${report.title()} ${report.desc()}`.toLocaleLowerCase().includes(needle)
 				);
 				galleryCount.textContent = __("Reports: {0}", [reports.length]);
+				let firstUsable = null;
 				for (const report of reports) {
-					const card = el("button", "bnd-studio__card");
-					card.type = "button";
-					card.dataset.reportKey = report.key;
-					card.style.setProperty("--bnd-studio-cat", `var(--bnd-cat-${report.cat})`);
+					const row = el("button", "bnd-studio__pick");
+					row.type = "button";
+					row.dataset.reportKey = report.key;
+					row.setAttribute("role", "radio");
+					row.setAttribute("aria-checked", "false");
+					row.tabIndex = -1;
+					row.style.setProperty("--bnd-studio-cat", `var(--bnd-cat-${report.cat})`);
 					const missing = state.available && !state.available.has(report.name);
-					const glyph = el("span", "bnd-studio__glyph");
-					glyph.append(cardGlyph(report.cat));
-					card.append(glyph);
-					const body = el("span", "bnd-studio__card-body");
+					const box = el("span", "bnd-studio__pick-box");
+					box.setAttribute("aria-hidden", "true");
+					row.append(box);
+					const label = el("span", "bnd-studio__pick-label");
+					label.append(el("span", "bnd-studio__pick-title", report.title()));
 					if (needle || state.domain === "all") {
 						const owner = DOMAINS.find((item) => item.id === report.domain_id);
-						if (owner) body.append(el("span", "bnd-studio__card-domain", owner.label()));
+						if (owner) label.append(el("span", "bnd-studio__pick-domain", owner.label()));
 					}
-					body.append(el("span", "bnd-studio__card-title", report.title()));
-					body.append(el("span", "bnd-studio__card-desc", report.desc()));
-					if (missing) body.append(el("span", "bnd-studio__card-status", __("Not installed")));
-					card.append(body);
-					const go = el("span", "bnd-studio__card-go", ARROW.go());
-					go.setAttribute("aria-hidden", "true");
-					card.append(go);
+					if (missing) label.append(el("span", "bnd-studio__pick-status", __("Not installed")));
+					row.append(label);
+					// الوصف لا يُحذف بل يُنقل: يسكن سطر الذيل للمختار، ويبقى
+					// تلميحاً على الصف — الكثافة مطلوبة والمعنى لا يُفرَّط فيه.
+					row.title = report.desc();
 					if (missing) {
-						card.classList.add("is-missing");
-						card.disabled = true;
-						card.title = __("This report is not installed on this site");
+						row.classList.add("is-missing");
+						row.disabled = true;
+						row.title = __("This report is not installed on this site");
 					} else {
-						card.addEventListener("click", () => {
-							// عبر المسار لا مباشرةً: الفتح خطوة تاريخ يرجع عنها المتصفح.
-							frappe.set_route(...routeParts(report, null));
+						if (!firstUsable) firstUsable = report.key;
+						row.addEventListener("click", () => markChosen(report.key));
+						row.addEventListener("dblclick", openChosen);
+						row.addEventListener("keydown", (event) => {
+							if (event.key === "Enter" || event.key === " ") {
+								event.preventDefault();
+								markChosen(report.key);
+								if (event.key === "Enter") openChosen();
+							} else if (["ArrowDown", "ArrowRight"].includes(event.key)) {
+								event.preventDefault();
+								moveChoice(1);
+							} else if (["ArrowUp", "ArrowLeft"].includes(event.key)) {
+								event.preventDefault();
+								moveChoice(-1);
+							}
 						});
 					}
-					grid.append(card);
+					grid.append(row);
 				}
 				if (!reports.length) {
 					const empty = el("p", "bnd-studio__gallery-empty", __("No reports match your search."));
 					empty.setAttribute("role", "status");
 					grid.append(empty);
 				}
+				// اختيارٌ سابق نجا من التصفية يبقى؛ وإلا يقع على الأول فلا تكون
+				// الشاشة بلا مختارٍ وزرُّها معطّل بلا سبب ظاهر.
+				const keep = chosenKey && grid.querySelector(`[data-report-key="${CSS.escape(chosenKey)}"]:not(:disabled)`);
+				markChosen(keep ? chosenKey : firstUsable);
 			};
 			paintCards();
 			gallerySearch.addEventListener("input", () => paintCards(gallerySearch.value));
@@ -1570,33 +1644,7 @@
 				event.preventDefault();
 				gallerySearch.focus();
 			};
-			container.append(grid);
-		}
-
-		// A small stroked glyph per category — inline SVG so it inherits
-		// currentColor and needs no icon font or sprite request.
-		function cardGlyph(cat) {
-			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-			svg.setAttribute("viewBox", "0 0 24 24");
-			svg.setAttribute("fill", "none");
-			svg.setAttribute("stroke", "currentColor");
-			svg.setAttribute("stroke-width", "1.8");
-			svg.setAttribute("stroke-linecap", "round");
-			svg.setAttribute("stroke-linejoin", "round");
-			const paths = [
-				"M4 19V5m0 14h16M8 15l4-6 3 3 5-7", // trend
-				"M4 20h16M6 16v-5m4 5V8m4 8v-3m4 3V6", // bars
-				"M12 3a9 9 0 1 0 9 9h-9V3z", // pie share
-				"M4 6h16M4 12h10M4 18h7", // lines
-				"M5 4h14v16l-3-2-2 2-2-2-2 2-2-2-3 2V4z", // receipt
-				"M16 11a4 4 0 1 0-8 0M3 21c1.5-4 5-6 9-6s7.5 2 9 6", // people
-				"M12 21s-7-4.4-7-10a7 7 0 0 1 14 0c0 5.6-7 10-7 10z", // territory
-				"M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z", // blocks
-			];
-			const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-			path.setAttribute("d", paths[cat % paths.length]);
-			svg.append(path);
-			return svg;
+			container.append(grid, foot);
 		}
 
 		// ---- The viewer ------------------------------------------------------
