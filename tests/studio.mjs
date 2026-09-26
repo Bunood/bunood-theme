@@ -484,6 +484,39 @@ async function main() {
 		await goBack();
 	});
 
+	// ── الموجة الثانية: ثوابت المركّبات ──
+	await test("الفواتير الضريبية وغير الضريبية: القسمان يساويان الصفوف", async () => {
+		await openCard("تقرير المبيعات");
+		await page.click('.bnd-studio__types .bnd-studio__pick >> text="الفواتير الضريبية وغير الضريبية"');
+		await page.click(".bnd-studio__open");
+		await waitViewer();
+		await setDataPeriod();
+		const taxed = await tileByLabel("فواتير ضريبية");
+		const plain = await tileByLabel("فواتير غير ضريبية");
+		const rows = await tileByLabel("الصفوف");
+		// ثابتٌ لا يجوز كسره: كل فاتورة إما حملت ضريبةً أو لم تحمل. وحدُّ نصف
+		// الهللة في المركّب هو ما يجعل هذا صحيحاً — مقارنةٌ بالصفر تعدّ فاتورةً
+		// بضريبةٍ مقرَّبة إلى الصفر ضريبيةً فتكسره.
+		if (taxed + plain !== rows) {
+			throw new Error(`${taxed} + ${plain} != ${rows}`);
+		}
+		await goBack();
+	});
+	await test("أعلى الفواتير قيمة: خمسٌ وعشرون على الأكثر، والأولى هي الأعلى", async () => {
+		await openCard("تقرير المبيعات");
+		await page.click('.bnd-studio__types .bnd-studio__pick >> text="أعلى الفواتير قيمة"');
+		await page.click(".bnd-studio__open");
+		await waitViewer();
+		await setDataPeriod();
+		const shown = await rowCount();
+		if (shown > 25) throw new Error(`الجدول يعرض ${shown} صفاً`);
+		const top = await tileByLabel("أعلى فاتورة");
+		const avg = await tileByLabel("متوسط الفاتورة");
+		// الأعلى لا يقلّ عن المتوسط أبداً — وإن انقلبا فالترتيب معكوس.
+		if (shown && top < avg) throw new Error(`أعلى ${top} < متوسط ${avg}`);
+		await goBack();
+	});
+
 	// ── المشتريات ──
 	await test("تقرير المشتريات: ضريبة المدخلات حاضرة", async () => {
 		await openDomain("المشتريات");

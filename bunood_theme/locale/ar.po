@@ -11404,3 +11404,111 @@ msgstr "أصناف لم تُبَع منذ مدة، حسب منطقة البيع"
 #. src: js/report_studio.js
 msgid "Show report"
 msgstr "عرض التقرير"
+
+#. src: js/report_studio.js
+msgid "Taxable and Non-taxable Invoices"
+msgstr "الفواتير الضريبية وغير الضريبية"
+
+#. src: js/report_studio.js
+msgid "Which invoices carried VAT and which did not, with the effective rate"
+msgstr "أي الفواتير حملت ضريبة وأيها لم تحمل، ونسبتها الفعلية"
+
+#. src: js/report_studio.js
+msgid "Taxable invoices"
+msgstr "فواتير ضريبية"
+
+#. src: js/report_studio.js
+msgid "Taxable amount"
+msgstr "المبلغ الخاضع"
+
+#. src: js/report_studio.js
+msgid "Non-taxable invoices"
+msgstr "فواتير غير ضريبية"
+
+#. src: js/report_studio.js
+msgid "Non-taxable amount"
+msgstr "المبلغ غير الخاضع"
+
+#. src: js/report_studio.js
+msgid "Tax collected"
+msgstr "الضريبة المحصَّلة"
+
+#. src: js/report_studio.js
+msgid "Effective rate"
+msgstr "النسبة الفعلية"
+
+#. src: js/report_studio.js
+msgid "An invoice counts as taxable when tax was actually computed on it, not by the tax category it declares."
+msgstr "تُعدّ الفاتورة ضريبيةً حين تُحسب عليها ضريبةٌ فعلاً، لا بالفئة الضريبية المعلنة عليها."
+
+#. src: js/report_studio.js
+msgid "Largest Invoices"
+msgstr "أعلى الفواتير قيمة"
+
+#. src: js/report_studio.js
+msgid "The twenty-five biggest invoices, and how much the top ten carry"
+msgstr "أكبر خمسٍ وعشرين فاتورة، وكم تحمل العشر الأعلى"
+
+#. src: js/report_studio.js
+msgid "Largest invoice"
+msgstr "أعلى فاتورة"
+
+#. src: js/report_studio.js
+msgid "Average invoice"
+msgstr "متوسط الفاتورة"
+
+#. src: js/report_studio.js
+msgid "Top ten share"
+msgstr "حصة العشر الأعلى"
+
+#. src: js/report_studio.js
+msgid "Invoices in period"
+msgstr "فواتير الفترة"
+
+#. src: js/report_studio.js
+msgid "The table shows the twenty-five largest invoices; the tiles are measured over the whole period."
+msgstr "الجدول يعرض أكبر خمسٍ وعشرين فاتورة، والبلاطات مقيسةٌ على الفترة كلها."
+
+#. src: js/report_studio.js
+msgid "Invoice Counter"
+msgstr "عدّاد الفواتير"
+
+#. src: js/report_studio.js
+msgid "How many invoices were issued, on which days, and the average one"
+msgstr "كم فاتورةً صدرت، وفي أي الأيام، وما متوسطها"
+
+#. src: js/report_studio.js
+msgid "Invoices"
+msgstr "الفواتير"
+
+#. src: js/report_studio.js
+msgid "Days with sales"
+msgstr "أيام فيها مبيعات"
+
+#. src: js/report_studio.js
+msgid "Busiest day"
+msgstr "أكثر الأيام"
+
+#. src: js/report_studio.js
+msgid "Invoices per day"
+msgstr "الفواتير في اليوم"
+
+#. src: js/report_studio.js
+msgid "Counts every submitted invoice in the period, returns included — a return is a document too."
+msgstr "يعدّ كل فاتورة معتمدة في الفترة، والمرتجعات منها — المرتجع مستندٌ أيضاً."
+
+#. src: js/report_studio.js
+msgid "Sales by Item Group"
+msgstr "مبيعات الأقسام"
+
+#. src: js/report_studio.js
+msgid "What each department sold, month by month"
+msgstr "ما باعه كل قسم، شهراً بشهر"
+
+#. src: js/report_studio.js
+msgid "Sales by Customer Group"
+msgstr "المبيعات حسب مجموعة العملاء"
+
+#. src: js/report_studio.js
+msgid "What each customer group bought, month by month"
+msgstr "ما اشترته كل مجموعة عملاء، شهراً بشهر"
