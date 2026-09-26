@@ -24,6 +24,80 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.48.3] — 2026-09-26 — the report picker, the drill-down, and thirteen reports that were already built (patch)
+
+### The statement picker, rebuilt as the report's first screen
+
+The owner opened Account Statement on production and said the picker was
+not good at all. One of the two complaints was a defect: `.bnd-studio__search`
+carries `flex: 1 1 12rem`, written for the table-tools bar, which is a ROW. The
+picker is a COLUMN, so that basis governed the field's HEIGHT — an empty 192px
+rectangle with a placeholder floating in its corner. The blank slab above it was
+the chart card, emptied by `renderPicker()` and never hidden.
+
+Rebuilt in the desk's own materials: a composed field (glyph, input, clear, one
+ring), results in ONE COLUMN because a vertical scan is what arrow keys can walk,
+an initial mark per row tinted by entity kind, and keyboard alone sufficing — a
+real combobox with `aria-activedescendant`, arrows, Enter, Esc. Search now matches
+the READABLE name as well as the record id, ordered by most recently touched,
+debounced at 160ms with late responses dropped by serial. The cash and bank
+shortcuts sit on the SAME band as the four kinds: both answer "who is this
+statement for?", and a shortcut is an alternative to searching, not a step after it.
+
+### Every reference cell opens its document, and the way back is a button
+
+A report's columns already say which cells are references: `Link` carries the
+doctype, `Dynamic Link` carries the NAME of the column that holds it. Reading
+that made every reference in EVERY studio report clickable in one change — as a
+real anchor, so Ctrl-click still opens a tab, with the plain click routed
+in-app because a full page load discards the module state and the studio bundle
+is not even loaded on a form page.
+
+The desk has no back control and a form's breadcrumbs lead to the doctype list,
+so the studio leaves its own: a floating pill naming the report, mounted on form
+routes only when the arrival came from one. Three defects here were found by
+tests and not by looking — the pill mounted on the side the sidebar occupies and
+could not be clicked; the click handler cleared the remembered route BEFORE
+navigating; and the module state was spliced inside `render`, hitting the
+temporal dead zone on first paint.
+
+### Report types inside the report
+
+The owner, with a screenshot of another system: the report types of a family
+belong on one screen with a checkbox for the selection. Not the gallery — INSIDE
+a report. The gallery is the doorway and keeps its cards; a «نوع التقرير» panel
+now sits in the viewer between the filters and the results, listing the report's
+own family. Ticking selects and «عرض التقرير» opens: switching on the click is
+fine for three siblings and wrong for twenty, where a slip of the mouse loads a
+report nobody asked for.
+
+### Thirteen sales reports that were built and never wired
+
+The question was what the market expects; the answer was that this bench already
+ships **183 reports, 47 about selling, and the studio used seven**. No report
+logic is written here — thirteen are wired, named and proved. Each candidate's
+filters were read from its own source, every one was RUN through
+`query_report.run` before being allowed in, and all twenty were opened in a
+browser and watched for an error state. Two failed that gate and are absent:
+`Delayed Order Report` dies on an upstream SQL bug, and `Inactive Sales Items`
+needed a filter its source demands.
+
+Two new filter modes, because two reports do not ask the period's question:
+`postingDate` sends a single date ("what is outstanding AS OF"), `inactiveItems`
+sends a day count and a territory. Both descriptions say so rather than letting a
+reader assume the period chips govern them.
+
+### Two stale assertions, older than this release
+
+The suite clicked the period chip by exact text «مخصص» while v0.48.0 renamed it
+«فترة مخصصة» — `setDataPeriod` failed and took THIRTY of thirty-one tests with
+it. And the gallery test counted three domain chips after «كل التقارير» became a
+fourth. The count is now an identity check over `data-domain`, because a count is
+a second copy of a fact. Suite 32/32.
+
+Ceilings, each raised in the commit that spends it: `studio_js` 27000 → 34000,
+`studio_css` 5800 → 6500.
+
 ## [0.48.2] — 2026-09-26 — the A4 invoice, titled and dressed (patch)
 
 ### Fixed — a tax invoice says so
