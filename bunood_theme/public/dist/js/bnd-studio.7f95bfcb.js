@@ -1256,9 +1256,88 @@
 
 	// ── Rendering ───────────────────────────────────────────────────────────
 
+	// أيقونات المنتقي: مسارٌ واحد يرث currentColor — بلا خط أيقونات ولا
+	// طلب شبكة، وبنفس سماكة cardGlyph فيقرأ السطران كأسرةٍ واحدة.
+	function pickerIcon(name, cls) {
+		const PATHS = {
+			search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm5.5 12.5L21 21",
+			close: "M6 6l12 12M18 6L6 18",
+			go: "M9 6l6 6-6 6",
+		};
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("viewBox", "0 0 24 24");
+		svg.setAttribute("fill", "none");
+		svg.setAttribute("stroke", "currentColor");
+		svg.setAttribute("stroke-width", "1.8");
+		svg.setAttribute("stroke-linecap", "round");
+		svg.setAttribute("stroke-linejoin", "round");
+		svg.setAttribute("aria-hidden", "true");
+		if (cls) svg.setAttribute("class", cls);
+		const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+		path.setAttribute("d", PATHS[name] || PATHS.go);
+		svg.append(path);
+		return svg;
+	}
+
+	// ---- العودة من المستند إلى التقرير ---------------------------------
+	// فتحُ سندٍ من الجدول يغادر الاستوديو، وزرّ المتصفح وحده جوابٌ ناقص —
+	// المالك طلب زراً يُرى. فالاستوديو يترك على صفحة المستند مرساته: يظهر
+	// حين تكون على نموذجٍ جئتَه من تقرير، ويختفي في اللحظة التي تغادر فيها
+	// النماذج. مِلكُنا وحدنا، خارج DOM فرابي، ويحترم حجز الأشرطة السفلية.
+	let returnRoute = null;
+	let returnLabel = "";
+	let returnBar = null;
+	let returnWired = false;
+
+	function rememberReturn(label) {
+		returnRoute = (frappe.get_route() || []).slice();
+		returnLabel = label || "";
+	}
+
+	function syncReturnBar() {
+		const route = frappe.get_route() || [];
+		const onForm = String(route[0] || "").toLowerCase() === "form";
+		if (!onForm) {
+			// غادر النماذج بطريقه: العودة فقدت معناها فتُنسى.
+			returnRoute = null;
+			returnLabel = "";
+		}
+		if (!onForm || !returnRoute) {
+			if (returnBar) {
+				returnBar.remove();
+				returnBar = null;
+			}
+			return;
+		}
+		if (returnBar) return;
+		returnBar = el("button", "bnd-studio__return");
+		returnBar.type = "button";
+		returnBar.append(pickerIcon("go", "bnd-studio__return-arrow"));
+		returnBar.append(
+			el("span", null, returnLabel ? __("Back to {0}", [returnLabel]) : __("Back"))
+		);
+		returnBar.addEventListener("click", () => {
+			// لا يُمسح الطريق هنا: المسح مكانه syncReturnBar حين نغادر النماذج
+			// فعلاً. مسحُه قبل الانتقال جعل النقرة تزيل الزر ولا تنتقل — أمسكه
+			// اختبارٌ بلقطةٍ للنموذج بلا زر، والنظر وحده لم يكن ليفسّرها.
+			if (!returnRoute || !returnRoute.length) return;
+			frappe.set_route(...returnRoute);
+		});
+		document.body.append(returnBar);
+	}
+
+	function wireReturnBar() {
+		if (returnWired) return;
+		returnWired = true;
+		frappe.router.on("change", syncReturnBar);
+	}
+
 	function render(container, page) {
 		container.classList.add("bnd-studio");
 		state_entity_of = () => state.entity;
+		// مرةً واحدة لكل جلسة: المستمع يعيش بعد مغادرة صفحة الاستوديو، وهو
+		// المقصود — المستند الذي تفتحه صفحةٌ أخرى.
+		wireReturnBar();
 		const state = {
 			domain: "sales",
 			report: null,
@@ -1516,29 +1595,6 @@
 			];
 			const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
 			path.setAttribute("d", paths[cat % paths.length]);
-			svg.append(path);
-			return svg;
-		}
-
-		// أيقونات المنتقي: مسارٌ واحد يرث currentColor — بلا خط أيقونات ولا
-		// طلب شبكة، وبنفس سماكة cardGlyph فيقرأ السطران كأسرةٍ واحدة.
-		function pickerIcon(name, cls) {
-			const PATHS = {
-				search: "M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zm5.5 12.5L21 21",
-				close: "M6 6l12 12M18 6L6 18",
-				go: "M9 6l6 6-6 6",
-			};
-			const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-			svg.setAttribute("viewBox", "0 0 24 24");
-			svg.setAttribute("fill", "none");
-			svg.setAttribute("stroke", "currentColor");
-			svg.setAttribute("stroke-width", "1.8");
-			svg.setAttribute("stroke-linecap", "round");
-			svg.setAttribute("stroke-linejoin", "round");
-			svg.setAttribute("aria-hidden", "true");
-			if (cls) svg.setAttribute("class", cls);
-			const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-			path.setAttribute("d", PATHS[name] || PATHS.go);
 			svg.append(path);
 			return svg;
 		}
@@ -2176,6 +2232,23 @@
 			}
 
 			function drawTable(agg) {
+				const shape = agg.shape;
+				// عمودٌ من نوع Link يحمل نوع المستند في options، و Dynamic Link
+				// يحمل اسمَ العمود الذي يحمله (سند كشف الحساب: voucher_type).
+				// المدى هنا مقصود: shape محلّيةٌ لهذه الدالة.
+				const linkTarget = (row, col, raw) => {
+					const value = raw === null || raw === undefined ? "" : String(raw).trim();
+					if (!value || !col || !col.options) return null;
+					if (col.fieldtype === "Link") return { doctype: col.options, name: value };
+					if (col.fieldtype === "Dynamic Link") {
+						const source = shape.all.find((c) => c.fieldname === col.options);
+						if (!source) return null;
+						const doctype = rowValue(row, source, shape.all.indexOf(source));
+						if (!doctype) return null;
+						return { doctype: String(doctype), name: value };
+					}
+					return null;
+				};
 				tableCard.innerHTML = "";
 				const toolbar = el("div", "bnd-studio__tabletools");
 				const search = el("input", "bnd-studio__search");
@@ -2208,8 +2281,6 @@
 					toolbar.append(kinds);
 				}
 				tableCard.append(toolbar);
-
-				const shape = agg.shape;
 				const score = (col) =>
 					({ Date: 90, Datetime: 88, Link: 80, "Dynamic Link": 78, Currency: 70, Percent: 55, Float: 50, Int: 45, Data: 30 }[
 						col.fieldtype
@@ -2329,6 +2400,34 @@
 							if (["Currency", "Float", "Int", "Percent"].includes(col.fieldtype)) {
 								td.classList.add("is-num");
 								if (parseFloat(raw) < 0) td.classList.add("is-neg");
+							}
+							// خلية المرجع تفتح مستندها — كما في العرض التقليدي.
+							// الوِجهة من بيانات العمود لا من قائمةٍ نكتبها بأيدينا،
+							// فتنطبق على كل تقارير الاستوديو دفعةً واحدة.
+							const target = linkTarget(row, col, raw);
+							if (target && !td.querySelector("a")) {
+								const open = document.createElement("a");
+								open.className = "bnd-studio__link";
+								open.href =
+									"/app/" + frappe.router.slug(target.doctype) +
+									"/" + encodeURIComponent(target.name);
+								open.innerHTML = td.innerHTML;
+								// النقرة العادية خطوةٌ داخل التطبيق بأيدينا لا بانتظار
+								// اعتراض الراوتر: التحميل الكامل يقتل حالة الوحدة —
+								// وحزمة الاستوديو لا تُحمَّل أصلاً على صفحة النموذج —
+								// فيضيع طريق العودة (قيس). والنقرة المعدَّلة تُترك
+								// للمتصفح: Ctrl والزر الأوسط يفتحان تبويباً، لأنها
+								// مرساةٌ حقيقية بعنوانٍ صحيح لا زرٌّ متنكّر.
+								open.addEventListener("click", (ev) => {
+									if (ev.button !== 0 || ev.metaKey || ev.ctrlKey || ev.shiftKey || ev.altKey) {
+										return;
+									}
+									ev.preventDefault();
+									rememberReturn(report.title());
+									frappe.set_route("Form", target.doctype, target.name);
+								});
+								td.innerHTML = "";
+								td.append(open);
 							}
 							haystack += " " + td.textContent.toLowerCase();
 							tr.append(td);

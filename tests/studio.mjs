@@ -452,6 +452,38 @@ async function main() {
 		await goBack();
 	});
 
+	// ── الغوص من التقرير إلى المستند، والعودة منه ──
+	await test("خلية المرجع تفتح مستندها، وزر العودة يرجع خطوةً واحدة", async () => {
+		await openCard("سجل المبيعات");
+		const href = await page.$eval(".bnd-studio__table a.bnd-studio__link", (a) =>
+			a.getAttribute("href")
+		);
+		// مرساةٌ حقيقية بعنوانٍ صحيح: هذا ما يجعل Ctrl+نقرة تفتح تبويباً.
+		if (!/^\/app\/[a-z0-9-]+\/.+/.test(href)) throw new Error("رابط غير صالح: " + href);
+		await page.click(".bnd-studio__table a.bnd-studio__link");
+		await page.waitForSelector(".bnd-studio__return", { timeout: 15000 });
+		if (!page.url().includes("/sales-invoice/")) {
+			throw new Error("لم يُفتح المستند: " + page.url());
+		}
+		// الزر يجب أن يكون قابلاً للنقر لا مدفوناً تحت الشريط الجانبي — دفنه
+		// أول تشغيلٍ لهذا الاختبار، والنظر وحده لم يكن ليكشفه.
+		// المستند يستقر قبل أن نغادره: المغادرة أثناء تركيبه تجعل سكربتات
+		// إرب نكست المؤجلة تنادي add_custom_button على نموذجٍ زال — خطأ طرفي
+		// ليس من صنعنا، ولا يصنعه قارئٌ يقرأ قبل أن يعود.
+		await page.waitForFunction(() => window.cur_frm && cur_frm.doc && cur_frm.doc.name, {
+			timeout: 15000,
+		});
+		await page.waitForTimeout(800);
+		await page.click(".bnd-studio__return");
+		// موضوع هذا الاختبار الملاحة لا محتوى الجدول: العودة تعيد تشغيل التقرير،
+		// وانتظارُ صفٍّ بعينه يجعل الاختبار رهينةَ زمن الخادم — فينتظر ما ينتظره
+		// بقية الحزمة: أن يستقر العارض على حالةٍ صادقة.
+		await waitViewer();
+		if (!page.url().includes("bnd-report-studio")) throw new Error("لم يعد: " + page.url());
+		if (await page.$(".bnd-studio__return")) throw new Error("شريط العودة بقي بعد العودة");
+		await goBack();
+	});
+
 	// ── المشتريات ──
 	await test("سجل المشتريات: ضريبة المدخلات حاضرة", async () => {
 		await openDomain("المشتريات");

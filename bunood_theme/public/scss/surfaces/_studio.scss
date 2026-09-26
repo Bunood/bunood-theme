@@ -725,6 +725,26 @@
 		}
 	}
 
+	// ── خلية مرجعٍ تفتح مستندها ─────────────────────────────────────────────
+	// مرساةٌ حقيقية لا زر: النقرة العادية خطوةٌ في التاريخ يلتقطها راوتر فرابي،
+	// وCtrl والزر الأوسط يفتحان تبويباً — وهذا ما يفعله العرض التقليدي.
+	.bnd-studio__link {
+		color: var(--bnd-brand-ink);
+		text-decoration: none;
+		text-underline-offset: 0.2em;
+
+		&:hover,
+		&:focus-visible {
+			text-decoration: underline;
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+			border-radius: var(--bnd-radius-sm);
+		}
+	}
+
 	// ── منتقي كشف الحساب ────────────────────────────────────────────────────
 	// شاشةُ التقرير الأولى لا بوابةٌ قبله. موادها مواد المكتب نفسها — خطٌّ
 	// شعري، زوايا صغيرة، بلا ارتفاعٍ ولا تدرّج — والغنى في البنية: حقلٌ
@@ -1375,4 +1395,52 @@
 			print-color-adjust: exact;
 		}
 	}
+}
+
+// ── العودة من المستند إلى التقرير ─────────────────────────────────────────
+// يعيش على صفحة النموذج لا داخل سطح الاستوديو، فلذلك هو خارج الكتلة أعلاه.
+// يجلس فوق حجز الأشرطة السفلية الذي يعلنه المكتب (--bnd-bottom-reserve)، فلا
+// يركب شريطاً ولا يُركب عليه، ويقف دون نوافذ فرابي الحوارية في ترتيب الطبقات.
+.bnd-studio__return {
+	position: fixed;
+	z-index: var(--bnd-z-bar);
+	inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-sp-4));
+	// الطرف المقابل للشريط الجانبي: الجانب الذي يبدأ منه السطر يسكنه الشريط في
+	// الاتجاهين، ووضعُ الزر هناك دفنه تحته — أمسكه الاختبار بنقرةٍ اعترضتها
+	// body-sidebar-top، لا بالنظر.
+	inset-inline-end: var(--bnd-sp-5);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+	padding-block: var(--bnd-sp-2);
+	padding-inline: var(--bnd-sp-4);
+	border: var(--bnd-line) solid var(--bnd-border);
+	border-radius: var(--bnd-radius-pill);
+	background: var(--bnd-surface);
+	box-shadow: var(--bnd-shadow-md);
+	color: var(--bnd-ink);
+	font-size: var(--bnd-text-sm);
+	cursor: pointer;
+
+	&:hover {
+		background: var(--bnd-hover);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--bnd-accent);
+		outline-offset: 2px;
+	}
+}
+
+.bnd-studio__return-arrow {
+	inline-size: var(--bnd-sp-4);
+	block-size: var(--bnd-sp-4);
+	color: var(--bnd-ink-subtle);
+	// السهم يشير إلى الوراء: هو نفسه سهم الأمام معكوساً، ومساره مرسوم لا محرف
+	// فلا تبلغه الخصائص المنطقية.
+	transform: scaleX(-1);
+}
+
+[dir="rtl"] .bnd-studio__return-arrow {
+	transform: none;
 }
