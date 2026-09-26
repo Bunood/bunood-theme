@@ -11292,3 +11292,115 @@ msgstr "اكتب اسماً، أو خذ أحد المختصرات."
 #. src: js/report_studio.js
 msgid "Back to {0}"
 msgstr "العودة إلى {0}"
+
+#. src: js/report_studio.js
+msgid "Report type"
+msgstr "نوع التقرير"
+
+#. src: js/report_studio.js
+msgid "POS Register"
+msgstr "تقرير نقاط البيع"
+
+#. src: js/report_studio.js
+msgid "Every point-of-sale invoice with its cashier, profile and payments"
+msgstr "كل فاتورة نقاط بيع بكاشيرها وملفها ومدفوعاتها"
+
+#. src: js/report_studio.js
+msgid "Sales Payment Summary"
+msgstr "ملخص مدفوعات المبيعات"
+
+#. src: js/report_studio.js
+msgid "What was collected, split by mode of payment"
+msgstr "ما حُصِّل، موزَّعاً على طرق الدفع"
+
+#. src: js/report_studio.js
+msgid "Sales Person Commission Summary"
+msgstr "ملخص عمولات مندوبي المبيعات"
+
+#. src: js/report_studio.js
+msgid "Commission earned by each sales person on submitted invoices"
+msgstr "العمولة المستحقة لكل مندوب على الفواتير المعتمدة"
+
+#. src: js/report_studio.js
+msgid "Item-wise Sales History"
+msgstr "تاريخ المبيعات حسب الصنف"
+
+#. src: js/report_studio.js
+msgid "Ordered, delivered and billed quantities for every item"
+msgstr "الكميات المطلوبة والمسلَّمة والمفوترة لكل صنف"
+
+#. src: js/report_studio.js
+msgid "Sales Analytics"
+msgstr "تحليلات المبيعات"
+
+#. src: js/report_studio.js
+msgid "Sales by customer across months, with the period-on-period change"
+msgstr "مبيعات كل عميل عبر الأشهر، ونسبة التغير عن الفترة السابقة"
+
+#. src: js/report_studio.js
+msgid "Sales Invoice Trends"
+msgstr "اتجاهات فواتير المبيعات"
+
+#. src: js/report_studio.js
+msgid "Invoiced value by item across the months of the fiscal year"
+msgstr "القيمة المفوترة لكل صنف عبر أشهر السنة المالية"
+
+#. src: js/report_studio.js
+msgid "Customer Ledger Summary"
+msgstr "ملخص دفتر أستاذ العملاء"
+
+#. src: js/report_studio.js
+msgid "Opening, invoiced, paid and closing balance for every customer"
+msgstr "الرصيد الافتتاحي والمفوتر والمسدَّد والختامي لكل عميل"
+
+#. src: js/report_studio.js
+msgid "Customer Acquisition and Loyalty"
+msgstr "اكتساب العملاء وولاؤهم"
+
+#. src: js/report_studio.js
+msgid "New customers each month, and what the returning ones spent"
+msgstr "العملاء الجدد في كل شهر، وما أنفقه العائدون"
+
+#. src: js/report_studio.js
+msgid "Customers Without Any Sales Transactions"
+msgstr "عملاء بلا أي معاملات بيع"
+
+#. src: js/report_studio.js
+msgid "Customers on the books who have never bought"
+msgstr "عملاء في الدفاتر لم يشتروا قط"
+
+#. src: js/report_studio.js
+msgid "Quotation Trends"
+msgstr "اتجاهات عروض الأسعار"
+
+#. src: js/report_studio.js
+msgid "Quoted value by item across the months of the fiscal year"
+msgstr "القيمة المعروضة لكل صنف عبر أشهر السنة المالية"
+
+#. src: js/report_studio.js
+msgid "Lost Quotations"
+msgstr "عروض الأسعار المفقودة"
+
+#. src: js/report_studio.js
+msgid "Quotations lost in the last year, and the reasons given"
+msgstr "عروض الأسعار المفقودة في السنة الماضية وأسبابها"
+
+#. src: js/report_studio.js
+msgid "Delivered Items To Be Billed"
+msgstr "أصناف سُلّمت ولم تُفوتر"
+
+#. src: js/report_studio.js
+msgid "What left the warehouse and has not been invoiced yet"
+msgstr "ما خرج من المستودع ولم يُفوتر بعد"
+
+#. src: js/report_studio.js
+msgid "Inactive Sales Items"
+msgstr "الأصناف الراكدة"
+
+#. src: js/report_studio.js
+msgid "Items that have not sold for a while, by territory"
+msgstr "أصناف لم تُبَع منذ مدة، حسب منطقة البيع"
+
+#. src: js/report_studio.js
+msgid "Show report"
+msgstr "عرض التقرير"

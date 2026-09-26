@@ -340,7 +340,7 @@ async function main() {
 
 	// ── التنقل: فتح البطاقة خطوة تاريخ حقيقية ──
 	await test("رجوع المتصفح خطوةٌ داخل الاستوديو لا خروجٌ منه", async () => {
-		await openCard("سجل المبيعات");
+		await openCard("تقرير المبيعات");
 		await page.goBack();
 		await page.waitForSelector(".bnd-studio__grid", { timeout: 15000 });
 		if (!page.url().includes("bnd-report-studio")) {
@@ -349,15 +349,15 @@ async function main() {
 	});
 
 	// ── المبيعات ──
-	await test("سجل المبيعات: بلاطة الضريبة وعمودها", async () => {
-		await openCard("سجل المبيعات");
+	await test("تقرير المبيعات: بلاطة الضريبة وعمودها", async () => {
+		await openCard("تقرير المبيعات");
 		const tax = await tileByLabel("مجموع الضرائب");
 		if (!close(tax, expect.sales_tax)) throw new Error(`tax tile ${tax} != ${expect.sales_tax}`);
 		const headers = await page.$$eval(".bnd-studio__table thead th", (n) => n.map((x) => x.textContent));
 		if (!headers.some((h) => h.includes("مجموع الضرائب"))) throw new Error("tax column missing: " + headers.join("|"));
 		if ((await rowCount()) < 1) throw new Error("no rows");
 	});
-	await test("سجل المبيعات: كل الأعمدة والبحث", async () => {
+	await test("تقرير المبيعات: كل الأعمدة والبحث", async () => {
 		const before = await page.$$eval(".bnd-studio__table thead th", (n) => n.length);
 		await page.click('.bnd-studio__action >> text="كل الأعمدة"');
 		await page.waitForFunction(
@@ -370,7 +370,7 @@ async function main() {
 		await goBack();
 	});
 	await test("تصدير Excel: مصنّف حقيقي بجدول منظّم وأرقام بالفلس", async () => {
-		await openCard("سجل المبيعات");
+		await openCard("تقرير المبيعات");
 		const [download] = await Promise.all([
 			page.waitForEvent("download"),
 			page.click('.bnd-studio__action >> text="تصدير Excel"'),
@@ -395,13 +395,13 @@ async function main() {
 		if (!m) throw new Error("xlsx probe failed: " + out.slice(-300));
 		if (m[1] !== "True") throw new Error("sheet is not RTL");
 		if (m[2] !== "1") throw new Error("no structured Excel table inside");
-		if (!m[3].includes("سجل المبيعات")) throw new Error("title cell: " + m[3]);
+		if (!m[3].includes("تقرير المبيعات")) throw new Error("title cell: " + m[3]);
 		if (!close(parseFloat(m[4]), expect.sales_tax)) throw new Error(`xlsx total ${m[4]} != ${expect.sales_tax}`);
 		if (!close(parseFloat(m[5]), expect.sales_tax)) throw new Error(`xlsx sum ${m[5]} != ${expect.sales_tax}`);
 		await goBack();
 	});
-	await test("سجل المبيعات حسب الصنف يعرض", async () => {
-		await openCard("سجل المبيعات حسب الصنف");
+	await test("تقرير المبيعات حسب الصنف يعرض", async () => {
+		await openCard("تقرير المبيعات حسب الصنف");
 		if ((await tiles()).length < 2) throw new Error("tiles missing");
 		await goBack();
 	});
@@ -454,7 +454,7 @@ async function main() {
 
 	// ── الغوص من التقرير إلى المستند، والعودة منه ──
 	await test("خلية المرجع تفتح مستندها، وزر العودة يرجع خطوةً واحدة", async () => {
-		await openCard("سجل المبيعات");
+		await openCard("تقرير المبيعات");
 		const href = await page.$eval(".bnd-studio__table a.bnd-studio__link", (a) =>
 			a.getAttribute("href")
 		);
@@ -485,15 +485,15 @@ async function main() {
 	});
 
 	// ── المشتريات ──
-	await test("سجل المشتريات: ضريبة المدخلات حاضرة", async () => {
+	await test("تقرير المشتريات: ضريبة المدخلات حاضرة", async () => {
 		await openDomain("المشتريات");
-		await openCard("سجل المشتريات");
+		await openCard("تقرير المشتريات");
 		const tax = await tileByLabel("مجموع الضرائب");
 		if (!close(tax, expect.buy_tax)) throw new Error(`input tax ${tax} != ${expect.buy_tax}`);
 		await goBack();
 	});
-	await test("سجل المشتريات حسب الصنف يعرض", async () => {
-		await openCard("سجل المشتريات حسب الصنف");
+	await test("تقرير المشتريات حسب الصنف يعرض", async () => {
+		await openCard("تقرير المشتريات حسب الصنف");
 		if ((await tiles()).length < 2) throw new Error("tiles missing");
 		await goBack();
 	});

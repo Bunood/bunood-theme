@@ -133,6 +133,143 @@
 					desc: () => __("Opportunities, quotations and orders by sales territory"),
 					hints: { topn: { by: "territory" } },
 				},
+				// ── الموجة الأولى: أنواع تقارير المبيعات ────────────────────────
+				// بطلب المالك بعد مسحٍ للسوق: أربعة عشر تقريراً كانت مبنيةً في
+				// إرب نكست ولم توصَّل. لا منطق جديد هنا — توصيلٌ وتسمية.
+				// كل مرشّح أدناه مقيسٌ من مصدر تقريره ومثبتٌ بتشغيله على البنش:
+				// ما لم يُرَ وهو يعمل لم يدخل هذه القائمة.
+				{
+					name: "POS Register",
+					gallery: false,
+					title: () => __("POS Register"),
+					cat: 4,
+					desc: () => __("Every point-of-sale invoice with its cashier, profile and payments"),
+					hints: {
+						date: "posting_date",
+						topn: { by: "customer", value: "grand_total" },
+					},
+				},
+				{
+					name: "Sales Payment Summary",
+					gallery: false,
+					title: () => __("Sales Payment Summary"),
+					cat: 3,
+					desc: () => __("What was collected, split by mode of payment"),
+					hints: { topn: { by: "mode_of_payment", value: "paid_amount" } },
+				},
+				{
+					name: "Sales Person Commission Summary",
+					gallery: false,
+					title: () => __("Sales Person Commission Summary"),
+					cat: 5,
+					extra_filters: { doc_type: "Sales Invoice" },
+					desc: () => __("Commission earned by each sales person on submitted invoices"),
+					hints: { topn: { by: "sales_person" } },
+				},
+				{
+					name: "Item-wise Sales History",
+					gallery: false,
+					title: () => __("Item-wise Sales History"),
+					cat: 1,
+					desc: () => __("Ordered, delivered and billed quantities for every item"),
+					hints: { topn: { by: "item_code", value: "amount" } },
+				},
+				{
+					name: "Sales Analytics",
+					gallery: false,
+					title: () => __("Sales Analytics"),
+					cat: 0,
+					// التقرير شجرةٌ بمجاميعها: لا تُجمع أرقامه بحدسٍ خارجي.
+					careful: true,
+					extra_filters: {
+						tree_type: "Customer",
+						doc_type: "Sales Invoice",
+						value_quantity: "Value",
+						range: "Monthly",
+					},
+					desc: () => __("Sales by customer across months, with the period-on-period change"),
+				},
+				{
+					name: "Sales Invoice Trends",
+					gallery: false,
+					title: () => __("Sales Invoice Trends"),
+					cat: 0,
+					careful: true,
+					extra_filters: {
+						period: "Monthly",
+						based_on: "Item",
+						group_by: "",
+						fiscal_year: String(new Date().getFullYear()),
+					},
+					desc: () => __("Invoiced value by item across the months of the fiscal year"),
+				},
+				{
+					name: "Customer Ledger Summary",
+					gallery: false,
+					title: () => __("Customer Ledger Summary"),
+					cat: 2,
+					careful: true,
+					desc: () => __("Opening, invoiced, paid and closing balance for every customer"),
+				},
+				{
+					name: "Customer Acquisition and Loyalty",
+					gallery: false,
+					title: () => __("Customer Acquisition and Loyalty"),
+					cat: 6,
+					extra_filters: { view_type: "Monthly" },
+					desc: () => __("New customers each month, and what the returning ones spent"),
+					hints: { topn: { by: "new_customers" } },
+				},
+				{
+					name: "Customers Without Any Sales Transactions",
+					gallery: false,
+					title: () => __("Customers Without Any Sales Transactions"),
+					cat: 6,
+					desc: () => __("Customers on the books who have never bought"),
+				},
+				{
+					name: "Quotation Trends",
+					gallery: false,
+					title: () => __("Quotation Trends"),
+					cat: 7,
+					careful: true,
+					extra_filters: {
+						period: "Monthly",
+						based_on: "Item",
+						group_by: "",
+						fiscal_year: String(new Date().getFullYear()),
+					},
+					desc: () => __("Quoted value by item across the months of the fiscal year"),
+				},
+				{
+					name: "Lost Quotations",
+					gallery: false,
+					title: () => __("Lost Quotations"),
+					cat: 7,
+					// هذا التقرير يقرأ مداه بنفسه (timespan) ولا يعرف from/to —
+					// فالفترة المختارة لا تحكمه، وهذا مذكورٌ في وصفه لا مسكوتٌ عنه.
+					extra_filters: { timespan: "Last Year", group_by: "Lost Reason" },
+					desc: () => __("Quotations lost in the last year, and the reasons given"),
+					hints: { topn: { by: "lost_reason" } },
+				},
+				{
+					name: "Delivered Items To Be Billed",
+					gallery: false,
+					title: () => __("Delivered Items To Be Billed"),
+					cat: 3,
+					// posting_date لا from/to: التقرير يسأل عن الوضع حتى تاريخ.
+					filter_mode: "postingDate",
+					desc: () => __("What left the warehouse and has not been invoiced yet"),
+					hints: { topn: { by: "customer", value: "amount" } },
+				},
+				{
+					name: "Inactive Sales Items",
+					gallery: false,
+					title: () => __("Inactive Sales Items"),
+					cat: 1,
+					filter_mode: "inactiveItems",
+					desc: () => __("Items that have not sold for a while, by territory"),
+				},
 			],
 		},
 		{
@@ -555,6 +692,17 @@
 			case "dateRange":
 				base = { company: state.company, filter_based_on: "Date Range",
 					period_start_date: from, period_end_date: to, periodicity: "Yearly" };
+				break;
+			case "postingDate":
+				// «حتى تاريخ» لا «بين تاريخين»: التقرير يسأل عن وضعٍ قائم، ونهايةُ
+				// الفترة المختارة هي ذلك التاريخ.
+				base = { company: state.company, posting_date: to };
+				break;
+			case "inactiveItems":
+				// التقرير يقيس ركوداً بعدد أيام لا بفترة، ويطلب منطقة بيعٍ بعينها —
+				// فالفترة المختارة لا تحكمه، وهذا مقولٌ في وصفه.
+				base = { company: state.company, based_on: "Sales Invoice", days: 30,
+					territory: state.territory || "All Territories" };
 				break;
 			case "trialBalance":
 				base = { company: state.company, from_date: from, to_date: to,
@@ -1514,7 +1662,10 @@
 				grid.innerHTML = "";
 				const needle = query.trim().toLocaleLowerCase();
 				const domain = galleryDomains.find((item) => item.id === state.domain) || galleryDomains[0];
-				const source = needle ? ALL_REPORTS : domain.reports;
+				// البوابة بطاقاتٌ للمداخل الرئيسية؛ بقية أنواع العائلة تُختار من
+				// داخل التقرير نفسه، فلا تُعرض هنا ولو بحثتَ عنها — مكانٌ واحد
+				// لكل شيء خيرٌ من مكانين يتنافسان.
+				const source = (needle ? ALL_REPORTS : domain.reports).filter((r) => r.gallery !== false);
 				const reports = source.filter(report =>
 					!needle || `${report.name} ${report.title()} ${report.desc()}`.toLocaleLowerCase().includes(needle)
 				);
@@ -1729,6 +1880,100 @@
 				controls.append(companyControl);
 			}
 			container.append(controls);
+
+			// ── أنواع التقرير داخل التقرير ────────────────────────────────────
+			// بطلب المالك ومعه نموذجٌ من نظامٍ آخر: من يفتح تقرير المبيعات يجد
+			// أنواع تقارير المبيعات معه على الشاشة، يُبدّل بينها بتعليم مربع،
+			// بلا رجوعٍ إلى البوابة في كل مرة. والبوابة تبقى بطاقاتٍ كما هي —
+			// هي اختيار المجال، وهذا اختيار النوع داخله.
+			//
+			// إخوة التقرير من مجاله لا من كل المجالات: من يقرأ مبيعاتٍ يُبدّل
+			// بين تقارير المبيعات، وقفزةٌ إلى المحاسبة قرارٌ آخر مكانه البوابة.
+			const family = (DOMAINS.find((d) => d.id === report.domain_id) || {}).reports || [];
+			if (family.length > 1) {
+				const types = el("section", "bnd-studio__types");
+				types.append(el("h3", "bnd-studio__types-title", __("Report type")));
+				const typeGrid = el("div", "bnd-studio__types-grid");
+				typeGrid.setAttribute("role", "radiogroup");
+				typeGrid.setAttribute("aria-label", __("Report type"));
+				// يُعلَّم النوع ثم يُضغط «عرض التقرير» — بطلب المالك. التبديل
+				// الفوري يفتح تقريراً لم يُقصد كلما زلّت الفأرة، والفصل بين
+				// الاختيار والتنفيذ هو ما يجعل شبكةً من عشرين خياراً آمنة.
+				let pickedKey = report.key;
+				const showButton = el("button", "bnd-studio__open", __("Show report"));
+				showButton.type = "button";
+				showButton.disabled = true;
+				const markType = (key) => {
+					pickedKey = key;
+					for (const row of typeGrid.querySelectorAll(".bnd-studio__pick")) {
+						const on = row.dataset.reportKey === key;
+						row.classList.toggle("is-chosen", on);
+						row.setAttribute("aria-checked", String(on));
+						row.tabIndex = on ? 0 : -1;
+					}
+					showButton.disabled = key === report.key;
+				};
+				const showPicked = () => {
+					const target = family.find((r) => r.key === pickedKey);
+					if (!target || target.key === report.key) return;
+					// عبر المسار: التبديل خطوة تاريخ يرجع عنها المتصفح.
+					frappe.set_route(...routeParts(target, null));
+				};
+				showButton.addEventListener("click", showPicked);
+				const moveType = (step) => {
+					const rows = [...typeGrid.querySelectorAll(".bnd-studio__pick:not(:disabled)")];
+					if (!rows.length) return;
+					const at = rows.findIndex((r) => r.dataset.reportKey === pickedKey);
+					const next = rows[(at + step + rows.length) % rows.length];
+					markType(next.dataset.reportKey);
+					next.focus();
+				};
+				for (const sibling of family) {
+					const missing = state.available && !state.available.has(sibling.name);
+					const on = sibling.key === report.key;
+					const row = el("button", "bnd-studio__pick");
+					row.type = "button";
+					row.dataset.reportKey = sibling.key;
+					row.setAttribute("role", "radio");
+					row.setAttribute("aria-checked", String(on));
+					row.tabIndex = on ? 0 : -1;
+					if (on) row.classList.add("is-chosen");
+					const box = el("span", "bnd-studio__pick-box");
+					box.setAttribute("aria-hidden", "true");
+					row.append(box);
+					row.append(el("span", "bnd-studio__pick-title", sibling.title()));
+					row.title = sibling.desc();
+					if (missing) {
+						row.classList.add("is-missing");
+						row.disabled = true;
+						row.title = __("This report is not installed on this site");
+					} else {
+						row.addEventListener("click", () => markType(sibling.key));
+						row.addEventListener("dblclick", showPicked);
+						row.addEventListener("keydown", (event) => {
+							if (event.key === " ") {
+								event.preventDefault();
+								markType(sibling.key);
+							} else if (event.key === "Enter") {
+								event.preventDefault();
+								markType(sibling.key);
+								showPicked();
+							} else if (["ArrowDown", "ArrowRight"].includes(event.key)) {
+								event.preventDefault();
+								moveType(1);
+							} else if (["ArrowUp", "ArrowLeft"].includes(event.key)) {
+								event.preventDefault();
+								moveType(-1);
+							}
+						});
+					}
+					typeGrid.append(row);
+				}
+				const typesFoot = el("div", "bnd-studio__types-foot");
+				typesFoot.append(showButton);
+				types.append(typeGrid, typesFoot);
+				container.append(types);
+			}
 
 			const kpisEl = el("section", "bnd-studio__kpis");
 			const chartCard = el("section", "bnd-studio__chartcard");
