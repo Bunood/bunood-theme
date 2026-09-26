@@ -270,6 +270,67 @@
 					filter_mode: "inactiveItems",
 					desc: () => __("Items that have not sold for a while, by territory"),
 				},
+				// ── الموجة الثانية: أنواعٌ تحتاج تركيباً أو عدسةً أخرى ──────────
+				{
+					name: "Sales Register",
+					key: "tax-split",
+					gallery: false,
+					compose: "taxSplit",
+					title: () => __("Taxable and Non-taxable Invoices"),
+					cat: 4,
+					desc: () => __("Which invoices carried VAT and which did not, with the effective rate"),
+					hints: { date: "posting_date" },
+				},
+				{
+					name: "Sales Register",
+					key: "top-invoices",
+					gallery: false,
+					compose: "topInvoices",
+					title: () => __("Largest Invoices"),
+					cat: 0,
+					desc: () => __("The twenty-five biggest invoices, and how much the top ten carry"),
+					hints: { date: "posting_date" },
+				},
+				{
+					name: "Sales Register",
+					key: "invoice-count",
+					gallery: false,
+					compose: "invoiceCount",
+					title: () => __("Invoice Counter"),
+					cat: 3,
+					desc: () => __("How many invoices were issued, on which days, and the average one"),
+					hints: { date: "posting_date" },
+				},
+				{
+					name: "Sales Analytics",
+					key: "sales-by-item-group",
+					gallery: false,
+					careful: true,
+					extra_filters: {
+						tree_type: "Item Group",
+						doc_type: "Sales Invoice",
+						value_quantity: "Value",
+						range: "Monthly",
+					},
+					title: () => __("Sales by Item Group"),
+					cat: 1,
+					desc: () => __("What each department sold, month by month"),
+				},
+				{
+					name: "Sales Analytics",
+					key: "sales-by-customer-group",
+					gallery: false,
+					careful: true,
+					extra_filters: {
+						tree_type: "Customer Group",
+						doc_type: "Sales Invoice",
+						value_quantity: "Value",
+						range: "Monthly",
+					},
+					title: () => __("Sales by Customer Group"),
+					cat: 6,
+					desc: () => __("What each customer group bought, month by month"),
+				},
 			],
 		},
 		{
@@ -833,6 +894,145 @@
 	// A compose step reshapes a generic aggregation for a curated reading.
 	// They attach customTiles / extraTiles / customSeries / note; the renderers
 	// prefer those when present and fall back to the generic shapes when not.
+
+	// ── الفواتير الضريبية وغير الضريبية ──────────────────────────────────────
+	// الفصل بحضور ضريبةٍ حُسبت على الفاتورة، لا بفئةٍ ضريبية مُعلَنة عليها:
+	// الفئة نيّة والحساب واقع، ومراجع الإقرار يسأل عن الواقع. ونسبة الفعلية
+	// تُقاس على صافي الفواتير الضريبية وحدها — قسمتها على الصافي كله تخلط
+	// المعفى بالخاضع فتعطي رقماً لا يعني شيئاً.
+	function composeTaxSplit(agg, prevAgg) {
+		const build = (a) => {
+			if (!a) return null;
+			const shape = a.shape;
+			const grand = shape.all.find((c) => c.fieldname === "grand_total") || a.primary;
+			const net = shape.all.find((c) => c.fieldname === "net_total");
+			const tax =
+				shape.all.find((c) => c.fieldname === "tax_total") ||
+				shape.all.find((c) => c.fieldname === "total_tax") ||
+				shape.currency.find(isTaxish);
+			const gi = shape.all.indexOf(grand);
+			const ni = net ? shape.all.indexOf(net) : -1;
+			const ti = tax ? shape.all.indexOf(tax) : -1;
+			let taxedCount = 0, taxedAmount = 0, taxedNet = 0, taxSum = 0;
+			let plainCount = 0, plainAmount = 0;
+			for (const row of a.bodyRows) {
+				const g = parseFloat(rowValue(row, grand, gi)) || 0;
+				const t = tax ? parseFloat(rowValue(row, tax, ti)) || 0 : 0;
+				const n = net ? parseFloat(rowValue(row, net, ni)) || 0 : 0;
+				// نصف هللة: مقارنة العائم بالصفر تعدّ فاتورةً بضريبةٍ صفرية مقرّبة
+				// ضريبيةً، وهي ليست كذلك.
+				if (Math.abs(t) >= 0.005) {
+					taxedCount += 1; taxedAmount += g; taxedNet += n; taxSum += t;
+				} else {
+					plainCount += 1; plainAmount += g;
+				}
+			}
+			return { grand, tax, taxedCount, taxedAmount, taxedNet, taxSum, plainCount, plainAmount };
+		};
+		const now = build(agg);
+		const prev = build(prevAgg);
+		agg.customTiles = [
+			{ label: __("Taxable invoices"), value: now.taxedCount,
+				column: { fieldtype: "Int" }, prev: prev && prev.taxedCount },
+			{ label: __("Taxable amount"), value: now.taxedAmount,
+				column: now.grand, prev: prev && prev.taxedAmount },
+			{ label: __("Non-taxable invoices"), value: now.plainCount,
+				column: { fieldtype: "Int" }, prev: prev && prev.plainCount },
+			{ label: __("Non-taxable amount"), value: now.plainAmount,
+				column: now.grand, prev: prev && prev.plainAmount },
+		];
+		if (now.tax) {
+			agg.customTiles.push({ label: __("Tax collected"), value: now.taxSum,
+				column: now.tax, prev: prev && prev.taxSum });
+		}
+		if (now.taxedNet) {
+			agg.extraTiles = [{
+				label: __("Effective rate"),
+				value: (now.taxSum / now.taxedNet) * 100,
+				column: { fieldtype: "Percent" },
+				prev: prev && prev.taxedNet ? (prev.taxSum / prev.taxedNet) * 100 : null,
+			}];
+		}
+		agg.note = __("An invoice counts as taxable when tax was actually computed on it, not by the tax category it declares.");
+	}
+
+	// ── أعلى الفواتير قيمة ───────────────────────────────────────────────────
+	// ترتيبٌ وقصّ: الجدول يصير أعلى خمسٍ وعشرين فاتورة لا كل الفواتير، وحصّة
+	// العشر الأعلى تقول كم يعتمد الشهر على قلةٍ من الصفقات.
+	function composeTopInvoices(agg, prevAgg) {
+		const shape = agg.shape;
+		const grand = shape.all.find((c) => c.fieldname === "grand_total") || agg.primary;
+		if (!grand) return;
+		const gi = shape.all.indexOf(grand);
+		const valueOf = (row) => parseFloat(rowValue(row, grand, gi)) || 0;
+		const ranked = agg.bodyRows.slice().sort((a, b) => valueOf(b) - valueOf(a));
+		const total = ranked.reduce((sum, row) => sum + valueOf(row), 0);
+		const topTen = ranked.slice(0, 10).reduce((sum, row) => sum + valueOf(row), 0);
+		const LIMIT = 25;
+		const kept = ranked.slice(0, LIMIT);
+		// الجدول يقرأ agg.rows؛ وصفوف الإجمالي تسقط هنا عمداً لأن إجمالي
+		// خمسٍ وعشرين فاتورةً ليس إجمالي الفترة، وعرضه كذلك كذب.
+		agg.rows = kept;
+		agg.bodyRows = kept;
+		agg.customTiles = [
+			{ label: __("Largest invoice"), value: kept.length ? valueOf(kept[0]) : 0, column: grand },
+			{ label: __("Average invoice"), value: ranked.length ? total / ranked.length : 0, column: grand },
+			{ label: __("Top ten share"), value: total ? (topTen / total) * 100 : 0,
+				column: { fieldtype: "Percent" } },
+			{ label: __("Invoices in period"), value: ranked.length, column: { fieldtype: "Int" },
+				prev: prevAgg ? prevAgg.bodyRows.length : null },
+		];
+		agg.note = __("The table shows the twenty-five largest invoices; the tiles are measured over the whole period.");
+	}
+
+	// ── عدّاد الفواتير ───────────────────────────────────────────────────────
+	// العدّ لا المبلغ: كم فاتورةً صدرت، وفي أي يومٍ كانت الذروة، وما متوسط
+	// الفاتورة. الجدول يبقى الفواتير نفسها — صفوفٌ مُصطنعة بيومٍ وعدد تبدو
+	// تقريراً وليست منه.
+	function composeInvoiceCount(agg, prevAgg) {
+		const shape = agg.shape;
+		const grand = shape.all.find((c) => c.fieldname === "grand_total") || agg.primary;
+		const dateCol = shape.dates[0];
+		const gi = grand ? shape.all.indexOf(grand) : -1;
+		const di = dateCol ? shape.all.indexOf(dateCol) : -1;
+		const days = new Map();
+		let total = 0;
+		for (const row of agg.bodyRows) {
+			if (grand) total += parseFloat(rowValue(row, grand, gi)) || 0;
+			if (!dateCol) continue;
+			const raw = rowValue(row, dateCol, di);
+			if (!raw) continue;
+			const day = String(raw).slice(0, 10);
+			days.set(day, (days.get(day) || 0) + 1);
+		}
+		const count = agg.bodyRows.length;
+		let peakDay = null;
+		let peak = 0;
+		for (const [day, n] of days) {
+			if (n > peak) { peak = n; peakDay = day; }
+		}
+		agg.customTiles = [
+			{ label: __("Invoices"), value: count, column: { fieldtype: "Int" },
+				prev: prevAgg ? prevAgg.bodyRows.length : null },
+			{ label: __("Days with sales"), value: days.size, column: { fieldtype: "Int" } },
+			{ label: __("Busiest day"), value: peak, column: { fieldtype: "Int" },
+				text: peakDay ? `${peak} — ${frappe.datetime.str_to_user(peakDay)}` : "—" },
+		];
+		if (grand) {
+			agg.customTiles.push({ label: __("Average invoice"),
+				value: count ? total / count : 0, column: grand });
+		}
+		const dayKeys = Array.from(days.keys()).sort();
+		if (dayKeys.length > 1) {
+			agg.customSeries = {
+				labels: dayKeys,
+				value_column: { fieldtype: "Int" },
+				title: __("Invoices per day"),
+				datasets: [{ name: __("Invoices"), values: dayKeys.map((day) => days.get(day)) }],
+			};
+		}
+		agg.note = __("Counts every submitted invoice in the period, returns included — a return is a document too.");
+	}
 
 	function composeSignSplit(agg, prevAgg, report) {
 		const labels = report.split_labels;
@@ -2287,6 +2487,9 @@
 						const agg = aggregate(data, report);
 						const prevAgg = prevData ? aggregate(prevData, report) : null;
 						if (report.compose === "signSplit") composeSignSplit(agg, prevAgg, report);
+						if (report.compose === "taxSplit") composeTaxSplit(agg, prevAgg);
+						if (report.compose === "topInvoices") composeTopInvoices(agg, prevAgg);
+						if (report.compose === "invoiceCount") composeInvoiceCount(agg, prevAgg);
 						if (report.compose === "grossProfit") composeGrossProfit(agg, prevAgg);
 						if (report.compose === "generalLedger") composeGeneralLedger(agg, prevAgg);
 						if (report.compose === "trialBalance") composeTrialBalance(agg, prevAgg);
