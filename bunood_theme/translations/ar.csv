@@ -1669,7 +1669,6 @@ Settings applied: {0} — saved automatically,طُبّقت الإعدادات: {
 Shape,الشكل,
 Show,إظهار,
 Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load.,إظهار الإشعارات في الشريط السفلي عند العرض دون 768 بكسل. البحث موجود دائمًا (فهو البحث الوحيد على الهاتف)؛ يختار هذا الخيار والخياران التاليان ما ينضمّ إليه. يسري عند تحميل الصفحة التالي.,
-Show report,عرض التقرير,
 Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way.,إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين.,
 Show the bottom bar,إظهار الشريط السفلي,
 Show the dock,إظهار شريط الإرساء,

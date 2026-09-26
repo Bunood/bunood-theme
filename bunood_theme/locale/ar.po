@@ -11294,9 +11294,5 @@ msgid "Back to {0}"
 msgstr "العودة إلى {0}"
 
 #. src: js/report_studio.js
-msgid "Show report"
-msgstr "عرض التقرير"
-
-#. src: js/report_studio.js
 msgid "Report type"
 msgstr "نوع التقرير"

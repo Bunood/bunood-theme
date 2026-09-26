@@ -192,7 +192,7 @@
 		"studio_js_gzip": 32000,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,
-		"studio_css_gzip": 6300,
+		"studio_css_gzip": 6500,
 		"pos_css_gzip": 5700,
 		"pos_js_gzip": 9200,
 		"web_css_gzip": 4200,

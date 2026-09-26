@@ -308,11 +308,8 @@ async function main() {
 		await page.waitForFunction(() => !document.querySelector(".modal.show"));
 		await waitViewer();
 	};
-	// المعرض صار قائمة اختيار: يُعلَّم النوع ثم يُضغط «عرض التقرير» — كما طلب
-	// المالك ومعه نموذجٌ من نظامٍ آخر.
 	const openCard = async (title) => {
-		await page.click(`.bnd-studio__pick:not(.is-missing) >> text="${title}"`);
-		await page.click(".bnd-studio__open");
+		await page.click(`.bnd-studio__card:not(.is-missing) >> text="${title}"`);
 		await waitViewer();
 		await setDataPeriod();
 	};

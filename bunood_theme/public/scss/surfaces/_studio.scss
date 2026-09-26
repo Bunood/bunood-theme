@@ -161,18 +161,10 @@
 		margin-inline-start: auto;
 	}
 
-	// ── قائمة اختيار نوع التقرير ─────────────────────────────────────────────
-	// شبكةٌ كثيفة من التسميات لا معرضُ بطاقاتٍ بأيقونات: اثنتان وعشرون بطاقةً
-	// تملأ الشاشة قبل أن تُقرأ، واثنتان وعشرون تسميةً تُمسح بنظرة. الأعمدة
-	// تتكيّف مع العرض، والوصف لم يُحذف بل انتقل إلى سطر الذيل للمختار.
 	.bnd-studio__grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
-		gap: calc(var(--bnd-sp-1) / 2) var(--bnd-sp-3);
-		padding: var(--bnd-sp-3);
-		border: var(--bnd-line) solid var(--bnd-border);
-		border-radius: var(--bnd-radius-lg);
-		background: var(--bnd-surface);
+		grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
+		gap: var(--bnd-sp-3);
 	}
 
 	.bnd-studio__gallery-empty {
@@ -185,11 +177,126 @@
 		text-align: center;
 	}
 
+	.bnd-studio__card {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		padding: var(--bnd-sp-4);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+		color: inherit;
+		text-align: start;
+		cursor: pointer;
+		transition:
+			background var(--bnd-dur-fast) var(--bnd-ease),
+			border-color var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover:not(:disabled) {
+			background: var(--bnd-hover);
+			border-color: var(--bnd-border-strong);
+
+			.bnd-studio__card-go {
+				opacity: 1;
+			}
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
+
+		&.is-missing {
+			opacity: 0.45;
+			cursor: default;
+		}
+	}
+
+	.bnd-studio__glyph {
+		flex: none;
+		display: grid;
+		place-items: center;
+		inline-size: calc(var(--bnd-sp-6) + var(--bnd-sp-2));
+		block-size: calc(var(--bnd-sp-6) + var(--bnd-sp-2));
+		border-radius: var(--bnd-radius-md);
+		background: color-mix(in srgb, var(--bnd-studio-cat) var(--bnd-cat-tint), transparent);
+		color: color-mix(in srgb, var(--bnd-studio-cat) 80%, var(--bnd-ink));
+
+		svg {
+			inline-size: 55%;
+			block-size: 55%;
+		}
+	}
+
+	.bnd-studio__card-body {
+		display: flex;
+		flex-direction: column;
+		gap: var(--bnd-sp-1);
+		min-inline-size: 0;
+	}
+
+	.bnd-studio__card-domain {
+		color: color-mix(in srgb, var(--bnd-studio-cat) 76%, var(--bnd-ink));
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-medium);
+	}
+
+	.bnd-studio__card-title {
+		font-size: var(--bnd-text-md);
+		font-weight: var(--bnd-weight-medium);
+	}
+
+	.bnd-studio__card-desc {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		line-height: var(--bnd-leading-base);
+	}
+
+	.bnd-studio__card-status {
+		align-self: flex-start;
+		margin-block-start: var(--bnd-sp-1);
+		color: var(--bnd-critical);
+		font-size: var(--bnd-text-xs);
+	}
+
+	.bnd-studio__card-go {
+		margin-inline-start: auto;
+		color: var(--bnd-ink-subtle);
+		opacity: 0.72;
+		transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+	}
+
+	// ── أنواع التقرير داخل التقرير ───────────────────────────────────────────
+	// لوحةٌ بين المرشّحات والنتائج: من يقرأ تقريراً يرى بقية أنواع مجاله
+	// ويُبدّل بتعليم مربع. البوابة تبقى بطاقاتٍ — تلك اختيار مجالٍ بالصورة،
+	// وهذه تبديل نوعٍ بالاسم، فلا يتنافس السطحان على الشكل نفسه.
+	.bnd-studio__types {
+		margin-block-end: var(--bnd-sp-4);
+		padding: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+	}
+
+	.bnd-studio__types-title {
+		margin: 0 0 var(--bnd-sp-2);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-medium);
+	}
+
+	.bnd-studio__types-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(min(15rem, 100%), 1fr));
+		gap: calc(var(--bnd-sp-1) / 2) var(--bnd-sp-3);
+	}
+
 	.bnd-studio__pick {
 		display: flex;
 		align-items: center;
 		gap: var(--bnd-sp-2);
-		padding-block: var(--bnd-sp-2);
+		padding-block: var(--bnd-sp-1);
 		padding-inline: var(--bnd-sp-2);
 		border: var(--bnd-line) solid transparent;
 		border-radius: var(--bnd-radius-md);
@@ -213,6 +320,7 @@
 		&.is-chosen {
 			background: color-mix(in srgb, var(--bnd-brand) 8%, transparent);
 			border-color: color-mix(in srgb, var(--bnd-brand-solid) 40%, var(--bnd-border));
+			cursor: default;
 		}
 
 		&.is-missing {
@@ -221,8 +329,8 @@
 		}
 	}
 
-	// المربع نفسه: حدٌّ فارغ حتى يُختار، فيمتلئ بالعلامة الخضراء — صورة
-	// الاختيار التي طلبها المالك، وإن كانت دلالتها اختياراً واحداً.
+	// المربع: حدٌّ فارغ حتى يُختار فيمتلئ بالعلامة — صورةُ الاختيار التي طلبها
+	// المالك، ودلالتها تحتها اختيارٌ واحد (radio) لأن العارض يرسم تقريراً واحداً.
 	.bnd-studio__pick-box {
 		flex: none;
 		position: relative;
@@ -240,7 +348,7 @@
 		border-color: var(--bnd-brand-solid);
 		background: var(--bnd-brand-solid);
 
-		// علامة الصح مرسومة بحدَّين مائلين — لا محرف ولا صورة، فتتبع اللون.
+		// علامة الصح بحدَّين مائلين — لا محرف ولا صورة، فتتبع اللون.
 		&::after {
 			content: "";
 			position: absolute;
@@ -255,77 +363,11 @@
 		}
 	}
 
-	.bnd-studio__pick-label {
-		display: flex;
-		flex-direction: column;
-		gap: calc(var(--bnd-sp-1) / 2);
-		min-inline-size: 0;
-	}
-
 	.bnd-studio__pick-title {
 		overflow: hidden;
 		font-size: var(--bnd-text-sm);
 		text-overflow: ellipsis;
 		white-space: nowrap;
-	}
-
-	.bnd-studio__pick-domain {
-		color: color-mix(in srgb, var(--bnd-studio-cat) 76%, var(--bnd-ink));
-		font-size: var(--bnd-text-xs);
-		font-weight: var(--bnd-weight-medium);
-	}
-
-	.bnd-studio__pick-status {
-		color: var(--bnd-critical);
-		font-size: var(--bnd-text-xs);
-	}
-
-	// ── ذيل المعرض: الوصف والفعل ─────────────────────────────────────────────
-	// الوصف هنا لا في كل صف: الكثافة مطلوبة، والمعنى يبقى لمن يقف على اختياره.
-	.bnd-studio__galleryfoot {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: center;
-		gap: var(--bnd-sp-3);
-		margin-block-start: var(--bnd-sp-4);
-	}
-
-	.bnd-studio__chosen {
-		flex: 1 1 14rem;
-		margin: 0;
-		min-inline-size: 0;
-		color: var(--bnd-ink-muted);
-		font-size: var(--bnd-text-sm);
-	}
-
-	.bnd-studio__open {
-		flex: none;
-		margin-inline-start: auto;
-		padding-block: var(--bnd-sp-2);
-		padding-inline: var(--bnd-sp-5);
-		border: var(--bnd-line) solid var(--bnd-brand-solid);
-		border-radius: var(--bnd-radius-md);
-		background: var(--bnd-brand-solid);
-		color: var(--bnd-on-brand);
-		font-size: var(--bnd-text-sm);
-		font-weight: var(--bnd-weight-medium);
-		cursor: pointer;
-
-		&:hover:not(:disabled) {
-			background: color-mix(in srgb, var(--bnd-brand-solid) 88%, var(--bnd-ink));
-		}
-
-		&:focus-visible {
-			outline: 2px solid var(--bnd-accent);
-			outline-offset: 2px;
-		}
-
-		&:disabled {
-			border-color: var(--bnd-border);
-			background: var(--bnd-pane);
-			color: var(--bnd-ink-subtle);
-			cursor: default;
-		}
 	}
 
 	// ── Viewer head ─────────────────────────────────────────────────────────
@@ -1227,8 +1269,14 @@
 			gap: var(--bnd-sp-3);
 		}
 
-		.bnd-studio__pick {
-			padding-block: var(--bnd-sp-2);
+		.bnd-studio__card {
+			gap: var(--bnd-sp-3);
+			padding: var(--bnd-sp-3);
+		}
+
+		.bnd-studio__glyph {
+			inline-size: var(--bnd-sp-7);
+			block-size: var(--bnd-sp-7);
 		}
 
 		.bnd-studio__controls,
