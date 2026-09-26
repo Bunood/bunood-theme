@@ -2404,6 +2404,13 @@
 		return sb_existing_symbol([want, "icon-folder-normal"]) || want;
 	}
 
+	// A workspace title as a person reads it. The raw title is the lookup KEY;
+	// what we draw is __(title), as Frappe's header does (tests/workspace_title).
+	function ws_label(ws) {
+		const title = ws && ws.title;
+		return title ? __(title) : "";
+	}
+
 	/** A workspace's ORIGINAL desktop icon (the vendor's header uses the same
 	 *  resolver), or "" — `frappe.utils.get_desktop_icon` answers false when
 	 *  the app ships none for that label. */
@@ -7356,7 +7363,7 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const ws of roots.slice(0, DOCK_SLOTS)) {
 			const item = el("button", "bnd-dock-item", {
 				type: "button",
-				title: ws.title,
+				title: ws_label(ws),
 				"data-ws": slug(ws.name),
 			});
 			item.appendChild(sprite_icon(ws_symbol(ws.icon)));
@@ -7377,7 +7384,7 @@ function sb_zone_anchor(pane, zone, node) {
 				show_menu(
 					more,
 					rest.map((ws) => ({
-						label: ws.title,
+						label: ws_label(ws),
 						icon: ws_symbol(ws.icon),
 						run: () => frappe.set_route(slug(ws.name)),
 					}))
@@ -7921,7 +7928,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const name = document.querySelector(".bnd-sb-head .bnd-sb-head-name");
 		if (!name) return;
 		const ws = sb_current_workspace;
-		const label = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
+		const label = ws_label(ws) || frappe.boot.bnd_company || __("Home");
 		name.textContent = label;
 		// The rail hides the name span; the button keeps its name regardless
 		// (measured: a rail-state scan reported .bnd-sb-head with no name).
