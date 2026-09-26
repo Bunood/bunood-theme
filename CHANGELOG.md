@@ -24,6 +24,32 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.48.2] — 2026-09-26 — the A4 invoice, titled and dressed (patch)
+
+### Fixed — a tax invoice says so
+
+v0.48.0's shared A4 template titled every sale «فاتورة مبيعات». A sale by a
+VAT-registered seller is a ZATCA tax invoice: it now reads فاتورة ضريبية /
+Tax Invoice when the buyer carries a VAT number, فاتورة ضريبية مبسطة /
+Simplified Tax Invoice when it does not, and a return إشعار دائن (مبسط) /
+(Simplified) Credit Note — the official formats' exact wording. A seller with no
+VAT number keeps a plain sales invoice; purchase documents are unchanged.
+`tests/test_invoice_title.py` renders each case and fails on the v0.48.0
+template.
+
+### Fixed — the invoice's own stylesheet
+
+The `capability/main/printing-documents` branch carried the template without
+the ~190 lines of `.bnd-invoice` rules its production twin keeps in
+`print.scss`, so v0.48.0 printed the new invoice unstyled: no header band, no
+table rules, labels running into their values. Ported verbatim, scoped to
+`.bnd-invoice` (the official formats never carry the class), minus Tajawal,
+which the image no longer ships. print_css within its ceiling.
+
+Verified on the local bench: migrate exit 0; the official format renders at the
+same size as before; the new invoice renders titled and styled in Arabic and
+English.
+
 ## [0.48.1] — 2026-09-26 — the statement picker, and the way into a document and back (patch)
 
 ### Fixed — a search field 192 pixels tall
