@@ -1735,6 +1735,31 @@ async function main() {
 			);
 		});
 
+		await test("site data: the alternate-views fixtures are seeded", async () => {
+			// THE PREFLIGHT THE FIXTURES NEVER HAD (the settings audit of 2026-09-21, iv-8).
+			// The views kit, the kanban reserve check and the axe routes need records a
+			// fresh site does not have, seeded by tools/fixtures-views.mjs — which nothing
+			// ran. On a new bench those checks timed out waiting for a kanban column that
+			// could not exist, and read like three rendering defects. This fails first and
+			// names the remedy. Presence, not the tool's counts (restating its plan here
+			// would be a second copy of it); the three identities are the tool's pinned
+			// ones — the board's name also rides in VIEWS_KANBAN below.
+			const got = JSON.parse(
+				benchPy(
+					`print("BND" + json.dumps({` +
+						`"board": bool(frappe.db.exists("Kanban Board", "Bunood Memos")), ` +
+						`"todos": frappe.db.count("ToDo", {"description": ["like", "%[bnd-fixture]%"]}), ` +
+						`"items": frappe.db.count("Item", {"item_code": ["like", "BND-VIEW-%"]})}))\n`
+				)
+					.split("BND")[1]
+					.trim()
+			);
+			expect(
+				got.board && got.todos > 0 && got.items > 0,
+				"the alternate-views fixtures are seeded — run `npm run fixtures:views` (" + JSON.stringify(got) + ")"
+			);
+		});
+
 		// ── Boot & assets ──────────────────────────────────────────────────
 		const assetsPy = readFileSync(new URL("../bunood_theme/assets.py", import.meta.url), "utf8");
 		const cssPath = assetsPy.match(/THEME_CSS = "([^"]+)"/)[1];

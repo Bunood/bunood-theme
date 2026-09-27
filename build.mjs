@@ -1588,6 +1588,52 @@ function assertNoFallbackLiterals(doctype, sources) {
 }
 
 /**
+ * No Jinja template states a default beside a Theme Settings read (the settings audit of
+ * 2026-09-21, ii-1 — "one guard extended to the macro").
+ *
+ * The print macros read seven switches as `get_single_value(...) or "<literal>"`, each a
+ * copy of a default `presets.PRINT_DEFAULTS` owns and nothing compared. Slice B routed
+ * them through `bunood_print_setting(field)`, which reads the catalogue; this is what
+ * keeps a literal from coming back. Refused, for any field the doctype has:
+ *   * `bunood_print_setting("f", ...)` or `_pset("f", ...)` — a second (default) argument;
+ *   * `bunood_print_setting("f") or "lit"`, `_pset("f") | default("lit")` — a fallback;
+ *   * `get_single_value("Theme Settings", "f") or "lit"` (and `get_cached_value`).
+ * Jinja comments are stripped first: the macro's own header records the history in
+ * words, and a guard that tripped on its own documentation would be switched off.
+ *
+ * @param {object} doctype - parsed theme_settings.json
+ * @param {{name: string, src: string}[]} templates - every .html template the app ships
+ */
+function assertNoTemplateDefaults(doctype, templates) {
+	const BREAKS = new Set(["Section Break", "Column Break", "Tab Break", "HTML"]);
+	const fields = new Set(doctype.fields.filter((f) => !BREAKS.has(f.fieldtype)).map((f) => f.fieldname));
+	const problems = [];
+	const PATTERNS = [
+		[/(?:bunood_print_setting|_pset)\(\s*["']([a-z0-9_]+)["']\s*,/g, "a default argument"],
+		[/(?:bunood_print_setting|_pset)\(\s*["']([a-z0-9_]+)["']\s*\)\s*(?:or\s*["'][^"']+["']|\|\s*default\(\s*["'])/g, "a literal fallback"],
+		[/get_(?:single|cached)_value\(\s*["']Theme Settings["']\s*,\s*["']([a-z0-9_]+)["'][^)]*\)\s*(?:or\s*["'][^"']+["']|\|\s*default\(\s*["'])/g, "a literal fallback"],
+	];
+	for (const { name, src } of templates) {
+		const code = src.replace(/\{#[\s\S]*?#\}/g, (c) => c.replace(/[^\n]/g, " ")).replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, " "));
+		for (const [re, what] of PATTERNS) {
+			for (const m of code.matchAll(re)) {
+				if (!fields.has(m[1])) continue;
+				const line = code.slice(0, m.index).split("\n").length;
+				problems.push(`${name}:${line} ${m[1]} — ${what}`);
+			}
+		}
+	}
+	if (problems.length) {
+		throw new Error(
+			"Template-default guard: a template states a default for a Theme Settings field, a\n" +
+				"second copy of what presets.PRINT_DEFAULTS owns (seven such sat in the print macros):\n  " +
+				problems.join("\n  ") +
+				"\n\nRead through bunood_print_setting(field) and nothing else; the catalogue supplies the default."
+		);
+	}
+}
+
+/**
  * Layout-slug guard (item 42) — `bunood.js` keys a table on the catalogue's layout
  * NAMES, slugified, and nothing checked that they are the catalogue's.
  *
@@ -2200,6 +2246,30 @@ async function main() {
 			{ name: "bunood.js", src: await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8") },
 		]
 	);
+	{
+		// Every Jinja template the app ships — found, not listed, so a new one is covered.
+		const templates = [];
+		const walk = async (dir) => {
+			for (const e of await readdir(dir, { withFileTypes: true })) {
+				const p = join(dir, e.name);
+				if (e.isDirectory()) await walk(p);
+				else if (e.name.endsWith(".html")) templates.push({ name: p.slice(APP.length + 1), src: await readFile(p, "utf8") });
+			}
+		};
+		await walk(APP);
+		if (!templates.some((t) => t.name.replace(/\\/g, "/").endsWith("templates/bunood_print_macros.html"))) {
+			throw new Error("Template-default guard: the print macros were not found under " + APP + " — fix the walk.");
+		}
+		assertNoTemplateDefaults(
+			JSON.parse(
+				await readFile(
+					new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+					"utf8"
+				)
+			),
+			templates
+		);
+	}
 	assertLayoutSlugs(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")
