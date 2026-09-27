@@ -24259,13 +24259,17 @@ print("cleared")
 					.trim()
 			);
 			expect(gone, "the endpoint is gone from the module");
-			const status = await page.evaluate(() =>
-				fetch("/api/method/bunood_theme.api.set_user_sidebar_preset", {
-					method: "POST",
-					headers: { "X-Frappe-CSRF-Token": frappe.csrf_token, "Content-Type": "application/json" },
-					body: JSON.stringify({ preset: "" }),
-				}).then((r) => r.status)
-			);
+			// FROM THE TEST'S OWN HTTP CLIENT, NOT THE PAGE: a fetch inside the page makes
+			// the browser log the 417, and the console-error budget then counted this
+			// check's deliberate probe as a desk error (full suite 2026-09-27, 553/555).
+			// `page.request` shares the context's cookies — the same session, the same
+			// route — and reaches no console.
+			const csrf = await page.evaluate(() => frappe.csrf_token);
+			const res = await page.request.post(`${URL_BASE}/api/method/bunood_theme.api.set_user_sidebar_preset`, {
+				headers: { "X-Frappe-CSRF-Token": csrf },
+				data: { preset: "" },
+			});
+			const status = res.status();
 			expect(status !== 200, "and nothing answers at its address (HTTP " + status + ")");
 			await withPersonal(U, { bnd_look: "" }, async () => {
 				const out = JSON.parse(
