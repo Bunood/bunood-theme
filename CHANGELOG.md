@@ -24,6 +24,115 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — the settings audit, and one owner per fact
+
+**Not numbered, on purpose.** Whether this is a new ROADMAP item or a patch series on 46.x
+is the user's call — decision group (vi) of the audit carried no recommendation — so
+nothing here is tagged, `app_version` is untouched, and the two new patches sit in
+`patches/unreleased/`, to be renamed with the release. Eleven commits, 2026-09-21 to
+2026-09-27, from a full audit whose census, findings, decision menu and render walk live
+outside the tree (`.claude/audit/`, untracked; `phase1/` is the before). The user answered
+the menu "do recommended", then "do everything".
+
+**The complaint, measured.** The settings existed in several versions: a value was
+defaulted, stored, composed, overlaid and applied in more than one place, the copies
+disagreed, and the desk rendered a look no single setting described. The audit counted
+17 layers and 149 settable fields, and per field the copies that HOLD a value:
+0:8 · 1:16 · 2:18 · **3:92** · 4:11 · 5:1 · 6:3, four of them disagreeing. It measured,
+live: a personal width, pane state or whole look rendered in a fresh tab, flipped to the
+site's values the moment Theme Settings opened, and stayed flipped for the session; the
+pane's Hide button was a preference with no writer; a legacy per-user sidebar look had no
+caller and still applied twelve fields at boot; two shipped looks lit the wrong layout card.
+
+**What changed, slice by slice.**
+
+- **A · The pane state has one owner** (41a60b0). `sidebar_pane_state` was written by the
+  layout table AND overwritten by every sidebar look, so Bunood Day and Studio derived
+  Rail + Flyout. The layout owns it; the derived shape never follows a person's pane
+  comfort.
+- **B · One owner per default** (c3b9814). The doctype's 116 `default` keys,
+  `setup.DEFAULTS`' own literals, 23 `BND_*_DEFAULTS` mirrors in the form, every
+  `|| "Literal"` fallback in both scripts and the print macro's seven literals are gone;
+  everything reads the catalogue (`presets.py` → `setup.SHIPPED` → the form's
+  `bnd_shipped`, awaited before the first picker render). Three build guards refuse a copy
+  coming back.
+- **C · The person's settings have a writer and a preview that respects them** (9029216).
+  The pane gesture writes `bnd_pane_state`; the Appearance dialog gains the pane row; boot
+  serves the person's overrides as ONE map and the form previews the effective values,
+  naming every override in force with "Follow the site" (`bunood.follow_site`) — the
+  composer's frames keep the FORM's values, which is their contract. `bnd_sidebar_preset`
+  retires into `bnd_look` by patch.
+- **D1 · One ladder, one hide, one stamper, no tolerance** (adc4c41). `mount_containers()`
+  is the one container ladder boot and the live remount read; the pane container has ONE
+  hide, keyed on the `pane-hidden` ownership token its arbiter stamps from both settings;
+  the pane state has one stamper; the three normalisers for labels `v0_42_0` had rewritten
+  on every site are gone, and `setup.heal_unknown_selects()` heals every Select on every
+  migrate; `panehead_apply` rebuilds an open menu; the dock stamps its marker; the
+  unreachable `LAYOUT_CONTAINERS` fallback is deleted.
+- **D2 · Dead code out** (314711a): a dead export, a never-called note helper, 57 lines of
+  picker CSS for classes nothing emits, two cursive selectors nothing renders, a `@use` for
+  a partial that never existed; three misfiled blocks re-filed.
+- **E · The rail's expand button retires** (fdb2d0c): `sidebar_rail_button` and
+  `icon_rail_button`, with a patch; the Hover + Pin trigger's pin is the rail's identified
+  control (`railpin`). THEME_AXES 133 → 131.
+- **F · Tools and docs** (b3b6ca2). ONE settings-write path (`tools/session.mjs`; the suite
+  and the fixture tool call it); `settingsDrift()` sees the six shipped-empty fields and the
+  second settings Single (its first run found a suite's scratch `tagline` stranded in the
+  brand sheet); the suite's section-level layout write runs only when a check after it
+  runs; `npm run fixtures:views`; two dead tools and three stray images deleted; the
+  `app_include_icons` line and item 23's unbuilt remainder struck; 66 wrong statements in
+  the docs and the code's own comments fixed by exact text.
+- **After the full suite** — three more. The retired-endpoint probe stops spending another
+  check's console budget (4f629a4: slice C's check POSTed to the deleted method from inside
+  the page and the browser logged the 417). The two approved items no slice had carried
+  (2d32f67): a build guard that refuses a default stated beside a Theme Settings read in any
+  Jinja template (ii-1's "one guard extended to the macro", watched failing on four planted
+  forms), and a `site data:` preflight that fails first, naming `npm run fixtures:views`,
+  when the alternate-views fixtures are absent (iv-8, watched failing on a cleared site).
+  Three placement defaults stop restating the default layout's row (895bdd2: a refactor,
+  the shipped defaults, the baseline and the default preset byte-identical before and
+  after).
+
+**Checks added, every one watched failing first:** the layout a theme card lights; a
+personal pane state and the derived shape; the hide gesture across a reload; the settings
+page honouring a personal width through an unrelated click; the legacy look retired and its
+rows carried; a retired Select value healed by migrate and mapped nowhere on the wire; the
+container's one hide following the token for both settings; a quick-links change reaching an
+open menu; one ladder both directions; every container's marker; the rail button's
+retirement; the views-fixture preflight.
+
+**Full suite** at b3b6ca2 (2026-09-27, 123 min on a loaded host): **553/555**. One failure was
+this series' own and is fixed (4f629a4, 2/2 after). The other is NOT this series': the axe
+gate's color-contrast count on `/desk/dashboard-view/Selling` grew 3 → 4 because the demo data
+aged — the "Active Customers" number card compares with last month, Frappe hides the
+percentage while last month's count is 0, and the only customer was created 2026-08-23, so
+from 2026-09-23 the card shows a grey "0 %" at 4.06:1 (computed with Frappe's own
+`get_result` for both dates; reproduced alone on a freshly restarted backend). Left red on
+purpose — see "For the user".
+
+**Measured after.** The census re-run over the consolidated code (147 settable fields after the two retirements) counts the copies holding a value per field as **0:16 · 1:120 · 2:11**, none disagreeing (was 4). The zeros are fields whose one owner derives them (the palette's seeds, the registry's desk order, the typography module's face) or that ship empty by design; the eleven twos are the five container switches and six placements, each a kit dict that indexes the default layout's row — one owner, counted twice because the census reads runtime values. The cascade census finds ONE `!important` hide on the pane container, keyed on the token (was two), and 5 `!important`s in the desk sheet (was 6). The docs scan: live unresolved identifiers outside CHANGELOG 33 → 16 and stale counts 30 → 21; what remains is dated narrative about things deleted before this work, plus counts the scanner cannot tie to a referent. The render walk re-run (169 min; its restore verified row for row) measured the complaint itself in the personal arm: a personal width of Roomy now reads roomy on the settings page and after an unrelated click (was balanced), a personal Rail stays rail (was open), and a personal look differs from its fresh tab on 0 attributes on the settings page (was 34). The site's own options render as before: 247 measured, 147 in session and fresh, 24 on the next load only, 0 inert, 0 errors, 0 stored-value mismatches. The one option newly counted as "views disagree", `desk_width = Original`, applies (the attribute and `--page-max-width` move) but cannot show at the walk's 1440px with the pane open, where the form column (873px) is narrower than both caps.
+
+**Payload.** js gzip 131,176 (v0.46.7) → 131,826, ceiling 131,400 → 132,100 (the pane
+writer, the Appearance row and the clearer; the docblocks that ship in the bundle; the rail
+button and the dead code gave most of it back). css gzip 28,285 → 27,968. Bundles
+`bunood.8dd3e296.js` / `bunood.7b0431d5.css` → `bunood.b53dd864.js` / `bunood.34aa0f8c.css`.
+
+**Deliberately not done, and why.** Four findings had no approved decision and stay open: the
+form's client-side layout match (`bnd_match_layout`) beside the server's `layout_of`; the
+three `!important` declarations CLAUDE.md does not sanction (the pane head icon's background
+over Frappe's inline style, and two picker selected-state borders); `FIELD_PREFIXES` as a hand
+copy of the registry's keys; `data-bnd-zone`'s three writers. One option was carried out in
+spirit, not to the letter, and says so: iv-1 read "`[~]` becomes `[ ]`"; item 23's box is
+`[x]`, because everything its reframed scope promised shipped and the unbuilt remainder is
+struck and named. iv-12's "Alert" debt was already paid before this work (the row exists and
+its check is green); iv-11's "check_icons.py regeneration" does not exist, so the corrected
+pointer says so.
+
+**For the user.** The number (new item or 46.x patches). The axe gate's dashboard route, one
+of two ways: recolour Frappe's grey number-card stat to a fitted ink (a visual change; it
+also clears the two banked instances), or make that route's count date-independent. 8 new
+fuzzy `ar.po` rows (179 fuzzy in all). Nothing is pushed.
+
 ## [0.46.7] — 2026-09-15 — The words we could not defend, and one we could (patch)
 
 **The three items v0.46.6 left owed, closed.** Two were translation work the false-friends

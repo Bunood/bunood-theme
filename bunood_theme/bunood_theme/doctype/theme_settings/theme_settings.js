@@ -1370,8 +1370,8 @@ const BND_SETTINGS_OWNS = {
 	links: { fields: ["home_placement", "apps_placement"] },
 	// Item 44: the two prefixes ARE the naming rule, like every other kit here.
 	language: { prefixes: ["language_", "appearance_"] },
-	// The board OWNS the five placement fields it draws — deliberately the
-	// same fields the four entries around it own. It is a second view over one
+	// The board OWNS every placement field it draws, and their order — deliberately
+	// the same fields the entries around it own. It is a second view over one
 	// state, so a moved bell lights both its dot and the bell's: both claims
 	// are true, and a silent board over changed placements would be the lie.
 	placement: {

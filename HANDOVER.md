@@ -10,6 +10,25 @@
 
 ## 1. Where the work stands
 
+**THE SETTINGS AUDIT AND ITS CONSOLIDATION LANDED ON `main` (2026-09-21 → 27), UNNUMBERED
+AND UNTAGGED — the number is the user's call.** Eleven commits; the account is CHANGELOG
+`[Unreleased]`, and the audit's census, findings, decision menu and render walk are under
+`.claude/audit/` (untracked; `phase1/` is the before). What a reader of this file must know:
+every default has ONE owner (`presets.py` → `setup.SHIPPED` → the form's `bnd_shipped`,
+awaited); the layout table owns the pane state; a person's settings have a WRITER
+(`bunood.pane_state` — pass `{ save: false }` for a preview, or it persists) and boot serves
+their overrides as one map that the settings form previews (`bnd_effective`), while the
+composer's frames get the raw form; one container ladder (`mount_containers`), one hide for
+the pane container (`data-bnd-own~="pane-hidden"`, stamped by `sb_sync_pane_hidden`), one
+pane-state stamper (`sb_stamp_panestate`); a value a Select cannot hold is healed by
+`setup.heal_unknown_selects()` on EVERY migrate and tolerated nowhere; `bnd_sidebar_preset`,
+`sidebar_rail_button` and `icon_rail_button` are retired by `patches/unreleased/`; ONE
+settings-write path (`tools/session.mjs::setSettings`). Full suite at b3b6ca2: 553/555 — the
+console-budget failure was this work's and is fixed; the axe dashboard failure is demo-data
+date drift, a decision for the user (CHANGELOG `[Unreleased]`). Open without a decision: the
+client's `bnd_match_layout` beside the server's `layout_of`, three unsanctioned
+`!important`s, `FIELD_PREFIXES`.
+
 **ITEM 42 IS BUILT AND RELEASED AS v0.42.0 (2026-09-04): 478/478, all thirteen slices,
 `app_version` resumed at 0.42.0 from 0.37.1.** Commits `61b8c77` (slice 8) · `78ac43a`
 (slice 7) · `e2736cc` (slices 9/S/I/B) · `c3cfea1` (slices 10/11). The account is in
@@ -2135,6 +2154,7 @@ npm run contrast   # WCAG gate over 27 seeds x 2 modes. Needs Python.
 npm run deploy     # build + ship to 5 containers + mirror to WSL + restart if hashes moved
 npm run verify     # the full browser suite (~550 checks). NEVER while deploying.
 npm run verify -- --only "container:"   # ~90s inner loop; says FILTERED, never a gate
+npm run fixtures:views                  # seed what the views checks need; `site data:` names it when absent
 ```
 
 **Deploying mid-suite invalidates the run and produces phantom failures.** It has
@@ -2408,6 +2428,25 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 - `tools/contrast_gate.py` + `tools/contrast.mjs` — the gate and its launcher.
 - `tools/deploy.sh` — the whole deploy, including the WSL mirror.
 - `tools/session.mjs` — stack constants + authenticated browser session.
+- `tools/session.mjs::setSettings` — THE settings write (the settings audit of 2026-09-21, v-4): brand sheet when
+  an input moved, commit, THEN clear, repopulate; `tests/smoke.mjs` and
+  `tools/fingerprint.mjs` call it. `settingsDrift()` reports three classes: SHIPPED, the
+  six shipped-EMPTY fields, and `Bunood Translation Settings` against its defaults.
+- `bunood.js::mount_containers` — the one container ladder (`mount_chrome` and
+  `remount_chrome` both read it); `sb_sync_pane_hidden` / `sb_stamp_panestate` — the pane
+  container's one hide (token `pane-hidden`, one rule in `_sidebar.scss`) and the pane
+  state's one stamper; `bunood.pane_state(value, opts)` — the gesture's writer;
+  `bunood.follow_site(axis)` — the way back from an override.
+- `boot.py::resolve_for_user` → `overrides` — the person's effective differences as one
+  map; `theme_settings.js::bnd_effective` reads it for every preview, and
+  `bnd_all_previews(frm, engine, { raw: true })` is the composer's stage.
+- `setup.py::heal_unknown_selects` — every Select healed to SHIPPED on every migrate
+  (`after_migrate`); `patches/v0_11_0/heal_unknown_placements` delegates to it.
+- `build.mjs` — against a second copy of a default: `assertDefaultMirrors`,
+  `assertNoFallbackLiterals`, `assertNoDoctypeDefaults`, and `assertNoTemplateDefaults` for
+  every Jinja template the app ships.
+- `patches/unreleased/` — `retire_sidebar_preset_key`, `retire_rail_button`: rename the
+  directory with the release.
 - `theme_settings.js` — the settings map's bands (`BND_SETTINGS_GROUPS`,
   `bnd_settings_rows` → `bunood_theme.map_sync`; the map itself is `sb_mount_map` in
   `bunood.js`), bands inside pickers (`P.zone`, `bnd_bands`), the desk diagram
