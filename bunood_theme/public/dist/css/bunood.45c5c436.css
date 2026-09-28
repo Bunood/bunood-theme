@@ -5041,6 +5041,11 @@ html[data-bnd-ws-metric=inline] .number-widget-box .widget-body .widget-content 
   font-weight: 600;
 }
 
+html[data-theme] .layout-main-section:not(.edit-mode) .codex-editor .ce-block:has(> .ce-block__content > .ce-header a[href^="https://frappe.io/crm"]),
+html[data-theme] .layout-main-section:not(.edit-mode) .codex-editor .ce-block:has(> .ce-block__content > .ce-header a[href^="https://frappe.io/helpdesk"]) {
+  display: none;
+}
+
 html[data-bnd-desk] .bnd-list-presets {
   display: flex;
   align-items: center;

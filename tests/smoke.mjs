@@ -1641,6 +1641,66 @@ async function vendorAdvertProbe() {
 	return { ...value, agreeingFrames: same };
 }
 
+/**
+ * ERPNext's deprecation header in the CRM and Support workspaces, measured as a person meets it
+ * (v0.48.5).
+ *
+ * WHAT IT IS. ERPNext's v16 line (erpnext fd6683e, 2026-01-06) opens `crm.json` and
+ * `support.json` with a header block, "This module is scheduled for deprecation and will be
+ * completely removed in version 17, please use Frappe CRM instead" (Frappe Helpdesk on
+ * Support), linking to frappe.io, in English on every desk. It is ordinary workspace content:
+ * an editor.js `.ce-block` whose `.ce-header` holds the link, and nothing else marks it.
+ *
+ * A BOX, NOT A CLASS, as with the sidebar's adverts: hidden means no such block has a box with
+ * area. The premise is reported beside it (the route, the blocks rendered, and whether the
+ * header is in the DOM at all), so a workspace that never carried it cannot pass for one where
+ * we hid it. `nextBlock` is the first block after it, so the room it gave back is measured too.
+ *
+ * THREE FRAMES THAT AGREE, and SELF-CONTAINED, for the same reasons as `vendorAdvertProbe`.
+ */
+async function vendorNoticeProbe() {
+	const frame = () => new Promise((done) => requestAnimationFrame(() => done()));
+	const round = (n) => Math.round(n * 10) / 10;
+	const LINKS = ['a[href^="https://frappe.io/crm"]', 'a[href^="https://frappe.io/helpdesk"]'];
+	const read = () => {
+		const main = document.querySelector(".layout-main-section");
+		const blocks = main ? [...main.querySelectorAll(".codex-editor .ce-block")] : [];
+		const isNotice = (b) => LINKS.some((l) => b.querySelector(`:scope > .ce-block__content > .ce-header ${l}`));
+		const box = (el) => {
+			const r = el.getBoundingClientRect();
+			const cs = getComputedStyle(el);
+			return { y: round(r.y), w: round(r.width), h: round(r.height), rects: el.getClientRects().length, display: cs.display };
+		};
+		const notices = blocks.filter(isNotice);
+		const after = notices.length ? blocks[blocks.indexOf(notices[0]) + 1] : null;
+		const out = {
+			route: location.pathname,
+			theme: document.documentElement.getAttribute("data-theme"),
+			dir: document.documentElement.getAttribute("dir"),
+			lang: document.documentElement.getAttribute("lang"),
+			editMode: !!main && main.classList.contains("edit-mode"),
+			blocks: blocks.length,
+			notices: notices.map((n) => ({ ...box(n), href: (n.querySelector(LINKS.join(",")) || {}).href || "" })),
+			nextBlock: after ? box(after) : null,
+		};
+		out.rendered = notices.length > 0;
+		out.boxed = out.notices.filter((n) => n.rects > 0 && n.w > 0 && n.h > 0).length;
+		out.hidden = out.rendered && out.boxed === 0;
+		return out;
+	};
+	let last = "";
+	let same = 0;
+	let value = null;
+	for (let i = 0; i < 240 && same < 3; i++) {
+		await frame();
+		value = read();
+		const now = JSON.stringify(value);
+		same = now === last ? same + 1 : 1;
+		last = now;
+	}
+	return { ...value, agreeingFrames: same };
+}
+
 // ── The suite ───────────────────────────────────────────────────────────────
 
 /** The suite: snapshot settings, run every check sequentially against one
@@ -7380,6 +7440,55 @@ print("ok")
 			}
 			expect(cases >= 24, `the matrix ran (${cases} cases)`);
 			expect(failures.length === 0, `${failures.length} of ${cases} cases show an advert:\n  ${failures.slice(0, 8).join("\n  ")}`);
+		});
+
+		await test("workspace: ERPNext's deprecation header is gone from the CRM and Support workspaces, and back in edit mode (ar and en; light and dark)", async () => {
+			// v0.48.5, THE OWNER (2026-09-28): tenants must not be told to "use Frappe CRM
+			// instead". `vendorNoticeProbe` records what the header is and what "gone" means.
+			//
+			// Watched failing first, with this probe run over the DevTools protocol on an
+			// isolated bench serving the sidebar fix alone: the header painted in every case.
+			//
+			// EDIT MODE is asserted too, through the class Frappe sets on `.layout-main-section`
+			// while a workspace is edited: the rule stands down there, so a System Manager can
+			// still see the block to delete it. The premise is asserted per case: the workspace
+			// rendered its blocks and carries the header at all. The probe changes no setting.
+			const failures = [];
+			let cases = 0;
+			const setEditMode = (on) =>
+				page.evaluate((flag) => document.querySelector(".layout-main-section").classList.toggle("edit-mode", flag), on);
+			for (const lang of ["ar", "en"]) {
+				await withLang(lang, async () => {
+					for (const route of ["/app/crm", "/app/support"]) {
+						await goDesk(route, ".layout-main-section .codex-editor .ce-block", 3000);
+						const served = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+						try {
+							for (const mode of ["light", "dark"]) {
+								await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+								const where = `${lang}/${mode} ${route}`;
+								const m = await page.evaluate(vendorNoticeProbe);
+								cases++;
+								if (!m.blocks) failures.push(`${where}: premise, the workspace rendered no blocks`);
+								else if (!m.rendered) failures.push(`${where}: premise, ERPNext's header is not in this workspace (${m.blocks} blocks)`);
+								else if (!m.hidden) failures.push(`${where}: the header has a box (${JSON.stringify(m.notices[0])})`);
+								await setEditMode(true);
+								let edit;
+								try {
+									edit = await page.evaluate(vendorNoticeProbe);
+								} finally {
+									await setEditMode(false);
+								}
+								cases++;
+								if (m.rendered && edit.boxed !== 1) failures.push(`${where} in edit mode: the header should show (boxed ${edit.boxed})`);
+							}
+						} finally {
+							await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), served);
+						}
+					}
+				});
+			}
+			expect(cases >= 16, `the matrix ran (${cases} cases)`);
+			expect(failures.length === 0, `${failures.length} of ${cases} cases fail:\n  ${failures.slice(0, 8).join("\n  ")}`);
 		});
 
 		await test("layout: each row starts the pane where its own shape needs it", async () => {
