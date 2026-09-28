@@ -477,10 +477,14 @@ entry.
   `--bnd-border`, which would repaint every stock Frappe control via
   `_bridge.scss:61-62`.
 
-- `[x]` **23 · Icon system** *(was 33)* — REFRAMED and shipped 2026-08-13; its deferred
-  remainder (`icon_set`/`icon_fill`) was STRUCK on 2026-09-21 rather than left half-open
-  (the settings audit of 2026-09-21, iv-1 — the option read "`[~]` becomes `[ ]`"; the box is `[x]` because
-  nothing of the reframed scope is open, and the struck part is named here). The
+- `[ ]` **23 · Icon system** *(was 33)* — OPEN, BY DECISION, WITH NOTHING IN FLIGHT. The
+  reframed scope shipped 2026-08-13 (below); the original scope — a shipped icon SET the
+  admin can switch, `icon_set`/`icon_fill` over a Tabler sprite via `app_include_icons` —
+  was STRUCK on 2026-09-21 rather than built (the settings audit, decision iv-1 b: "the
+  `[~]` becomes `[ ]` with a reason"). The box reads open so that the struck goal stays
+  visible as unmet rather than being folded into a done item; it is not work anyone is
+  doing, and a future item that wants a switchable set starts from here. Note for the
+  version policy: v1.0.0 waits on all 38 items, so this box is now one of them. The
   original scope was "an SVG sprite via `app_include_icons`". Investigation found the
   desk already loads five sprites (2,085 symbols, no collisions), so the coverage problem
   the item assumed does not exist — the real work was elsewhere, and this delivered it:

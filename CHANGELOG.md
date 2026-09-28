@@ -121,10 +121,10 @@ button and the dead code gave most of it back). css gzip 28,285 → 27,968. Bund
 form's client-side layout match (`bnd_match_layout`) beside the server's `layout_of`; the
 three `!important` declarations CLAUDE.md does not sanction (the pane head icon's background
 over Frappe's inline style, and two picker selected-state borders); `FIELD_PREFIXES` as a hand
-copy of the registry's keys; `data-bnd-zone`'s three writers. One option was carried out in
-spirit, not to the letter, and says so: iv-1 read "`[~]` becomes `[ ]`"; item 23's box is
-`[x]`, because everything its reframed scope promised shipped and the unbuilt remainder is
-struck and named. iv-12's "Alert" debt was already paid before this work (the row exists and
+copy of the registry's keys; `data-bnd-zone`'s three writers. iv-1 is carried out to the
+letter: item 23's roadmap box reads `[ ]` with its reason — the reframed scope shipped, the
+original switchable icon set was struck rather than built, and the open box keeps that goal
+visible as unmet (which also makes it one of the items v1.0.0 waits on). iv-12's "Alert" debt was already paid before this work (the row exists and
 its check is green); iv-11's "check_icons.py regeneration" does not exist, so the corrected
 pointer says so.
 

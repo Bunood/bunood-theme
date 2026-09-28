@@ -1461,7 +1461,8 @@ families all green, and the sweep exits CLEAN):
 - **STRUCK 2026-09-21** (the settings audit of 2026-09-21, iv-1): `icon_set` (Lucide↔Tabler) and
   `icon_fill` (outline↔filled) were deferred at the user's scope call and never built; the
   `app_include_icons` hook line that waited for their sprite is deleted and item 23's
-  reframed scope is complete. CSS ceiling was raised 14500→14700
+  reframed scope is complete. Its ROADMAP box reads `[ ]` by the letter of that decision
+  ("iv-1 b"): the struck goal stays visible as unmet, and nobody is building it. CSS ceiling was raised 14500→14700
   for `_icons.scss`.
 
 **Pushed and green** (2026-08-06). `main` is level with
