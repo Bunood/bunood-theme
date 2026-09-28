@@ -454,6 +454,46 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
   color: var(--bnd-sb-ink-muted);
 }
 
+// ── Frappe's product adverts: never painted (v0.48.5) ───────────────────────
+// THE OWNER, 2026-09-28: a Bunood desk does not advertise the vendor's other
+// products. frappe `ui/sidebar/sidebar.js:79-166` (v16.34.0) fills the pane
+// foot's `.promotional-banners` (`sidebar.html:43`) with "Switch to Frappe CRM"
+// on the CRM module and "Switch to Helpdesk" on Support, for every System
+// Manager: a link to frappe.io, or to the app itself once one named exactly
+// `crm`/`helpdesk` has an apps-screen route. Frappe's own switch is per site
+// (System Settings, Disable Product Suggestion, off by default); this makes
+// the answer the same on every desk without one.
+//
+// A PRESENTATION RULE, NOT A CLAIM. The ownership guard in build.mjs governs
+// natives we REPLACE, hidden only once our replacement is in the DOM. Nothing
+// replaces an advert, so there is no `data-bnd-own` token to key on, and
+// EXTRA_OWNED_NATIVES (a list that may only shrink) would grow by a thing we
+// do not own. Nor does it strand a function: the internal variant exists only
+// when the app has an apps-screen route (frappe/apps.py `get_apps`), and the
+// same hook puts that app on the desk's app grid (`desktop_icon.py`
+// `create_desktop_icons_from_installed_apps`).
+//
+// SCOPED `html[data-theme]`, NOT THE KIT'S ANCHOR. It needs nothing from our
+// JS, so it holds from the first paint and whatever the pane's style is
+// (GUIDELINES 1.3: a contract survives Original).
+//
+// `display: contents` ON THE HOLDER, `display: none` ON EACH ADVERT, and the
+// split is the fix. Frappe shows the holder with jQuery's `.show()`, and
+// jQuery answers a holder that a STYLESHEET hides by writing an inline
+// `display: block` over it, which beats any rule without `!important`.
+// Measured on v0.48.4: the rail's rest rule below hid the holder, the inline
+// block overrode it, and the advert painted in the rail (21.8px tall in
+// Arabic). `contents` is not hidden to jQuery, so it writes nothing, and it
+// gives the holder no box, so Frappe's 10px margins leave no gap. Frappe's JS
+// never shows or hides an advert itself (only its title), so `none` holds.
+html[data-theme] .body-sidebar .promotional-banners {
+  display: contents;
+}
+
+html[data-theme] .body-sidebar .promotional-banners > .promotional-banner {
+  display: none;
+}
+
 // ── The start pill (item 42, slice 7; redrawn 2026-09-14) ──────────────────
 // What makes a taskbar a taskbar: the company's mark at the bar's leading edge.
 // It was a 28px square holding the mark alone, and a click toggled the pane —
@@ -2069,9 +2109,11 @@ html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sideba
   .body-sidebar-cards,
   // The foot keeps Frappe own account button as an AVATAR: with `user_placement`
   // Off it is the only route to identity, and the matrix counts routes. Its name,
-  // e-mail, the edit controls and the banners go; the avatar stays, centred.
+  // e-mail and the edit controls go; the avatar stays, centred. The vendor's
+  // adverts are NOT listed: they are gone in every state ("Frappe's product
+  // adverts" above), and a `display: none` on their holder here is exactly what
+  // jQuery's `.show()` overwrote with an inline block on v0.48.4.
   .body-sidebar-bottom .bottom-edit-controls,
-  .body-sidebar-bottom .promotional-banners,
   .body-sidebar-bottom .avatar-name-email,
   .bnd-sb-filter,
   .bnd-sb-brand-name,

@@ -1536,6 +1536,111 @@ const CHROME_DEFAULTS = {
 	bottombar_enabled: 1,
 };
 
+/**
+ * Frappe's vendor adverts in the side pane, measured as a person meets them (v0.48.5).
+ *
+ * WHAT THEY ARE. `frappe/public/js/frappe/ui/sidebar/sidebar.js:79-166` (v16.34.0) fills
+ * `.promotional-banners` at the pane's foot (`sidebar.html:43`) with "Switch to Frappe CRM"
+ * on the CRM module and "Switch to Helpdesk" on Support — an external link to frappe.io, or an
+ * internal one when an app named exactly `crm`/`helpdesk` has an apps-screen route — for a
+ * System Manager, unless System Settings' `disable_product_suggestion` is on. The probe
+ * reports all three conditions, so a desk where Frappe rendered nothing cannot pass for one
+ * where we hid something.
+ *
+ * A BOX, NOT A CLASS. The vendor's DOM stays (we never touch it), so presence proves nothing
+ * either way. Hidden means no advert has a box with area (`painted` — visible, and opaque
+ * down the ancestors — is reported beside it, but an advert at `opacity: 0` still takes its
+ * row and its clicks), and the HOLDER takes no room: an empty holder keeping Frappe's 10px
+ * margins is a gap in the foot. Found by class because vendor DOM carries no
+ * `data-bnd-part`, and scoped to the pane so nothing else on the page can answer for it.
+ *
+ * THREE FRAMES THAT AGREE. The rail's flyout transitions, and a read taken mid-transition
+ * lies in both directions (CLAUDE.md), so this polls until three consecutive frames return
+ * the same answer, capped at 240 frames.
+ *
+ * SELF-CONTAINED on purpose: `page.evaluate` serialises it, and the same source ran over the
+ * DevTools protocol on an isolated bench for the release's red-then-green evidence.
+ */
+async function vendorAdvertProbe() {
+	const frame = () => new Promise((done) => requestAnimationFrame(() => done()));
+	const round = (n) => Math.round(n * 10) / 10;
+	const read = () => {
+		const html = document.documentElement;
+		const container = document.querySelector(".body-sidebar-container");
+		const pane = container && container.querySelector(".body-sidebar");
+		const f = window.frappe;
+		const key = f && f.app && f.app.sidebar && f.app.sidebar.workspace_title;
+		const items = (f && f.boot && f.boot.workspace_sidebar_item) || {};
+		const opacity = (el) => {
+			let o = 1;
+			for (let n = el; n && n.nodeType === 1; n = n.parentElement) o *= parseFloat(getComputedStyle(n).opacity);
+			return round(o);
+		};
+		const box = (el) => {
+			const r = el.getBoundingClientRect();
+			const cs = getComputedStyle(el);
+			const b = {
+				x: round(r.x), y: round(r.y), w: round(r.width), h: round(r.height),
+				rects: el.getClientRects().length,
+				display: cs.display,
+				visibility: cs.visibility,
+				opacity: opacity(el),
+				margin: `${cs.marginBlockStart} ${cs.marginBlockEnd}`,
+				// Frappe shows and hides the holder with jQuery, which writes an INLINE display.
+				inline: el.style.display || "",
+			};
+			b.painted = b.rects > 0 && b.w > 0 && b.h > 0 && b.visibility === "visible" && b.opacity > 0;
+			return b;
+		};
+		const holders = pane ? [...pane.querySelectorAll(".promotional-banners")] : [];
+		const out = {
+			route: location.pathname,
+			module: (key && items[key] && items[key].module) || "",
+			systemManager: !!(f && f.user && f.user.has_role("System Manager")),
+			suggestionsOff: !!(f && f.defaults && f.defaults.is_enabled("disable_product_suggestion")),
+			theme: html.getAttribute("data-theme"),
+			dir: html.getAttribute("dir"),
+			lang: html.getAttribute("lang"),
+			panestate: html.getAttribute("data-bnd-sb-panestate"),
+			rail: html.hasAttribute("data-bnd-rail"),
+			expanded: !!container && container.classList.contains("expanded"),
+			railOpen: !!container && container.classList.contains("bnd-rail-open"),
+			pane: pane ? box(pane) : null,
+			holders: holders.map((h) => ({
+				...box(h),
+				adverts: [...h.querySelectorAll(".promotional-banner")].map((a) => ({
+					...box(a),
+					external: a.getAttribute("target") === "_blank",
+					href: a.getAttribute("href") || "",
+				})),
+			})),
+		};
+		const holder = out.holders.length === 1 ? out.holders[0] : null;
+		// Frappe rendered its advert here: one holder, at least one advert in it.
+		out.rendered = !!holder && holder.adverts.length > 0;
+		out.painted = holder ? holder.adverts.filter((a) => a.painted).length : 0;
+		// BOXED, NOT MERELY UNPAINTED. An advert at `opacity: 0` is invisible and still
+		// takes its row and every click; at `visibility: hidden` it still takes the row.
+		// Gone means no box with area at all.
+		out.boxed = holder ? holder.adverts.filter((a) => a.rects > 0 && a.w > 0 && a.h > 0).length : 0;
+		// Room is block space: a box of any height, or margins it still spends.
+		out.room = !!holder && holder.rects > 0 && (holder.h > 0 || holder.margin !== "0px 0px");
+		out.hidden = out.rendered && out.boxed === 0 && !out.room;
+		return out;
+	};
+	let last = "";
+	let same = 0;
+	let value = null;
+	for (let i = 0; i < 240 && same < 3; i++) {
+		await frame();
+		value = read();
+		const now = JSON.stringify(value);
+		same = now === last ? same + 1 : 1;
+		last = now;
+	}
+	return { ...value, agreeingFrames: same };
+}
+
 // ── The suite ───────────────────────────────────────────────────────────────
 
 /** The suite: snapshot settings, run every check sequentially against one
@@ -7185,6 +7290,96 @@ print("ok")
 			});
 			expect(!back.owned, "the token can be released");
 			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
+		});
+
+		await test("sidebar: Frappe's product adverts are gone from the pane, no box and no room (CRM and Support; Open, Frappe's collapse and the rail; ar and en; light and dark)", async () => {
+			// v0.48.5, THE OWNER (2026-09-28): tenants must not be shown "Switch to Frappe CRM"
+			// or "Switch to Helpdesk". `vendorAdvertProbe` records where they come from and
+			// what "gone" has to mean here: no advert has a box, and their holder takes no room.
+			//
+			// Watched failing on v0.48.4 before the rule existed, with this probe run over the
+			// DevTools protocol on an isolated bench: 32 of 40 cases showed an advert. It painted
+			// in the Open pane, and in the rail and in Frappe's collapse whenever the page LOADED
+			// in that state, because the rest-state rule's `display: none` was overwritten by the
+			// inline `display: block` jQuery's `.show()` writes. The probe itself was broken on
+			// purpose too: a holder keeping its margins, and an advert at opacity 0, visibility
+			// hidden or off-screen, are each reported as not gone.
+			//
+			// The premise is asserted per case, never assumed: the route's module, and that
+			// Frappe rendered an advert into the holder at all (a System Manager, product
+			// suggestions not switched off). Without it `hidden` would be true of a desk that
+			// never offered one, and this would pass while testing nothing.
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
+			const failures = [];
+			let cases = 0;
+			const judge = (m, module, where) => {
+				cases++;
+				if (m.module !== module) failures.push(`${where}: premise, the sidebar's module is ${JSON.stringify(m.module)}, not ${module}`);
+				else if (!m.rendered) failures.push(`${where}: premise, Frappe rendered no advert (holders ${m.holders.length}, System Manager ${m.systemManager}, suggestions off ${m.suggestionsOff})`);
+				else if (!m.hidden) failures.push(`${where}: ${m.boxed} advert(s) with a box (${m.painted} painted), holder room ${m.room} (${JSON.stringify(m.holders[0]).slice(0, 160)})`);
+			};
+			const railOpen = () => page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"));
+			try {
+				for (const lang of ["ar", "en"]) {
+					await withLang(lang, async () => {
+						for (const pane of ["Open", "Rail"]) {
+							setSettings({ sidebar_enabled: 1, sidebar_pane_state: pane, sidebar_rail_trigger: "Hover" });
+							for (const [route, module] of [["/app/crm", "CRM"], ["/app/support", "Support"]]) {
+								await goDesk(route, ".body-sidebar .promotional-banners", 3000);
+								await page.mouse.move(700, 450);
+								await page.waitForFunction(() => !document.querySelector(".body-sidebar-container.bnd-rail-open"), null, { timeout: 5000 });
+								const served = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+								try {
+									for (const mode of ["light", "dark"]) {
+										await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+										const where = `${lang}/${mode}/${pane} ${route}`;
+										judge(await page.evaluate(vendorAdvertProbe), module, `${where} at rest`);
+										if (pane === "Open") {
+											// Frappe's own collapse: its expand_sidebar() hides and shows the
+											// advert's title with jQuery. Put back however it ends, because the
+											// vendor keeps that state in localStorage for every later check.
+											const toggled = await page.evaluate(() => {
+												const t = document.querySelector(".body-sidebar .collapse-sidebar-link");
+												if (!t || !document.querySelector(".body-sidebar-container.expanded")) return false;
+												t.click();
+												return true;
+											});
+											if (toggled) {
+												try {
+													await page.waitForFunction(() => !document.querySelector(".body-sidebar-container.expanded"), null, { timeout: 5000 });
+													judge(await page.evaluate(vendorAdvertProbe), module, `${where} Frappe-collapsed`);
+													// And LOADED collapsed: sidebar.setup(), and with it jQuery's
+													// `.show()`, then runs under the collapse rules. That is the path
+													// on which v0.48.4's own rest-state rule lost to an inline display.
+													await goDesk(route, ".body-sidebar .promotional-banners", 3000);
+													await page.mouse.move(700, 450);
+													await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+													judge(await page.evaluate(vendorAdvertProbe), module, `${where} loaded Frappe-collapsed`);
+												} finally {
+													await sbEnsureExpanded();
+												}
+											}
+										} else {
+											await page.hover(".body-sidebar-container");
+											await page.waitForFunction(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"), null, { timeout: 5000 });
+											judge(await page.evaluate(vendorAdvertProbe), module, `${where} hovered open`);
+											await page.mouse.move(700, 450);
+											await page.waitForTimeout(700);
+											expect(!(await railOpen()), `${where}: the rail closes again before the next case`);
+										}
+									}
+								} finally {
+									await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), served);
+								}
+							}
+						}
+					});
+				}
+			} finally {
+				setSettings(before);
+			}
+			expect(cases >= 24, `the matrix ran (${cases} cases)`);
+			expect(failures.length === 0, `${failures.length} of ${cases} cases show an advert:\n  ${failures.slice(0, 8).join("\n  ")}`);
 		});
 
 		await test("layout: each row starts the pane where its own shape needs it", async () => {
