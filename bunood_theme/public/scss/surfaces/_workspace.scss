@@ -309,17 +309,40 @@ html[data-bnd-ws] {
   }
 }
 
-// The delta re-tokenised to the theme's own good/critical, off Frappe's greens
-// and reds. GUARDED against an admin-coloured card (D7): a card the admin gave a
+// The delta, on the theme's own fitted inks — ALL THREE STATES, at a weight that
+// wins. GUARDED against an admin-coloured card (D7): a card the admin gave a
 // `background_color` keeps Frappe's own delta inks, so our tokens never land on a
 // surface we did not choose. `:not([style*="background"])` reads the user's
 // signal directly — the inline style is the gesture, not a node's mere presence.
-html[data-bnd-ws] #{$card}:not([style*="background"]) {
+//
+// THIS RULE NEVER APPLIED, from item 25 until the settings audit's re-run
+// (2026-09-28). It was `html[data-bnd-ws] .number-widget-box:not(…) .green-stat`
+// at (0,4,1); Frappe's is `.widget.number-widget-box .widget-body .widget-content
+// .green-stat` at (0,5,0), so the desk kept Frappe's greens and reds — and
+// `.grey-stat` was never re-pointed at all. Measured on the shipped desk, five of
+// six state × mode pairs sat under 4.5:1 (light grey 4.06, green 2.32, red 4.30;
+// dark grey 3.58, red 3.38) and the light rise's arrow at 2.1:1. The full path
+// here weighs (0,7,1). `--bnd-good` was fitted as a 3:1 dot because this rule
+// was dead; it writes text now, so palette.py fits it as text.
+//
+// The ARROW keeps the pill's pair. Frappe draws it inside `.indicator-pill-round`,
+// whose `--bg-*` wash and `--text-on-*` ink are Frappe's matched pair, and then
+// strokes it `--green-500` / `--red-500`, which is not that pair (2.1:1 in light).
+// `currentColor` inside the pill IS the pill's own ink — both halves of one pair,
+// the CLAUDE.md rule for a pair we did not author.
+html[data-bnd-ws] .widget#{$card}:not([style*="background"]) .widget-body .widget-content {
+  .grey-stat {
+    color: var(--bnd-ink-muted);
+  }
   .green-stat {
     color: var(--bnd-good);
   }
   .red-stat {
     color: var(--bnd-critical);
+  }
+  .green-stat use,
+  .red-stat use {
+    stroke: currentColor;
   }
 }
 

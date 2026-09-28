@@ -31,7 +31,7 @@
 	"/desk/dashboard-view/Selling": {
 		"aria-allowed-attr": 4,
 		"button-name": 8,
-		"color-contrast": 3,
+		"color-contrast": 1,
 		"link-name": 1
 	},
 	"/app/account/view/report": {

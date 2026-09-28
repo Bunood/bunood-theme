@@ -127,14 +127,17 @@ BASE_DARK = {
 #: The split is the WCAG one and nothing else: a token the stylesheet writes text
 #: with needs 1.4.3's 4.5:1; a token it draws a dot, a badge fill or a focus ring
 #: with needs 1.4.11's 3:1. Each entry was classified by reading the rules that
-#: consume it, not by guessing from the name — ``--bnd-good`` looks like a text
-#: colour and is only ever a 6px dot.
+#: consume it, not by guessing from the name — and a rule that NEVER APPLIES
+#: misleads that reading: ``--bnd-good`` was filed as "only ever a 6px dot"
+#: because the workspace kit's rule writing a number card's rising delta with it
+#: lost the cascade from item 25 on. Made to apply (2026-09-28), it writes text,
+#: so it is fitted as text; 4.5:1 also clears the dot's 3:1.
 FITTED = [
     ("--bnd-ink-muted", INK_MUTED_TARGET, "secondary text"),
     ("--bnd-ink-subtle", AA_TEXT, "tertiary text"),
     ("--bnd-warn", AA_TEXT, "status segment text"),
     ("--bnd-critical", AA_TEXT, "status segment text, and the unread badge fill"),
-    ("--bnd-good", AA_NON_TEXT, "connection dot"),
+    ("--bnd-good", AA_TEXT, "connection dot, and a number card's rising delta"),
     ("--bnd-serious", AA_NON_TEXT, "sidebar badge fill"),
     ("--bnd-accent", AA_NON_TEXT, "focus ring"),
 ]

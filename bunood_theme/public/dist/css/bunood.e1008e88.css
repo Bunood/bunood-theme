@@ -134,7 +134,7 @@
   --bnd-series-6: #882255;
   --bnd-series-7: #3f9d8d;
   --bnd-series-other: #808080;
-  --bnd-good: #1a7f45;
+  --bnd-good: #197942;
   --bnd-warn: #965e00;
   --bnd-serious: #c2410c;
   --bnd-critical: #b42318;
@@ -4850,11 +4850,18 @@ html[data-bnd-ws] .widget .report-summary {
   font-variant-numeric: tabular-nums;
 }
 
-html[data-bnd-ws] .number-widget-box:not([style*=background]) .green-stat {
+html[data-bnd-ws] .widget.number-widget-box:not([style*=background]) .widget-body .widget-content .grey-stat {
+  color: var(--bnd-ink-muted);
+}
+html[data-bnd-ws] .widget.number-widget-box:not([style*=background]) .widget-body .widget-content .green-stat {
   color: var(--bnd-good);
 }
-html[data-bnd-ws] .number-widget-box:not([style*=background]) .red-stat {
+html[data-bnd-ws] .widget.number-widget-box:not([style*=background]) .widget-body .widget-content .red-stat {
   color: var(--bnd-critical);
+}
+html[data-bnd-ws] .widget.number-widget-box:not([style*=background]) .widget-body .widget-content .green-stat use,
+html[data-bnd-ws] .widget.number-widget-box:not([style*=background]) .widget-body .widget-content .red-stat use {
+  stroke: currentColor;
 }
 
 html[data-bnd-ws-metric=quiet] .number-widget-box .widget-body .widget-content .number {

@@ -15761,6 +15761,136 @@ print("ok")
 			expectEq(headOrder, "-1", "Headline puts the value first");
 		});
 
+		await test("workspace: a number card's delta clears AA in every state it can take, in both modes", async () => {
+			// THE KIT'S DELTA RULE NEVER APPLIED. Item 25 re-tokenised `.green-stat`
+			// and `.red-stat` at (0,4,1) against Frappe's own
+			// `.widget.number-widget-box .widget-body .widget-content .green-stat` at
+			// (0,5,0), so the desk kept Frappe's greens and reds — and `.grey-stat` was
+			// never re-pointed at all. Measured 2026-09-28 on the shipped desk: five of
+			// six state × mode pairs under 4.5:1 (light grey 4.06, green 2.32, red 4.30;
+			// dark grey 3.58, red 3.38). Found through the axe gate, whose dashboard
+			// count grew once the demo customer aged into the grey "0 %" state — the
+			// state was always there to be taken; the gate only saw it when the data
+			// took it. So every state is measured here, made rather than waited for: the
+			// class is set on the card's own stat row, in a separate evaluate from the
+			// read, and the read polls until three frames agree.
+			//
+			// Colours resolve through a canvas, which paints any syntax Chrome emits
+			// (rgb, color(srgb …), oklab from color-mix) — a digits-only parse would
+			// read `color(srgb 0.4 …)` as near-black — and an unparseable one THROWS.
+			// The background is the EFFECTIVE one: translucent layers composited up to
+			// the first opaque ancestor.
+			await goDesk("/desk/dashboard-view/Selling", ".widget-group-body .number-widget-box", 5000);
+			const STAT = ".number-widget-box:not([style*='background']) .card-stats";
+			expect(await q(STAT + " .percentage-stat-area"), "premise: a number card shows a delta on the dashboard");
+			const measure = () => {
+				const cv = document.createElement("canvas");
+				cv.width = cv.height = 1;
+				const ctx = cv.getContext("2d", { willReadFrequently: true });
+				const rgba = (css) => {
+					ctx.clearRect(0, 0, 1, 1);
+					ctx.fillStyle = "#010203";
+					ctx.fillStyle = css;
+					if (ctx.fillStyle === "#010203" && !/^#010203$/i.test(css)) throw new Error("unparseable colour: " + css);
+					ctx.fillRect(0, 0, 1, 1);
+					const d = ctx.getImageData(0, 0, 1, 1).data;
+					return [d[0], d[1], d[2], d[3] / 255];
+				};
+				const lum = ([r, g, b]) => {
+					const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+					return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+				};
+				const over = (top, under) => [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3])).concat(1);
+				const effective = (el) => {
+					const layers = [];
+					for (let n = el; n; n = n.parentElement) {
+						const c = rgba(getComputedStyle(n).backgroundColor);
+						if (c[3] > 0) layers.push(c);
+						if (c[3] >= 1) break;
+					}
+					if (!layers.length || layers[layers.length - 1][3] < 1) layers.push([255, 255, 255, 1]);
+					let base = layers.pop();
+					while (layers.length) base = over(layers.pop(), base);
+					return base;
+				};
+				const ratio = (fg, bg) => {
+					const f = fg[3] < 1 ? over(fg, bg) : fg;
+					const [hi, lo] = [lum(f), lum(bg)].sort((x, y) => y - x);
+					return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
+				};
+				return { rgba, effective, ratio };
+			};
+			const failures = [];
+			const seen = [];
+			try {
+				for (const mode of ["light", "dark"]) {
+					await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+					for (const state of ["grey-stat", "green-stat", "red-stat"]) {
+						// The row takes the state; a rise or a fall also gets its arrow, built
+						// the way number_card_widget.js builds it (the round pill + Frappe's
+						// own icon helper), because a "0 %" card renders no arrow to measure.
+						await page.evaluate(
+							({ sel, s }) => {
+								const row = document.querySelector(sel);
+								row.classList.remove("grey-stat", "green-stat", "red-stat");
+								row.classList.add(s);
+								for (const old of row.querySelectorAll(".indicator-pill-round[data-bnd-test]")) old.remove();
+								if (s !== "grey-stat") {
+									const hue = s === "green-stat" ? "green" : "red";
+									const icon = s === "green-stat" ? "es-line-arrow-up-right" : "arrow-down-right";
+									row.querySelector(".percentage-stat-area").insertAdjacentHTML(
+										"afterbegin",
+										`<span class="indicator-pill-round ${hue}" data-bnd-test="">${frappe.utils.icon(icon, "xs")}</span>`
+									);
+								}
+							},
+							{ sel: STAT, s: state }
+						);
+						const r = await page.evaluate(
+							async ({ sel, src }) => {
+								const { rgba, effective, ratio } = new Function("return (" + src + ")()")();
+								const read = () => {
+									const el = document.querySelector(sel + " .percentage-stat-area");
+									const icon = document.querySelector(sel + " .indicator-pill-round use");
+									const fgCss = getComputedStyle(el).color;
+									const bg = effective(el);
+									return {
+										fg: fgCss,
+										text: ratio(rgba(fgCss), bg),
+										// The arrow is a graphic, 1.4.11's 3:1, measured against what it
+										// is drawn ON — the pill, not the card.
+										icon: icon ? ratio(rgba(getComputedStyle(icon).stroke), effective(icon.closest("svg"))) : null,
+									};
+								};
+								let last = null;
+								let same = 0;
+								for (let i = 0; i < 60; i++) {
+									await new Promise((res) => requestAnimationFrame(res));
+									const now = read();
+									same = last && now.fg === last.fg ? same + 1 : 0;
+									last = now;
+									if (same >= 2) break;
+								}
+								return last;
+							},
+							{ sel: STAT, src: measure.toString() }
+						);
+						seen.push(`${mode}/${state} ${r.text}${r.icon === null ? "" : " icon " + r.icon}`);
+						if (r.text < 4.5) failures.push(`${mode} ${state} text ${r.text}:1 (${r.fg})`);
+						// Anti-vacuity: a rise and a fall MUST have produced an arrow to measure.
+						if (state !== "grey-stat" && r.icon === null) failures.push(`${mode} ${state}: no arrow rendered to measure`);
+						if (r.icon !== null && r.icon < 3) failures.push(`${mode} ${state} icon ${r.icon}:1`);
+					}
+				}
+			} finally {
+				await page.evaluate(() => {
+					for (const n of document.querySelectorAll(".indicator-pill-round[data-bnd-test]")) n.remove();
+					document.documentElement.setAttribute("data-theme", "light");
+				});
+			}
+			expectEq(failures.join("; "), "", "every delta state clears AA on its card (" + seen.join(" · ") + ")");
+		});
+
 		// ── Chart series palette (item 25) ─────────────────────────────────
 		//
 		// A runtime kit, not a settings one: no attribute, no picker — bunood.js
