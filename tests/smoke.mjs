@@ -10410,6 +10410,78 @@ print("ok")
 			expectEq(ragged.length, 0, `ragged rows: ${JSON.stringify(ragged.slice(0, 3))}`);
 		});
 
+		await test("settings: a selected option keeps its primary edge in every state, by weight alone", async () => {
+			// THE SETTINGS AUDIT, C2. The shared picker vocabulary drew a selected
+			// option's edge with `border-color: var(--primary) !important`, and what it
+			// beat was its OWN sheet: the options' base block restates `border` later at
+			// the same weight, (0,2,1). The `!important`s are gone and the selected
+			// rules weigh one class more. This pins the edge where a user sees it: each
+			// family that can be selected, in every state a pointer or a key can put it
+			// in, forced through CDP and read once three frames agree (the options
+			// transition border-color). Watched failing with the `!important` removed
+			// and no weight added: the option's edge fell back to the plain border.
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			const cdp = await page.context().newCDPSession(page);
+			try {
+				await cdp.send("DOM.enable");
+				await cdp.send("CSS.enable");
+				const { root } = await cdp.send("DOM.getDocument", { depth: -1 });
+				// The reference colour, resolved the way the edge resolves it.
+				const want = await page.evaluate(() => {
+					const probe = document.createElement("div");
+					probe.style.cssText = "border: 1px solid var(--primary); position: absolute; visibility: hidden";
+					document.body.appendChild(probe);
+					const c = getComputedStyle(probe).borderTopColor;
+					probe.remove();
+					return c;
+				});
+				const bad = [];
+				for (const family of [".bnd-cbp-style.bnd-cbp-on", ".bnd-cbp-opt.bnd-cbp-on", ".bnd-sbp-opt.bnd-sbp-on"]) {
+					const { nodeIds } = await cdp.send("DOM.querySelectorAll", { nodeId: root.nodeId, selector: family });
+					let nodeId = null;
+					for (const id of nodeIds) {
+						if (await cdp.send("DOM.getBoxModel", { nodeId: id }).catch(() => null)) {
+							nodeId = id;
+							break;
+						}
+					}
+					if (!nodeId) {
+						bad.push(`${family}: none rendered on the page`);
+						continue;
+					}
+					for (const state of [[], ["hover"], ["focus-visible"], ["active"]]) {
+						await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: state });
+						let last = "";
+						let same = 0;
+						let got = null;
+						for (let f = 0; f < 40 && same < 3; f++) {
+							await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
+							const { computedStyle } = await cdp.send("CSS.getComputedStyleForNode", { nodeId });
+							const v = (n) => (computedStyle.find((c) => c.name === n) || {}).value;
+							got = { edge: v("border-top-color"), style: v("border-top-style") };
+							const key = JSON.stringify(got);
+							same = key === last ? same + 1 : 1;
+							last = key;
+						}
+						if (same < 3) bad.push(`${family} ${state.join("+") || "rest"}: never settled`);
+						else if (got.edge !== want || got.style === "none") {
+							bad.push(`${family} ${state.join("+") || "rest"}: ${got.style} ${got.edge}, want solid ${want}`);
+						}
+					}
+					await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
+				}
+				// Anti-vacuity: an UNSELECTED option does not already wear that edge.
+				const plain = await page.evaluate(() => {
+					const o = [...document.querySelectorAll(".bnd-cbp-opt:not(.bnd-cbp-on)")].find((n) => n.getClientRects().length && !n.matches(":hover"));
+					return o ? getComputedStyle(o).borderTopColor : null;
+				});
+				expect(plain && plain !== want, `an unselected option's edge differs from the selected one (${plain} vs ${want})`);
+				expect(!bad.length, bad.join("; "));
+			} finally {
+				await cdp.detach().catch(() => {});
+			}
+		});
+
 		// ── Master & detail settings shell (rework slice 1c step 2) ───────
 		//
 		// The shell is built ALONGSIDE the existing form and gated behind a URL

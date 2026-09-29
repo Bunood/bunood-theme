@@ -3447,8 +3447,9 @@ html[data-theme] .bnd-cbp-style {
 html[data-theme] .bnd-cbp-style:hover {
   border-color: var(--primary);
 }
-html[data-theme] .bnd-cbp-on {
-  border-color: var(--primary) !important;
+html[data-theme] .bnd-cbp-on,
+html[data-theme] .bnd-cbp-opt.bnd-cbp-on {
+  border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--primary);
 }
 html[data-theme] .bnd-cbp-thumb svg {
@@ -3814,8 +3815,9 @@ html[data-theme] .bnd-sbp-opt {
 html[data-theme] .bnd-sbp-opt:hover {
   border-color: var(--primary);
 }
-html[data-theme] .bnd-sbp-on {
-  border-color: var(--primary) !important;
+html[data-theme] .bnd-sbp-on,
+html[data-theme] .bnd-sbp-opt.bnd-sbp-on {
+  border-color: var(--primary);
   box-shadow: 0 0 0 1px var(--primary);
 }
 html[data-theme] .bnd-sbp-dis {

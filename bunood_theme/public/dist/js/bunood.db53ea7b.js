@@ -3260,12 +3260,13 @@
 	/**
 	 * Is the stock affordance this tenant replaces actually usable right now?
 	 *
-	 * Present in the DOM is not enough. The Dock layout hides the whole
-	 * `.body-sidebar-container` with `display: none !important` keyed on the
-	 * LAYOUT (_layouts.scss) — Frappe writes an inline `display: block` there,
-	 * which is one of this codebase's two sanctioned uses of !important. So the
-	 * native bell and user button still exist, still match a selector, and
-	 * cannot be clicked by anyone.
+	 * Present in the DOM is not enough. A desk with the pane switched off, or set
+	 * to Hidden, hides the whole `.body-sidebar-container` with `display: none
+	 * !important` (_sidebar.scss, keyed on the `pane-hidden` token that
+	 * `sb_sync_pane_hidden` stamps) — Frappe writes an inline `display: block`
+	 * there, which is why that hide is a sanctioned `!important`. So the native
+	 * bell and user button still exist, still match a selector, and cannot be
+	 * clicked by anyone.
 	 *
 	 * `offsetParent` is null for an element inside a `display: none` ancestor,
 	 * which is exactly the question being asked and is cheaper than walking up
@@ -3277,8 +3278,9 @@
 		// testing the bell or the user button answers "not there yet" and the
 		// guard below misfires, refusing Off in every layout. The container is
 		// part of the desk skeleton and exists by then, and it is exactly what
-		// the layout rule targets (_layouts.scss sets `display: none !important`
-		// on it for Dock, beating Frappe's inline `display: block`).
+		// the pane's one hide targets (_sidebar.scss sets `display: none
+		// !important` on it when the pane is off or Hidden, beating Frappe's
+		// inline `display: block`).
 		const pane = document.querySelector(".body-sidebar-container");
 		return !!(pane && getComputedStyle(pane).display !== "none");
 	}

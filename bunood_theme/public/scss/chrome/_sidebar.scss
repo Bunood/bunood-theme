@@ -1727,7 +1727,7 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-header {
   }
 
   .icon-container {
-    background: var(--bnd-brand-solid) !important; // beats Frappe's INLINE style (the 2nd documented legitimate use)
+    background: var(--bnd-brand-solid) !important; // a vendor INLINE style (desktop_icon): GUIDELINES §1.3, build.mjs SANCTIONED_IMPORTANT
     border-radius: var(--bnd-radius-md);
   }
 }

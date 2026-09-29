@@ -338,7 +338,7 @@ html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
 //
 // >= sm only: report.scss:140 pins `.dt-scrollable` with `!important` below sm
 // (< 576px, inside item 24's mobile-nav regime), which we do not fight
-// (!important is sanctioned in two places, neither here). The container
+// (!important is sanctioned only where GUIDELINES §1.3 says, not here). The container
 // (.layout-main-section) is not !important, so the paging row still clears
 // there — only the scroll box's own height stays un-reserve-aware below sm. A
 // known, narrow limitation, recorded in the commit, NOT recorded as closed.

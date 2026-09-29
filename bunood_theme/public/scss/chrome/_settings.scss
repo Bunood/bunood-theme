@@ -24,10 +24,12 @@
 //
 // SCOPING
 //   `html[data-theme]` for the same reason as every other partial — (0,2,0)
-//   beats Frappe's unlayered class rules without !important. The two
-//   `!important`s carried over are on selected-state borders, beating an
-//   inline-ish base rule; they were in the original and are left alone rather
-//   than quietly re-engineered during a move.
+//   beats Frappe's unlayered class rules without !important. The move carried
+//   two `!important`s over, on the selected-state borders, and what they beat was
+//   nothing of Frappe's: the options' own block below restates `border` LATER at
+//   the same weight. They are gone (the settings audit of 2026-09-21, C2); each
+//   selected rule names the option's base class beside the state instead, one
+//   class more than anything else that paints that edge.
 // ============================================================================
 
 @use "../breakpoints" as *;
@@ -72,8 +74,14 @@ html[data-theme] {
     }
   }
 
-  .bnd-cbp-on {
-    border-color: var(--primary) !important;
+  // The selected edge, BY WEIGHT. `.bnd-cbp-opt`'s own block (below) restates
+  // `border` at (0,2,1) after this one, so the bare state lost it to source
+  // order; `.bnd-cbp-opt.bnd-cbp-on` is (0,3,1) and wins wherever the rule sits.
+  // The bare state stays for every other carrier — a card, a kit's toggle, a
+  // chip — none of which has a later rule restating its border.
+  .bnd-cbp-on,
+  .bnd-cbp-opt.bnd-cbp-on {
+    border-color: var(--primary);
     box-shadow: 0 0 0 1px var(--primary);
   }
 
@@ -589,8 +597,12 @@ html[data-theme] {
     }
   }
 
-  .bnd-sbp-on {
-    border-color: var(--primary) !important;
+  // Same weight, same reason as `.bnd-cbp-on` — this one won on source order
+  // alone, which is one reordering from losing. The width stops draw their
+  // selection as a fill and a ring instead (`.bnd-sbp-stop`, below).
+  .bnd-sbp-on,
+  .bnd-sbp-opt.bnd-sbp-on {
+    border-color: var(--primary);
     box-shadow: 0 0 0 1px var(--primary);
   }
 

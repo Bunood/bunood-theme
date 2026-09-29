@@ -1160,6 +1160,118 @@ function assertOwnershipPolarity(css, name, owned) {
 }
 
 /**
+ * `!important` guard — every one outside a print sheet is a NAMED SITE of a
+ * sanctioned class, and every named site still exists.
+ *
+ * THE DOCTRINE AND THE CODE HAD DRIFTED APART, and nothing noticed (the settings
+ * audit of 2026-09-21, C2). GUIDELINES §1.3 and CLAUDE.md named a `font-family`
+ * block that no bundle carried, and did not name four sites the code did carry:
+ * the pane head's icon tile, the pane filter's reveal, and two picker borders
+ * that needed weight, not escalation (they are gone). A list in prose that the
+ * build never reads is a claim; this is the list, and the prose names the CLASSES
+ * — GUIDELINES §1.3 carries the test for each:
+ *
+ *   inline  — Frappe writes the declaration into the node's `style` attribute;
+ *             no selector outranks an inline declaration, and rewriting Frappe's
+ *             DOM is refused.
+ *   literal — Frappe's own rule is an `!important` LITERAL, and the alternative
+ *             is a measured failure (WCAG, or taking over a vendor state machine).
+ *   print   — `@media print`, and the print bundle as a whole (below: skipped).
+ *
+ * Selectors are matched as the COMPILED sheet spells them (Sass drops the quotes
+ * in `[attr~="x"]`). An edit that moves a sanctioned rule fails here until this
+ * table follows it — which is the point: the site list cannot drift silently
+ * again. A new entry needs its class, its vendor fact, and GUIDELINES' test.
+ */
+const SANCTIONED_IMPORTANT = [
+	{
+		// jQuery `.show()` in Frappe's sidebar.js writes `display: block` INLINE on
+		// the pane's container; the pane's one hide (_sidebar.scss) must beat it.
+		bundle: "bunood",
+		selector: "html[data-bnd-own~=pane-hidden] .body-sidebar-container",
+		property: "display",
+		class: "inline",
+	},
+	{
+		// `frappe.utils.desktop_icon` paints the pane head's tile with an INLINE
+		// `background-color` from its own palette; the tile takes the brand.
+		bundle: "bunood",
+		selector: "html[data-bnd-sb-color] .body-sidebar .sidebar-header .icon-container",
+		property: "background",
+		class: "inline",
+	},
+	{
+		// Frappe collapses a pane section with `.hidden` (`@extend .d-none`:
+		// `display: none !important`, a LITERAL). While a pane filter is live, a
+		// match inside a collapsed section must show — the alternative is toggling
+		// Frappe's own collapse class, their state machine. Scoped to the transient
+		// attribute our filter alone stamps.
+		bundle: "bunood",
+		selector:
+			"html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:not(.bnd-sb-fhide) > .sidebar-child-item.hidden",
+		property: "display",
+		class: "literal",
+	},
+	{
+		// Item 33: `.text-muted { color: #7c7c7c !important }`, a LITERAL, at 4.17:1
+		// on /404's only link and every portal row; a website page has no `.bunood`
+		// root to escalate through.
+		bundle: "bunood-web",
+		selector: "body.bnd-web .text-muted",
+		property: "color",
+		class: "literal",
+	},
+];
+
+function assertImportantSanctioned(css, key) {
+	// The print sheet is the `print` class as a whole: wkhtmltopdf and the Print
+	// Style are print by definition, and assertPrintSafeCss bounds that sheet.
+	if (key === "bunood-print") return;
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const found = [];
+	const offenders = [];
+	const stack = [];
+	let buf = "";
+	for (const ch of stripped) {
+		if (ch === "{") {
+			stack.push(buf.trim());
+			buf = "";
+		} else if (ch === "}") {
+			const body = buf;
+			buf = "";
+			const selector = (stack.pop() || "").replace(/\s+/g, " ");
+			if (!/!important/.test(body)) continue;
+			const inPrint = stack.some((s) => /^@media\b[^{]*\bprint\b/.test(s));
+			for (const decl of body.split(";")) {
+				if (!/!important/.test(decl)) continue;
+				const property = decl.split(":")[0].trim();
+				if (inPrint) continue;
+				const site = SANCTIONED_IMPORTANT.find(
+					(s) => s.bundle === key && s.selector === selector && s.property === property
+				);
+				if (site) found.push(site);
+				else offenders.push(`${selector} { ${decl.trim()} }`);
+			}
+		} else {
+			buf += ch;
+		}
+	}
+	if (stack.length) throw new Error(`!important guard: ${key}.css did not parse — ${stack.length} unclosed block(s)`);
+	const stale = SANCTIONED_IMPORTANT.filter((s) => s.bundle === key && !found.includes(s));
+	if (offenders.length || stale.length) {
+		throw new Error(
+			`!important guard: ${key}.css` +
+				(offenders.length ? `\n  unsanctioned:\n    ${offenders.join("\n    ")}` : "") +
+				(stale.length ? `\n  sanctioned but no longer in the sheet:\n    ${stale.map((s) => s.selector).join("\n    ")}` : "") +
+				"\nWeigh a rule up instead (one class more, or an attribute that is always present, used " +
+				"as weight). If the vendor writes the declaration INLINE or as an !important LITERAL and " +
+				"the alternative is a measured failure, name the site in SANCTIONED_IMPORTANT with its " +
+				"class and vendor fact (GUIDELINES §1.3); a sanctioned site that moved must move here too."
+		);
+	}
+}
+
+/**
  * Registry/identity guard — every component is named, and every name is real.
  *
  * Two directions, because both have already gone wrong:
@@ -2102,6 +2214,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
 	assertOwnershipPolarity(result.css, `${key}.css`, OWNED_NATIVES);
 	assertCursiveSafe(result.css, `${key}.css`);
+	assertImportantSanctioned(result.css, key);
 	assertAutomaticArms(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);

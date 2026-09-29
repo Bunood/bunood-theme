@@ -121,20 +121,39 @@ that cannot change the verdict.
   every other: dark fell back to `_tokens.scss`'s literals. **Any new logged-out
   surface must add its own dark scope to `brand.py`'s selector list**, derived from
   `context.AUTH_CLASSES` rather than restated.
-- **`!important` only in the sanctioned places** (the `font-family` block and
-  `@media print`). Everything else escalates through the `.bunood` class on `<html>`.
-  **A third place, added by item 33 and deliberately the narrowest form that works:**
-  inside `body.bnd-web`, *only* to beat a vendor `!important` **literal**, and *only*
-  where the alternative is a measured WCAG failure. The escalation this rule assumes
-  **does not exist on a website page** — `<html>` is hardcoded in `templates/base.html`,
-  there is no hook to add a class to it, and a JS stamp would land after first paint
-  (`web/_login.scss`'s header records the same dead end). Item 32 met `!important`
-  twice and beat it both times by re-pointing the variables those rules read; item 33
-  found `.text-muted { color: #7c7c7c !important }`, a literal, carrying 4.17:1 onto
-  `/404`'s only link and every portal row. **The test is the vendor's `!important`
-  plus a literal plus a measured failure, not merely a rule that is inconvenient to
-  beat** — eighteen of that census's nineteen failures were repaired by two variable
-  re-points and one ordinary (0,2,1) rule, and exactly one needed this.
+- **`!important` only in the sanctioned places — and the places are CLASSES, each a
+  vendor reach no selector can beat.**
+  1. **Print:** `@media print`, and the print bundle as a whole.
+  2. **A vendor INLINE style.** Frappe writes the declaration into the node's `style`
+     attribute — jQuery `.show()` puts `display: block` on the pane's container, and
+     `frappe.utils.desktop_icon` paints the pane head's tile its own background. No
+     selector outranks an inline declaration, and rewriting Frappe's DOM is refused.
+  3. **A vendor `!important` LITERAL, where the alternative is a measured failure.**
+     Item 33 found `.text-muted { color: #7c7c7c !important }` carrying 4.17:1 onto
+     `/404`'s only link and every portal row, inside `body.bnd-web` — where the
+     escalation below **does not exist**: a website page carries no `data-theme`,
+     `<html>` is hardcoded in `templates/base.html`, there is no hook to add anything to
+     it, and a JS stamp would land after first paint (`web/_login.scss`'s header
+     records the same dead end). On the desk it is the pane filter's reveal of a
+     collapsed section over Frappe's `.hidden` (`@extend .d-none`), where the
+     alternative was taking over Frappe's collapse state machine; it is scoped to a
+     transient attribute only our filter stamps.
+
+  **The test is the vendor's reach — an inline style or an `!important` literal —
+  plus a measured failure, not merely a rule that is inconvenient to beat.** Item 32
+  met `!important` twice and beat it both times by re-pointing the variables those
+  rules read, and eighteen of item 33's nineteen failures were repaired by two
+  variable re-points and one ordinary (0,2,1) rule; exactly one needed this.
+  Everything else escalates by WEIGHT: the `html[data-theme]` prefix (Frappe stamps
+  `data-theme` on every desk page), one class more, or an attribute that is always
+  present, used purely as weight — say so at the site. **The sites live in one place,
+  `build.mjs`'s `SANCTIONED_IMPORTANT`**, which refuses any `!important` it does not
+  list and any listed site the sheet no longer carries. This prose used to be the
+  list, and it drifted: until the settings audit of 2026-09-21 (C2) it named a
+  `font-family` block no bundle carried, missed the icon tile and the filter reveal,
+  and said the desk escalated through a `.bunood` class nothing ever put on `<html>`
+  — while two picker borders used `!important` to beat a rule of their own sheet,
+  which is weight's job, not escalation's.
 - **A *contract* survives `Original`; a *style* does not.** A surface kit's `Original`
   is a total stand-down — the absent anchor clears every style rule. But an accessibility
   contract that happens to live in the same kit is scoped `html[data-theme]`, NOT the kit
