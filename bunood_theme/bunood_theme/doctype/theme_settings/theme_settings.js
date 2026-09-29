@@ -1192,8 +1192,8 @@ const BND_SETTINGS_GROUPS = [
 			// own (the fonts entry claims the section first) — the entry exists for
 			// the Overview's goto. Its state lives in its own doctypes (Bunood
 			// Translation Settings / Scan / Proposal), not in Theme Settings
-			// fields, which keeps the FIELD_PREFIXES guard out of a feature that
-			// is not a desk component.
+			// fields, which keeps build.mjs's field-naming guard out of a feature
+			// that is not a desk component.
 			{ key: "translations", label: () => __("Translations"), anchors: ["language_translations"] },
 			// `density_default` has its own section. It used to share
 			// `section_features` with `palette_enabled`, and the shell's fallback

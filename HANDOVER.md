@@ -1631,10 +1631,12 @@ What that work needed, kept for the next surface kit:
   `apply_*_attrs` + the MANDATORY `bunood.*_apply` hook → `surfaces/_*.scss`
   working-set blocks → picker trio → contrast pairs → fingerprint → ar.csv →
   suite family). Diff against whichever kit is closer; both headers carry the
-  same five-block contract. Six more edits live outside that list and are
-  easy to miss: `build.mjs` FIELD_PREFIXES, the sweep's CRUMBS_ONLY **and**
-  IMPLICIT, `bunood.scss`'s `@use`, the settings map entry (`BND_SETTINGS_GROUPS`) + `BND_SETTINGS_OWNS`
-  prefix, the export **and** import field lists, and MUTABLE_FIELDS.
+  same five-block contract. Five more edits live outside that list and are
+  easy to miss: the sweep's CRUMBS_ONLY **and** IMPLICIT, `bunood.scss`'s `@use`,
+  the settings map entry (`BND_SETTINGS_GROUPS`) + `BND_SETTINGS_OWNS` prefix, the
+  export **and** import field lists, and MUTABLE_FIELDS. (`build.mjs`'s field
+  prefixes used to be a sixth; since the settings audit's C3 they are read from
+  `registry.py`, so the SURFACES entry is the registration.)
 * **Probe BEFORE designing, and probe the CASCADE too.** Item 15 (was 16) taught
   "probe the DOM"; item 16 (was 18) added "probe the rules". Both of its defects were
   upstream selectors out-specifying ours (see the item-16 block above).

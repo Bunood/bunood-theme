@@ -941,31 +941,64 @@ function assertAutomaticArms(css, name) {
  *   named here so no NEW drift can enter unnoticed. Do not add to this list to
  *   make a build pass.
  */
-// `home` and `apps` joined in slice 2, when Home and All Apps stopped sharing
-// `sidebar_quick_links` and became the two components registry.py always said
-// they were. This list grows when a component is REGISTERED, never to make a
+// THE PREFIXES ARE DERIVED FROM `registry.py` (the settings audit of 2026-09-21,
+// C3). This was a hand-kept list of 36, and 28 of them restated registry keys —
+// a component, a container, a mark or a surface — so registering a component
+// meant remembering this file too, and DE-registering one left its prefix here,
+// passing its orphaned fields forever. Every registered key is a prefix now, and
+// so is every container's toggle prefix (the side pane's key is `sidepane`, its
+// fields are `sidebar_*`): `readFieldPrefixes` below, the same parse
+// `assertRegistryIdentity` uses. When derived it matched all 36 and added seven
+// registered keys no field uses yet (`sidepane` and six marks).
+//
+// WHAT STAYS HAND-KEPT is what no registry table names, and each entry is its
+// own registration:
+//   crumb, palette, status — kits with settings that are not PLACEABLE, so they
+//     have no registry row: the breadcrumbs (item 11), the command palette (12),
+//     and what the status bar SHOWS (14 — the bar itself is the `bottombar`
+//     container).
+//   desk — the desk-wide axes: order, width, scale, primary.
+//   icon — item 23's axis. More than one field, so a prefix rather than four
+//     rows in EXCEPTIONS, the shape a surface has.
+//   mobile — the narrow desk's per-tenant choices (item 24).
+//   density — the density axis (`density_default`, item 36's rename).
+//   personal — item 38's locks. Deliberately NOT `user`, which is the User
+//     profile COMPONENT (`user_placement`): overloading it would make "which
+//     user thing is this" a question the prefix no longer answers. The axis is
+//     declared in `bunood_theme/personal.py`, which `assertPersonalAxes` reads.
+// This list grows only for a new AXIS or an unplaceable kit, never to make a
 // build pass — that is what FIELD_EXCEPTIONS below is for, and it shrinks.
-// "topbar" and the container prefixes that follow it are here because a
-// CONTAINER was registered (registry.py); `list` and `form` because a SURFACE
-// was. Those are the only reasons this list is allowed to grow — never to make
-// a build pass.
-//
-// `icon` (item 23) is the first entry earned by neither a component nor a
-// surface but by an AXIS with more than one field. Colour and typography are
-// axes too and sit in FIELD_EXCEPTIONS below — but each is a SINGLE field, so
-// naming it there costs one line. Icons is `icon_style` / `icon_weight` /
-// `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
-// the hand-maintained list a prefix exists to delete. So the axis takes a
-// prefix, the same shape a surface does, and this comment is the registration.
-//
-// `personal` (item 38) is the second entry earned by an axis, on the same terms:
-// three Checks deciding whether a person may choose their own look, their own
-// desk shape, and their own comfort. It is deliberately NOT `user`, which is
-// already taken by the User profile COMPONENT (`user_placement`) — overloading
-// it would make "which user thing is this" a question the prefix no longer
-// answers. The axis itself is declared in `bunood_theme/personal.py`, which is
-// also what `assertPersonalAxes` reads.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "start", "language", "appearance", "topbar", "pagehead", "panehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
+const FIELD_AXES = ["crumb", "palette", "status", "desk", "icon", "mobile", "density", "personal"];
+
+/**
+ * Every prefix a Theme Settings field may carry: each registered key, each
+ * container's toggle prefix, and FIELD_AXES.
+ *
+ * THROWS ON A PARSE IT DOES NOT RECOGNISE rather than guessing. Every row has a
+ * "key" and a "part", and every CONTAINER row a `<prefix>_enabled` toggle; a
+ * count that stops agreeing means registry.py stopped being the plain literal
+ * this reads, and the guard would otherwise shrink its list and fail every field
+ * — or, worse, keep passing on a list it no longer derives.
+ *
+ * @param {string} registrySrc - registry.py text
+ * @returns {string[]}
+ */
+function readFieldPrefixes(registrySrc) {
+	const keys = [...registrySrc.matchAll(/"key":\s*"([a-z]+)"/g)].map((m) => m[1]);
+	const parts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)];
+	const toggles = [...registrySrc.matchAll(/"toggle":\s*"([^"]+)"/g)].map((m) => m[1]);
+	const containers = [...registrySrc.matchAll(/"type":\s*CONTAINER\b/g)].length;
+	const odd = toggles.filter((t) => !/^[a-z]+_enabled$/.test(t));
+	if (!keys.length || keys.length !== parts.length || toggles.length !== containers || odd.length) {
+		throw new Error(
+			`Field-naming guard: registry.py read as ${keys.length} keys, ${parts.length} parts, ` +
+				`${toggles.length} toggles for ${containers} containers` +
+				(odd.length ? ` (unrecognised toggles: ${odd.join(", ")})` : "") +
+				" — the extraction has stopped matching the file. Fix the parse, never the count."
+		);
+	}
+	return [...new Set([...keys, ...toggles.map((t) => t.replace(/_enabled$/, "")), ...FIELD_AXES])];
+}
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design. Typography joined in item 7(b): a typeface is an axis in exactly
@@ -1990,21 +2023,22 @@ async function pythonSources(dirUrl, prefix = "bunood_theme") {
 	return out;
 }
 
-function assertFieldNaming(doctypeJson) {
+function assertFieldNaming(doctypeJson, prefixes) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
 		const name = f.fieldname;
 		if (!name || FIELD_EXCEPTIONS.has(name)) continue;
 		// Layout furniture carries no data.
 		if (["Section Break", "Column Break", "Tab Break", "HTML"].includes(f.fieldtype)) continue;
-		if (!FIELD_PREFIXES.some((p) => name.startsWith(p + "_"))) offenders.push(name);
+		if (!prefixes.some((p) => name.startsWith(p + "_"))) offenders.push(name);
 	}
 	if (offenders.length) {
 		throw new Error(
 			`Field-naming guard: ${offenders.join(", ")} — Theme Settings fields must be ` +
-				`<component>_<property> using one of: ${FIELD_PREFIXES.join(", ")}. ` +
-				"Rename the field, or if it is genuinely not a component setting, add it to " +
-				"FIELD_EXCEPTIONS in build.mjs with a comment saying why."
+				`<component>_<property> using one of: ${prefixes.join(", ")}. ` +
+				"Rename the field; register its component in registry.py (the key becomes a " +
+				"prefix); or, if it is genuinely not a component setting, add its axis to " +
+				"FIELD_AXES or the field to FIELD_EXCEPTIONS in build.mjs with a comment saying why."
 		);
 	}
 }
@@ -2165,7 +2199,8 @@ async function main() {
 				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
 				"utf8"
 			)
-		)
+		),
+		readFieldPrefixes(await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"))
 	);
 	assertFieldOrder(
 		JSON.parse(
