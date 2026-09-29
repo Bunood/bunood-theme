@@ -3485,7 +3485,10 @@
 		}
 		// Pane zones: our direct children of the side pane, grouped by the
 		// zone they were anchored to. Sorted within the group only — the
-		// pane's own rows are never touched.
+		// pane's own rows are never touched. `data-bnd-zone` is read here and
+		// nowhere else; its three writers (`sb_band`, `mount_placed_tenants`,
+		// `sb_mount_utils`) each stamp only a node they built, with the zone
+		// they anchor it to — no arbiter needed (settings audit, C4).
 		const pane = document.querySelector(".body-sidebar");
 		if (pane) {
 			for (const zone of ["start", "end"]) {
@@ -3607,9 +3610,10 @@
 				else node.remove();
 			}
 			// `host` is already the zone for every region but the side pane,
-			// where it is the pane itself and CSS `order` does the placing —
-			// so the node carries the zone and the stylesheet reads it. The
-			// pane is Frappe's DOM and this theme does not redraw it.
+			// where it is the pane itself: `sb_zone_anchor` places the node by
+			// position, and the zone it carries is `enforce_desk_order`'s sort
+			// key (no stylesheet reads it). The pane is Frappe's DOM and this
+			// theme does not redraw it.
 			const zone = zone_for(tenant);
 			if (!keeper) {
 				// A builder that THROWS must not strand the tenants after it in this
