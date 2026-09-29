@@ -10,8 +10,8 @@
 
 ## 1. Where the work stands
 
-**THE SETTINGS AUDIT AND ITS CONSOLIDATION LANDED ON `main` (2026-09-21 → 27), UNNUMBERED
-AND UNTAGGED — the number is the user's call.** Eleven commits; the account is CHANGELOG
+**THE SETTINGS AUDIT AND ITS CONSOLIDATION LANDED ON `main` (2026-09-21 → 28), UNNUMBERED
+AND UNTAGGED — the number is the user's call.** Nineteen commits; the account is CHANGELOG
 `[Unreleased]`, and the audit's census, findings, decision menu and render walk are under
 `.claude/audit/` (untracked; `phase1/` is the before). What a reader of this file must know:
 every default has ONE owner (`presets.py` → `setup.SHIPPED` → the form's `bnd_shipped`,
@@ -23,11 +23,16 @@ the pane container (`data-bnd-own~="pane-hidden"`, stamped by `sb_sync_pane_hidd
 pane-state stamper (`sb_stamp_panestate`); a value a Select cannot hold is healed by
 `setup.heal_unknown_selects()` on EVERY migrate and tolerated nowhere; `bnd_sidebar_preset`,
 `sidebar_rail_button` and `icon_rail_button` are retired by `patches/unreleased/`; ONE
-settings-write path (`tools/session.mjs::setSettings`). Full suite at b3b6ca2: 553/555 — the
-console-budget failure was this work's and is fixed; the axe dashboard failure is demo-data
-date drift, a decision for the user (CHANGELOG `[Unreleased]`). Open without a decision: the
-client's `bnd_match_layout` beside the server's `layout_of`, three unsanctioned
-`!important`s, `FIELD_PREFIXES`.
+settings-write path (`tools/session.mjs::setSettings`). The form derives a layout's identity
+the way the server does — `bnd_match_layout(frm, ignore)` for the card's label,
+`bnd_desk_shape_of` for the SHAPE the composer's stage is given, `SHAPE_IGNORES` served —
+and a suite check compares the two over every catalogue row; `!important` lives only at the
+vendor-reach sites `build.mjs`'s `SANCTIONED_IMPORTANT` names; the field-naming guard reads
+its prefixes from `registry.py`. Full suite at cfcb9b7: 560/560 (at
+b3b6ca2 it was 553/555: the console-budget failure was this work's and is fixed, and the axe
+dashboard's "date drift" hid a number-card delta rule that had never applied — repaired,
+ceiling 1). Nothing on the audit's menu is open; the number, the fuzzy `ar.po` rows and any
+push are the user's.
 
 **ITEM 42 IS BUILT AND RELEASED AS v0.42.0 (2026-09-04): 478/478, all thirteen slices,
 `app_version` resumed at 0.42.0 from 0.37.1.** Commits `61b8c77` (slice 8) · `78ac43a`

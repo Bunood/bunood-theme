@@ -29,10 +29,12 @@ an "item N" cited below against today's numbering.
 **Not numbered, on purpose.** Whether this is a new ROADMAP item or a patch series on 46.x
 is the user's call — decision group (vi) of the audit carried no recommendation — so
 nothing here is tagged, `app_version` is untouched, and the two new patches sit in
-`patches/unreleased/`, to be renamed with the release. Eleven commits, 2026-09-21 to
-2026-09-27, from a full audit whose census, findings, decision menu and render walk live
+`patches/unreleased/`, to be renamed with the release. Nineteen commits, 2026-09-21 to
+2026-09-28, from a full audit whose census, findings, decision menu and render walk live
 outside the tree (`.claude/audit/`, untracked; `phase1/` is the before). The user answered
-the menu "do recommended", then "do everything".
+the menu "do recommended", then "do everything", then — for the four findings the first
+pass had left without a decision, and the dashboard's contrast — "continue with
+recommended".
 
 **The complaint, measured.** The settings existed in several versions: a value was
 defaulted, stored, composed, overlaid and applied in more than one place, the copies
@@ -92,6 +94,21 @@ caller and still applied twelve fields at boot; two shipped looks lit the wrong 
   Three placement defaults stop restating the default layout's row (895bdd2: a refactor,
   the shipped defaults, the baseline and the default preset byte-identical before and
   after).
+- **The last calls (2026-09-28)** — seven more. The contrast gate stops comparing the lock
+  defaults with a doctype default ii-2 a had deleted (0b63ed6: `npm run contrast`, a CI
+  gate, was red from c3b9814 on, and nothing in the series ran it — the colour-gate rule
+  sends nobody to a commit that changes no colour). A number card's delta clears AA in all
+  three states (e677d4a): the kit's rule had NEVER applied — (0,4,1) against Frappe's
+  (0,5,0) — so five of six state × mode pairs sat under 4.5:1 and the grey was never
+  re-pointed; `--bnd-good` is fitted as text now. Item 23's box reads `[ ]`, to the letter
+  of iv-1 b (9306518). And the four open findings, each by its recommended option: the form
+  derives a layout's identity the way the server does, and the composer's stage gets the
+  desk's SHAPE instead of the card's label (2175d69 — guarding the two derivations' agreement
+  found 17 labels and 39 shapes that disagreed over 420 cases); the field-naming guard reads
+  its prefixes from `registry.py` (305d1f3); `!important` is build-enforced to four named
+  vendor-reach sites, the doctrine names the classes, and the two picker borders take weight
+  instead (c7c6849); `data-bnd-zone`'s three writers are by design, and the runtime says so
+  where it reads the attribute (cfcb9b7).
 
 **Checks added, every one watched failing first:** the layout a theme card lights; a
 personal pane state and the derived shape; the hide gesture across a reload; the settings
@@ -99,7 +116,9 @@ page honouring a personal width through an unrelated click; the legacy look reti
 rows carried; a retired Select value healed by migrate and mapped nowhere on the wire; the
 container's one hide following the token for both settings; a quick-links change reaching an
 open menu; one ladder both directions; every container's marker; the rail button's
-retirement; the views-fixture preflight.
+retirement; the views-fixture preflight; a number card's delta in every state and mode; the
+form's layout identity against the server's over every catalogue row and single-field
+departure; the shape the composer's stage is given; a selected option's edge in every state.
 
 **Full suite** at b3b6ca2 (2026-09-27, 123 min on a loaded host): **553/555**. One failure was
 this series' own and is fixed (4f629a4, 2/2 after). The other is NOT this series': the axe
@@ -107,31 +126,30 @@ gate's color-contrast count on `/desk/dashboard-view/Selling` grew 3 → 4 becau
 aged — the "Active Customers" number card compares with last month, Frappe hides the
 percentage while last month's count is 0, and the only customer was created 2026-08-23, so
 from 2026-09-23 the card shows a grey "0 %" at 4.06:1 (computed with Frappe's own
-`get_result` for both dates; reproduced alone on a freshly restarted backend). Left red on
-purpose — see "For the user".
+`get_result` for both dates; reproduced alone on a freshly restarted backend). It was left
+red for a decision, and the decision found more under it: the card's delta rule had never
+applied, so that "0 %" was Frappe's grey all along — repaired in e677d4a, and the route's
+ceiling is 1. **Full suite at cfcb9b7** (2026-09-28, 123 min):
+**560/560**.
 
 **Measured after.** The census re-run over the consolidated code (147 settable fields after the two retirements) counts the copies holding a value per field as **0:16 · 1:120 · 2:11**, none disagreeing (was 4). The zeros are fields whose one owner derives them (the palette's seeds, the registry's desk order, the typography module's face) or that ship empty by design; the eleven twos are the five container switches and six placements, each a kit dict that indexes the default layout's row — one owner, counted twice because the census reads runtime values. The cascade census finds ONE `!important` hide on the pane container, keyed on the token (was two), and 5 `!important`s in the desk sheet (was 6). The docs scan: live unresolved identifiers outside CHANGELOG 33 → 16 and stale counts 30 → 21; what remains is dated narrative about things deleted before this work, plus counts the scanner cannot tie to a referent. The render walk re-run (169 min; its restore verified row for row) measured the complaint itself in the personal arm: a personal width of Roomy now reads roomy on the settings page and after an unrelated click (was balanced), a personal Rail stays rail (was open), and a personal look differs from its fresh tab on 0 attributes on the settings page (was 34). The site's own options render as before: 247 measured, 147 in session and fresh, 24 on the next load only, 0 inert, 0 errors, 0 stored-value mismatches. The one option newly counted as "views disagree", `desk_width = Original`, applies (the attribute and `--page-max-width` move) but cannot show at the walk's 1440px with the pane open, where the form column (873px) is narrower than both caps.
 
-**Payload.** js gzip 131,176 (v0.46.7) → 131,826, ceiling 131,400 → 132,100 (the pane
+**Payload.** js gzip 131,176 (v0.46.7) → 131,996, ceiling 131,400 → 132,100 (the pane
 writer, the Appearance row and the clearer; the docblocks that ship in the bundle; the rail
-button and the dead code gave most of it back). css gzip 28,285 → 27,968. Bundles
-`bunood.8dd3e296.js` / `bunood.7b0431d5.css` → `bunood.b53dd864.js` / `bunood.34aa0f8c.css`.
+button and the dead code gave most of it back). css gzip 28,285 → 28,003. Bundles
+`bunood.8dd3e296.js` / `bunood.7b0431d5.css` → `bunood.6455f116.js` / `bunood.43491a3e.css`.
 
-**Deliberately not done, and why.** Four findings had no approved decision and stay open: the
-form's client-side layout match (`bnd_match_layout`) beside the server's `layout_of`; the
-three `!important` declarations CLAUDE.md does not sanction (the pane head icon's background
-over Frappe's inline style, and two picker selected-state borders); `FIELD_PREFIXES` as a hand
-copy of the registry's keys; `data-bnd-zone`'s three writers. iv-1 is carried out to the
-letter: item 23's roadmap box reads `[ ]` with its reason — the reframed scope shipped, the
+**Deliberately not done, and why.** Nothing on the menu is left open: the four findings the
+first pass had no decision for are closed above, by their recommended options. iv-1 is carried
+out to the letter: item 23's roadmap box reads `[ ]` with its reason — the reframed scope shipped, the
 original switchable icon set was struck rather than built, and the open box keeps that goal
 visible as unmet (which also makes it one of the items v1.0.0 waits on). iv-12's "Alert" debt was already paid before this work (the row exists and
 its check is green); iv-11's "check_icons.py regeneration" does not exist, so the corrected
 pointer says so.
 
-**For the user.** The number (new item or 46.x patches). The axe gate's dashboard route, one
-of two ways: recolour Frappe's grey number-card stat to a fitted ink (a visual change; it
-also clears the two banked instances), or make that route's count date-independent. 8 new
-fuzzy `ar.po` rows (179 fuzzy in all). Nothing is pushed.
+**For the user.** The number: a new ROADMAP item or 46.x patches (decision group vi carried
+no recommendation, and the version policy keeps the number out of an agent's hands). 8 new
+fuzzy `ar.po` rows await review (179 fuzzy in all). Nothing is pushed.
 
 ## [0.46.7] — 2026-09-15 — The words we could not defend, and one we could (patch)
 
