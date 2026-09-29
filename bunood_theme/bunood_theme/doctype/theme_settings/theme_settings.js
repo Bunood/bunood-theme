@@ -1335,6 +1335,10 @@ let bnd_layout_tenants = null;
 //: two thirds of it.
 let bnd_layout_pane = null;
 let bnd_container_toggles = null;
+//: `presets.SHAPE_IGNORES` — the fields the desk's SHAPE does not read (search's
+//: own slot). Served with the catalogue so the form cannot restate it; see
+//: `bnd_desk_shape_of`.
+let bnd_shape_ignores = null;
 
 /** Served with the catalogue (item 42, slice 10): tenant key -> the slots its
  *  field accepts, straight from `registry.slots_for`. `null` until it arrives,
@@ -1497,29 +1501,47 @@ function bnd_tr_layout(name) {
 }
 
 /**
- * Which layout the desk's containers currently ARE, or "Custom".
+ * Which layout these values spell, or "Custom" — the form's half of ONE derivation.
  *
- * Derived by comparing values, never by reading `desk_layout` back. Pinning the
+ * Derived by comparing values, never by reading a stored name back. Pinning the
  * name pins nothing: the name is what was last APPLIED, and every container has
  * its own switch afterwards, so a desk can carry the label "Dock" while showing
- * a top bar and a side pane. The side pane's picker has worked this way since
- * item 10 for exactly this reason — its label is derived by comparing every
- * field the catalogue names — and this is the same rule reaching the last
- * preset that lacked it.
+ * a top bar and a side pane.
  *
- * Falls back to the stored name when the catalogue has not arrived. That is the
- * honest answer to "cannot say": it is what a user picked, merely unverified.
+ * THE SERVER HAS THE OTHER HALF, `presets.layout_of`, and for the same values the
+ * two must give the same answer. The settings audit of 2026-09-21 (C1) found two
+ * places where they did not; the suite now compares them over every catalogue
+ * row and every single-field departure from one ("layout: the form and the
+ * server derive the same layout…"). The two rules that make them one:
+ *
+ *   AN UNSET FIELD TAKES THE SHIPPED VALUE, as `layout_of` does. This read
+ *   `frm.doc[field] ?? row[key]`, so an unset field MATCHED WHATEVER THE ROW
+ *   WANTED — it could not tell two rows apart, the first in the catalogue won,
+ *   and the server, comparing the shipped value, named another.
+ *
+ *   `ignore` IS THE SERVER'S PARAMETER, because there are two questions. The
+ *   card and the labels ask "which preset is this, exactly?": every field
+ *   counts, and one difference reads "Custom" (no ignore, the default here).
+ *   The desk's SHAPE asks "which fallback chain does search walk?", and
+ *   search's own slot is that question, so it is excluded — see
+ *   `bnd_desk_shape_of`, which is what the composer's stage is given.
+ *
+ * "" while the catalogue has not arrived: the honest "cannot say".
  */
-function bnd_match_layout(frm) {
+function bnd_match_layout(frm, ignore = []) {
 	if (!bnd_layout_chrome || !bnd_container_toggles) return "";
+	const live = (field, fallback) => {
+		const v = frm.doc[field];
+		return v === undefined || v === null || v === "" ? bnd_default_of(field, fallback) : v;
+	};
 
 	for (const name of Object.keys(bnd_layout_chrome)) {
 		const row = bnd_layout_chrome[name];
 		const matches = Object.keys(bnd_container_toggles).every((key) => {
 			const field = bnd_container_toggles[key];
 			// A container whose field the doctype has not grown cannot disagree.
-			if (!(key in row) || !frm.get_field(field)) return true;
-			return parseInt(frm.doc[field] ?? row[key], 10) === row[key];
+			if (ignore.includes(field) || !(key in row) || !frm.get_field(field)) return true;
+			return parseInt(live(field, row[key]), 10) === row[key];
 		});
 		// THE CONTAINERS ARE NOT ENOUGH, and Classic and Bottom Bar are why: their
 		// container rows are byte-identical, so comparing only the five toggles
@@ -1529,8 +1551,8 @@ function bnd_match_layout(frm) {
 		// comparing it is also what makes "Custom" mean what it says.
 		const tenants = (bnd_layout_tenants && bnd_layout_tenants[name]) || {};
 		const placed = Object.keys(tenants).every((field) => {
-			if (!frm.get_field(field)) return true;
-			return String(frm.doc[field] ?? tenants[field]) === String(tenants[field]);
+			if (ignore.includes(field) || !frm.get_field(field)) return true;
+			return String(live(field, tenants[field])) === String(tenants[field]);
 		});
 		// AND THE PANE'S STATE. Without it two rows with identical containers and
 		// tenants — Unified Side Pane and Rail + Flyout — are one row to this
@@ -1539,11 +1561,28 @@ function bnd_match_layout(frm) {
 		// side for exactly the same reason.
 		const wantPane = bnd_layout_pane && bnd_layout_pane[name];
 		const paneOk =
-			!wantPane || !frm.get_field("sidebar_pane_state") ||
-			String(frm.doc.sidebar_pane_state ?? wantPane) === wantPane;
+			!wantPane || ignore.includes("sidebar_pane_state") || !frm.get_field("sidebar_pane_state") ||
+			String(live("sidebar_pane_state", wantPane)) === wantPane;
 		if (matches && placed && paneOk) return name;
 	}
 	return "Custom";
+}
+
+/**
+ * The desk's SHAPE for the form's values: what boot would serve as
+ * `bnd_desk_shape` if they were saved, "" when no layout matches.
+ *
+ * `bnd_desk_shape` is the sole input to the runtime's `search_fallback_order()`,
+ * and boot derives it as `layout_of(resolved)` — WITH `SHAPE_IGNORES`, because a
+ * desk that asks for search somewhere unusual is still the shape it is. The
+ * composer's stage used to be given the card's label instead, so the same values
+ * that boot calls "Unified Side Pane" reached the stage as "" and search there
+ * walked the Top Bar chain — the preview showed search where the saved desk
+ * would not put it (the settings audit, C1).
+ */
+function bnd_desk_shape_of(frm) {
+	const name = bnd_match_layout(frm, bnd_shape_ignores || []);
+	return name === "Custom" ? "" : name;
 }
 
 /**
@@ -2033,8 +2072,8 @@ function bnd_composer_push_frame(frm, frame) {
 	if (typeof E.shape_apply === "function") {
 		const values = {};
 		for (const f of BND_COMPOSER_SHAPE) values[f] = frm.doc[f];
-		const shape = bnd_match_layout(frm);
-		E.shape_apply(values, shape === "Custom" ? "" : shape);
+		// The SHAPE, as boot derives it — never the card's label (C1).
+		E.shape_apply(values, bnd_desk_shape_of(frm));
 	}
 	if (typeof E.language_apply === "function") E.language_apply({ language_style: frm.doc.language_style });
 	if (typeof E.panehead_apply === "function") E.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
@@ -2929,6 +2968,7 @@ function bnd_load_shipped() {
 			bnd_layout_tenants = (data && data.layout_tenants) || null;
 			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
+			bnd_shape_ignores = (data && data.shape_ignores) || null;
 			bnd_layout_slots = (data && data.slots) || null;
 			bnd_brand_inputs = (data && data.brand_inputs) || null;
 		})

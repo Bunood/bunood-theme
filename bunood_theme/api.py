@@ -926,6 +926,7 @@ def get_shipped_defaults() -> dict:
     )
     from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY
     from bunood_theme.brand import BRAND_INPUTS
+    from bunood_theme.presets import SHAPE_IGNORES
 
     # The shipped-EMPTY identity fields ride in as "" so the change dots can
     # compare against them (item 36) — `SHIPPED` itself stays a seeding fact
@@ -957,6 +958,11 @@ def get_shipped_defaults() -> dict:
         # `presets.layout_of` on the same desk.
         "layout_pane": LAYOUT_PANE,
         "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
+        # ...and what the SHAPE leaves out (the settings audit, C1). The form derives
+        # a layout's identity twice — the card's exact label, and the shape the
+        # composer's stage is given — and the second must be boot's derivation, so
+        # the fields `layout_of` ignores are served rather than restated.
+        "shape_ignores": list(SHAPE_IGNORES),
         # ...AND THE SLOT VOCABULARY (item 42, slice 10). The one-switch page
         # offers every tenant every slot its field accepts, and until now each
         # placement picker carried its own client-side copy of that list --

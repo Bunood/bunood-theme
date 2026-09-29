@@ -10639,6 +10639,62 @@ print("ok")
 			}
 		});
 
+		await test("composer: the stage is given the desk's shape as boot derives it, never the card's label", async () => {
+			// THE SETTINGS AUDIT, C1, at its call site. `shape_apply(values, shape)` sets
+			// the frame's `frappe.boot.bnd_desk_shape`, the sole input to search's
+			// fallback chain, and boot derives it with `SHAPE_IGNORES`: a desk that asks
+			// for search in a container it does not mount is still the shape it is. The
+			// stage used to be handed the card's LABEL, which counts search, so the same
+			// values reached it as "" and search there walked the Top Bar chain. Watched
+			// failing on exactly that: the stage said "" where boot says the layout.
+			//
+			// The departure is chosen by the SERVER from the site's own values — a search
+			// slot where the label and the shape part company — and the frame's shape is
+			// set to a sentinel first, so a stage that was never told anything cannot
+			// pass by still holding the right answer from its own boot.
+			const before = getSettings(["search_placement"]);
+			const pick = JSON.parse(
+				benchPy(
+					"from bunood_theme.presets import layout_of\n" +
+						"doc = frappe.get_cached_doc('Theme Settings').as_dict()\n" +
+						"opts = [o for o in (frappe.get_meta('Theme Settings').get_field('search_placement').options or '').split(chr(10)) if o]\n" +
+						"pick = None\n" +
+						"for o in opts:\n" +
+						"    d = dict(doc, search_placement=o)\n" +
+						"    if layout_of(d, ignore=()) == '' and layout_of(d) != '':\n" +
+						"        pick = {'value': o, 'shape': layout_of(d)}\n" +
+						"        break\n" +
+						"print(json.dumps(pick))\n"
+				).trim().split("\n").pop()
+			);
+			expect(pick, "the site's values have a search slot where the card's label and the desk's shape part company");
+			try {
+				await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+				await page.waitForFunction(() => {
+					const f = document.querySelector(".bnd-cmp-frame");
+					return f && f.getAttribute("data-bnd-route") && f.contentWindow && f.contentWindow.frappe && f.contentWindow.frappe.boot &&
+						f.contentWindow.document.documentElement.hasAttribute("data-bnd-desk");
+				}, undefined, { timeout: 45000 });
+				await page.evaluate(() => {
+					document.querySelector(".bnd-cmp-frame").contentWindow.frappe.boot.bnd_desk_shape = "<not told>";
+				});
+				await page.evaluate((v) => cur_frm.set_value("search_placement", v), pick.value);
+				await page.waitForFunction(
+					() => document.querySelector(".bnd-cmp-frame").contentWindow.frappe.boot.bnd_desk_shape !== "<not told>",
+					undefined,
+					{ timeout: 5000 }
+				);
+				expectEq(
+					await page.evaluate(() => document.querySelector(".bnd-cmp-frame").contentWindow.frappe.boot.bnd_desk_shape),
+					pick.shape,
+					`the stage's shape with search at ${pick.value}, where the card reads Custom`
+				);
+			} finally {
+				await page.waitForFunction(() => window.cur_frm && !cur_frm.is_dirty(), undefined, { timeout: 15000 }).catch(() => {});
+				setSettings(before);
+			}
+		});
+
 		await test("composer: a landed save of a brand input reloads the stage onto the new brand sheet", async () => {
 			// Colour cannot be previewed client-side: the sheet is content-hashed
 			// and written by on_update. The autosave says `bnd:saved` with the
@@ -11319,6 +11375,99 @@ print("ok")
 			expectEq(cards.map((c) => c.value).sort().join(","), [...cat.rows].sort().join(","), "the cards are the catalogue");
 			const current = cards.filter((c) => c.current).map((c) => c.value);
 			expectEq(current.join(","), cat.default, `the shipped layout is the current card (${JSON.stringify(current)})`);
+		});
+
+		await test("layout: the form derives the layout the server derives from the same values, as the card's label and as the desk's shape", async () => {
+			// THE SETTINGS AUDIT, C1. A layout's identity is derived in two places: the
+			// server's `presets.layout_of` (boot serves it as `bnd_desk_shape`) and the
+			// form's `bnd_match_layout` (it lights the card and names the Overview's
+			// preset). One derivation, asked two questions: the card's LABEL counts every
+			// field (`layout_of(ignore=())`); the desk's SHAPE — what the composer's
+			// stage is given, and the sole input to search's fallback chain — leaves out
+			// `SHAPE_IGNORES`. Watched failing before the repair, on these same 420
+			// cases: 17 labels and 39 shapes disagreed. An unset field matched whatever a
+			// row wanted in the form and took the shipped value on the server, and the
+			// form had no shape derivation at all — the composer handed its stage the
+			// label, so a desk with search somewhere unusual was previewed on the Top
+			// Bar chain.
+			//
+			// Every catalogue row, every single-field departure to every value the
+			// field accepts, and every field unset — built by the SERVER from the
+			// catalogue and the doctype, so a new row or option joins with no edit here.
+			//
+			// The form script runs inside Frappe's `new Function`, so nothing it
+			// declares is reachable from the page. The SERVED text is evaluated again in
+			// isolation — the same source the open form runs — with its one top-level
+			// side effect, registering the form's handlers, stubbed and counted. Pure
+			// computation: nothing is written.
+			const server = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import LAYOUT_CHROME, layout_settings\n" +
+						"from bunood_theme.presets import layout_of, _shipped_baseline\n" +
+						"meta = frappe.get_meta('Theme Settings')\n" +
+						"base = _shipped_baseline()\n" +
+						"fields = sorted({f for n in LAYOUT_CHROME for f in layout_settings(n)})\n" +
+						"def options(f):\n" +
+						"    df = meta.get_field(f)\n" +
+						"    if df is None: raise Exception('no such field: ' + f)\n" +
+						"    if df.fieldtype == 'Check': return [0, 1]\n" +
+						"    if df.fieldtype == 'Select': return [o for o in (df.options or '').split(chr(10)) if o]\n" +
+						"    raise Exception(f + ' is a ' + df.fieldtype)\n" +
+						"cases = []\n" +
+						"for name in LAYOUT_CHROME:\n" +
+						"    doc = {f: base.get(f) for f in fields}\n" +
+						"    doc.update(layout_settings(name))\n" +
+						"    cases.append({'id': name, 'row': name, 'doc': dict(doc)})\n" +
+						"    for f in fields:\n" +
+						"        for o in options(f):\n" +
+						"            if str(o) != str(doc[f]):\n" +
+						"                cases.append({'id': name + ' | ' + f + '=' + str(o), 'row': name, 'doc': dict(doc, **{f: o})})\n" +
+						"        cases.append({'id': name + ' | ' + f + ' unset', 'row': name, 'doc': dict(doc, **{f: None})})\n" +
+						"for c in cases:\n" +
+						"    c['label'] = layout_of(c['doc'], ignore=())\n" +
+						"    c['shape'] = layout_of(c['doc'])\n" +
+						"print(json.dumps({'cases': cases}))\n"
+				).trim().split("\n").pop()
+			);
+			// Anti-vacuity, on the server's own answers: a matcher that says "" to
+			// everything would agree with a server that did the same.
+			const own = server.cases.filter((c) => c.id === c.row);
+			expect(own.length >= 5 && own.every((c) => c.label === c.row && c.shape === c.row), "each catalogue row names itself, as a label and as a shape");
+			expect(server.cases.some((c) => c.label === "" && c.shape !== ""), "some case separates the label from the shape");
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			const client = await page.evaluate(async (cases) => {
+				const src = frappe.get_meta("Theme Settings").__js;
+				if (!src || !src.includes("function bnd_match_layout")) throw new Error("the served form script is not on the meta");
+				const real = frappe.ui.form.on;
+				let registered = 0;
+				let api;
+				frappe.ui.form.on = () => {
+					registered++;
+				};
+				try {
+					api = new Function(src + "\n;return { bnd_match_layout, bnd_load_shipped, shape: typeof bnd_desk_shape_of === 'function' ? bnd_desk_shape_of : null };")();
+				} finally {
+					frappe.ui.form.on = real;
+				}
+				await api.bnd_load_shipped();
+				const out = cases.map((c) => {
+					const frm = { doc: c.doc, get_field: (f) => cur_frm.get_field(f) };
+					const label = api.bnd_match_layout(frm);
+					return {
+						label: label === "Custom" ? "" : label,
+						shape: api.shape ? api.shape(frm) : "<the form has no shape derivation>",
+					};
+				});
+				return { registered, out };
+			}, server.cases);
+			expectEq(client.registered, 1, "the isolated form script registered its handlers once, and nothing else of it ran");
+			const bad = [];
+			server.cases.forEach((c, i) => {
+				const k = client.out[i];
+				if (k.label !== c.label) bad.push(`label ${c.id}: form "${k.label}", server "${c.label}"`);
+				if (k.shape !== c.shape) bad.push(`shape ${c.id}: form "${k.shape}", server "${c.shape}"`);
+			});
+			expect(!bad.length, `${bad.length} of ${server.cases.length * 2} answers disagree:\n  ${bad.slice(0, 6).join("\n  ")}`);
 		});
 
 		await test("parts: one page carries every switch and every placement, and each one moves the desk", async () => {
