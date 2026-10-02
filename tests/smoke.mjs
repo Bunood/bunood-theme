@@ -10197,7 +10197,9 @@ print("ok")
 				// 8 cards, 24 options.
 				// A8b the Stage path group (2): 8 cards, 26 options.
 				// A8c the Pinned foot group (2): 8 cards, 28 options.
-				form_picker: { cards: 8, toggles: 1, opts: 28 },
+				// v0.48.0's form-actions capability gave that group a third option
+				// (Action Bar), met at the v0.49.0 merge: 8 cards, 29 options.
+				form_picker: { cards: 8, toggles: 1, opts: 29 },
 				// Desk body (item 43 A1): no cards — three option groups over the desk
 				// diagram. Item 45 took width from 4 to 5 (Original plus the four
 				// paired values, Compact/Balanced/Roomy/Full), so 5 + 4 type scale +
@@ -10250,7 +10252,9 @@ print("ok")
 				// accent's 3, the letterhead's 4, the six per-section switches'
 				// 3+2+3+3+2+3 and the preview's 4 chips (which share the opt
 				// class) — the preset-over-axes anchor plus the switch catalogue.
-				print_picker: { cards: 12, toggles: 0, opts: 50 },
+				// v0.48.0 gave the title-language switch a fourth option (Follow
+				// print language), met at the v0.49.0 merge: 51.
+				print_picker: { cards: 12, toggles: 0, opts: 51 },
 				// Item 36, Map 1: not a card picker — its complement is the five
 				// specimen cells and the four reset chips (company_name resets,
 				// three clear). The specimen fills async; the wait above settles it.

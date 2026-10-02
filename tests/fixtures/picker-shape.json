@@ -1519,9 +1519,9 @@
    ]
   },
   "form_picker": {
-   "n": 224,
+   "n": 226,
    "svgs": 8,
-   "text": 2224,
+   "text": 2234,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-fvp",
@@ -1739,6 +1739,8 @@
     "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "button.bnd-cbp-on.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "div.bnd-cbp-switches",
     "button.bnd-cbp-toggle.bnd-fvp-toggle",
@@ -2844,9 +2846,9 @@
    ]
   },
   "print_picker": {
-   "n": 412,
+   "n": 414,
    "svgs": 12,
-   "text": 2542,
+   "text": 2609,
    "seq": [
     "div.bnd-cbp",
     "div.bnd-cbp.bnd-prp",
@@ -3190,6 +3192,8 @@
     "div.bnd-cbp-desc",
     "div.bnd-cbp-row",
     "button.bnd-cbp-on.bnd-cbp-opt",
+    "span.bnd-cbp-oname",
+    "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
     "button.bnd-cbp-opt",
     "span.bnd-cbp-oname",
