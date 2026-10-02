@@ -2714,8 +2714,13 @@ function bnd_render_translations(frm, $pane) {
 			rows = Object.entries(scan.apps)
 				.sort((a, b) => b[1].missing - a[1].missing)
 				.map(
+					// An app's NAME is an identifier, not a label: `lang="zxx"` (no
+					// linguistic content) and `translate="no"` keep a translator — and
+					// the suite's untranslated-label check — off it. Met at the v0.49.0
+					// integration, when a capability's own msgid "payments" collided with
+					// the payments app's row.
 					([app, t]) =>
-						"<tr><td>" + bnd_esc(app) + "</td><td>" + t.total + "</td><td>" +
+						'<tr><td lang="zxx" translate="no">' + bnd_esc(app) + "</td><td>" + t.total + "</td><td>" +
 						(t.missing ? "<strong>" + t.missing + "</strong>" : "0") + "</td></tr>"
 				)
 				.join("");
