@@ -24,13 +24,14 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — the settings audit, and one owner per fact
+## [0.49.0] — 2026-10-02 — the settings audit: one owner per fact (item 47)
 
-**Not numbered, on purpose.** Whether this is a new ROADMAP item or a patch series on 46.x
-is the user's call — decision group (vi) of the audit carried no recommendation — so
-nothing here is tagged, `app_version` is untouched, and the two new patches sit in
-`patches/unreleased/`, to be renamed with the release. Nineteen commits, 2026-09-21 to
-2026-09-28, from a full audit whose census, findings, decision menu and render walk live
+**Numbered at the owner's word** (2026-10-02, "do recommended"): a new ROADMAP item, 47,
+released as the next free MINOR. Decision group (vi) had offered item 47 / v0.47.0 or a
+46.x patch series; while this work was in flight main moved on to v0.48.4 — 0.47 went to
+item 46 (the Report Studio) and 0.48 to the capability integration — so the item takes the
+next free number, as item 46 did. The two patches moved from `patches/unreleased/` to
+`patches/v0_49_0/`. Nineteen commits, 2026-09-21 to 2026-09-28, from a full audit whose census, findings, decision menu and render walk live
 outside the tree (`.claude/audit/`, untracked; `phase1/` is the before). The user answered
 the menu "do recommended", then "do everything", then — for the four findings the first
 pass had left without a decision, and the dashboard's contrast — "continue with
@@ -109,6 +110,21 @@ caller and still applied twelve fields at boot; two shipped looks lit the wrong 
   vendor-reach sites, the doctrine names the classes, and the two picker borders take weight
   instead (c7c6849); `data-bnd-zone`'s three writers are by design, and the runtime says so
   where it reads the attribute (cfcb9b7).
+- **Onto v0.48.4 (2026-10-02)** — merged, not rebased (dc2a975: every one of this work's
+  commits rebuilt the hashed bundles). Upstream's print_title_lang move to "Follow print
+  language" lands in the catalogue it already edited, without the doctype `default` and the
+  form's BND_PRINT_DEFAULTS it also touched — both deleted here; its HELD patch notes keep
+  the healer last; the Arabic catalogue is the union (812 upstream entries, 8 here, none on
+  both sides), re-emitted; the JS ceiling sums both lines' raises and is re-measured
+  (137,557 → 137,800). Two pieces of upstream code met this work's guards and were brought
+  under them with unchanged output: the letterhead's title-language read goes through
+  `bunood_print_setting()` instead of a literal fallback, and the POS subtitle's
+  `!important` (which beat only its own sheet) became weight. Upstream's two print-engine
+  tests that asserted the default in five places assert its one owner instead (bdaaca8). The
+  eight Arabic rows this work added are accepted, two corrected — a gender agreement and a
+  `لـ` that met `ال` at runtime (0f410d0). The merged tree's suite found what neither line
+  could alone, fixed in four commits — the identifier cell (3496641), the chevron's name
+  (efc13e2), the calendar's fixture month (8ece2f1), the counts and the fixture (57c4f6a).
 
 **Checks added, every one watched failing first:** the layout a theme card lights; a
 personal pane state and the derived shape; the hide gesture across a reload; the settings
@@ -129,15 +145,31 @@ from 2026-09-23 the card shows a grey "0 %" at 4.06:1 (computed with Frappe's ow
 `get_result` for both dates; reproduced alone on a freshly restarted backend). It was left
 red for a decision, and the decision found more under it: the card's delta rule had never
 applied, so that "0 %" was Frappe's grey all along — repaired in e677d4a, and the route's
-ceiling is 1. **Full suite at cfcb9b7** (2026-09-28, 123 min):
-**560/560**.
+ceiling is 1. **Full suite at cfcb9b7** (2026-09-28, 123 min): **560/560**. Merged onto v0.48.4,
+at bdaaca8 (2026-10-02, 122 min): 552/560 — the two lines meeting, each failure traced and
+repaired in its own commit: two picker counts and the shape fixture meeting upstream's new
+options (57c4f6a); a capability's new msgid "payments" colliding with the payments app's
+name in the Translations table (3496641); Frappe's nameless section chevron reaching the
+settings route, named now on every route, 30 banked axe nodes fewer (efc13e2); five
+calendar checks that had only ever passed by coincidence (8ece2f1). An eighth, the form
+head's hover check, failed once in that run and passed alone and in every rerun. At the
+release: **560/560** (122 min). Upstream's own
+suites on the merged tree: Python unittest 111/111, `node --test` 61/61, the v1
+onboarding contract green. `tests/studio.mjs` was not run here: it runs inside a bench
+container with Playwright and a seeded "Bunood Development" company, which this stack has
+not; every new page (studio, banking, finance close, journal workbench, POS, quick sale,
+the two list queues) was loaded on the merged desk instead and renders without a page
+error.
 
 **Measured after.** The census re-run over the consolidated code (147 settable fields after the two retirements) counts the copies holding a value per field as **0:16 · 1:120 · 2:11**, none disagreeing (was 4). The zeros are fields whose one owner derives them (the palette's seeds, the registry's desk order, the typography module's face) or that ship empty by design; the eleven twos are the five container switches and six placements, each a kit dict that indexes the default layout's row — one owner, counted twice because the census reads runtime values. The cascade census finds ONE `!important` hide on the pane container, keyed on the token (was two), and 5 `!important`s in the desk sheet (was 6). The docs scan: live unresolved identifiers outside CHANGELOG 33 → 16 and stale counts 30 → 21; what remains is dated narrative about things deleted before this work, plus counts the scanner cannot tie to a referent. The render walk re-run (169 min; its restore verified row for row) measured the complaint itself in the personal arm: a personal width of Roomy now reads roomy on the settings page and after an unrelated click (was balanced), a personal Rail stays rail (was open), and a personal look differs from its fresh tab on 0 attributes on the settings page (was 34). The site's own options render as before: 247 measured, 147 in session and fresh, 24 on the next load only, 0 inert, 0 errors, 0 stored-value mismatches. The one option newly counted as "views disagree", `desk_width = Original`, applies (the attribute and `--page-max-width` move) but cannot show at the walk's 1440px with the pane open, where the form column (873px) is narrower than both caps.
 
 **Payload.** js gzip 131,176 (v0.46.7) → 131,996, ceiling 131,400 → 132,100 (the pane
 writer, the Appearance row and the clearer; the docblocks that ship in the bundle; the rail
 button and the dead code gave most of it back). css gzip 28,285 → 28,003. Bundles
-`bunood.8dd3e296.js` / `bunood.7b0431d5.css` → `bunood.6455f116.js` / `bunood.43491a3e.css`.
+`bunood.8dd3e296.js` / `bunood.7b0431d5.css` → `bunood.6455f116.js` / `bunood.43491a3e.css` on
+this work's own line. Merged onto v0.48.4: js 137,557 gzip against a 137,800 ceiling (the
+integration's 136,850 plus this work's +700, re-measured), css 30.2 KB against 32,000;
+bundles `bunood.41b2e22f.js` / `bunood.5f6ac18a.css`.
 
 **Deliberately not done, and why.** Nothing on the menu is left open: the four findings the
 first pass had no decision for are closed above, by their recommended options. iv-1 is carried
@@ -147,9 +179,9 @@ visible as unmet (which also makes it one of the items v1.0.0 waits on). iv-12's
 its check is green); iv-11's "check_icons.py regeneration" does not exist, so the corrected
 pointer says so.
 
-**For the user.** The number: a new ROADMAP item or 46.x patches (decision group vi carried
-no recommendation, and the version policy keeps the number out of an agent's hands). 8 new
-fuzzy `ar.po` rows await review (179 fuzzy in all). Nothing is pushed.
+**Left for the owner.** 926 fuzzy `ar.po` rows, none of them this work's: the drafts
+earlier items left for review and the ~755 upstream's capabilities added. Upstream's HELD
+patches (print_title_lang for existing tenants, pos-retail's five) stay held.
 
 ## [0.48.4] — 2026-09-26 — five more ways to read the same sales (patch)
 

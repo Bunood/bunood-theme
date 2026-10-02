@@ -134,12 +134,12 @@ bunood_theme.patches.v0_46_1.width_follows_density
 
 # The settings audit of 2026-09-21 (decision i-4): the legacy per-user side-pane
 # look retires into the whole-desk look; its rows are carried, then deleted.
-# `unreleased` until the release names the directory — see the patch's docstring.
-bunood_theme.patches.unreleased.retire_sidebar_preset_key
+# Released in v0.49.0 (item 47).
+bunood_theme.patches.v0_49_0.retire_sidebar_preset_key
 
 # The settings audit of 2026-09-21 (decision iv-2): the rail's always-visible
 # expand button retires with its two fields; the stored rows go through the table.
-bunood_theme.patches.unreleased.retire_rail_button
+bunood_theme.patches.v0_49_0.retire_rail_button
 
 # Integration v0.48.0: HELD -- bunood_theme.patches.v0_46_10.follow_print_language
 # would rewrite every existing tenant's print_title_lang from Both to Follow print

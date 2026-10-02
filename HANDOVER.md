@@ -10,9 +10,9 @@
 
 ## 1. Where the work stands
 
-**THE SETTINGS AUDIT AND ITS CONSOLIDATION LANDED ON `main` (2026-09-21 → 28), UNNUMBERED
-AND UNTAGGED — the number is the user's call.** Nineteen commits; the account is CHANGELOG
-`[Unreleased]`, and the audit's census, findings, decision menu and render walk are under
+**THE SETTINGS AUDIT AND ITS CONSOLIDATION ARE RELEASED AS v0.49.0 (item 47; built
+2026-09-21 → 28, merged onto v0.48.4 and released 2026-10-02).** Nineteen commits, the
+merge, and the integration's seven after it; the account is CHANGELOG `[0.49.0]`, and the audit's census, findings, decision menu and render walk are under
 `.claude/audit/` (untracked; `phase1/` is the before). What a reader of this file must know:
 every default has ONE owner (`presets.py` → `setup.SHIPPED` → the form's `bnd_shipped`,
 awaited); the layout table owns the pane state; a person's settings have a WRITER
@@ -22,13 +22,14 @@ composer's frames get the raw form; one container ladder (`mount_containers`), o
 the pane container (`data-bnd-own~="pane-hidden"`, stamped by `sb_sync_pane_hidden`), one
 pane-state stamper (`sb_stamp_panestate`); a value a Select cannot hold is healed by
 `setup.heal_unknown_selects()` on EVERY migrate and tolerated nowhere; `bnd_sidebar_preset`,
-`sidebar_rail_button` and `icon_rail_button` are retired by `patches/unreleased/`; ONE
+`sidebar_rail_button` and `icon_rail_button` are retired by `patches/v0_49_0/`; ONE
 settings-write path (`tools/session.mjs::setSettings`). The form derives a layout's identity
 the way the server does — `bnd_match_layout(frm, ignore)` for the card's label,
 `bnd_desk_shape_of` for the SHAPE the composer's stage is given, `SHAPE_IGNORES` served —
 and a suite check compares the two over every catalogue row; `!important` lives only at the
 vendor-reach sites `build.mjs`'s `SANCTIONED_IMPORTANT` names; the field-naming guard reads
-its prefixes from `registry.py`. Full suite at cfcb9b7: 560/560 (at
+its prefixes from `registry.py`. Merged onto v0.48.4 (dc2a975); full suite at the
+release: 560/560. On its own line, full suite at cfcb9b7: 560/560 (at
 b3b6ca2 it was 553/555: the console-budget failure was this work's and is fixed, and the axe
 dashboard's "date drift" hid a number-card delta rule that had never applied — repaired,
 ceiling 1). Nothing on the audit's menu is open; the number, the fuzzy `ar.po` rows and any
@@ -2453,8 +2454,8 @@ reproduces is not a transient. Probe the page for a modal before assuming.
 - `build.mjs` — against a second copy of a default: `assertDefaultMirrors`,
   `assertNoFallbackLiterals`, `assertNoDoctypeDefaults`, and `assertNoTemplateDefaults` for
   every Jinja template the app ships.
-- `patches/unreleased/` — `retire_sidebar_preset_key`, `retire_rail_button`: rename the
-  directory with the release.
+- `patches/v0_49_0/` — `retire_sidebar_preset_key`, `retire_rail_button` (they sat in
+  `patches/unreleased/` until the release named the directory).
 - `theme_settings.js` — the settings map's bands (`BND_SETTINGS_GROUPS`,
   `bnd_settings_rows` → `bunood_theme.map_sync`; the map itself is `sb_mount_map` in
   `bunood.js`), bands inside pickers (`P.zone`, `bnd_bands`), the desk diagram

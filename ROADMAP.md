@@ -1654,6 +1654,23 @@ only its Arabic strings crossed.
   calendar-independent (it mints the data month from the books and drives the
   studio's own custom-period dialog). Named debt in PR #8: dateRange cards'
   previous-period probe has always compared the period to itself.
+- `[x]` **47 · The settings audit: one owner per fact** *(opened 2026-09-17 as a census of
+  how many versions of each setting existed; built 2026-09-21 → 28; numbered 2026-10-02 at
+  the owner's call and released as v0.49.0 — 0.47 and 0.48 went to item 46 and the
+  capability integration while it was in flight, so it takes the next free MINOR, item
+  46's precedent)*. The site's settings existed in several versions — defaulted, stored,
+  composed, overlaid and applied in more than one place, disagreeing — so the desk
+  rendered looks no single setting described. A census counted 17 layers and, per field,
+  the copies holding a value: 0:8 · 1:16 · 2:18 · 3:92 · 4:11 · 5:1 · 6:3, four
+  disagreeing. After: 0:16 · 1:120 · 2:11, none disagreeing. One owner per default (the
+  catalogue — no doctype defaults, no client mirrors, no template literals, each refused
+  by a build guard); a person's settings with writers and a settings page that previews
+  them instead of reverting them; one container ladder and one pane hide; a healer on
+  every migrate; the form's layout identity equal to the server's; `!important`
+  build-enforced to named vendor-reach sites; the field-naming guard derived from the
+  registry. Verified by the full suite (560/560 on its own line; 560/560 at the
+  release, merged onto v0.48.4) and the colour, i18n and payload gates. The account:
+  CHANGELOG `[0.49.0]`.
 
 ---
 

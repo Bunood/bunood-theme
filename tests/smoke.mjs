@@ -6637,7 +6637,7 @@ print("ok")
 						`meta = frappe.get_meta("Theme Settings")\n` +
 						`frappe.db.sql("insert into tabSingles (doctype, field, value) values ('Theme Settings','sidebar_rail_button','Edge'), ('Theme Settings','icon_rail_button','Menu')")\n` +
 						`frappe.db.commit()\n` +
-						`from bunood_theme.patches.unreleased import retire_rail_button as p\n` +
+						`from bunood_theme.patches.v0_49_0 import retire_rail_button as p\n` +
 						`p.execute()\n` +
 						`left = frappe.db.sql("select field from tabSingles where doctype='Theme Settings' and field in ('sidebar_rail_button','icon_rail_button')")\n` +
 						`print("BND" + json.dumps({"meta": [f for f in ("sidebar_rail_button", "icon_rail_button") if meta.has_field(f)], "axes": [f for f in THEME_AXES if "rail_button" in f], "parts": [c["part"] for c in COMPONENTS + MARKS if c.get("part") in ("railbtn", "railpin")], "left": [r[0] for r in left]}))\n`
@@ -24677,7 +24677,7 @@ print("cleared")
 						`U = ${JSON.stringify(U)}\n` +
 							`frappe.get_doc({"doctype": "DefaultValue", "parent": U, "parenttype": "__default", "parentfield": "system_defaults", "defkey": "bnd_sidebar_preset", "defvalue": "Focus"}).insert(ignore_permissions=True)\n` +
 							`frappe.db.commit()\n` +
-							`from bunood_theme.patches.unreleased import retire_sidebar_preset_key as p\n` +
+							`from bunood_theme.patches.v0_49_0 import retire_sidebar_preset_key as p\n` +
 							`p.execute()\n` +
 							`rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent=%s and defkey in ('bnd_sidebar_preset','bnd_look')", U, as_dict=True)\n` +
 							`print("BND" + json.dumps({r.defkey: r.defvalue for r in rows}))\n`

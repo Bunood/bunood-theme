@@ -17,8 +17,8 @@ def execute():
     ``doc.save()`` would silently drop them — the raw delete is the honest form
     for a departed field (the v0_37_0 precedent). Idempotent; nothing to carry.
 
-    Named `unreleased` on purpose, like its neighbour: the release names the
-    directory.
+    Released in v0.49.0 (item 47). Ran on the one site that had it as
+    `patches.unreleased`; idempotent, so that site's re-run under this name is free.
     """
     frappe.db.sql(
         "delete from tabSingles where doctype = 'Theme Settings' and field in ('sidebar_rail_button', 'icon_rail_button')"

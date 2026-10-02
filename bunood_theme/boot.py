@@ -146,7 +146,7 @@ def resolve_for_user(site) -> tuple:
         chosen = theme_settings(look)
         resolved.update({f: v for f, v in chosen.items() if f in personal_axes.LOOK_FIELDS})
     # `bnd_sidebar_preset` was honoured here as an `elif` until the settings audit
-    # of 2026-09-21 retired it into `bnd_look` (patches/unreleased).
+    # of 2026-09-21 retired it into `bnd_look` (patches/v0_49_0).
 
     # THE SHAPE. Exactly what a named layout writes — containers plus tenant
     # placements — because under "names only" that is the whole gesture. Applied

@@ -20,11 +20,10 @@ def execute():
     reason — the same guard reads any `frappe.defaults` call naming a key as that
     key being live, and this one is being retired (the v0.42.1 precedent).
 
-    Named `unreleased` on purpose: whether this work is a new item or a patch
-    series on 46.x is the user's call, and a patch directory that assumes the
-    next number is a recorded mistake (item 45). Rename the directory with the
-    release; the patch is idempotent, so a re-run on the one site that ran it
-    under this name costs nothing.
+    Released in v0.49.0 (item 47). It sat in `patches/unreleased/` until the owner
+    numbered the work, because a patch directory that assumes the next number is a
+    recorded mistake (item 45); idempotent, so the one site that ran it under that
+    name re-runs it here for nothing.
     """
     from bunood_theme.presets import THEME_PRESETS
 

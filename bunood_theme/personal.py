@@ -253,7 +253,7 @@ AXES = (
         ),
     },
     # `bnd_sidebar_preset` stood here from v0.6.0 until the settings audit of
-    # 2026-09-21 retired it into `bnd_look` (patches/unreleased/retire_sidebar_preset_key).
+    # 2026-09-21 retired it into `bnd_look` (patches/v0_49_0/retire_sidebar_preset_key).
     {
         "key": "bnd_motion",
         "kind": PREFERENCE,

@@ -480,7 +480,7 @@ def set_user_density(density: str = "") -> dict:
 
 # `set_user_sidebar_preset` and `get_theme_sidebar_presets` lived here until the
 # settings audit of 2026-09-21: the menu that called them was gone for releases,
-# and the key they wrote retired into `bnd_look` (patches/unreleased).
+# and the key they wrote retired into `bnd_look` (patches/v0_49_0).
 
 
 @frappe.whitelist()
