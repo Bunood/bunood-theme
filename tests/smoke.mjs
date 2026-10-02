@@ -16708,6 +16708,26 @@ print("ok")
 		// is the anchor + the four repairs; the band/mark/media/reveal axes and
 		// the calendar colour wrap are slice 3.
 		const VIEWS_KANBAN = "/app/todo/view/kanban/Bunood%20Memos";
+		// THE CALENDAR ON THE FIXTURE MONTH. tools/fixtures-views.mjs seeds a FIXED month and
+		// says the suite navigates to it; until v0.49.0 no check did. Each opened the CURRENT
+		// month, so they passed while that month happened to hold a couple of stray ToDos
+		// (September 2026) and timed out on an empty October. The month is read off the seeded
+		// rows themselves — restating the tool's date here would be a second copy of it.
+		let viewsMonth = null;
+		const goViewsCalendar = async () => {
+			if (!viewsMonth) {
+				viewsMonth = JSON.parse(
+					benchPy(
+						`print("BND" + json.dumps(str(frappe.db.sql("select min(date) from tabToDo where description like %s", ("%[bnd-fixture]%",))[0][0])))\n`
+					).split("BND")[1].trim()
+				);
+				if (!/^\d{4}-\d{2}-\d{2}$/.test(viewsMonth)) throw new Error(`no seeded fixture month (${viewsMonth}) — run \`npm run fixtures:views\``);
+			}
+			await goDesk("/app/todo/view/calendar", ".fc", 6000);
+			await page.waitForFunction(() => window.cur_list && cur_list.calendar && cur_list.calendar.fullCalendar, undefined, { timeout: 30000 });
+			await page.evaluate((d) => cur_list.calendar.fullCalendar.gotoDate(d), viewsMonth);
+			await page.waitForSelector(".fc-daygrid-block-event", { state: "visible", timeout: 30000 });
+		};
 
 		await test("views: Original applies nothing at all", async () => {
 			// The stand-down must be total: no attribute survives AND the kanban
@@ -16726,7 +16746,7 @@ print("ok")
 			// under Original, or events keep our accent while the SCSS reverts (an
 			// adversarial-review finding: the wrap was ungated). Events must carry
 			// NO accent-derived fill.
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const cal = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				const h = accent.replace("#", "");
@@ -16954,7 +16974,7 @@ print("seeded")
 			);
 			try {
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const g = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				// accent hex -> "r, g, b"
@@ -16988,7 +17008,7 @@ print("cleared")
 			// hue; Outlined: transparent with a coloured border. Both fail against
 			// stock, whose events are always filled blocks.
 			setSettings({ views_style: "Floating Cards", views_mark: "Dot" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const dot = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				const main = ev.querySelector(".fc-event-main");
@@ -17003,7 +17023,7 @@ print("cleared")
 			expect(dot.dot && dot.dot !== "auto" && dot.dot !== "0px", `the dot ::before is rendered (width ${dot.dot})`);
 
 			setSettings({ views_mark: "Outlined" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const outlined = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				return { bg: getComputedStyle(ev).backgroundColor, border: getComputedStyle(ev).borderInlineStartColor };
@@ -17019,7 +17039,7 @@ print("cleared")
 			// before and after a data-theme flip; it must change (accent moves
 			// #4463f0 -> #516ef1 in dark).
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const flip = await page.evaluate(async () => {
 				const bg = () => {
 					const evs = [...document.querySelectorAll(".fc-daygrid-block-event")];
