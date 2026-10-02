@@ -9030,10 +9030,15 @@
 
 	/** Put our parts in the pane. `only_volatile` is the route contract: a list
 	 *  rebuild touches what lived inside the list and nothing else. */
-	/** data-state (vendor truth) -> aria-expanded (what AT hears). */
+	/** data-state (vendor truth) -> aria-expanded (what AT hears), and the chevron's
+	 *  NAME: Frappe ships an icon-only button with none (axe button-name, met when the
+	 *  v0.49.0 merge put a "Pages" section on the settings route). Its section names it. */
 	function sb_mirror_disclosure() {
 		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
 			d.setAttribute("aria-expanded", d.getAttribute("data-state") === "opened" ? "true" : "false");
+			const head = d.closest(".section-item").querySelector(".standard-sidebar-item .sidebar-item-label");
+			const name = head && head.textContent.trim();
+			if (name) d.setAttribute("aria-label", name);
 		}
 	}
 
@@ -9099,6 +9104,7 @@
 	function sb_teardown_aria() {
 		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
 			d.removeAttribute("aria-expanded");
+			d.removeAttribute("aria-label");
 		}
 	}
 
