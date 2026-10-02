@@ -5285,6 +5285,7 @@ const BND_FORM_GROUPS = [
 		options: [
 			{ value: "Off", name: () => __("Off") },
 			{ value: "Pinned Bar", name: () => __("Pinned Bar") },
+			{ value: "Action Bar", name: () => __("Action Bar") },
 		],
 	},
 ];
@@ -7556,7 +7557,7 @@ const BND_PRINT_GROUPS = [
 	{
 		field: "print_title_lang",
 		title: () => __("Document title"),
-		desc: () => __("Which halves of the bilingual title render on the Bunood formats."),
+		desc: () => __("Follow Print Language for a clean Arabic or English document; use an override only when a customer requires it."),
 	},
 	{
 		field: "print_qr",

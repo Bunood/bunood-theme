@@ -151,6 +151,346 @@ pointer says so.
 no recommendation, and the version policy keeps the number out of an agent's hands). 8 new
 fuzzy `ar.po` rows await review (179 fuzzy in all). Nothing is pushed.
 
+## [0.48.4] — 2026-09-26 — five more ways to read the same sales (patch)
+
+### Two needed no code at all
+
+`Sales Analytics` takes a `tree_type`, and its options include Item Group and
+Customer Group — so «مبيعات الأقسام» and «المبيعات حسب مجموعة العملاء» are the
+same proven report seen through another lens. Reading a filter's option list is
+cheaper than writing a report, and it was the first thing checked.
+
+### Three composers, over columns listed from a live run
+
+`taxSplit` divides invoices by tax ACTUALLY COMPUTED on them, not by the tax
+category they declare: the category is intent and the computation is fact, and
+the person reconciling a VAT return is asking about the fact. The threshold is
+half a halala, not zero, or an invoice whose tax rounds to nothing counts as
+taxable. The effective rate divides by the taxable invoices' net alone —
+dividing by the whole net mixes exempt with taxable and yields a number that
+means nothing.
+
+`topInvoices` sorts, keeps twenty-five, and drops the report's own total row:
+the total of twenty-five invoices is not the total of the period, and showing it
+as one would be a lie. The tiles stay measured over the whole period.
+
+`invoiceCount` counts rather than sums — how many, on how many days, the busiest
+day, the average invoice, and a per-day series. The table keeps the real
+invoices; synthetic day rows would look like a report without being one.
+
+### One is absent, and the reason is recorded
+
+Free-quantity sales: no ERPNext report exposes `is_free_item`, grepped across
+every report in the app. It needs a report of our own, which is a different kind
+of slice than a config line.
+
+### Two invariants now guarded
+
+Every invoice is either taxable or not, so the two counts must sum to the row
+count — this is what the half-halala threshold buys, and a compare-to-zero
+breaks it. And the largest invoice can never be below the average, which catches
+a reversed sort. Suite 34/34; sales offers 25 report types.
+
+Ceiling: `studio_js` 34000 → 36000 (35,513).
+
+## [0.48.3] — 2026-09-26 — the report picker, the drill-down, and thirteen reports that were already built (patch)
+
+### The statement picker, rebuilt as the report's first screen
+
+The owner opened Account Statement on production and said the picker was
+not good at all. One of the two complaints was a defect: `.bnd-studio__search`
+carries `flex: 1 1 12rem`, written for the table-tools bar, which is a ROW. The
+picker is a COLUMN, so that basis governed the field's HEIGHT — an empty 192px
+rectangle with a placeholder floating in its corner. The blank slab above it was
+the chart card, emptied by `renderPicker()` and never hidden.
+
+Rebuilt in the desk's own materials: a composed field (glyph, input, clear, one
+ring), results in ONE COLUMN because a vertical scan is what arrow keys can walk,
+an initial mark per row tinted by entity kind, and keyboard alone sufficing — a
+real combobox with `aria-activedescendant`, arrows, Enter, Esc. Search now matches
+the READABLE name as well as the record id, ordered by most recently touched,
+debounced at 160ms with late responses dropped by serial. The cash and bank
+shortcuts sit on the SAME band as the four kinds: both answer "who is this
+statement for?", and a shortcut is an alternative to searching, not a step after it.
+
+### Every reference cell opens its document, and the way back is a button
+
+A report's columns already say which cells are references: `Link` carries the
+doctype, `Dynamic Link` carries the NAME of the column that holds it. Reading
+that made every reference in EVERY studio report clickable in one change — as a
+real anchor, so Ctrl-click still opens a tab, with the plain click routed
+in-app because a full page load discards the module state and the studio bundle
+is not even loaded on a form page.
+
+The desk has no back control and a form's breadcrumbs lead to the doctype list,
+so the studio leaves its own: a floating pill naming the report, mounted on form
+routes only when the arrival came from one. Three defects here were found by
+tests and not by looking — the pill mounted on the side the sidebar occupies and
+could not be clicked; the click handler cleared the remembered route BEFORE
+navigating; and the module state was spliced inside `render`, hitting the
+temporal dead zone on first paint.
+
+### Report types inside the report
+
+The owner, with a screenshot of another system: the report types of a family
+belong on one screen with a checkbox for the selection. Not the gallery — INSIDE
+a report. The gallery is the doorway and keeps its cards; a «نوع التقرير» panel
+now sits in the viewer between the filters and the results, listing the report's
+own family. Ticking selects and «عرض التقرير» opens: switching on the click is
+fine for three siblings and wrong for twenty, where a slip of the mouse loads a
+report nobody asked for.
+
+### Thirteen sales reports that were built and never wired
+
+The question was what the market expects; the answer was that this bench already
+ships **183 reports, 47 about selling, and the studio used seven**. No report
+logic is written here — thirteen are wired, named and proved. Each candidate's
+filters were read from its own source, every one was RUN through
+`query_report.run` before being allowed in, and all twenty were opened in a
+browser and watched for an error state. Two failed that gate and are absent:
+`Delayed Order Report` dies on an upstream SQL bug, and `Inactive Sales Items`
+needed a filter its source demands.
+
+Two new filter modes, because two reports do not ask the period's question:
+`postingDate` sends a single date ("what is outstanding AS OF"), `inactiveItems`
+sends a day count and a territory. Both descriptions say so rather than letting a
+reader assume the period chips govern them.
+
+### Two stale assertions, older than this release
+
+The suite clicked the period chip by exact text «مخصص» while v0.48.0 renamed it
+«فترة مخصصة» — `setDataPeriod` failed and took THIRTY of thirty-one tests with
+it. And the gallery test counted three domain chips after «كل التقارير» became a
+fourth. The count is now an identity check over `data-domain`, because a count is
+a second copy of a fact. Suite 32/32.
+
+Ceilings, each raised in the commit that spends it: `studio_js` 27000 → 34000,
+`studio_css` 5800 → 6500.
+
+## [0.48.2] — 2026-09-26 — the A4 invoice, titled and dressed (patch)
+
+### Fixed — a tax invoice says so
+
+v0.48.0's shared A4 template titled every sale «فاتورة مبيعات». A sale by a
+VAT-registered seller is a ZATCA tax invoice: it now reads فاتورة ضريبية /
+Tax Invoice when the buyer carries a VAT number, فاتورة ضريبية مبسطة /
+Simplified Tax Invoice when it does not, and a return إشعار دائن (مبسط) /
+(Simplified) Credit Note — the official formats' exact wording. A seller with no
+VAT number keeps a plain sales invoice; purchase documents are unchanged.
+`tests/test_invoice_title.py` renders each case and fails on the v0.48.0
+template.
+
+### Fixed — the invoice's own stylesheet
+
+The `capability/main/printing-documents` branch carried the template without
+the ~190 lines of `.bnd-invoice` rules its production twin keeps in
+`print.scss`, so v0.48.0 printed the new invoice unstyled: no header band, no
+table rules, labels running into their values. Ported verbatim, scoped to
+`.bnd-invoice` (the official formats never carry the class), minus Tajawal,
+which the image no longer ships. print_css within its ceiling.
+
+Verified on the local bench: migrate exit 0; the official format renders at the
+same size as before; the new invoice renders titled and styled in Arabic and
+English.
+
+## [0.48.1] — 2026-09-26 — the statement picker, and the way into a document and back (patch)
+
+### Fixed — a search field 192 pixels tall
+
+`.bnd-studio__search` carries `flex: 1 1 12rem`, written for the table-tools
+bar, which is a ROW. The picker is a COLUMN, so that basis governed the field's
+HEIGHT: an empty rectangle with a placeholder floating in its corner, which is
+what the owner saw on production. Above it sat a second blank slab — the chart
+card, emptied by `renderPicker()` and never hidden, and it is a bordered, padded
+box. The input is now bare inside a shell that owns the border and the ring, and
+the card takes `.is-empty`.
+
+### The picker is the report's first screen, not a gate in front of it
+
+One column instead of a card grid, because a vertical scan for a name is what
+arrow keys can walk. Each row carries an initial mark tinted by entity kind from
+the categorical palette — assigned per kind, never cycled. Keyboard alone
+suffices: ↑/↓ walk, Enter opens, Esc clears, focus lands in the field on
+arrival, and the whole thing is wired as a real combobox so the row under the
+cursor is announced without the hands leaving the keys. Search matches the
+READABLE name as well as the record id, ordered by most recently touched, is
+debounced at 160ms (it was one server call per keystroke) and drops late
+responses by serial. Ghost rows the size of real ones while loading; `dir="auto"`
+on names, because a Latin name in an RTL row threw its period to the wrong end.
+
+The cash and bank shortcuts sit on the SAME band as the four kinds, divided by a
+hairline: both answer "who is this statement for?", and a shortcut is an
+alternative to searching rather than a step after it.
+
+### Every reference cell opens its document — derived, not listed
+
+A report's columns already say which cells are references: `Link` carries the
+doctype in `options`, `Dynamic Link` carries the NAME of the column that holds it
+(the statement's `voucher_no` points at `voucher_type`). Reading that made every
+reference in every studio report clickable in one change. The cell is a real
+anchor with a real href, so Ctrl-click opens a tab exactly as the classic report
+does; the plain click is taken over and routed through `frappe.set_route`,
+because a full page load discards the module state and the studio bundle is not
+loaded on a form page at all — the way back would be lost before it was offered.
+
+### The way back is a button, because the desk has none
+
+A form's breadcrumbs lead to the doctype list, not to the report you came from.
+The studio now leaves its own anchor on the document: a floating pill naming the
+report, mounted on form routes only when the arrival came from a report, removed
+the moment you leave forms by any other path. It is our element outside Frappe's
+DOM, above the desk's declared bottom reserve, and it lives in the studio bundle
+— no desk chrome is touched.
+
+Three defects here were found by tests and not by looking: the pill mounted at
+the inline START, the side the sidebar occupies in both directions, so it
+rendered and could not be clicked; the click handler cleared the remembered route
+BEFORE navigating, so the pill vanished and the page stayed; and the module state
+was spliced inside `render`, so the wiring hit the temporal dead zone on first
+paint and the gallery failed to draw.
+
+### Two stale assertions, older than this release
+
+The suite clicked the period chip by exact text «مخصص» while v0.48.0 renamed it
+«فترة مخصصة» — `setDataPeriod` failed and took THIRTY of thirty-one tests with
+it. And the gallery test counted three domain chips after v0.48.0 added «كل
+التقارير» as a fourth. The count is now an identity check over `data-domain`,
+because a count is a second copy of a fact and this is what one costs. Suite
+32/32, the new drill-down test included.
+
+Ceilings: `studio_js` 27000 → 31000, `studio_css` 5800 → 6300, each raised in the
+commit that spends it.
+
+## [0.48.0] — 2026-09-25 — eleven capabilities, integrated onto the deployed line
+
+The eleven `capability/main/*` branches (MrBrokenrightArm, 2026-09-24), each one
+commit on top of v0.47.1, merged one at a time onto the deployed baseline and
+adapted to it. Takes the next free MINOR, as item 46 took v0.47.0. Nothing from
+the `capability/production/*` line (base `18209bd`, 52 unreviewed commits) or
+from `snapshot/localhost-8088-20260924` is in this release.
+
+### Added
+
+- **Commercial documents:** `Bunood Sales Invoice (A4)` and `Bunood Purchase
+  Invoice (A4)` (`templates/bunood_invoice_a4.html`), a Quotation A4, a
+  Customer Statement (General Ledger report format), `vat.py`, and the
+  print-language choice on the print preview. The four new formats render on
+  chrome; they are offered, not made default.
+- **Report surfaces:** a searchable Reports dashboard (route-loaded), Report
+  Studio search / "All reports" / a11y states with its styles moved out of the
+  global sheet into `bnd-studio.css`, and the read-only `bnd-banking`,
+  `bnd-finance-close` and `bnd-journal-workbench` pages with their shortcuts on
+  the Reports workspace.
+- **Forms and lists:** quick-filter queues on Sales Invoice and Quotation lists;
+  the shared form action bar as an OPT-IN third value of `form_foot`
+  ("Action Bar") — the default and every tenant's current choice are unchanged.
+- **Reference guidance:** Warehouse account and Country code descriptions; a
+  field-bounded, permission-checked Stock Settings read for Stock Entry.
+- **Onboarding and migration core:** 8 DocTypes, 4 namespaced roles with no
+  DocPerm, hidden read-only Custom Fields on Project, Task and Data Import.
+- **POS and quick sale:** the pages, bundles and modules — inert (see Held).
+
+### Kept as on v0.47.1 (adaptations)
+
+- The seven official print formats, their record names (بونود) and their
+  wkhtmltopdf engine, and `bunood_print_macros.html`, byte for byte. The
+  letterhead honours `print_title_lang`: "Both", every existing tenant's value,
+  renders the official bilingual identity.
+- Print Settings, default print formats, Payment Entry and Sales Invoice
+  configuration, Global Defaults rounding, Modes of Payment.
+- `ar.csv` is re-emitted from `locale/ar.po`; the capability branches had edited
+  only the generated CSV. 757 new PO entries are `#, fuzzy` pending review.
+
+### Held — in the code, not run, each needs the owner's approval
+
+- printing: `_sync_pdf_generator` (Print Settings -> chrome + repeat header),
+  `adopt_business_print_formats`, `configure_payment_entry_for_mvp`,
+  `configure_sales_invoice_for_mvp`; patch `v0_46_10.follow_print_language`.
+- pos-retail: `setup.ensure_pos_retail()` (payment modes and ledgers, cash
+  customer, POS Operator role and Custom DocPerms, POS fields, exact-halala
+  defaults); the `enforce_exact_halalas` validate hook on Sales/Purchase/POS
+  Invoice; patches `v0_46_11/12/33/34/35` (incl. renaming شبكة -> Network).
+- Missing on this line: `printing/amount_words.py` (Arabic SAR words fall back
+  to ERPNext's wording) and `verification/finance_matrix.py`.
+
+### Verified
+
+Build reproducible (dist clean), payload within every ceiling, contrast, i18n
+coverage (2000 strings), 13 JS and 106 Python test files. `bench migrate` on the
+local bench (0.46.7 -> this tree): exit 0, no new Error Log, the held settings
+unchanged; official and new invoices rendered to PDF in Arabic and English. The
+migrate found the Reports workspace `modified` stamp unbumped (fixed).
+
+## [0.47.1] — 2026-09-20 — the studio dresses like the desk (patch)
+
+### Fixed — the August wardrobe, retired
+
+Item 46 landed the studio's engine as-is, and its surface kit came with it —
+authored against the v0.39 line's taste: gradient card washes, resting shadows,
+lift-on-hover, pill radii, a display-size hero. The desk around it has been flat
+for seven minors: hairlines (`--bnd-line` + `--bnd-border`), radius-lg boards,
+radius-md controls, no resting elevation, hover as a wash, one chosen-state fill.
+The owner compared the two on the deployed desk and said so («ماهي بنفس الثيم
+المنشور»). `_studio.scss` now speaks the deployed dialect: category identity
+lives in the glyph tint alone (`--bnd-cat-tint`, so dark mode re-derives it),
+the active domain and period chips take `--bnd-brand-solid` — the
+sidebar-active idiom — and the hero is a section head over a hairline, not a
+poster. Every class and behavioural hook the suite pins is unchanged; the
+engine bundle is byte-identical (`bnd-studio.a82a3f91.js`); only the desk css
+hash moves. 29.9 KB gzip, down from 30.1, under the 31,500 ceiling. Suite 31/31.
+
+### Fixed — borders that said a width where a colour goes
+
+Four declarations read `1px solid var(--bnd-line)` — but `--bnd-line` IS a
+width (0.5px), so the value parsed invalid and each rule silently dropped:
+table rows rendered unruled on screen, and the ruled print grid the spec
+promised («جداول محكمة») never printed. Screen rules now read
+`var(--bnd-line) solid var(--bnd-border)`; paper takes a definite 30% ink rule,
+because an on-screen rgba hairline washes out in print.
+
+### Fixed — assets.py caught up with the dist beside it
+
+#8 committed the built bundles but not the regenerated manifest, so the
+committed `THEME_CSS` pointed at `bunood.7b0431d5.css` — deleted one commit
+after the v0.47.0 tag — and `STUDIO_JS` was missing entirely: boot.py's
+try-wrapped import failed, and a bench serving pure git content showed the
+page's fail-open «bundle is not registered». Deployments never noticed because
+the image build reruns `build.mjs` (measured on prod: 7b0431d5 → 404,
+b937a880 → 200). The manifest is now regenerated in the same commit as the
+dist it names — the drift and its symptom are both gone.
+
+### The suite: the busiest month, not the latest
+
+`mintDataMonth()` took `max(posting_date)`, so ONE finger-test invoice in the
+current month re-aimed the whole suite at a month holding a single cash sale:
+both order-analysis cards emptied, the procurement tracker had no rows, and the
+trial balance compared one month's movement against the year's totals — 4 of 31
+red, none of them the studio's fault. The mint now takes the month with the
+MOST submitted invoices; the seeded corpus outvotes a stray.
+
+## [0.47.0] — 2026-09-20 — the Report Studio returns (item 46)
+
+**The integration HANDOVER's divergence note planned.** The Report Studio — preserved
+on `studio-zatca` when main kept its own line — lands as ONE additive piece (#8):
+the engine, the tokens-only surface kit (it wears this line's design as-is, by the
+owner's constraint), the `bnd-report-studio` page, the public Reports workspace, and
+the end-to-end suite taken at the branch tip. The ZATCA half returned earlier as item
+41; the 176 Arabic strings already live in `locale/ar.po`. Shared touches in this
+line's idiom: a second page-scoped hashed JS entry with its own payload bucket
+(`studio_js`, 25,557 gzip against 27,000) and the desk css ceiling 28,500 → 31,500
+for the measured +2,321 the kit costs; boot's `STUDIO_JS`; two i18n JS sources.
+
+**The suite is calendar-independent now** — it mints the DATA month from the books
+and drives the studio's custom-period dialog itself (`cur_dialog.set_value` is async
+in current Frappe; awaiting it was the difference between September zeros and green).
+31/31 on a bench moved to exactly this base, the VAT return proven against the ledger
+to the fils and the exported xlsx reopened with openpyxl.
+
+**Named debt** (PR #8): dateRange cards' previous-period probe sends filters those
+reports ignore, so their delta chips have always compared the period to itself —
+its own slice, nothing here depends on it.
+
+
 ## [0.46.7] — 2026-09-15 — The words we could not defend, and one we could (patch)
 
 **The three items v0.46.6 left owed, closed.** Two were translation work the false-friends

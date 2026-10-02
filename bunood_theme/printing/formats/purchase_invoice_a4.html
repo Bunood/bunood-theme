@@ -1,0 +1,4 @@
+{# Managed format. Duplicate in Desk for tenant-specific changes. #}
+{# Pass request language through include context; cached template globals may be stale. #}
+{% set bnd_print_language = bunood_print_language() %}
+{% include "templates/bunood_invoice_a4.html" %}

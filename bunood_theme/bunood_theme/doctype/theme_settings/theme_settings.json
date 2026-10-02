@@ -837,12 +837,12 @@
    "options": "Frappe's own\nBilingual Split\nCentered Mark\nHairline Minimal"
   },
   {
-   "description": "Set by the picker above. Which halves of the bilingual document title render on the Bunood formats.",
+   "description": "Set by the picker above. Follow Print Language keeps Arabic output RTL and English output LTR; explicit overrides remain available when required.",
    "fieldname": "print_title_lang",
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Print Title Language",
-   "options": "Both\nArabic only\nEnglish only"
+   "options": "Follow print language\nBoth\nArabic only\nEnglish only"
   },
   {
    "description": "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
@@ -1415,7 +1415,7 @@
    "fieldtype": "Select",
    "hidden": 1,
    "label": "Form Foot",
-   "options": "Off\nPinned Bar"
+   "options": "Off\nPinned Bar\nAction Bar"
   },
   {
    "description": "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",

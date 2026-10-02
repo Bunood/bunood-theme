@@ -141,6 +141,21 @@ bunood_theme.patches.unreleased.retire_sidebar_preset_key
 # expand button retires with its two fields; the stored rows go through the table.
 bunood_theme.patches.unreleased.retire_rail_button
 
+# Integration v0.48.0: HELD -- bunood_theme.patches.v0_46_10.follow_print_language
+# would rewrite every existing tenant's print_title_lang from Both to Follow print
+# language. New sites get the new default from presets.PRINT_DEFAULTS, seeded on
+# install (the doctype carries no defaults since the settings audit); existing
+# sites keep their value. Register the patch only with the owner's approval.
+
+# Integration v0.48.0: HELD -- pos-retail's five data patches change existing
+# tenants' accounting setup and are not registered until the owner approves:
+#   bunood_theme.patches.v0_46_11.pos_payment_ledgers      (Cash/Network modes + ledgers)
+#   bunood_theme.patches.v0_46_12.exact_halala_totals      (disable whole-riyal rounding)
+#   bunood_theme.patches.v0_46_33.network_mode_english     (rename Mode of Payment شبكة -> Network)
+#   bunood_theme.patches.v0_46_34.payment_account_recovery (payment account mappings)
+#   bunood_theme.patches.v0_46_35.cash_customer_defaults   (cash customer + POS profile default)
+# Their names carry the experimental line's numbering; renumber on approval.
+
 # LAST, AND IT STAYS: whatever the translations above could not map, this makes
 # legal. It had drifted to third-from-last (audit finding c-8) — a Select a
 # later patch writes must still be healed by it.

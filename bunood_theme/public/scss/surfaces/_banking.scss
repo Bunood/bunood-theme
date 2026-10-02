@@ -1,0 +1,371 @@
+// Bunood banking cockpit. The native ERPNext banking application remains the
+// mutation surface; this owned page presents its evidence and queue clearly.
+@use "../breakpoints" as *;
+
+html[data-theme] .bnd-banking {
+	max-inline-size: var(--bnd-wide-w);
+	margin-inline: auto;
+	padding-block: var(--bnd-sp-5) var(--bnd-sp-7);
+	padding-inline: var(--bnd-sp-4);
+	color: var(--bnd-ink);
+
+	.bnd-banking__intro {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: var(--bnd-sp-5);
+		margin-block-end: var(--bnd-sp-5);
+	}
+
+	.bnd-banking__intro-copy {
+		max-inline-size: 48rem;
+
+		h2 {
+			margin-block: var(--bnd-sp-1) var(--bnd-sp-2);
+			font-size: var(--bnd-text-2xl);
+			line-height: var(--bnd-leading-tight);
+		}
+
+		p:last-child {
+			margin: 0;
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-md);
+		}
+	}
+
+	.bnd-banking__eyebrow {
+		margin: 0;
+		color: var(--bnd-brand);
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-medium);
+		text-transform: uppercase;
+	}
+
+	.bnd-banking__assurance {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--bnd-sp-2);
+		max-inline-size: 24rem;
+		padding: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-banking-icon {
+		display: inline-flex;
+		flex: 0 0 auto;
+		color: currentColor;
+	}
+
+	.bnd-banking__filters,
+	.bnd-banking__panel,
+	.bnd-banking__metric,
+	.bnd-banking__state,
+	.bnd-banking__failure {
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+	}
+
+	.bnd-banking__filters {
+		display: grid;
+		grid-template-columns: minmax(12rem, 1.25fr) minmax(14rem, 1.5fr) minmax(9rem, 0.8fr) minmax(9rem, 0.8fr) auto;
+		align-items: end;
+		gap: var(--bnd-sp-3);
+		padding: var(--bnd-sp-4);
+		box-shadow: var(--bnd-shadow-sm);
+	}
+
+	.bnd-banking__field {
+		min-inline-size: 0;
+
+		.form-group {
+			margin-block-end: 0;
+		}
+
+		label,
+		.control-label {
+			display: block;
+			margin-block-end: var(--bnd-sp-2);
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-sm);
+		}
+	}
+
+	.bnd-banking__apply .btn {
+		min-block-size: var(--bnd-control-h);
+		white-space: nowrap;
+	}
+
+	.bnd-banking__actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2);
+		padding-block: var(--bnd-sp-3) var(--bnd-sp-5);
+
+		.btn {
+			display: inline-flex;
+			align-items: center;
+			gap: var(--bnd-sp-2);
+		}
+	}
+
+	.bnd-banking__live {
+		min-block-size: 1.5rem;
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-banking__content {
+		display: grid;
+		gap: var(--bnd-sp-4);
+	}
+
+	.bnd-banking__state,
+	.bnd-banking__failure {
+		display: flex;
+		align-items: flex-start;
+		gap: var(--bnd-sp-3);
+		padding: var(--bnd-sp-4);
+
+		h3,
+		strong {
+			margin: 0;
+			font-size: var(--bnd-text-lg);
+		}
+
+		p,
+		span {
+			margin-block: var(--bnd-sp-1) 0;
+			color: var(--bnd-ink-muted);
+		}
+
+		.btn {
+			margin-inline-start: auto;
+		}
+	}
+
+	.bnd-banking__state.is-action-needed {
+		border-color: color-mix(in srgb, var(--bnd-warn) 48%, var(--bnd-border));
+		background: color-mix(in srgb, var(--bnd-warn) 7%, var(--bnd-surface));
+	}
+
+	.bnd-banking__state.is-no-open-statement-items {
+		border-color: color-mix(in srgb, var(--bnd-brand) 38%, var(--bnd-border));
+	}
+
+	.bnd-banking__metrics {
+		display: grid;
+		grid-template-columns: repeat(5, minmax(0, 1fr));
+		gap: var(--bnd-sp-3);
+	}
+
+	.bnd-banking__metric {
+		display: grid;
+		align-content: start;
+		gap: var(--bnd-sp-1);
+		min-block-size: 8.5rem;
+		padding: var(--bnd-sp-4);
+
+		> span,
+		> small {
+			color: var(--bnd-ink-muted);
+		}
+
+		> strong {
+			overflow-wrap: anywhere;
+			font-size: var(--bnd-text-xl);
+			font-variant-numeric: tabular-nums;
+		}
+	}
+
+	.bnd-banking__metric.is-warning {
+		border-color: color-mix(in srgb, var(--bnd-warn) 40%, var(--bnd-border));
+	}
+
+	.bnd-banking__panel {
+		padding: var(--bnd-sp-4);
+		box-shadow: var(--bnd-shadow-sm);
+
+		> h3,
+		.bnd-banking__panel-heading h3 {
+			margin: 0;
+			font-size: var(--bnd-text-lg);
+		}
+	}
+
+	.bnd-banking__panel-heading {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--bnd-sp-3);
+		margin-block-end: var(--bnd-sp-3);
+		color: var(--bnd-ink-muted);
+	}
+
+	.bnd-banking__ageing {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+		gap: var(--bnd-sp-3);
+		margin-block-start: var(--bnd-sp-3);
+
+		.bnd-banking__metric {
+			min-block-size: 0;
+			box-shadow: none;
+		}
+	}
+
+	.bnd-banking__table-wrap {
+		overflow-x: auto;
+		margin-inline: calc(var(--bnd-sp-4) * -1);
+		padding-inline: var(--bnd-sp-4);
+	}
+
+	.bnd-banking__table {
+		inline-size: 100%;
+		border-collapse: collapse;
+		font-size: var(--bnd-text-sm);
+
+		th,
+		td {
+			padding-block: var(--bnd-sp-3);
+			padding-inline: var(--bnd-sp-3);
+			border-block-end: var(--bnd-line) solid var(--bnd-border);
+			text-align: start;
+			vertical-align: middle;
+		}
+
+		th {
+			color: var(--bnd-ink-muted);
+			font-weight: var(--bnd-weight-medium);
+			white-space: nowrap;
+		}
+
+		td.is-number {
+			font-variant-numeric: tabular-nums;
+			white-space: nowrap;
+		}
+	}
+
+	.bnd-banking__transaction {
+		min-inline-size: 16rem;
+
+		strong,
+		small {
+			display: block;
+		}
+
+		small {
+			margin-block-start: var(--bnd-sp-1);
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	.bnd-banking__imports {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--bnd-sp-3);
+		margin-block-start: var(--bnd-sp-3);
+	}
+
+	.bnd-banking__import {
+		display: grid;
+		gap: var(--bnd-sp-1);
+		padding: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink);
+		text-align: start;
+		cursor: pointer;
+
+		&:hover {
+			border-color: var(--bnd-border-strong);
+			background: var(--bnd-hover);
+		}
+
+		span,
+		small {
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	.bnd-banking__empty,
+	.bnd-banking__note {
+		margin-block: var(--bnd-sp-3) 0;
+		color: var(--bnd-ink-muted);
+	}
+
+	&.is-loading .bnd-banking__content {
+		opacity: 0.62;
+		pointer-events: none;
+	}
+}
+
+html[data-theme] .bnd-banking-load-error {
+	margin: var(--bnd-sp-6);
+	padding: var(--bnd-sp-5);
+	border: var(--bnd-line) solid var(--bnd-critical);
+	border-radius: var(--bnd-radius-lg);
+	color: var(--bnd-ink);
+	text-align: center;
+}
+
+@include bnd-until(lg) {
+	html[data-theme] .bnd-banking {
+		.bnd-banking__filters {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+
+		.bnd-banking__apply {
+			grid-column: 1 / -1;
+		}
+
+		.bnd-banking__metrics {
+			grid-template-columns: repeat(2, minmax(0, 1fr));
+		}
+	}
+}
+
+@include bnd-until(md) {
+	html[data-theme] .bnd-banking {
+		padding-inline: var(--bnd-sp-3);
+
+		.bnd-banking__intro,
+		.bnd-banking__state,
+		.bnd-banking__failure {
+			flex-direction: column;
+		}
+
+		.bnd-banking__assurance {
+			max-inline-size: none;
+		}
+
+		.bnd-banking__filters,
+		.bnd-banking__metrics,
+		.bnd-banking__ageing,
+		.bnd-banking__imports {
+			grid-template-columns: 1fr;
+		}
+
+		.bnd-banking__apply {
+			grid-column: auto;
+
+			.btn {
+				inline-size: 100%;
+				justify-content: center;
+			}
+		}
+
+		.bnd-banking__metric {
+			min-block-size: 0;
+		}
+
+		.bnd-banking__state .btn {
+			margin-inline-start: 0;
+		}
+	}
+}

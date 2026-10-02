@@ -1,0 +1,52 @@
+{# Managed by bunood_theme. Language-aware quotation for customer delivery. #}
+{% from "templates/bunood_print_macros.html" import sig_row %}
+{% set is_ar = bunood_print_language() == "ar" %}
+<div class="bnd-p bnd-p--a4" dir="{{ 'rtl' if is_ar else 'ltr' }}" lang="{{ 'ar' if is_ar else 'en' }}">
+  {% if not no_letterhead and letter_head %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="header-html" class="hidden-pdf"{% endif %}>
+    <div class="letter-head">{{ letter_head }}</div>
+  </div>
+  {% endif %}
+
+  <div class="bnd-p-title"><div class="bnd-p-title__ar">{{ "عرض سعر" if is_ar else "QUOTATION" }}</div></div>
+  <table class="bnd-p-meta">
+    <tr><td>{{ "رقم عرض السعر" if is_ar else "Quotation number" }}</td><td dir="ltr">{{ doc.name | e }}</td></tr>
+    <tr><td>{{ "التاريخ" if is_ar else "Date" }}</td><td dir="ltr">{{ doc.get_formatted("transaction_date") }}</td></tr>
+    {% if doc.get("valid_till") %}<tr><td>{{ "صالح لغاية" if is_ar else "Valid until" }}</td><td dir="ltr">{{ doc.get_formatted("valid_till") }}</td></tr>{% endif %}
+  </table>
+
+  <table class="bnd-p-party"><tr><td>
+    <div class="bnd-p-party__h">{{ "العميل" if is_ar else "Customer" }}</div>
+    <div class="bnd-p-party__n">{{ (doc.get("customer_name") or doc.get("party_name") or doc.get("party") or "—") | e }}</div>
+    {% if doc.get("address_display") %}<div class="bnd-p-party__a">{{ doc.address_display }}</div>{% endif %}
+    {% if doc.get("contact_display") %}<div>{{ doc.contact_display | e }}</div>{% endif %}
+  </td></tr></table>
+
+  <table class="bnd-p-items">
+    <thead><tr><th class="c">#</th><th>{{ "الصنف" if is_ar else "Item" }}</th><th class="n">{{ "الكمية" if is_ar else "Quantity" }}</th><th class="n">{{ "السعر" if is_ar else "Rate" }}</th><th class="n">{{ "الإجمالي" if is_ar else "Amount" }}</th></tr></thead>
+    <tbody>{% for row in doc.items %}<tr>
+      <td class="c">{{ loop.index }}</td>
+      <td>{{ (row.item_name or row.item_code) | e }}{% if row.get("description") and row.description != row.item_name %}<div class="bnd-p-items__d">{{ row.description }}</div>{% endif %}</td>
+      <td class="n num">{{ row.get_formatted("qty") }}</td>
+      <td class="n num">{{ row.get_formatted("rate", doc) }}</td>
+      <td class="n num">{{ row.get_formatted("amount", doc) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table>
+
+  <table class="bnd-p-totals">
+    <tr><td>{{ "الإجمالي قبل الضريبة" if is_ar else "Subtotal" }}</td><td class="num" dir="ltr">{{ doc.get_formatted("net_total") }}</td></tr>
+    {% if doc.get("discount_amount") %}<tr><td>{{ "الخصم" if is_ar else "Discount" }}</td><td class="num" dir="ltr">{{ doc.get_formatted("discount_amount") }}</td></tr>{% endif %}
+    <tr><td>{{ "ضريبة القيمة المضافة" if is_ar else "VAT" }}</td><td class="num" dir="ltr">{{ doc.get_formatted("total_taxes_and_charges") }}</td></tr>
+    <tr class="g"><td>{{ "الإجمالي النهائي" if is_ar else "Grand total" }}</td><td class="num" dir="ltr">{{ doc.get_formatted("grand_total") }}</td></tr>
+  </table>
+  {% set amount_words = doc.in_words if is_ar else frappe.utils.money_in_words(doc.grand_total, doc.currency) %}
+  {% if amount_words %}<div class="bnd-p-words">{{ amount_words | e }}</div>{% endif %}
+  {% if doc.get("terms") %}<div class="bnd-p-words"><strong>{{ "الشروط:" if is_ar else "Terms:" }}</strong><br>{{ doc.terms }}</div>{% endif %}
+  {{ sig_row(["العميل", "المبيعات", "الاعتماد"] if is_ar else ["Customer", "Sales", "Approval"]) }}
+
+  {% if not no_letterhead and footer %}
+  <div {% if print_settings and print_settings.repeat_header_footer %}id="footer-html" class="visible-pdf"{% endif %}>
+    <div class="letter-head-footer">{{ footer }}</div>
+  </div>
+  {% endif %}
+</div>
