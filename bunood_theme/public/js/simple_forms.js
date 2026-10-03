@@ -138,7 +138,7 @@
 		"Journal Entry": {
 			variant: "journal", steps: ["Voucher", "Debit and credit", "Balance"],
 			panels: [
-				["voucher", "Journal context", "Choose the voucher type, company and posting evidence.", ["voucher_type", "company", "posting_date", "finance_book", "cheque_no", "cheque_date"], "lead"],
+				["voucher", "Journal context", "Choose the voucher type, company and posting evidence.", ["voucher_type", "company", "posting_date"], "lead"],
 				["lines", "Debit and credit lines", "Every line remains a native account row with its original dimensions and validation.", ["accounts"], "sheet"],
 			],
 			metrics: [["Total debit", "total_debit", "Currency"], ["Total credit", "total_credit", "Currency"], ["Difference", "difference", "Currency"]],
@@ -322,7 +322,7 @@
 				const head = create("header", "bnd-task-panel-head", null, panel);
 				create("h3", "", __(title), head);
 				create("p", "", __(help), head);
-				return { fields, body: create("div", "bnd-task-panel-fields", null, panel) };
+				return { name, panel, head, fields, body: create("div", "bnd-task-panel-fields", null, panel) };
 			});
 			this.summary = create("section", "bnd-task-outcome", null, this.canvas);
 			create("h3", "", __("Document outcome"), this.summary);
@@ -352,6 +352,44 @@
 			for (const metric of this.metricNodes) metric.node.innerHTML = this.format(
 				this.frm.doc[metric.fieldname], metric.fieldname, metric.type, currency
 			);
+		}
+	}
+
+	// Presentation only: move the original controls, never rebuild accounting rows.
+	class JournalWorkbench extends TaskWorkbench {
+		constructor(frm) {
+			super(frm, TASK_WORKBENCHES["Journal Entry"]);
+			this.referenceNames = ["finance_book", "cheque_no", "cheque_date"];
+			this.references = create("details", "bnd-journal-references", null, this.panels[0].panel);
+			create("summary", "", __("Reference details"), this.references);
+			this.referenceFields = create("div", "bnd-task-panel-fields", null, this.references);
+			// Put the balance next to the rows, not below a potentially long ledger.
+			this.panels[1].panel.before(this.summary);
+			this.panels[1].panel.before(this.required);
+			this.references.addEventListener("toggle", () => {
+				if (this.referencesRequired && !this.references.open) this.references.open = true;
+			});
+		}
+		refresh(active, selected) {
+			const main = new Set([...selected].filter(name => !this.referenceNames.includes(name)));
+			super.refresh(active, main);
+			if (!active) return;
+			this.summary.dataset.unbalanced = String(Number.isFinite(Number(this.frm.doc.difference)) && Number(this.frm.doc.difference) !== 0);
+			let visible = 0; this.referencesRequired = false;
+			let hasValue = false;
+			for (const name of this.referenceNames) {
+				const field = this.frm.fields_dict?.[name];
+				if (!selected.has(name) || !field?.$wrapper?.[0]) continue;
+				this.move(name, this.referenceFields);
+				if (field.df?.hidden || field.get_status?.() === "None") continue;
+				visible++;
+				this.referencesRequired ||= !!field.df?.reqd;
+				hasValue ||= ![null, undefined, ""].includes(this.frm.doc[name]);
+			}
+			this.references.hidden = !visible;
+			if (this.referencesRequired || hasValue) this.references.open = true;
+			// Unexpected mandatory extensions must be visible without another click.
+			if (!this.required.hidden) this.required.open = true;
 		}
 	}
 
@@ -438,7 +476,7 @@
 		constructor(frm) {
 			this.frm = frm; this.simple = true; this.selected = fallbackFields(frm);
 			this.header = create("section", "bnd-simple-form-head", null, null);
-			const heading = create("div", "bnd-simple-heading", null, this.header);
+			const heading = this.heading = create("div", "bnd-simple-heading", null, this.header);
 			const copy = create("div", "", null, heading);
 			const guidance = GUIDANCE[frm.doctype]?.() || [__(frm.meta.name), __("The fields needed for this task are shown. Advanced mode keeps every ERPNext option on the same document.")];
 			create("p", "bnd-simple-kicker", __("Simple mode"), copy);
@@ -447,13 +485,15 @@
 			this.stateBadge = create("span", "bnd-document-state", "", title);
 			this.stateBadge.setAttribute("role", "status");
 			create("p", "bnd-simple-copy", guidance[1], copy);
-			const modes = create("div", "bnd-simple-switch", null, heading); modes.setAttribute("role", "group"); modes.setAttribute("aria-label", __("Form mode"));
+			const modes = this.modes = create("div", "bnd-simple-switch", null, heading); modes.setAttribute("role", "group"); modes.setAttribute("aria-label", __("Form mode"));
 			this.simpleButton = this.button(modes, __("Simple"), () => this.setMode(true), true);
 			this.advancedButton = this.button(modes, __("Advanced"), () => this.setMode(false));
 			this.actions = create("div", "bnd-simple-actions", null, null); this.actions.setAttribute("role", "toolbar"); this.actions.setAttribute("aria-label", __("Document actions"));
+			if (frm.doctype === "Journal Entry") this.actions.classList.add("bnd-journal-actions");
 			const actionIdentity = create("div", "bnd-simple-actions-identity", null, this.actions);
-			this.actionTitle = create("strong", "", guidance[0], actionIdentity);
+			this.actionTitle = create(frm.doctype === "Journal Entry" ? "h2" : "strong", "", guidance[0], actionIdentity);
 			this.actionState = create("span", "", "", actionIdentity);
+			this.actionState.setAttribute("role", "status");
 			this.primaryActions = create("div", "bnd-simple-primary-actions", null, this.actions);
 			this.saveButton = this.action(this.primaryActions, __("Save and submit"), "F2", () => this.commit(), true);
 			this.invoiceButton = this.action(this.primaryActions, __("Create Sales Invoice"), "", () => createSalesInvoice(this.frm), true);
@@ -491,6 +531,7 @@
 			this.workbench = frm.doctype === "Stock Entry"
 				? new StockEntryWorkbench(frm)
 				: frm.doctype === "Delivery Note" ? new DeliveryNoteWorkbench(frm)
+					: frm.doctype === "Journal Entry" ? new JournalWorkbench(frm)
 					: TASK_WORKBENCHES[frm.doctype] ? new TaskWorkbench(frm, TASK_WORKBENCHES[frm.doctype])
 					: COMPOSITIONS[frm.doctype] ? new GroupedWorkbench(frm, COMPOSITIONS[frm.doctype]) : null;
 			this.ensureMounted();
@@ -548,6 +589,11 @@
 			}
 			this.header.hidden = false;
 			this.actions.hidden = !this.simple;
+			if (this.frm.doctype === "Journal Entry") {
+				const modeParent = this.simple ? this.actions : this.heading;
+				if (this.modes.parentNode !== modeParent) modeParent.append(this.modes);
+				this.header.hidden = this.simple;
+			}
 			this.header.classList.toggle("bnd-simple-form-head-advanced", !this.simple);
 			const setLayout = active => {
 				this.frm.$wrapper?.toggleClass("bnd-generic-simple", active);
@@ -607,7 +653,7 @@
 	}
 	api.simple_forms = { mount,
 		candidate, profiles: PROFILES, compositions: COMPOSITIONS, taskWorkbenches: TASK_WORKBENCHES,
-		hasPurposeWorkbench, fallbackFields, canCreateSalesInvoice, createSalesInvoice, GroupedWorkbench, TaskWorkbench,
+		hasPurposeWorkbench, fallbackFields, canCreateSalesInvoice, createSalesInvoice, GroupedWorkbench, TaskWorkbench, JournalWorkbench,
 	};
 	// Refresh presentation after native field handlers and their requests finish.
 	document.addEventListener("pointerdown", event => {
@@ -617,6 +663,8 @@
 	// Do not calculate values here or return an AJAX wait into a native trigger.
 	if (frappe.ui?.form?.on) {
 		for (const [doctype, fields] of Object.entries({
+			"Journal Entry": ["voucher_type", "company", "posting_date", "finance_book", "cheque_no", "cheque_date", "total_debit", "total_credit", "difference"],
+			"Journal Entry Account": ["accounts_add", "accounts_remove", "account", "debit_in_account_currency", "credit_in_account_currency", "exchange_rate"],
 			"Stock Entry": ["stock_entry_type", "purpose", "from_warehouse", "to_warehouse", "total_outgoing_value", "total_incoming_value", "value_difference"],
 			"Stock Entry Detail": ["items_add", "items_remove", "item_code", "qty", "transfer_qty", "basic_rate", "basic_amount", "amount", "s_warehouse", "t_warehouse"],
 			"Delivery Note": ["customer", "set_warehouse", "currency", "total_qty", "grand_total"],

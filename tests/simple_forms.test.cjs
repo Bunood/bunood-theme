@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const context = {
-  window: { bunood_theme: {} }, document: {},
+  window: { bunood_theme: {} }, document: {addEventListener() {}},
   frappe: { after_ajax: async () => {}, perm: { has_perm: (...args) => args } },
   $: () => ({ on() {} }), __: s => s, setTimeout,
 };

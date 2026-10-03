@@ -10,7 +10,7 @@ bundle name, resolve it against a stale ``assets.json``, and prefix it with
 ``rtl_`` on Arabic sites. See ARCHITECTURE.md section 6.
 """
 
-THEME_CSS = "/assets/bunood_theme/dist/css/bunood.008ed855.css"
+THEME_CSS = "/assets/bunood_theme/dist/css/bunood.eff9d0c7.css"
 WEB_CSS = "/assets/bunood_theme/dist/css/bunood-web.73b78fdb.css"
 EMAIL_CSS = "/assets/bunood_theme/dist/css/bunood-email.1c5e93a1.css"
 PRINT_CSS = "/assets/bunood_theme/dist/css/bunood-print.6115405a.css"
@@ -18,7 +18,7 @@ STUDIO_CSS = "/assets/bunood_theme/dist/css/bnd-studio.b2af9245.css"
 REPORT_LANDING_CSS = "/assets/bunood_theme/dist/css/bnd-report-landing.edae95d4.css"
 POS_CSS = "/assets/bunood_theme/dist/css/bnd-pos.9fa92eec.css"
 ZATCA_CSS = "/assets/bunood_theme/dist/css/bnd-zatca.a41fd46c.css"
-THEME_JS = "/assets/bunood_theme/dist/js/bunood.bb278de4.js"
+THEME_JS = "/assets/bunood_theme/dist/js/bunood.142ecd89.js"
 REPORT_JS = "/assets/bunood_theme/dist/js/bnd-report.131c21de.js"
 STUDIO_JS = "/assets/bunood_theme/dist/js/bnd-studio.fccb20d2.js"
 REPORT_LANDING_JS = "/assets/bunood_theme/dist/js/bnd-report-landing.1cdc59ee.js"

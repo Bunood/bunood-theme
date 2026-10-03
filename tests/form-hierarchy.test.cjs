@@ -9,10 +9,11 @@ class Node {
   before(node){ const parent=this.parentNode,index=parent.children.indexOf(this); if(node.parentNode) node.parentNode.children.splice(node.parentNode.children.indexOf(node),1); node.parentNode=parent; parent.children.splice(index,0,node); }
   replaceWith(node){ const parent=this.parentNode,index=parent?.children.indexOf(this); if(!parent||index<0)return; if(node.parentNode) node.parentNode.children.splice(node.parentNode.children.indexOf(node),1); parent.children[index]=node; node.parentNode=parent; this.parentNode=null; }
   setAttribute(name,value){ this.attributes[name]=value; }
+  addEventListener(name,handler){ (this.listeners ||= {})[name]=handler; }
   get isConnected(){ let node=this; while(node.parentNode)node=node.parentNode; return node===page; }
 }
 const page=new Node('page');
-const document={createElement:tag=>new Node(tag),createComment:()=>new Node('#comment')};
+const document={createElement:tag=>new Node(tag),createComment:()=>new Node('#comment'),addEventListener(){}};
 const context={window:{bunood_theme:{}},document,frappe:{after_ajax:async()=>{},perm:{has_perm(){}}},$:()=>({on(){}}),__:s=>s,setTimeout,clearTimeout};
 context.window.frappe=context.frappe;
 context.frappe.provide=path=>{ let value=context.window; for(const part of path.split('.'))value=value[part]||=( {} ); return value; };
@@ -65,4 +66,57 @@ test('task workbenches keep native field identity while giving transactions diff
   for(const name of names)assert.equal(fields_dict[name].$wrapper[0],nodes[name],`${name} native wrapper survives`);
   assert.notEqual(api.taskWorkbenches.Quotation.variant,api.taskWorkbenches['Payment Entry'].variant);
   assert.notDeepEqual(api.taskWorkbenches.Quotation.panels.map(panel=>panel[0]),api.taskWorkbenches['Payment Entry'].panels.map(panel=>panel[0]));
+});
+
+function journal() {
+  const layout=new Node('layout'); page.append(layout);
+  const names=Array.from(api.profiles['Journal Entry']);
+  names.push('mandatory_extension');
+  const fields_dict={};
+  for(const name of names) {
+    const node=new Node(); node.name=name; layout.append(node);
+    fields_dict[name]={$wrapper:[node],df:{fieldname:name,fieldtype:'Data'},get_status:()=> 'Write'};
+  }
+  const frm={doctype:'Journal Entry',doc:{doctype:'Journal Entry',voucher_type:'Journal Entry',total_debit:100,total_credit:100,difference:0},meta:{name:'Journal Entry'},fields_dict};
+  const workbench=new api.JournalWorkbench(frm); page.append(workbench.root);
+  return {frm,workbench,layout,names,selected:new Set(api.profiles['Journal Entry'])};
+}
+
+test('compact journal prioritizes context, live native totals and account rows without modifying values',()=>{
+  const {frm,workbench,layout,names,selected}=journal();
+  const before=JSON.stringify(frm.doc);
+  workbench.refresh(true,selected);
+  assert.deepEqual(workbench.panels[0].body.children.map(n=>n.name),['voucher_type','company','posting_date']);
+  assert.equal(workbench.references.open,undefined,'empty optional references stay collapsed');
+  assert(workbench.canvas.children.indexOf(workbench.summary)<workbench.canvas.children.indexOf(workbench.panels[1].panel));
+  assert.equal(workbench.panels[1].body.children[0],frm.fields_dict.accounts.$wrapper[0]);
+  assert.equal(JSON.stringify(frm.doc),before);
+  workbench.refresh(false,selected);
+  assert.deepEqual(layout.children.map(n=>n.name),names,'Advanced restores every control in native order');
+  workbench.refresh(true,selected);
+  assert.equal(workbench.panels[1].body.children[0],frm.fields_dict.accounts.$wrapper[0]);
+});
+
+test('required references and unexpected mandatory extensions are visible before the account table',()=>{
+  const {frm,workbench,selected}=journal();
+  frm.fields_dict.cheque_no.df.reqd=1;
+  selected.add('mandatory_extension');
+  workbench.refresh(true,selected);
+  assert.equal(workbench.references.open,true);
+  workbench.references.open=false;
+  workbench.references.listeners.toggle();
+  assert.equal(workbench.references.open,true,'required reference cannot be folded away');
+  assert.equal(workbench.required.hidden,false);
+  assert.equal(workbench.required.open,true);
+  assert(workbench.canvas.children.indexOf(workbench.required)<workbench.canvas.children.indexOf(workbench.panels[1].panel));
+});
+
+test('existing reference values open automatically while hidden references stay hidden',()=>{
+  const {frm,workbench,selected}=journal();
+  frm.doc.cheque_no='BANK-001';
+  workbench.refresh(true,selected);
+  assert.equal(workbench.references.open,true);
+  for(const name of workbench.referenceNames)frm.fields_dict[name].df.hidden=1;
+  workbench.refresh(true,selected);
+  assert.equal(workbench.references.hidden,true);
 });

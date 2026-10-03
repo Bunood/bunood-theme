@@ -19,6 +19,21 @@ inside a release named for item 29. That commit predates the decision, so its
 version files still read 0.20.0. The invariant resumes at v0.30.0. This is
 written down rather than left to be rediscovered as a bug.
 
+## Unreleased — 2026-10-04 — Compact Journal Entry
+
+- Replace the oversized Simple-mode banner, repeated heading, and step rail with
+  one compact action toolbar. Entry type, company, date, native totals, and the
+  first account rows are visible without scrolling on standard desktop screens.
+- Expand reference details when native dependencies require them or existing
+  values need review. Preserve the native grid, validation, permissions, and
+  exact control restoration in Advanced mode. Keep phone controls legible and
+  highlight nonzero native differences without recalculating accounting values.
+- Add native-control and conditional-reference regression tests; accept quoted
+  translation catalogue entries in the existing journal navigation test.
+- Source-only branch update; no database migration or production promotion.
+- Record a bounded payload increase for this layout (470 bytes CSS / 626 bytes
+  JavaScript gzip); all other payload limits and existing build gates remain.
+
 ## [0.50.0] — 2026-10-03 — Private reviewed-source release candidate
 
 - Prepare the preserved, independently source-reviewed Theme as a separate

@@ -15941,3 +15941,6 @@ msgstr "سلف الموظفين"
 
 msgid "Earnest Money"
 msgstr "تأمينات مقدمة"
+
+msgid "Reference details"
+msgstr "تفاصيل المرجع"

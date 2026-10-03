@@ -64,6 +64,6 @@ test("operator-facing journal language is present in the generated Arabic catalo
 		"Recurring journal schedules",
 		"No open drafts observed",
 	]) {
-		assert.ok(ar.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
+		assert.ok(ar.split(/\r?\n/).some((line) => line.startsWith(source + ",") || line.startsWith('"' + source.replaceAll('"', '""') + '",')), source);
 	}
 });
