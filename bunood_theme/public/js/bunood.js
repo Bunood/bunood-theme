@@ -8157,9 +8157,11 @@
 	 *  of its quick links. The cascade is an OBLIGATION of the "keep replacing"
 	 *  posture; roots only, no cap — _sidebar.scss carries why. */
 	function sb_head_menu() {
+		// `key` is the UNTRANSLATED name the dedupe below matches on; `label` is read.
 		const items = [
-			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
+			{ key: "Home", label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
 			{
+				key: "All Apps",
 				label: __("All Apps"),
 				icon: "icon-grid-2x2",
 				run: () => {
@@ -8172,7 +8174,10 @@
 		// DIFFERENT routes (/desk and /desk/home, measured) that render the same
 		// page. Two rows a person cannot tell apart are not two choices -- the
 		// rule the command palette's empty state follows one component over.
-		const taken = new Set(items.map((i) => i.label));
+		// UNTRANSLATED ON BOTH SIDES: matching the __() labels against w.title
+		// (English) only worked on an English desk; in Arabic nothing dropped
+		// and Home was listed twice (reported 2026-09-07).
+		const taken = new Set(items.map((i) => i.key));
 		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
 			(w) => !w.parent_page && !taken.has(w.title || w.name)
 		);
