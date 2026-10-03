@@ -135,6 +135,20 @@ doc_events = {
         # cached map; drop it when a DocType's icon could have changed.
         "on_update": "bunood_theme.api.clear_icon_cache",
     },
+    # THE HANDLER DOCUMENTED ITS OWN REGISTRATION, AND THE REGISTRATION WAS NOT
+    # HERE. `api.clear_workspace_cache`'s docstring says "Registered on
+    # Workspace ``on_update`` and ``after_delete``" and warns that without it
+    # "an edited workspace keeps serving a stale sidebar for up to an hour" —
+    # but only Theme Settings and DocType were listed, so the handler had no
+    # caller at all. The same-fact-in-two-places trap, with the two copies
+    # disagreeing.
+    #
+    # Measured before this line existed: populate `bnd_doctype_workspace_map`,
+    # save a Workspace, and the key is still there. After: it is gone.
+    "Workspace": {
+        "on_update": "bunood_theme.api.clear_workspace_cache",
+        "after_delete": "bunood_theme.api.clear_workspace_cache",
+    },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
     # Invoice would switch every new invoice to exact-halala totals (no
