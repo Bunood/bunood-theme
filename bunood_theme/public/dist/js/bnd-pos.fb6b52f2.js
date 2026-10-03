@@ -200,7 +200,7 @@
 		const cartHead = el("header", "bnd-pos__cart-head", null, cart);
 		const cartHeading = el("div", null, null, cartHead);
 		cartHeading.append(el("p", "bnd-pos__eyebrow", __("Current sale")), el("h3", null, __("Cart")));
-		const newSale = button(__("New"), "plus", "btn btn-default", resetSale);
+		const newSale = button(__("New sale"), "plus", "btn btn-default", resetSale);
 		cartHead.append(cartHeading, newSale);
 		const customerWrap = el("div", "bnd-pos__customer", null, cart);
 		const customerHost = el("div", "bnd-pos__customer-control", null, customerWrap);
@@ -529,9 +529,13 @@
 			}
 			renderTotals();
 			const enabled = rows.length > 0 && Boolean(state.context?.opening_entry) && navigator.onLine;
-			hold.disabled = !enabled || state.busy;
+			// A held sale is a native draft, and ERPNext will not save one
+			// without a customer: offer Hold under the same rule as Pay.
+			hold.disabled = !enabled || state.busy || !state.customer;
 			pay.disabled = !enabled || state.busy || !state.customer;
-			newSale.disabled = !rows.length && !state.draft;
+			// Starting over is always on offer (it also restores the profile's
+			// customer and the item view), except while a request is in flight.
+			newSale.disabled = state.busy;
 			for (const control of mobileNav.querySelectorAll('[data-view="cart"], [data-view="pay"]')) {
 				const label = control.querySelector("span:last-child");
 				if (control.dataset.view === "cart" && label) label.textContent = `${__("Cart")} (${rows.length})`;

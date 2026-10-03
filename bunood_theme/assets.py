@@ -23,4 +23,4 @@ REPORT_LANDING_JS = "/assets/bunood_theme/dist/js/bnd-report-landing.100eb9be.js
 BANKING_JS = "/assets/bunood_theme/dist/js/bnd-banking.67465a0d.js"
 FINANCE_CLOSE_JS = "/assets/bunood_theme/dist/js/bnd-finance-close.77302a66.js"
 JOURNAL_WORKBENCH_JS = "/assets/bunood_theme/dist/js/bnd-journal-workbench.756d4dc9.js"
-POS_JS = "/assets/bunood_theme/dist/js/bnd-pos.e35cad80.js"
+POS_JS = "/assets/bunood_theme/dist/js/bnd-pos.fb6b52f2.js"

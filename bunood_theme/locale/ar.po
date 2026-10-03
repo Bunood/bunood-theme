@@ -11840,3 +11840,9 @@ msgstr "تعذر تحميل إيصالات نقطة البيع. أعد بناء 
 #, fuzzy
 msgid "View all POS receipts"
 msgstr "عرض جميع إيصالات نقطة البيع"
+
+#. In pos_workbench.js (the cart's start-over button)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "New sale"
+msgstr "عملية جديدة"

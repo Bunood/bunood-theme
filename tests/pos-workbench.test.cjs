@@ -156,3 +156,12 @@ test("catalogue tiles: a drawing or initials on a stable group tint, services wi
 	}
 	assert.match(scss, /\[data-tone\]:not\(\.has-image\) \.bnd-pos__product-media \{\s+background: color-mix\(in srgb, var\(--bnd-pos-tone\) var\(--bnd-cat-tint\), var\(--bnd-pane\)\);\s+color: var\(--bnd-ink\);/);
 });
+
+test("the cart says New sale, always offers it, and holds only with a customer", () => {
+	assert.match(js, /const newSale = button\(__\("New sale"\), "plus", "btn btn-default", resetSale\);/);
+	assert.match(js, /hold\.disabled = !enabled \|\| state\.busy \|\| !state\.customer;/);
+	assert.match(js, /pay\.disabled = !enabled \|\| state\.busy \|\| !state\.customer;/);
+	assert.match(js, /newSale\.disabled = state\.busy;/);
+	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("New sale,")), "New sale");
+});
+
