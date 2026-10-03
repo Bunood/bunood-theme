@@ -181,9 +181,10 @@
 {% macro thermal_head(doc, title_ar, title_en) -%}
 {%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
 {%- set _logo = (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+{%- set _logo_src = bunood_print_image_src(_logo) if _logo and bunood_print_image_src is defined else _logo -%}
 {%- set _vat = (_c.get("tax_id") if _c else "") or doc.get("company_tax_id") -%}
 {%- set _cr = (_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") -%}
-{% if _logo %}<div class="bnd-p-th-logo"><img src="{{ _logo | e }}" alt=""></div>{% endif %}
+{% if _logo_src %}<div class="bnd-p-th-logo"><img src="{{ _logo_src | e }}" alt=""></div>{% endif %}
 <div class="bnd-p-th-co">{{ (_c.company_name if _c else doc.get("company")) | e }}</div>
 <div class="bnd-p-th-sub">الرقم الضريبي: {% if _vat %}<span dir="ltr">{{ _vat | e }}</span>{% else %}<b>غير مُعدّ</b>{% endif %}</div>
 {% if _cr %}<div class="bnd-p-th-sub">السجل التجاري: <span dir="ltr">{{ _cr | e }}</span></div>{% endif %}
