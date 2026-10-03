@@ -75,10 +75,17 @@
 
 		const grid = document.createElement("div");
 		grid.className = "bnd-report-landing__grid";
-		// Optional capability branches advertise their immutable asset in boot.
-		// Keep this landing independently pullable: never link to a Page that was
-		// not installed with its corresponding capability.
-		const cards = REPORTS.filter(report => !report.bootAsset || frappe.boot?.[report.bootAsset]).map(cardFor);
+		// Two gates, both from boot. INSTALLED: optional capability branches
+		// advertise their immutable asset, and this landing never links to a Page
+		// that was not installed with its capability. PERMITTED: boot lists the
+		// report Pages this user's roles open (Frappe's own Page rule), so no card
+		// leads to "Not permitted". No list (an older boot, or a Page metadata
+		// hiccup) leaves the installed gate alone, as before.
+		const permitted = frappe.boot?.bnd_report_landing_permitted_pages;
+		const cards = REPORTS.filter(report =>
+			(!report.bootAsset || frappe.boot?.[report.bootAsset]) &&
+			(!Array.isArray(permitted) || permitted.includes(report.route[0]))
+		).map(cardFor);
 		grid.append(...cards);
 		const empty = document.createElement("p");
 		empty.className = "bnd-report-landing__empty";
