@@ -542,6 +542,15 @@ body.bnd-auth .page-card .page-card-body ::placeholder {
   opacity: 1;
 }
 
+body.bnd-auth .page-card .page-card-body :is(.email-field, .password-field) .form-control {
+  direction: ltr;
+  text-align: start;
+}
+
+html[dir=rtl] body.bnd-auth .page-card .page-card-body :is(.email-field, .password-field) .form-control {
+  text-align: end;
+}
+
 body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login) {
   background: var(--bnd-ink);
   color: var(--bnd-page);

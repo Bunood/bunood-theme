@@ -427,6 +427,29 @@ body.bnd-auth .page-card .page-card-body ::placeholder {
   opacity: 1;
 }
 
+// ── Credentials are LTR strings, even in an Arabic form ─────────────────────
+// An email address and a password are Latin-script values whatever the page's
+// language, and in an RTL form the field's own direction is RTL: R8's isolation
+// keeps the typed run whole but does not give it a left-to-right base. So the two
+// credential fields are LTR, and the value sits on the field icon's side of the
+// box — the start in LTR, the end (the right, where rtlcss moved the icon and
+// its 38px reserve) in RTL — so the caret and the placeholder never start on the
+// far side of the control from the icon. From the team's release 0a8b549.
+//
+// WITHOUT THE TEAM'S `!important`. The census (`docs/upstream/frappe-login.md`)
+// found no vendor rule setting `direction` or `text-align` on these inputs, and
+// these are (0,5,1) and (0,6,2), clear of the login bundle's (0,4,1) input rule.
+// The ICON and the padding stay Frappe's, flipped by their rtlcss pass; nothing
+// here restates a physical property of theirs.
+body.bnd-auth .page-card .page-card-body :is(.email-field, .password-field) .form-control {
+  direction: ltr;
+  text-align: start;
+}
+
+html[dir="rtl"] body.bnd-auth .page-card .page-card-body :is(.email-field, .password-field) .form-control {
+  text-align: end;
+}
+
 // ── Contract R7: the primary action keeps its shape in both modes ───────────
 // `background: var(--gray-900)` is `#171717`, and `--gray-900` is NOT
 // redefined in dark while `--bg-color` in dark resolves to it — so the button's
