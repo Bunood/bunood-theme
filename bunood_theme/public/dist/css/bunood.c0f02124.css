@@ -1889,6 +1889,14 @@ html[data-bnd-sb-color] .body-sidebar .keyboard-shortcut {
   color: var(--bnd-sb-ink-muted);
 }
 
+html[data-theme] .body-sidebar .promotional-banners {
+  display: contents;
+}
+
+html[data-theme] .body-sidebar .promotional-banners > .promotional-banner {
+  display: none;
+}
+
 html[data-theme] .bnd-icon-btn.bnd-sb-start {
   display: inline-flex;
   align-items: center;
@@ -2704,7 +2712,6 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .sidebar-item-control,
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-cards,
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom .bottom-edit-controls,
-html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom .promotional-banners,
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .body-sidebar-bottom .avatar-name-email,
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-filter,
 html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) .bnd-sb-brand-name,
@@ -2716,7 +2723,6 @@ html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sideba
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .sidebar-item-control,
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .body-sidebar-cards,
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .body-sidebar-bottom .bottom-edit-controls,
-html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .body-sidebar-bottom .promotional-banners,
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .body-sidebar-bottom .avatar-name-email,
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-filter,
 html[data-bnd-sb-color]:not([data-bnd-narrow]):not([data-bnd-rail]) .body-sidebar-container:not(.expanded) .bnd-sb-brand-name,
@@ -4937,6 +4943,11 @@ html[data-bnd-ws-metric=inline] .number-widget-box .widget-body {
 html[data-bnd-ws-metric=inline] .number-widget-box .widget-body .widget-content .number {
   font-size: var(--bnd-text-xl);
   font-weight: 600;
+}
+
+html[data-theme] .layout-main-section:not(.edit-mode) .codex-editor .ce-block:has(> .ce-block__content > .ce-header a[href^="https://frappe.io/crm"]),
+html[data-theme] .layout-main-section:not(.edit-mode) .codex-editor .ce-block:has(> .ce-block__content > .ce-header a[href^="https://frappe.io/helpdesk"]) {
+  display: none;
 }
 
 html[data-bnd-desk] .bnd-list-presets {
