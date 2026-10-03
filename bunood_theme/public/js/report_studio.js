@@ -1713,7 +1713,9 @@
 		// المقصود — المستند الذي تفتحه صفحةٌ أخرى.
 		wireReturnBar();
 		const state = {
-			domain: "sales",
+			// The gallery opens on every report, grouped under its area, and keeps
+			// whichever area the person picked: opening a report no longer moves it.
+			domain: "all",
 			report: null,
 			period: "month",
 			custom: { from: D.month_start(), to: D.month_end() },
@@ -1779,7 +1781,6 @@
 			}
 			const sameEntity = state.entity && entity && state.entity.name === entity.name;
 			if (state.report === report && (sameEntity || (!state.entity && !entity))) return;
-			state.domain = report.domain_id;
 			// A row filter, a document-type tab and the all-columns toggle belong
 			// to the report they were set on: carried into the next one, a type
 			// it does not have filters its table to nothing.
@@ -1910,7 +1911,15 @@
 					!needle || `${report.name} ${report.title()} ${report.desc()}`.toLocaleLowerCase().includes(needle)
 				);
 				galleryCount.textContent = __("Reports: {0}", [reports.length]);
+				// All reports, unsearched: a heading row per area (ALL_REPORTS is
+				// built domain by domain, so one pass finds each boundary).
+				let lastDomain = null;
 				for (const report of reports) {
+					if (!needle && state.domain === "all" && report.domain_id !== lastDomain) {
+						const owner = DOMAINS.find((item) => item.id === report.domain_id);
+						if (owner) grid.append(el("h3", "bnd-studio__group-title", owner.label()));
+						lastDomain = report.domain_id;
+					}
 					const card = el("button", "bnd-studio__card");
 					card.type = "button";
 					card.dataset.reportKey = report.key;
@@ -1920,7 +1929,9 @@
 					glyph.append(cardGlyph(report.cat));
 					card.append(glyph);
 					const body = el("span", "bnd-studio__card-body");
-					if (needle || state.domain === "all") {
+					// The area's name rides on the card only in search results; the
+					// grouped gallery already says it once, above the group.
+					if (needle) {
 						const owner = DOMAINS.find((item) => item.id === report.domain_id);
 						if (owner) body.append(el("span", "bnd-studio__card-domain", owner.label()));
 					}

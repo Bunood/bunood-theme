@@ -167,6 +167,24 @@
 		gap: var(--bnd-sp-3);
 	}
 
+	// The all-reports gallery groups its cards under their area's name: a row
+	// of the grid, not a card, so it spans every column. A section line in the
+	// hero's hairline dialect, muted semibold like the domain label it replaces.
+	.bnd-studio__group-title {
+		grid-column: 1 / -1;
+		margin: 0;
+		margin-block-start: var(--bnd-sp-3);
+		padding-block-end: var(--bnd-sp-1);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		font-weight: var(--bnd-weight-semibold);
+
+		&:first-child {
+			margin-block-start: 0;
+		}
+	}
+
 	.bnd-studio__gallery-empty {
 		grid-column: 1 / -1;
 		margin: 0;

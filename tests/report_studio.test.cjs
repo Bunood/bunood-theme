@@ -128,6 +128,15 @@ test("row filters and the company follow the report and the companies the user c
 	assert.match(source, /fetchTaxId\(\);[\s\S]{0,200}if \(report\.picker && !state\.entity\) viewer\(\);\s+else load\(\);/);
 });
 
+test("the gallery opens on every report, grouped under its area, and keeps the chosen area", () => {
+	assert.match(source, /domain: "all",/);
+	assert.doesNotMatch(source, /state\.domain = report\.domain_id;/);
+	assert.match(source, /if \(!needle && state\.domain === "all" && report\.domain_id !== lastDomain\)/);
+	assert.match(source, /grid\.append\(el\("h3", "bnd-studio__group-title", owner\.label\(\)\)\)/);
+	assert.match(source, /if \(needle\) \{\s+const owner = DOMAINS\.find/);
+	assert.match(styles, /\.bnd-studio__group-title \{[^}]*grid-column: 1 \/ -1;/s);
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

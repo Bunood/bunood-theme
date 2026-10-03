@@ -442,6 +442,19 @@ html[data-bnd-motion=reduce] {
   grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
   gap: var(--bnd-sp-3);
 }
+.bnd-studio .bnd-studio__group-title {
+  grid-column: 1/-1;
+  margin: 0;
+  margin-block-start: var(--bnd-sp-3);
+  padding-block-end: var(--bnd-sp-1);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+.bnd-studio .bnd-studio__group-title:first-child {
+  margin-block-start: 0;
+}
 .bnd-studio .bnd-studio__gallery-empty {
   grid-column: 1/-1;
   margin: 0;
