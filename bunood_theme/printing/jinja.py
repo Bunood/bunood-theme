@@ -111,7 +111,7 @@ def bunood_zatca_qr_src(doc):
             ):
                 return value
 
-        if doc.get("doctype") == "Sales Invoice" and frappe.db.exists(
+        if doc.get("doctype") in {"Sales Invoice", "POS Invoice"} and frappe.db.exists(
             "DocType", "Sales Invoice Additional Fields"
         ):
             meta = frappe.get_meta("Sales Invoice Additional Fields")
@@ -121,9 +121,16 @@ def bunood_zatca_qr_src(doc):
                 None,
             )
             if link_field:
-                name = frappe.db.get_value(
-                    "Sales Invoice Additional Fields", {link_field: doc.name}, "name"
+                filters = {link_field: doc.name}
+                if meta.has_field("invoice_doctype"):
+                    filters["invoice_doctype"] = doc.doctype
+                if meta.has_field("is_latest"):
+                    filters["is_latest"] = 1
+                rows = frappe.get_all(
+                    "Sales Invoice Additional Fields", filters=filters, fields=["name"],
+                    order_by="creation desc", limit=1,
                 )
+                name = rows[0].name if rows else None
                 if name:
                     saf = frappe.get_doc("Sales Invoice Additional Fields", name)
                     for field in ("qr_image_src", "qr_code_image", "qr_image"):
