@@ -140,6 +140,17 @@
 		});
 		const ledgerButton = action(__("Open general ledger"), "book-open", false, () => {
 			if (!state.data || !state.data.bank_account || !state.data.bank_account.ledger_account) return;
+			// The bank account's statement in Report Studio, on this company and
+			// period (its route context), when the Studio may present it.
+			if (window.bunood_theme?.studio_report_route?.("General Ledger")?.[0] === "bnd-report-studio") {
+				route([
+					"bnd-report-studio", "account-statement",
+					`account~${state.data.bank_account.ledger_account}`,
+					{ bnd_studio_context: 1, company: companyControl.get_value(),
+						from_date: fromControl.get_value(), to_date: toControl.get_value() },
+				]);
+				return;
+			}
 			route([
 				"query-report",
 				"General Ledger",

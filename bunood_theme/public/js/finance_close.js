@@ -8,6 +8,9 @@
 	"use strict";
 
 	const METHOD = "bunood_theme.api.finance_close_cockpit";
+	// Report Studio where it presents the report and this user may open it
+	// (bunood.js studio_report_route); Frappe's query report otherwise.
+	const reportRoute = (name) => window.bunood_theme?.studio_report_route?.(name) || ["query-report", name];
 
 	function el(tag, className, text) {
 		const node = document.createElement(tag);
@@ -108,13 +111,13 @@
 		panel.append(el("h2", "", __("Review reports")), el("p", "bnd-close__note", __("Each report opens with native permissions. Apply the same company, dates, currency, Finance Book and dimensions before comparing figures.")));
 		const actions = el("div", "bnd-close__report-grid");
 		[
-			[__("Trial Balance"), ["query-report", "Trial Balance"]],
-			[__("General Ledger"), ["query-report", "General Ledger"]],
-			[__("Profit and Loss Statement"), ["query-report", "Profit and Loss Statement"]],
-			[__("Balance Sheet"), ["query-report", "Balance Sheet"]],
-			[__("Cash Flow"), ["query-report", "Cash Flow"]],
-			[__("Accounts Receivable"), ["query-report", "Accounts Receivable"]],
-			[__("Accounts Payable"), ["query-report", "Accounts Payable"]],
+			[__("Trial Balance"), reportRoute("Trial Balance")],
+			[__("General Ledger"), reportRoute("General Ledger")],
+			[__("Profit and Loss Statement"), reportRoute("Profit and Loss Statement")],
+			[__("Balance Sheet"), reportRoute("Balance Sheet")],
+			[__("Cash Flow"), reportRoute("Cash Flow")],
+			[__("Accounts Receivable"), reportRoute("Accounts Receivable")],
+			[__("Accounts Payable"), reportRoute("Accounts Payable")],
 		].forEach(([label, route]) => actions.append(button(label, route, false)));
 		if (!data.capabilities.can_read_gl) actions.setAttribute("aria-disabled", "true");
 		panel.append(actions);

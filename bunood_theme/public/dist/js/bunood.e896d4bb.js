@@ -9829,6 +9829,31 @@
 		}
 	}
 
+	// Report shortcuts (the finance desks) open a report the Studio presents
+	// in the Studio when this user may open its page AND run the report, else
+	// Frappe's query report as before. Runnable: bnd_navigation_reports if a
+	// site sends it, else Frappe's allowed_reports. Page: the landing's gate.
+	const STUDIO_REPORT_NAMES = new Set([
+		"Sales Register", "Purchase Register", "Gross Profit", "General Ledger",
+		"Accounts Receivable", "Accounts Payable", "Trial Balance",
+		"Profit and Loss Statement", "Balance Sheet", "VAT Summary",
+	]);
+	// report_studio.js derives a report's key the same way (report.key).
+	const studio_report_key = (report) =>
+		report === "VAT Summary" ? "vat-return" : report.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+	function studio_report_route(report) {
+		const boot = window.frappe?.boot || {};
+		const runnable = Array.isArray(boot.bnd_navigation_reports)
+			? boot.bnd_navigation_reports
+			: Object.keys(boot.allowed_reports || {});
+		const pages = boot.bnd_report_landing_permitted_pages;
+		const studio = Array.isArray(pages) && pages.includes("bnd-report-studio");
+		return STUDIO_REPORT_NAMES.has(report) && studio && runnable.includes(report)
+			? ["bnd-report-studio", studio_report_key(report)]
+			: ["query-report", report];
+	}
+	bunood.studio_report_route = studio_report_route;
+
 	// The Reports dashboard is fetched only on its workspace. If the optional
 	// bundle cannot load, the native workspace stays visible and usable.
 	let report_landing_loading = null;

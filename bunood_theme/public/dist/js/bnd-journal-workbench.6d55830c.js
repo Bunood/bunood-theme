@@ -8,6 +8,9 @@
 	"use strict";
 
 	const METHOD = "bunood_theme.api.journal_workbench";
+	// Report Studio where it presents the report and this user may open it
+	// (bunood.js studio_report_route); Frappe's query report otherwise.
+	const reportRoute = (name) => window.bunood_theme?.studio_report_route?.(name) || ["query-report", name];
 
 	function el(tag, className, text) {
 		const node = document.createElement(tag);
@@ -210,7 +213,7 @@
 		panel.append(el("h2", "", __("Accounting handoffs")), el("p", "bnd-close__note", __("These routes retain native permissions, validation, posting and audit history.")));
 		const actions = el("div", "bnd-close__report-grid");
 		[
-			[__("General Ledger"), ["query-report", "General Ledger"], data.capabilities.can_read_gl],
+			[__("General Ledger"), reportRoute("General Ledger"), data.capabilities.can_read_gl],
 			[__("Accounting dimensions"), ["List", "Accounting Dimension"], true],
 			[__("Deferred accounting"), ["List", "Process Deferred Accounting"], data.capabilities.can_run_deferred],
 			[__("Deferred revenue and expense"), ["query-report", "Deferred Revenue and Expense"], true],
