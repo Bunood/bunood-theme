@@ -11846,3 +11846,9 @@ msgstr "عرض جميع إيصالات نقطة البيع"
 #, fuzzy
 msgid "New sale"
 msgstr "عملية جديدة"
+
+#. In pos_workbench.js (resuming a held sale)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Replace the current ticket with this held sale? Hold it first if you need to keep it."
+msgstr "هل تريد استبدال الطلب الحالي بهذه العملية المعلّقة؟ علّق الطلب الحالي أولًا إذا أردت الاحتفاظ به."

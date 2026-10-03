@@ -165,3 +165,10 @@ test("the cart says New sale, always offers it, and holds only with a customer",
 	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("New sale,")), "New sale");
 });
 
+test("resuming a held sale asks before replacing a ticket in progress", () => {
+	assert.match(js, /function resume\(name\) \{\s+if \(state\.cart\.size \|\| state\.draft\) \{\s+frappe\.confirm\(__\("Replace the current ticket with this held sale\? Hold it first if you need to keep it\."\), \(\) => resumeNow\(name\)\);\s+return;/);
+	assert.match(js, /async function resumeNow\(name\) \{\s+setBusy\(true, __\("Resuming held sale…"\)\);/);
+	assert.match(js, /button\(__\("Resume"\), "play", "btn btn-primary", \(\) => resume\(row\.name\)\)/);
+	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("Replace the current ticket with this held sale? Hold it first if you need to keep it.,")));
+});
+

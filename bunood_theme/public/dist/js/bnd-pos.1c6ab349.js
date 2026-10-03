@@ -775,7 +775,17 @@
 			}
 		}
 
-		async function resume(name) {
+		// Resuming replaces the ticket on the counter. A ticket with lines, or
+		// a draft of its own, is lost unless held first, so ask before.
+		function resume(name) {
+			if (state.cart.size || state.draft) {
+				frappe.confirm(__("Replace the current ticket with this held sale? Hold it first if you need to keep it."), () => resumeNow(name));
+				return;
+			}
+			resumeNow(name);
+		}
+
+		async function resumeNow(name) {
 			setBusy(true, __("Resuming held sale…"));
 			try {
 				const result = await api("load_cart", { name }, { type: "GET" });
