@@ -5338,6 +5338,14 @@
 			let resolved = false;
 
 			for (const trail of trails) {
+				// The trail's last link is the page being read: say so, and let a
+				// record title that mixes Arabic, Latin codes and punctuation take
+				// its direction from its own first strong character.
+				const current_link = trail.querySelector("li:last-child > a");
+				if (current_link) {
+					current_link.setAttribute("aria-current", "page");
+					current_link.setAttribute("dir", "auto");
+				}
 				// 1. Resolution (always) — find the workspace crumb.
 				let ws_link = null;
 				let ws = null;
@@ -5354,8 +5362,11 @@
 					if (!hit) continue;
 					ws_link = link;
 					ws = hit;
-					sb_current_workspace = ws;
-					sb_update_head();
+					// A hidden cached page's trail must not rename the current pane.
+					if (trail.closest(".page-container")?.offsetParent != null) {
+						sb_current_workspace = ws;
+						sb_update_head();
+					}
 					resolved = true;
 					break;
 				}
