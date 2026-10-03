@@ -334,6 +334,26 @@ def _css_string(value) -> str:
     return f'"{text}"'
 
 
+#: The Saudi riyal sign, U+20C1, drawn from SAMA's own artwork
+#: (``fonts/riyal/Saudi_Riyal_Symbol-official.svg``, packaged as ``bunood-riyal.woff2`` by
+#: ``bunood_setup/tools/build_riyal_font.py``). THE OWNER, 2026-09-28: «رمز الريال السعودي يكون
+#: في النظام كامل». The print sheet has carried this face since 0.12.6; this puts it on every
+#: desk and website page as well. ``unicode-range`` confines it to the one code point, so
+#: prepending it to the body stack changes no other glyph, and a browser downloads the 1 KB
+#: file only on a page that shows the sign. It is emitted whatever Arabic face the admin
+#: chose, "System" included: no operating system could be relied on for the sign in 2026
+#: (Unicode 17.0, September 2025), so without it an amount would show a missing-glyph box.
+RIYAL_FAMILY = "Bunood Riyal"
+RIYAL_FACE_CSS = f"""@font-face {{
+  font-family: "{RIYAL_FAMILY}";
+  src: url(/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2) format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+20C1;
+}}"""
+
+
 def render_typography_css(settings) -> str:
     """The Arabic face block: ``@font-face`` + tokens + one body rule.
 
@@ -352,7 +372,9 @@ def render_typography_css(settings) -> str:
 
     Only the SELECTED face is emitted. The unused catalogue is never
     referenced, so no browser anywhere downloads a face the admin did not
-    choose. "System" emits nothing at all — the honest zero-payload option.
+    choose. "System" emits no Arabic face — the honest zero-payload option —
+    but still the riyal sign's, which weighs 1 KB and loads only where the sign
+    is shown (``RIYAL_FACE_CSS``).
 
     ``--bnd-lh-arabic`` is declared here but CONSUMED in ``_cursive.scss``,
     inside the cursive-language scope: leading is a per-face fact (Cairo needs
@@ -361,7 +383,12 @@ def render_typography_css(settings) -> str:
     """
     face = FACES.get((getattr(settings, "arabic_font", None) or DEFAULT_FACE).strip())
     if not face or not face.get("family"):
-        return ""
+        # "System": no Arabic face is downloaded, but the riyal sign still needs its own.
+        return f"""{RIYAL_FACE_CSS}
+body {{
+  font-family: "{RIYAL_FAMILY}", var(--font-stack);
+}}
+"""
 
     faces_css = "\n".join(
         f"""@font-face {{
@@ -379,11 +406,12 @@ def render_typography_css(settings) -> str:
 
     lh = f"\n  --bnd-lh-arabic: {face['line_height']};" if face.get("line_height") else ""
     return f"""{faces_css}
+{RIYAL_FACE_CSS}
 :root {{
   --bnd-font-arabic: "{face["family"]}", {face["fallback"]};{lh}
 }}
 body {{
-  font-family: var(--bnd-font-arabic), var(--font-stack);
+  font-family: "{RIYAL_FAMILY}", var(--bnd-font-arabic), var(--font-stack);
 }}
 """
 

@@ -155,6 +155,10 @@ bunood_theme.patches.v0_49_0.retire_rail_button
 #   bunood_theme.patches.v0_46_34.payment_account_recovery (payment account mappings)
 #   bunood_theme.patches.v0_46_35.cash_customer_defaults   (cash customer + POS profile default)
 # Their names carry the experimental line's numbering; renumber on approval.
+# v0.49.2 (prepared as v0.48.6), THE OWNER (2026-09-28): «رمز الريال السعودي يكون في النظام كامل». SAR's symbol becomes
+# the sign SAMA published (U+20C1) wherever it still reads a stock spelling; a symbol somebody
+# chose is kept. The glyph itself comes from brand.py's RIYAL_FACE_CSS and print.scss.
+bunood_theme.patches.v0_48_6.saudi_riyal_symbol
 
 # LAST, AND IT STAYS: whatever the translations above could not map, this makes
 # legal. It had drifted to third-from-last (audit finding c-8) — a Select a

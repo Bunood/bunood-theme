@@ -24,6 +24,48 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.49.2] — 2026-10-03 — the Saudi riyal sign on every desk (patch)
+
+**Numbered after v0.49.1.** Prepared as 0.48.6 on 2026-09-28, on top of 0.48.5, and never tagged; 0.48.5 shipped as
+0.49.1 after the settings audit (v0.49.0), so this patch on top of it is 0.49.2. Its patch keeps its module path,
+`v0_48_6.saudi_riyal_symbol`, and runs before the placement healer, which the audit keeps last.
+
+### Changed — SAR is written with the sign SAMA published
+
+The owner asked for the Saudi riyal sign (U+20C1) everywhere: «العمله الريال السعودي svg … رمز
+الريال السعودي يكون في النظام كامل». The theme already carried SAMA's own artwork
+(`fonts/riyal/Saudi_Riyal_Symbol-official.svg`) and the font built from it, but only the print
+sheet used them.
+
+- **The mark.** Frappe writes every amount's mark from `Currency.symbol`, so one value decides
+  every form, list, report, print and portal page of every app. Patch
+  `v0_48_6.saudi_riyal_symbol` sets SAR's symbol to U+20C1 wherever it still reads a stock
+  spelling («ر.س», «﷼», `SAR`, `SR`, or blank). A symbol somebody chose is kept. A second run
+  changes nothing.
+- **The glyph.** The brand sheet now always declares the `Bunood Riyal` face
+  (`bunood-riyal.woff2`, `unicode-range: U+20C1`, 1 KB, downloaded only where the sign shows),
+  and leads the body stack with it. That includes the "System" face, which downloads no Arabic
+  face at all. Before this, no operating system could be relied on to draw the sign (Unicode
+  17.0, September 2025). The print sheet already embeds the same face.
+
+Verified on the isolated P0-07 bench (`crm-theme.test`), which was restored exactly afterwards:
+
+- **The patch.** SAR went from «ر.س» to U+20C1 ("set"), then "already the riyal sign" on the
+  second run.
+- **Server formatting.** `fmt_money(1234567.89, "SAR")` gives `⃁ 1,234,567.89`.
+- **The desk.** `frappe.format` gives the sign, drawn in `Bunood Riyal` (face status `loaded`, and
+  the computed stack leads with it), in Arabic RTL. There were no console errors.
+
+Not drawn by us: an e-mail or a text message carries the character, and the reader's own fonts
+draw it. An older phone or mail client may show a box. That is measured on real clients after
+the first deploy.
+
+Merged onto v0.49.1 (2026-10-03): `npm run build` and its guards pass with every bundle byte-identical to v0.49.1,
+contrast passes, and the Python tests pass, `test_riyal_sign` among them. The bench checks above ran on the v0.48.5 base.
+
+Payload: every bucket byte-identical to v0.49.1 (and to v0.48.5 as prepared). The face is the one the print sheet
+already ships, and the brand sheet is generated per site.
+
 ## [0.49.1] — 2026-10-03 — the vendor's adverts, gone from every desk (patch)
 
 **Numbered after v0.49.0 shipped first.** Prepared as 0.48.5 on 2026-09-28 and never tagged; the settings audit
