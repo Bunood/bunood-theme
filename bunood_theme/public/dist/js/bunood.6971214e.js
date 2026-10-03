@@ -5618,18 +5618,26 @@
 		return "label:" + (opt.value || opt.label || "");
 	}
 
+	/** Frappe's presentation tags removed, before our own highlighting. */
+	function pal_plain_text(value) {
+		return new DOMParser().parseFromString(String(value || ""), "text/html").body.textContent || "";
+	}
+
 	/**
 	 * Map one frappe.search.utils option into a palette row model. The
 	 * marked label (match highlighting) comes from Frappe's own fuzzy_search
 	 * so the palette shows the same "why it matched" the stock bar would.
+	 * Marked over the TRANSLATED label: opt.value is Frappe's stable English
+	 * routing value, and marking it put "Item" on an Arabic palette.
 	 */
 	function pal_row(opt, species, txt) {
-		let marked = opt.label || opt.value || "";
+		const display = pal_plain_text(__(opt.label || opt.value || ""));
+		let marked = frappe.utils.escape_html(display);
 		if (txt && frappe.search.utils.fuzzy_search) {
-			const scored = frappe.search.utils.fuzzy_search(txt, opt.value || "", true);
+			const scored = frappe.search.utils.fuzzy_search(txt, display, true);
 			if (scored && scored.marked_string) marked = scored.marked_string;
 		}
-		const plain = opt.value || opt.label || "";
+		const plain = pal_plain_text(opt.value || opt.label || "");
 		// The badge names what Enter does, so a "X Report" or "X Tree" row
 		// must not wear the generic List badge of its species. Match on the
 		// UNTRANSLATED opt.type Frappe supplies — the value string is
@@ -5989,13 +5997,11 @@
 			item.appendChild(badge);
 		}
 		item.addEventListener("mousemove", () => pal_highlight(flat_index));
-		item.addEventListener("mousedown", (ev) => {
-			ev.preventDefault();
-			pal_execute(row, ev.ctrlKey || ev.metaKey);
-		});
-		// Click too: assistive tech that synthesises activation sends a plain
-		// click, not the mousedown the pointer path uses. Idempotent — the
-		// mousedown's preventDefault means a real pointer never fires both.
+		// mousedown only keeps focus in the input; the row runs on click.
+		// Running on mousedown removed the palette mid-click, and the rest of
+		// the click landed on whatever lay beneath it. Assistive activation
+		// sends the same click, so there is one path.
+		item.addEventListener("mousedown", (ev) => ev.preventDefault());
 		item.addEventListener("click", (ev) => {
 			ev.preventDefault();
 			pal_execute(row, ev.ctrlKey || ev.metaKey);

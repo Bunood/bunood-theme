@@ -204,11 +204,12 @@
 		"AND pos_js 11300 -> 12550 (measured 12,270) for catalogue tiles: four line drawings chosen by Arabic or English keywords, a stable group tint, and a Service label for non-stock items; pos_css measured 6,039 of 6,200 with the six tint rules.",
 		"INTEGRATION team 2026-10-03, ZATCA workspace: new route bundle bnd-zatca, zatca_css_gzip 4350 (measured 4,081, of which the :root token set the phantom-token guard requires every route sheet to carry) and zatca_js_gzip 5400 (measured 5,120: the read-only status, Sandbox path and invoice monitor).",
 		"AND js 138550 -> 138950 (measured 138,702) for sidebar badges counted by each link's DocType target (team R24), not its translated label.",
-		"AND js 138950 -> 139500 (measured 139,231) for one inbox observer that also re-badges a replaced native row or rebuilt bell (team R23)."
+		"AND js 138950 -> 139500 (measured 139,231) for one inbox observer that also re-badges a replaced native row or rebuilt bell (team R23).",
+		"AND js 139500 -> 139850 (measured 139,568) for palette rows in the desk's language and run on click (team R22)."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
-		"js_gzip": 139500,
+		"js_gzip": 139850,
 		"studio_js_gzip": 39050,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,
