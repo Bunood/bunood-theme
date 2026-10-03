@@ -199,7 +199,8 @@
 		"AND studio_js 38550 -> 39050 (measured 38,770) for document links aimed at the served value, skipped on total rows and given the way back on Frappe's own anchors.",
 		"AND report_landing_js 2150 -> 2500 (measured 2,256) for the landing's permission gate: cards only for report Pages this user's roles open, from boot.bnd_report_landing_permitted_pages.",
 		"INTEGRATION team 2026-10-03, Studio routing (team R3): js 137800 -> 138550 (measured 138,311) for bunood.studio_report_route, the one mapping the finance desks' report buttons use; banking_js 5000 -> 5300 (measured 5,074) for the bank account's statement opened in the Studio with its company and period.",
-		"AND finance_close_js 3700 -> 4100 (measured 3,827) / journal_workbench_js 4500 -> 4850 (measured 4,582) for the prompt each desk shows until its first evidence loads; css measured 31,007 of 32,000 with its panel."
+		"AND finance_close_js 3700 -> 4100 (measured 3,827) / journal_workbench_js 4500 -> 4850 (measured 4,582) for the prompt each desk shows until its first evidence loads; css measured 31,007 of 32,000 with its panel.",
+		"INTEGRATION team 2026-10-03, POS: pos_js 9200 -> 11300 (measured 11,053) for the receipt register page's renderer (filters, paging, rows, native reprint) and the counter's link to it; pos_css 5700 -> 6200 (measured 5,925) for the register's re-tokenised styles."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
@@ -208,8 +209,8 @@
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,
 		"studio_css_gzip": 6800,
-		"pos_css_gzip": 5700,
-		"pos_js_gzip": 9200,
+		"pos_css_gzip": 6200,
+		"pos_js_gzip": 11300,
 		"web_css_gzip": 4450,
 		"banking_js_gzip": 5300,
 		"finance_close_js_gzip": 4100,

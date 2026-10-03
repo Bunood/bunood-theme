@@ -11678,3 +11678,165 @@ msgstr "اختر مرشحًا صالحًا لمبيعات نقطة البيع."
 #, fuzzy
 msgid "You cannot view POS receipts."
 msgstr "ليست لديك صلاحية لعرض إيصالات نقطة البيع."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "This shift"
+msgstr "هذه الوردية"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "My sales"
+msgstr "مبيعاتي"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All permitted sales"
+msgstr "جميع المبيعات المصرح بها"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipts"
+msgstr "إيصالات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS sales register"
+msgstr "سجل مبيعات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Find receipts from both POS invoice types without counting shift consolidation twice."
+msgstr "ابحث في إيصالات نوعَي فواتير نقطة البيع دون تكرار احتساب فاتورة تجميع الوردية."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open POS"
+msgstr "فتح نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS sales filters"
+msgstr "مرشحات مبيعات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Receipt or customer"
+msgstr "الإيصال أو العميل"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Search receipt number or customer"
+msgstr "ابحث برقم الإيصال أو العميل"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All permitted companies"
+msgstr "جميع الشركات المصرح بها"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Original records, including older POS invoice types"
+msgstr "السجلات الأصلية، بما فيها أنواع فواتير نقطة البيع السابقة"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Customer and cashier"
+msgstr "العميل وأمين الصندوق"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Payment and type"
+msgstr "السداد والنوع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Load more receipts"
+msgstr "تحميل مزيد من الإيصالات"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Walk-in customer"
+msgstr "عميل نقدي"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipt"
+msgstr "إيصال نقطة بيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Partly paid"
+msgstr "مدفوعة جزئيًا"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Payment status"
+msgstr "حالة السداد"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Reprint"
+msgstr "إعادة الطباعة"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No shift is open. Open POS to start a shift."
+msgstr "لا توجد وردية مفتوحة. افتح نقطة البيع لبدء وردية."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No POS receipts match these filters."
+msgstr "لا توجد إيصالات نقطة بيع تطابق هذه المرشحات."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Your current open shift only"
+msgstr "ورديتك المفتوحة الحالية فقط"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Receipts could not be loaded. Try again."
+msgstr "تعذر تحميل الإيصالات. حاول مرة أخرى."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Loading POS receipts…"
+msgstr "جارٍ تحميل إيصالات نقطة البيع…"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipts could not be loaded. Rebuild the theme assets and try again."
+msgstr "تعذر تحميل إيصالات نقطة البيع. أعد بناء ملفات الواجهة وحاول مرة أخرى."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "View all POS receipts"
+msgstr "عرض جميع إيصالات نقطة البيع"

@@ -119,3 +119,25 @@ test("receipts from both invoice types act on their own type", () => {
 	assert.match(js, /source_doctype: doctype, source_name: name/);
 });
 
+
+test("the receipt register is a role-gated Page over the read-only union, reprinting natively", () => {
+	const page = JSON.parse(read("bunood_theme/bunood_theme/page/bnd_pos_register/bnd_pos_register.json"));
+	assert.equal(page.name, "bnd-pos-register");
+	assert.deepEqual(page.roles.map((row) => row.role).sort(),
+		["Accounts Manager", "Accounts User", "Auditor", "Sales Manager", "Sales User", "System Manager"]);
+	const loader = read("bunood_theme/bunood_theme/page/bnd_pos_register/bnd_pos_register.js");
+	assert.match(loader, /window\.bunood_theme\.pos_register_render\(container, page\)/);
+	assert.match(loader, /method: "bunood_theme\.api\.get_pos_assets"/);
+	assert.match(js, /window\.bunood_theme\.pos_register_render = renderRegister;/);
+	assert.match(js, /api\("receipt_register", \{/);
+	assert.match(js, /button\(__\("Reprint"\), "printer", "btn btn-default", \(\) => openPrintView\(row\.doctype, row\.name, "Standard"\)\)/);
+	assert.match(js, /window\.open\(`\/printview\?\$\{query\.toString\(\)\}`, "_blank", "noopener"\)/);
+	assert.doesNotMatch(js, /get_delivery_status|printCustomerReceipt|queue_invoice/, "no ZATCA delivery gate on reprint");
+	assert.match(js, /frappe\.set_route\("bnd-pos-register"\)/);
+	assert.match(js, /allReceipts\.hidden = view !== "history";/);
+	assert.match(scss, /html\[data-theme\] \.bnd-pos-register \{/);
+	assert.doesNotMatch(scss.slice(scss.indexOf("The receipt register")), /#[0-9a-fA-F]{3,6}\b/, "re-tokenised");
+	for (const source of ["POS sales register", "View all POS receipts", "Reprint", "Load more receipts"]) {
+		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
+	}
+});

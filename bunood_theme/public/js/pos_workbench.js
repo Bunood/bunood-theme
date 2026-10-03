@@ -160,6 +160,11 @@
 		const listsSearch = el("input", "form-control", null, listsHead);
 		listsSearch.type = "search";
 		listsSearch.placeholder = __("Search receipts or customers");
+		// The counter keeps a short history; every permitted receipt lives in
+		// the register page.
+		const allReceipts = button(__("View all POS receipts"), "external-link", "btn btn-default bnd-pos__all-receipts",
+			() => frappe.set_route("bnd-pos-register"));
+		listsHead.append(allReceipts);
 		const listBody = el("div", "bnd-pos__list-body", null, lists);
 
 		const cart = el("aside", "bnd-pos__cart", null, workspace);
@@ -243,6 +248,7 @@
 			state.view = view;
 			catalogue.hidden = view !== "items";
 			lists.hidden = view === "items";
+			allReceipts.hidden = view !== "history";
 			for (const control of tabs.querySelectorAll(".bnd-pos__tab")) {
 				const active = control.dataset.view === view;
 				control.classList.toggle("is-active", active);
@@ -898,6 +904,165 @@
 		initialize();
 	}
 
+	// The native print view in a new tab, as the counter's own Print opens it.
+	function openPrintView(doctype, name, format) {
+		const query = new URLSearchParams({ doctype, name, format: format || "Standard", trigger_print: "1" });
+		window.open(`/printview?${query.toString()}`, "_blank", "noopener");
+	}
+
+	// The receipt register (bnd-pos-register): every permitted POS receipt of
+	// both invoice types, read through pos.receipt_register. Read-only; Open and
+	// Reprint are the native form and print view.
+	function renderRegister(container) {
+		container.replaceChildren();
+		const route = frappe.get_route?.() || [];
+		const modes = [
+			["today", __("Today")], ["shift", __("This shift")],
+			["mine", __("My sales")], ["all", __("All permitted sales")],
+			["returns", __("Returns")],
+		];
+		const state = {
+			mode: modes.some(([key]) => key === route[1]) ? route[1] : "today",
+			company: route[2] ? decodeURIComponent(route[2]) : "",
+			search: "", cursor: null, busy: false, serial: 0,
+		};
+		const root = el("section", "bnd-pos-register", null, container);
+		const heading = el("header", "bnd-pos-register__heading", null, root);
+		const headingCopy = el("div", null, null, heading);
+		headingCopy.append(
+			el("span", "bnd-pos-register__eyebrow", __("POS receipts")),
+			el("h1", null, __("POS sales register")),
+			el("p", null, __("Find receipts from both POS invoice types without counting shift consolidation twice."))
+		);
+		heading.append(headingCopy, button(__("Open POS"), "shopping-cart", "btn btn-primary", () => frappe.set_route("bnd-pos")));
+		const toolbar = el("section", "bnd-pos-register__toolbar", null, root);
+		const modeRow = el("div", "bnd-pos-register__modes", null, toolbar);
+		modeRow.setAttribute("role", "group");
+		modeRow.setAttribute("aria-label", __("POS sales filters"));
+		const modeButtons = new Map();
+		for (const [key, label] of modes) {
+			const control = button(label, null, "bnd-pos-register__mode", () => {
+				if (state.mode === key) return;
+				state.mode = key;
+				syncModes();
+				refresh();
+			});
+			modeButtons.set(key, control);
+			modeRow.append(control);
+		}
+		const fields = el("div", "bnd-pos-register__fields", null, toolbar);
+		const searchLabel = el("label", "bnd-pos-register__field", null, fields);
+		searchLabel.append(el("span", null, __("Receipt or customer")));
+		const search = el("input", "form-control", null, searchLabel);
+		search.type = "search";
+		search.placeholder = __("Search receipt number or customer");
+		const companyLabel = el("label", "bnd-pos-register__field", null, fields);
+		companyLabel.append(el("span", null, __("Company")));
+		const company = el("select", "form-control", null, companyLabel);
+		company.append(new Option(__("All permitted companies"), ""));
+		company.value = state.company;
+		company.addEventListener("change", () => { state.company = company.value; refresh(); });
+		const result = el("section", "bnd-pos-register__results", null, root);
+		const resultHead = el("header", "bnd-pos-register__results-head", null, result);
+		el("h2", null, __("Receipts"), resultHead);
+		const resultNote = el("p", null, __("Original records, including older POS invoice types"), resultHead);
+		const columnHead = el("div", "bnd-pos-register__columns", null, result);
+		columnHead.setAttribute("aria-hidden", "true");
+		for (const label of [__("Receipt"), __("Customer and cashier"), __("Payment and type"), __("Amount"), __("Actions")]) {
+			columnHead.append(el("span", null, label));
+		}
+		const list = el("div", "bnd-pos-register__list", null, result);
+		const more = button(__("Load more receipts"), "chevron-down", "btn btn-default bnd-pos-register__more", loadMore);
+		more.hidden = true;
+		result.append(more);
+		let searchTimer = 0;
+		search.addEventListener("input", () => {
+			clearTimeout(searchTimer);
+			searchTimer = setTimeout(() => { state.search = search.value.trim(); refresh(); }, 250);
+		});
+		function syncModes() {
+			for (const [key, control] of modeButtons) {
+				const active = key === state.mode;
+				control.classList.toggle("is-active", active);
+				control.setAttribute("aria-pressed", String(active));
+			}
+		}
+		function showRow(row) {
+			const card = el("article", "bnd-pos-register__row", null, list);
+			const identity = el("div", "bnd-pos-register__identity", null, card);
+			identity.append(el("strong", null, row.name), el("small", null,
+				`${userDate(row.posting_date)} · ${row.pos_profile || __("POS")}`));
+			const customer = el("div", "bnd-pos-register__person", null, card);
+			customer.append(el("strong", null, row.customer_name || row.customer || __("Walk-in customer")),
+				el("small", null, `${__("Cashier")}: ${row.owner || "—"}`));
+			const status = el("div", "bnd-pos-register__status", null, card);
+			const kind = el("span", "bnd-pos-register__kind", __("POS receipt"), status);
+			kind.title = __(row.doctype);
+			status.append(el("small", null, __(row.doctype)));
+			if (row.is_return) status.append(el("span", "bnd-pos-register__return", __("Return")));
+			const balance = Number(row.outstanding_amount || 0);
+			const total = Math.abs(Number(row.grand_total || 0));
+			const paid = balance <= 0 ? __("Paid") : balance < total ? __("Partly paid") : __("Unpaid");
+			status.append(el("small", null, `${__("Payment status")}: ${paid}`));
+			card.append(el("strong", "bnd-pos-register__amount", money(row.grand_total, row.currency)));
+			const actions = el("div", "bnd-pos-register__actions", null, card);
+			actions.append(
+				button(__("Open"), "external-link", "btn btn-default", () => frappe.set_route("Form", row.doctype, row.name)),
+				button(__("Reprint"), "printer", "btn btn-default", () => openPrintView(row.doctype, row.name, "Standard"))
+			);
+		}
+		function setCompanies(names) {
+			company.replaceChildren(new Option(__("All permitted companies"), ""));
+			for (const name of names || []) company.append(new Option(name, name));
+			if (state.company && ![...company.options].some((option) => option.value === state.company)) {
+				state.company = "";
+			}
+			company.value = state.company;
+		}
+		async function loadMore() {
+			if (state.busy) return;
+			state.busy = true;
+			const serial = state.serial;
+			more.disabled = true;
+			try {
+				const data = await api("receipt_register", {
+					mode: state.mode, company: state.company, search_term: state.search,
+					cursor: state.cursor ? JSON.stringify(state.cursor) : "", limit: 30,
+				}, { type: "GET" });
+				if (serial !== state.serial || !root.isConnected) return;
+				setCompanies(data.companies);
+				list.querySelector(".bnd-pos-register__loading")?.remove();
+				for (const receipt of data.rows || []) showRow(receipt);
+				state.cursor = data.next_cursor;
+				more.hidden = !state.cursor;
+				if (!list.children.length) list.append(el("p", "bnd-pos-register__empty", state.mode === "shift" && data.has_open_shift === false
+					? __("No shift is open. Open POS to start a shift.")
+					: __("No POS receipts match these filters.")));
+				resultNote.textContent = state.mode === "shift" ? __("Your current open shift only")
+					: __("Original records, including older POS invoice types");
+			} catch (error) {
+				if (serial === state.serial) {
+					list.querySelector(".bnd-pos-register__loading")?.remove();
+					list.append(el("p", "bnd-pos-register__empty", __("Receipts could not be loaded. Try again.")));
+					more.hidden = true;
+				}
+			} finally {
+				if (serial === state.serial) { state.busy = false; more.disabled = false; }
+			}
+		}
+		function refresh() {
+			state.serial += 1;
+			state.busy = false;
+			state.cursor = null;
+			list.replaceChildren(el("p", "bnd-pos-register__empty bnd-pos-register__loading", __("Loading POS receipts…")));
+			more.hidden = true;
+			loadMore();
+		}
+		syncModes();
+		refresh();
+	}
+
 	window.bunood_theme = window.bunood_theme || {};
 	window.bunood_theme.pos_render = render;
+	window.bunood_theme.pos_register_render = renderRegister;
 })();
