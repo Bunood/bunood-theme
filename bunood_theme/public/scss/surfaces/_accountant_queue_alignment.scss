@@ -1,0 +1,29 @@
+@use "../breakpoints" as bp;
+
+// A content-sized flex item drifts sideways when the reason changes length.
+// Shared tracks keep every amount on the same edge without clipping money.
+html.bunood[data-theme] .bnd-accountant-queue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) max-content;
+  gap: var(--bnd-sp-3) var(--bnd-sp-5);
+}
+
+html.bunood[data-theme] .bnd-accountant-queue-row :is(.bnd-accountant-queue-main, .bnd-accountant-queue-meta) {
+  inline-size: 100%;
+  overflow-wrap: anywhere;
+}
+
+html.bunood[data-theme] .bnd-accountant-queue-open {
+  white-space: nowrap;
+}
+
+@include bp.bnd-until(sm) {
+  html.bunood[data-theme] .bnd-accountant-queue-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  html.bunood[data-theme] .bnd-accountant-queue-open {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+}

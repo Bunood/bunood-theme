@@ -1,0 +1,696 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// GLOBAL CLUSTER + AVATAR MENU — shared by every non-classic layout.
+//
+// WHAT
+//   `.bnd-cluster`  — the [search] [bell] [avatar] button group. One builder
+//                     in bunood.js produces it; each layout mounts it in its
+//                     own bar (topbar / page-head / bottombar / dock).
+//   `.bnd-menu`     — the theme's own dropdown, used for the avatar menu and
+//                     the dock's workspace-overflow menu. Fixed-position,
+//                     JS-anchored to its trigger, opens up or down.
+//
+// WHY OUR OWN MENU AND NOT FRAPPE'S
+//   Frappe's `.frappe-menu` is built by sidebar code we do not own, anchored
+//   to sidebar coordinates, with content we would have to mutate. The avatar
+//   menu's ITEMS still call only Frappe's public toolbar APIs (bunood.js) —
+//   we own the shell, Frappe owns every behaviour.
+//
+// ACCESSIBILITY BASELINE (full pass is checklist item 34)
+//   Real <button> elements, aria-labels from bunood.js, Escape closes,
+//   focus-visible ring from the accent token.
+// ============================================================================
+
+html[data-theme] .bnd-cluster {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: var(--bnd-sp-2);
+  position: relative;
+}
+
+// Icon buttons: bell, dock search, compact-layout search. 28px square — the
+// same optical size as Frappe's own sidebar icon rows.
+html[data-theme] .bnd-icon-btn {
+  display: grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border: none;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  cursor: pointer;
+  transition: background var(--bnd-dur-fast) var(--bnd-ease),
+    color var(--bnd-dur-fast) var(--bnd-ease);
+
+  svg {
+    inline-size: 16px;
+    block-size: 16px;
+  }
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-ink);
+  }
+}
+
+// The avatar trigger wraps Frappe's own avatar markup (frappe.avatar()), so
+// user images, initials and their background colours all come from core.
+html[data-theme] .bnd-avatar-btn {
+  display: grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  border: none;
+  border-radius: var(--bnd-radius-pill);
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+
+  .avatar {
+    inline-size: 26px;
+    block-size: 26px;
+  }
+
+  &:hover {
+    box-shadow: 0 0 0 2px var(--bnd-active);
+  }
+}
+
+// The identity copy belongs only to the wide account card in the side pane.
+// Other placements keep the same compact avatar trigger.
+html[data-theme] .bnd-user-summary {
+  display: none;
+}
+
+// Labels belong to the four-cell phone navigation only.  Leaving these inline
+// on a desktop made the account label paint outside its fixed avatar button,
+// where it could cover the notification control and even the viewport edge.
+html[data-theme]:not([data-bnd-narrow]) .bnd-mobile-nav-label {
+  display: none;
+}
+
+// Divider between page actions and global cluster in the compact layout's
+// shared strip — the "one strip, two jobs" seam made visible.
+html[data-theme] .bnd-cluster-divider {
+  inline-size: var(--bnd-line);
+  block-size: 18px;
+  background: var(--bnd-border);
+  margin-inline: var(--bnd-sp-2);
+}
+
+// ── The theme's dropdown menu ───────────────────────────────────────────────
+html[data-theme] .bnd-menu {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  min-inline-size: 220px;
+  // A LONG LIST SCROLLS RATHER THAN RUNNING OFF THE VIEWPORT (item 40).
+  // The Place row's switcher carries every root workspace -- eighteen on
+  // this stack, measured at 693px -- and the upward-flip branch only moves
+  // the overflow to the other edge. Capped on the MENU, not the list, so
+  // the identity header (a sibling of the list, never its child) counts
+  // toward the height it is capped against.
+  // ...and a region that scrolls must be TAB-REACHABLE (axe's
+  // scrollable-region-focusable): show_menu stamps tabindex=0 on the
+  // menu itself, because roving tabindex=-1 items do not count and the
+  // focus contract is untouched — Tab already closes the popup. Found
+  // the day the head switcher (18 roots, genuinely scrollable) joined
+  // the axe scan; the shorter avatar menu could never trip it.
+  max-block-size: min(70vh, 560px);
+  overflow-y: auto;
+  // A capped, scrolling popup shows a scrollbar, and the platform default is a
+  // wide grey slab against a 220px panel — on the head switcher (every root
+  // workspace) it reads as a second border. Same treatment the pane already
+  // uses for its own overflow (_sidebar.scss), so the two agree.
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--bnd-ink) 22%, transparent) transparent;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  box-shadow: var(--bnd-shadow-lg);
+
+  // The identity header moved into the account panel (8c); no menu
+  // builds one any more, so its styles went with the branch.
+
+  .bnd-menu-item {
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    inline-size: 100%;
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border: none;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-ink);
+    font-size: var(--bnd-text-sm);
+    text-align: start;
+    cursor: pointer;
+
+    // ONE ICON COLUMN. Measured 2026-09-05 from the user's screenshot of the
+    // workspace menu: labels end-aligned, icons at a different x on every row
+    // (128, 122, 131, 120, 126 px). Root cause: Frappe's `.icon { margin: 0 auto }`
+    // on every sprite svg -- inside a flex row the two auto margins split the
+    // free space, so the icon floats to the middle and pushes the label to the
+    // end, by an amount that depends on the label's width. Zeroing the margin
+    // is the fix; the fixed cell is what keeps sprites and the modules' own
+    // desktop-icon images (20px tiles) on the same column.
+    .bnd-menu-ico {
+      display: grid;
+      place-items: center;
+      inline-size: var(--bnd-menu-ico);
+      block-size: var(--bnd-menu-ico);
+      flex: none;
+    }
+
+    .bnd-menu-img {
+      inline-size: 100%;
+      block-size: 100%;
+      border-radius: var(--bnd-radius-sm);
+      object-fit: contain;
+    }
+
+    .bnd-menu-label {
+      flex: 1;
+      min-inline-size: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    svg {
+      inline-size: 16px;
+      block-size: 16px;
+      margin: 0; // beats the vendor's `.icon { margin: 0 auto }` -- see above
+      flex: none;
+      color: var(--bnd-ink-muted);
+    }
+
+    &:hover {
+      background: var(--bnd-hover);
+      text-decoration: none;
+      color: var(--bnd-ink);
+    }
+
+    &.bnd-danger {
+      color: var(--bnd-critical);
+      svg {
+        color: var(--bnd-critical);
+      }
+    }
+  }
+
+  .bnd-menu-divider {
+    block-size: var(--bnd-line);
+    background: var(--bnd-border);
+    margin-block: var(--bnd-sp-1);
+    margin-inline: var(--bnd-sp-2);
+  }
+
+  // ── Flyouts (2026-09-14) ─────────────────────────────────────────────────
+  // THE ARGUMENTS FOR THE RUNTIME LIVE HERE, because build.mjs copies bunood.js
+  // verbatim and every comment in it ships; Sass strips these. menu_list,
+  // menu_keys, open_fly_for, close_fly and sb_quick_links point at this block.
+  //
+  // WHAT: the place row's chevron listed Home, All Apps and every root
+  // workspace — thirty-one rows on the reference desk, the All Apps grid again.
+  // THE USER (2026-09-14): "it should include quick links such as new invoice
+  // from different modules, new report from different modules". Three shapes
+  // were drawn (flyouts per module · one grouped list with a filter · this
+  // place first) and the pick was the first: every module row keeps its click
+  // (go there) and grows a FLYOUT — New … for the DocTypes this person may
+  // create, then the module's reports, then Open <module>.
+  //
+  // DERIVED, NEVER CURATED. The rows are the workspace's own sidebar items
+  // (boot.workspace_sidebar_item, keyed by the sidebar's title) in the order
+  // the admin set in Frappe's sidebar editor, so changing a module's quick
+  // links is editing its sidebar, not a theme setting. The create check is
+  // Frappe's (boot.user.can_create) at the moment the menu opens; Singles have
+  // no "new"; a report opens the way the sidebar opens it (query report or
+  // report builder, by its type). Caps keep a menu a menu — six creates, four
+  // reports; the rest sit behind Open <module>. Labels are Frappe's own
+  // "New {0}" over the DocType's translated name, so Arabic needs no theme
+  // string (inherited.ar.txt carries the row).
+  //
+  // THE MECHANICS. A row with children announces a submenu (aria-haspopup,
+  // aria-expanded, the chevron below) and opens it on hover INTENT — 120ms,
+  // so a pointer crossing the list to reach a lower row opens nothing — or on
+  // the arrow key toward the inline END; the arrow toward the START closes it
+  // and returns focus to the row; Escape and Tab close everything, per the
+  // FOCUS CONTRACT on show_menu. Leaving a row closes nothing: the pointer is
+  // on its way to the flyout, which cancels the timer; entering another row
+  // swaps or closes. The flyout is a second .bnd-menu at the root menu's
+  // inline-end edge, level with its row, flipped to the other side when it
+  // would not fit and clamped to the viewport either way, in PHYSICAL
+  // coordinates like show_menu — the side follows the document's direction
+  // (getComputedStyle(html).direction), never the language, which is what
+  // the RTL arm of the check flips. Its heading is the flyout's OWN child, a
+  // sibling of its role="menu" list, and names that list: ARIA lets a menu
+  // hold only items, separators and groups, and the axe scan already caught
+  // a header inside one once (the identity header, item 40 8c).
+  .bnd-menu-more {
+    display: grid;
+    place-items: center;
+    margin-inline-start: auto;
+    flex: none;
+
+    svg {
+      inline-size: 14px;
+      block-size: 14px;
+    }
+  }
+
+  .bnd-menu-item[aria-expanded="true"] {
+    background: var(--bnd-hover);
+  }
+
+  .bnd-menu-heading {
+    padding: var(--bnd-sp-2) var(--bnd-sp-3) var(--bnd-sp-1);
+    font-size: var(--bnd-text-xs);
+    font-weight: var(--bnd-weight-semibold);
+    text-transform: uppercase;
+    color: var(--bnd-ink-muted);
+  }
+}
+// The chevron points toward the inline end, which in RTL is the left.
+html[dir="rtl"] .bnd-menu .bnd-menu-more svg {
+  transform: scaleX(-1);
+}
+
+// ── The account panel (item 40, 8c) ─────────────────────────────────────
+// role=dialog, labelled by the name. The clamp is ONE rule with three
+// consumers (name, email, company line): text never grows the panel, the
+// check pins both dimensions with a long Arabic identity. Internal scroll
+// is what keeps Sign Out reachable at a 600px viewport with the company
+// list open. And the panel is a DIALOG, never role=menu: it holds an inert
+// identity block, a radiogroup, a disclosure sub-list and a caption, and
+// ARIA permits a menu to own only menuitems. It is labelled by the NAME
+// element, announcing as the identity the icon-only band gave up; focus
+// lands on the PANEL, never the radiogroup — radios select on arrow, and
+// landing there would change the person's theme before they read a word.
+// The mode radios post through Frappe's OWN switch_theme endpoint (the
+// appearance dialog's exact path) and the company rows through the
+// vendor's session-defaults write: one mechanism per question.
+html[data-theme] .bnd-acct-panel {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  inline-size: var(--bnd-acct-w);
+  max-block-size: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: var(--bnd-sp-1);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  box-shadow: var(--bnd-shadow-lg);
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity var(--bnd-dur-fast) var(--bnd-ease),
+    transform var(--bnd-dur-fast) var(--bnd-ease);
+
+  &.bnd-acct-open {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .bnd-acct-head {
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+    margin-block-end: var(--bnd-sp-1);
+  }
+  .bnd-acct-avatar .avatar {
+    inline-size: 36px;
+    block-size: 36px;
+  }
+  // Ellipsis inside flex needs the implicit min-size floor opted out.
+  .bnd-acct-id {
+    flex: 1;
+    min-inline-size: 0;
+  }
+  .bnd-acct-name {
+    font-size: var(--bnd-text-sm);
+    font-weight: var(--bnd-weight-medium);
+    color: var(--bnd-ink);
+  }
+  .bnd-acct-email,
+  .bnd-acct-company-line {
+    font-size: var(--bnd-text-xs);
+    color: var(--bnd-ink-subtle);
+  }
+  // THE CLAMP — one rule, three consumers.
+  .bnd-acct-name,
+  .bnd-acct-email,
+  .bnd-acct-company-line {
+    max-inline-size: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bnd-acct-appearance {
+    display: flex;
+    gap: var(--bnd-sp-1);
+    padding: var(--bnd-sp-1);
+    margin-block-end: var(--bnd-sp-1);
+    background: var(--bnd-hover);
+    border-radius: var(--bnd-radius-md);
+  }
+  .bnd-acct-radio {
+    flex: 1;
+    padding-block: var(--bnd-sp-1);
+    border: var(--bnd-line) solid transparent;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+    cursor: pointer;
+
+    &[aria-checked="true"] {
+      background: var(--bnd-surface);
+      border-color: var(--bnd-border);
+      color: var(--bnd-ink);
+      font-weight: var(--bnd-weight-medium);
+    }
+  }
+
+  .bnd-acct-item,
+  .bnd-acct-company,
+  .bnd-acct-company-opt {
+    display: flex;
+    align-items: center;
+    gap: var(--bnd-sp-2);
+    inline-size: 100%;
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border: none;
+    border-radius: var(--bnd-radius-md);
+    background: transparent;
+    color: var(--bnd-ink);
+    font-size: var(--bnd-text-sm);
+    text-align: start;
+    cursor: pointer;
+
+    svg {
+      inline-size: 15px;
+      block-size: 15px;
+      margin: 0; // the same vendor auto-margin that scattered the menu's icons
+      flex: none;
+      color: var(--bnd-ink-muted);
+    }
+    &:hover {
+      background: var(--bnd-hover);
+      color: var(--bnd-ink);
+    }
+  }
+  .bnd-acct-kbd {
+    margin-inline-start: auto;
+    font-size: var(--bnd-text-xs);
+    font-family: inherit;
+    color: var(--bnd-ink-subtle);
+  }
+  // The action rows align on ONE grid (item 42, slice 3): a 20px icon
+  // column, the label, the hint at the end. A row with no icon keeps the
+  // column (the JS puts an empty gap there), so labels never wander.
+  .bnd-acct-item {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    justify-items: start;
+    column-gap: var(--bnd-sp-2);
+
+    // THE COLUMNS ARE PINNED, not filled. A row with no icon would otherwise
+    // slide its label into the icon column and its hint into the label's, so
+    // the first cut appended an empty span to hold the place -- a node that
+    // ships on every desk to cover a row that does not exist yet. Naming the
+    // column on each part costs nothing and covers the case by construction.
+    svg {
+      grid-column: 1;
+      justify-self: center;
+    }
+    .bnd-acct-item-label {
+      grid-column: 2;
+      min-inline-size: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .bnd-acct-kbd {
+      grid-column: 3;
+      margin-inline-start: 0;
+      justify-self: end;
+    }
+    .bnd-acct-item-badge {
+      grid-column: 3;
+      justify-self: end;
+      min-inline-size: 18px;
+      block-size: 18px;
+      padding-inline: 5px;
+      border-radius: var(--bnd-radius-pill);
+      background: var(--bnd-critical);
+      color: var(--bnd-on-critical);
+      font-size: 10px;
+      font-weight: var(--bnd-weight-medium);
+      line-height: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+  .bnd-acct-signout {
+    color: var(--bnd-critical);
+    svg {
+      color: var(--bnd-critical);
+    }
+  }
+  .bnd-acct-company-label {
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+  }
+  .bnd-acct-company-value {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bnd-acct-company[aria-expanded="true"] .bnd-acct-company-label {
+    color: var(--bnd-ink);
+  }
+  .bnd-acct-companies {
+    padding-inline-start: var(--bnd-sp-3);
+  }
+  .bnd-acct-company-opt[aria-checked="true"] {
+    font-weight: var(--bnd-weight-medium);
+  }
+  .bnd-acct-divider {
+    block-size: var(--bnd-line);
+    background: var(--bnd-border);
+    margin-block: var(--bnd-sp-1);
+    margin-inline: var(--bnd-sp-2);
+  }
+  .bnd-acct-caption {
+    padding-block: var(--bnd-sp-1);
+    padding-inline: var(--bnd-sp-3);
+    font-size: var(--bnd-text-xs);
+    color: var(--bnd-ink-subtle);
+  }
+}
+
+// Zeroed durations collapse the open transition to a state change; the
+// panel still appears, because the tokens are the ONLY duration source.
+
+// Focus ring for keyboard users — accent token, visible in both modes.
+// ── The language switch (item 44) ──────────────────────────────────
+// One button, three parts; `data-bnd-language-style` on <html> says which show.
+// Display-driven so a style change is an attribute swap, not a rebuild - and a
+// cell that shows text grows into a pill, where an icon-only cell keeps the
+// 28px square every other bar control has. The pane's foot band overrides the
+// text parts (_sidebar.scss): a 36px cell cannot hold a word.
+html[data-theme] .bnd-language-btn {
+  grid-auto-flow: column;
+  column-gap: var(--bnd-sp-1);
+
+  .bnd-lang-ico {
+    display: none;
+    line-height: 0;
+  }
+  .bnd-lang-code,
+  .bnd-lang-name {
+    display: none;
+    font-size: var(--bnd-text-sm);
+    font-weight: 600;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .bnd-lang-name {
+    font-weight: 500;
+  }
+}
+html[data-bnd-language-style="globe"] .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style="globe-code"] .bnd-language-btn .bnd-lang-ico,
+html[data-bnd-language-style="globe-name"] .bnd-language-btn .bnd-lang-ico {
+  display: block;
+}
+html[data-bnd-language-style="code"] .bnd-language-btn .bnd-lang-code,
+html[data-bnd-language-style="globe-code"] .bnd-language-btn .bnd-lang-code {
+  display: inline;
+}
+html[data-bnd-language-style="name"] .bnd-language-btn .bnd-lang-name,
+html[data-bnd-language-style="globe-name"] .bnd-language-btn .bnd-lang-name {
+  display: inline;
+}
+// Text needs room: the cell becomes a pill. Same specificity as the icon-btn
+// rule above and later in the file, which is what lets it win the width.
+html[data-bnd-language-style="code"] .bnd-language-btn,
+html[data-bnd-language-style="name"] .bnd-language-btn,
+html[data-bnd-language-style="globe-code"] .bnd-language-btn,
+html[data-bnd-language-style="globe-name"] .bnd-language-btn {
+  inline-size: auto;
+  min-inline-size: 28px;
+  padding-inline: var(--bnd-sp-2);
+}
+
+// The wide desk language switch is a permanent global action beside the bell.
+// It always reads AR/EN so its purpose is obvious without relying on a globe.
+// Narrow fallback placements shed this class and retain their configured style.
+html[data-theme] .bnd-language-beside-bell {
+  .bnd-lang-ico,
+  .bnd-lang-name { display: none; }
+  .bnd-lang-code { display: inline; }
+}
+
+html[data-theme] .bnd-icon-btn:focus-visible,
+html[data-theme] .bnd-avatar-btn:focus-visible,
+html[data-theme] .bnd-search-field:focus-visible,
+html[data-theme] .bnd-menu-item:focus-visible,
+html[data-theme] .bnd-acct-item:focus-visible,
+html[data-theme] .bnd-acct-radio:focus-visible,
+html[data-theme] .bnd-acct-company:focus-visible,
+html[data-theme] .bnd-acct-company-opt:focus-visible,
+html[data-theme] .bnd-acct-panel:focus-visible,
+html[data-theme] .bnd-dock-item:focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+
+// The rest of every control build.mjs's assertRingCoverage guard can see —
+// apps rail, sidebar utils, inbox, status bar, the placement board's chip,
+// and the settings pickers' shared primitives (which covers nearly every
+// picker option/toggle/reset in one shot, since bnd-cbp-* is what the
+// generic option-chip HTML actually emits under each picker's own prefix).
+// One :is() group, not one selector per class — gzip cost matters against a
+// payload ceiling with single-digit-percent headroom.
+html[data-theme] :is(
+  .bnd-status-item, .bnd-inbox-tab, .bnd-inbox-btn,
+  .bnd-inbox-act, .bnd-inbox-link, .bnd-sb-head, .bnd-sb-item, .bnd-sb-filter-input, .bnd-ph-home, .bnd-ph-show,
+  .bnd-sb-pin, .bnd-railbtn, .bnd-bd-chip, .bnd-cbp-opt, .bnd-cbp-toggle,
+  .bnd-cbp-reset, .bnd-sbp-export, .bnd-sbp-import, .bnd-sbp-preset,
+  .bnd-sbp-opt, .bnd-sbp-stop, .bnd-plp-reset-rank
+):focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+
+// ── Zones: start · centre · end, inside every container ─────────────────────
+// The slot vocabulary of E1. Three boxes in document order inside each
+// container's cluster, so "Top Bar End" is an element rather than a convention
+// about who appended last.
+//
+// LOGICAL, NOT LEFT/RIGHT. `start` is the leading edge — left in English, right
+// in Arabic — with no second ruleset, which is the same reason this codebase
+// uses logical properties everywhere and the build enforces it.
+//
+// The centre is centred against the BAR, not between its neighbours: a pair of
+// flexing spacers would centre it between whatever happens to sit either side,
+// and would also cancel the end zone's auto margin and drag it to the leading
+// edge. That regression shipped once already (item 14) and is why
+// `.bnd-search-center` works this way too.
+html[data-theme] .bnd-zone {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-zone[data-zone="start"] {
+  margin-inline-end: auto;
+}
+
+html[data-theme] .bnd-zone[data-zone="center"] {
+  position: absolute;
+  inset-inline: 0;
+  margin-inline: auto;
+  inline-size: fit-content;
+  // AGAINST THE BAR, NEVER THE VIEWPORT. The zone's containing block is the
+  // bar (see the note below), so a percentage here shortens with the bar when
+  // the side pane takes 280px of the screen. The first cut of this wrote the
+  // cap on the FIELD as `46vw` and the field then reached into the end zone --
+  // the bell and the avatar sit there, and a 420px field over a 500px bar
+  // covers them. `.bnd-search-center`, the slot this replaced, always read
+  // `min(420px, 46%)`; this is that number, back where it works.
+  justify-content: center;
+}
+
+// Only search needs a percentage cap. Applying it to an icon-only centre
+// shrinks a 28px bell/avatar to a few pixels when the page-head cluster has no
+// other in-flow children; the icon then paints outside the slot and makes the
+// desk horizontally scroll. Ordinary centred controls keep their intrinsic
+// size, while the search slot retains the collision guard described above.
+html[data-theme] .bnd-zone[data-zone="center"]:has(> .bnd-search-field) {
+  max-inline-size: 46%;
+}
+
+// ONE CENTRE PER BAR (item 42, slice 1b — the switch matrix's first finding).
+//
+// THE FIELD'S OWN WIDTH IS STATED PER BAR, in _navbar.scss and _statusbar.scss,
+// and that is not tidiness: this rule and the bottom bar's `:has()` rule weigh
+// the same (0,4,1), `chrome/cluster` is imported after `chrome/statusbar`, and a
+// width written here therefore beat the slim strip's deliberate 280px on IMPORT
+// ORDER alone. A rule that wins by where it sits in a manifest is a rule nobody
+// can reason about from the selector.
+// A bar used to carry TWO centred boxes: search's own `.bnd-search-center`
+// slot and this zone, both absolute and both centred on the bar's axis, so a
+// bell placed at "Top Bar Center" rendered under the search field. Search
+// placed at a bar's centre now mounts INTO this zone (mount_search_at), and
+// the zone centres against the BAR rather than the cluster: the two bars'
+// clusters give up their positioning context (the top bar is `relative`, the
+// status bar is `fixed`, so the bar is the containing block either way). The
+// page-head cluster does too: its end-actions slot can be only one gap wide,
+// so centring against that slot pushes an icon past the viewport. Its sticky
+// page head is the containing block. The dock keeps its cluster context, but
+// its centre zone is in normal flow below because a dock is a pill, not a bar.
+html[data-theme] .bnd-topbar .bnd-cluster,
+html[data-theme] .bnd-statusbar .bnd-cluster,
+html[data-theme] .page-head .bnd-cluster {
+  position: static;
+}
+
+// The field keeps the slot's width inside the zone; the zone is fit-content,
+// so the width has to be the field's own.
+html[data-theme] .bnd-zone[data-zone="center"] > .bnd-search-field {
+  inline-size: min(420px, 46vw);
+}
+
+// THE DOCK IS A PILL, NOT A BAR (the matrix's other two findings): a centre
+// zone floated over a ~70px cluster lands on the end zone, so a bell placed at
+// "Dock Center" sat under the avatar. In the pill the centre zone flows in
+// line — start · centre · end — which is what "centre" means in a box that
+// is only as wide as its contents.
+html[data-theme] .bnd-dock .bnd-zone[data-zone="center"] {
+  position: static;
+  inset-inline: auto;
+  margin-inline: 0;
+}
+
+html[data-theme] .bnd-zone[data-zone="end"] {
+  margin-inline-start: auto;
+}
+
+// ── The side pane is a column, and position decides ────────────────────────
+// No `order` rules here on purpose. The pane's content fills the column, so
+// auto margins resolve to zero and all three zones land on the same line —
+// measured, identical y for centre and end. `sb_zone_anchor` in bunood.js
+// places by DOM position instead: after the header, after the workspace list,
+// or at the foot. The attribute below is kept for styling and for the settings
+// form to read; it does not position anything.

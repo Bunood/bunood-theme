@@ -1,0 +1,49 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// ICONS — the global icon axis (item 23, Phase 3).
+//
+// WHAT
+//   The Icons settings section is mostly a SERVER concern: which glyph each link
+//   gets is decided in extend_bootinfo (bunood_theme/icons.py), and the chip
+//   appearance (icon_style) and colour (the bridge's --icon-stroke) are handled
+//   in _sidebar.scss and _bridge.scss. What is left for this file is the one
+//   axis that is purely presentational and applies to EVERY desk icon at once:
+//   the stroke WEIGHT.
+//
+// WHY WEIGHT IS A DOCUMENT ATTRIBUTE, NOT A COMPONENT ONE
+//   A sidebar chip, a form-section icon, a navbar glyph and a report-view icon
+//   are all the same drawing at the same weight — weight is a property of the
+//   icon SET, not of any one surface. So bunood.js stamps `data-bnd-icon-weight`
+//   on <html> from boot (before first paint, like density), and this maps it
+//   onto Frappe's own `.icon` stroke-width plus our chip glyphs. One attribute,
+//   every icon.
+//
+//   Frappe hard-codes `stroke-width: 1.5px` in `.icon` (common/icons.scss). This
+//   overrides it through a token, so the value is a control and never a literal
+//   in a rule — the house rule. `.es-icon` is left alone: it is a FILL set with
+//   `stroke-width: 0`, so a stroke weight means nothing to it.
+// ============================================================================
+
+// The attribute value IS the number (1.25 / 1.5 / 1.75 / 2). Map each onto its
+// token, then apply once. A mid-var (`--bnd-icon-stroke-w`) rather than four
+// copies of the apply rule, so the glyph selector is stated a single time.
+html[data-bnd-icon-weight="1.25"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-hairline);
+}
+html[data-bnd-icon-weight="1.5"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-regular);
+}
+html[data-bnd-icon-weight="1.75"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-medium);
+}
+html[data-bnd-icon-weight="2"] {
+  --bnd-icon-stroke-w: var(--bnd-icon-w-bold);
+}
+
+// Applied to Frappe's stroke icons and to our own chip glyphs. Scoped to the
+// attribute so nothing changes until the axis is set, and so an absent value
+// leaves Frappe's own 1.5px untouched (fails open, like every kit here).
+html[data-bnd-icon-weight] .icon,
+html[data-bnd-icon-weight] .bnd-sb-chip svg {
+  stroke-width: var(--bnd-icon-stroke-w);
+}

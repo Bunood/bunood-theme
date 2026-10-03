@@ -1,0 +1,179 @@
+[pre_model_sync]
+# Patches here run BEFORE doctypes are migrated.
+
+[post_model_sync]
+# Patches here run AFTER doctypes are migrated.
+# This one runs before after_migrate -> _seed_defaults, which is exactly why it
+# guards on tabSingles row-absence rather than on a value: seeding first would
+# make the patch look as though it had already run.
+bunood_theme.patches.v0_11_0.chrome_placement
+bunood_theme.patches.v0_11_0.split_quick_links
+bunood_theme.patches.v0_11_0.status_is_a_component
+# The container split (slice 2c), one patch per container. Each answers only
+# for its own field, from what the site's layout RENDERED. One patch writing
+# all five would have to be right about all five at once, and could not later
+# be re-read to find out what any single one of them decided.
+bunood_theme.patches.v0_11_0.container_topbar
+bunood_theme.patches.v0_11_0.container_pagehead
+bunood_theme.patches.v0_11_0.container_dock
+bunood_theme.patches.v0_11_0.container_sidepane
+bunood_theme.patches.v0_11_0.container_bottombar
+# E1: every placement moves onto "<Region> <Zone>". Runs AFTER the container
+# patches because it does not depend on them, and last is where a vocabulary
+# change belongs — the ones above still speak the old one.
+bunood_theme.patches.v0_11_0.slot_vocabulary
+# Item 7: "Operator" is ERPNext's word for a machine operator — a person — in
+# Manufacturing, and Frappe's dictionary is one flat global map, so the word
+# cannot also name a sidebar preset and a status style. Two fields, two
+# different replacements, because they never meant the same thing.
+bunood_theme.patches.v0_11_0.rename_operator
+# Item 23: the icon settings moved out of the sidebar and breadcrumb kits into
+# one Icons axis, renaming four fields. This carries each existing site's stored
+# value onto its new fieldname so the icon appearance survives the rename.
+bunood_theme.patches.v0_15_0.rename_icon_fields
+# Item 35: claim Print Settings.print_style once for existing sites. v16
+# defaults it to "Redesign", a name the installer's vacancy tuple did not
+# carry, so the Bunood Print Style had been installed everywhere and applied
+# NOWHERE since 0.13.0. One-time by construction (patches run once); the
+# ongoing claim for fresh installs is the widened STOCK_STYLES in
+# printing/install.py. The honest cost is in the patch's docstring.
+bunood_theme.patches.v0_35_0.claim_print_style
+bunood_theme.patches.v0_44_6.adopt_sales_invoice_print
+# Item 36: the two axis-field renames build.mjs's KNOWN VIOLATIONS block had
+# promised to "the component rework's patch" since the rework itself
+# (enable_command_palette -> palette_enabled, default_density ->
+# density_default). Carries each existing site's stored value onto its new
+# fieldname; the v0_15_0 icon rename is the copied precedent.
+bunood_theme.patches.v0_36_0.rename_axis_fields
+# Item 37: the last stored preset NAMES go. A preset writes values and stops
+# existing; the label is derived by comparison, which is what the settings
+# architecture has said since phase 0.
+bunood_theme.patches.v0_37_0.migrate_user_sidebar_preset
+bunood_theme.patches.v0_37_0.drop_sidebar_preset
+bunood_theme.patches.v0_37_0.drop_desk_layout
+
+# Item 38: the Appearance dialog subsumes the density menu row. Must land with
+# the seeder rename, or after_migrate re-creates it.
+bunood_theme.patches.v0_38_0.drop_density_navbar_item
+
+# Item 40: the apps rail retires and its capability moves to the dock. Must run
+# after the doctype sync (it reads the departed field's row directly, because
+# get_single_value raises for a field the meta has lost).
+bunood_theme.patches.v0_40_0.retire_apps_rail
+
+# Same release, same reason: the two renamed side-pane fields. A Single's
+# values are keyed by FIELDNAME, so a rename orphans the stored row and the
+# site silently loses a setting it chose. Nothing errors, which is why it is
+# easy to skip.
+bunood_theme.patches.v0_40_0.rename_sidebar_fields
+
+# And the glass merge, same release. Reads both departed fields' rows
+# directly for the same reason, and only ever writes when the tenant chose
+# Glass with a full blur - every other combination is already expressed by
+# the material it keeps.
+bunood_theme.patches.v0_40_0.merge_glass_material
+
+# And the last of the side-pane field model: two active-link styles that
+# rendered as another one, and three fields with nothing behind them. The
+# style rewrite matters most - an out-of-range Select on a Single fails
+# validation for the WHOLE document, so one stale value breaks every later
+# save of every other setting.
+bunood_theme.patches.v0_40_0.collapse_pane_options
+
+# The Place row replaces four rows of pane furniture with one, so the two
+# quick links stand down by default. Only a row still holding the OLD default
+# moves: both fields are THEME AXES, and leaving them would make every site
+# read Custom on all twelve theme cards against a baseline that had moved.
+bunood_theme.patches.v0_40_0.quick_links_stand_down
+
+# The option vocabulary the plan retired, in one pass: Accordion Cards and
+# Mini-Cards become Cards, Button Only stops being a trigger (and gives back
+# the edge button its implementation was drawing anyway), Top becomes Header
+# and Bottom moves off the foot's own controls.
+bunood_theme.patches.v0_40_0.retune_pane_vocabulary
+
+# And the two whose DEFAULT moved rather than whose options did: the rail mode
+# loses Manual Collapse (the user's call), and the pane's icons lose their chip
+# for the dock's size. Both are theme axes, so both move only where the site
+# still holds the value that is going away.
+bunood_theme.patches.v0_40_0.retire_manual_collapse
+
+# Last, and it stays: whatever the translation above could not map, this makes
+# legal. An out-of-range Select on a Single fails validation for the WHOLE
+# document, so one stale placement silently breaks every later save of every
+# other setting — measured 2026-08-08, six unrelated checks red.
+# Item 42: the pane's two-state field becomes a three-state one. Before the
+# healer below, which would otherwise see a placement field it cannot map.
+bunood_theme.patches.v0_42_0.rename_pane_state
+# Item 42, slice S: the two glass materials retire into the six-surface
+# catalogue. Also before the healer -- it would see a material it cannot map.
+bunood_theme.patches.v0_42_0.retire_glass
+# Item 42, slice I: six icon styles become four. Same shape, same reason for
+# sitting before the healer.
+bunood_theme.patches.v0_42_0.retire_icon_styles
+
+bunood_theme.patches.v0_42_1.retire_shortcuts
+
+# Item 43: Bunood Console moved two EXISTING defaults (form_sidebar, list_style).
+# Both are theme axes, so a row still holding the old default would read Custom
+# on every theme card against the moved baseline — the quick_links_stand_down
+# shape, same limits. The ten new axes need nothing: no row is the new default.
+bunood_theme.patches.v0_45_0.console_defaults
+
+# Item 45: desk_width is a RENAME, not a moved default. A v0.45 row holds a
+# Select value the options no longer contain, so the kit's value map has no
+# entry, `data-bnd-body-width` is never stamped, and the site silently loses
+# EVERY width rule — worse than the state it replaces. Must run wherever
+# v0.45 landed.
+bunood_theme.patches.v0_46_0.width_two_edges
+
+bunood_theme.patches.v0_11_0.heal_unknown_placements
+
+# Item 45.1: the width segment must not appear on a bar its owner emptied.
+# Found by reading a real tenant's settings before shipping — every segment
+# off, and a new default-on Check would have put one back. Asks the neighbour
+# it sits beside: density off means this site did not ask for width either.
+bunood_theme.patches.v0_46_1.width_follows_density
+
+# One visible sidebar component. The retired Rail value used a second,
+# icon-only renderer that made saved forms look like a different application.
+# Rewrite both the site value and per-user preferences before the Select loses
+# that option, so later Theme Settings saves remain valid.
+bunood_theme.patches.v0_46_2.unify_sidebar
+
+# Launch documents: correct the Arabic brand spelling in managed print-format
+# names. The regular post-migrate sync then installs the quotation/statement
+# formats and adopts all commercial defaults in one idempotent pass.
+bunood_theme.patches.v0_46_8.launch_documents
+
+# Customer-facing launch documents must follow the requested print language.
+# The old shipped default, Both, produced mixed-language A4 and thermal output.
+bunood_theme.patches.v0_46_10.follow_print_language
+
+# POS receipts must not collapse physical cash and card-terminal settlements
+# into one balance. Create the Network clearing asset, map both native payment
+# methods, and expose them on every active POS Profile.
+bunood_theme.patches.v0_46_11.pos_payment_ledgers
+
+# SAR is a two-decimal currency. Keep invoices at exact halala precision and
+# remove whole-riyal round-off adjustments from new Sales/Purchase/POS bills.
+bunood_theme.patches.v0_46_12.exact_halala_totals
+
+# Credit sales are receivables, not a payment method. Replace the invoice's
+# open-ended Mode of Payment link with the supported settlement choices so
+# unmapped test methods cannot reach the posting flow.
+bunood_theme.patches.v0_46_16.credit_sales
+
+# Keep master-data keys language-neutral. Rename the legacy Arabic Network
+# payment method through Frappe so every Link follows it, while Arabic remains
+# the translated label on Arabic pages.
+bunood_theme.patches.v0_46_33.network_mode_english
+
+# Standard Sales Invoice recovery and the Bank Balance dashboard both depend on
+# native company mappings. Complete Credit Card's company row and a missing
+# Company.default_bank_account from the already-managed clearing ledger.
+bunood_theme.patches.v0_46_34.payment_account_recovery
+
+# A native walk-in Customer and vacancy-only defaults for new Sales Invoices
+# and POS Profiles. Existing named customers and configured profile choices win.
+bunood_theme.patches.v0_46_35.cash_customer_defaults

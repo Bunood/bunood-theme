@@ -1,0 +1,409 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:BND-REH-{YYYY}-{#####}",
+ "creation": "2026-09-20 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "overview_tab",
+  "claim_notice",
+  "title",
+  "migration_run",
+  "dataset_row",
+  "dataset_name",
+  "column_break_overview",
+  "company",
+  "data_import",
+  "control_state",
+  "environment_section",
+  "source_site",
+  "source_database_digest",
+  "column_break_environment",
+  "rehearsal_site",
+  "rehearsal_database_digest",
+  "isolated_environment",
+  "source_section",
+  "target_doctype",
+  "import_type",
+  "mapping_version",
+  "identity_rule_reference",
+  "duplicate_disposition",
+  "column_break_source",
+  "source_snapshot_hash",
+  "actual_file_hash",
+  "file_reference",
+  "result_tab",
+  "result_notice",
+  "data_import_status",
+  "total_records",
+  "successful_records",
+  "failed_records",
+  "column_break_counts",
+  "inserted_records",
+  "updated_records",
+  "result_count",
+  "row_results",
+  "receipt_tab",
+  "started_by",
+  "started_at",
+  "completed_by",
+  "completed_at",
+  "column_break_receipt",
+  "scope_digest",
+  "rehearsal_identity",
+  "result_digest",
+  "receipt_digest",
+  "result_snapshot"
+ ],
+ "fields": [
+  {
+   "fieldname": "overview_tab",
+   "fieldtype": "Tab Break",
+   "label": "Rehearsal"
+  },
+  {
+   "description": "This record controls one native Data Import run on a different site database. It never authorizes a production import.",
+   "fieldname": "claim_notice",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted\">A rehearsal is allowed only on an isolated restored site and database. Success proves the frozen file can be processed there; reconciliation and production acceptance remain separate.</p>"
+  },
+  {
+   "fieldname": "title",
+   "fieldtype": "Data",
+   "label": "Rehearsal title",
+   "read_only": 1
+  },
+  {
+   "fieldname": "migration_run",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Migration run",
+   "options": "Bunood Migration Run",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "dataset_row",
+   "fieldtype": "Data",
+   "label": "Dataset row",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "dataset_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Dataset",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_overview",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1
+  },
+  {
+   "fieldname": "data_import",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Native Data Import",
+   "options": "Data Import",
+   "read_only": 1,
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "running",
+   "fieldname": "control_state",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Control state",
+   "options": "running\ndry-run-validated\nexception",
+   "read_only": 1
+  },
+  {
+   "fieldname": "environment_section",
+   "fieldtype": "Section Break",
+   "label": "Isolation proof"
+  },
+  {
+   "fieldname": "source_site",
+   "fieldtype": "Data",
+   "label": "Source site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_database_digest",
+   "fieldtype": "Data",
+   "label": "Source database digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_environment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rehearsal_site",
+   "fieldtype": "Data",
+   "label": "Rehearsal site",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rehearsal_database_digest",
+   "fieldtype": "Data",
+   "label": "Rehearsal database digest",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "isolated_environment",
+   "fieldtype": "Check",
+   "label": "Different site and database verified",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Frozen source"
+  },
+  {
+   "fieldname": "target_doctype",
+   "fieldtype": "Link",
+   "label": "Target DocType",
+   "options": "DocType",
+   "read_only": 1
+  },
+  {
+   "fieldname": "import_type",
+   "fieldtype": "Data",
+   "label": "Import type",
+   "read_only": 1
+  },
+  {
+   "fieldname": "mapping_version",
+   "fieldtype": "Data",
+   "label": "Mapping version",
+   "read_only": 1
+  },
+  {
+   "fieldname": "identity_rule_reference",
+   "fieldtype": "Small Text",
+   "label": "Approved identity rule reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "duplicate_disposition",
+   "fieldtype": "Data",
+   "label": "Duplicate disposition",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_source",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "source_snapshot_hash",
+   "fieldtype": "Data",
+   "label": "Frozen source SHA-256",
+   "read_only": 1
+  },
+  {
+   "fieldname": "actual_file_hash",
+   "fieldtype": "Data",
+   "label": "Attached file SHA-256",
+   "read_only": 1
+  },
+  {
+   "fieldname": "file_reference",
+   "fieldtype": "Data",
+   "label": "Native file reference",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_tab",
+   "fieldtype": "Tab Break",
+   "label": "Native result"
+  },
+  {
+   "description": "Counts and row outcomes are copied from the permissioned native Data Import result. Error text is retained only in the native log.",
+   "fieldname": "result_notice",
+   "fieldtype": "HTML",
+   "options": "<p class=\"text-muted\">Use the linked Data Import for full error messages and corrected-row export. Bunood stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>"
+  },
+  {
+   "fieldname": "data_import_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Native status",
+   "read_only": 1
+  },
+  {
+   "fieldname": "total_records",
+   "fieldtype": "Int",
+   "label": "Total records",
+   "read_only": 1
+  },
+  {
+   "fieldname": "successful_records",
+   "fieldtype": "Int",
+   "label": "Successful records",
+   "read_only": 1
+  },
+  {
+   "fieldname": "failed_records",
+   "fieldtype": "Int",
+   "label": "Failed records",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_counts",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "inserted_records",
+   "fieldtype": "Int",
+   "label": "Inserted records",
+   "read_only": 1
+  },
+  {
+   "fieldname": "updated_records",
+   "fieldtype": "Int",
+   "label": "Updated records",
+   "read_only": 1
+  },
+  {
+   "fieldname": "result_count",
+   "fieldtype": "Int",
+   "label": "Result rows",
+   "read_only": 1
+  },
+  {
+   "fieldname": "row_results",
+   "fieldtype": "Table",
+   "label": "Native row results",
+   "options": "Bunood Migration Rehearsal Result",
+   "read_only": 1
+  },
+  {
+   "fieldname": "receipt_tab",
+   "fieldtype": "Tab Break",
+   "label": "Receipt"
+  },
+  {
+   "fieldname": "started_by",
+   "fieldtype": "Link",
+   "label": "Started by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "Started at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_by",
+   "fieldtype": "Link",
+   "label": "Captured by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_at",
+   "fieldtype": "Datetime",
+   "label": "Captured at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_receipt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "scope_digest",
+   "fieldtype": "Data",
+   "label": "Scope digest",
+   "read_only": 1
+  },
+  {
+   "fieldname": "rehearsal_identity",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Rehearsal identity",
+   "read_only": 1,
+   "search_index": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "result_digest",
+   "fieldtype": "Data",
+   "label": "Result digest",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "receipt_digest",
+   "fieldtype": "Data",
+   "label": "Receipt digest",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "result_snapshot",
+   "fieldtype": "Code",
+   "label": "Canonical result snapshot",
+   "options": "JSON",
+   "read_only": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Migration Rehearsal",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Bunood Migration Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "migration_run,dataset_name,data_import,control_state,rehearsal_site",
+ "show_title_field_in_link": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "title",
+ "track_changes": 1,
+ "track_seen": 1
+}

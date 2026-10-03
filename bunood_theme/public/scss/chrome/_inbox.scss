@@ -1,0 +1,541 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// NOTIFICATION CENTRE — checklist item 13.
+//
+// Matrix key: data-bnd-inbox on <html>
+//   refined       -> Frappe's own panel, tagged `bnd-notif-panel` by
+//                    bunood.js on first open, restyled here.
+//   inbox | page  -> our panel (.bnd-inbox*), plus the full-page surface
+//                    under `page`.
+//   Original      -> no attribute, nothing matches, stock everything.
+//
+// THE BADGE IS OURS UNCONDITIONALLY. Frappe's badge code toggles selectors
+// that exist in no template in this version (.notifications-icon,
+// .notifications-unseen), so nothing renders however many unread rows a
+// user has — measured with 2 unread and seen:0. `.bnd-inbox-badge` is
+// mounted on every themed bell and driven entirely by the kit, which is
+// why it is styled OUTSIDE the style matrix: it must work even under
+// Refined, where the panel itself stays Frappe's.
+// ============================================================================
+
+@use "../breakpoints" as *;
+
+// ── The bell badge (all styles except Original) ─────────────────────────────
+
+// Both bells anchor the badge: the themed one in the bars, and Frappe's own
+// sidebar row, which stays visible (and is the ONLY bell) in Classic.
+html[data-bnd-inbox] .bnd-icon-btn,
+html[data-bnd-inbox] .bnd-avatar-btn[data-bnd-inbox-route],
+html[data-bnd-inbox] .sidebar-notification .item-anchor {
+  position: relative;
+}
+
+html[data-bnd-inbox] .bnd-inbox-badge {
+  position: absolute;
+  // Offset OUTWARD past the button's corner: at 15px the badge is wider
+  // than the 13px bell glyph, so sitting inside the button it covered the
+  // dome and the pair read as a red dot on a stick (measured in the
+  // item-13 sweep). Overhanging the corner is the convention anyway.
+  inset-block-start: -4px;
+  inset-inline-end: -4px;
+  min-inline-size: 14px;
+  block-size: 14px;
+  padding-inline: 3px;
+  border-radius: var(--bnd-radius-pill);
+  // --bnd-critical is the theme's existing alert red, mode-aware in
+  // _tokens.scss; nothing here hardcodes a colour.
+  background: var(--bnd-critical);
+  // Mode-aware: --bnd-critical is a DARK red in light mode and a LIGHT red
+  // in dark mode, so the readable foreground flips with it. Keeping white
+  // ink in both measured 2.1:1 on the dark-mode fill.
+  color: var(--bnd-on-critical);
+  font-size: 9.5px;
+  font-weight: var(--bnd-weight-medium);
+  line-height: 14px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+
+  &[hidden] {
+    display: none;
+  }
+
+  // Dot mode: no digits, just presence.
+  &.bnd-inbox-badge-dot {
+    min-inline-size: 8px;
+    inline-size: 8px;
+    block-size: 8px;
+    padding-inline: 0;
+  }
+}
+
+// On phones the unread state belongs to Account. Anchor it beside the avatar,
+// not at the far corner of the quarter-width navigation track.
+html[data-bnd-narrow][data-bnd-inbox] .bnd-statusbar
+  .bnd-avatar-btn[data-bnd-inbox-route] > .bnd-inbox-badge {
+  inset-block-start: 2px;
+  inset-inline-end: calc(50% - 18px);
+}
+
+// ── The bell at the rail's rest ──────────────────────────────────────────
+// Nothing to restore any more. This block once un-faded `.standard-items-sections`
+// and re-faded its other children, because the rail's rest state faded the whole
+// container and took the Classic bell with it. The rest state is an icon rail now
+// (_sidebar.scss): the container is visible, the bell row keeps its icon like
+// every other row, and the re-fade was the one rule still hiding the pane's
+// search icon at rest. Measured 2026-09-04: search present in Frappe's own
+// collapse, absent in ours, with this the only difference.
+
+// The rail CLIPS the native panel out of existence, whatever its opacity:
+// `_sidebar.scss` gives `.body-sidebar` `position: absolute; inline-size:
+// 52px; overflow: hidden`, and Frappe renders `.dropdown-notifications`
+// inside it as a 360px absolutely-positioned box at x=60 — entirely outside
+// the clip rectangle, hit-testing through to the list rows underneath.
+//
+// This is the RAIL breaking ERPNext's own panel, so it is fixed for every
+// notification style including Original: position: fixed escapes the clip,
+// pinned beside the rail. Item 9 already relocates this same element per
+// layout the same way, so the pattern (and its z-index slot) is established.
+// :not(narrow) with the rest of the rail rules (slice 11): at drawer width
+// the rail is stood down, and pinning the panel beside a 52px strip that
+// is not there put it under the drawer.
+html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar-container .dropdown-notifications {
+  position: fixed;
+  inset-block-start: var(--bnd-sp-4);
+  inset-inline-start: calc(var(--bnd-sb-rail-w) + var(--bnd-sp-2));
+  inset-block-end: var(--bnd-sp-4);
+  z-index: var(--bnd-z-panel);
+
+  .notifications-list {
+    max-block-size: 100%;
+  }
+}
+
+// ── Refined: skin Frappe's own panel ────────────────────────────────────────
+
+// Keyed on the ATTRIBUTE ALONE, never on a JS-applied class: the Classic
+// layout mounts no themed bell, so nothing there ever ran the tagging code
+// and Refined rendered identically to Original — silently, forever (release
+// review v0.8.0..HEAD). `_layouts.scss` already proves the bare selector is
+// sufficient, and pure CSS also means the skin is right at first paint.
+html[data-bnd-inbox="refined"] .dropdown-notifications {
+  .notifications-list {
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-xl);
+    background: var(--bnd-surface);
+    box-shadow: var(--bnd-shadow-lg);
+    overflow: hidden;
+  }
+
+  .notification-list-header {
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+    padding-block: var(--bnd-sp-2);
+  }
+
+  .notification-item-tabs .notifications-category {
+    font-size: var(--bnd-text-sm);
+    color: var(--bnd-ink-muted);
+
+    &.active {
+      color: var(--bnd-ink);
+    }
+  }
+
+  .recent-item {
+    border-radius: var(--bnd-radius-md);
+
+    &:hover {
+      background: var(--bnd-hover);
+    }
+  }
+}
+
+// ── Our panel ───────────────────────────────────────────────────────────────
+
+html[data-theme] .bnd-inbox-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--bnd-z-panel);
+
+  &[hidden] {
+    display: none;
+  }
+}
+
+// Anchored to the viewport's end edge, below the bars, rather than to the
+// bell: the bell moves between layouts (topbar, bottombar, cluster, dock)
+// and a fixed anchor is the one geometry that is correct in all of them.
+html[data-theme] .bnd-inbox {
+  position: absolute;
+  inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
+  inset-inline-end: var(--bnd-sp-4);
+  inline-size: min(420px, calc(100vw - 24px));
+  max-block-size: min(560px, 74vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-xl);
+  box-shadow: var(--bnd-shadow-lg);
+  overflow: hidden;
+  outline: none;
+}
+
+// KEYED ON THE BELL, NOT ON THE LAYOUT (item 37). This asked
+// `html[data-bnd-desk="bottombar"]`, which means "the Bottom Bar LAYOUT" and was
+// the last value-keyed read of that attribute anywhere in the tree.
+//
+// Re-keying it to `data-bnd-bottombar` would have looked equivalent and been a
+// SILENT REGRESSION: all five layouts write `bottombar: 1`, so the rule would
+// fire on every desk and lift the panel above a bar the bell is nowhere near.
+//
+// What the rule is about is where the BELL mounted, which `data-bnd-bell` has
+// carried since item 22 - stamped from the mount's OUTCOME - and which
+// _layouts.scss already uses three rules away.
+//
+// A SECOND SELECTOR WAS DELETED HERE, and it was already dead before item 37:
+// `html[data-bnd-dock]` names an attribute NOTHING in this app has ever written
+// (the written set is data-bnd-bell / desk / search / status / narrow / ... ),
+// so the dock arm of this rule has never once applied. It is removed rather than
+// re-keyed to `data-bnd-bell="dock"`, because that would not be a repair - it
+// would switch on, for the first time, an offset nobody has measured against a
+// desk whose bottom strip may not even be mounted. If the dock's bell panel
+// needs lifting, that is a measured slice with a check, not a one-word edit.
+html[data-bnd-bell="bottombar"] .bnd-inbox {
+  inset-block-start: auto;
+  inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
+}
+
+html[data-theme] .bnd-inbox-head {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding-block: var(--bnd-sp-3);
+  padding-inline: var(--bnd-sp-4);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+html[data-theme] .bnd-inbox-title {
+  font-size: var(--bnd-text-base);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-ink);
+}
+
+html[data-theme] .bnd-inbox-headcount {
+  min-inline-size: 18px;
+  padding-inline: var(--bnd-sp-1);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-xs);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+
+  &:empty {
+    display: none;
+  }
+}
+
+html[data-theme] .bnd-inbox-link {
+  border: none;
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    color: var(--bnd-ink);
+  }
+}
+
+// The first link in the head row pushes itself and everything after it to
+// the end edge. Written flat, NOT as `.bnd-inbox-head &` inside the block
+// above: that expands to `.bnd-inbox-head html[data-theme] .bnd-inbox-link`
+// — an <html> nested in a div — so it silently matched nothing and the
+// header actions stayed jammed against the title (item-13 sweep).
+html[data-theme] .bnd-inbox-head .bnd-inbox-link:first-of-type {
+  margin-inline-start: auto;
+}
+
+html[data-theme] .bnd-inbox-act {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--bnd-radius-sm);
+  background: transparent;
+  color: var(--bnd-ink-subtle);
+  cursor: pointer;
+
+  svg {
+    inline-size: 13px;
+    block-size: 13px;
+  }
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-ink);
+  }
+}
+
+html[data-theme] .bnd-inbox-tabs {
+  display: flex;
+  gap: var(--bnd-sp-3);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-4);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+  overflow-x: auto;
+}
+
+html[data-theme] .bnd-inbox-tab {
+  border: none;
+  background: transparent;
+  padding: 0 0 3px;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  border-block-end: 2px solid transparent;
+
+  &:hover {
+    color: var(--bnd-ink);
+  }
+}
+
+html[data-theme] .bnd-inbox-tab-on {
+  color: var(--bnd-ink);
+  border-block-end-color: var(--bnd-brand-solid);
+}
+
+html[data-theme] .bnd-inbox-list {
+  flex: 1;
+  overflow-y: auto;
+  padding-block: var(--bnd-sp-1);
+  outline: none;
+}
+
+html[data-theme] .bnd-inbox-group {
+  padding-block: var(--bnd-sp-2) 2px;
+  padding-inline: var(--bnd-sp-4);
+  font-size: var(--bnd-text-xs);
+  // ink-subtle measured 2.6:1 here (AA needs 4.5:1 for small text);
+  // ink-muted is the lightest token that passes. Same swap below for
+  // timestamps, chips, the avatar initial and the footer hints.
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] .bnd-inbox-row {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-4);
+  cursor: pointer;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+
+  &:hover,
+  &[aria-selected="true"] {
+    background: var(--bnd-hover);
+  }
+
+  // Frappe wraps the title in <b class="subject-title">; keep it readable
+  // without letting its own weight fight the unread signal.
+  .subject-title {
+    font-weight: var(--bnd-weight-medium);
+  }
+}
+
+html[data-theme] .bnd-inbox-unread {
+  color: var(--bnd-ink);
+
+  .bnd-inbox-dot {
+    background: var(--bnd-brand-solid);
+  }
+}
+
+html[data-theme] .bnd-inbox-done {
+  opacity: 0.55;
+}
+
+html[data-theme] .bnd-inbox-dot {
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: transparent;
+  flex: none;
+}
+
+html[data-theme] .bnd-inbox-avatar {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 50%;
+  background: var(--bnd-active);
+  // Brand-on-tint measured 2.6:1 for a single initial; ink reads cleanly
+  // and the tint still identifies the actor.
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-xs);
+  flex: none;
+}
+
+html[data-theme] .bnd-inbox-body {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+html[data-theme] .bnd-inbox-subject {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme] .bnd-inbox-when {
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] .bnd-inbox-chip {
+  flex: none;
+  font-size: var(--bnd-text-xs);
+  border-radius: var(--bnd-radius-sm);
+  padding-block: 1px;
+  padding-inline: var(--bnd-sp-1);
+  background: var(--bnd-raised);
+  color: var(--bnd-ink-muted);
+  border: var(--bnd-line) solid var(--bnd-border);
+
+  // Approvals carry a deadline; they get the one coloured chip. Brand ink
+  // on the brand tint measured 3.4:1 — the tint carries the meaning, so
+  // the LABEL takes full ink and the pair passes.
+  &[data-kind="Assignment"] {
+    background: var(--bnd-active);
+    color: var(--bnd-ink);
+    border-color: transparent;
+  }
+}
+
+// Hover gutter: invisible until the row is hovered or keyboard-selected.
+html[data-theme] .bnd-inbox-actions {
+  display: flex;
+  gap: 2px;
+  flex: none;
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) ease;
+}
+
+html[data-theme] .bnd-inbox-row:hover .bnd-inbox-actions,
+html[data-theme] .bnd-inbox-row[aria-selected="true"] .bnd-inbox-actions,
+html[data-theme] .bnd-inbox-actions:focus-within {
+  opacity: 1;
+}
+
+html[data-theme] .bnd-inbox-empty {
+  padding-block: var(--bnd-sp-6);
+  text-align: center;
+  color: var(--bnd-ink-subtle);
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme] .bnd-inbox-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-4);
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+  font-size: var(--bnd-text-xs);
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] .bnd-inbox-hint {
+  margin-inline-start: auto;
+}
+
+// ── Full page (style: Inbox + Page) ─────────────────────────────────────────
+// The page reuses every row class above; only the frame differs.
+
+html[data-theme] .bnd-inbox-page {
+  display: flex;
+  gap: var(--bnd-sp-4);
+  align-items: stretch;
+  min-block-size: 60vh;
+}
+
+html[data-theme] .bnd-inbox-page-list {
+  inline-size: 46%;
+  min-inline-size: 280px;
+  display: flex;
+  flex-direction: column;
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-surface);
+  overflow: hidden;
+}
+
+html[data-theme] .bnd-inbox-page-detail {
+  flex: 1;
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-surface);
+  padding: var(--bnd-sp-4);
+  overflow-y: auto;
+}
+
+html[data-theme] .bnd-inbox-detail-title {
+  font-size: var(--bnd-text-lg);
+  font-weight: var(--bnd-weight-medium);
+  color: var(--bnd-ink);
+  margin-block-end: var(--bnd-sp-1);
+}
+
+html[data-theme] .bnd-inbox-detail-meta {
+  font-size: var(--bnd-text-sm);
+  color: var(--bnd-ink-muted);
+  line-height: var(--bnd-leading-base);
+}
+
+html[data-theme] .bnd-inbox-detail-actions {
+  display: flex;
+  gap: var(--bnd-sp-2);
+  margin-block-start: var(--bnd-sp-4);
+}
+
+html[data-theme] .bnd-inbox-btn {
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-raised);
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  padding-block: var(--bnd-sp-1);
+  padding-inline: var(--bnd-sp-3);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--bnd-hover);
+  }
+}
+
+html[data-theme] .bnd-inbox-btn-primary {
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+  border-color: transparent;
+}
+
+// Narrow: the detail pane stacks under the list instead of squeezing it.
+@include bnd-until(lg) {
+  html[data-theme] .bnd-inbox-page {
+    flex-direction: column;
+  }
+
+  html[data-theme] .bnd-inbox-page-list {
+    inline-size: auto;
+  }
+}

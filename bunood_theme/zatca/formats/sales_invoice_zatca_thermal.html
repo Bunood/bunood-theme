@@ -1,0 +1,115 @@
+{#- Managed by bunood_theme: edits here are overwritten on every migrate.
+    زاتكا — فاتورة مبسطة (حراري 80مم). The 80mm counterpart ksa_compliance never
+    shipped: same content rules as their "ZATCA Phase 1 Print Format" (seller block
+    from ZATCA Phase 1 Business Settings, Standard-vs-Simplified detected from the
+    customer's custom_vat_registration_number, per-line VAT with the pre-0.37.1
+    fallback, QR) laid out for a receipt roll. Payments/change/outstanding included
+    because this is the POS receipt. Defensive throughout: a site without
+    ksa_compliance prints a stated warning, never a crash. -#}
+{% from "templates/bunood_print_macros.html" import zatca_qr %}
+{%- set p1 = frappe.db.get_value("ZATCA Phase 1 Business Settings", {"company": doc.company},
+      ["company", "vat_registration_number", "address", "status", "type_of_transaction"], as_dict=True)
+      if frappe.db.exists("DocType", "ZATCA Phase 1 Business Settings") else None -%}
+{%- set seller_vat = (p1.vat_registration_number if p1 else None) or doc.get("company_tax_id") -%}
+{%- set addr = frappe.db.get_value("Address", p1.address, ["address_line1", "city"], as_dict=True)
+      if p1 and p1.address else None -%}
+{%- set buyer_vat = frappe.db.get_value("Customer", doc.customer, "custom_vat_registration_number")
+      if doc.get("customer") and frappe.db.exists("DocType", "ZATCA Phase 1 Business Settings") else None -%}
+{%- set kind = "Standard" if (p1 and p1.type_of_transaction == "Standard Tax Invoice")
+      or (p1 and p1.type_of_transaction == "Both" and buyer_vat) else "Simplified" -%}
+<style>
+/* Page size MUST be declared on `.print-format` — the only channel either pdf
+   engine reads (read_options_from_html); @page reaches neither. The sibling
+   thermal formats carry the full argument. Without this rule the PDF button
+   produced A4 (measured 2026-09-02: options came back with 15mm margins and no
+   size, against 80x297mm for the siblings); the desk preview never showed it. */
+.print-format { page-width: 80mm; page-height: 297mm; margin-top: 4mm; margin-bottom: 4mm; margin-left: 4mm; margin-right: 4mm; }
+@media print { @page { size: 80mm 297mm; margin: 4mm; } }
+  .zt { width: 72mm; margin: 0 auto; font-size: 11px; line-height: 1.45; color: #000; }
+  .zt * { font-family: inherit; }
+  .zt-c { text-align: center; }
+  .zt-title { font-size: 13px; font-weight: 700; margin: 0; }
+  .zt-sub { font-size: 10px; margin: 0 0 2px; }
+  .zt-hr { border: 0; border-top: 1px dashed #000; margin: 4px 0; }
+  .zt table { width: 100%; border-collapse: collapse; }
+  .zt-kv td { padding: 0.5px 0; vertical-align: top; }
+  .zt-kv td:last-child { text-align: left; direction: ltr; }
+  .zt-items th { border-top: 1px solid #000; border-bottom: 1px solid #000; padding: 2px 1px; font-size: 10px; }
+  .zt-items td { padding: 2px 1px; border-bottom: 1px dotted #999; }
+  .zt-num { text-align: left; direction: ltr; white-space: nowrap; }
+  .zt-tot td { padding: 1px 0; }
+  .zt-tot .zt-grand td { font-size: 12.5px; font-weight: 700; border-top: 1px solid #000; padding-top: 3px; }
+  .zt-qr { margin: 6px 0 2px; }
+  .zt-qr img { width: 34mm; height: 34mm; }
+  .zt-warn { font-weight: 700; border: 1px solid #000; padding: 3px; text-align: center; }
+</style>
+<div class="zt" dir="rtl">
+  {%- if not p1 or p1.status != "Active" -%}
+    <div class="zt-warn">لا توجد إعدادات زاتكا (المرحلة الأولى) نشطة لهذه الشركة<br>No active ZATCA Phase 1 Business Settings</div>
+  {%- endif -%}
+
+  <div class="zt-c">
+    {%- if doc.get("is_return") -%}
+      <p class="zt-title">إشعار دائن {{ "لفاتورة ضريبية" if kind == "Standard" else "لفاتورة ضريبية مبسطة" }}</p>
+      <p class="zt-sub">{{ "Standard" if kind == "Standard" else "Simplified" }} Tax Invoice Credit Note</p>
+    {%- elif kind == "Standard" -%}
+      <p class="zt-title">فاتورة ضريبية</p>
+      <p class="zt-sub">Standard Tax Invoice</p>
+    {%- else -%}
+      <p class="zt-title">فاتورة ضريبية مبسطة</p>
+      <p class="zt-sub">Simplified Tax Invoice</p>
+    {%- endif -%}
+    <div>{{ (p1.company if p1 else doc.company) | e }}</div>
+    {%- if addr %}<div class="zt-sub">{{ addr.address_line1 | e }}{% if addr.city %}، {{ addr.city | e }}{% endif %}</div>{% endif -%}
+    <div>الرقم الضريبي / VAT: <span dir="ltr">{{ seller_vat or "غير مُعدّ / NOT SET" }}</span></div>
+  </div>
+  <hr class="zt-hr">
+
+  <table class="zt-kv">
+    <tr><td>رقم الفاتورة / Invoice No</td><td>{{ doc.name | e }}</td></tr>
+    {%- if doc.get("return_against") %}<tr><td>مرجع الفاتورة / Ref</td><td>{{ doc.return_against | e }}</td></tr>{% endif -%}
+    <tr><td>التاريخ / Date</td><td>{{ doc.get_formatted("posting_date") }} {{ doc.get_formatted("posting_time") }}</td></tr>
+    {%- if kind == "Standard" -%}
+      <tr><td>المشتري / Buyer</td><td>{{ (doc.get("customer_name") or doc.customer) | e }}</td></tr>
+      <tr><td>ضريبة المشتري / Buyer VAT</td><td>{{ buyer_vat or "غير مُعدّ / NOT SET" }}</td></tr>
+    {%- endif -%}
+  </table>
+  <hr class="zt-hr">
+
+  {%- set item_taxes = get_item_wise_tax_details(doc) if get_item_wise_tax_details is defined else {} -%}
+  <table class="zt-items">
+    <tr><th style="text-align:right">الصنف / Item</th><th class="zt-num">كمية<br>Qty</th><th class="zt-num">سعر<br>Price</th><th class="zt-num">المجموع<br>Total</th></tr>
+    {%- for row in doc.items -%}
+    {%- set line_tax = row.get("tax_amount") or (item_taxes.get(row.name, {}).get("amount", 0)) -%}
+    <tr>
+      <td>{{ row.item_name | e }}</td>
+      <td class="zt-num">{{ row.qty | abs }}</td>
+      <td class="zt-num">{{ row.get_formatted("rate", doc) }}</td>
+      <td class="zt-num">{{ frappe.utils.fmt_money((row.net_amount + line_tax) | abs, None, doc.currency) }}</td>
+    </tr>
+    {%- endfor -%}
+  </table>
+
+  <table class="zt-kv zt-tot">
+    <tr><td>الإجمالي (غير شامل الضريبة) / Subtotal</td><td>{{ frappe.utils.fmt_money(doc.net_total | abs, None, doc.currency) }}</td></tr>
+    {%- if doc.get("discount_amount") %}<tr><td>الخصم / Discount</td><td>{{ doc.get_formatted("discount_amount") }}</td></tr>{% endif -%}
+    <tr><td>ضريبة القيمة المضافة / VAT 15%</td><td>{{ frappe.utils.fmt_money(doc.total_taxes_and_charges | abs, None, doc.currency) }}</td></tr>
+    <tr class="zt-grand"><td>الإجمالي شامل الضريبة / Total</td><td>{{ frappe.utils.fmt_money((doc.rounded_total or doc.grand_total) | abs, None, doc.currency) }}</td></tr>
+  </table>
+
+  {%- set paid_rows = doc.get("payments") or [] -%}
+  {%- if paid_rows or doc.get("outstanding_amount") -%}
+  <hr class="zt-hr">
+  <table class="zt-kv">
+    {%- for pay in paid_rows if pay.amount -%}
+    <tr><td>{{ pay.mode_of_payment | e }}</td><td>{{ frappe.utils.fmt_money(pay.amount | abs, None, doc.currency) }}</td></tr>
+    {%- endfor -%}
+    {%- if doc.get("change_amount") %}<tr><td>الباقي / Change</td><td>{{ doc.get_formatted("change_amount") }}</td></tr>{% endif -%}
+    {%- if doc.docstatus == 1 and doc.get("outstanding_amount") -%}
+    <tr><td><b>آجل — المتبقي / Outstanding</b></td><td><b>{{ frappe.utils.fmt_money(doc.outstanding_amount | abs, None, doc.currency) }}</b></td></tr>
+    {%- endif -%}
+  </table>
+  {%- endif -%}
+
+  <div class="zt-c zt-qr">{{ zatca_qr(doc, 128, required=True) }}</div>
+</div>

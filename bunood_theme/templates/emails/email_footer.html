@@ -1,0 +1,82 @@
+{#-
+  THE EMAIL FOOTER — ours. Item 34. See standard.html's header for why this app
+  forks three of Frappe's email templates and what that costs.
+
+  Forked at frappe 16.27.0; re-read and re-pinned at 16.33.0 (sha256
+  801fd923887b41f7), 2026-09-10. Pinned by tests/smoke.mjs.
+
+  16.33 CHANGED EXACTLY ONE LINE HERE — the root div's class list — and NEITHER
+  half is taken. Upstream now writes:
+
+      class="email-footer-container text-muted
+             {% if email_account_footer or sender_address or default_mail_footer %}with-divider{% endif %}"
+
+    `text-muted` is refused on measurement, not on taste: `email.bundle.scss:357`
+      is `.text-muted { color: $text-muted !important; }`. Our footer ink is a
+      fitted CONTRACT at `.bnd-e .bnd-e-foot` (0,2,0) with no `!important`, and
+      in an inlining pipeline `!important` wins whatever the specificity — so
+      taking the class would hand the footer straight back to #7c7c7c and undo
+      the repair four lines below. `email: the repaired inks clear AA` is the
+      check that would catch it, and it should never have to.
+    `with-divider` is refused because it is a hook for padding we already own:
+      `.email-footer-container.with-divider` adds a 24px margin, 16px of padding
+      and a border-top, and it also drives `standard.html`'s `filled` cell class,
+      which this fork does not take either (the argument is in that file). One
+      refusal, consistently applied, beats two halves of a divider.
+
+  TWO OF THE THREE LOAD-BEARING MARKERS ARE IN THIS FILE:
+      <!--unsubscribe link here-->   -> email_body.py:444 replaces it wholesale
+      <!--email_open_check-->        -> email_queue.py:358-384, per recipient
+  Neither is decoration. Deleting either is a functional regression that renders
+  perfectly.
+
+  AND THE ONE MEASURED WCAG FAILURE ON THIS SURFACE. `.email-footer-container`
+  carries `text-muted`, which resolves to #7c7c7c on #ffffff — 4.17:1 against
+  1.4.3 AA's 4.5. It is the SAME literal on the SAME class that item 33 repaired
+  on /404 and every portal row; this is its third surface. Repaired in slice 2 as
+  a CONTRACT, so it survives `Original`.
+
+  Shipped inert in this slice: byte-identical to the vendor's.
+-#}
+<div class="bnd-e-foot email-footer-container">
+	<!-- email_account_footer -->
+	{% if email_account_footer %}
+	<div class="email-account-footer">
+		{{ email_account_footer }}
+	</div>
+	{% endif %}
+
+	<!-- sender_address -->
+	{% if sender_address %}
+	<div class="sender-address">
+		{% for line in sender_address.splitlines(True) %}
+		<div>{{ line }}</div>
+		{% endfor %}
+	</div>
+	{% endif %}
+
+	<!--unsubscribe link here-->
+
+	<div class="email-pixel">
+		<!--email_open_check-->
+	</div>
+
+	<!-- default_mail_footer -->
+	{% if default_mail_footer %}
+	<div class="default-mail-footer">
+		{#- ITEM 34. FILTERED, NOT DROPPED. `bunood_email_footer` removes only lines
+	    that LINK to a vendor host — erpnext.com, frappe.io — which is the framework
+	    advertising itself in mail a customer sends to their own customers. An app
+	    with something useful to say keeps its line, and the word "ERPNext" in a
+	    tenant's own footer text survives, because the tenant may well sell it.
+
+	    The alternative was ticking System Settings' `disable_standard_email_footer`,
+	    and it was refused twice over: it is site DATA this app has no business
+	    writing, and it is all-or-nothing — it would silence a legitimate app too. -#}
+	{% for line in bunood_email_footer(default_mail_footer) %}
+		<div>{{ line }}</div>
+		{% endfor %}
+	</div>
+	{% endif %}
+
+</div>

@@ -1,0 +1,512 @@
+@use "../breakpoints" as bp;
+
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// REPORT VIEW / DATATABLE — checklist item 26. The fourth SURFACE partial.
+//
+// WHAT
+//   Cell canvas, grid lines, the header band and the total band for Frappe's
+//   frappe-datatable, as a CSS matrix keyed on attributes bunood.js derives
+//   from Theme Settings (boot -> data-bnd-report*). A surface kit colours
+//   Frappe's own DOM and mounts nothing — absent attributes ARE the stand-down,
+//   so "Original" is a pure clearing and stock tables render untouched.
+//
+//   The kit reaches EVERY .datatable on the desk — report view, query report,
+//   web forms, the multi-select dialog, the data-import preview — because
+//   nothing else in the roadmap claims those tables. (Grain and row feedback
+//   are item 26 slice 3; this slice is the anchor + the two correctness fixes.)
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-report          ruled | ledger | open | slab   (the style; the
+//                            ANCHOR — absent = every rule here inert)
+//   data-bnd-report-grain    stripes                (slice 3)
+//   data-bnd-report-rows     wash | rail | bold     (slice 3)
+//   data-bnd-report-ckreveal (presence)             (slice 3)
+//
+// THE FACTS THIS FILE IS BUILT ON (all measured, 2026-08-17 — probe A/borders)
+//   * The header fill is painted THREE ways, at THREE specificities: the vendor
+//     paints .dt-cell--header from --dt-header-cell-bg (report.bundle, 0,1,0);
+//     frappe_datatable.scss then hardcodes --subtle-fg onto .dt-row-header
+//     (0,3,0) AND .dt-cell--header .dt-cell__content (0,4,0). To repaint the
+//     band as ONE tone we re-point the var (which .dt-dropdown__toggle also
+//     reads) AND beat both hardcoded rules — the content-box selector must
+//     carry .dt-cell__content and reach (0,4,1). A bare .dt-cell--header loses.
+//   * The grid is cell borders: .dt-cell has border-top/left/right 1px in
+//     --dt-border-color (#ededed), NO bottom — so top makes the horizontal
+//     rule, left+right the verticals. We drive them by logical longhand so a
+//     style can have horizontals without verticals (Ledger) or neither (Open).
+//   * Cell INK is `.dt-cell { color: var(--text-color) !important }` — legally
+//     unbeatable. It is reachable only through --text-color (already --bnd-ink)
+//     or by styling .dt-cell__content, whose color is a DIRECT declaration that
+//     beats the parent's inherited !important. The header ink rides there.
+//   * The header carries no paint of its own (.dt-header is transparent,
+//     position:static); its horizontal scroll writes a transform that becomes
+//     an identity matrix and STAYS a containing block after the first scroll.
+//     So a box-shadow on .dt-header re-anchors nothing (.dt-dropdown__list is
+//     position:fixed inside it), but a second transform/filter would — banned.
+//   * There is no boundary at all in stock: header border-block-end 0, the
+//     scrollable's border-top nulled with !important, fills ~1.5% apart. The
+//     "sticky header" goal is a BOUNDARY + FILL job, not a positioning one.
+//
+// DESIGN RECORD (item-26 wireframe round, 2026-08-17): defaults are the user's
+// picks Pinned Slab · Row Stripes · Edge Rail · reveal on. References:
+// Directus v-table/layouts/tabular (opaque header vs transparent body — the
+// sticky contract), shadcn ui/table (opaque bg-muted header), Discourse
+// admin_report_table (caret parked in the padding gutter).
+//
+// Scoped html[data-bnd-report] throughout; fails open to stock on absent
+// attributes, unknown slugs, or upstream class renames. Logical properties
+// only. No !important. The focus ring is the ONE thing lifted OUT of the
+// anchor — it is a contract, not a style, so it survives Original.
+// ============================================================================
+
+// ── The focus ring: a contract, lifted out of the anchor ────────────────────
+// html[data-theme]-scoped, NOT the kit anchor — the _list.scss:66 density
+// pattern's second case: a CONTRACT survives Original, a STYLE does not. The
+// datatable marks the keyboard-focused cell with .dt-cell--focus (a JS class)
+// and gives .dt-cell__content a 2px border it colours --gray-200; we re-colour
+// it to --bnd-accent, the theme's one gated focus colour.
+//
+// TWO TONES, because a datatable cell's fill VARIES — and --bnd-accent alone
+// measures ~1.07:1 on a Bold Bar selection's --bnd-brand-solid fill (SC 2.4.11
+// fail, WORSE than stock's grey; a keyboard user cannot see focus on a selected
+// row). The companion ring is --bnd-on-brand, which is GATED to clear AA against
+// --bnd-brand-solid, so it carries exactly where the accent cannot; on a light
+// cell the accent border carries and the companion is invisible. One tone always
+// clears 3:1, on every seed and mode. (Adversarial review finding.)
+html[data-theme] .datatable .dt-cell--focus .dt-cell__content {
+  border-color: var(--bnd-accent);
+  box-shadow: inset 0 0 0 2px var(--bnd-on-brand);
+}
+
+// ── The working set ─────────────────────────────────────────────────────────
+// One block of custom-property assignments per style; every component rule
+// below consumes ONLY these. Adding a style is one block (the _sidebar.scss /
+// _list.scss pattern). "Original" needs no block — the absent anchor clears
+// every rule, which is a total stand-down.
+//
+// Each style is a contrast PAIRING (fill + boundary + ink), never split, so the
+// picker cannot offer "no fill delta + no boundary" — the defect the axis fixes.
+html[data-bnd-report="ruled"] {
+  // Classic spreadsheet: a full grid, a recessed header.
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: var(--bnd-page);
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: var(--bnd-border);
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: var(--bnd-border);
+  --bnd-rep-radius: 0px;
+}
+html[data-bnd-report="ledger"] {
+  // The accounting ledger: horizontal rules only, header rides the canvas.
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: transparent;
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: transparent;
+  --bnd-rep-radius: 0px;
+}
+html[data-bnd-report="open"] {
+  // Whitespace does the work: no fills, no grid — one hairline under the header
+  // is the only line. Every variable is the quiet value on purpose.
+  --bnd-rep-cell-bg: transparent;
+  --bnd-rep-head-bg: transparent;
+  --bnd-rep-head-ink: var(--bnd-ink-subtle);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: transparent;
+  --bnd-rep-head-sep: var(--bnd-border);
+  --bnd-rep-head-shadow: none;
+  --bnd-rep-frame: transparent;
+  --bnd-rep-radius: var(--bnd-radius-md);
+}
+html[data-bnd-report="slab"] {
+  // The default. The header is a raised, filled SLAB with a boundary and a soft
+  // elevation — the missing statement that the band is a header (§the item's
+  // whole first goal). Rows are clean: faint horizontal separators, no columns.
+  --bnd-rep-cell-bg: var(--bnd-surface);
+  --bnd-rep-head-bg: var(--bnd-raised);
+  --bnd-rep-head-ink: var(--bnd-ink);
+  --bnd-rep-grid-x: transparent;
+  --bnd-rep-grid-y: var(--bnd-border);
+  --bnd-rep-head-sep: var(--bnd-border-strong);
+  --bnd-rep-head-shadow: var(--bnd-shadow-sm);
+  --bnd-rep-frame: var(--bnd-border);
+  --bnd-rep-radius: 0px;
+}
+
+// ── Re-point the live vendor variables ──────────────────────────────────────
+// Six of the datatable's nineteen --dt-* vars are dead ends in this sheet;
+// these are the ones that actually paint what we style. Re-pointing the header
+// var also covers .dt-dropdown__toggle (which reads it) for free; re-pointing
+// the border var covers the .dt-scrollable__no-data frame and the filter-input
+// borders, so Open Sheet does not draw a stray hairline on an empty report.
+html[data-bnd-report] .datatable {
+  --dt-cell-bg: var(--bnd-rep-cell-bg);
+  --dt-header-cell-bg: var(--bnd-rep-head-bg);
+  --dt-border-color: var(--bnd-rep-frame);
+  --dt-border-radius: var(--bnd-rep-radius);
+}
+
+// ── The grid lines ──────────────────────────────────────────────────────────
+// Logical longhand so x and y are independent. The vendor draws border-top +
+// border-inline in --dt-border-color; we replace those three sides (never the
+// bottom, which the vendor leaves at 0 — abutting tops make the horizontals).
+// Body cells carry both axes; header cells carry only the verticals, because
+// the header's own boundary (below) is its horizontal, not a grid line.
+html[data-bnd-report] .datatable .dt-scrollable .dt-cell {
+  border-block-start: var(--bnd-line) solid var(--bnd-rep-grid-y);
+  border-inline: var(--bnd-line) solid var(--bnd-rep-grid-x);
+}
+html[data-bnd-report] .datatable .dt-header .dt-cell--header {
+  border-inline: var(--bnd-line) solid var(--bnd-rep-grid-x);
+}
+
+// ── The cell canvas ─────────────────────────────────────────────────────────
+// The vendor paints .dt-cell from --dt-cell-bg (re-pointed above); nothing more
+// is needed for the body fill. Corner radius rides the datatable box.
+html[data-bnd-report] .datatable {
+  border-radius: var(--bnd-rep-radius);
+}
+
+// ── The header band ─────────────────────────────────────────────────────────
+// One tone across the whole 70px band (header row + filter row): the box gets
+// the fill so the transparent filter-row cells show it, and the two hardcoded
+// --subtle-fg rules (probe A) are beaten on their own specificity. The boundary
+// and elevation are the STATEMENT — box-shadow only (constraint: no transform).
+html[data-bnd-report] .datatable .dt-header {
+  background-color: var(--bnd-rep-head-bg);
+  border-block-end: var(--bnd-line) solid var(--bnd-rep-head-sep);
+  box-shadow: var(--bnd-rep-head-shadow);
+}
+html[data-bnd-report] .datatable .dt-header .dt-row-header {
+  background-color: var(--bnd-rep-head-bg);
+}
+html[data-bnd-report] .datatable .dt-header .dt-cell--header .dt-cell__content {
+  background-color: var(--bnd-rep-head-bg);
+  color: var(--bnd-rep-head-ink);
+}
+
+// ── The total band ──────────────────────────────────────────────────────────
+// The header and the total row are the same structural object (§fusion): a
+// lifted slab header over a total row carrying nothing but bold would read as a
+// bug. Query-report only — the report route appends totals as an ordinary last
+// data row that no selector can tell from data (blocker 2), so drawing an arm
+// there would hang a stray band under every report. Gated on :has(.dt-row) so
+// an empty footer draws nothing.
+html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell {
+  background-color: var(--bnd-rep-head-bg);
+  border-block-start: var(--bnd-line) solid var(--bnd-rep-head-sep);
+}
+html[data-bnd-report] .datatable .dt-footer:has(.dt-row) .dt-cell__content {
+  color: var(--bnd-rep-head-ink);
+}
+
+// ── Tabular numerals — the correctness fix, under the anchor ─────────────────
+// Frappe sets font-feature-settings:"tnum" on .dt-scrollable .dt-cell__content
+// ONLY (frappe_datatable.scss:149) — the header and total rows, where money
+// lands, are excluded, and the legacy property reads as "normal" in
+// getComputedStyle().fontVariantNumeric, the property this repo's tests assert
+// on. One rule on every .dt-cell__content fixes both defects (coverage AND
+// property) at once. UNDER the anchor by decision: tabular figures visibly
+// change how a column of money reads, so lifting them would mean Original no
+// longer renders as stock.
+html[data-bnd-report] .datatable .dt-cell__content {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+// The query-report SUMMARY strip is outside the datatable, so the rule above
+// misses it. Frappe gives .summary-value the legacy font-feature-settings:"tnum"
+// (report.scss) — invisible to getComputedStyle. Until item 26 this row was
+// owned by the WORKSPACE kit (data-bnd-ws, no route gate), so workspace_style:
+// Original stripped it — a summary that belongs to the report surface. Taken
+// here, under this kit's anchor. [id=] not #id to keep it at attribute weight;
+// scoped to #page-query-report so it can never touch the workspace kit's own
+// `.widget .report-summary` (verified disjoint — the split de-fusion).
+html[data-bnd-report] [id="page-query-report"] .report-summary {
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+// Query-report controls, totals and chart are one visual stack. Frappe gives
+// the summary an inline gutter but leaves the filter and chart full bleed,
+// which produces three unrelated left edges (and is especially conspicuous in
+// RTL). Own the gutter and frame here so every report has one durable geometry.
+html[data-bnd-report] [id="page-query-report"] :is(.page-form, .report-summary, .chart-wrapper, .bnd-report-scope) {
+  box-sizing: border-box;
+  inline-size: calc(100% - 32px) !important;
+  margin-inline: 16px !important;
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+}
+
+// The seven production reports keep Frappe's native filter controls and add a
+// compact, read-only statement of the scope actually in force. Values use bdi
+// because company/party identifiers routinely mix Arabic, Latin and digits.
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2) var(--bnd-sp-3);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  color: var(--bnd-ink-muted);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope__title {
+  color: var(--bnd-ink);
+  white-space: nowrap;
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope__items {
+  display: flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-1);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.bnd-report-scope__item, .bnd-report-scope__more) {
+  display: inline-flex;
+  align-items: baseline;
+  min-inline-size: 0;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-page);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope__value {
+  max-inline-size: 24ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--bnd-ink);
+}
+
+// A request error must outlive Frappe's transient toast. Retry calls the exact
+// throttled native refresh and therefore preserves current filters, prepared
+// report flags, sort order and the export model.
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-recovery {
+  inline-size: calc(100% - 32px);
+  margin-inline: 16px;
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-empty-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-1);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-empty-action:focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-empty-action {
+  margin-block-start: var(--bnd-sp-3);
+}
+
+// Keep monetary and quantity strings LTR as atomic units while alignment still
+// follows the sheet's reading direction. Header labels remain in the locale's
+// direction; only values and totals receive this class.
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.dt-scrollable, .dt-footer) .bnd-report-number .dt-cell__content {
+  direction: ltr;
+  unicode-bidi: isolate;
+  text-align: end;
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .dt-scrollable .dt-row.bnd-report-total-row {
+  --bnd-rep-row-bg: var(--bnd-raised);
+  font-weight: 700;
+  border-block-start: var(--bnd-line-strong) solid var(--bnd-border-strong);
+}
+
+html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .dt-scrollable .dt-row.bnd-report-section-row {
+  --bnd-rep-row-bg: var(--bnd-page);
+  font-weight: 600;
+}
+
+@media (width < bp.bnd-bp(sm)) {
+  html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report-scope {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+}
+
+html[data-bnd-report] [id="page-query-report"] .report-summary {
+  display: flex;
+  flex-wrap: wrap;
+  min-inline-size: 0;
+}
+
+html[data-bnd-report] [id="page-query-report"] .report-summary .summary-item {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SLICE 3 — table grain and row feedback.
+// ════════════════════════════════════════════════════════════════════════════
+
+// ── report_rows working set — hover AND selection, ONE axis ─────────────────
+// Fused, unlike the list kit: hover and selection both write background on the
+// same opaque .dt-cell, so two fields would let a hover read louder than a
+// select. Every option keeps hover < selection. The wash is a brand TINT into
+// the surface; rail/bold use --bnd-brand-solid with --bnd-on-brand ink — the
+// raw seed appears nowhere (the three-token brand law), and each pair is gated.
+html[data-bnd-report-rows="wash"] {
+  --bnd-rep-hover-bg: var(--bnd-hover);
+  --bnd-rep-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-rep-sel-rail: transparent;
+  --bnd-rep-sel-ink: var(--bnd-ink);
+}
+html[data-bnd-report-rows="rail"] {
+  --bnd-rep-hover-bg: var(--bnd-hover);
+  --bnd-rep-sel-bg: color-mix(in srgb, var(--bnd-brand) 10%, var(--bnd-surface));
+  --bnd-rep-sel-rail: var(--bnd-brand-solid);
+  --bnd-rep-sel-ink: var(--bnd-ink);
+}
+html[data-bnd-report-rows="bold"] {
+  --bnd-rep-hover-bg: var(--bnd-hover);
+  --bnd-rep-sel-bg: var(--bnd-brand-solid);
+  --bnd-rep-sel-rail: var(--bnd-brand-solid);
+  --bnd-rep-sel-ink: var(--bnd-on-brand);
+}
+
+// ── report_grain working set ────────────────────────────────────────────────
+// 3% ink blended into whatever the style's canvas is — perceptible on every
+// seed in both modes, and quieter than any hover or selection by construction.
+html[data-bnd-report-grain="stripes"] {
+  --bnd-rep-stripe: color-mix(in srgb, var(--bnd-ink) 3%, var(--bnd-rep-cell-bg, transparent));
+}
+
+// ── The row background, resolved at the ROW so cells never fight ─────────────
+// grain -> hover -> selection, each SETTING --bnd-rep-row-bg on the row; the
+// cell just reads it. All the row-level rules are (0,2,0)+scope, so SOURCE ORDER
+// is the cascade: selection last (it beats a hovered odd row), hover before it
+// (it beats grain). This is the list kit's row-bg resolution, transposed onto
+// the datatable — and it sidesteps the specificity fight that painting the cell
+// directly would create (grain's [style*=] and hover's :hover both out-weigh a
+// bare .dt-row--highlight).
+html[data-bnd-report] .dt-scrollable .dt-cell {
+  background-color: var(--bnd-rep-row-bg, var(--bnd-rep-cell-bg));
+}
+html[data-bnd-report] .dt-scrollable .dt-row {
+  --bnd-rep-row-bg: var(--bnd-rep-cell-bg);
+}
+// Grain: odd VISUAL rows. HyperList writes `top: index * cellHeight` inline, and
+// cellHeight is 35 — ODD — so an odd row's top always ends in an odd digit. The
+// full 1/3/5/7/9 set is robust to any EVEN scroll-padding (probe B, validated at
+// page length 100 through a 1400px scroll: 59 of 98 rows windowed, parity held).
+// THE COUPLING, written where it is depended on: this holds ONLY while cellHeight
+// is odd and .dt-scrollable's padding-block-start is even-or-zero. An even pitch
+// makes every top even, nothing matches, and grain falls back to Plain — safe,
+// not garbage. Nothing in this kit may set padding-block-start on .dt-scrollable.
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="1px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="3px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="5px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="7px"],
+html[data-bnd-report-grain="stripes"] .dt-scrollable .dt-row[style*="9px"] {
+  --bnd-rep-row-bg: var(--bnd-rep-stripe);
+}
+// Hover — after grain, before selection.
+html[data-bnd-report] .dt-scrollable .dt-row:hover {
+  --bnd-rep-row-bg: var(--bnd-rep-hover-bg, var(--bnd-hover));
+}
+// Selection — the checkbox-highlighted row (probed: .dt-row--highlight).
+// `.dt-row.dt-row--highlight`, not a bare `.dt-row--highlight`, ON PURPOSE:
+// grain's `.dt-row[style*="5px"]` is (0,4,1), so a single-class selection at
+// (0,3,1) LOSES to the stripe on an odd selected row (measured — the selected
+// row showed the stripe). The doubled class ties grain at (0,4,1) and source
+// order (selection is authored last) settles it — hover the same way.
+html[data-bnd-report] .dt-scrollable .dt-row.dt-row--highlight {
+  --bnd-rep-row-bg: var(--bnd-rep-sel-bg);
+}
+// Select-all paints every row EXCEPT one de-selected mid-select-all: the third
+// state, .dt-row--unhighlight, which must read as NOT selected (blocker). The
+// vendor's own --highlight-all rule paints .dt-cell__content indiscriminately;
+// resolving at the row lets us carve the exception cleanly.
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighlight) {
+  --bnd-rep-row-bg: var(--bnd-rep-sel-bg);
+}
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row--unhighlight {
+  --bnd-rep-row-bg: var(--bnd-rep-cell-bg);
+}
+// ...but the row-bg above paints the CELL, and during select-all the vendor
+// paints the opaque .dt-cell__content ON TOP of it (frappe_datatable.scss:
+// `.dt-scrollable--highlight-all .dt-cell__content { background: var(--dt-
+// selection-highlight-color) }`, (0,3,0)) — masking BOTH our sel-bg (Bold Bar's
+// brand-solid became the light vendor wash, and the on-brand ink then sat on it
+// at ~1.06:1) AND the .dt-row--unhighlight carve-out above (a de-selected row
+// still read as selected). Clear the content box so the cell layer we resolved
+// per-row shows through; (0,3,1) beats the vendor. (Adversarial review finding.)
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-cell__content {
+  background-color: transparent;
+}
+
+// Selection ink (Bold Bar's on-brand label) rides the content box — the cell's
+// own color is !important and unbeatable, but .dt-cell__content's is a direct
+// declaration that beats the inherited value (§1.3d).
+html[data-bnd-report] .dt-scrollable .dt-row--highlight .dt-cell__content,
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighlight) .dt-cell__content {
+  color: var(--bnd-rep-sel-ink);
+}
+
+// The selection rail (Edge Rail / Bold Bar): a 3px inline-start bar. A ::before,
+// absolutely placed inside the (position:absolute) row; inset-inline-start
+// mirrors in RTL for free. Wash sets the rail transparent, so this is inert for it.
+html[data-bnd-report] .dt-scrollable .dt-row--highlight::before,
+html[data-bnd-report] .dt-scrollable--highlight-all .dt-row:not(.dt-row--unhighlight)::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block: 0;
+  inline-size: 3px;
+  background: var(--bnd-rep-sel-rail, transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+// Cell-range selection (.dt-cell--highlight — a rectangle of cells staged for
+// the clipboard) is a DIFFERENT selection and must survive our hover/grain fill.
+// Re-assert the vendor's highlight at our scope so it always wins on its cells.
+html[data-bnd-report] .dt-scrollable .dt-cell--highlight {
+  background-color: var(--dt-selection-highlight-color);
+}
+
+// ── Checkbox reveal — route-gated (decision 1) ──────────────────────────────
+// The body-row checkbox rests hidden, revealed on row hover, :focus-within, or
+// while ANY row is checked; stood down wholesale on touch. opacity, never
+// display:none — the box stays in the tab order (cells carry tabindex).
+//
+// ROUTE-GATED to the two report routes ONLY (.report-view / #page-query-report):
+// hiding the checkbox inside a MultiSelectDialog or a web form removes the very
+// affordance that surface exists for — the guard_critical_reach rule for tenants,
+// applied to a surface. [id=] not #id, to keep the selector at attribute weight.
+// The header select-all is untouched (.dt-scrollable excludes .dt-header), the
+// discoverable entry to selection — the list kit's 3B judgement transposed.
+$rpt-routes: ":is(.report-view, [id='page-query-report'])";
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-cell--col-0 input[type="checkbox"] {
+  opacity: 0;
+  transition: opacity var(--bnd-dur-fast) var(--bnd-ease);
+}
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-row:hover .dt-cell--col-0 input[type="checkbox"],
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-row:focus-within .dt-cell--col-0 input[type="checkbox"],
+html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable:has(.dt-cell--col-0 input:checked) .dt-cell--col-0 input[type="checkbox"] {
+  opacity: 1;
+}
+// Touch has no hover: the option stands down wholesale and checkboxes stay
+// visible — part of the option's definition, not an afterthought.
+@media (hover: none) {
+  html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-cell--col-0 input[type="checkbox"] {
+    opacity: 1;
+  }
+}

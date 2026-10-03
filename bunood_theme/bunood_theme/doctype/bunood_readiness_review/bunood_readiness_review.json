@@ -1,0 +1,252 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:BND-RR-{YYYY}-{#####}",
+ "creation": "2026-09-20 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "scope_section",
+  "company",
+  "project",
+  "column_break_scope",
+  "task",
+  "domain",
+  "decision_section",
+  "decision",
+  "supersedes",
+  "column_break_decision",
+  "candidate_reference",
+  "responsible_role",
+  "review_section",
+  "authority_confirmed",
+  "qualification_basis",
+  "decision_reason",
+  "evidence_reference",
+  "receipt_section",
+  "reviewer",
+  "reviewed_at",
+  "column_break_receipt",
+  "evidence_count",
+  "candidate_digest",
+  "receipt_digest",
+  "candidate_snapshot",
+  "chain_key"
+ ],
+ "fields": [
+  {
+   "fieldname": "scope_section",
+   "fieldtype": "Section Break",
+   "label": "Readiness scope"
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "Readiness work plan",
+   "options": "Project",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_scope",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "task",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Readiness task",
+   "options": "Task",
+   "reqd": 1
+  },
+  {
+   "fieldname": "domain",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Readiness domain",
+   "options": "company\naccounting\ntax_zatca\nstock\ncommercial\nparties\npayments\naccess\noutput\noperations\nintegrations\nfirst_transaction",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "decision_section",
+   "fieldtype": "Section Break",
+   "label": "Decision"
+  },
+  {
+   "fieldname": "decision",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Decision",
+   "options": "\nAccepted\nNeeds Work\nNot Applicable\nReopened",
+   "reqd": 0
+  },
+  {
+   "description": "The immediately preceding submitted receipt. A submitted receipt is never edited or cancelled; reopening creates the next receipt in this chain.",
+   "fieldname": "supersedes",
+   "fieldtype": "Link",
+   "label": "Previous receipt",
+   "options": "Bunood Readiness Review",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_decision",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Exact release or configuration candidate reviewed, such as a release tag, commit plus asset hashes, or an approved run-packet identifier.",
+   "fieldname": "candidate_reference",
+   "fieldtype": "Data",
+   "label": "Candidate reference",
+   "reqd": 1
+  },
+  {
+   "description": "The business role expected to own this review domain. Authorization to submit does not prove professional qualification.",
+   "fieldname": "responsible_role",
+   "fieldtype": "Data",
+   "label": "Required reviewer scope",
+   "read_only": 1
+  },
+  {
+   "fieldname": "review_section",
+   "fieldtype": "Section Break",
+   "label": "Reviewer statement"
+  },
+  {
+   "description": "I confirm that I am authorized to record this decision for the company and scope shown above.",
+   "fieldname": "authority_confirmed",
+   "fieldtype": "Check",
+   "label": "Authority confirmed"
+  },
+  {
+   "description": "State the professional, operational or owner authority used for this decision. The Bunood reviewer role alone is not qualification.",
+   "fieldname": "qualification_basis",
+   "fieldtype": "Small Text",
+   "label": "Qualification and authority basis"
+  },
+  {
+   "description": "Explain what was decided, why, and any limitation or unresolved risk.",
+   "fieldname": "decision_reason",
+   "fieldtype": "Text",
+   "label": "Decision reason"
+  },
+  {
+   "description": "Identify the reviewed file, report, test, approval or external evidence. Native Task files and comments are also fingerprinted automatically.",
+   "fieldname": "evidence_reference",
+   "fieldtype": "Small Text",
+   "label": "Evidence reference"
+  },
+  {
+   "collapsible": 1,
+   "fieldname": "receipt_section",
+   "fieldtype": "Section Break",
+   "label": "Immutable receipt"
+  },
+  {
+   "fieldname": "reviewer",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Recorded by",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "reviewed_at",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Recorded at",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_receipt",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "evidence_count",
+   "fieldtype": "Int",
+   "label": "Native evidence records",
+   "read_only": 1
+  },
+  {
+   "description": "SHA-256 of the exact site, app assets, native task state and evidence references reviewed.",
+   "fieldname": "candidate_digest",
+   "fieldtype": "Data",
+   "label": "Candidate digest",
+   "read_only": 1
+  },
+  {
+   "description": "SHA-256 of the final submitted decision receipt.",
+   "fieldname": "receipt_digest",
+   "fieldtype": "Data",
+   "label": "Receipt digest",
+   "read_only": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "candidate_snapshot",
+   "fieldtype": "Code",
+   "label": "Candidate snapshot",
+   "options": "JSON",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chain_key",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Receipt chain key",
+   "no_copy": 1,
+   "read_only": 1,
+   "unique": 1
+  }
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-20 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Readiness Review",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Bunood Readiness Reviewer",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  }
+ ],
+ "search_fields": "company,task,domain,candidate_reference,decision",
+ "show_title_field_in_link": 1,
+ "sort_field": "reviewed_at",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "candidate_reference",
+ "track_changes": 1,
+ "track_seen": 1
+}

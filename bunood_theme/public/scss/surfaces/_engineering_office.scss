@@ -1,0 +1,71 @@
+// Engineering Office is a working desk, not a second generic ERP theme.
+// Scope every treatment to its routes so selling, accounting and the original
+// server retain their own hierarchy. The custom home is styled in its block.
+html[data-theme] body:is(
+  [data-route^="Form/Engineering"],
+  [data-route^="Form/Government Transaction"]
+) {
+  .bnd-dochead {
+    position: relative;
+    border-inline-start: 0 !important;
+    border-block-start: var(--bnd-line) solid var(--bnd-border);
+    background: var(--pilot-deep) !important;
+    color: #fff !important;
+    padding-block: 1rem !important;
+    padding-inline: 1.25rem !important;
+  }
+
+  .bnd-dochead-title,
+  .bnd-dochead-meta {
+    color: #fff !important;
+  }
+
+  .bnd-dochead-meta { opacity: .78; }
+
+  // Use a drafting-line accent for sections, leaving the fields and their
+  // order entirely native to Frappe. It makes long contracts scannable.
+  .form-section {
+    border-block-start: 2px solid var(--pilot-line);
+  }
+
+  .section-head {
+    color: var(--pilot-deep-ink);
+    font-weight: 700;
+  }
+
+  .form-group .help-box,
+  .form-group .small.text-muted {
+    color: var(--pilot-muted) !important;
+    line-height: 1.55;
+    font-size: .75rem;
+  }
+}
+
+html[data-theme] body:is(
+  [data-route^="List/Engineering"],
+  [data-route^="List/Government Transaction"]
+) {
+  .no-result .msg-box.no-border {
+    max-inline-size: 32rem;
+    margin-inline: auto;
+    padding: 1.5rem;
+    border-block-start: var(--bnd-line) solid var(--bnd-border);
+    background: var(--pilot-paper);
+  }
+
+  .no-result .msg-box.no-border p {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+    max-inline-size: 36ch;
+    margin-inline: auto;
+    line-height: 1.6;
+  }
+}
+
+html[data-theme] body[data-route^="query-report/Engineering"] {
+  .report-wrapper {
+    border-block-start: 3px solid var(--pilot-deep);
+  }
+}

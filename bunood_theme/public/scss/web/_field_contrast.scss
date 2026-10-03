@@ -1,0 +1,14 @@
+// The same field boundary follows the user through sign-in and the portal.
+// These pages use body anchors, not Desk's html data-theme contract.
+@media screen {
+  body:is(.bnd-auth, .bnd-web) :is(
+    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+    select,
+    textarea
+  ):not(:disabled):not([readonly]) {
+    border: var(--bnd-line-strong) solid var(--bnd-field-edge, var(--bnd-ink-subtle));
+  }
+  body:is(.bnd-auth, .bnd-web) :is(.has-error, [aria-invalid="true"]) {
+    --bnd-field-edge: var(--bnd-critical);
+  }
+}

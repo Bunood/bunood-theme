@@ -1,0 +1,356 @@
+@use "../breakpoints" as bp;
+
+// The ERP lane's pale resting state must not override the shared white-text
+// hover treatment. Keep pointer and keyboard states equally legible.
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane-next:is(:hover, :focus-visible) {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+// Keep the welcome surface closed and let every role place its work actions
+// after the view controls, with real breathing room around each control.
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-command {
+  background: #153c31;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-scope {
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+}
+
+// On the accounting desk the view and company are one decision row. Keeping
+// the context note beneath them avoids a tall, mostly empty filter card.
+html[data-theme] .bnd-home-dashboard.is-accountant[data-bnd-home-profile="erp"] > .bnd-home-scope {
+  grid-template-columns: max-content minmax(0, 1fr);
+  justify-content: start;
+  align-items: center;
+  gap: 6px 18px;
+  min-block-size: 0;
+  padding: 10px 16px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-filters {
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-field {
+  display: flex;
+  flex: 0 1 340px;
+  align-items: center;
+  gap: 8px;
+  max-inline-size: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-label {
+  flex: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-select {
+  min-inline-size: 0;
+  flex: 1;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-reset {
+  flex: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-note {
+  grid-column: 1 / -1;
+}
+
+@include bp.bnd-until(xl) {
+  html[data-theme] .bnd-home-dashboard.is-accountant[data-bnd-home-profile="erp"] > .bnd-home-scope {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-filters {
+    flex-wrap: wrap;
+  }
+}
+
+@include bp.bnd-until(sm) {
+  html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-field {
+    flex-basis: 100%;
+  }
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-view-switch {
+  flex-wrap: nowrap;
+  min-inline-size: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-view {
+  flex: 0 0 auto;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-filters {
+  justify-content: flex-start;
+}
+
+// The global form-label margin otherwise lifts the company control above the
+// period fieldset and reset button, even though the filter row aligns its ends.
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-field {
+  margin: 0;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel,
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 2px 0 4px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel .bnd-home-panel-head,
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions .bnd-home-panel-head {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel .bnd-home-panel-title,
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions .bnd-home-panel-title {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel .bnd-home-intro-actions,
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions .bnd-home-intro-actions {
+  display: flex;
+  flex: 1 1 620px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel .bnd-home-action,
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions .bnd-home-action {
+  min-block-size: 40px;
+  margin: 0;
+  padding: 7px 12px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 5px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel .bnd-home-action.is-primary,
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions .bnd-home-action.is-primary {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-actions-panel .bnd-home-action:is(:hover, :focus-visible),
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-accountant-actions .bnd-home-action:is(:hover, :focus-visible) {
+  border-color: var(--pilot-brand);
+  outline-offset: 3px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier {
+  gap: 16px;
+  max-inline-size: 1560px;
+  margin-inline: auto;
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier .bnd-accountant-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: end;
+  gap: 6px 24px;
+  padding-block-end: 12px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier .bnd-cashier-card {
+  inline-size: 100%;
+  border-block-start: 0;
+  border-block-end: 0;
+  border-inline-start: 0;
+  background: var(--pilot-paper);
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier .bnd-cashier-card:is(:hover, :focus-visible) {
+  background: var(--pilot-leaf);
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: -3px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier .bnd-cashier-card .bnd-accountant-measure-value {
+  font-size: clamp(1rem, 1.45vw, 1.45rem);
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier > .bnd-home-scope {
+  padding-block-end: 10px;
+}
+
+html[data-theme] .bnd-cashier-notice {
+  margin: 0;
+  padding: 12px 15px;
+  border: 1px solid #d4b779;
+  border-radius: 6px;
+  background: #fff8e8;
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-dashboard.is-all-companies {
+  gap: 18px;
+  max-inline-size: 1560px;
+  margin-inline: auto;
+}
+
+html[data-theme] .bnd-home-company-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 24px;
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-company-heading h2 {
+  margin: 0;
+  font-size: clamp(1.2rem, 2vw, 1.55rem);
+}
+
+html[data-theme] .bnd-home-company-heading p {
+  margin: 0;
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme] .bnd-home-company-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+  gap: 14px;
+}
+
+html[data-theme] .bnd-home-company-card {
+  display: grid;
+  gap: 16px;
+  min-inline-size: 0;
+  padding: 20px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 10px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--bnd-dur-fast) ease, box-shadow var(--bnd-dur-fast) ease, transform var(--bnd-dur-fast) ease;
+}
+
+html[data-theme] .bnd-home-company-card:is(:hover, :focus-visible) {
+  border-color: var(--pilot-brand);
+  box-shadow: 0 8px 20px rgba(16, 59, 44, .09);
+  transform: translateY(-2px);
+}
+
+html[data-theme] .bnd-home-company-card:focus-visible {
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: 3px;
+}
+
+html[data-theme] .bnd-home-company-card-head,
+html[data-theme] .bnd-home-company-stat,
+html[data-theme] .bnd-home-company-open {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+html[data-theme] .bnd-home-company-card-head strong {
+  min-inline-size: 0;
+  font-size: var(--bnd-text-lg);
+  overflow-wrap: anywhere;
+}
+
+html[data-theme] .bnd-home-company-card-head > span,
+html[data-theme] .bnd-home-company-stat > span {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme] .bnd-home-company-stats {
+  display: grid;
+  gap: 9px;
+}
+
+html[data-theme] .bnd-home-company-stat b {
+  font-size: var(--bnd-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-company-open {
+  padding-block-start: 12px;
+  border-block-start: 1px solid var(--pilot-line);
+  color: var(--pilot-brand);
+  font-size: var(--bnd-text-sm);
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] .bnd-home-company-card { transition: none; }
+  html[data-theme] .bnd-home-company-card:is(:hover, :focus-visible) { transform: none; }
+}
+
+html[data-theme] .bnd-home-dashboard.is-cashier .bnd-cashier-recent {
+  overflow: hidden;
+  border: 1px solid var(--pilot-line);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-cashier-recent .bnd-home-panel-head {
+  padding: 14px 17px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-cashier-recent-list { display: grid; }
+
+html[data-theme] .bnd-cashier-sale {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) minmax(130px, 1.4fr) auto;
+  align-items: center;
+  gap: 12px;
+  inline-size: 100%;
+  padding: 12px 17px;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-cashier-sale:last-child { border-block-end: 0; }
+html[data-theme] .bnd-cashier-sale:hover { background: var(--pilot-leaf); }
+html[data-theme] .bnd-cashier-sale:focus-visible { outline: 2px solid var(--pilot-brand); outline-offset: -3px; }
+html[data-theme] .bnd-cashier-sale span { color: var(--pilot-muted); font-size: var(--bnd-text-sm); }
+html[data-theme] .bnd-cashier-sale b { font-variant-numeric: tabular-nums; }
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-cashier-sale { grid-template-columns: minmax(0, 1fr) auto; }
+  html[data-theme] .bnd-cashier-sale span { grid-column: 1 / -1; grid-row: 2; }
+}

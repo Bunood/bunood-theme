@@ -1,0 +1,6 @@
+// Public authentication is not loaded inside Desk. Remove its matching gold
+// edge without changing native login controls, sizing or brand typography.
+html body.bnd-auth-split .bnd-auth-hero-brand {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}

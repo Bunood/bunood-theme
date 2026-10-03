@@ -1,0 +1,35 @@
+{
+	"schema_version": 1,
+	"candidate": {
+		"site": "rc20.localhost",
+		"company": "Bunood Development",
+		"version": "0.46.35"
+	},
+	"owner_confirmation": {
+		"confirmed_by": "",
+		"confirmed_at": "",
+		"legal_identity": false,
+		"address_and_contact": false,
+		"logo": false,
+		"zatca_configuration": false
+	},
+	"physical_acceptance": {
+		"a4_print": {
+			"passed": false,
+			"evidence": ""
+		},
+		"thermal_80mm": {
+			"passed": false,
+			"evidence": ""
+		},
+		"printed_qr_scan": {
+			"passed": false,
+			"evidence": ""
+		},
+		"preview_pdf_paper_match": {
+			"passed": false,
+			"evidence": ""
+		}
+	}
+}
+

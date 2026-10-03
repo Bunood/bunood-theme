@@ -1,0 +1,25 @@
+// Shared native-backed document disclosures: geometry, not a font glyph.
+html.bunood :is(.bnd-simple-tools, .bnd-form-actionbar-more) > summary {
+  justify-content: center;
+  gap: var(--bnd-sp-2);
+}
+html.bunood :is(.bnd-simple-tools, .bnd-form-actionbar-more) > summary::after {
+  content: "";
+  display: block;
+  flex: none;
+  inline-size: var(--bnd-sp-2);
+  block-size: var(--bnd-sp-2);
+  margin: 0;
+  border-inline-end: var(--bnd-line-2) solid currentColor;
+  border-block-end: var(--bnd-line-2) solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+}
+html.bunood :is(.bnd-simple-tools, .bnd-form-actionbar-more)[open] > summary::after {
+  transform: translateY(25%) rotate(225deg);
+}
+html.bunood[dir="rtl"] :is(.bnd-simple-tools, .bnd-form-actionbar-more) > summary::after {
+  transform: translateY(-25%) rotate(-45deg);
+}
+html.bunood[dir="rtl"] :is(.bnd-simple-tools, .bnd-form-actionbar-more)[open] > summary::after {
+  transform: translateY(25%) rotate(135deg);
+}

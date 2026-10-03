@@ -1,0 +1,93 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-08-10 16:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "language",
+  "status",
+  "provider",
+  "column_break_head",
+  "app",
+  "scan",
+  "section_text",
+  "source_text",
+  "proposed_text"
+ ],
+ "fields": [
+  {
+   "fieldname": "language",
+   "fieldtype": "Data",
+   "label": "Language",
+   "reqd": 1
+  },
+  {
+   "default": "Pending",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Pending\nAccepted\nRejected"
+  },
+  {
+   "fieldname": "provider",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Provider"
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Which app's catalogue the source string came from — context for the reviewer, not a key.",
+   "fieldname": "app",
+   "fieldtype": "Data",
+   "label": "App"
+  },
+  {
+   "fieldname": "scan",
+   "fieldtype": "Link",
+   "label": "Scan",
+   "options": "Bunood Translation Scan"
+  },
+  {
+   "fieldname": "section_text",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "source_text",
+   "fieldtype": "Code",
+   "in_list_view": 1,
+   "label": "Source Text",
+   "reqd": 1
+  },
+  {
+   "fieldname": "proposed_text",
+   "fieldtype": "Code",
+   "label": "Proposed Text"
+  }
+ ],
+ "links": [],
+ "modified": "2026-08-10 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Translation Proposal",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

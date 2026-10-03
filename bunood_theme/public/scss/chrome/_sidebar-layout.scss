@@ -1,0 +1,207 @@
+@use "../breakpoints" as *;
+
+// On a narrow viewport the open global navigator is the whole navigation
+// surface. Frappe and the sidebar skin both used partial drawer widths, which
+// left an inert strip beside the menu and made the drawer look unfinished.
+// The closed state remains zero-width; only the native `expanded` state owns
+// the viewport.
+html[data-bnd-narrow] .body-sidebar-container.expanded {
+  position: fixed;
+  inset: 0;
+  inline-size: 100vw !important;
+  block-size: calc(100dvh - var(--bnd-bottom-reserve));
+  overflow: hidden;
+  z-index: calc(var(--bnd-z-panel) + 1);
+
+  // Frappe positions this scrim after its original 220px drawer. Once the
+  // Bunood navigator owns the viewport that scrim sits on top of the widened
+  // menu, leaving only a narrow slice readable. A full-width sheet has no
+  // exposed document area to dismiss, so the scrim has no remaining job.
+  > .overlay { display: none !important; }
+
+  .body-sidebar {
+    display: flex !important;
+    box-sizing: border-box;
+    inline-size: 100vw !important;
+    block-size: 100% !important;
+    overflow: hidden;
+  }
+
+  // Resizing is a desktop affordance. Keep one native close control in the
+  // opposite corner of the brand row instead of a handle hanging off-screen.
+  .sidebar-resize-handle { display: none !important; }
+  .collapse-sidebar-link {
+    inset-block-start: var(--bnd-sp-3);
+    inset-block-end: auto;
+    inset-inline-end: var(--bnd-sp-3);
+  }
+}
+
+// The outer column reserves layout space; its fixed pane owns viewport scrolling.
+// Native page wrappers may have fixed heights, so they cannot contain a sticky pane.
+html.bunood[data-bnd-sidepane]:not([data-bnd-narrow]) {
+  --bnd-pane-top: 0px;
+  &[data-bnd-topbar] { --bnd-pane-top: var(--bnd-topbar-h); }
+
+  .body-sidebar-container {
+    box-sizing: border-box;
+    position: relative;
+    inset-block-start: auto;
+    align-self: flex-start;
+    flex: 0 0 var(--bnd-sb-w);
+    inline-size: var(--bnd-sb-w);
+    min-inline-size: 0;
+    max-inline-size: none;
+    margin-inline-end: var(--bnd-sp-4);
+    block-size: calc(100dvh - var(--bnd-pane-top) - var(--bnd-bottom-reserve));
+    min-block-size: 0;
+    margin-block-start: var(--bnd-pane-top);
+    overflow: visible;
+    z-index: var(--bnd-z-flyout);
+    transition: none;
+
+    // The expanded desktop column is user-resizable down to 200px. Its fixed
+    // pane follows the same width token, while clipping here prevents a wide
+    // descendant from raising the visual floor. The resting/collapsed shell
+    // stays visible so the edge handle keeps its intentional overhang.
+    &.expanded {
+      overflow: clip;
+    }
+  }
+
+  .body-sidebar-container .body-sidebar {
+    position: fixed;
+    inset-block-start: var(--bnd-pane-top);
+    inset-block-end: auto;
+    inset-inline: auto;
+    display: flex;
+    flex-direction: column;
+    inline-size: var(--bnd-sb-w);
+    block-size: calc(100dvh - var(--bnd-pane-top) - var(--bnd-bottom-reserve));
+    background: inherit;
+    border: inherit;
+    border-radius: inherit;
+    box-shadow: inherit;
+    min-block-size: 0;
+    box-sizing: border-box;
+    visibility: visible;
+    opacity: 1;
+    // The scrolling viewport is `.body-sidebar-top`; the shell must not clip
+    // the resize strip that deliberately sits just outside the pane edge.
+    overflow: visible;
+    transition: none;
+  }
+
+  .body-sidebar-top {
+    flex: 1 1 0;
+    min-block-size: 0;
+    inline-size: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .body-sidebar-placeholder { display: none; }
+
+  &[data-bnd-rail] .body-sidebar-container:not(.bnd-rail-open) {
+    flex-basis: var(--bnd-sb-rail-w);
+    inline-size: var(--bnd-sb-rail-w);
+    margin-inline-start: 0;
+    .body-sidebar { inline-size: var(--bnd-sb-rail-w); padding-inline: var(--bnd-sp-1); }
+  }
+}
+
+// The global header uses viewport coordinates in every mode, not negative
+// offsets derived separately from compact/expanded/floating sidebar widths.
+html[data-bnd-desk][data-bnd-topbar]:not([data-bnd-narrow]) {
+  .main-section {
+    min-inline-size: 0;
+    flex: 1 1 0;
+    padding-block-start: var(--bnd-topbar-h);
+    // This is Frappe's desk scroll viewport. Lending overflow to the document
+    // creates a second outer scrollbar on every content-tall route.
+    overflow: auto;
+  }
+  .main-section > header {
+    position: fixed;
+    inset-block-start: 0;
+    inset-inline: 0;
+    z-index: calc(var(--bnd-z-flyout) + 1);
+  }
+  // The scroll viewport already reserves one top-bar height above its content.
+  // Reapplying that height to the sticky page head leaves a second, visible
+  // strip of dashboard content between the two bars after scrolling.
+  .page-head {
+    inset-block-start: 0;
+  }
+}
+
+// The desktop page head has one pane control. Once Bunood's collapse button is
+// live, the native workspace hamburger and the pane-edge duplicate stand down.
+// Narrow mode keeps Frappe's hamburger because it opens the mobile drawer.
+html.bunood[data-bnd-sidepane][data-bnd-own~="panetoggle"]:not([data-bnd-narrow]) .page-title > .sidebar-toggle-btn,
+html.bunood[data-bnd-sidepane][data-bnd-own~="panetoggle"]:not([data-bnd-narrow]) .body-sidebar-container .collapse-sidebar-link {
+  display: none;
+}
+
+.bnd-compact-nav { display: none; }
+html.bunood[data-bnd-rail][data-bnd-own~="compactnav"]:not([data-bnd-narrow]) .body-sidebar-container:not(.bnd-rail-open) {
+  .body-sidebar-top, .standard-items-sections, .bnd-sb-filter, .body-sidebar-bottom,
+  .sidebar-resize-handle, .bnd-sb-brand-name { display: none; }
+  .bnd-sb-brand {
+    justify-content: center;
+    padding: var(--bnd-sp-2);
+    margin: 0;
+    border: 0;
+  }
+  .bnd-sb-head {
+    flex: none;
+    inline-size: 100%;
+    margin: 0;
+    padding-inline: var(--bnd-sp-1);
+    min-block-size: var(--bnd-sb-tile);
+    gap: var(--bnd-sp-1);
+    .bnd-sb-head-name { font-size: var(--bnd-text-xs); white-space: normal; }
+  }
+  .bnd-compact-nav {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-block-size: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    gap: var(--bnd-sp-1);
+    padding-block: var(--bnd-sp-2);
+  }
+}
+
+.bnd-rail-entry {
+  appearance: none;
+  border: 0;
+  margin: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-2) var(--bnd-sp-1);
+  min-block-size: calc(var(--bnd-sb-tile) + var(--bnd-sp-4));
+  inline-size: 100%;
+  box-sizing: border-box;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-sb-ink-muted);
+  font-family: inherit;
+  font-size: var(--bnd-text-xs);
+  line-height: 1.35;
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  &:hover { background: var(--bnd-sb-chip-bg); color: var(--bnd-sb-ink); text-decoration: none; }
+  &[aria-current="page"], &[data-active="true"] { background: var(--bnd-brand-solid); color: var(--bnd-on-brand); }
+  &:focus-visible { outline: var(--bnd-line-2) solid var(--bnd-brand-ink); outline-offset: calc(-1 * var(--bnd-line-2)); }
+  &[aria-current="page"]:focus-visible, &[data-active="true"]:focus-visible { outline-color: var(--bnd-on-brand); }
+}
+.bnd-rail-glyph { inline-size: var(--bnd-text-xl); block-size: var(--bnd-text-xl); flex: none; }

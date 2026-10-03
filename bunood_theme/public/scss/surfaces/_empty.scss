@@ -1,0 +1,257 @@
+// ============================================================================
+// EMPTY STATES — checklist item 29. The seventh SURFACE partial.
+//
+// WHAT
+//   TWO HALVES, AND THE SPLIT IS THE ITEM. Everything under `html[data-theme]`
+//   is a CONTRACT — a measured repair that survives "Original", because a
+//   contract is about whether the desk WORKS. Everything under
+//   `html[data-bnd-empty]` (and its `-media` / `-action` siblings) is a STYLE,
+//   and "Original" clears it completely. GUIDELINES 1.3, and the item-28 rule
+//   the wireframe round re-affirmed for this kit: empty states are on every
+//   list, report, panel and 404 — including the settings page itself, so a
+//   legibility fix cannot be allowed to depend on a taste setting.
+//
+//   (This header read "slice 1 is the contract set only" while the anchor and
+//   both axes were already below it — corrected at the close. `_overlays.scss`
+//   carries the same correction for the same reason: a header that describes
+//   one slice becomes a lie the moment the next one lands.)
+//
+// WHY ONE RULE, WHEN THE CENSUS LEDGER NAMED THREE CONTRACTS
+//   The other two died against the COMPILED bundle before a line was written
+//   (measured 2026-08-19, desk.bundle.WYAUFYAC.css):
+//   - The datatable's no-data 90px pin is dead upstream: frappe's own
+//     `.datatable` block re-points `--dt-no-data-message-width: max-content`
+//     and centres with `left: 50%; translateX(-50%)` — symmetric, so it also
+//     mirrors. There is nothing left to repair.
+//   - The list sidebar's `.empty-state` "Sass literal" compiles to
+//     `color: var(--text-muted)` — `$text-muted` aliases the CSS variable, so
+//     it already follows the theme through the bridge. The census read the
+//     source and not the output; the output is what cascades.
+//   Write contracts against what the bundle SERVES, not what the .scss says.
+//
+// THE ONE LIVE DEFECT, AND ITS LEVER
+//   The child grid's "No rows" is `.grid-empty.text-extra-muted`, and
+//   `.text-extra-muted { color: var(--gray-500) !important }`
+//   (desk/global.scss:608) pins it to #999999 — 2.85:1 on a white surface,
+//   under the 4.5:1 floor, in the one empty state that sits inside a form the
+//   user is actively editing. `--gray-500` is UNBRIDGED, deliberately:
+//   bridging it in `_bridge.scss` would repaint every stock consumer of the
+//   grey ramp desk-wide, which is not this kit's call to make. So the fix is
+//   a SCOPED re-point: the !important declaration READS a variable, and a
+//   custom property assignment has no specificity contest with the colour
+//   rule — the vendor's own rule does the painting, with our value. The
+//   item-28 Quill lever, third outing. Proven live before this rule was
+//   written: 153,153,153 -> exactly --bnd-ink-muted, both modes (EV00008).
+//
+// THE 29/30 BOUNDARY (Decision D, and the census that moved it)
+//   Item 29 owns the BOX — tone, air, frame — on every empty-meaning node,
+//   including nodes that are one selector for empty AND loading, where every
+//   rule must be true of both readings: no motion, no action promotion, no
+//   authored copy. Item 30 owns MOTION + RESERVED GEOMETRY on nodes whose
+//   class can mean nothing but loading. `.grid-empty` here is cleanly ours —
+//   its `.list-loading` co-tenant in the vendor's grouped rule shares CSS,
+//   not DOM (different files, different ancestors; the grouping is cosmetic).
+//
+// A STYLESHEET MUST NOT AUTHOR COPY
+//   `content:` with prose bypasses assertTranslationCoverage entirely and
+//   ships English into an Arabic desk. `assertNoAuthoredCopy` (build.mjs)
+//   enforces it over this and every partial from the commit that creates
+//   this file — negative-tested by inserting copy and watching the build
+//   refuse it.
+//
+// CASCADE
+//   Our sheet is 4th of 12 stock, measured 3rd of 10 on the empty-list, query
+//   report and 404 routes (slice-0 probe P9, 2026-08-19) with two inline
+//   sheets after it. Every rule below wins on SPECIFICITY, never on source
+//   order.
+//
+// RTL
+//   Nothing below touches the inline axis. When later slices do, both logical
+//   sides get set, one to a value and one to auto (GUIDELINES 1.3).
+//
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-19, frappe 16.27.0.
+// ============================================================================
+
+// ── Contract: the child grid's "No rows" ink ────────────────────────────────
+// (0,2,1). The vendor's `.text-extra-muted` colour rule keeps winning — it is
+// !important and that is fine, because it reads the variable this re-point
+// scopes. --bnd-ink-muted is fitted per seed to 7:1 (palette.py), so the gate
+// already owns this pair; no new contrast rows.
+html[data-theme] .grid-empty {
+  --gray-500: var(--bnd-ink-muted);
+}
+
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — html[data-bnd-empty]. Everything below is a STYLE: "Original"
+// clears the attribute and every rule here goes with it.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// WHAT IT DRESSES, AND WHY THAT SELECTOR
+//   `.msg-box.no-border` is Frappe's own discriminator, not ours: FIVE of the
+//   six places that construct a .msg-box carry it — the list empty state
+//   (list_view.js:562), the query report's empty AND loading boxes
+//   (query_report.js:106, :1161), the dashboard (dashboard_view.js:201) and
+//   the inbox view (inbox_view.js:199). The sixth, messages.js:14's legacy
+//   waiting helper, does NOT, and it ships an inline `width: 63%` we would
+//   only be fighting. So the class we did not invent draws exactly the line
+//   we wanted. Plus `.message-page-content`, the 404 (shape d).
+//
+// THE 29/30 RULE THIS OBEYS
+//   query_report's loading box is BYTE-IDENTICAL to its empty one, so every
+//   rule below has to be true of both readings. Box, tone and air are; motion,
+//   action promotion and authored copy are not, and none appears here. Item 30
+//   adds motion on top, from a partial imported after this one.
+//
+// GEOMETRY, MEASURED 2026-08-19 — the two objects are NOT laid out alike:
+//   .msg-box sits in `.no-result.flex.justify-center` and is already centred
+//   and shrink-wrapped (228x191 in a 1160 parent). `.message-page-content` is
+//   a plain block that fills its page (1190 wide). Treating them as one object
+//   therefore needs the max-inline-size + auto margins below; without them
+//   Framed would draw a hairline around the whole 404 viewport.
+//
+// WHY Filled IS --bnd-surface AND NOT --bnd-raised
+//   Both objects sit on --bnd-page (measured, both modes). In light that is
+//   rgb(248,250,248) and --bnd-raised is rgb(251,253,252) — a THREE-unit delta,
+//   i.e. a "Filled" style that renders as nothing. --bnd-surface is the card
+//   token and reads on the page ground in both modes (light +7, dark +2/+10/+4),
+//   and it is one of the grounds --bnd-ink-muted is already fitted against, so
+//   the copy inside stays AA without a new pair.
+//
+// Framed's hairline is --bnd-border, the same 0.5px the rest of the theme
+// separates with. Framed and Filled never combine: one separates by boundary,
+// the other by tone, and a box with both is neither.
+
+html[data-bnd-empty] {
+  // Not an axis — one constant, kept out of the rule. Caps the 404's
+  // full-bleed content into a card and stops long copy running the width of a
+  // wide desk.
+  --bnd-em-max: 34rem;
+}
+
+// Quiet — separates by nothing. Directus's centred info block: ink and air
+// only, for a desk that wants its empty states to recede.
+html[data-bnd-empty="quiet"] {
+  --bnd-em-pad-block: var(--bnd-sp-5);
+  --bnd-em-pad-inline: var(--bnd-sp-5);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: none;
+  --bnd-em-radius: 0;
+}
+
+// Open — separates by AIR. The shipped default, and the first default in this
+// project that is not the boldest option: this block sits INSIDE containers
+// other kits already frame, so boldness here compounds instead of standing
+// alone. Discourse's --with-image and shadcn's shipped Empty are both unframed.
+html[data-bnd-empty="open"] {
+  --bnd-em-pad-block: var(--bnd-sp-7);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: none;
+  --bnd-em-radius: 0;
+}
+
+// Framed — separates by a SOLID hairline. Dashed was deleted by the survey:
+// all three reference products reserve dashed for "put something here"
+// (dropzones, add-tiles), and shadcn's eight styles declare a dashed edge with
+// no width, so it renders at zero in every one of them.
+html[data-bnd-empty="framed"] {
+  --bnd-em-pad-block: var(--bnd-sp-6);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: transparent;
+  --bnd-em-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-em-radius: var(--bnd-radius-lg);
+}
+
+// Filled — separates by TONE, no boundary. Discourse's whole-body idiom.
+html[data-bnd-empty="filled"] {
+  --bnd-em-pad-block: var(--bnd-sp-6);
+  --bnd-em-pad-inline: var(--bnd-sp-6);
+  --bnd-em-bg: var(--bnd-surface);
+  --bnd-em-ring: none;
+  --bnd-em-radius: var(--bnd-radius-lg);
+}
+
+// The object. (0,3,1) over stock's `.msg-box` (0,1,0) and `.page-body .msg-box`
+// (0,2,0) — measured, not assumed. Logical throughout: the inline axis is
+// padding-inline / margin-inline / max-inline-size, so it mirrors for free.
+html[data-bnd-empty] .msg-box.no-border,
+html[data-bnd-empty] .message-page-content {
+  padding-block: var(--bnd-em-pad-block);
+  padding-inline: var(--bnd-em-pad-inline);
+  background-color: var(--bnd-em-bg);
+  // A RING, NOT A BORDER, and the class this rule keys on is exactly why:
+  // Frappe ships `.no-border { border: none !important }` as a global utility
+  // (read out of the compiled bundle), and every .msg-box we dress carries
+  // .no-border. A border here loses to that !important and computes to 0 — a
+  // "Framed" style with no frame. The check caught it before it shipped, which
+  // is the whole argument for writing the check first.
+  //
+  // A box-shadow ring competes with nothing, follows border-radius, and costs
+  // no layout, so switching styles never reflows the box. Item 25's Hairline
+  // Grid reached for the same technique for the same reason.
+  box-shadow: var(--bnd-em-ring);
+  border-radius: var(--bnd-em-radius);
+  max-inline-size: var(--bnd-em-max);
+  margin-inline: auto;
+}
+
+// ── Axis: the mark (item 29 slice 3) ───────────────────────────────────────
+// Frappe draws a 40px stroked glyph above the message and colours it INLINE
+// (`style="stroke: var(--text-light)"`, list_view.js:562). No rule of ours can
+// beat an inline declaration — but it READS A VARIABLE, and re-pointing that
+// variable in scope wins with no !important. That is the whole media plan, and
+// it was proven on the live node before this axis was written (slice-0 probe 3:
+// a scoped --text-light re-point moved the computed stroke exactly).
+//
+// GLYPH IS THE NEUTRAL and writes no attribute: --text-light is already bridged
+// to --bnd-ink-subtle, so the stock mark is already ours. The axis exists for
+// the two real alternatives.
+//
+// NOT DONE HERE, AND WHY: Frappe also ships six `<img class="null-state">`
+// illustrations with hardcoded hex (#171717 on our dark surface computes 1.11:1)
+// which CSS cannot recolour — only hide or filter. They are UNREACHABLE in every
+// state this stack can drive: probed 2026-08-20, the notification panel's two
+// are in the DOM at 0x0 and offsetParent null. Styling what cannot be measured
+// is how a rule ships broken, so replacing them waits for a route that shows
+// them (and for the mask-over-data-URI mark the survey costed at ~250-290 B).
+
+// Marked — the glyph seated on a tinted disc. shadcn's `icon` media variant and
+// Directus's circular badge, both of which put the mark on a ground rather than
+// floating it. The disc is --bnd-hover on the box's own ground and the ink stays
+// --bnd-ink-subtle: a pairing the contrast gate already covers, so no new rows.
+html[data-bnd-empty-media="marked"] .msg-box svg.icon {
+  // content-box keeps the vendor's 40px glyph at 40px and grows the disc around
+  // it, instead of shrinking the drawing inside a fixed square.
+  box-sizing: content-box;
+  padding: var(--bnd-sp-3);
+  background-color: var(--bnd-hover);
+  border-radius: var(--bnd-radius-pill);
+}
+
+// None — no mark at all. frappe-ui's own ListEmptyState ships title, description
+// and button and NO media, so this is the house idiom, not an absence.
+html[data-bnd-empty-media="none"] .msg-box svg.icon {
+  display: none;
+}
+
+// ── Axis: the call to action (item 29 slice 3) ─────────────────────────────
+// THE ITEM'S THESIS. Stock renders the create button as `btn btn-default btn-sm`
+// — measured rgb(251,253,252) with a 0px border, on a page ground of
+// rgb(248,250,248). A three-unit delta and no boundary: the primary action of an
+// otherwise empty screen is the least visible thing on it, and item 22's
+// "identifiable at rest" contract fails on the one control the screen exists to
+// offer. Frappe's own "primary" is no help — _bridge.scss:86 leaves
+// --btn-primary unmapped on purpose ("a branding gap, not a contrast one").
+//
+// PLAIN IS THE NEUTRAL and writes no attribute: stock, warts and all, for anyone
+// who wants the desk left alone.
+//
+// Scoped to the box, never to `.btn-new-doc` alone — the class appears in the
+// page head too, and the empty box itself renders TWO (a desktop button and a
+// `.visible-xs` mobile one, which Frappe already paints primary).
+html[data-bnd-empty-action="primary"] .msg-box.no-border .btn-new-doc {
+  background-color: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}

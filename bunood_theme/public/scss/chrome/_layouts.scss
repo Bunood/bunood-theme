@@ -1,0 +1,594 @@
+// Copyright (c) 2026, Bunood and contributors
+@use "../breakpoints" as *;
+// ============================================================================
+// DESK LAYOUTS — the visibility matrix (checklist item 9).
+//
+// WHAT
+//   Five desk layouts, selected site-wide in Theme Settings and delivered as
+//   `data-bnd-desk` on <html> (set by bunood.js from boot, before
+//   DOMContentLoaded). This file holds everything CONDITIONAL on the layout:
+//   which native sidebar rows hide, where the notifications panel opens, and
+//   how much space page content reserves for bars. The bars' own appearance
+//   lives in their partials (_navbar, _statusbar, _dock).
+//
+// THE MATRIX (what each layout hides / mounts)
+//   topbar     hide sidebar search+bell+user   mount: topbar, statusbar
+//   compact    hide sidebar bell+user          mount: page-head cluster, statusbar
+//   classic    hide nothing                    mount: nothing (crumb chip only)
+//   bottombar  hide sidebar search+bell+user   mount: bottombar (global controls)
+//   dock       hide the ENTIRE sidebar         mount: dock
+//
+// WHY display:none STILL WORKS AS A CONTROL
+//   Our bar buttons do not reimplement search or notifications — they call
+//   .click() on the HIDDEN native trigger (bunood.js), and DOM click() fires
+//   handlers regardless of visibility. The native elements stay in the DOM as
+//   the single source of behaviour; we only relocate where the USER clicks.
+//
+// WHY THE NOTIFICATIONS PANEL IS REPOSITIONED HERE
+//   `.dropdown-notifications` opens anchored inside the sidebar. When the bell
+//   that opens it lives in a bar instead, the panel must open near that bell —
+//   so each layout pins it (position:fixed) next to its own bell. Classic is
+//   untouched.
+//
+// NO LAYOUT ATTRIBUTE = CLASSIC
+//   If boot fails, no attribute is set, none of these rules match, nothing is
+//   hidden and nothing mounts. The failure mode of the whole layout system is
+//   "stock v16", never a desk with controls hidden and no replacement.
+//
+// Scoped html[data-bnd-desk] throughout — (0,1,1)+ beats Frappe's unlayered
+// class rules without !important. Logical properties only (RTL guard).
+// ============================================================================
+
+// ── Shared: hide a native row ONLY once we have replaced it ─────────────────
+// Keyed on `data-bnd-own`, which bunood.js stamps AFTER a replacement is in the
+// document — never on `data-bnd-desk`, which is a declaration made at boot
+// about what we intend to mount.
+//
+// WHY THE POLARITY MATTERS MORE THAN IT LOOKS
+//   Hiding from intent means a mount that fails DELETES the affordance: the
+//   layout promised a bell, the bar never mounted, and the sidebar's bell was
+//   already gone. That is not a hypothetical — status style "Off" did exactly
+//   this to the Bottom Bar layout's logout, and mount_topbar bails whenever
+//   Frappe renders no <header>, which is every viewport under ~480px.
+//   Hiding from outcome has no failure mode to handle: unclaimed is visible,
+//   so a failed mount degrades to stock ERPNext, which is this file's stated
+//   contract (see NO LAYOUT ATTRIBUTE = CLASSIC above).
+//
+//   There is no "release path" to write either. Releasing is the default.
+// ...AND THE DESKTOP PAGE'S OWN PAIR. Frappe's desk page (/app, /app/desktop)
+// renders its own navbar — search, a bell with a dropdown, an avatar with a
+// menu — beside the pane; the pane's rows were owned and these were not, so
+// that page carried two bells and two account menus, the top pair the vendor's
+// (the user, 2026-09-14: "the user profile menu on desk is not our menu and
+// bell is not our bell"). Same tokens, same polarity: registry.py lists both
+// selectors on the tenant's `native`, comma-joined.
+html[data-bnd-own~="search"] .body-sidebar .navbar-search-bar,
+html[data-bnd-own~="search"] .desktop-navbar .desktop-search-wrapper,
+html[data-bnd-own~="panesearch"] .desktop-navbar .desktop-search-wrapper,
+html[data-bnd-own~="bell"] .body-sidebar .sidebar-notification,
+html[data-bnd-own~="bell"] .desktop-navbar .desktop-notifications,
+html[data-bnd-own~="user"] .body-sidebar .sidebar-user-button,
+html[data-bnd-own~="user"] .desktop-navbar .desktop-avatar {
+  display: none;
+}
+
+// The strip itself is owned only by `data-bnd-desktop-shell`, stamped after JS
+// measures a VISIBLE Bunood shell. Do not infer whole-strip ownership from the
+// component tokens above: those components can live in the side pane while the
+// configured top bar is route-hidden on All Apps. Hiding the native strip from
+// that combination removed the only visible Home return. Individual native
+// duplicates still stand down above; the remaining strip carries Home.
+
+// Frappe's page-title button is the workspace/Home menu on this desk. It stays
+// visible beside Bunood's independent pane toggle; the pane-edge collapse link
+// is the duplicate retired by _sidebar-layout.scss.
+
+// Getting Started (item 42, slice 4). Frappe's onboarding link at the pane's
+// foot moves into the account panel, and the link is hidden only while our
+// avatar -- the panel's trigger -- is in the document: stamped by
+// stamp_appearance_route, re-measured on every remount, so a desk whose
+// avatar never mounted keeps the vendor's link. The `<p>` wrapping it goes
+// too, or an empty paragraph keeps its margin at the foot.
+//
+// The menu item itself (avatar_menu_items; the reasoning lives here because
+// bunood.js ships its comments verbatim and the payload gate counts them) is
+// offered only when the vendor offers it -- Frappe marks its link `.hidden`
+// for a workspace with no module onboarding -- and it proxies a click to the
+// vendor's own link, so the widget, its fetch and its dismissal stay theirs.
+html[data-bnd-own~="onboard"] .body-sidebar .onboarding-sidebar,
+html[data-bnd-own~="onboard"] .body-sidebar p:has(> .onboarding-sidebar) {
+  display: none;
+}
+
+// ── The pane's head (item 40) ───────────────────────────────────────────────
+// The fourth one, and it arrived last because it was the one doing it wrong.
+// `_sidebar.scss` hid Frappe's `.sidebar-header` from `html[data-bnd-sb-color]`
+// -- a DECLARATION -- while our own head mounts up to 4.5s later inside a
+// `try_for` with a 30-attempt budget. The two failure modes are the two halves
+// of the bug this item was opened for: attribute present and the mount failed
+// leaves a pane with no head at all, and attribute absent with the mount
+// succeeding renders Frappe's header AND ours, one under the other.
+//
+// `panehead` is stamped by `sb_mount_head` only after `.bnd-sb-head` is found
+// IN THE DOCUMENT and identity has an owner: either the pane's fallback brand
+// or the visible global top-bar brand. A node that was built but never appended
+// owns nothing. `claim_panehead` DISOWNS on the negative branch rather than
+// merely declining to claim, so losing both identity routes brings the vendor
+// header back instead of leaving it hidden by a stale token.
+//
+// THREE RELEASE PATHS, all of them the same one three affordances already use.
+// `remount_chrome` releases every token before the re-mounts and lets each
+// re-claim only what it really mounts, so a container flip, the kit standing
+// down, and `sidebar_enabled: 0` all end with Frappe's own header back rather
+// than a head-shaped hole. `sb_mount_head` re-claims on its early-return path
+// too: our node survives a release, and claiming only on the build path would
+// leave the head rendered with Frappe's own header un-hidden beneath it.
+//
+// An unclaimed header is a VISIBLE header, styled for the pane it sits in by
+// `_sidebar.scss`'s own header block -- which this repair turns from dead code
+// (it styled a `display:none` node) into what a failed mount looks like.
+//
+// THE ARGUMENT LIVES HERE AND NOT IN `bunood.js` BECAUSE THE RUNTIME PAYS FOR
+// ITS OWN PROSE. `build.mjs` copies that file verbatim -- no bundler, by policy
+// -- so every comment ships to every desk. This repair's first draft put the
+// reasoning at the call sites and cost 449 gzip bytes, over the `js_gzip`
+// ceiling. Sass strips `//` before anything reaches the wire, and this is where
+// the polarity contract already lives, so the constraint moved the prose to the
+// file that should always have held it.
+html[data-bnd-own~="panehead"] .body-sidebar .sidebar-header,
+html[data-bnd-own~="panehead"] .desktop-navbar .navbar-home {
+  display: none;
+}
+
+// ── The side pane, switched off ─────────────────────────────────────────────
+// `sidebar_enabled: 0`. This used to be the Dock LAYOUT's doing —
+// `html[data-bnd-desk="dock"]` hid the pane, so "dock" and "no side pane"
+// were one choice nobody could take apart. They are two containers now and
+// they are independent: turn both on and you get both. What the Dock PRESET
+// writes is `dock: 1, sidepane: 0`, which is the same desk arrived at honestly.
+//
+// WHY IT IS A DECLARATION, WHEN THE HOUSE RULE IS TO KEY ON THE OUTCOME
+//   Because the thing being hidden is Frappe's and is already on screen. Our
+//   own chrome does not exist before it mounts, so an outcome-keyed rule has
+//   nothing to flash. The side pane is in the document from the first paint and
+//   stays visible until a rule says otherwise, so keyed on anything JS stamps
+//   later, every pane-off desk would show the pane for up to 150ms — the
+//   interval `mount_chrome`'s poll waits on — and then have it vanish.
+//
+// WHY THE ATTRIBUTE LISTS WHAT IS **OFF**
+//   So that no attribute hides nothing. A list of what is ON would have to be
+//   read here as `:not([data-bnd-chrome~="sidepane"])`, which MATCHES when the
+//   attribute is absent — and a failed boot would then hide the side pane and
+//   every affordance inside it. That is this file's stated contract (NO LAYOUT
+//   ATTRIBUTE = CLASSIC) inverted by a selector.
+//
+//   The declaration is CHECKED rather than trusted: `guard_critical_reach()`
+//   runs after every container has mounted and both placement passes have run,
+//   and gives the pane back if switching it off has left no route to search,
+//   notifications or Log Out. Declare, then verify — the same bargain
+//   `mount_placed_tenants` strikes when it releases a token first and only then
+//   asks what became visible. That is what makes a declaration safe here when
+//   it was not safe for the bell, and why build.mjs's ownership guard names
+//   `data-bnd-desk` and `data-bnd-search` — declarations with no release
+//   path — and deliberately not this one.
+//
+// !important is REQUIRED, not casual: Frappe's sidebar JS writes
+// `style="display: block"` INLINE on this node (measured 2026-07-30) and no
+// selector specificity beats an inline style. One of the two sanctioned uses.
+html[data-bnd-chrome-off~="sidepane"] {
+  .body-sidebar-container {
+    display: none !important;
+  }
+  // The hamburger that toggles a sidebar that is no longer there.
+  .page-title .sidebar-toggle-btn {
+    display: none;
+  }
+}
+
+// ── Reserve space for fixed bottom chrome ───────────────────────────────────
+// The status bar and the dock are position:fixed, so page content has to stop
+// above them. RESERVING THAT SPACE AS PADDING CANNOT WORK, and the reason is
+// worth stating once because it is not guessable:
+//
+//   frappe/public/js/frappe/list/base_list.js:452  set_result_height()
+//     let main_rect = $(".main-section").get(0).getBoundingClientRect();
+//     resultContainerHeight = main_rect.height - paging_height - result_top;
+//
+// `getBoundingClientRect().height` is the BORDER-BOX height, so padding on
+// .main-section is invisible to that arithmetic — the list keeps sizing
+// itself to the whole viewport and the paging row keeps landing under the
+// bar. Measured 2026-08-01 on /desk/item: padding on .main-section, padding
+// on .page-body, a margin on .list-paging-area and a sticky bar all left the
+// paging row at y=900 exactly, unmoved.
+//
+// So shrink the BOX instead. .main-section IS the desk's scroll container
+// (frappe scss/desk/main.scss:37, `height: 100vh`); take the reserve off its
+// height and every page type follows for free, because Frappe's own math —
+// JS and CSS alike — then resolves against a viewport that ends where the bar
+// starts. Content that no longer fits scrolls, instead of hiding.
+//
+// WHY THE RESERVE IS MEASURED RATHER THAN DECLARED
+//   bunood.js writes --bnd-bottom-reserve from the real rendered chrome (see
+//   observe_bottom_reserve), the same contract as --bnd-sidebar-live-w. A
+//   matrix of static per-layout values was written first and was wrong in
+//   three states, all measured: Dock over-reserved by 14px (it mounts a dock
+//   pill AND a status bar, and the pill's rendered 50px is not its 56px
+//   token); Classic's opt-in status bar reserved nothing at all, because
+//   every reservation selector named a layout and Classic was not one of
+//   them; and Bottom Bar with the status bar switched Off reserved 40px of
+//   dead space. One measurement answers all three and cannot drift.
+//
+// Scoped to html[data-bnd-desk] so a failed boot leaves .main-section
+// exactly as Frappe sized it. A layout with no bottom chrome measures 0 and
+// resolves to calc(100vh - 0px) — stock geometry, no dead band.
+//
+// 100vh, NOT 100dvh — a deliberate item-24 decision, not an oversight. Three
+// reasons: Frappe's OWN page-internal arithmetic is calc(100vh - …)
+// (report.scss, form_sidebar.scss, kanban.scss), so a unilateral dvh here would
+// make .main-section shorter than the panes inside it expect; the bottom
+// reserve is MEASURED from window.innerHeight (observe_bottom_reserve), i.e. the
+// dynamic viewport, so it already tracks the mobile URL bar without dvh; and the
+// dvh gain is unverifiable in a headless (chrome-less) browser, so switching on
+// an assumption would break the "measure, don't assume" rule. Revisit only with
+// a real-device measurement showing content lost under the mobile URL bar.
+html[data-bnd-desk] {
+  overflow: hidden;
+
+  // The desk component, not the document, owns vertical scrolling. Keep the
+  // body's visible overflow from becoming a second viewport scrollbar when a
+  // cached Frappe page changes height after navigation.
+  body { overflow: hidden; }
+
+  .main-section { block-size: calc(100vh - var(--bnd-bottom-reserve)); }
+}
+
+// A Frappe list deliberately scrolls its result-container. Frappe also sizes
+// the outer .main-section one pixel taller than its viewport on these routes
+// (measured at 390, 1440 and 2048px), so `overflow:auto` paints a redundant
+// full-height thumb immediately beside the real list scrollbar in RTL. Give
+// the list its one scroll owner while leaving document/workspace pages on the
+// main scroller. The result-container remains untouched for virtualized rows.
+html[data-bnd-desk] body[data-route^="List/"] .main-section:has(.result-container) {
+  overflow-y: hidden;
+  scrollbar-gutter: auto;
+}
+
+// The activity drawer is a fixed, independently scrollable reading surface.
+// When it is open, freezing the page behind it removes the second adjacent
+// scrollbar and prevents scroll-wheel input from moving the obscured form.
+html[data-bnd-desk][data-bnd-drawer="open"] body[data-route^="Form/"] .main-section {
+  overflow-y: hidden;
+  scrollbar-gutter: auto;
+}
+
+// The ONE thing the reserve above cannot reach: a FIXED vendor panel.
+//
+// Frappe's onboarding panel (`OnboardingPanel.vue`, `.onb-panel`) is
+// `position: fixed; z-index: 1000; bottom: 24px` at the trailing corner, with
+// its CSS inlined by `user_onboarding.bundle.js`. Shrinking `.main-section`
+// keeps CONTENT clear of the bars; a fixed panel is in no scroller, so the
+// reserve never applied to it, and 1000 beats our bottom chrome's 990.
+//
+// MEASURED, and older than the bar that made it obvious: at 1600x1000 the panel
+// sits on the STATUS BAR with the pinned foot switched off entirely, and on the
+// foot's primary action when it is on — a click at Save's own centre resolves to
+// `div.onb-panel`. So this is not item 45's doing; item 45's foot is what put a
+// primary action under it.
+//
+// LIFTED, NOT RE-STACKED. Raising our foot above 1000 would put it over the
+// vendor's modals and dropdowns, which live in the same band; the panel is
+// page-level furniture and our bars own the bottom edge, so the panel moves.
+// The vendor's own 24px gap is preserved by adding the reserve to it rather
+// than replacing it — `--bnd-sp-5` is that 24px at the shipped root size, and
+// naming a token keeps the raw-px guard satisfied and the gap in one system.
+//
+// Scoped to `html[data-bnd-desk]` like the reserve itself: a desk with no
+// bottom chrome measures 0px and this resolves to the vendor's own inset. No
+// fallback on the reserve — it is declared unconditionally in _tokens.scss, and
+// the phantom-token guard refuses a second copy of a value that cannot be missing.
+html[data-bnd-desk] .onb-panel {
+  inset-block-end: calc(var(--bnd-bottom-reserve) + var(--bnd-sp-5));
+}
+
+// The ONE box that shrinking the scroll container does not fix by itself.
+//
+// Frappe sizes the form's sidebar to the viewport and makes it sticky
+// (frappe scss/desk/form_sidebar.scss:273-279):
+//   body[data-route^="Form"] .layout-side-section {
+//     height: calc(100vh - var(--page-head-height));
+//     position: sticky; top: var(--page-head-height);
+//   }
+// Everywhere else, content taller than the container simply scrolls — a
+// STICKY box cannot, because it is pinned. So its last 41px (measured on
+// /desk/item/BND-TEST-001) is unreachable at every scroll position: before
+// this fix it sat behind the bar, and after it would sit past the container's
+// foot. Same content lost, different reason — which is why the shorter
+// container alone is not the whole fix. Tags, share and assignments live down
+// there.
+//
+// Specificity is deliberate and load-bearing: Frappe's selector is (0,2,1), so
+// a bare `html[data-bnd-desk] .layout-side-section` would only TIE and be
+// decided by which sheet loads last. Naming body[data-route] too makes it
+// (0,3,2) and settles it on specificity instead of on app order.
+// Theme Settings stands its form sidebar down. Assign / Attachments / Share /
+// "last edited by" cost 278px of a 1280px viewport — measured — on a Single
+// that nobody assigns, attaches to or shares, and the component settings need
+// that width for a list beside a detail pane. Scoped to this one route: it is
+// a judgement about this form, not about forms.
+// Prefix, not exact: a Single's route carries the docname too, so this form is
+// `Form/Theme Settings/Theme Settings` (measured, after an exact match matched
+// nothing).
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .layout-side-section {
+  display: none;
+}
+
+// The main-section is already the form's scroll viewport. A viewport-height,
+// overflow:auto side section makes a second adjacent scrollbar in RTL, and
+// its lower controls scroll separately from the document. Keep the side
+// column in the form's flow so every part moves with the same page scrollbar.
+@include bnd-from(lg) {
+  html[data-bnd-desk] body[data-route^="Form"] .layout-side-section {
+    position: static;
+    block-size: auto;
+    overflow: visible;
+  }
+}
+
+// ── The report view's own 100vh arithmetic needs the reserve too ────────────
+// report.scss sizes `.report-view .layout-main-section` and frappe_datatable
+// sizes `.dt-scrollable` from RAW 100vh — the whole viewport — not from
+// .main-section. So the "shrink the box and every page follows" mechanism above
+// never reaches them, and the report's foot lands under the bottom chrome.
+// Measured on /app/account/view/report at the shipped topbar+status defaults:
+// paging-row bottom 945 against a bar at 874 — 71px of it unreachable, because
+// .layout-main-section is over-tall and our pinned .main-section clips its foot.
+//
+// This corrects ARCHITECTURE.md's "the report pane is static, so it needs
+// nothing": true of the datatable's own SCROLL, false of the paging row the
+// over-tall container carries below it.
+//
+// Two things push the report below where Frappe's `100vh - page-head` assumes
+// it begins, so two subtractions:
+//   - the bottom reserve, as everywhere else on this file; and
+//   - our top bar. Frappe's navbar is position:fixed and overlays the page, so
+//     its formula never had to count it — ours is sticky IN .main-section flow
+//     (the block below), so it offsets the report down by exactly --bnd-topbar-h.
+//     Gated on data-bnd-topbar, the OUTCOME: a desk with no bar subtracts
+//     nothing, and below 768 (bar gone, attribute unset) there is no phantom
+//     band. The topbar rule wins on SPECIFICITY (the doubled attribute), not on
+//     source order — the item-16 lesson that html[data-bnd-*] is one attribute
+//     of weight and no more.
+//
+// >= sm only: report.scss:140 pins `.dt-scrollable` with `!important` below sm
+// (< 576px, inside item 24's mobile-nav regime), which we do not fight
+// (!important is sanctioned in two places, neither here). The container
+// (.layout-main-section) is not !important, so the paging row still clears
+// there — only the scroll box's own height stays un-reserve-aware below sm. A
+// known, narrow limitation, recorded in the commit, NOT recorded as closed.
+html[data-bnd-desk] .report-view .layout-main-section {
+  block-size: calc(100vh - var(--page-head-height) - var(--bnd-bottom-reserve));
+}
+html[data-bnd-desk] .report-view .dt-scrollable {
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve));
+}
+html[data-bnd-topbar][data-bnd-desk] .report-view .layout-main-section {
+  block-size: calc(
+    100vh - var(--page-head-height) - var(--bnd-bottom-reserve) - var(--bnd-topbar-h)
+  );
+}
+html[data-bnd-topbar][data-bnd-desk] .report-view .dt-scrollable {
+  block-size: calc(100vh - 240px - var(--bnd-bottom-reserve) - var(--bnd-topbar-h));
+}
+
+// ── The kanban board's column height, against our sticky top bar ────────────
+// Item 27. kanban.scss:36 sizes every `.kanban-column` from RAW 100vh:
+//   min-height: calc(100vh - var(--navbar-height) - var(--page-head-height)
+//                    - var(--margin-sm) * 2)
+// so a short column still fills the viewport and stays a full-height drop
+// target. But `--navbar-height` (measured 48) is Frappe's OLD fixed navbar —
+// the one our top bar REPLACED with a sticky bar of its own height
+// (--bnd-topbar-h, 44), living IN .main-section flow. So when our top bar is
+// on, the column is sized against a navbar that is not there, over-fills
+// .main-section (itself already 100vh - reserve) and pushes its foot 13px past
+// the scroll box — a spurious 13px page scroll on the whole board (measured
+// 1440x900 and 1024x620, shipped topbar+status defaults: column foot 887 /
+// 607 against a .main-section that ends at 874 / 594).
+//
+// UNLIKE the report view, NO CONTENT is hidden: `.kanban-cards` (kanban.scss:
+// 141, max-height: calc(100vh - 250px)) scrolls INTERNALLY, so every card is
+// reachable — the overflow is the column's own bottom padding, and the only
+// symptom is the stray scrollbar. This corrects the plan's assumption that all
+// three view panes shared the report's hidden-content defect; measurement says
+// only this one, and only under the top bar.
+//
+// The fix mirrors the report block: swap the phantom --navbar-height for the
+// real --bnd-topbar-h and take off the bottom reserve, so the column fills
+// exactly the space .main-section gives it (measured foot 865 vs 874 — 9px
+// clear, no clip, no stray scroll). Gated on data-bnd-topbar, the OUTCOME:
+// a top-bar-less desk keeps Frappe's own calc, which already fits (its column
+// top sits 44px higher, so 100vh over-counts by only the reserve, and Frappe's
+// own chrome over-subtraction absorbs that). Every term is a chrome token; no
+// magic numbers.
+//
+// The gantt (frappe_gantt.scss:85, height: calc(100vh - 240px)) and the cards
+// box are LEFT deliberately: both are shorter than the space available, scroll
+// internally, and never reach the bottom chrome in any layout (measured) — so
+// subtracting the reserve from them would only widen their dead band, the
+// opposite of a fix. Their fixed 240/250 offsets are Frappe's, not ours to
+// re-guess.
+html[data-bnd-topbar][data-bnd-desk] .kanban-column {
+  min-block-size: calc(
+    100vh - var(--bnd-topbar-h) - var(--page-head-height) - var(--margin-sm) * 2 -
+      var(--bnd-bottom-reserve)
+  );
+}
+
+// ── Top bar: the native <header> becomes the bar's home ─────────────────────
+// v16 renders an EMPTY <header> as .main-section's first child — a native
+// mount point, no DOM surgery. Sticky (not fixed) so it lives in main-section
+// flow and starts after the sidebar with no width bookkeeping.
+//
+// KEYED ON `data-bnd-topbar`, THE OUTCOME — NOT ON THE LAYOUT.
+//   The top bar is a container with its own setting since slice 2c, so "the
+//   layout is Top Bar" no longer answers "is there a top bar": it can be on in
+//   Classic and off in Top Bar. But the deeper reason is the one the ownership
+//   stamps are built on, and it applied before the split too. `mount_topbar`
+//   RETURNS EARLY whenever `.main-section > header` is missing — and it is
+//   missing below 768px, because Frappe RENDERS the empty <header> at every
+//   width (desk.html:38) and then `toolbar.js` REPLACES it with a different
+//   element whenever `frappe.is_mobile()` is true (innerWidth < 768) — plus
+//   three width-independent triggers (read_only, impersonation, an
+//   announcement widget) that fire the same swap on a full-size desk. So the
+//   bar's absence is not a mobile-only fact and not the ~480px this comment
+//   once claimed; item 24 measured the real boundary. Keyed on the declaration,
+//   those desks got a page head pushed down by --bnd-topbar-h with no bar above
+//   it — a band of empty space, from a rule that believed a promise instead of
+//   looking. Keyed on the outcome there is nothing to get wrong: bunood.js
+//   stamps this attribute with the bar already in the document, and only then.
+//
+// Same contract as `data-bnd-statusbar`, which has worked this way since
+// item 14 for exactly the same reason.
+html[data-bnd-topbar] .main-section > header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--bnd-z-bar);
+  display: block;
+}
+// Frappe's .page-head is sticky at block-start 0; under a topbar it must
+// stick BELOW the bar instead of sliding beneath it.
+html[data-bnd-topbar] .page-head {
+  inset-block-start: var(--bnd-topbar-h);
+}
+
+// ── Notifications panel relocation ──────────────────────────────────────────
+// Pinned next to the bell that IS — keyed on `data-bnd-bell`, the region the
+// mount actually landed in, stamped by mount_placed_tenants the same way
+// ownership is. These four rules used to guess by LAYOUT, which was the last
+// "the layout decides" in the sheet: a Top Bar desk with the bell placed in
+// the side pane pinned the panel under the top bar, nowhere near it, and a
+// top bar on a Dock desk matched two rules at once with source order picking
+// the dock. The stamp clears when the bell is off, native, or in the side
+// pane is stamped truthfully and matches none of these rules — Frappe's own
+// anchoring beside the sidebar is right for a pane bell, a native bell, and no
+// bell alike.
+// Sized defensively: the panel brings its own internal layout; we only place
+// and bound it.
+html[data-bnd-bell="topbar"] .dropdown-notifications,
+html[data-bnd-bell="pagehead"] .dropdown-notifications,
+html[data-bnd-bell="bottombar"] .dropdown-notifications,
+html[data-bnd-bell="dock"] .dropdown-notifications {
+  position: fixed;
+  z-index: var(--bnd-z-panel);
+  inset-inline-end: var(--bnd-sp-2);
+  inset-inline-start: auto;
+  inline-size: min(380px, 92vw);
+  max-height: 70vh;
+  overflow-y: auto;
+  background: var(--bnd-surface);
+  box-shadow: var(--bnd-shadow-lg);
+  border-radius: var(--bnd-radius-lg);
+
+  // Natively the wrapper is a 0x0 ANCHOR and the list inside is
+  // position:absolute, popping out beside the sidebar (measured: wrapper
+  // 0x0, child 853px absolute). Relocated to a bar, the wrapper must be the
+  // panel itself — so the list becomes static and gives the wrapper its
+  // height, and our size/scroll rules above actually bound the content.
+  .notifications-list {
+    position: static;
+    inline-size: 100%;
+  }
+}
+// One rule per region the bell can occupy, mutually exclusive by construction:
+// the stamp is a single attribute, so exactly one can match — the two-rules-
+// at-equal-specificity collision the layout keying had is not possible here.
+html[data-bnd-bell="topbar"] .dropdown-notifications {
+  inset-block-start: calc(var(--bnd-topbar-h) + var(--bnd-sp-2));
+  inset-block-end: auto;
+}
+html[data-bnd-bell="pagehead"] .dropdown-notifications {
+  inset-block-start: 56px; // just below the page-head strip that holds the bell
+  inset-block-end: auto;
+}
+html[data-bnd-bell="bottombar"] .dropdown-notifications {
+  inset-block-end: calc(var(--bnd-bottombar-h) + var(--bnd-sp-2));
+  inset-block-start: auto;
+}
+html[data-bnd-bell="dock"] .dropdown-notifications {
+  inset-block-end: calc(var(--bnd-dock-h) + var(--bnd-sp-3));
+  inset-block-start: auto;
+}
+
+// ── Brand-menu slimming ─────────────────────────────────────────────────────
+// In every layout with an avatar menu (all but classic), the personal items
+// leave the logo menu: brand menu = WHERE (Desktop/Workspaces/Website),
+// avatar menu = WHO. Items are identified by their icon or onclick — both
+// locale-independent; label text would break on Arabic sites.
+// Classic keeps the stock merged menu because it has no avatar anywhere else.
+// Keyed on ownership of the USER affordance, for the same reason as the rows
+// above: these items are hidden because the avatar menu carries them, so if no
+// avatar mounted they must all come back — logout included. This was the least
+// symmetric part of the old design, because a released bell was one selector
+// and a released Log Out was five.
+html[data-bnd-own~="user"] {
+  .frappe-menu.context-menu {
+    // Display (theme submenu), Session Defaults, Reload — replaced by the
+    // avatar menu's Appearance / Session Defaults / Reload.
+    .dropdown-menu-item:has(use[href="#icon-monitor"]),
+    .dropdown-menu-item:has(use[href="#icon-sliders-horizontal"]),
+    .dropdown-menu-item:has(use[href="#icon-rotate-ccw"]),
+    // Logout — covered whichever way Frappe identifies it.
+    .dropdown-menu-item[onclick*="logout"],
+    .dropdown-menu-item:has(use[href*="log-out"]),
+    // Our own seeded Navbar Settings action; the avatar menu hardcodes it.
+    .dropdown-menu-item[onclick*="cycle_density"] {
+      display: none;
+    }
+  }
+}
+
+// ── The Appearance route, in every shape (item 38) ──────────────────────────
+// The seeded Navbar Settings item is DELIBERATELY NOT hidden by the block above,
+// and that is the whole reachability argument. A person may now choose their own
+// desk shape, and `Classic` mounts no avatar button at all — so a dialog reached
+// only through the avatar strands anyone who picks it. The seed sits in Frappe's
+// own settings dropdown, which every shape renders, and the avatar menu links the
+// same function where it exists.
+//
+// Frappe's Display item is hidden HERE rather than above, keyed on ownership of
+// `appearance` rather than of `user`: our dialog is what replaces it, so the
+// stamp has to follow the dialog's reachability and not the avatar's. Stamped
+// from a DOM query after the seeded item is found — never from the mere fact
+// that `bunood.appearance` was defined, which is a declaration and exactly what
+// the ownership rule forbids.
+html[data-bnd-own~="appearance"] .frappe-menu.context-menu {
+  .dropdown-menu-item:has(use[href="#icon-monitor"]) {
+    display: none;
+  }
+}
+
+// ── Skip link (34a) ─────────────────────────────────────────────────────────
+// Invisible until focused — the standard clip pattern, then a pill above every
+// piece of chrome. Never display:none: a hidden control cannot receive the
+// focus that reveals it.
+.bnd-skip-link {
+  position: fixed;
+  inset-inline-start: var(--bnd-sp-3);
+  inset-block-start: var(--bnd-sp-3);
+  z-index: calc(var(--bnd-z-flyout) + 10);
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  border: var(--bnd-line) solid var(--bnd-brand-solid);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  transform: translateY(calc(-100% - var(--bnd-sp-5)));
+  opacity: 0;
+  pointer-events: none;
+}
+.bnd-skip-link:focus-visible {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}

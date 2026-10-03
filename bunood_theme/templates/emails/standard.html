@@ -1,0 +1,202 @@
+{#-
+  THE EMAIL WRAPPER — ours, and the only template in this app that shadows one of
+  Frappe's. Item 34.
+
+  WHY A FORK AT ALL, when ARCHITECTURE §4 retired the www/desk.html one.
+    Frappe's `email_css` hook is the obvious route and it is disqualified twice
+    over, both measured. It is a STATIC file list, so it can never carry a
+    customer's brand seed — every ERPNext site on earth sends the same colours.
+    And `inline_style_in_html`'s `os.path.exists` filter runs in whichever process
+    sends: the queue-short, queue-long and scheduler containers have no
+    `bunood_theme` entry under `sites/assets`, so a hooked sheet applies to
+    desk-triggered mail and is SILENTLY DROPPED for scheduler-triggered mail. Same
+    site, same template, two different emails, no error in either. ERPNext has been
+    living that failure since forever — its own `email_css` names
+    `email_erpnext.bundle.css` while the built file is `erpnext_email.bundle.css`,
+    so its email stylesheet has never applied anywhere, silently.
+
+    A template travels with the app SOURCE, which is present wherever the app is
+    importable. That is the whole reason this file exists.
+
+  THE COST, AND HOW IT IS PAID. The desk.html fork had two costs; only one applies
+  here. There is no colocated `.py`, so `TemplatePage.set_pymodule()` has no
+  analogue and the cross-user `frappe.boot` hazard cannot recur. But a fork still
+  PINS us to the version copied, and a Frappe change here would be invisible — in
+  an inbox — indefinitely. So the fork is pinned rather than merely taken:
+  `tests/smoke.mjs` hashes Frappe's shipped copies and fails loudly when upstream
+  moves. Forked at frappe 16.27.0; re-read and re-pinned at 16.33.0 — see the
+  re-pin note below the render contract for what was taken and what was left.
+
+  WHAT MUST NOT BE LOST, and it is not styling. Three markers in these templates
+  are rewritten per recipient downstream; losing one is a dead unsubscribe link or
+  a dead open-tracking pixel, which no visual check would ever see:
+      <!--unsubscribe link here-->   email_footer.html   -> email_body.py:444
+      <!--email_open_check-->        email_footer.html   -> email_queue.py:358-384
+      data-email-footer="true"       this file           -> selector consumers
+  The other three markers Frappe rewrites (unsubscribe_url, cc_message, recipient)
+  are injected by CALLERS into the message body and never appear here — measured
+  across all four render shapes, so a check guarding all six would be asserting
+  something we do not control.
+
+  Plus the render contract: {{ content }}, {{ header }}, {{ footer }},
+  {{ brand_logo }}, {{ brand_name }}, {{ with_container }}, {{ print_html }},
+  {{ subject }}, {{ site_url }}. `get_formatted_html` supplies every one.
+
+  RE-PINNED AT FRAPPE 16.33.0 (sha256 fd3e883de26cc1), 2026-09-10, which is the
+  pin working as designed: it went red, upstream was read, and this is what was
+  taken and what was left.
+    PORTED — the container width now keys on `header or with_container`, not
+      `header` alone, and `{{ content }}` is wrapped in a `<div>` rather than a
+      `<p>` it cannot legally contain. Each is marked at its site.
+    READ AND REFUSED — 16.33's new `brand_name` key. It looked like a free
+      fallback for the wordmark until its value was measured:
+      `get_brand_name()` is `website_settings.app_name or
+      system_settings.app_name`, which is **"Frappe"** on a site that set
+      neither. That is the framework's name on a customer's mail to their
+      customers — what `_vendor_name` exists to prevent, and what two other
+      seams in `email.py` already strip out. The key is read; its value is what
+      decides. Argument in `email.brand`.
+    NOT PORTED, and this is the argued half. 16.33 names its cells
+      `email-masthead` / `email-title-cell` / `email-body-cell` /
+      `email-footer-cell` and hangs padding on all four inside
+      `.body-table.with-container .email-container` (`email.bundle.scss:174-195`),
+      plus a `filled` modifier keyed on the string `with-divider` appearing in
+      the footer. Taking those class names would ADD that padding on top of the
+      `.bnd-e-pad` cell this fork exists to introduce — the docblock two rows
+      down explains why the padding moved off the table — so every contained
+      email would be inset twice. The rows are structurally ours already; the
+      class names are the vendor's hooks for the vendor's padding, and we do not
+      want the padding.
+
+  IT SHIPPED INERT AND NO LONGER IS. Slice 1 landed this file byte-identical to
+  the vendor.s, so the render was byte-identical too and the only thing under test
+  was whether our copy WINS the loader — `telephony` sorts ahead of `bunood_theme`
+  in the ChoiceLoader and would beat us if it ever shipped one of these. Since
+  then it has grown the `<style>` block, the pole class, the `color-scheme` meta
+  and two structural rows. The loader check still runs; the byte-identity evidence
+  belongs to slice 1 and is recorded in its commit, not claimed here.
+-#}
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<meta name="viewport" content="width=device-width" />
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>{{ subject or "" }}</title>
+	{#- Item 34. `light only` is the one lever that asks a client NOT to run its
+	     own inversion over a design it cannot see; without it `Always Light` would
+	     mean "light until Gmail on Android decides otherwise". -#}
+	<meta name="color-scheme" content="{{ bunood_email_color_scheme() }}" />
+	<meta name="supported-color-schemes" content="{{ bunood_email_color_scheme() }}" />
+	{#- Item 34. Colour tokens substituted per site by bunood_theme/email.py;
+	     Premailer inlines what it can and preserves the rest. Empty string on any
+	     failure, which stands the whole sheet down rather than half-styling. -#}
+	<style type="text/css">{{ bunood_email_css() }}</style>
+</head>
+
+<body>
+	<table class="bnd-e {{ bunood_email_class() }} body-table {% if header or with_container %} with-container {% endif %}" cellpadding="0" cellspacing="0">
+		<tr>
+			<td class="body-content" align="center" valign="top">
+				{#- PORTED FROM FRAPPE 16.33 (the fork was taken at 16.27, where this read
+				    `{% if header %}`). A container without a header is now 600 too, and
+				    that matters for `Original`, whose whole job is to render as stock
+				    does: our composition gives that pole no max-width, so a contained
+				    email was full-bleed here and 600px on a stock desk. -#}
+				<table class="bnd-e-plate email-container" border="0" cellpadding="0" cellspacing="0"
+					width="{% if header or with_container %} 600 {% else %} 100% {% endif %}">
+					{#- ITEM 34. Two structural rows, and both exist on EVERY pole.
+
+					    THE BAND is sized to nothing except under `Masthead`. A row that
+					    only sometimes exists would put the pole decision in a second
+					    place — this template cannot read the setting, it can only read
+					    the class `bunood_email_class()` wrote, so the CSS has to be the
+					    one thing that decides.
+
+					    THE PAD CELL exists because Frappe put the plate's padding on the
+					    TABLE, and a band inside a padded table is inset by it — a
+					    floating chip rather than a masthead. Padding on a `<td>` is also
+					    simply more reliable in mail clients than padding on a `<table>`.
+					    The inner table is what lets the existing rows stay untouched. -#}
+					<tr>
+						<td class="bnd-e-band"></td>
+					</tr>
+					<tr>
+						<td class="bnd-e-pad" valign="top">
+							<table border="0" cellpadding="0" cellspacing="0" width="100%">
+					{#- ITEM 34 — the identity row. Three departures from the vendor's,
+					    each deliberate:
+
+					    1. IT DOES NOT DEPEND ON `brand_logo`. Frappe fills that from
+					       Email Account and ONLY when the caller asked for a header or a
+					       container (email_body.py:433) — so stock shows no logo at all
+					       on a Notification email, the commonest kind a site sends. The
+					       source here is Theme Settings, which every branding surface in
+					       this app already reads; `brand_logo` is a fallback.
+					    2. THE VENDOR HREF IS GONE. Stock links the mark to
+					       `https://frappeframework.com` when a site has no URL of its
+					       own — the framework's marketing site, in a customer's mail to
+					       THEIR customers. No link is better than that one.
+					    3. EVERY VALUE CARRIES `| e`. Frappe's Jinja has no autoescaping
+					       anywhere, and `logo` is an `Attach Image`, which
+					       `_sanitize_content` skips outright — item 33 measured a stored
+					       XSS through exactly that field. -#}
+					{%- set bnd_brand = bunood_email_brand(brand_logo) -%}
+					{% if bnd_brand.show_mark or bnd_brand.show_name %}
+					<tr>
+						<td class="bnd-e-brand" align="left" valign="middle">
+							{% if site_url %}<a class="bnd-e-brand-link" href="{{ site_url | e }}">{% endif %}
+							{%- if bnd_brand.show_mark %}<img class="bnd-e-mark" src="{{ bnd_brand.mark | e }}" alt="{{ bnd_brand.name | e }}" height="32" />{% endif -%}
+							{%- if bnd_brand.show_name %}<span class="bnd-e-wordmark">{{ bnd_brand.name | e }}</span>{% endif -%}
+							{% if site_url %}</a>{% endif %}
+						</td>
+					</tr>
+					{% endif %}
+					<tr>
+						<td valign="top">
+							{{ header or "" }}
+						</td>
+					</tr>
+					<tr>
+						<td valign="top">
+							<table class="bnd-e-body email-body" border="0" cellpadding="0" cellspacing="0" width="100%">
+								<tr>
+									<td valign="top">
+										{#- PORTED FROM FRAPPE 16.33: this was `<p>{{ content }}</p>` at 16.27,
+										    which is invalid whenever the message has block content — and a
+										    Notification email always does. A browser or mail client closes the
+										    `<p>` at the first `<div>` or `<table>`, so the wrapper silently
+										    became two elements and anything styling it reached only the first
+										    fragment. -#}
+										<div>{{ content }}</div>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+					<tr>
+						<td valign="top">
+							<table class="bnd-e-foot email-footer" border="0" cellpadding="0" cellspacing="0" width="100%">
+								<tr>
+									<td valign="top" data-email-footer="true">
+										{{ footer }}
+									</td>
+								</tr>
+								<tr>
+									<td valign="top">
+										<div class="print-html">{{ print_html or "" }}</div>
+									</td>
+								</tr>
+							</table>
+						</td>
+					</tr>
+							</table>
+						</td>
+					</tr>
+				</table>
+			</td>
+		</tr>
+	</table>
+</body>
+
+</html>

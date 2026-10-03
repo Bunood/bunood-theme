@@ -1,0 +1,816 @@
+# Copyright (c) 2026, Bunood and contributors
+# For license information, please see license.txt
+"""Install and migrate lifecycle.
+
+WHAT
+    Seeds Theme Settings defaults and regenerates the per-site brand stylesheet.
+    Runs on ``after_install`` and on every ``after_migrate``.
+
+WHY after_migrate MATTERS AS MUCH AS after_install
+    Two failure modes it repairs, both learned the hard way:
+
+    1. **A field ``default`` only applies to NEW records.** Theme Settings is a Single
+       that already exists on every upgraded site, so adding a field with
+       ``"default": "C"`` leaves it EMPTY there. The previous version of this theme
+       shipped exactly that bug and the value came back blank on the live site. Any new
+       field must therefore be seeded here explicitly.
+
+    2. **A database-only restore leaves a stale or absent brand CSS file.** The file
+       lives on disk, the URL lives in the database; restoring one without the other
+       desynchronises them. Regenerating on migrate makes that self-healing.
+
+    Seeding is idempotent — it only fills values that are currently empty, so a
+    customer's choices are never overwritten by an upgrade.
+"""
+
+import frappe
+
+from bunood_theme.brand import write_brand_css
+from bunood_theme.printing.install import sync_print_theme
+from bunood_theme.registry import default_desk_order
+from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
+from bunood_theme.presets import (
+    CHART_DEFAULTS,
+    CHROME_DEFAULTS,
+    CRUMB_DEFAULTS,
+    EMPTY_DEFAULTS,
+    FILTERS_DEFAULTS,
+    FORM_DEFAULTS,
+    DESK_DEFAULTS,
+    ICON_DEFAULTS,
+    LIST_DEFAULTS,
+    LOGIN_DEFAULTS,
+    OVERLAY_DEFAULTS,
+    REPORT_DEFAULTS,
+    SKELETON_DEFAULTS,
+    WEB_DEFAULTS,
+    EMAIL_DEFAULTS,
+    PRINT_DEFAULTS,
+    VIEWS_DEFAULTS,
+    WORKSPACE_DEFAULTS,
+    DEFAULT_DESK_LAYOUT,
+    _DEFAULT_SIDEBAR_LOOK,
+    INBOX_DEFAULTS,
+    PALETTE_DEFAULTS,
+    _SIDEBAR_LOOKS,
+    LINKS_DEFAULTS,
+    START_DEFAULTS,
+    LANGUAGE_DEFAULTS,
+    APPEARANCE_DEFAULTS,
+    PANEHEAD_DEFAULTS,
+    STATUS_DEFAULTS,
+    USER_DEFAULTS,
+)
+
+#: Check-type fields whose shipped default is 1. These CANNOT go through the
+#: truthiness seeding in :data:`DEFAULTS`: an admin's explicit 0 is falsy and
+#: would be flipped back to 1 on every migrate. They are seeded only when the
+#: value is ``None`` — i.e. the field has never been written at all.
+#:
+#: The container on/off fields (slice 2c) belong here for a second reason as
+#: well as that one: a migration patch writes them from what the site's layout
+#: RENDERED, and it runs before this seeder. None-aware seeding is what makes
+#: the patch's answer stick — truthiness seeding would overwrite every 0 it had
+#: just written, which is precisely "the layout decides" surviving the change
+#: meant to end it.
+CHECK_DEFAULTS = {
+    field: value
+    for defaults in (
+        CHART_DEFAULTS,
+        CRUMB_DEFAULTS,
+        EMPTY_DEFAULTS,
+        FILTERS_DEFAULTS,
+        FORM_DEFAULTS,
+        DESK_DEFAULTS,
+        ICON_DEFAULTS,
+        LIST_DEFAULTS,
+        LOGIN_DEFAULTS,
+        OVERLAY_DEFAULTS,
+        REPORT_DEFAULTS,
+        SKELETON_DEFAULTS,
+        WEB_DEFAULTS,
+        EMAIL_DEFAULTS,
+        PRINT_DEFAULTS,
+        VIEWS_DEFAULTS,
+        WORKSPACE_DEFAULTS,
+        PALETTE_DEFAULTS,
+        INBOX_DEFAULTS,
+        STATUS_DEFAULTS,
+        USER_DEFAULTS,
+        LINKS_DEFAULTS,
+        START_DEFAULTS,
+        LANGUAGE_DEFAULTS,
+        APPEARANCE_DEFAULTS,
+        PANEHEAD_DEFAULTS,
+        CHROME_DEFAULTS,
+    )
+    for field, value in defaults.items()
+    if isinstance(value, int)
+}
+# The palette kit's master gate (item 12). Lived in DEFAULTS since item 4,
+# where truthiness seeding would flip an admin's explicit 0 back to 1 on
+# every migrate — the tagline bug's exact shape, caught by the v0.8.0
+# release review before it could bite.
+CHECK_DEFAULTS["palette_enabled"] = 1
+
+# The three personalization locks (item 38), read from the one table rather than
+# restated. They belong in CHECK_DEFAULTS and not DEFAULTS for the reason above
+# and one of their own: `personal_shape` ships as 0, so truthiness seeding would
+# never write it at all and the field would sit unwritten forever — reading back
+# None, which `personal.lock_open` resolves correctly but which leaves the
+# doctype unable to say what the site actually decided.
+from bunood_theme import personal as _personal  # noqa: E402  (after the maps it reads)
+
+for _lock, _row in _personal.LOCKS.items():
+    CHECK_DEFAULTS[_lock] = _row["default"]
+
+#: Values seeded on install and re-checked on every migrate. Only applied when the
+#: current value is empty, so this is safe to re-run forever.
+DEFAULTS = {
+    "company_name": "Bunood",
+    "brand_color": "#3d8150",
+    "accent_color": "#0090ff",
+    # Item 7(b). Read from the face catalogue, never restated: typography.py is
+    # the one table, and this seeder is just another of its consumers. Seeded
+    # here because a field `default` only applies to NEW records and Theme
+    # Settings already exists on every upgraded site.
+    "arabic_font": _DEFAULT_FACE,
+    # Density site default (decision "G with C"). Seeded here because a field
+    # `default` only applies to NEW records and Theme Settings already exists on
+    # every upgraded site — the exact bug v1 shipped with nav_layout.
+    "density_default": "Comfortable",
+    # Desk layout (checklist item 9; re-chosen in item 42). "Unified Side Pane"
+    # is the layout the user chose as the default: everything in the side pane,
+    # no top bar, the slim status bar below. Same seeding rationale as
+    # density_default.
+    #
+    # Named in presets.py rather than spelt out here because the CONTAINER
+    # defaults are derived from this layout's catalogue row: a literal in both
+    # places is a shipped default that can disagree with what the shipped
+    # default renders.
+    # Sidebar style kit (item 10): seed the default preset's name and every
+    # one of its field values. Values, not the name, are the canon — see
+    # bunood_theme/presets.py.
+    # E3: the tenants' desk order, seeded from the registry so the field's
+    # default and the table cannot drift. The suite pins the doctype's literal
+    # default to the same function.
+    "desk_order": default_desk_order(),
+    **_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK],
+    # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
+    # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
+    # protects an admin's explicit 0.
+    **{f: v for f, v in CRUMB_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in CHART_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in WORKSPACE_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in FORM_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in DESK_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in LIST_DEFAULTS.items() if not isinstance(v, int)},
+    # Report / datatable surface (item 26): the three Select axes — style,
+    # grain and row feedback. The Check (report_checkbox_reveal) is seeded via
+    # CHECK_DEFAULTS above, None-aware so an admin's explicit 0 survives.
+    **{f: v for f, v in REPORT_DEFAULTS.items() if not isinstance(v, int)},
+    # Alternate views surface (item 27): the four Select axes — style, band,
+    # mark and media fit. The Check (views_reveal) is seeded via CHECK_DEFAULTS
+    # above, None-aware so an admin's explicit 0 survives.
+    **{f: v for f, v in VIEWS_DEFAULTS.items() if not isinstance(v, int)},
+    # Overlays surface (item 28): the three Select axes — style, scrim and menu
+    # row. No Check in this kit; its repairs are contracts, not options.
+    **{f: v for f, v in OVERLAY_DEFAULTS.items() if not isinstance(v, int)},
+    # Empty states (item 29): one Select, the anchor. No Check in this kit —
+    # its repairs are contracts, not options, and the media/action axes are
+    # their own slice.
+    **{f: v for f, v in EMPTY_DEFAULTS.items() if not isinstance(v, int)},
+    # Loading states (item 30): one Select, the anchor. No Check — the bone
+    # repair and the geometry floors are contracts, not options.
+    **{f: v for f, v in SKELETON_DEFAULTS.items() if not isinstance(v, int)},
+    # Filters (item 31): three Selects — the anchor, the applied signal and the
+    # saved-filter rows. No Check; the six repairs are contracts, not options.
+    **{f: v for f, v in FILTERS_DEFAULTS.items() if not isinstance(v, int)},
+    # Sign-in (item 32): one Select, the anchor. No Check — the eight repairs
+    # are contracts, and this is the only kit whose anchor is a server-rendered
+    # body class rather than an <html> attribute, because /login is a website
+    # page with no boot payload and no JS.
+    **{f: v for f, v in LOGIN_DEFAULTS.items() if not isinstance(v, int)},
+    # Item 33. Same shape as the line above and for the same reason: the website
+    # kit is the SECOND whose anchor is a server-rendered body class rather than
+    # an <html> attribute, because a website page has no boot payload and no JS.
+    **{f: v for f, v in WEB_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in EMAIL_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in PRINT_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in PALETTE_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in INBOX_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in STATUS_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in USER_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in LINKS_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in START_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in LANGUAGE_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in APPEARANCE_DEFAULTS.items() if not isinstance(v, int)},
+    **{f: v for f, v in PANEHEAD_DEFAULTS.items() if not isinstance(v, int)},
+    # Icon system (item 23): the relocated sidebar/crumb fields plus the new
+    # axes, all Selects — a fresh install seeds these; existing sites keep their
+    # own via the v0_15_0 patch.
+    **{f: v for f, v in ICON_DEFAULTS.items() if not isinstance(v, int)},
+}
+
+#: The complete shipped-default map: what a fresh install writes, for every
+#: field the theme owns.
+#:
+#: WHY IT IS NAMED HERE AND NOT COMPOSED AT EACH USE SITE
+#:     `{**DEFAULTS, **CHECK_DEFAULTS}` was being written out by every consumer
+#:     that needed it — the smoke suite, the fingerprint tool — each restating a
+#:     composition rule that only this module should own. The split between the
+#:     two maps exists for SEEDING (a Check needs None-aware seeding so an
+#:     admin's explicit 0 survives a migrate); it is an implementation detail of
+#:     installation and means nothing to a reader asking "what ships by default".
+#:     They get this.
+SHIPPED = {**DEFAULTS, **CHECK_DEFAULTS}
+
+#: The identity fields that SHIP EMPTY — item 36.
+#:
+#: NOT in ``DEFAULTS``, ON PURPOSE, TWICE OVER: the seeder is truthiness-based,
+#: so an empty-string "default" would either be a no-op row or — worse — a
+#: fight with a tenant's deliberate clearing on every migrate. And empty is not
+#: a hole here: an unset logo MEANS "use the fallback chain", which is the
+#: shipped behaviour.
+#:
+#: WHY THE TUPLE EXISTS AT ALL: the settings form's change dots compare a
+#: field's value against the served shipped map
+#: (:func:`bunood_theme.api.get_shipped_defaults`), and a field with no entry
+#: there is structurally invisible to them — a site with a logo read "Default"
+#: under Branding, forever. The API merges these in as ``""`` so the dots can
+#: answer; nothing else may consume this tuple, and it must NEVER be fed to
+#: :func:`_seed_defaults`.
+SHIPPED_EMPTY = (
+    "logo", "favicon", "tagline", "brand_color_dark", "accent_color_dark",
+    # The GROUND (item 37) ships empty and means "mix the brand". It is served
+    # here so the change dot compares against "" rather than reading a site that
+    # never set it as diverged — and, unlike the four above, so that seeding it
+    # is never even attempted: a seeded ground would repaint the page tint of
+    # every site that upgrades, which is the one thing this field must not do.
+    "ground_color",
+)
+
+#: Label of the user-menu density toggle. Module-level so the seeder and any
+#: future remover agree on the one string that identifies our row.
+NAVBAR_DENSITY_LABEL = "Toggle Density"
+"""RETIRED by item 38 — kept only so the patch that deletes the row can name it.
+
+The item replaced three scattered entries with one Appearance dialog, so the
+global this seeded (``bunood_theme.cycle_density()``) no longer has a menu of its
+own. The label lives on here because ``_seed_navbar_density_item`` was idempotent
+BY LABEL: deleting the row without also deleting the seeder would put it straight
+back on the next ``after_migrate``, pointing at a command nothing offers.
+"""
+
+NAVBAR_APPEARANCE_LABEL = "Appearance"
+"""The one route to the Appearance dialog that no desk shape can remove.
+
+Item 38 lets a person choose their own shape, and ``Classic`` mounts no avatar
+button — so a dialog reachable only through the avatar strands whoever picks it.
+Frappe's own settings dropdown is rendered by every shape, and a Navbar Settings
+``Action`` is the native way into it: no DOM manipulation, correct placement, and
+Frappe owns the rendering.
+"""
+
+NAVBAR_APPEARANCE_ICON = "palette"
+"""Bundled Frappe icon for the Appearance action.
+
+The locked v16 SidebarHeader falls back to an image when a Navbar Settings row
+has no icon. An absent image URL becomes the literal relative request
+/undefined. Seeding the semantic icon makes the record complete for both the
+locked renderer and the newer Dropdown implementation.
+"""
+
+
+def after_install() -> None:
+    """Seed defaults, the navbar toggle, the first brand stylesheet, and print."""
+    _seed_defaults()
+    _seed_navbar_appearance_item()
+    write_brand_css()
+    # Print Style "Bunood" + the business Print Formats + the bilingual Letter
+    # Head, synced from the files in printing/ and letterhead/ (the source of
+    # truth). Internally guarded step by step — a failure logs and never blocks
+    # an install, and defaults are claimed only from vacancy (a stock print
+    # style, a site with no default letter head).
+    sync_print_theme()
+    from bunood_theme.payments import ensure_payment_origin_field, ensure_pos_payment_setup
+
+    ensure_pos_payment_setup()
+    ensure_payment_origin_field()
+    from bunood_theme.cash_customer import ensure_cash_customer_defaults
+
+    ensure_cash_customer_defaults()
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+
+    ensure_exact_halala_defaults()
+    from bunood_theme.roles import (
+        ensure_migration_manager_role,
+        ensure_readiness_reviewer_role,
+        ensure_v1_marker_roles,
+    )
+
+    ensure_v1_marker_roles()
+    ensure_readiness_reviewer_role()
+    ensure_migration_manager_role()
+    from bunood_theme.pos_permissions import ensure_pos_operator_permissions
+
+    ensure_pos_operator_permissions()
+    from bunood_theme.pos import ensure_pos_dining_fields, ensure_pos_hold_field, ensure_pos_reference_field
+
+    ensure_pos_reference_field()
+    ensure_pos_hold_field()
+    ensure_pos_dining_fields()
+    from bunood_theme.readiness_work import ensure_readiness_work_fields
+
+    ensure_readiness_work_fields()
+    from bunood_theme.migration_scope import ensure_migration_data_import_fields
+
+    ensure_migration_data_import_fields()
+    print("\n✅ Bunood Theme installed")
+    print("→ Configure at /app/theme-settings\n")
+
+
+def after_setup_wizard(_args=None) -> None:
+    """Re-apply Bunood print defaults after ERPNext creates the company.
+
+    ERPNext's setup wizard writes its stock ``Redesign`` print style after app
+    installation, which can displace the one-time choice made by
+    :func:`after_install`. This hook runs once at the end of that wizard: it
+    refreshes the branded style and letterhead, then replaces only a Frappe
+    stock/default style. A later administrator choice remains untouched.
+    """
+    sync_print_theme()
+    from bunood_theme.payments import ensure_pos_payment_setup
+
+    ensure_pos_payment_setup()
+    from bunood_theme.cash_customer import ensure_cash_customer_defaults
+
+    ensure_cash_customer_defaults()
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+
+    ensure_exact_halala_defaults()
+    try:
+        from bunood_theme.printing.install import (
+            STYLE_NAME,
+            _is_displaceable,
+            adopt_sales_invoice_print_format,
+        )
+
+        if not frappe.db.exists("Print Style", STYLE_NAME):
+            return
+        settings = frappe.get_single("Print Settings")
+        if settings.meta.has_field("print_style") and _is_displaceable(
+            settings.get("print_style")
+        ):
+            settings.print_style = STYLE_NAME
+            settings.save(ignore_permissions=True)
+        adopt_sales_invoice_print_format()
+    except Exception:
+        frappe.log_error(
+            title="bunood_theme: post-setup print default failed"[:140],
+            message=frappe.get_traceback(),
+        )
+
+
+#: Languages written right-to-left, per CLDR. A fact table about the world,
+#: like ``registry.REGION_LABELS`` — NOT a copy of Frappe's ``is_rtl`` list,
+#: which is the four-element subset under indictment here. The smoke suite
+#: holds every entry to the browser's own CLDR (``Intl.Locale`` textInfo), so
+#: a typo or a wrong entry fails a test rather than mis-warning a tenant.
+#: `ku` is deliberately ABSENT: Kurmanji Kurdish is written in Latin script and
+#: CLDR marks it LTR — only `ckb` (Sorani) runs right-to-left. It was listed
+#: here, called "Sorani" by the design notes, and the suite's CLDR cross-check
+#: refused it on its first run. That is the check doing its one job.
+RTL_LANGS = frozenset({"ar", "he", "fa", "ps", "ur", "ckb", "sd", "ug", "yi", "dv", "ks"})
+
+
+def is_rtl(lang: str | None = None) -> bool:
+    """Whether ``lang`` (or the current request's language) is RTL — CORRECTLY.
+
+    THE SINGLE SOURCE OF TRUTH for the fix described in
+    ``bunood_theme/i18n/rtl_patch.py``, ``hooks.py``'s ``jinja.methods`` entry,
+    and ``context.py::desk_context``'s ``layout_direction`` override — all
+    three call THIS function rather than each carrying its own language-list
+    logic, so ``RTL_LANGS`` stays the one place that can go stale.
+
+    Resolves to the parent language exactly the way
+    ``frappe.translate.get_all_translations`` already does for the dialect
+    case (strip everything from the first ``-`` or ``_``) — the same
+    resolution ``_warn_unreachable_rtl`` used to perform before checking
+    Frappe's broken ``is_rtl()``; this function now performs it and answers
+    correctly instead of just noticing the mismatch.
+    """
+    code = lang or getattr(frappe.local, "lang", None) or ""
+    parent = code.split("-")[0].split("_")[0]
+    return parent in RTL_LANGS
+
+
+def _defend_identity_overrides(lang: str = "ar") -> None:
+    """Restore our translations that a later app erased with identity rows.
+
+    The runtime dictionary is one flat merge in ``installed_apps`` order and
+    this app sits third of ten, so any later app's row wins. Measured
+    2026-08-10: ksa_compliance ships rows whose "translation" IS the English
+    source — ``Errors → Errors``, ``Live → Live``, ``My Profile``, ``Toggle
+    Full Width`` — which erased our Arabic for those strings on every desk.
+
+    A ``Translation`` doctype row outranks every app file, and THIS defect
+    class is mechanically recognisable: the merged dict serving exactly the
+    msgid while our own file ships a real translation is never a vocabulary
+    choice, it is a hole punched by a lazily-exported file. So the defense is
+    DERIVED on every migrate rather than listed: recompute, upsert a
+    ``Translation`` row per hole, delete our row when the hole closes. A later
+    app's genuinely DIFFERENT translation is deliberately left to win — that
+    is a vocabulary question for the human review pass, not for a migrate
+    hook.
+
+    Upsert, never insert: ``Translation`` has no uniqueness constraint, and N
+    rows for one (language, source_text) make the winner arbitrary.
+    """
+    try:
+        from frappe.translate import get_translations_from_apps, get_translation_dict_from_file
+
+        ours = get_translation_dict_from_file(
+            frappe.get_app_path("bunood_theme", "translations", f"{lang}.csv"),
+            lang,
+            "bunood_theme",
+        )
+        if not ours:
+            return
+        # THE FILE LAYER ONLY, never the merged dict: our own defensive
+        # Translation rows feed the merge and outrank every file, so asking
+        # the merged dict "is the hole still there?" always answers no while
+        # the defense exists — the first draft of this flapped heal/release
+        # on alternate migrates for exactly that reason. The files are where
+        # the hole lives, so the files are what gets asked.
+        files = get_translations_from_apps(lang)
+        # Rows the FALSE-FRIENDS defense below owns are not this one's to
+        # release: they carry exactly our value with no identity hole, which is
+        # the shape this loop would otherwise read as "hole closed" and delete —
+        # measured 2026-09-14: this released 16 rows the next hook re-created,
+        # every migrate, with a window in between.
+        defended = _defended_false_friends()
+
+        healed, released = 0, 0
+        for msgid, our_value in ours.items():
+            hole = files.get(msgid) == msgid and our_value != msgid
+            existing = _own_translation_row(lang, msgid)
+            if not hole and msgid in defended:
+                continue
+            if hole:
+                if existing:
+                    if existing.translated_text != our_value:
+                        frappe.db.set_value("Translation", existing.name, "translated_text", our_value)
+                        healed += 1
+                else:
+                    frappe.get_doc(
+                        {
+                            "doctype": "Translation",
+                            "language": lang,
+                            "source_text": msgid,
+                            "translated_text": our_value,
+                        }
+                    ).insert(ignore_permissions=True)
+                    healed += 1
+            elif existing and existing.translated_text == our_value:
+                # Our defensive row, for a hole that has since closed (the
+                # offending app fixed its file, or left). Release it so the
+                # file layer answers again — a defense that outlives its
+                # defect is just another stale override. Only rows carrying
+                # exactly OUR value are released: a row a human edited in the
+                # desk is theirs, not ours to reap.
+                frappe.delete_doc("Translation", existing.name, ignore_permissions=True, force=True)
+                released += 1
+
+        if healed or released:
+            frappe.db.commit()
+            frappe.translate.clear_cache()
+            print(
+                "bunood_theme: defended %d translation(s) a later app had erased with "
+                "identity rows; released %d whose hole has closed" % (healed, released)
+            )
+    except Exception:
+        frappe.log_error("bunood_theme: _defend_identity_overrides failed")
+
+
+def _own_translation_row(lang: str, msgid: str):
+    """The non-contributed ``Translation`` row for EXACTLY this source text, or None.
+
+    A ``=`` filter on a Data column is case-insensitive under MariaDB's
+    collation, so ``get_value`` for ``List view`` (the views kit's msgid)
+    answered with the ``List View`` row (the false friend's) — and the identity
+    defense, finding "its" row carrying our value with no hole, released the
+    other defense's row on every migrate (measured 2026-09-14: one row flipping
+    between the two hooks, forever). The suite already knew the class
+    (``upsert_translation does not merge across a case collision``); the
+    defenses now match in Python, exactly.
+    """
+    rows = frappe.get_all(
+        "Translation",
+        filters={"language": lang, "source_text": msgid, "contributed": 0},
+        fields=["name", "source_text", "translated_text"],
+    )
+    for row in rows:
+        if row.source_text == msgid:
+            return row
+    return None
+
+
+def _defended_false_friends() -> set:
+    """The msgids ``locale/false_friends.json`` defends — the set both defenses share."""
+    try:
+        import json
+
+        path = frappe.get_app_path("bunood_theme", "locale", "false_friends.json")
+        with open(path, encoding="utf-8") as fh:
+            entries = json.load(fh).get("entries", {})
+        return {m for m, e in entries.items() if e.get("defend")}
+    except Exception:
+        return set()
+
+
+def _defend_false_friends(lang: str = "ar") -> None:
+    """Assert our rows for the argued FALSE FRIENDS site-wide.
+
+    ``locale/false_friends.json`` (one file, two readers — the inherited-list
+    generator is the other) names msgids another app translates in a sense that
+    is wrong on a desk: frappe's ``Filter`` is a purifier, its ``Theme`` a topic,
+    its ``Dark`` gloomy. Refusing to inherit those is half the job. The runtime
+    dictionary is one flat merge in ``installed_apps`` order and this app sits
+    third of ten, so the later app's row overwrites ours before any desk sees
+    it — measured 2026-09-14: 17 of 29 lost, ``Filter`` rendering منقي on every
+    Arabic desk while our file said تصفية. A ``Translation`` row outranks every
+    app file, so each ``defend: true`` entry whose file-layer value is not ours
+    gets one; ``defend: false`` entries (the upstream sense is right on ITS
+    screens — erpnext's ``Ledger``) are left alone and belong to a context at
+    our call sites instead. Same upsert/release discipline as the identity
+    defense above, and for the same reason: N rows for one (language, source)
+    make the winner arbitrary, and a defense that outlives its defect is a
+    stale override.
+    """
+    try:
+        import json
+
+        path = frappe.get_app_path("bunood_theme", "locale", "false_friends.json")
+        with open(path, encoding="utf-8") as fh:
+            entries = json.load(fh).get("entries", {})
+        from frappe.translate import get_translations_from_apps, get_translation_dict_from_file
+
+        ours = get_translation_dict_from_file(
+            frappe.get_app_path("bunood_theme", "translations", f"{lang}.csv"),
+            lang,
+            "bunood_theme",
+        )
+        # THE FILE LAYER, not the merged dict — see _defend_identity_overrides.
+        files = get_translations_from_apps(lang)
+        # ...and the other apps' layer alone, to recognise a Translation row that
+        # merely ECHOES an upstream false friend (a test's save, a copied row):
+        # that row is corrected; a row carrying a human's own wording, matching
+        # no app file, is theirs and stays.
+        others = get_translations_from_apps(
+            lang, [a for a in frappe.get_installed_apps() if a != "bunood_theme"]
+        )
+        healed, released = 0, 0
+        for msgid, entry in entries.items():
+            our_value = ours.get(msgid)
+            if not our_value:
+                continue
+            existing = _own_translation_row(lang, msgid)
+            echoes =bool(existing) and existing.translated_text != our_value and existing.translated_text == others.get(msgid)
+            lost = bool(entry.get("defend")) and (files.get(msgid) not in (None, our_value) or echoes)
+            if lost:
+                if existing:
+                    if existing.translated_text != our_value:
+                        frappe.db.set_value("Translation", existing.name, "translated_text", our_value)
+                        healed += 1
+                else:
+                    frappe.get_doc(
+                        {
+                            "doctype": "Translation",
+                            "language": lang,
+                            "source_text": msgid,
+                            "translated_text": our_value,
+                        }
+                    ).insert(ignore_permissions=True)
+                    healed += 1
+            elif existing and existing.translated_text == our_value and files.get(msgid) == our_value:
+                # Our row already wins in the files; the defensive row is stale.
+                # Only a row carrying exactly OUR value is ours to release.
+                frappe.delete_doc("Translation", existing.name, ignore_permissions=True, force=True)
+                released += 1
+        if healed or released:
+            frappe.db.commit()
+            frappe.translate.clear_cache()
+            print(
+                "bunood_theme: defended %d false friend(s) a later app had overwritten; "
+                "released %d no longer contested" % (healed, released)
+            )
+    except Exception:
+        frappe.log_error("bunood_theme: _defend_false_friends failed")
+
+
+def after_migrate() -> None:
+    """Re-seed newly added fields and regenerate the brand stylesheet.
+
+    Both steps are required on every migrate — see the module docstring for why
+    neither is redundant with ``after_install``.
+    """
+    _seed_defaults()
+    _seed_navbar_appearance_item()
+    write_brand_css()
+    # Same contract as after_install: the files in printing/ and letterhead/
+    # are the source of truth, so every migrate re-syncs the managed records
+    # (drift self-heals; local edits to MANAGED records are overwritten by
+    # design — duplicate a format to customize, see printing/README.md).
+    sync_print_theme()
+    from bunood_theme.payments import ensure_payment_origin_field, ensure_pos_payment_setup
+
+    ensure_pos_payment_setup()
+    ensure_payment_origin_field()
+    from bunood_theme.rounding import ensure_exact_halala_defaults
+
+    ensure_exact_halala_defaults()
+    from bunood_theme.roles import (
+        ensure_migration_manager_role,
+        ensure_readiness_reviewer_role,
+        ensure_v1_marker_roles,
+    )
+
+    ensure_v1_marker_roles()
+    ensure_readiness_reviewer_role()
+    ensure_migration_manager_role()
+    from bunood_theme.pos_permissions import ensure_pos_operator_permissions
+
+    ensure_pos_operator_permissions()
+    from bunood_theme.pos import ensure_pos_dining_fields, ensure_pos_hold_field, ensure_pos_reference_field
+
+    ensure_pos_reference_field()
+    ensure_pos_hold_field()
+    ensure_pos_dining_fields()
+    from bunood_theme.navigation import ensure_task_navigation
+
+    ensure_task_navigation()
+    from bunood_theme.readiness_work import ensure_readiness_work_fields
+
+    ensure_readiness_work_fields()
+    from bunood_theme.migration_scope import ensure_migration_data_import_fields
+
+    ensure_migration_data_import_fields()
+    # _warn_unreachable_rtl() retired 2026-08-13: it existed to warn about
+    # RTL_LANGS codes Frappe's is_rtl() couldn't reach. bunood_theme.i18n
+    # .rtl_patch now reaches them at RENDER time (see that module and
+    # is_rtl() above) — a language that used to trigger this warning now
+    # renders correctly, so warning about it would be noise, not signal.
+    _defend_identity_overrides()
+    _defend_false_friends()
+
+
+def _seed_navbar_appearance_item() -> None:
+    """Put an "Appearance" action into Frappe's own settings dropdown, idempotently.
+
+    THE ROUTE NO SHAPE CAN REMOVE (item 38). A person may now choose their own
+    desk shape, and `Classic` mounts no avatar button — so the dialog cannot live
+    only in the avatar menu without stranding whoever picks it. Frappe renders
+    this dropdown in every shape.
+
+    It REPLACES the "Toggle Density" item this function used to seed; the dialog
+    subsumes that command. `patches/v0_38_0/drop_density_navbar_item` deletes the
+    old row, and the two have to land together: this seeder was idempotent BY
+    LABEL, so deleting the row while the old seeder survived would put it back on
+    the next `after_migrate`, pointing at a menu command nothing offers.
+
+    Navbar Settings is the NATIVE way to add a command to the settings dropdown —
+    an ``Action``-type Navbar Item whose ``action`` string is evaluated on click
+    (ERPNext seeds "Delete Demo Data" exactly this way). Using it means zero DOM
+    manipulation, correct positioning, and Frappe owns the rendering.
+
+    Idempotent by label so migrate can re-run forever; failure never blocks an
+    install — a missing menu item degrades to "toggle via console", not a broken
+    site.
+    """
+    try:
+        ns = frappe.get_doc("Navbar Settings")
+        existing = next(
+            (
+                row
+                for row in ns.settings_dropdown
+                if (row.item_label or "") == NAVBAR_APPEARANCE_LABEL
+            ),
+            None,
+        )
+        if existing:
+            # Heal rows seeded before the icon field was supplied. Only update
+            # the Bunood-owned action; a tenant's unrelated row with the same
+            # visible label remains theirs.
+            if (
+                existing.item_type == "Action"
+                and existing.action == "bunood_theme.appearance()"
+                and existing.icon != NAVBAR_APPEARANCE_ICON
+            ):
+                existing.icon = NAVBAR_APPEARANCE_ICON
+                ns.save(ignore_permissions=True)
+                frappe.db.commit()
+            return
+        ns.append(
+            "settings_dropdown",
+            {
+                "item_label": NAVBAR_APPEARANCE_LABEL,
+                "item_type": "Action",
+                # bunood.js defines this global; opens the Appearance dialog.
+                "action": "bunood_theme.appearance()",
+                "is_standard": 0,
+                "hidden": 0,
+                "icon": NAVBAR_APPEARANCE_ICON,
+            },
+        )
+        ns.save(ignore_permissions=True)
+        frappe.db.commit()
+    except Exception as e:
+        frappe.log_error(str(e), "Bunood Theme navbar appearance item")
+
+
+def on_theme_settings_update(doc, method=None) -> None:
+    """``doc_events`` handler — react to a Theme Settings save.
+
+    Three steps, each needed for a save to actually reach users:
+
+    1. Regenerate the brand stylesheet (colours/density travel by CSS). Passes
+       ``doc`` through so :func:`write_brand_css` does not re-read the document
+       it was just handed.
+    2. Re-substitute the print carriers (item 35): the Print Style record and
+       the Letter Head both hold CONCRETE hexes substituted from this doc's
+       seeds — without this step a brand change would repaint the desk and
+       leave every printed document on the old colours, which is exactly the
+       silent-drift class the substitution mechanism exists to remove. Guarded
+       inside :func:`printing.install.resync_print_brand` so a print failure
+       can never block the save.
+    3. Clear the site cache. The desk layout travels in ``frappe.boot``, and
+       boot payloads are CACHED PER USER — without this, a layout change would
+       reach each user only whenever their session cache happened to expire,
+       which reads as "the setting is broken". A full clear on a settings save
+       is a deliberate, rare cost.
+    """
+    write_brand_css(doc)
+    try:
+        from bunood_theme.printing.install import resync_print_brand
+
+        resync_print_brand(doc)
+    except Exception:
+        frappe.log_error("bunood_theme: print resync after Theme Settings save failed")
+    try:
+        frappe.clear_cache()
+    except Exception:
+        frappe.log_error("bunood_theme: clear_cache after Theme Settings save failed")
+
+
+def _seed_defaults() -> None:
+    """Fill any empty Theme Settings field from :data:`DEFAULTS`.
+
+    Uses ``set_single_value`` rather than ``doc.save()`` deliberately: saving would fire
+    ``on_update``, which regenerates the brand CSS, which we are about to do once
+    anyway — and during ``after_install`` the document may not be fully constructed.
+
+    ``update_modified=False`` ON EVERY WRITE HERE, AND IT IS NOT AN OPTIMISATION
+        ``set_single_value`` bumps ``modified`` unless told not to, and this runs
+        on **every** ``after_migrate``. Any upgrade that adds a field therefore
+        gave the document a new timestamp — so every Theme Settings form that
+        happened to be open anywhere became stale, and the admin's next save
+        died with:
+
+            Theme Settings has been modified after you have opened it
+            (…, …). Please refresh to get the latest document.
+
+        Reported repeatedly, and reproduced on 2026-08-07 by opening the form,
+        performing one seeding-shaped write, and saving. The container split
+        added four fields in one session and so produced it four times.
+
+        ``modified`` means "when a user last changed this", and it is what
+        Frappe's optimistic-concurrency check compares. Seeding fills values the
+        user never set; recording it as their edit is both untrue and the thing
+        that breaks their open form. The values still land — only the claim that
+        a human made them does not.
+    """
+    try:
+        if not frappe.db.exists("DocType", "Theme Settings"):
+            return  # pre-migrate; nothing to seed yet
+        for field, value in DEFAULTS.items():
+            if not frappe.db.get_single_value("Theme Settings", field):
+                frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
+        # Default-on Checks: seed ONLY the never-written state, so an admin
+        # who turned one off stays off across migrates. get_single_value is
+        # useless here — it CASTS a missing Check to 0 (verified live), so
+        # "never written" must be read as row-absence in tabSingles. Raw SQL
+        # because Singles is a bare table, not a DocType.
+        stored = {
+            row[0]
+            for row in frappe.db.sql(
+                "select field from tabSingles where doctype=%s", ("Theme Settings",)
+            )
+        }
+        for field, value in CHECK_DEFAULTS.items():
+            if field not in stored:
+                frappe.db.set_single_value("Theme Settings", field, value, update_modified=False)
+        frappe.db.commit()
+    except Exception as e:
+        # Never let seeding block an install or a migrate.
+        frappe.log_error(str(e), "Bunood Theme seed defaults")

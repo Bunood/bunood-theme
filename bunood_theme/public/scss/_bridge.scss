@@ -1,0 +1,211 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// BRIDGE — map our `--bnd-*` tokens onto Frappe's ~534 variable names.
+//
+// WHAT
+//   The single file where the theme touches Frappe's own variable vocabulary.
+//   Everything else in this codebase reads `--bnd-*` and never knows Frappe's
+//   names exist.
+//
+// WHY A SEPARATE FILE, AND WHY IT IS THE ONLY ONE
+//   Frappe's components are already fully variable-driven, so re-theming the
+//   entire desk is mostly a mapping exercise, not a restyling one. Concentrating
+//   that mapping in one place means:
+//     * a Frappe upgrade that renames a variable is a one-file fix;
+//     * no component rule anywhere else can accidentally set a Frappe name and
+//       break dark mode.
+//
+// THE SCOPING RULE THAT MAKES THIS SAFE
+//   Frappe declares light at `:root, [data-theme="light"]`
+//   (`scss/desk/css_variables.scss:4`) and dark at `[data-theme="dark"]`
+//   (`scss/desk/dark.scss:2`). Both are specificity (0,1,0). Our bundle loads
+//   AFTER Frappe's, so a bare `:root { --bg-color: … }` here would win in light
+//   mode AND in dark mode — silently killing dark mode for that variable.
+//
+//   Therefore every mapping below is written TWICE, once per mode-scoped
+//   selector, and never at bare `:root`. If you add a mapping, add it to both
+//   blocks or it will leak across modes.
+//
+//   `html:not([data-theme])` is included in the light block as a belt-and-braces
+//   case: Frappe always sets the attribute today, but a theme that renders
+//   unstyled when it is absent is a theme that breaks silently.
+//
+// See ARCHITECTURE.md sections 1 and 3.
+// ============================================================================
+
+@mixin bnd-frappe-mapping {
+  // ── Canvas and surfaces ───────────────────────────────────────────────────
+  // `--bg-color` is what `html` itself paints (`scss/desk/global.scss:1`), which
+  // is why getting it right removes any need for an inline background hack on
+  // the html element — the mistake v1 made, where an inline style outranked
+  // every stylesheet and pinned the canvas after a runtime theme switch.
+  --bg-color: var(--bnd-page);
+  --fg-color: var(--bnd-surface);
+  --card-bg: var(--bnd-surface);
+  --control-bg: var(--bnd-raised);
+  --subtle-accent: var(--bnd-hover);
+  --subtle-fg: var(--bnd-raised);
+  --fg-hover-color: var(--bnd-hover);
+  --modal-bg: var(--bnd-surface);
+  --popover-bg: var(--bnd-surface);
+  --toast-bg: var(--bnd-surface);
+  // Item 28. `--surface-modal` is a THIRD modal-surface name Frappe carries,
+  // declared in espresso/_colors.scss and left unmapped until now — measured
+  // #232323 in dark against our #16241F, a 1.02:1 delta. It has exactly two
+  // readers on the whole desk (desk/menu.scss:13, the body-appended context
+  // menu `frappe.ui.create_menu` builds on four surfaces we already own; and
+  // desk/sidebar_card.scss:31), and both want a raised surface — so this is a
+  // mapping, not a scoped override.
+  --surface-modal: var(--bnd-surface);
+  // Item 28. The awesomplete list's SELECTED row. Also unbridged: #fbfdfc in
+  // light (which coincides with our --control-bg, so light looked fine by
+  // accident) but #232323 in dark, a 1.12:1 delta against the list beneath it.
+  --awesomplete-hover-bg: var(--bnd-hover);
+
+  // ── Ink ───────────────────────────────────────────────────────────────────
+  --text-color: var(--bnd-ink);
+  --heading-color: var(--bnd-ink);
+  --text-muted: var(--bnd-ink-muted);
+  --text-light: var(--bnd-ink-subtle);
+  --disabled-text-color: var(--bnd-ink-subtle);
+
+  // ── Lines ─────────────────────────────────────────────────────────────────
+  --border-color: var(--bnd-border);
+  // Item 30. Stock's own skeleton fill, and the one Frappe variable whose dark
+  // value collides with two others (--control-bg and --subtle-accent all
+  // resolve to #232323), which is why a stock skeleton is invisible AS a
+  // skeleton in dark. Bridging it repairs the vendor's own list and workspace
+  // skeletons even under "Original" — a contract, not a style.
+  --skeleton-bg: var(--bnd-bone);
+  --dark-border-color: var(--bnd-border-strong);
+
+  // ── Brand ─────────────────────────────────────────────────────────────────
+  // Frappe's `--primary` defaults to `--gray-900`, i.e. near-black buttons.
+  // Pointing it at the brand seed is what turns a stock desk into a branded one
+  // in a single line.
+  // Split by ROLE, because Frappe overloads both names. `--primary` and
+  // `--primary-color` are written as TEXT in its own SCSS (report.scss:358,
+  // global_search.scss:339) as well as painted as fills, so they get the
+  // stricter 4.5:1 token; a border and a progress fill only need 3:1 and get
+  // the fill token, which stays closer to the tenant's actual colour.
+  //
+  // Frappe's primary BUTTON is not here: it reads `--btn-primary`, which this
+  // bridge does not map at all, so primary buttons stay Frappe's neutral grey.
+  // That is a branding gap, not a contrast one - noted, not fixed here.
+  --primary: var(--bnd-brand-ink);
+  --primary-color: var(--bnd-brand-ink);
+  --border-primary: var(--bnd-brand-solid);
+  --progress-bar-bg: var(--bnd-brand-solid);
+
+  // ── Component metrics ─────────────────────────────────────────────────────
+  // Density flows through here, which is why density is authored as token
+  // VALUES rather than as selector variants.
+  --list-row-height: var(--bnd-row-h);
+
+  // ── Icons ─────────────────────────────────────────────────────────────────
+  // Frappe colours EVERY desk icon with `--icon-stroke` (its own `--gray-800`
+  // in light, `--gray-300` in dark; `common/icons.scss` keys `.icon` on it) and
+  // keeps `--icon-fill` transparent for the stroke sets. Until now this bridge
+  // mapped neither, so icons were the last part of the desk still painted from
+  // Frappe's greys — two inks on one sidebar row, and outside `npm run contrast`
+  // entirely. Pointing stroke at our muted ink (recessive at rest, the "Follow
+  // text" default the icon kit will formalise) brings every one of the ~2,085
+  // sprite symbols into the token pipeline in a single line — correct in both
+  // modes because `--bnd-ink-muted` is itself mode-scoped in `_tokens.scss`.
+  //
+  // `--icon-fill` stays transparent DELIBERATELY: the espresso `.es-icon` set is
+  // filled and re-reads `--icon-stroke` for its own fill, so any non-transparent
+  // value here would flood every stroke glyph solid (the polarity trap in
+  // `icons.scss`). Filled-icon backgrounds (`--icon-fill-bg`) are left to Frappe.
+  --icon-stroke: var(--bnd-ink-muted);
+  --icon-fill: transparent;
+}
+
+html[data-theme="light"],
+html:not([data-theme]) {
+  @include bnd-frappe-mapping;
+}
+
+html[data-theme="dark"] {
+  @include bnd-frappe-mapping;
+}
+
+// The "Automatic" compensation from _tokens.scss re-derives the `--bnd-*` values
+// under a dark OS; this maps them through so Frappe's components follow.
+@media (prefers-color-scheme: dark) {
+  html[data-theme="automatic"] {
+    @include bnd-frappe-mapping;
+  }
+}
+
+// ── The one LENGTH in this file, and it is here for the same reason as the
+// colours: `--sidebar-width` is FRAPPE'S name, and this file is where their
+// names live.
+//
+// WHAT WAS WRONG (measured 2026-09-01, reported from the desk before any
+// check saw it). Frappe sizes the inner pane itself —
+// `.body-sidebar-container.expanded .body-sidebar { width: var(--sidebar-width) }`
+// — from their variable, default 220px, while item 40's width control sizes
+// the CONTAINER through `--bnd-sb-w`. At every stop but 220 the two
+// disagreed: at stop 3 the container was 240 and the pane 220, so the pane
+// wash stopped 20px short and the container's own paint showed past it as a
+// second layer; at stop 1 the pane OVERFLOWED its 200px container. Dragging
+// made it worse — the container tracked the pointer to 280 while the pane
+// stayed 220, so the drag widened the GAP instead of the pane.
+//
+// WHY THE SELECTOR IS THE CONTAINER AND NOT `html`. `sb_apply_width` sets
+// `--bnd-sb-w` as an INLINE custom property on the container, and custom
+// property substitution resolves where the property is DECLARED: declaring
+// this on `html` would freeze `--sidebar-width` at the stop value and the
+// personal drag would move nothing. Declared on the container, the inline
+// value is in scope and one variable drives both boxes.
+//
+// Scoped to the expanded desktop pane — the one state where our width
+// control is the authority. Rail mode sizes `.body-sidebar` through our own
+// rules and outranks Frappe's; below 768 the pane is Frappe's drawer and
+// their default is theirs to keep (slice 11's vocabulary).
+html[data-bnd-sb-panestate="open"]:not([data-bnd-narrow]) .body-sidebar-container {
+  --sidebar-width: var(--bnd-sb-w);
+}
+
+// ── The second LENGTH, and it earns its place the same way (item 43 A1):
+// `--page-max-width` is FRAPPE'S name. It caps `.section-body`, `.form-footer`,
+// `.form-section-description` and the workspace `.layout-main` at 900px with
+// `margin: auto !important` (desk/form.scss:88-96, 464-468), while the theme's
+// section card spans the whole column — the census measured a 1126px card
+// around a 900px body, 97px of dead card each side. The item-40 lesson applies
+// one for one: FEED the vendor's variable, never set a second width on our
+// card. Declared on `html`, where the vendor's own `:root` declares it, at one
+// attribute more weight; `body.full-width` (Frappe's own toggle) never read
+// the variable and keeps working. Absent attribute = the vendor's 900.
+//
+// ONE RULE NOW, NOT ONE PER VALUE (item 45): the pair of measures is declared
+// per value in surfaces/_body.scss, so the bridge only has to say WHICH of the
+// two the vendor's variable follows. It follows the READING edge, because the
+// three things Frappe caps with it — the section body, the form footer and the
+// section description — are all things you read. The workspace also reads it
+// and is re-pointed at the wide edge in _body.scss, where that argument lives.
+html[data-bnd-body-width] {
+  --page-max-width: var(--bnd-content-w);
+}
+
+// ── The primary button (item 43 A1). Frappe's `.btn.btn-primary` reads
+// `--btn-primary` (common/css_variables.scss:99, `--gray-900`), which this
+// bridge deliberately left unmapped — "a branding gap, not a contrast one",
+// above. `desk_primary` closes it as a choice: under Brand the fill is the
+// gated `--bnd-brand-solid`, and surfaces/_body.scss paints the ink from its
+// pair token `--bnd-on-brand`, because the vendor's ink is `--neutral` — white
+// in light, near-black in dark — the wrong one in one mode for any fill but
+// theirs. Under Black the button stays the vendor's.
+html[data-bnd-body-primary="brand"] {
+  --btn-primary: var(--bnd-brand-solid);
+}
+
+// ── The form sidebar's image well (item 43 A5). `--form-sidebar-image-width`
+// is FRAPPE'S name (desk/form_sidebar.scss:3, declared on :root, 80px); it
+// sizes the photo AND the letter avatar. The inspector rail brings the well
+// down to a thumb on the name's row by feeding the variable, on the same
+// element at more weight — never a second width beside theirs.
+html[data-bnd-form][data-bnd-form-side="rail"] {
+  --form-sidebar-image-width: var(--bnd-form-thumb);
+}
