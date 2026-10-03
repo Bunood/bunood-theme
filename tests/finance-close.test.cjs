@@ -64,3 +64,11 @@ test("operator-facing close language is present in the generated Arabic catalogu
 		assert.ok(ar.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
 	}
 });
+
+test("the first evidence loads once the default company has actually been set", () => {
+	// A Link control sets its value only after validating it: reading it right
+	// after set_value saw "" and the desk never loaded on arrival.
+	assert.match(js, /Promise\.resolve\(company\.set_value\(defaultCompany\)\)\.then\(\(\) => \{\s+if \(company\.get_value\(\)\) load\(\);/);
+	assert.doesNotMatch(js, /\n\t\tif \(company\.get_value\(\)\) load\(\);/);
+	assert.match(js, /Promise\.resolve\(frappe\.call\(\{\s+method: METHOD,/);
+});

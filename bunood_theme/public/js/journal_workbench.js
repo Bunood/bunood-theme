@@ -274,7 +274,7 @@
 		const company = control(companyHost, { fieldtype: "Link", fieldname: "company", label: __("Company"), options: "Company", reqd: 1 });
 		const from = control(fromHost, { fieldtype: "Date", fieldname: "from_date", label: __("From date"), reqd: 1 });
 		const to = control(toHost, { fieldtype: "Date", fieldname: "to_date", label: __("To date"), reqd: 1 });
-		company.set_value(frappe.defaults.get_user_default("Company") || "");
+		const defaultCompany = frappe.defaults.get_user_default("Company") || "";
 		to.set_value(frappe.datetime.get_today());
 		from.set_value(frappe.datetime.month_start());
 
@@ -286,10 +286,10 @@
 			root.classList.add("is-loading");
 			apply.disabled = true;
 			newJournal.disabled = true;
-			frappe.call({
+			Promise.resolve(frappe.call({
 				method: METHOD,
 				args: { company: company.get_value(), from_date: from.get_value(), to_date: to.get_value() },
-			}).then((response) => {
+			})).then((response) => {
 				renderResult(response.message, content);
 				newJournal.disabled = !response.message.capabilities.can_create_journal;
 			}).catch(() => {
@@ -303,7 +303,11 @@
 			});
 		};
 		apply.addEventListener("click", load);
-		if (company.get_value()) load();
+		// A Link control sets its value only after validating it, so reading it
+		// straight after set_value saw "" and the first evidence never loaded.
+		Promise.resolve(company.set_value(defaultCompany)).then(() => {
+			if (company.get_value()) load();
+		});
 	}
 
 	window.bunood_theme = window.bunood_theme || {};
