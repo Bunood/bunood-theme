@@ -78,3 +78,12 @@ test("Studio-owned Arabic labels are explicit and contextual", () => {
 	assert.doesNotMatch(source, /__\("Custom"\)/);
 	assert.match(source, /__\("Custom Period"\)/);
 });
+
+test("the VAT Return card promises a review, not proof that it can be filed", () => {
+	assert.doesNotMatch(source, /proof it can be filed/);
+	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);
+	assert.ok(
+		ar.split(/\r?\n/).some((line) => line.startsWith("VAT figures and reconciliation checks to review before filing,أرقام ضريبة القيمة المضافة")),
+		"the new description ships its Arabic"
+	);
+});

@@ -11558,3 +11558,9 @@ msgstr "ما اشترته كل مجموعة عملاء، شهراً بشهر"
 #, fuzzy
 msgid "Update Password"
 msgstr "تحديث كلمة المرور"
+
+#. In report_studio.js (the VAT Return card)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "VAT figures and reconciliation checks to review before filing"
+msgstr "أرقام ضريبة القيمة المضافة وفحوص المطابقة لمراجعتها قبل تقديم الإقرار"

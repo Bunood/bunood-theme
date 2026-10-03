@@ -446,7 +446,7 @@
 					key: "vat-return",
 					title: () => __("VAT Return"),
 					cat: 2,
-					desc: () => __("The ZATCA declaration, box by box — with the proof it can be filed"),
+					desc: () => __("VAT figures and reconciliation checks to review before filing"),
 					careful: true,
 					compose: "vatReturn",
 					hints: {
