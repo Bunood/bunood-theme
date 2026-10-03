@@ -4253,11 +4253,19 @@
 	 * @returns {HTMLElement}
 	 */
 	function build_user() {
+		// The button names whose menu it opens: the person's name in its label,
+		// and their email (or the company) beside it in the tooltip.
+		const session = frappe.session || {};
+		const user = (frappe.boot && frappe.boot.user) || {};
+		const name = session.user_fullname || user.full_name || user.first_name || session.user || "";
+		const email = user.email || session.user_email || "";
+		const detail = email && email !== name ? email : (frappe.boot?.sysdefaults?.company || "");
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
 			"data-bnd-part": "user",
-			"aria-label": __("User menu"),
+			"aria-label": name ? `${__("User menu")}: ${name}` : __("User menu"),
 		});
+		if (name) avatar.title = detail ? `${name}\n${detail}` : name;
 		avatar.innerHTML = user_avatar_html();
 		avatar.setAttribute("aria-haspopup", "dialog");
 		avatar.setAttribute("aria-expanded", "false");
