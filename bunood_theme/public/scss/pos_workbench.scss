@@ -342,6 +342,28 @@ html[data-theme] .bnd-pos-workbench {
 			block-size: 100%;
 			object-fit: cover;
 		}
+
+		svg {
+			inline-size: 70%;
+			block-size: 70%;
+		}
+	}
+
+	// An image-less tile wears one of six categorical tints (the theme's
+	// --bnd-cat-1..6 at its tint strength) chosen by item group in the JS, so
+	// a shelf of same-group items reads as one family. Ink, not brand ink, on
+	// the tint: the initials are text, and a tinted pane is not a gated pair
+	// for the brand's text ink.
+	.bnd-pos__product[data-tone="0"] { --bnd-pos-tone: var(--bnd-cat-1); }
+	.bnd-pos__product[data-tone="1"] { --bnd-pos-tone: var(--bnd-cat-2); }
+	.bnd-pos__product[data-tone="2"] { --bnd-pos-tone: var(--bnd-cat-3); }
+	.bnd-pos__product[data-tone="3"] { --bnd-pos-tone: var(--bnd-cat-4); }
+	.bnd-pos__product[data-tone="4"] { --bnd-pos-tone: var(--bnd-cat-5); }
+	.bnd-pos__product[data-tone="5"] { --bnd-pos-tone: var(--bnd-cat-6); }
+
+	.bnd-pos__product[data-tone]:not(.has-image) .bnd-pos__product-media {
+		background: color-mix(in srgb, var(--bnd-pos-tone) var(--bnd-cat-tint), var(--bnd-pane));
+		color: var(--bnd-ink);
 	}
 
 	.bnd-pos__product-copy {

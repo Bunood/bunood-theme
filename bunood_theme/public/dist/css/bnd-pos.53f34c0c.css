@@ -635,6 +635,32 @@ html[data-theme] .bnd-pos-workbench .bnd-pos__product-media img {
   block-size: 100%;
   object-fit: cover;
 }
+html[data-theme] .bnd-pos-workbench .bnd-pos__product-media svg {
+  inline-size: 70%;
+  block-size: 70%;
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone="0"] {
+  --bnd-pos-tone: var(--bnd-cat-1);
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone="1"] {
+  --bnd-pos-tone: var(--bnd-cat-2);
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone="2"] {
+  --bnd-pos-tone: var(--bnd-cat-3);
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone="3"] {
+  --bnd-pos-tone: var(--bnd-cat-4);
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone="4"] {
+  --bnd-pos-tone: var(--bnd-cat-5);
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone="5"] {
+  --bnd-pos-tone: var(--bnd-cat-6);
+}
+html[data-theme] .bnd-pos-workbench .bnd-pos__product[data-tone]:not(.has-image) .bnd-pos__product-media {
+  background: color-mix(in srgb, var(--bnd-pos-tone) var(--bnd-cat-tint), var(--bnd-pane));
+  color: var(--bnd-ink);
+}
 html[data-theme] .bnd-pos-workbench .bnd-pos__product-copy {
   display: grid;
   align-content: start;

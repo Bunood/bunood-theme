@@ -141,3 +141,18 @@ test("the receipt register is a role-gated Page over the read-only union, reprin
 		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
 	}
 });
+
+test("catalogue tiles: a drawing or initials on a stable group tint, services without stock", () => {
+	assert.match(js, /function productIllustration\(item\)/);
+	assert.match(js, /if \(!kind\) return el\("span", null, initials\(item\.item_name \|\| item\.item_code\)\);/);
+	assert.match(js, /svg\.setAttribute\("aria-hidden", "true"\);/);
+	assert.match(js, /card\.dataset\.tone = String\(\[\.\.\.key\]\.reduce\(\(sum, char\) => sum \+ char\.codePointAt\(0\), 0\) % 6\);/);
+	assert.match(js, /card\.classList\.add\("has-image"\);/);
+	assert.match(js, /card\.classList\.remove\("has-image"\);\s+media\.replaceChildren\(productIllustration\(item\)\);/);
+	assert.match(js, /item\.is_stock_item\s+\? __\("Stock \{0\}", \[number\(item\.actual_qty\)\]\)\s+: __\("Service"\)/);
+	assert.match(js, /if \(group === "All Item Groups"\) continue;\s+const control = button\(__\(group\), null, "bnd-pos__group", \(\) => chooseGroup\(group\)\);/);
+	for (let tone = 0; tone < 6; tone += 1) {
+		assert.ok(scss.includes(`.bnd-pos__product[data-tone="${tone}"] { --bnd-pos-tone: var(--bnd-cat-${tone + 1}); }`), `tone ${tone}`);
+	}
+	assert.match(scss, /\[data-tone\]:not\(\.has-image\) \.bnd-pos__product-media \{\s+background: color-mix\(in srgb, var\(--bnd-pos-tone\) var\(--bnd-cat-tint\), var\(--bnd-pane\)\);\s+color: var\(--bnd-ink\);/);
+});

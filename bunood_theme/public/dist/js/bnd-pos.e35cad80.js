@@ -66,6 +66,34 @@
 		return (words.slice(0, 2).map((word) => [...word][0]).join("") || "•").toUpperCase();
 	}
 
+	// A line drawing for an image-less catalogue item whose name says what it
+	// is (Arabic or English keywords): a cup, a bottle, bread, a sandwich.
+	// Anything else keeps its initials. The drawings are constant markup.
+	function productIllustration(item) {
+		const name = `${item.item_name || ""} ${item.item_group || ""} ${item.item_code || ""}`.toLowerCase();
+		const drawings = {
+			cup: '<path d="M11 16h20v13a6 6 0 0 1-6 6h-8a6 6 0 0 1-6-6zM31 19h4a4 4 0 0 1 0 8h-4M10 39h26M17 7c-3 3 3 4 0 7M25 7c-3 3 3 4 0 7"/>',
+			bottle: '<path d="M19 5h10M20 5v8l-5 5v21a3 3 0 0 0 3 3h12a3 3 0 0 0 3-3V18l-5-5V5M15 22h18M15 34h18"/>',
+			bread: '<path d="M8 32c3-9 12-17 24-17 6 0 9 3 9 8 0 6-6 12-13 15-8 3-17 1-20-6zM12 27l6 6M20 20l6 8M30 16l5 7"/>',
+			sandwich: '<path d="M6 27c3-11 11-18 18-18s15 7 18 18zM6 27h36l-4 7H10zM10 34h28l-4 5H14zM15 24h18"/>',
+		};
+		const kind = /قهو|شاي|لاتيه|كابتشينو|coffee|latte|espresso|tea/.test(name) ? "cup"
+			: /مياه|ماء|عصير|زيت|water|juice|bottle|milk/.test(name) ? "bottle"
+			: /كرواسون|مخبوز|pastry|croissant|bread/.test(name) ? "bread"
+			: /ساندويتش|برجر|sandwich|burger/.test(name) ? "sandwich" : "";
+		if (!kind) return el("span", null, initials(item.item_name || item.item_code));
+		const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+		svg.setAttribute("viewBox", "0 0 48 48");
+		svg.setAttribute("fill", "none");
+		svg.setAttribute("stroke", "currentColor");
+		svg.setAttribute("stroke-width", "1.7");
+		svg.setAttribute("stroke-linecap", "round");
+		svg.setAttribute("stroke-linejoin", "round");
+		svg.setAttribute("aria-hidden", "true");
+		svg.innerHTML = drawings[kind];
+		return svg;
+	}
+
 	function userDate(value) {
 		return value && frappe.datetime?.str_to_user ? frappe.datetime.str_to_user(value) : value || "—";
 	}
@@ -346,7 +374,10 @@
 			all.classList.toggle("is-active", !state.group);
 			groups.append(all);
 			for (const group of state.context?.item_groups || []) {
-				const control = button(group, null, "bnd-pos__group", () => chooseGroup(group));
+				// "All Item Groups" is the tree's root, which the "All items" chip
+				// already is; group names are shown translated, chosen by name.
+				if (group === "All Item Groups") continue;
+				const control = button(__(group), null, "bnd-pos__group", () => chooseGroup(group));
 				control.classList.toggle("is-active", state.group === group);
 				groups.append(control);
 			}
@@ -395,16 +426,24 @@
 				const card = el("button", "bnd-pos__product");
 				card.type = "button";
 				card.dataset.itemCode = item.item_code;
+				// A stable tone per group gives image-less items a scannable rhythm
+				// without inventing product photography or touching item data.
+				const key = String(item.item_group || item.item_code || item.item_name || "");
+				card.dataset.tone = String([...key].reduce((sum, char) => sum + char.codePointAt(0), 0) % 6);
 				const media = el("span", "bnd-pos__product-media");
 				if (item.item_image && !state.context.profile.hide_images) {
+					card.classList.add("has-image");
 					const image = el("img");
 					image.src = item.item_image;
 					image.alt = "";
 					image.loading = "lazy";
-					image.addEventListener("error", () => media.replaceChildren(el("span", null, initials(item.item_name || item.item_code))), { once: true });
+					image.addEventListener("error", () => {
+						card.classList.remove("has-image");
+						media.replaceChildren(productIllustration(item));
+					}, { once: true });
 					media.append(image);
 				} else {
-					media.append(el("span", null, initials(item.item_name || item.item_code)));
+					media.append(productIllustration(item));
 				}
 				const copy = el("span", "bnd-pos__product-copy");
 				copy.append(
@@ -412,7 +451,10 @@
 					el("small", null, item.item_code),
 					el("b", null, money(item.price_list_rate, item.currency || state.context.profile.currency))
 				);
-				const stock = el("span", "bnd-pos__stock", __("Stock {0}", [number(item.actual_qty)]));
+				// A non-stock item has no quantity to show: it is a service.
+				const stock = el("span", "bnd-pos__stock", item.is_stock_item
+					? __("Stock {0}", [number(item.actual_qty)])
+					: __("Service"));
 				stock.classList.toggle("is-empty", item.is_stock_item && Number(item.actual_qty || 0) <= 0);
 				card.append(media, copy, stock);
 				card.disabled = item.price_list_rate === null || item.price_list_rate === undefined;
