@@ -877,6 +877,14 @@ def _auth_context(context):
     The page's title and subtitle remain literals in ``www/login.html`` with no
     seam at all, which is filed upstream.
     """
+    # THE TAB TITLE IN THE PAGE'S LANGUAGE. `www/login.py` sets the literal
+    # "Login" and `base.html` prints `title` through `striptags` with no `_()`,
+    # so an Arabic sign-in page carried an English tab title. Both strings are
+    # Frappe's own, so their Arabic comes with the framework. Set BEFORE
+    # `_identity_meta` below composes the tenant's name onto it.
+    context.title = frappe._(
+        "Update Password" if context.get("template") == "www/update-password.html" else "Login"
+    )
     classes = (context.get("body_class") or "").split()
     if AUTH_BODY_CLASS not in classes:
         classes.append(AUTH_BODY_CLASS)
