@@ -11852,3 +11852,69 @@ msgstr "عملية جديدة"
 #, fuzzy
 msgid "Replace the current ticket with this held sale? Hold it first if you need to keep it."
 msgstr "هل تريد استبدال الطلب الحالي بهذه العملية المعلّقة؟ علّق الطلب الحالي أولًا إذا أردت الاحتفاظ به."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status is only available for sales and POS invoices."
+msgstr "حالة الفوترة الإلكترونية متاحة لفواتير المبيعات ونقطة البيع فقط."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have access to the ZATCA workspace."
+msgstr "ليس لديك صلاحية الوصول إلى مساحة عمل الفوترة الإلكترونية."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have access to this company."
+msgstr "ليس لديك صلاحية الوصول إلى هذه الشركة."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid start date."
+msgstr "تاريخ البداية غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid end date."
+msgstr "تاريخ النهاية غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice page cursor."
+msgstr "مؤشر صفحة الفواتير غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Full connector diagnostic is available in the native record."
+msgstr "التشخيص الكامل للموصل متاح في السجل الأصلي."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid ZATCA status filter."
+msgstr "مرشح حالة زاتكا غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice type filter."
+msgstr "مرشح نوع الفاتورة غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Start date must not be after end date."
+msgstr "يجب ألا يكون تاريخ البداية بعد تاريخ النهاية."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice."
+msgstr "الفاتورة غير صالحة."
