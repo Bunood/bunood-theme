@@ -42,8 +42,8 @@
 // ── 1. A cursive-script desk: no tracking anywhere ─────────────────────────
 //
 // `html:lang(x) body` is (0,0,2) against Frappe's `body` at (0,0,1), so it wins
-// on specificity and needs no `!important` — which is restricted to two
-// sanctioned places and this is not one of them.
+// on specificity and needs no `!important` — which is restricted to the
+// sanctioned places (GUIDELINES §1.3), and this is not one of them.
 html:lang(ar) body,
 html:lang(fa) body,
 html:lang(ps) body,
@@ -74,10 +74,8 @@ html:lang(ks) body {
 // selectors are deliberately narrow: this is not a licence to strip tracking
 // from Frappe's chrome, only from the places our own components print data.
 .bnd-sb-letter,
-.bnd-inbox-row-title,
 .bnd-inbox-group,
 .bnd-palette-row-label,
-.bnd-crumb-title,
 html[data-bnd-sb-color] .body-sidebar .sidebar-item-label {
   letter-spacing: normal;
 }

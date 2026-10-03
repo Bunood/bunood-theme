@@ -85,8 +85,12 @@ html[data-theme] .bnd-pos-workbench {
 		opacity: 0.78;
 	}
 
-	.bnd-pos__subtitle {
-		margin-block-start: var(--bnd-sp-2) !important;
+	// WEIGHT, not `!important` (build.mjs's SANCTIONED_IMPORTANT, met at the
+	// v0.49.0 integration): what this beat is `.bnd-pos__title p { margin: 0 }`
+	// above, (0,3,2) against the subtitle's (0,3,1). Naming the title it always
+	// sits in makes it (0,4,1).
+	.bnd-pos__title .bnd-pos__subtitle {
+		margin-block-start: var(--bnd-sp-2);
 		font-size: var(--bnd-text-sm);
 		opacity: 0.82;
 	}

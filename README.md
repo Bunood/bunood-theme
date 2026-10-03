@@ -111,8 +111,9 @@ the build runs on the host and its output ships with the app.
    (0,1,0), so a later `:root` rule wins in *both* modes and silently kills
    dark mode. Write `--bnd-*` and let `_bridge.scss` map it, mode-scoped.
 2. **Never use `@layer` to beat Frappe.** Unlayered beats layered. Use the
-   `html[data-theme]` scope prefix. (`!important` has exactly two documented
-   exceptions; both fight inline styles.)
+   `html[data-theme]` scope prefix. (`!important` only in the classes GUIDELINES
+   §1.3 names — print, a vendor inline style, a vendor `!important` literal — and
+   `build.mjs` refuses any site it does not list.)
 3. **Never reference a path containing `.bundle.`.** Frappe resolves those
    against a manifest that is stale here, and prefixes them with `rtl_` on
    Arabic sites — a 404 that would hit Arabic tenants only.

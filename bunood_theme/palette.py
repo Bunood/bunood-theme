@@ -127,14 +127,17 @@ BASE_DARK = {
 #: The split is the WCAG one and nothing else: a token the stylesheet writes text
 #: with needs 1.4.3's 4.5:1; a token it draws a dot, a badge fill or a focus ring
 #: with needs 1.4.11's 3:1. Each entry was classified by reading the rules that
-#: consume it, not by guessing from the name — ``--bnd-good`` looks like a text
-#: colour and is only ever a 6px dot.
+#: consume it, not by guessing from the name — and a rule that NEVER APPLIES
+#: misleads that reading: ``--bnd-good`` was filed as "only ever a 6px dot"
+#: because the workspace kit's rule writing a number card's rising delta with it
+#: lost the cascade from item 25 on. Made to apply (2026-09-28), it writes text,
+#: so it is fitted as text; 4.5:1 also clears the dot's 3:1.
 FITTED = [
     ("--bnd-ink-muted", INK_MUTED_TARGET, "secondary text"),
     ("--bnd-ink-subtle", AA_TEXT, "tertiary text"),
     ("--bnd-warn", AA_TEXT, "status segment text"),
     ("--bnd-critical", AA_TEXT, "status segment text, and the unread badge fill"),
-    ("--bnd-good", AA_NON_TEXT, "connection dot"),
+    ("--bnd-good", AA_TEXT, "connection dot, and a number card's rising delta"),
     ("--bnd-serious", AA_NON_TEXT, "sidebar badge fill"),
     ("--bnd-accent", AA_NON_TEXT, "focus ring"),
 ]
@@ -339,7 +342,7 @@ SB_HUE_SEEDS_DARK = ["#7aabe5", "#f08e66", "#1dbe84", "#eda100", "#eb8aae", "#00
 #: it. Item 40 measured the cost: dark-minimal declared 12 of these 14, so
 #: `--bnd-sb-chip-bg` and `--bnd-sb-chip-ink` fell through to the LIGHT block
 #: and painted #6d7570 on #15181a — 3.76:1 against a 4.5 floor. A sentence in
-#: a comment is not a contract; this tuple is, and `check_sidebar_coverage`
+#: a comment is not a contract; this tuple is, and the gate's `check_sidebar_surfaces`
 #: enforces it.
 class SidebarPane(NamedTuple):
     """One colour mode's pane: how it is built, and what to call it in a report."""
@@ -406,7 +409,7 @@ class SidebarPane(NamedTuple):
 #:     #fafbfa, measuring 4.57:1 against a 4.5 floor. The worst NAMED ground
 #:     crosses that floor at 1.36%; the three candidates measured 4.45 / 4.35 /
 #:     4.22, and worse against an unconstrained one. Every candidate was a gate
-#:     failure in light. `check_sidebar_headroom` now enforces this.
+#:     failure in light. The gate's `check_sidebar_surfaces` now enforces this.
 #:   * And it would have bought nothing. At 3% in light all six shipped grounds
 #:     mix to the SAME hex, #f7f8f7 — not similar, identical. Match Theme's own
 #:     light pane is four distinct colours across seventeen tenants. The

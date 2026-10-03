@@ -485,20 +485,10 @@
 		document.documentElement.setAttribute("data-bnd-desk", "");
 	})();
 
-	// The status style travels as an attribute for the same reason as the
-	// layout: it is state the stylesheet has to be able to see.
-	//
-	// It used to carry a second job — zeroing the bottom clearance when the
-	// style is "Off" — and no longer does. Clearance is now MEASURED from the
-	// chrome that actually rendered (observe_bottom_reserve), so "Off" needs
-	// no special case: no bar in the DOM measures zero. The attribute stays
-	// because it is a legitimate styling hook, but nothing about the desk's
-	// geometry depends on it any more.
-	(function apply_status() {
-		const boot = (window.frappe && frappe.boot && frappe.boot.bnd_status) || null;
-		const label = (boot && boot.status_style) || "Quiet";
-		document.documentElement.setAttribute("data-bnd-status", String(label).toLowerCase());
-	})();
+	// `data-bnd-status` used to be stamped here from `status_style`; no rule and no script
+	// ever read it (the settings audit of 2026-09-21), so the stamp and its literal
+	// fallback are gone. The bar's own state lives in `status_state`.
+
 
 	// ── Skip link (34a, design pick 4A) ─────────────────────────────────────
 	// A keyboard user otherwise crosses the whole chrome — pane, bars, dock —
@@ -588,16 +578,14 @@
 	//   — and the seam between them produced every defect in 0.10.0. One
 	//   setting per container is one answer per question.
 	//
-	// FALLS OPEN, LIKE EVERYTHING ELSE HERE
+	// FALLS TO STOCK, LIKE EVERYTHING ELSE HERE
 	//   No boot payload (theme inactive, boot failed, a site whose migration
-	//   has not run) means `chrome_state` is null and `container_on` answers
-	//   from the layout exactly as before. A desk never loses chrome because a
-	//   payload was missing.
-	//
-	// THE SPLIT LANDS ONE CONTAINER PER SLICE, so this map is deliberately
-	// partial: a container with no entry falls back to the layout branch that
-	// still owns it. LAYOUT_CONTAINERS is that fallback, and it shrinks to
-	// nothing as the slices land.
+	//   has not run) means `chrome_state` is null, `theme_active()` is false
+	//   and nothing mounts: a desk with no payload is a stock desk, by design
+	//   (item 37). The split has landed all five containers, so a key with no
+	//   entry is OFF — the layout-keyed fallback table that carried the slices
+	//   in was unreachable for a year and went with the settings audit of
+	//   2026-09-21 (D2).
 
 	/** Boot's per-container on/off, keyed by registry container key. */
 	const chrome_state = (window.frappe && frappe.boot && frappe.boot.bnd_chrome) || null;
@@ -657,19 +645,6 @@
 	 * have left the last two slices with a fallback that silently answered "no"
 	 * for a container that was plainly there.
 	 */
-	// Renamed with the catalogue (item 42). Reached only when `chrome_state`
-	// lacks a key — boot has carried all five since the container split, so this
-	// is the pre-boot floor rather than a live decision, which is why the stale
-	// names here cost nothing while SEARCH_FALLBACKS' cost a wrong placement.
-	const LAYOUT_CONTAINERS = {
-		unifiedsidepane: ["bottombar", "sidepane"],
-		"rail+flyout": ["bottombar", "sidepane"],
-		taskbar: ["bottombar", "sidepane"],
-		toptaskbar: ["topbar", "bottombar", "sidepane"],
-		// The one layout with no side pane: it hides the whole container.
-		floatingbar: ["dock", "bottombar"],
-	};
-
 	/**
 	 * Should this container mount?
 	 *
@@ -685,7 +660,8 @@
 		if (chrome_state && Object.prototype.hasOwnProperty.call(chrome_state, key)) {
 			return !!chrome_state[key];
 		}
-		return (LAYOUT_CONTAINERS[layout()] || []).indexOf(key) !== -1;
+		// No entry means OFF — see "FALLS TO STOCK" above.
+		return false;
 	}
 
 	/**
@@ -768,6 +744,8 @@
 		const off = Object.keys(HIDES_NATIVE).filter((k) => !container_on(k));
 		if (off.length) document.documentElement.setAttribute("data-bnd-chrome-off", off.join(" "));
 		else document.documentElement.removeAttribute("data-bnd-chrome-off");
+		// The container's one hide follows the declaration, in the same tick.
+		sb_sync_pane_hidden();
 	}
 	apply_chrome_off();
 
@@ -784,6 +762,8 @@
 		const html = document.documentElement;
 		if (is_narrow()) html.setAttribute("data-bnd-narrow", "");
 		else html.removeAttribute("data-bnd-narrow");
+		// Hidden is a desktop state: the pane's hide token follows the boundary.
+		sb_sync_pane_hidden();
 		const coarse = typeof window.matchMedia === "function" && window.matchMedia("(any-pointer: coarse)").matches;
 		if (coarse) html.setAttribute("data-bnd-touch", "");
 		else html.removeAttribute("data-bnd-touch");
@@ -840,7 +820,8 @@
 	function guard_critical_reach() {
 		const html = document.documentElement;
 		const off = (html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).filter(Boolean);
-		// TWO WAYS TO HIDE THE PANE since item 42 — argument in _sidebar.scss.
+		// TWO WAYS TO HIDE THE PANE since item 42, ONE RULE that does it: both
+		// inputs feed sb_sync_pane_hidden — argument in _sidebar.scss.
 		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden";
 		if (!off.includes("sidepane") && !hidden) return false;
 		// NOT READY IS NOT STRANDED. A hidden pane lends its tenants to the page
@@ -860,19 +841,19 @@
 		});
 		if (!stranded.length) return false;
 
-		// Release whichever mechanism is hiding it. Both, when both are.
-		if (hidden) {
-			html.setAttribute("data-bnd-sb-panestate", "open");
-			// DURABLE for the session, not only the attribute: apply_sidebar_attrs
-			// re-stamps the attribute from sb_state on every re-apply, and an un-hide
-			// that lived only in the attribute was undone by the next one - a bell
-			// mounted into the un-hidden window then rode the pane down (measured on
-			// the settings page, 2026-09-08). The route the guard opens stays open.
-			if (sb_state) sb_state.panestate = "Open";
-		}
+		// Release whichever mechanism is hiding it. Both, when both are — through
+		// the pane state's ONE stamper, so the attribute, sb_state and the hide
+		// token move together. DURABLE for the session, not only the attribute:
+		// apply_sidebar_attrs re-stamps from sb_state on every re-apply, and an
+		// un-hide that lived only in the attribute was undone by the next one - a
+		// bell mounted into the un-hidden window then rode the pane down (measured
+		// on the settings page, 2026-09-08). The route the guard opens stays open.
+		if (hidden) sb_stamp_panestate("Open");
 		const kept = off.filter((k) => k !== "sidepane");
 		if (kept.length) html.setAttribute("data-bnd-chrome-off", kept.join(" "));
 		else html.removeAttribute("data-bnd-chrome-off");
+		// The arbiter's last word: the container's one hide follows the release.
+		sb_sync_pane_hidden();
 		return true;
 	}
 	bunood.guard_critical_reach = guard_critical_reach;
@@ -960,26 +941,8 @@
 			document.documentElement.removeAttribute("data-bnd-" + key);
 		}
 
-		if (container_on("topbar")) mount_topbar();
-		if (container_on("pagehead")) inject_compact_cluster();
-		if (container_on("dock")) mount_dock();
-		if (container_on("bottombar")) mount_statusbar();
-
-		mount_search();
-		mount_placed_tenants();
-		if (guard_critical_reach()) mount_placed_tenants();
-		if (container_on("sidepane")) mount_sidebar_kit();
-		// The links live in containers too: without this, switching the bar
-		// that held them leaves them behind in a node that has just been
-		// removed, or absent from the one that has just arrived.
-		sb_mount_utils();
-		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
-		else sb_teardown_pagehead_brand();
+		mount_containers();
 		defer_bottom_reserve();
-		// A shape change moves which route to Appearance exists, so the claim on
-		// Frappe's Display item is re-measured rather than assumed (item 38).
-		stamp_appearance_route();
 	}
 	bunood.remount_chrome = remount_chrome;
 
@@ -1154,19 +1117,19 @@
 	 */
 	const SB_SLUGS = {
 		placement: { "Attached": "attached", "Floating": "floating" },
-		// Six surfaces; four icon styles. The retired labels keep entries —
-		// argument in _sidebar.scss, which Sass strips before the wire.
+		// Six surfaces; four icon styles. NO RETIRED LABEL RESOLVES HERE any more:
+		// v0_40_0 and v0_42_0 rewrote every stored one, and a spelling the field
+		// cannot hold is healed by the next migrate (setup.heal_unknown_selects),
+		// never tolerated on the wire (the settings audit of 2026-09-21, v-8 —
+		// three normalisers for labels every site had already been rewritten past).
 		material: {
 			"Solid": "solid", "Bordered": "bordered", "Elevated": "elevated",
 			"Textured": "textured", "Tinted": "tinted", "Gradient": "gradient",
-			"Glass": "elevated", "Blurred Glass": "elevated",
 		},
 		// `color` is gone; see _sidebar.scss's head for why.
 		icons: {
 			"Filled Color": "filled", "Fill on Active": "onactive",
 			"Solid Tile": "tile", "Circle Badge": "badge",
-			"Colored Chips": "tile", "Colored Dots": "badge",
-			"Duotone": "filled", "Brand Lines": "filled", "Monochrome": "onactive",
 		},
 		active: {
 			"Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail",
@@ -1174,16 +1137,10 @@
 		},
 		sections: { "Plain": "plain", "Divided": "divided", "Cards": "cards" },
 		wash: { "Off": "off", "Subtle": "subtle", "Rich": "rich" },
-		// Three states since item 42. The legacy spellings still resolve — the
-		// migration rewrites stored values, but a desk mid-upgrade (boot cached
-		// before the patch ran) must not lose its pane over a label.
-		panestate: {
-			"Open": "open", "Rail": "rail", "Hidden": "hidden",
-			"Always Expanded": "open", "Hover-Expand": "rail", "Hover + Pin": "rail",
-		},
+		// Three states since item 42. An unknown value falls to "open" where this
+		// is read; a retired spelling is a migration's job, never a lookup's.
+		panestate: { "Open": "open", "Rail": "rail", "Hidden": "hidden" },
 		railtrigger: { "Hover": "hover", "Click": "click", "Hover + Pin": "hoverpin" },
-		railbtn: { "None": "", "Edge": "edge", "Header": "header" },
-		railbtnicon: { "Chevron": "chevron", "Menu": "menu", "Arrows": "arrows" },
 		iconsrc: { "Smart": "smart", "Original": "original", "Letters": "letters" },
 		badges: { "Off": "off", "Dots": "dots", "Counts": "counts" },
 	};
@@ -1195,6 +1152,47 @@
 	 * makes instant preview a re-application rather than a special mode.
 	 */
 	let sb_state = (window.frappe && frappe.boot && frappe.boot.bnd_sidebar) || null;
+
+	/**
+	 * ONE HIDE FOR THE PANE'S CONTAINER, keyed on an OUTCOME.
+	 *
+	 * Two settings hide it: the container switched off (`data-bnd-chrome-off`
+	 * carries "sidepane") and the pane state Hidden on a desktop (`data-bnd-sb-
+	 * panestate="hidden"` with no `data-bnd-narrow`). Until the settings audit of
+	 * 2026-09-21 (v-5) each had its own `display: none !important` in a different
+	 * file at a different specificity, so which rule won was an accident of the
+	 * cascade and nothing decided it in one place. This decides it: every writer
+	 * of either input calls it, and _sidebar.scss carries the single rule, on the
+	 * ownership token like every other hide of a vendor node. NO FLASH IS ADDED:
+	 * the token is stamped inside the same synchronous load-time calls that stamp
+	 * the declarations (apply_chrome_off and apply_sidebar_attrs at module scope),
+	 * so it lands before first paint exactly as the declarations did — the
+	 * argument _layouts.scss makes for keying the container on a declaration
+	 * holds for a token written in the same tick.
+	 */
+	function sb_sync_pane_hidden() {
+		const html = document.documentElement;
+		const off = (html.getAttribute("data-bnd-chrome-off") || "").split(/\s+/).includes("sidepane");
+		const hidden = html.getAttribute("data-bnd-sb-panestate") === "hidden" && !html.hasAttribute("data-bnd-narrow");
+		if (off || hidden) bnd_own("pane-hidden");
+		else bnd_disown("pane-hidden");
+	}
+
+	/**
+	 * The pane state's ONE stamper: the slug on <html>, the state in memory and
+	 * the container's hide token move together. `apply_sidebar_attrs` reflects the
+	 * whole set through it and `guard_critical_reach` releases through it — the
+	 * two writers the audit found stamping the attribute independently (D3), one
+	 * of which also had to remember to mutate `sb_state` by hand.
+	 * @returns {string} the slug stamped ("open" for an unknown label).
+	 */
+	function sb_stamp_panestate(label) {
+		const state = SB_SLUGS.panestate[label] || "open";
+		document.documentElement.setAttribute("data-bnd-sb-panestate", state);
+		if (sb_state) sb_state.panestate = label;
+		sb_sync_pane_hidden();
+		return state;
+	}
 
 	/**
 	 * Reflect a full set of sidebar options onto <html>, clearing whatever
@@ -1218,19 +1216,14 @@
 		set("active", SB_SLUGS.active[sb.active]);
 		set("sections", SB_SLUGS.sections[sb.sections]);
 		set("wash", SB_SLUGS.wash[sb.wash]);
-		const state = SB_SLUGS.panestate[sb.panestate] || "open";
-		set("panestate", state);
+		const state = sb_stamp_panestate(sb.panestate);
 		// Rail keeps its own anchor attribute plus the trigger the JS wires --
 		// four dozen rules key on `data-bnd-rail` and it stays their subject.
-		// Legacy "Hover + Pin" mode labels imply their trigger.
 		if (state === "rail") {
 			html.setAttribute("data-bnd-rail", "");
-			const trigger =
-				SB_SLUGS.railtrigger[sb.rail_trigger] ||
-				(sb.panestate === "Hover + Pin" ? "hoverpin" : "hover");
-			html.setAttribute("data-bnd-sb-railtrigger", trigger);
+			html.setAttribute("data-bnd-sb-railtrigger", SB_SLUGS.railtrigger[sb.rail_trigger] || "hover");
 		}
-		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source] || "smart");
+		set("iconsrc", SB_SLUGS.iconsrc[sb.icon_source]);
 		set("badges", SB_SLUGS.badges[sb.badges]);
 		if (parseInt(sb.filter, 10)) html.setAttribute("data-bnd-sb-filter", "");
 		const width = parseInt(sb.pane_width, 10);
@@ -1248,16 +1241,6 @@
 		return document.documentElement.hasAttribute("data-bnd-sb-color");
 	}
 
-	// ════════════════════════════════════════════════════════════════════════
-	// Breadcrumb kit (item 11) — attribute application
-	// ════════════════════════════════════════════════════════════════════════
-
-	/**
-	 * Theme Settings label -> attribute slug. "Original" deliberately maps to
-	 * "" so it sets NO attributes at all — the CSS matrix matches nothing and
-	 * v16's stock trail is untouched, the same escape hatch the desk-layout
-	 * picker offers with "Classic". Unknown labels behave identically.
-	 */
 	// ════════════════════════════════════════════════════════════════════════
 	// The SURFACE kits — list (15) · form (16) · workspace (25) · report (26)
 	// · views (27) · overlays (28) · empty (29) · skeleton (30) · filters (31)
@@ -1547,7 +1530,11 @@
 		return frappe
 			.xcall("bunood_theme.api.set_personal", { values: { bnd_body_width: value } })
 			.then(() => {
-				if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = value;
+				if (frappe.boot.bnd_personal) {
+					frappe.boot.bnd_personal.body_width = value;
+					const o = frappe.boot.bnd_personal.overrides;
+					if (o) { if (value) o.desk_width = value; else delete o.desk_width; }
+				}
 				refresh_width_label();
 				frappe.show_alert({
 					message: value ? __("Width: {0}", [__(value)]) : __("Width: following site default"),
@@ -2287,6 +2274,16 @@
 		}
 	})();
 
+	// ════════════════════════════════════════════════════════════════════════
+	// Breadcrumb kit (item 11) — attribute application
+	// ════════════════════════════════════════════════════════════════════════
+
+	/**
+	 * Theme Settings label -> attribute slug. "Original" deliberately maps to
+	 * "" so it sets NO attributes at all — the CSS matrix matches nothing and
+	 * v16's stock trail is untouched, the same escape hatch the desk-layout
+	 * picker offers with "Classic". Unknown labels behave identically.
+	 */
 	const CRUMB_SLUGS = {
 
 		style: { "Original": "", "Quiet Trail": "quiet", "Title Fusion": "fusion", "Eyebrow Title": "eyebrow", "Crumb Pills": "pills" },
@@ -3148,7 +3145,7 @@
 	 *
 	 * The side pane is the exception: its zones are Frappe's own rows, not a
 	 * cluster we built, so it returns the pane itself and the caller places by
-	 * `order` (see sb_zone_style). Wrapping the pane's contents in three divs
+	 * `order` (see sb_zone_anchor). Wrapping the pane's contents in three divs
 	 * would be redrawing Frappe's DOM, which this theme does not do.
 	 */
 	function host_for(region, zone) {
@@ -3377,12 +3374,13 @@
 	/**
 	 * Is the stock affordance this tenant replaces actually usable right now?
 	 *
-	 * Present in the DOM is not enough. The Dock layout hides the whole
-	 * `.body-sidebar-container` with `display: none !important` keyed on the
-	 * LAYOUT (_layouts.scss) — Frappe writes an inline `display: block` there,
-	 * which is one of this codebase's two sanctioned uses of !important. So the
-	 * native bell and user button still exist, still match a selector, and
-	 * cannot be clicked by anyone.
+	 * Present in the DOM is not enough. A desk with the pane switched off, or set
+	 * to Hidden, hides the whole `.body-sidebar-container` with `display: none
+	 * !important` (_sidebar.scss, keyed on the `pane-hidden` token that
+	 * `sb_sync_pane_hidden` stamps) — Frappe writes an inline `display: block`
+	 * there, which is why that hide is a sanctioned `!important`. So the native
+	 * bell and user button still exist, still match a selector, and cannot be
+	 * clicked by anyone.
 	 *
 	 * `offsetParent` is null for an element inside a `display: none` ancestor,
 	 * which is exactly the question being asked and is cheaper than walking up
@@ -3394,98 +3392,99 @@
 		// testing the bell or the user button answers "not there yet" and the
 		// guard below misfires, refusing Off in every layout. The container is
 		// part of the desk skeleton and exists by then, and it is exactly what
-		// the layout rule targets (_layouts.scss sets `display: none !important`
-		// on it for Dock, beating Frappe's inline `display: block`).
+		// the pane's one hide targets (_sidebar.scss sets `display: none
+		// !important` on it when the pane is off or Hidden, beating Frappe's
+		// inline `display: block`).
 		const pane = document.querySelector(".body-sidebar-container");
 		return !!(pane && getComputedStyle(pane).display !== "none");
 	}
 
-/**
- * Put a node at a zone of the SIDE PANE, by DOM position.
- *
- * TWO ZONES, NOT THREE. The pane is the one region that does not get a centre,
- * and `registry.ZONES_BY_REGION` is where that is declared — this function is
- * only where it is carried out. The reason is measured, not stylistic: the
- * pane's content FILLS the column, so "after the workspace list" and "the foot
- * of the pane" are the same position, because the list is the last thing in it.
- * Three attempts said so — CSS `order` with auto margins put start, centre and
- * end on an identical y; inserting the end before Frappe's pinned bottom strip
- * put it ABOVE the centre; inserting it at the true last child matched the
- * centre exactly. A third choice that lands where the second one does is the
- * "two options, one pixel" defect this vocabulary exists to delete, and the
- * pane already had it — search's old Sidebar Top and Sidebar Bottom both
- * measured y 228 for months.
- *
- *   start   after the pane's header, above the workspaces
- *   end     the foot of the pane, below the workspace list
- *
- * Position, not `order`, is what decides here — see the measurement above.
- * Falls back outward at every step: a pane missing its header or its bottom
- * strip still gets the node, at the nearest honest place, rather than not at
- * all.
- */
-/** The account band (8c): one toolbar shell at the foot. _sidebar.scss. */
-function sb_band(pane) {
-	let band = pane.querySelector(".bnd-sb-band");
-	if (!band) {
-		band = el("div", "bnd-sb-band", {
-			role: "toolbar",
-			"aria-label": __("Quick actions"),
-			"data-bnd-zone": "end",
-		});
-		// Through the anchor: no part, so the cell branch passes it by.
-		sb_zone_anchor(pane, "end", band);
+	/** The account band (8c): one toolbar shell at the foot. _sidebar.scss. */
+	function sb_band(pane) {
+		let band = pane.querySelector(".bnd-sb-band");
+		if (!band) {
+			band = el("div", "bnd-sb-band", {
+				role: "toolbar",
+				"aria-label": __("Quick actions"),
+				"data-bnd-zone": "end",
+			});
+			// Through the anchor: no part, so the cell branch passes it by.
+			sb_zone_anchor(pane, "end", band);
+		}
+		return band;
 	}
-	return band;
-}
 
-function sb_band_prune() {
-	for (const band of document.querySelectorAll(".bnd-sb-band")) {
-		if (!band.childElementCount) band.remove();
-	}
-}
-
-function sb_zone_anchor(pane, zone, node) {
-	// Our end tenants become band cells.
-	if (zone === "end" && node.getAttribute) {
-		const part = node.getAttribute("data-bnd-part");
-		// Every End-zone tenant lives in the foot card. This was a list of four and
-		// item 44 added two: the band-order guard in build.mjs derives the same set
-		// from registry.py, so a tenant missing here lands loose under the card.
-		if (part === "bell" || part === "user" || part === "home" || part === "apps" || part === "language" || part === "appearance") {
-			return sb_band(pane).appendChild(node);
+	function sb_band_prune() {
+		for (const band of document.querySelectorAll(".bnd-sb-band")) {
+			if (!band.childElementCount) band.remove();
 		}
 	}
-	const bottom = pane.querySelector(".body-sidebar-bottom");
 
-	if (zone === "start") {
-		// Between the brand row and the place row, whichever mounted first.
-		const head = pane.querySelector(":scope > .bnd-sb-head") || pane.querySelector(":scope > .body-sidebar-top");
-		if (head) return head.insertAdjacentElement("beforebegin", node);
-		const top = pane.querySelector(":scope > .bnd-sb-brand") || pane.querySelector(":scope > .sidebar-header");
-		if (top) return top.insertAdjacentElement("afterend", node);
-		return pane.insertBefore(node, pane.firstChild);
-	}
-	// No "center" branch: the pane has two zones, because a third could not be
-	// made to differ from the second (see registry.ZONES_BY_REGION). A value
-	// from a site that stored one before this settled falls through to the foot,
-	// which is where it rendered anyway.
-	// "end" = the foot: before `.body-sidebar-bottom` when it is the last
-	// IN-FLOW child. "Last CHILD" was permanently false — the collapse link
-	// and handle trail it, both absolute (defect 20; band 8 vs bottom 5).
-	if (bottom) {
-		let lastInFlow = null;
-		for (const kid of pane.children) {
-			const cs = getComputedStyle(kid);
-			if (cs.position === "absolute" || cs.position === "fixed") continue;
-			lastInFlow = kid;
+	/**
+	 * Put a node at a zone of the SIDE PANE, by DOM position.
+	 *
+	 * TWO ZONES, NOT THREE. The pane is the one region that does not get a centre,
+	 * and `registry.ZONES_BY_REGION` is where that is declared — this function is
+	 * only where it is carried out. The reason is measured, not stylistic: the
+	 * pane's content FILLS the column, so "after the workspace list" and "the foot
+	 * of the pane" are the same position, because the list is the last thing in it.
+	 * Three attempts said so — CSS `order` with auto margins put start, centre and
+	 * end on an identical y; inserting the end before Frappe's pinned bottom strip
+	 * put it ABOVE the centre; inserting it at the true last child matched the
+	 * centre exactly. A third choice that lands where the second one does is the
+	 * "two options, one pixel" defect this vocabulary exists to delete, and the
+	 * pane already had it — search's old Sidebar Top and Sidebar Bottom both
+	 * measured y 228 for months.
+	 *
+	 *   start   after the pane's header, above the workspaces
+	 *   end     the foot of the pane, below the workspace list
+	 *
+	 * Position, not `order`, is what decides here — see the measurement above.
+	 * Falls back outward at every step: a pane missing its header or its bottom
+	 * strip still gets the node, at the nearest honest place, rather than not at
+	 * all.
+	 */
+	function sb_zone_anchor(pane, zone, node) {
+		// Our end tenants become band cells.
+		if (zone === "end" && node.getAttribute) {
+			const part = node.getAttribute("data-bnd-part");
+			// Every End-zone tenant lives in the foot card. This was a list of four and
+			// item 44 added two: the band-order guard in build.mjs derives the same set
+			// from registry.py, so a tenant missing here lands loose under the card.
+			if (part === "bell" || part === "user" || part === "home" || part === "apps" || part === "language" || part === "appearance") {
+				return sb_band(pane).appendChild(node);
+			}
 		}
-		if (lastInFlow === bottom) {
-			return bottom.insertAdjacentElement("beforebegin", node);
+		const bottom = pane.querySelector(".body-sidebar-bottom");
+
+		if (zone === "start") {
+			// Between the brand row and the place row, whichever mounted first.
+			const head = pane.querySelector(":scope > .bnd-sb-head") || pane.querySelector(":scope > .body-sidebar-top");
+			if (head) return head.insertAdjacentElement("beforebegin", node);
+			const top = pane.querySelector(":scope > .bnd-sb-brand") || pane.querySelector(":scope > .sidebar-header");
+			if (top) return top.insertAdjacentElement("afterend", node);
+			return pane.insertBefore(node, pane.firstChild);
 		}
+		// No "center" branch: the pane has two zones, because a third could not be
+		// made to differ from the second (see registry.ZONES_BY_REGION). A value
+		// from a site that stored one before this settled falls through to the foot,
+		// which is where it rendered anyway.
+		// "end" = the foot: before `.body-sidebar-bottom` when it is the last
+		// IN-FLOW child. "Last CHILD" was permanently false — the collapse link
+		// and handle trail it, both absolute (defect 20; band 8 vs bottom 5).
+		if (bottom) {
+			let lastInFlow = null;
+			for (const kid of pane.children) {
+				const cs = getComputedStyle(kid);
+				if (cs.position === "absolute" || cs.position === "fixed") continue;
+				lastInFlow = kid;
+			}
+			if (lastInFlow === bottom) {
+				return bottom.insertAdjacentElement("beforebegin", node);
+			}
+		}
+		return pane.appendChild(node);
 	}
-	return pane.appendChild(node);
-}
 
 	/**
 	 * Tell the stylesheet where the BELL really is.
@@ -3600,7 +3599,10 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 		// Pane zones: our direct children of the side pane, grouped by the
 		// zone they were anchored to. Sorted within the group only — the
-		// pane's own rows are never touched.
+		// pane's own rows are never touched. `data-bnd-zone` is read here and
+		// nowhere else; its three writers (`sb_band`, `mount_placed_tenants`,
+		// `sb_mount_utils`) each stamp only a node they built, with the zone
+		// they anchor it to — no arbiter needed (settings audit, C4).
 		const pane = document.querySelector(".body-sidebar");
 		if (pane) {
 			for (const zone of ["start", "end"]) {
@@ -3722,9 +3724,10 @@ function sb_zone_anchor(pane, zone, node) {
 				else node.remove();
 			}
 			// `host` is already the zone for every region but the side pane,
-			// where it is the pane itself and CSS `order` does the placing —
-			// so the node carries the zone and the stylesheet reads it. The
-			// pane is Frappe's DOM and this theme does not redraw it.
+			// where it is the pane itself: `sb_zone_anchor` places the node by
+			// position, and the zone it carries is `enforce_desk_order`'s sort
+			// key (no stylesheet reads it). The pane is Frappe's DOM and this
+			// theme does not redraw it.
 			const zone = zone_for(tenant);
 			if (!keeper) {
 				// A builder that THROWS must not strand the tenants after it in this
@@ -3966,7 +3969,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Live preview from the settings form (theme_settings.js): the style only. */
 	bunood.language_apply = function (values) {
-		apply_language_attrs({ style: (values && values.language_style) || "Globe" });
+		apply_language_attrs({ style: (values && values.language_style) || (frappe.boot.bnd_language && frappe.boot.bnd_language.style) || "" });
 	};
 
 	function build_bell() {
@@ -3983,7 +3986,7 @@ function sb_zone_anchor(pane, zone, node) {
 		// selectors (.notifications-icon / .notifications-unseen) that exist
 		// in no template in this version, so nothing renders however many
 		// unread rows a user has (measured with 2 unread + seen:0). See the
-		// inbox kit below; inbox_mount_badge fills this node.
+		// inbox kit below; inbox_paint_badge fills this node.
 		bell.appendChild(el("span", "bnd-inbox-badge", { hidden: "" }));
 		bell.addEventListener("click", (e) => {
 			// The proxy opens the panel synchronously; without this, OUR click
@@ -4236,7 +4239,6 @@ function sb_zone_anchor(pane, zone, node) {
 			panel.focus();
 		});
 	}
-	bunood.acct_panel = bunood_acct_panel;
 
 	/**
 	 * The avatar and its panel — the only route to Log Out once a layout hides
@@ -4361,9 +4363,11 @@ function sb_zone_anchor(pane, zone, node) {
 	 * exists and shows nothing, which is the one outcome neither setting means.
 	 */
 	function status_style() {
-		const label = (status_state && status_state.status_style) || "Quiet";
+		const label = (status_state && status_state.status_style) || "";
 		const slug = String(label).toLowerCase();
-		return slug === "off" ? "quiet" : slug;
+		// "" (no served value) stands down exactly as Off does. Boot serves the
+		// shipped style, so neither names it here (audit 2026-09-21, ii-1).
+		return slug === "off" || !slug ? "quiet" : slug;
 	}
 
 	/** Is a segment flag on? */
@@ -4373,15 +4377,16 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Clock mode: off | 12 | 24. */
 	function status_clock_mode() {
-		const label = (status_state && status_state.status_clock) || "24 Hour";
-		if (label === "Off") return "off";
+		const label = (status_state && status_state.status_clock) || "";
+		if (!label || label === "Off") return "off";
 		return label === "12 Hour" ? "12" : "24";
 	}
 
 	/** Poll period in ms, or 0 for manual-only. */
 	function status_period() {
-		const label = (status_state && status_state.status_interval) || "60s";
-		if (label === "Manual") return 0;
+		const label = (status_state && status_state.status_interval) || "";
+		// No served value: no polling. The shipped period is boot's to say.
+		if (!label || label === "Manual") return 0;
 		if (label === "30s") return 30000;
 		if (label === "5min") return 300000;
 		return 60000;
@@ -4744,7 +4749,7 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** The slot the admin asked for, as a slug. */
 	function search_wanted_slot() {
-		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "topcenter";
+		return SEARCH_SLOTS[(status_state && status_state.search_placement) || ""] || "";
 	}
 
 	/**
@@ -5227,12 +5232,11 @@ function sb_zone_anchor(pane, zone, node) {
 			// Identity on the cluster itself, not on the page head: the head is
 			// Frappe's and exists on every desk, while THIS is the container —
 			// the group our tenants live in, and what HOSTS.pagehead resolves
-			// to. `mount_cluster` is shared with the top bar and the dock, so
+			// to. `reserve_cluster` is shared with the top bar and the dock, so
 			// the stamp goes on here rather than inside it.
 			reserve_cluster(section).setAttribute("data-bnd-part", "pagehead");
 			container_mounted("pagehead");
-			// mount_cluster builds the bell and the avatar unconditionally, and
-			// this runs again on EVERY route change (it has to — Frappe swaps the
+			// The cluster is rebuilt on EVERY route change (it has to — Frappe swaps the
 			// page element out from under us). Without re-asserting placement,
 			// a tenant the user placed elsewhere or switched Off came back on the
 			// next navigation and quietly stayed: the setting appeared to work
@@ -5564,173 +5568,6 @@ function sb_zone_anchor(pane, zone, node) {
 		pal_pending_uses.push(key);
 		pal_flush_uses(false);
 	}
-
-	/**
-	 * Render the full-page inbox into a container (the "Inbox + Page" style;
-	 * called by bunood_theme/page/bnd_inbox/bnd_inbox.js). Shares every row
-	 * class and action with the panel — one renderer, two surfaces — and
-	 * adds the detail pane the panel has no room for.
-	 * @param {HTMLElement} container - the page's main element.
-	 */
-	bunood.inbox_render_page = function (container) {
-		if (!container) return;
-		container.innerHTML = "";
-		const frame = el("div", "bnd-inbox-page");
-		const left = el("div", "bnd-inbox-page-list");
-		// role="group" of aria-pressed toggles, not role="tablist" (item 22):
-		// what these filter is a role="listbox" a few lines down, which
-		// cannot ALSO be a tabpanel, and a tablist promises arrow-key
-		// movement that inbox_keydown already owns here for row triage —
-		// two arrow contracts in one dialog is the two-options-one-pixel
-		// defect in keyboard form. aria-pressed is this codebase's existing
-		// idiom for "an option chip that says its own selection".
-		const tabs = el("div", "bnd-inbox-tabs", { role: "group", "aria-label": __("Filter") });
-		for (const tab of INBOX_TABS) {
-			const btn = el("button", "bnd-inbox-tab", { type: "button", "aria-pressed": "false", "data-tab": tab.id });
-			btn.textContent = tab.label();
-			btn.addEventListener("click", () => {
-				inbox_tab = tab.id;
-				load();
-			});
-			tabs.appendChild(btn);
-		}
-		left.appendChild(tabs);
-		const list = el("div", "bnd-inbox-list", { role: "listbox", tabindex: "0" });
-		left.appendChild(list);
-		frame.appendChild(left);
-
-		const detail = el("div", "bnd-inbox-page-detail");
-		frame.appendChild(detail);
-		container.appendChild(frame);
-
-		/** Paint the detail pane for the highlighted row. */
-		function show_detail() {
-			const row = inbox_flat[inbox_cursor];
-			detail.innerHTML = "";
-			if (!row) {
-				// aria-hidden like its Loading sibling: the message is visual, the
-			// list's own label and the status live region carry the state, and
-			// a listbox whose only child is prose fails required-children —
-			// found by the scoped axe scan on the caught-up resting state.
-			const empty = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
-				empty.textContent = __("Select a notification");
-				detail.appendChild(empty);
-				return;
-			}
-			const title = el("div", "bnd-inbox-detail-title");
-			title.textContent = row.document_name || __("Notification");
-			detail.appendChild(title);
-			const meta = el("div", "bnd-inbox-detail-meta");
-			const subject = el("div");
-			subject.innerHTML = row.subject || "";
-			meta.appendChild(subject);
-			// Plain facts as TEXT, the timestamp as MARKUP — comment_when
-			// returns a live <span class="frappe-timestamp">, so the two
-			// cannot share one assignment.
-			const facts = [];
-			if (row.document_type) facts.push(__(row.document_type));
-			if (row.from_user) facts.push(row.from_user);
-			if (facts.length) {
-				const line = el("div");
-				line.textContent = facts.join(" · ");
-				meta.appendChild(line);
-			}
-			const detail_when = inbox_when(row);
-			if (detail_when) {
-				const line = el("div");
-				line.innerHTML = detail_when;
-				meta.appendChild(line);
-			}
-			detail.appendChild(meta);
-
-			const actions = el("div", "bnd-inbox-detail-actions");
-			const open_btn = el("button", "bnd-inbox-btn bnd-inbox-btn-primary", { type: "button" });
-			open_btn.textContent = __("Open");
-			open_btn.addEventListener("click", () => inbox_open(row));
-			actions.appendChild(open_btn);
-			const done_btn = el("button", "bnd-inbox-btn", { type: "button" });
-			done_btn.textContent = inbox_done.has(row.name) ? __("Not done") : __("Done");
-			done_btn.addEventListener("click", () => {
-				const node = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
-				inbox_mark_read(row, node);
-				inbox_toggle_done(row);
-				if (node) node.classList.toggle("bnd-inbox-done", inbox_done.has(row.name));
-				// Triage loop: acting advances, exactly like the `e` key.
-				inbox_highlight(inbox_cursor + 1, list);
-				show_detail();
-			});
-			actions.appendChild(done_btn);
-			detail.appendChild(actions);
-		}
-
-		/** Load the active tab into the page list. */
-		function load() {
-			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
-				const tab_on = btn.getAttribute("data-tab") === inbox_tab;
-				btn.classList.toggle("bnd-inbox-tab-on", tab_on);
-				// The class styles; the attribute SAYS which filter is on.
-				btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
-			}
-			list.innerHTML = "";
-			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true", "data-bnd-loading": "" });
-			loading.textContent = __("Loading...");
-			list.appendChild(loading);
-			inbox_fetch(inbox_tab, 0).then((res) => {
-				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
-				inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
-				inbox_paint_badge();
-				inbox_render_rows(list, (res && res.rows) || []);
-				inbox_highlight(0, list);
-				show_detail();
-			});
-		}
-
-		// Selection follows the pointer and the keys; the detail pane
-		// follows the selection.
-		list.addEventListener("mousemove", (ev) => {
-			const row = ev.target.closest && ev.target.closest(".bnd-inbox-row");
-			if (!row) return;
-			const idx = parseInt(row.getAttribute("data-idx"), 10);
-			if (idx !== inbox_cursor) {
-				inbox_highlight(idx, list);
-				show_detail();
-			}
-		});
-		list.addEventListener("keydown", (ev) => {
-			inbox_keydown(ev, list, null);
-			show_detail();
-		});
-		list.focus();
-		inbox_tab = "unread";
-		load();
-	};
-
-	/**
-	 * LIVE PREVIEW for the notification kit: re-derive the attribute, drop
-	 * the built panel so flag changes rebuild on next open, repaint the
-	 * badge. Boot shape and field shape both accepted.
-	 * @param {Object} values
-	 */
-	bunood.inbox_apply = function (values) {
-		if (!values) return;
-		const v = (field, key) => values[field] ?? values[key] ?? (inbox_state ? inbox_state[key] : undefined);
-		apply_inbox_attrs({
-			style: v("inbox_style", "style"),
-			badge: v("inbox_badge", "badge"),
-			arrival: v("inbox_arrival", "arrival"),
-			group: v("inbox_group", "group"),
-			chips: v("inbox_chips", "chips"),
-			row_actions: v("inbox_row_actions", "row_actions"),
-			keyboard: v("inbox_keyboard", "keyboard"),
-			unread: inbox_unread,
-			done: [...inbox_done],
-		});
-		if (inbox_nodes) {
-			inbox_nodes.backdrop.remove();
-			inbox_nodes = null;
-		}
-		inbox_paint_badge();
-	};
 
 	/** Forget the in-memory usage blob (the picker's reset presses this). */
 	bunood.palette_forget_usage = function () {
@@ -7320,6 +7157,173 @@ function sb_zone_anchor(pane, zone, node) {
 		}
 	}
 
+	/**
+	 * Render the full-page inbox into a container (the "Inbox + Page" style;
+	 * called by bunood_theme/page/bnd_inbox/bnd_inbox.js). Shares every row
+	 * class and action with the panel — one renderer, two surfaces — and
+	 * adds the detail pane the panel has no room for.
+	 * @param {HTMLElement} container - the page's main element.
+	 */
+	bunood.inbox_render_page = function (container) {
+		if (!container) return;
+		container.innerHTML = "";
+		const frame = el("div", "bnd-inbox-page");
+		const left = el("div", "bnd-inbox-page-list");
+		// role="group" of aria-pressed toggles, not role="tablist" (item 22):
+		// what these filter is a role="listbox" a few lines down, which
+		// cannot ALSO be a tabpanel, and a tablist promises arrow-key
+		// movement that inbox_keydown already owns here for row triage —
+		// two arrow contracts in one dialog is the two-options-one-pixel
+		// defect in keyboard form. aria-pressed is this codebase's existing
+		// idiom for "an option chip that says its own selection".
+		const tabs = el("div", "bnd-inbox-tabs", { role: "group", "aria-label": __("Filter") });
+		for (const tab of INBOX_TABS) {
+			const btn = el("button", "bnd-inbox-tab", { type: "button", "aria-pressed": "false", "data-tab": tab.id });
+			btn.textContent = tab.label();
+			btn.addEventListener("click", () => {
+				inbox_tab = tab.id;
+				load();
+			});
+			tabs.appendChild(btn);
+		}
+		left.appendChild(tabs);
+		const list = el("div", "bnd-inbox-list", { role: "listbox", tabindex: "0" });
+		left.appendChild(list);
+		frame.appendChild(left);
+
+		const detail = el("div", "bnd-inbox-page-detail");
+		frame.appendChild(detail);
+		container.appendChild(frame);
+
+		/** Paint the detail pane for the highlighted row. */
+		function show_detail() {
+			const row = inbox_flat[inbox_cursor];
+			detail.innerHTML = "";
+			if (!row) {
+				// aria-hidden like its Loading sibling: the message is visual, the
+			// list's own label and the status live region carry the state, and
+			// a listbox whose only child is prose fails required-children —
+			// found by the scoped axe scan on the caught-up resting state.
+			const empty = el("div", "bnd-inbox-empty", { "aria-hidden": "true" });
+				empty.textContent = __("Select a notification");
+				detail.appendChild(empty);
+				return;
+			}
+			const title = el("div", "bnd-inbox-detail-title");
+			title.textContent = row.document_name || __("Notification");
+			detail.appendChild(title);
+			const meta = el("div", "bnd-inbox-detail-meta");
+			const subject = el("div");
+			subject.innerHTML = row.subject || "";
+			meta.appendChild(subject);
+			// Plain facts as TEXT, the timestamp as MARKUP — comment_when
+			// returns a live <span class="frappe-timestamp">, so the two
+			// cannot share one assignment.
+			const facts = [];
+			if (row.document_type) facts.push(__(row.document_type));
+			if (row.from_user) facts.push(row.from_user);
+			if (facts.length) {
+				const line = el("div");
+				line.textContent = facts.join(" · ");
+				meta.appendChild(line);
+			}
+			const detail_when = inbox_when(row);
+			if (detail_when) {
+				const line = el("div");
+				line.innerHTML = detail_when;
+				meta.appendChild(line);
+			}
+			detail.appendChild(meta);
+
+			const actions = el("div", "bnd-inbox-detail-actions");
+			const open_btn = el("button", "bnd-inbox-btn bnd-inbox-btn-primary", { type: "button" });
+			open_btn.textContent = __("Open");
+			open_btn.addEventListener("click", () => inbox_open(row));
+			actions.appendChild(open_btn);
+			const done_btn = el("button", "bnd-inbox-btn", { type: "button" });
+			done_btn.textContent = inbox_done.has(row.name) ? __("Not done") : __("Done");
+			done_btn.addEventListener("click", () => {
+				const node = list.querySelector('.bnd-inbox-row[data-idx="' + inbox_cursor + '"]');
+				inbox_mark_read(row, node);
+				inbox_toggle_done(row);
+				if (node) node.classList.toggle("bnd-inbox-done", inbox_done.has(row.name));
+				// Triage loop: acting advances, exactly like the `e` key.
+				inbox_highlight(inbox_cursor + 1, list);
+				show_detail();
+			});
+			actions.appendChild(done_btn);
+			detail.appendChild(actions);
+		}
+
+		/** Load the active tab into the page list. */
+		function load() {
+			for (const btn of tabs.querySelectorAll(".bnd-inbox-tab")) {
+				const tab_on = btn.getAttribute("data-tab") === inbox_tab;
+				btn.classList.toggle("bnd-inbox-tab-on", tab_on);
+				// The class styles; the attribute SAYS which filter is on.
+				btn.setAttribute("aria-pressed", tab_on ? "true" : "false");
+			}
+			list.innerHTML = "";
+			const loading = el("div", "bnd-inbox-empty", { "aria-hidden": "true", "data-bnd-loading": "" });
+			loading.textContent = __("Loading...");
+			list.appendChild(loading);
+			inbox_fetch(inbox_tab, 0).then((res) => {
+				inbox_unread = (res && parseInt(res.unread, 10)) || 0;
+				inbox_action_unread = (res && parseInt(res.action, 10)) || 0;
+				inbox_paint_badge();
+				inbox_render_rows(list, (res && res.rows) || []);
+				inbox_highlight(0, list);
+				show_detail();
+			});
+		}
+
+		// Selection follows the pointer and the keys; the detail pane
+		// follows the selection.
+		list.addEventListener("mousemove", (ev) => {
+			const row = ev.target.closest && ev.target.closest(".bnd-inbox-row");
+			if (!row) return;
+			const idx = parseInt(row.getAttribute("data-idx"), 10);
+			if (idx !== inbox_cursor) {
+				inbox_highlight(idx, list);
+				show_detail();
+			}
+		});
+		list.addEventListener("keydown", (ev) => {
+			inbox_keydown(ev, list, null);
+			show_detail();
+		});
+		list.focus();
+		inbox_tab = "unread";
+		load();
+	};
+
+	/**
+	 * LIVE PREVIEW for the notification kit: re-derive the attribute, drop
+	 * the built panel so flag changes rebuild on next open, repaint the
+	 * badge. Boot shape and field shape both accepted.
+	 * @param {Object} values
+	 */
+	bunood.inbox_apply = function (values) {
+		if (!values) return;
+		const v = (field, key) => values[field] ?? values[key] ?? (inbox_state ? inbox_state[key] : undefined);
+		apply_inbox_attrs({
+			style: v("inbox_style", "style"),
+			badge: v("inbox_badge", "badge"),
+			arrival: v("inbox_arrival", "arrival"),
+			group: v("inbox_group", "group"),
+			chips: v("inbox_chips", "chips"),
+			row_actions: v("inbox_row_actions", "row_actions"),
+			keyboard: v("inbox_keyboard", "keyboard"),
+			unread: inbox_unread,
+			done: [...inbox_done],
+		});
+		if (inbox_nodes) {
+			inbox_nodes.backdrop.remove();
+			inbox_nodes = null;
+		}
+		inbox_paint_badge();
+	};
+
 	// ── Dock ────────────────────────────────────────────────────────────────
 
 	/** How many workspaces get a first-class dock slot before the overflow. */
@@ -7394,6 +7398,9 @@ function sb_zone_anchor(pane, zone, node) {
 		// the invariant matrix then reproduced.
 		reserve_cluster(dock);
 		document.body.appendChild(dock);
+		// Its marker, like the other four: torn down by CONTAINER_TEARDOWN and,
+		// until the settings audit of 2026-09-21 (D2), never stamped.
+		container_mounted("dock");
 		update_dock_active();
 	}
 
@@ -7896,12 +7903,60 @@ function sb_zone_anchor(pane, zone, node) {
 		for (const n of document.querySelectorAll(".bnd-ph-brand")) n.remove();
 	}
 
-	/** The pane's state, page-locally — argument in _sidebar.scss. */
-	bunood.pane_state = function (value) {
-		if (!sb_state) return;
+	/**
+	 * The pane's state — applied to the page, and REMEMBERED for the person.
+	 *
+	 * `bnd_pane_state` was declared, read at boot and documented as "the person
+	 * wins" from item 42 on, and nothing ever wrote it: the Hide button re-stamped
+	 * attributes and forgot on reload (the settings audit of 2026-09-21, a-2). The
+	 * gesture writes through the same endpoint the width segment uses, under the
+	 * same comfort lock; the settings form's own preview passes `{ save: false }`
+	 * because a preview is not a choice, and `guard_critical_reach` never comes
+	 * through here at all — an un-hide the desk forces is not a preference.
+	 */
+	bunood.pane_state = function (value, opts) {
+		if (!sb_state) return Promise.resolve();
 
 		// sb_apply re-places what the state moves (sb_follow_pane_state).
 		bunood.sb_apply({ sidebar_pane_state: value });
+		if (opts && opts.save === false) return Promise.resolve();
+		const p = frappe.boot && frappe.boot.bnd_personal;
+		if (!p || !p.open || !p.open.bnd_pane_state) return Promise.resolve();
+		return frappe
+			.xcall("bunood_theme.api.set_personal", { values: { bnd_pane_state: value } })
+			.then(() => {
+				p.pane_state = value;
+				if (p.overrides) {
+					if (value) p.overrides.sidebar_pane_state = value;
+					else delete p.overrides.sidebar_pane_state;
+				}
+			})
+			.catch(() => {
+				frappe.show_alert({ message: __("Could not save pane preference"), indicator: "red" });
+			});
+	};
+
+	/**
+	 * Stop overriding one axis and follow the site again — the form's notes call
+	 * this (audit 2026-09-21, i-2). Comfort axes re-apply live through their own
+	 * setters; a look or a shape is a hundred values, so the page reloads onto the
+	 * site's — the honest cost of "follow the site" for a whole look.
+	 */
+	bunood.follow_site = function (axis, site_value) {
+		if (axis === "bnd_body_width") return bunood.set_body_width("");
+		if (axis === "bnd_density") return bunood.set_density("");
+		if (axis === "bnd_pane_state") {
+			// The site's own pane state comes from the caller (the form holds it);
+			// boot serves only the person's, and "Open" is the last resort.
+			const site = site_value || "Open";
+			return bunood.pane_state(site, { save: false }).then(() =>
+				frappe.xcall("bunood_theme.api.set_personal", { values: { bnd_pane_state: "" } }).then(() => {
+					const p = frappe.boot.bnd_personal;
+					if (p) { p.pane_state = ""; if (p.overrides) delete p.overrides.sidebar_pane_state; }
+				})
+			);
+		}
+		return frappe.xcall("bunood_theme.api.set_personal", { values: { [axis]: "" } }).then(() => location.reload());
 	};
 
 	/** Above the list, below the brand row — the same ladder sb_zone_anchor's
@@ -7973,10 +8028,21 @@ function sb_zone_anchor(pane, zone, node) {
 		return Object.prototype.hasOwnProperty.call(QUICK_LINK_CAPS, v) ? QUICK_LINK_CAPS[v] : QUICK_LINK_CAPS.Standard;
 	}
 
-	/** Live apply from the settings form: the next open reads the new caps. */
+	/**
+	 * Live apply from the settings form. The head's flyouts are BUILT ON OPEN
+	 * (sb_head_menu → sb_quick_links reads the caps each time), so the boot value
+	 * IS the live state — and a menu that is open right now is rebuilt, so the
+	 * change shows without a second click (the settings audit of 2026-09-21,
+	 * iv-3: "repaints nothing" was true of exactly that case).
+	 */
 	bunood.panehead_apply = function (vals) {
 		if (!vals || !window.frappe || !frappe.boot) return;
 		frappe.boot.bnd_panehead = Object.assign({}, frappe.boot.bnd_panehead || {}, { quick_links: vals.panehead_quick_links });
+		const head = document.querySelector('.body-sidebar [data-bnd-part="panehead"]');
+		if (head && head.getAttribute("aria-expanded") === "true") {
+			close_menu();
+			show_menu(head, sb_head_menu());
+		}
 	};
 
 	function sb_quick_links(w) {
@@ -8320,11 +8386,7 @@ function sb_zone_anchor(pane, zone, node) {
 		const toggle_pin = () => {
 			pinned = !pinned;
 			container.classList.toggle("bnd-rail-pinned", pinned);
-			// Both toggles SAY what they hold: the expand button controls the
-			// pane's expansion (aria-expanded), the pin holds it (aria-pressed).
-			for (const b of container.querySelectorAll(".bnd-railbtn")) {
-				b.setAttribute("aria-expanded", pinned ? "true" : "false");
-			}
+			// The pin SAYS what it holds (aria-pressed).
 			for (const b of container.querySelectorAll(".bnd-sb-pin")) {
 				b.setAttribute("aria-pressed", pinned ? "true" : "false");
 			}
@@ -8375,7 +8437,9 @@ function sb_zone_anchor(pane, zone, node) {
 		if (trigger === "hoverpin") {
 			const header = container.querySelector(".bnd-sb-head") || container.querySelector(".sidebar-header");
 			if (header) {
-				const pin = el("button", "bnd-sb-pin", { type: "button", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
+				// The rail's one control since the expand button retired (audit
+				// 2026-09-21, iv-2): identified, so the board and the matrix find it.
+				const pin = el("button", "bnd-sb-pin", { type: "button", "data-bnd-part": "railpin", "aria-label": __("Pin sidebar open"), title: __("Pin sidebar open"), "aria-pressed": "false" });
 				pin.textContent = "⌖";
 				pin.addEventListener("click", (e) => {
 					e.stopPropagation();
@@ -8385,31 +8449,6 @@ function sb_zone_anchor(pane, zone, node) {
 			}
 		}
 
-		// The expand button. Its click PINS the pane (open until clicked
-		// again) so it works alone and alongside the hover trigger.
-		const sb = sb_state || {};
-		// No "Button Only": it forced pos="edge", overwriting another picker.
-		const pos = SB_SLUGS.railbtn[sb.rail_button] || "";
-		if (pos) {
-			const glyph = SB_SLUGS.railbtnicon[sb.rail_button_icon] || "chevron";
-			const btn = el("button", "bnd-railbtn bnd-railbtn-" + pos, {
-				type: "button",
-				"data-bnd-part": "railbtn",
-				"aria-label": __("Expand sidebar"),
-				"aria-expanded": "false",
-				title: __("Expand sidebar"),
-			});
-			btn.appendChild(
-				sprite_icon(
-					glyph === "menu" ? "icon-menu" : glyph === "arrows" ? "icon-arrow-left-to-line" : "icon-chevron-right"
-				)
-			);
-			btn.addEventListener("click", (e) => {
-				e.stopPropagation();
-				toggle_pin();
-			});
-			container.appendChild(btn);
-		}
 
 		// Wiring live — claim the hamburger. Never before it. _layouts.scss.
 		bnd_own("panetoggle");
@@ -8459,7 +8498,7 @@ function sb_zone_anchor(pane, zone, node) {
 		container.classList.remove("bnd-rail-open", "bnd-rail-pinned");
 		for (const off of container._bnd_rail_teardown || []) off();
 		container._bnd_rail_teardown = [];
-		for (const node of container.querySelectorAll(".bnd-railbtn, .bnd-sb-pin")) node.remove();
+		for (const node of container.querySelectorAll(".bnd-sb-pin")) node.remove();
 	}
 
 	// ── Icon engine (Smart / Original / Letters) ────────────────────────────
@@ -8991,10 +9030,15 @@ function sb_zone_anchor(pane, zone, node) {
 
 	/** Put our parts in the pane. `only_volatile` is the route contract: a list
 	 *  rebuild touches what lived inside the list and nothing else. */
-	/** data-state (vendor truth) -> aria-expanded (what AT hears). */
+	/** data-state (vendor truth) -> aria-expanded (what AT hears), and the chevron's
+	 *  NAME: Frappe ships an icon-only button with none (axe button-name, met when the
+	 *  v0.49.0 merge put a "Pages" section on the settings route). Its section names it. */
 	function sb_mirror_disclosure() {
 		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
 			d.setAttribute("aria-expanded", d.getAttribute("data-state") === "opened" ? "true" : "false");
+			const head = d.closest(".section-item").querySelector(".standard-sidebar-item .sidebar-item-label");
+			const name = head && head.textContent.trim();
+			if (name) d.setAttribute("aria-label", name);
 		}
 	}
 
@@ -9060,6 +9104,7 @@ function sb_zone_anchor(pane, zone, node) {
 	function sb_teardown_aria() {
 		for (const d of document.querySelectorAll(".sidebar-item-container.section-item .drop-icon")) {
 			d.removeAttribute("aria-expanded");
+			d.removeAttribute("aria-label");
 		}
 	}
 
@@ -9156,6 +9201,7 @@ function sb_zone_anchor(pane, zone, node) {
 					bnd_shape: st.shape || "",
 					bnd_density: st.density || "",
 					bnd_body_width: st.body_width || "",
+					bnd_pane_state: st.pane_state || "",
 					bnd_motion: st.motion || "",
 					bnd_home: st.home || "",
 					mode: document.documentElement.getAttribute("data-theme-mode") || "light",
@@ -9198,6 +9244,8 @@ function sb_zone_anchor(pane, zone, node) {
 					(data.axes || []).find((a) => a.key === "bnd_density") || { values: [] };
 				const width_values =
 					(data.axes || []).find((a) => a.key === "bnd_body_width") || { values: [] };
+				const pane_values =
+					(data.axes || []).find((a) => a.key === "bnd_pane_state") || { values: [] };
 
 				const body =
 					`<div class="bnd-cbp" data-bnd-part="appearance">` +
@@ -9213,6 +9261,9 @@ function sb_zone_anchor(pane, zone, node) {
 					// site's own width comes from `site_values`, which already
 					// carries it — `desk_width` is a LOOK field.
 					row("bnd_body_width", __("Body width"), named(width_values.values, (data.site_values || {}).desk_width || ""), !open_for("bnd_body_width")) +
+					// The pane state, the comfort axis that had no writer until the
+					// settings audit of 2026-09-21 (i-3): the same row shape as width.
+					row("bnd_pane_state", __("Side pane"), named(pane_values.values, data.site.pane_state || ""), !open_for("bnd_pane_state")) +
 					// No lock on motion, ever — see personal.UNLOCKABLE. It is an
 					// accessibility floor, not a taste, and the one pole reduces.
 					row("bnd_motion", __("Motion"), [
@@ -9249,6 +9300,7 @@ function sb_zone_anchor(pane, zone, node) {
 					else if (axis === "bnd_shape") show_shape(value);
 					else if (axis === "bnd_density") bunood.set_density(value, { save: false });
 					else if (axis === "bnd_body_width") bunood.set_body_width(value, { save: false });
+					else if (axis === "bnd_pane_state") bunood.pane_state(value || data.site.pane_state || "Open", { save: false });
 					else if (axis === "bnd_motion") bunood.set_motion(value, { save: false });
 					else if (axis === "mode") show_mode(value);
 					// bnd_home has nothing to preview — it decides where the NEXT
@@ -9278,6 +9330,7 @@ function sb_zone_anchor(pane, zone, node) {
 					show_shape(opened.bnd_shape);
 					bunood.set_density(opened.bnd_density, { save: false });
 					bunood.set_body_width(opened.bnd_body_width, { save: false });
+					bunood.pane_state(opened.bnd_pane_state || data.site.pane_state || "Open", { save: false });
 					bunood.set_motion(opened.bnd_motion, { save: false });
 					show_mode(opened.mode);
 				});
@@ -9290,6 +9343,7 @@ function sb_zone_anchor(pane, zone, node) {
 								bnd_shape: pick.bnd_shape,
 								bnd_density: pick.bnd_density,
 								bnd_body_width: pick.bnd_body_width,
+								bnd_pane_state: pick.bnd_pane_state,
 								bnd_motion: pick.bnd_motion,
 								bnd_home: pick.bnd_home,
 							},
@@ -9315,7 +9369,10 @@ function sb_zone_anchor(pane, zone, node) {
 							// icon click jump to the wrong stop. Density had this before
 							// width existed; half a repair is a regression.
 							frappe.boot.bnd_density = pick.bnd_density;
-							if (frappe.boot.bnd_personal) frappe.boot.bnd_personal.body_width = pick.bnd_body_width;
+							if (frappe.boot.bnd_personal) {
+								frappe.boot.bnd_personal.body_width = pick.bnd_body_width;
+								frappe.boot.bnd_personal.pane_state = pick.bnd_pane_state;
+							}
 							refresh_density_label();
 							refresh_width_label();
 							dialog.hide();
@@ -9352,13 +9409,10 @@ function sb_zone_anchor(pane, zone, node) {
 			intensity: v("sidebar_card_depth", "intensity"),
 			panestate: v("sidebar_pane_state", "panestate"),
 			rail_trigger: v("sidebar_rail_trigger", "rail_trigger"),
-			rail_button: v("sidebar_rail_button", "rail_button"),
-			rail_button_icon: v("icon_rail_button", "rail_button_icon"),
 			icon_source: v("icon_source", "icon_source"),
 			pane_width: v("sidebar_pane_width", "pane_width"),
 			badges: v("sidebar_badges", "badges"),
 			filter: v("sidebar_filter", "filter"),
-			user_preset: sb_state ? sb_state.user_preset : "",
 		};
 		apply_sidebar_attrs(next);
 
@@ -9501,6 +9555,54 @@ function sb_zone_anchor(pane, zone, node) {
 	// ── Orchestration ───────────────────────────────────────────────────────
 
 	/**
+	 * THE ONE CONTAINER LADDER, read by both directions.
+	 *
+	 * Boot (`mount_chrome`) and the live remount (`remount_chrome`: a container
+	 * switched from the settings form, or a breakpoint crossed) each kept their
+	 * own copy of these steps, and the copies had drifted — the settings map was
+	 * placed only by boot's route hook, so a container switched off from the form
+	 * took a path boot never took (the settings audit of 2026-09-21, c-2 / v-6).
+	 * Hosts first, then what lives in them, then the guard; everything here is
+	 * idempotent, which is what lets one function serve a first mount and a
+	 * re-mount alike.
+	 */
+	function mount_containers() {
+		if (container_on("topbar")) mount_topbar();
+		if (container_on("pagehead")) inject_compact_cluster();
+		if (container_on("dock")) mount_dock();
+		if (container_on("bottombar")) mount_statusbar();
+		// Search placement is independent of the layout (item 14): AFTER the
+		// bars exist, since its slots live in them. The bell and the user menu
+		// likewise — a placement can only be honoured by a region that is there.
+		mount_search();
+		mount_placed_tenants();
+		// LAST, and only now: every container has mounted and both placement
+		// passes have run, so "is there still a route to everything critical"
+		// has an honest answer. A pane that comes back makes regions available
+		// that were not there a moment ago, so the tenants are placed again.
+		if (guard_critical_reach()) mount_placed_tenants();
+		// The sidebar style kit rides along wherever there IS a side pane —
+		// after the guard, so a pane that has just come back is decorated too
+		// (sidepane_sync owns the is-there-a-pane question).
+		mount_sidebar_kit();
+		// Home and All Apps place themselves, so they mount from HERE rather than
+		// from inside the pane's kit: reached only through that kit they inherited
+		// its gate, and a link placed in the top bar mounted nowhere at all when
+		// the side pane was off. Idempotent.
+		sb_mount_utils();
+		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
+		if (container_on("sidepane")) sb_mount_pagehead_brand();
+		else sb_teardown_pagehead_brand();
+		// The settings map (item 43 B3) is conditional on the ROUTE and on which
+		// containers exist: placed here so a remount moves it, not only a route.
+		sb_mount_map();
+		sb_mount_pagehead_map();
+		// A container change moves which route to Appearance exists, so the claim
+		// on Frappe's Display item is re-measured rather than assumed (item 38).
+		stamp_appearance_route();
+	}
+
+	/**
 	 * Mount the desk chrome, once the shell exists.
 	 *
 	 * Per-page work (the page-head cluster, trail resolution, dock highlight)
@@ -9613,8 +9715,8 @@ function sb_zone_anchor(pane, zone, node) {
 		// and then has no further say. That is the whole point of slice 2c, and
 		// this is the line it was aiming at.
 		//
-		// `layout()` still exists, but only as a styling hook and a fallback for
-		// a boot payload that predates the split — never as a mount decision.
+		// `layout()` still exists, but only as a styling hook and SEARCH_FALLBACKS'
+		// key — never as a mount decision.
 		//
 		// Two things about the order:
 		//
@@ -9628,44 +9730,11 @@ function sb_zone_anchor(pane, zone, node) {
 		//     placement_for. Switching a container off therefore cannot take a
 		//     control away from a user; it can only decline to offer a new home
 		//     for one. What stops the LAST one stranding somebody is
-		//     guard_critical_reach, below.
-		if (container_on("topbar")) mount_topbar();
-		if (container_on("pagehead")) inject_compact_cluster();
-		if (container_on("dock")) mount_dock();
-		if (container_on("bottombar")) mount_statusbar();
-
-		// Search placement is independent of the layout (item 14): mount it
-		// AFTER the bars exist, since its slots live in them.
-		mount_search();
-
-		// The bell and the user menu follow their own settings, after the
-		// containers exist — a placement can only be honoured by a region
-		// that is really there.
-		mount_placed_tenants();
-
-		// LAST, and only now: every container has mounted and both placement
-		// passes have run, so "is there still a route to everything critical"
-		// finally has an honest answer. If switching the side pane off has left
-		// a user stranded, it comes back — and the tenants are placed again,
-		// because the pane returning makes regions and native affordances
-		// available that were not there a moment ago. Re-running is safe by
-		// construction: mount_placed_tenants is idempotent and Compact already
-		// calls it on every route change.
-		if (guard_critical_reach()) mount_placed_tenants();
-
-		// The sidebar style kit rides along wherever there IS a side pane —
-		// after the guard, so a pane that has just come back is decorated too.
-		mount_sidebar_kit();
-
-		// Home and All Apps place themselves, so they mount from HERE rather
-		// than from inside the pane's style kit. Reached only through that kit
-		// they inherited its gate, and a link placed in the top bar mounted
-		// nowhere at all when the side pane was off. Idempotent — it clears its
-		// own previous mounts first — so the kit calling it too costs nothing.
-		sb_mount_utils();
-		// The brand in the page head while Hidden (v0.42.1) — argument in _sidebar.scss.
-		if (container_on("sidepane")) sb_mount_pagehead_brand();
-		else sb_teardown_pagehead_brand();
+		//     guard_critical_reach, inside the ladder.
+		//
+		// The steps themselves live in mount_containers, which remount_chrome
+		// reads too — one ladder, both directions.
+		mount_containers();
 
 		// The palette kit owns search invocation in every layout.
 		mount_palette();

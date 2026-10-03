@@ -126,18 +126,26 @@ bunood_theme.patches.v0_45_0.console_defaults
 # v0.45 landed.
 bunood_theme.patches.v0_46_0.width_two_edges
 
-bunood_theme.patches.v0_11_0.heal_unknown_placements
-
 # Item 45.1: the width segment must not appear on a bar its owner emptied.
 # Found by reading a real tenant's settings before shipping — every segment
 # off, and a new default-on Check would have put one back. Asks the neighbour
 # it sits beside: density off means this site did not ask for width either.
 bunood_theme.patches.v0_46_1.width_follows_density
 
+# The settings audit of 2026-09-21 (decision i-4): the legacy per-user side-pane
+# look retires into the whole-desk look; its rows are carried, then deleted.
+# Released in v0.49.0 (item 47).
+bunood_theme.patches.v0_49_0.retire_sidebar_preset_key
+
+# The settings audit of 2026-09-21 (decision iv-2): the rail's always-visible
+# expand button retires with its two fields; the stored rows go through the table.
+bunood_theme.patches.v0_49_0.retire_rail_button
+
 # Integration v0.48.0: HELD -- bunood_theme.patches.v0_46_10.follow_print_language
 # would rewrite every existing tenant's print_title_lang from Both to Follow print
-# language. New sites get the new default from the DocType; existing sites keep
-# their value. Register the patch only with the owner's approval.
+# language. New sites get the new default from presets.PRINT_DEFAULTS, seeded on
+# install (the doctype carries no defaults since the settings audit); existing
+# sites keep their value. Register the patch only with the owner's approval.
 
 # Integration v0.48.0: HELD -- pos-retail's five data patches change existing
 # tenants' accounting setup and are not registered until the owner approves:
@@ -147,7 +155,12 @@ bunood_theme.patches.v0_46_1.width_follows_density
 #   bunood_theme.patches.v0_46_34.payment_account_recovery (payment account mappings)
 #   bunood_theme.patches.v0_46_35.cash_customer_defaults   (cash customer + POS profile default)
 # Their names carry the experimental line's numbering; renumber on approval.
-# v0.48.6, THE OWNER (2026-09-28): «رمز الريال السعودي يكون في النظام كامل». SAR's symbol becomes
+# v0.49.2 (prepared as v0.48.6), THE OWNER (2026-09-28): «رمز الريال السعودي يكون في النظام كامل». SAR's symbol becomes
 # the sign SAMA published (U+20C1) wherever it still reads a stock spelling; a symbol somebody
 # chose is kept. The glyph itself comes from brand.py's RIYAL_FACE_CSS and print.scss.
 bunood_theme.patches.v0_48_6.saudi_riyal_symbol
+
+# LAST, AND IT STAYS: whatever the translations above could not map, this makes
+# legal. It had drifted to third-from-last (audit finding c-8) — a Select a
+# later patch writes must still be healed by it.
+bunood_theme.patches.v0_11_0.heal_unknown_placements

@@ -61,8 +61,10 @@
     shipped value, kept by every existing tenant) renders the official bilingual
     identity: RTL, Arabic labels, Arabic AND English names. "Follow print
     language" (the new default for new sites) is the capability's one-language
-    header. -#}
-{%- set _tl = (frappe.db.get_single_value("Theme Settings", "print_title_lang") or "Follow print language") | trim -%}
+    header. Read through bunood_print_setting, which falls back to the ONE
+    catalogue (presets.PRINT_DEFAULTS) — never a literal here (the settings
+    audit's template guard, decision ii-1). -#}
+{%- set _tl = bunood_print_setting("print_title_lang") | trim -%}
 {%- set _both = _tl == "Both" -%}
 {%- set _rtl = _both or _tl == "Arabic only" or (_tl == "Follow print language" and bunood_print_language() == "ar") -%}
 {%- set _dir = "rtl" if _rtl else "ltr" -%}

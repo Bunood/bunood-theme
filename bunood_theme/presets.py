@@ -1,3 +1,9 @@
+
+#: The two site-level defaults that are not a kit's, stated ONCE. `setup.DEFAULTS`
+#: used to restate both as literals beside the palette's two seeds (the settings
+#: audit of 2026-09-21, decision ii-1): every default now has one owner in this
+#: module, and the seeder is a consumer of it.
+SITE_DEFAULTS = {"company_name": "Bunood", "density_default": "Comfortable"}
 # Copyright (c) 2026, Bunood and contributors
 # For license information, please see license.txt
 """Sidebar style presets — the single source of truth (item 10 / item 30).
@@ -23,7 +29,7 @@ Field values are the Theme Settings Select LABELS (bunood.js owns the
 label -> css-slug mapping). Keep labels in sync with theme_settings.json.
 """
 
-from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, LAYOUT_TENANTS, TENANTS, layout_settings
+from bunood_theme.registry import CONTAINERS, LAYOUT_CHROME, LAYOUT_PANE, LAYOUT_TENANTS, TENANTS, layout_settings
 
 #: The desk layout a fresh install gets — "Unified Side Pane" since item 42 (it
 #: was "Top Bar"). Named once, up here, because it decides the container
@@ -54,9 +60,7 @@ SIDEBAR_FIELDS = [
     "sidebar_section_style",
     "sidebar_hue_wash",
     "sidebar_card_depth",
-    "sidebar_pane_state",
     "sidebar_rail_trigger",
-    "sidebar_rail_button",
     "sidebar_pane_width",
     "sidebar_badges",
     "sidebar_filter",
@@ -73,7 +77,11 @@ SIDEBAR_FIELDS = [
 #: floating glass, a step wider, the pane following the theme colour, and no
 #: rail button (its rendering was broken; the rail still opens on hover).
 #: "Bunood Light" keeps the earlier floating-glass look, so the old shipped
-#: appearance remains one click away rather than gone.
+#: appearance remains one click away rather than gone. NO LOOK WRITES THE PANE
+#: STATE: that field belongs to the layout half of the catalogue
+#: (`registry.LAYOUT_PANE`), and a look that wants a rail names a Rail + Flyout
+#: layout instead — two tables writing one field lit the wrong layout card
+#: (the settings audit of 2026-09-21).
 _SIDEBAR_LOOKS = {
     "Bunood Night": {
         "sidebar_placement": "Attached",
@@ -82,12 +90,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "4",
-        # Always expanded, because the re-chosen look is "attached, solid, a
-        # step wider" — a pane that collapses to a 52px rail shows none of
-        # those. The rail lives on in Bunood Light and the picker.
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         # Trigger and icon are inert while the mode has no rail and the button
         # is None — kept so flipping back restores a tuned look.
         "sidebar_pane_width": "5",
@@ -101,9 +104,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Rich",
         "sidebar_card_depth": "3",
-        "sidebar_pane_state": "Rail",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "Edge",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -115,9 +116,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -129,9 +128,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -143,9 +140,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Plain",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -157,9 +152,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -171,9 +164,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Cards",
         "sidebar_hue_wash": "Subtle",
         "sidebar_card_depth": "2",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Off",
         "sidebar_filter": 0,
@@ -193,9 +184,7 @@ _SIDEBAR_LOOKS = {
         "sidebar_section_style": "Divided",
         "sidebar_hue_wash": "Off",
         "sidebar_card_depth": "1",
-        "sidebar_pane_state": "Open",
         "sidebar_rail_trigger": "Hover",
-        "sidebar_rail_button": "None",
         "sidebar_pane_width": "2",
         "sidebar_badges": "Counts",
         "sidebar_filter": 0,
@@ -253,7 +242,6 @@ ICON_FIELDS = [
     "icon_style",
     "icon_weight",
     "icon_source",
-    "icon_rail_button",
     "icon_crumbs",
 ]
 
@@ -269,7 +257,6 @@ ICON_DEFAULTS = {
     # made true everywhere for the first time.
     "icon_weight": "1.5",
     "icon_source": "Smart",
-    "icon_rail_button": "Chevron",
     "icon_crumbs": "First Crumb",
 }
 
@@ -390,7 +377,7 @@ USER_DEFAULTS = {"user_placement": _DEFAULT_TENANTS["user_placement"]}
 #: Side Pane HAS its pane open — a button to open what is already open is the
 #: dishonest affordance this project's picker vocabulary exists to abolish. The
 #: taskbar rows turn it on, which is what makes them taskbars.
-START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Off")}
+START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS["start_placement"]}
 
 #: The language switch and the Appearance button (item 44). Both default to the
 #: bottom bar's end, after the avatar and beside the density segment the bar
@@ -399,7 +386,7 @@ START_DEFAULTS = {"start_placement": _DEFAULT_TENANTS.get("start_placement", "Of
 #: switch draws itself: a globe, the other language's two-letter code, its name
 #: in its own script, or the globe with either.
 LANGUAGE_DEFAULTS = {
-    "language_placement": _DEFAULT_TENANTS.get("language_placement", "Bottom Bar End"),
+    "language_placement": _DEFAULT_TENANTS["language_placement"],
     "language_style": "Globe",
     # The languages the switch offers, as Language codes in display order (v0.44.2).
     # The user's rule: "only languages turned on in settings" - Frappe enables
@@ -416,7 +403,7 @@ LANGUAGE_FIELDS = ["language_style", "language_choices"]
 #: "Go to <module>". Policy, not a look — outside THEME_AXES like `language_choices`.
 PANEHEAD_DEFAULTS = {"panehead_quick_links": "Standard"}
 PANEHEAD_FIELDS = ["panehead_quick_links"]
-APPEARANCE_DEFAULTS = {"appearance_placement": _DEFAULT_TENANTS.get("appearance_placement", "Bottom Bar End")}
+APPEARANCE_DEFAULTS = {"appearance_placement": _DEFAULT_TENANTS["appearance_placement"]}
 
 #: List view kit fields (item 16), matching theme_settings.json. Like crumbs
 #: and unlike the sidebar, there is NO preset catalogue: the style IS the
@@ -1410,7 +1397,7 @@ def palette_seeds(name: str) -> dict:
 #: every Python ``*_FIELDS`` list, and this one is composed server-side and served,
 #: never mirrored. ``PRINT_AXES`` set the precedent.
 def _theme_axes() -> list:
-    """Every field a theme preset writes and compares — 123 of the doctype's 133.
+    """Every field a theme preset writes and compares — every settable field but the ten below.
 
     THE TEN IT LEAVES ALONE, and why, because "the whole desk" is a claim:
 
@@ -1434,6 +1421,9 @@ def _theme_axes() -> list:
         ["brand_color", "accent_color", "brand_color_dark", "accent_color_dark",
          "ground_color", "density_default", "desk_order"],
         [c["toggle"] for c in CONTAINERS],
+        # The catalogue's third half (item 42): written by `registry.layout_settings`,
+        # owned by `registry.LAYOUT_PANE`, and by NO sidebar look — one table.
+        ["sidebar_pane_state"],
         list(PLACEMENT_FIELDS), list(LINKS_DEFAULTS), list(USER_DEFAULTS), list(START_DEFAULTS),
         # Item 44's two tenants. The layouts write them (so `personal.py` files
         # them as SHAPE), and a theme preset must write them too, or the partition
@@ -1467,7 +1457,7 @@ THEME_AXES = _theme_axes()
 #:
 #: THAT IS WHY THE TABLE IS AUTHORABLE AND STILL WRITES EVERY AXIS. A preset is the
 #: shipped defaults plus what it changes, flattened by :func:`theme_settings` into
-#: all ~123 values. It also makes the one invariant free: ``Bunood Console`` overrides
+#: every axis. It also makes the one invariant free: ``Bunood Console`` overrides
 #: nothing, so it IS the shipped default and a fresh install cannot read "Custom"
 #: on the day it is installed.
 #:
@@ -1501,7 +1491,10 @@ THEME_PRESETS = {
         },
     },
     "Bunood Day": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Light",
+        # Rail + Flyout, declared: this card composed a Rail pane through its look while
+        # declaring Unified Side Pane, and `layout_of()` then lit the wrong layout card
+        # (the settings audit of 2026-09-21). The LAYOUT owns the pane state now.
+        "layout": "Rail + Flyout", "palette": "Bunood", "sidebar": "Bunood Light",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at
@@ -1623,7 +1616,8 @@ THEME_PRESETS = {
         },
     },
     "Studio": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Slate", "sidebar": "Bunood Light",
+        # Rail + Flyout, declared — see Bunood Day.
+        "layout": "Rail + Flyout", "palette": "Slate", "sidebar": "Bunood Light",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at
@@ -1750,7 +1744,7 @@ def _shipped_baseline() -> dict:
         "brand_color_dark": "",
         "accent_color_dark": "",
         "ground_color": "",
-        "density_default": "Comfortable",
+        "density_default": SITE_DEFAULTS["density_default"],
         "desk_order": ",".join(t["key"] for t in TENANTS),
     }
     for d in (CHROME_DEFAULTS, LINKS_DEFAULTS, USER_DEFAULTS, START_DEFAULTS, LANGUAGE_DEFAULTS,
@@ -1762,6 +1756,9 @@ def _shipped_baseline() -> dict:
               EMAIL_DEFAULTS, PRINT_DEFAULTS):
         out.update(d)
     out.update(_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK])
+    # The pane state's ONE owner is the layout catalogue (registry.LAYOUT_PANE); no
+    # sidebar look writes it since the settings audit of 2026-09-21.
+    out["sidebar_pane_state"] = LAYOUT_PANE[DEFAULT_DESK_LAYOUT]
     return out
 
 
@@ -1829,7 +1826,7 @@ def look_of(settings, fields=None) -> str:
 
     IT COMPARES THE LOOK FIELDS AND NOTHING ELSE, which is what makes it usable
     where the layout identity is not. A desk on the Focus look with its own
-    SHAPE is still on Focus; comparing all 124 axes would answer "" and the
+    SHAPE is still on Focus; comparing every axis would answer "" and the
     dialog would go quiet exactly when a person has personalised something.
 
     Exact match, unset falls back to the shipped baseline, "" when no preset
@@ -1869,7 +1866,7 @@ def theme_settings(name: str) -> dict:
     settings form composed the containers while ``registry.layout_settings``
     composed containers *and* tenant placements, so the suite drove a state no
     gesture could produce, and picking "Bottom Bar" left the bell pointing at a
-    region that no longer existed. At ~123 values that failure is a certainty
+    region that no longer existed. At a hundred-odd values that failure is a certainty
     unless the product's writer and the suite's writer call the same function.
     This is that function; nothing else may assemble a preset.
 

@@ -132,7 +132,6 @@ def resolve_for_user(site) -> tuple:
     # check, and slice 1's docstring said so before this tried to be clever.
     look = frappe.defaults.get_user_default("bnd_look") or ""
     shape = frappe.defaults.get_user_default("bnd_shape") or ""
-    sidebar_preset = frappe.defaults.get_user_default("bnd_sidebar_preset") or ""
     density = frappe.defaults.get_user_default("bnd_density") or ""
     pane_state = frappe.defaults.get_user_default("bnd_pane_state") or ""
     motion = frappe.defaults.get_user_default("bnd_motion") or ""
@@ -146,16 +145,8 @@ def resolve_for_user(site) -> tuple:
     if is_open("bnd_look") and look in THEME_PRESETS:
         chosen = theme_settings(look)
         resolved.update({f: v for f, v in chosen.items() if f in personal_axes.LOOK_FIELDS})
-    elif is_open("bnd_sidebar_preset") and sidebar_preset in THEME_PRESETS:
-        # THE DEPRECATED KEY, honoured in field space now rather than through the
-        # eighteen-entry rename map it used to need. It applies only the side
-        # pane, which is what the people who chose it chose; `bnd_look` wins
-        # outright where both are set, because it is the newer and larger answer
-        # to the same question.
-        chosen = theme_settings(sidebar_preset)
-        from bunood_theme.presets import SIDEBAR_FIELDS
-
-        resolved.update({f: v for f, v in chosen.items() if f in SIDEBAR_FIELDS})
+    # `bnd_sidebar_preset` was honoured here as an `elif` until the settings audit
+    # of 2026-09-21 retired it into `bnd_look` (patches/v0_49_0).
 
     # THE SHAPE. Exactly what a named layout writes — containers plus tenant
     # placements — because under "names only" that is the whole gesture. Applied
@@ -163,6 +154,19 @@ def resolve_for_user(site) -> tuple:
     # and `LOOK_FIELDS` already excludes every field this writes.
     if is_open("bnd_shape") and shape in LAYOUT_CHROME:
         resolved.update(layout_settings(shape))
+
+    # THE SHAPE'S NAME, DERIVED HERE AND NOT LATER. `bnd_desk_shape` used to be
+    # computed from the FINISHED map, after the pane state below had overwritten
+    # `sidebar_pane_state` — so a personal Rail turned the derived shape into
+    # Rail + Flyout and a personal Hidden derived "", which sent
+    # `search_fallback_order` down the Top Bar order on a desk with no top bar
+    # (the settings audit of 2026-09-21, finding c-1). Pane state is COMFORT
+    # (decision i-1): the shape is the site's, or the person's named layout,
+    # never their pane comfort. Read at this line, where only the look and the
+    # shape have been applied.
+    from bunood_theme.presets import layout_of
+
+    shape_name = layout_of(resolved)
 
     # THE PANE STATE. Last, and deliberately so: a look must not be able to take
     # somebody's pane away, and a shape names the containers rather than how much
@@ -183,10 +187,23 @@ def resolve_for_user(site) -> tuple:
     ):
         resolved["desk_width"] = body_width
 
+    # THE PERSON'S OVERRIDES, AS ONE MAP: every field whose effective value differs
+    # from the site's row. The settings form previews THROUGH this (decision i-2 of
+    # the audit) instead of re-stamping the raw site row over somebody's own desk,
+    # and it is computed here, in the one function that owns the precedence chain,
+    # so the client never re-derives it. Empty for a person with no preferences.
+    site_row = site.as_dict()
+    overrides = {
+        f: v for f, v in resolved.items()
+        if f in site_row and str(v if v is not None else "") != str(site_row.get(f) if site_row.get(f) is not None else "")
+    }
+
     return resolved, {
         "look": look,
         "shape": shape,
-        "sidebar_preset": sidebar_preset,
+        # The derived layout name, from the map BEFORE the comfort overlays.
+        "shape_name": shape_name,
+        "overrides": overrides,
         # The INTENT. `bootinfo.bnd_density` carries what actually applies, which
         # differs whenever comfort is locked; the dialog needs both.
         "density": density,
@@ -215,7 +232,8 @@ def resolve_for_user(site) -> tuple:
     }
 
 
-from bunood_theme.presets import SB_PANE_STOPS as _SB_PANE_STOPS
+from bunood_theme.presets import DEFAULT_DESK_LAYOUT, SB_PANE_STOPS as _SB_PANE_STOPS
+from bunood_theme.registry import LAYOUT_PANE
 
 # Module-level ON PURPOSE: `pane_px` reads it inside extend_bootinfo, whose
 # whole-function `try` SWALLOWS a NameError - the kit goes quietly dark on
@@ -374,7 +392,7 @@ def extend_bootinfo(bootinfo):
         # layout attribute only hides sidebar rows and mounts bars — all elements
         # Frappe's JS builds after the splash — so boot delivery paints nothing
         # stale. Site-wide by design; per-user layouts are a possible later step.
-        # bunood.js maps this label to a data-bnd-layout slug; an unknown or
+        # bunood.js maps this label to a data-bnd-desk slug; an unknown or
         # missing value degrades to the stock desk (fails open).
         from bunood_theme.presets import CHROME_DEFAULTS, DEFAULT_DESK_LAYOUT
 
@@ -423,7 +441,11 @@ def extend_bootinfo(bootinfo):
         # `registry.layout_settings` - the one catalogue, one derivation, exactly
         # as the picker's highlight is. "" when the containers spell no shipped
         # layout, which is a real and common state since the container split.
-        bootinfo.bnd_desk_shape = layout_of(settings)
+        #
+        # FROM THE SHAPE-STAGE MAP, NOT THE FINISHED ONE: `resolve_for_user`
+        # derives it before the pane-state and width overlays, so a person's
+        # comfort can never rename their desk's shape (audit 2026-09-21, c-1).
+        bootinfo.bnd_desk_shape = personal_state["shape_name"]
 
         # The components a user must never lose every route to, as the pair of
         # selectors that answers "is there a route to this" — ours, and the
@@ -495,17 +517,17 @@ def extend_bootinfo(bootinfo):
             "material": get("sidebar_material"),
             # Icon fields (item 23) moved to their own axis, so they are read
             # with ICON_DEFAULTS as the fallback rather than the sidebar preset
-            # — but the PAYLOAD keys stay put ("icons", "rail_button_icon",
-            # "icon_source"), so bunood.js and the SCSS are untouched.
+            # — but the PAYLOAD keys stay put ("icons", "icon_source"), so
+            # bunood.js and the SCSS are untouched.
             "icons": icon("icon_style"),
             "active": get("sidebar_active_style"),
             "sections": get("sidebar_section_style"),
             "wash": get("sidebar_hue_wash"),
             "intensity": get("sidebar_card_depth"),
-            "panestate": get("sidebar_pane_state"),
+            # The pane state's owner is the layout catalogue, not a sidebar look
+            # (audit 2026-09-21, a-4): an unset row falls back to the shipped layout's.
+            "panestate": settings.get("sidebar_pane_state") or LAYOUT_PANE[DEFAULT_DESK_LAYOUT],
             "rail_trigger": get("sidebar_rail_trigger"),
-            "rail_button": get("sidebar_rail_button"),
-            "rail_button_icon": icon("icon_rail_button"),
             "icon_source": icon("icon_source"),
             "pane_width": get("sidebar_pane_width"),
             # Checks: 0 is a real choice, so no or-fallback — absent field only.
@@ -850,15 +872,6 @@ def extend_bootinfo(bootinfo):
         # the short keys `bnd_sidebar` uses, applied after the fact; it is gone
         # because the values it patched now arrive correct.
         #
-        # `user_preset` is still served under its old name and place. `bunood.js`
-        # reads `sb_state.user_preset` to tick the current row in the personalize
-        # menu, and item 38 does not touch that client until its own slice.
-        bootinfo.bnd_sidebar["user_preset"] = (
-            personal_state["sidebar_preset"]
-            if personal_state["open"]["bnd_sidebar_preset"]
-            else ""
-        )
-
         # The choices behind the resolved values, for the Appearance dialog:
         # the RAW stored intents (so a locked axis still shows what the person
         # picked) plus which axes this site currently offers.

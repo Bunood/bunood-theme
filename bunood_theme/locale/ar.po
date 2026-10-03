@@ -7509,6 +7509,46 @@ msgstr "دفتر"
 msgid "Standard"
 msgstr "قياسي"
 
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision ii-3: the form awaits the served defaults)
+msgid "The shipped defaults could not be loaded — reset chips and change dots are unavailable until this page is reloaded."
+msgstr "تعذر تحميل الإعدادات الافتراضية الأصلية — أزرار إعادة الضبط ونقاط التغيير غير متاحة حتى يُعاد تحميل هذه الصفحة."
+
+#. In bunood.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "Could not save pane preference"
+msgstr "تعذر حفظ تفضيل اللوحة الجانبية"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "Your own {0} ({1}) is overriding this on your desk."
+msgstr "تفضيلك الخاص لخيار {0} ({1}) يتجاوز هذا الإعداد على مكتبك."
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "width"
+msgstr "العرض"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "look"
+msgstr "المظهر"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "desk shape"
+msgstr "شكل المكتب"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "side pane state"
+msgstr "حالة اللوحة الجانبية"
+
+#. In theme_settings.js
+#. src: settings-audit-2026-09-21 (decision i-2/i-3: override notes and the pane writer)
+msgid "density"
+msgstr "الكثافة"
+
 #. src: capability/reference-field-guidance
 #, fuzzy
 msgid "Enter the two-letter ISO country code, such as SA for Saudi Arabia—not a numeric code. Search for the country first to avoid a duplicate."

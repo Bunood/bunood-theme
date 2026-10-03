@@ -10,10 +10,11 @@
  *   login raises), and every copy had to be found and fixed when a selector
  *   changed. It is a constant; constants live in a file.
  *
- *   `tests/smoke.mjs` and `tools/fingerprint.mjs` predate this and carry their
- *   own copies. They are not migrated here as part of writing it — that is a
- *   refactor of working, verified code and belongs in its own commit, not
- *   smuggled into a helper's introduction.
+ *   `tests/smoke.mjs` and `tools/fingerprint.mjs` predate this and carried their
+ *   own copies of the settings WRITE until the settings audit of 2026-09-21
+ *   (v-4): three places to get commit-then-clear wrong. Both call `setSettings`
+ *   here now; the suite keeps only what is its own (the MUTABLE_FIELDS guard and
+ *   the layout expansion, which produce the dict this function writes).
  *
  * WHY NOT `bench browse`
  *   Its xdg-open call crashes gunicorn on this stack. Never use it.
@@ -197,14 +198,27 @@ export function getSettings(fields) {
  * MUTABLE_FIELDS; an ad-hoc probe has no such safety net, and a field left
  * changed is indistinguishable from a defect the next time anyone looks.
  */
+/**
+ * THE ONE WRITE PATH for Theme Settings values (the suite, the fixture tool and
+ * every ad-hoc probe). Writes, regenerates the brand sheet when one of its inputs
+ * moved, commits, THEN clears, and repopulates.
+ */
 export function setSettings(values) {
 	return benchPy(
 		`vals = json.loads(${JSON.stringify(JSON.stringify(values))})\n` +
 			"for f, v in vals.items():\n" +
 			'    frappe.db.set_single_value("Theme Settings", f, v)\n' +
-			// COMMIT, THEN CLEAR — see the note at the same lines in tests/smoke.mjs.
-			// Clearing an uncommitted write lets a worker cache the OLD row, and
-			// every read afterwards is one write behind.
+			// REGENERATE THE BRAND SHEET when one of its inputs was written:
+			// set_single_value fires no on_update, so the per-site stylesheet would
+			// keep the last real save's values — `tagline` once rendered a suite's
+			// scratch value on the operator's sign-in page, indefinitely. The list
+			// is brand.BRAND_INPUTS, never a copy here.
+			"from bunood_theme.brand import BRAND_INPUTS, write_brand_css\n" +
+			"if set(vals) & set(BRAND_INPUTS):\n" +
+			"    write_brand_css()\n" +
+			// COMMIT, THEN CLEAR. Clearing an uncommitted write lets a worker cache
+			// the OLD row, and every read afterwards is one write behind — the
+			// symptom is always "the previous case's value".
 			"frappe.db.commit()\n" +
 			"frappe.clear_cache()\n" +
 			// Repopulate at once — turns an in-flight worker's cache miss into a
@@ -214,13 +228,35 @@ export function setSettings(values) {
 	);
 }
 
-/** Fields that differ from what a fresh install writes. Empty means clean. */
+/**
+ * Fields that differ from what a fresh install writes. Empty means clean.
+ *
+ * THREE CLASSES, because two were invisible (the settings audit of 2026-09-21):
+ * the SHIPPED values; the six fields a fresh install leaves EMPTY (a probe once
+ * left `brand_color` on a preset's seed, and a comparison against SHIPPED could
+ * not see it); and the SECOND settings Single, `Bunood Translation Settings`,
+ * which no restore helper snapshots — a stored value that differs from its
+ * doctype default is reported under the doctype's name. Password fields are a
+ * site's own and are never compared.
+ */
 export function settingsDrift() {
 	return benchJson(
-		"from bunood_theme.setup import SHIPPED\n" +
+		"from bunood_theme.setup import SHIPPED, SHIPPED_EMPTY\n" +
 			"drift = {f: [str(frappe.db.get_single_value('Theme Settings', f)), str(v)]\n" +
 			"         for f, v in SHIPPED.items()\n" +
 			"         if str(frappe.db.get_single_value('Theme Settings', f)) != str(v)}\n" +
+			"for f in SHIPPED_EMPTY:\n" +
+			"    v = frappe.db.get_single_value('Theme Settings', f)\n" +
+			"    if v not in (None, ''):\n" +
+			"        drift[f] = [str(v), '']\n" +
+			"tm = frappe.get_meta('Bunood Translation Settings')\n" +
+			"for field, value in frappe.db.sql(\"select field, value from tabSingles where doctype=%s\", ('Bunood Translation Settings',)):\n" +
+			"    df = tm.get_field(field)\n" +
+			"    if df is None or df.fieldtype == 'Password':\n" +
+			"        continue\n" +
+			"    want = '' if df.default is None else str(df.default)\n" +
+			"    if str(value if value is not None else '') != want:\n" +
+			"        drift['Bunood Translation Settings.' + field] = [str(value), want]\n" +
 			"print(json.dumps(drift))\n"
 	);
 }

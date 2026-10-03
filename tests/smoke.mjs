@@ -38,6 +38,11 @@ import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
 // build's coverage gate uses — restating "which strings are ours" here would
 // be the second copy of the catalogue, and it is the catalogue that moves.
 import { extractCatalogue, readExempt, readInherited, readTranslations } from "../tools/i18n.mjs";
+// THE settings write is the session tool's (the settings audit of 2026-09-21,
+// v-4): this file computes WHAT to write — the layout expansion and the
+// MUTABLE_FIELDS guard are its own — and one function writes it, regenerates
+// the brand sheet when an input moved, commits, THEN clears, and repopulates.
+import { setSettings as writeSettings } from "../tools/session.mjs";
 // Item 33's portal checks need data that does not exist on a stock site. The
 // facts about WHICH data live with the tool that makes it, never restated here —
 // `fixturesReady` is the same predicate the tool's own exit code uses, so the
@@ -221,11 +226,24 @@ let skipped = 0;
  */
 let currentTest = "(before the first check)";
 
+/**
+ * A section-level write that waits for the first check AFTER it that actually
+ * runs. `setSettings(...)` at section level ran at REGISTRATION — in every
+ * filtered run, whether or not any check after it was selected (the settings
+ * audit of 2026-09-21). Deferred, it runs exactly when the suite reaches a
+ * check that could depend on it, and never for a run that ends before it.
+ */
+const pendingSetup = [];
+function deferSetup(fn) {
+	pendingSetup.push(fn);
+}
+
 async function test(name, fn) {
 	if (ONLY && !ONLY.test(name)) {
 		skipped++;
 		return;
 	}
+	for (const setup of pendingSetup.splice(0)) await setup();
 	currentTest = name;
 	try {
 		await fn();
@@ -667,6 +685,7 @@ function setSettings(values) {
 		`restorable = set(json.loads(${JSON.stringify(JSON.stringify(MUTABLE_FIELDS))}))\n` +
 		`meta = frappe.get_meta("Theme Settings")\n` +
 		`unrestorable = []\n` +
+		`merged = {}\n` +
 		`if pick and not layout_settings(pick):\n` +
 		`    raise SystemExit("BND_UNKNOWN_LAYOUT " + pick)\n` +
 		`if pick:\n` +
@@ -679,47 +698,11 @@ function setSettings(values) {
 		`        if f not in restorable:\n` +
 		`            unrestorable.append(f)\n` +
 		`            continue\n` +
-		`        frappe.db.set_single_value("Theme Settings", f, v)\n` +
-		`for f, v in vals.items():\n` +
-		`    frappe.db.set_single_value("Theme Settings", f, v)\n` +
-		// REGENERATE THE BRAND SHEET WHEN WE HAVE WRITTEN ONE OF ITS INPUTS.
-		//
-		// `set_single_value` does not fire `on_update`, so `write_brand_css` never
-		// runs — and the per-site stylesheet keeps whatever the last real SAVE put
-		// in it. That was harmless while the suite only wrote desk attributes the
-		// sheet never reads. Item 32 made `tagline` a sheet input, and `tagline` is
-		// this suite's save-round-trip scratch field, so a run finished with the DB
-		// restored and the SHEET still carrying `smoke-seed-<timestamp>` — which
-		// then rendered on the sign-in page, on the operator's own site,
-		// indefinitely. Found by an adversarial release review and confirmed in
-		// exactly that state.
-		//
-		// The field list comes from `brand.BRAND_INPUTS`, not from here: a copy in
-		// the test file is the same-fact-in-two-places trap, and this is already a
-		// bug that existed because two places disagreed about what regeneration
-		// means.
-		`from bunood_theme.brand import BRAND_INPUTS, write_brand_css\n` +
-		`if set(vals) & set(BRAND_INPUTS):\n` +
-		`    write_brand_css()\n` +
-		// COMMIT, THEN CLEAR — these were the other way round, and that race is
-		// what an afternoon of "the setting did not take effect" turned out to be.
-		// Clearing first opens a window in which any worker that touches Theme
-		// Settings repopulates the cache from the UNCOMMITTED row; the commit then
-		// lands behind a cache nobody clears again, and every later read serves the
-		// value from BEFORE this write. That is why the symptom is always "the
-		// PREVIOUS case's value", why it looked like five different bugs, and why
-		// it got worse as the machine got busier.
-		`frappe.db.commit()\n` +
-		`frappe.clear_cache()\n` +
-		// And REPOPULATE at once. A request already in flight when the commit
-		// landed still reads its own older transaction; on a cache MISS it would
-		// write that stale row back. Filling the cache with the committed doc
-		// right here turns its miss into a hit, which shrinks the race from
-		// "until the next write" to the microseconds between these two lines.
-		`frappe.get_cached_doc("Theme Settings")\n` +
-		`print("BND_UNRESTORABLE=" + json.dumps(unrestorable))\n`
+		`        merged[f] = v\n` +
+		`merged.update(vals)\n` +
+		`print("BND_MERGED=" + json.dumps({"merged": merged, "unrestorable": unrestorable}))\n`
 	);
-	const skipped = JSON.parse((out.match(/BND_UNRESTORABLE=(\[.*\])/) || [, "[]"])[1]);
+	const { merged, unrestorable: skipped } = JSON.parse(out.match(/BND_MERGED=(\{.*\})/)[1]);
 	if (skipped.length) {
 		throw new Error(
 			`setSettings: the layout preset writes ${skipped.join(", ")}, which ` +
@@ -727,6 +710,10 @@ function setSettings(values) {
 				"on/off field belongs there the moment its slice lands."
 		);
 	}
+	// Nothing was written yet: the guard above runs BEFORE the write, as it
+	// always did, and the write is the session tool's (brand sheet, commit,
+	// then clear, then repopulate — its docblock carries the incident).
+	writeSettings(merged);
 }
 
 // ── Language ────────────────────────────────────────────────────────────────
@@ -1384,13 +1371,10 @@ const SLUG = {
 	sidebar_material: {
 		Solid: "solid", Bordered: "bordered", Elevated: "elevated",
 		Textured: "textured", Tinted: "tinted", Gradient: "gradient",
-		Glass: "elevated", "Blurred Glass": "elevated",
 	},
 	icon_style: {
 		"Filled Color": "filled", "Fill on Active": "onactive",
 		"Solid Tile": "tile", "Circle Badge": "badge",
-		"Colored Chips": "tile", "Colored Dots": "badge",
-		Duotone: "filled", "Brand Lines": "filled", Monochrome: "onactive",
 	},
 	sidebar_active_style: { "Solid Pill": "pill", "Soft Pill": "softpill", "Accent Rail": "rail", Outline: "outline", "Folder Tab": "foldertab" },
 	sidebar_section_style: { Plain: "plain", Divided: "divided", Cards: "cards" },
@@ -1452,13 +1436,12 @@ const MUTABLE_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
-	"sidebar_rail_button",
 	"sidebar_pane_width",
 	"sidebar_badges", "sidebar_filter",
 	// The pane head's quick links (2026-09-14): policy, outside the look catalogue.
 	"panehead_quick_links",
 	// Icon system kit (item 23), relocated from the sidebar and breadcrumb kits.
-	"icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs",
+	"icon_style", "icon_weight", "icon_source", "icon_crumbs",
 	// Personalization locks (item 38). Here for the ordinary reason and one of
 	// their own: a run that dies with `personal_look` at 0 leaves every stored
 	// per-user look inert site-wide, which reads as the personalize menu being
@@ -1917,6 +1900,31 @@ async function main() {
 			);
 		});
 
+		await test("site data: the alternate-views fixtures are seeded", async () => {
+			// THE PREFLIGHT THE FIXTURES NEVER HAD (the settings audit of 2026-09-21, iv-8).
+			// The views kit, the kanban reserve check and the axe routes need records a
+			// fresh site does not have, seeded by tools/fixtures-views.mjs — which nothing
+			// ran. On a new bench those checks timed out waiting for a kanban column that
+			// could not exist, and read like three rendering defects. This fails first and
+			// names the remedy. Presence, not the tool's counts (restating its plan here
+			// would be a second copy of it); the three identities are the tool's pinned
+			// ones — the board's name also rides in VIEWS_KANBAN below.
+			const got = JSON.parse(
+				benchPy(
+					`print("BND" + json.dumps({` +
+						`"board": bool(frappe.db.exists("Kanban Board", "Bunood Memos")), ` +
+						`"todos": frappe.db.count("ToDo", {"description": ["like", "%[bnd-fixture]%"]}), ` +
+						`"items": frappe.db.count("Item", {"item_code": ["like", "BND-VIEW-%"]})}))\n`
+				)
+					.split("BND")[1]
+					.trim()
+			);
+			expect(
+				got.board && got.todos > 0 && got.items > 0,
+				"the alternate-views fixtures are seeded — run `npm run fixtures:views` (" + JSON.stringify(got) + ")"
+			);
+		});
+
 		// ── Boot & assets ──────────────────────────────────────────────────
 		const assetsPy = readFileSync(new URL("../bunood_theme/assets.py", import.meta.url), "utf8");
 		const cssPath = assetsPy.match(/THEME_CSS = "([^"]+)"/)[1];
@@ -2150,7 +2158,9 @@ async function main() {
 				await checks();
 			});
 		}
-		setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar", search_placement: "Top Bar Center" });
+		// The sections below run on Top Taskbar; deferred so a run that never
+		// reaches them never writes it (see deferSetup).
+		deferSetup(() => setSettings({ ...layoutSettings("Top Taskbar"), desk_layout: "Top Taskbar", search_placement: "Top Bar Center" }));
 
 		await test("Desktop page: all theme chrome stands down and returns", async () => {
 			await goDesk("/desk", "#page-desktop", 2000);
@@ -3595,7 +3605,13 @@ async function main() {
 		// ── Sidebar presets: attribute matrix + core mounts ────────────────
 		for (const [name, values] of Object.entries(presets)) {
 			await test(`preset: ${name}`, async () => {
-				setSettings(values);
+				// THE PREMISE IS STATED, NOT INHERITED. Every look used to carry a
+				// `sidebar_pane_state`, so applying one silently reopened a pane the
+				// layout checks above had hidden — for this check and for every
+				// check after it. The layout catalogue owns the pane state now (the
+				// settings audit of 2026-09-21, decision iii-1) and no look writes
+				// it, so an open pane is asked for by name.
+				setSettings({ sidebar_pane_state: "Open", ...values });
 				// A WORKSPACE PAGE, because the Cards arm below needs real sections
 				// to measure. The old route's resolved sidebar has none, and the
 				// old wrapper-count assertion only ever passed there because the
@@ -3617,13 +3633,8 @@ async function main() {
 				// preset's own claim.
 				expect(await q(".bnd-sb-head .bnd-sb-head-name"), "the place row");
 				expect(await q(".bnd-sb-head .bnd-sb-head-chev"), "a chevron that is actually built");
-				if (values.sidebar_pane_state === "Rail") {
-					expect(await page.evaluate(() => document.documentElement.hasAttribute("data-bnd-rail")), "rail attr");
-					expectEq(
-						await page.evaluate(() => Math.round(document.querySelector(".body-sidebar-container").getBoundingClientRect().width)),
-						52, "resting rail width"
-					);
-				}
+				// The rail arm that stood here read `values.sidebar_pane_state`, which no
+				// look carries any more; the rail's own geometry is the `rail:` family's.
 				if (values.sidebar_section_style === "Cards") {
 					// Paint on the section container, not a wrapper count: the wrap
 					// retired in item 40, and a border-radius is what Cards IS.
@@ -3706,22 +3717,6 @@ async function main() {
 			}
 		});
 
-		await test("rail: edge button pins open and unpins", async () => {
-			expect(await q(".bnd-railbtn.bnd-railbtn-edge"), "edge button mounted");
-			await page.click(".bnd-railbtn");
-			await page.waitForTimeout(300);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "pinned open");
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(500);
-			expect(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")), "stays while pinned");
-			await page.click(".bnd-railbtn");
-			// Soft unpin BY DESIGN: with the pointer still over the pane it
-			// stays open until the pointer leaves (v0.6.1 rail-feel fix), so
-			// move away before expecting closure.
-			await page.mouse.move(1400, 500);
-			await page.waitForTimeout(700);
-			expect(!(await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"))), "unpins closed after pointer leaves");
-		});
 
 		// ── Icon engine ────────────────────────────────────────────────────
 		await test("icon engine: every id the module can emit exists in the sprite", async () => {
@@ -4147,6 +4142,82 @@ async function main() {
 			setSettings({ crumb_hover: start });
 		});
 
+		await test("settings: a retired Select value is healed by migrate, never tolerated by the runtime", async () => {
+			// THREE NORMALISERS FOR ONE RETIRED SPELLING (the settings audit of
+			// 2026-09-21, c-4 / v-8): the runtime's slug table, the form's bnd_sb_norm
+			// and a trigger fallback all tolerated pane-state labels that
+			// v0_42_0.rename_pane_state had rewritten on every site, this one and
+			// production included. Tolerance is not repair. The healer
+			// (setup.heal_unknown_selects) covers every Select and runs on every
+			// migrate now, and nothing on the wire resolves a retired label.
+			const before = getSettings(["sidebar_pane_state"]).sidebar_pane_state;
+			let out;
+			try {
+				out = JSON.parse(
+					benchPy(
+						`import inspect\nfrom bunood_theme import setup\n` +
+							`frappe.db.set_single_value("Theme Settings", "sidebar_pane_state", "Hover-Expand", update_modified=False)\n` +
+							`frappe.db.commit()\n` +
+							`healed = setup.heal_unknown_selects()\n` +
+							`after = frappe.db.get_single_value("Theme Settings", "sidebar_pane_state")\n` +
+							`print("BND" + json.dumps({"healed": healed, "after": after, "shipped": setup.SHIPPED["sidebar_pane_state"], "wired": "heal_unknown_selects()" in inspect.getsource(setup.after_migrate)}))\n`
+					)
+						.split("BND")[1]
+						.trim()
+				);
+			} finally {
+				setSettings({ sidebar_pane_state: before });
+			}
+			expect(out.wired, "after_migrate runs the healer on every migrate");
+			expect(out.healed.includes("sidebar_pane_state"), "the retired value was healed (" + JSON.stringify(out.healed) + ")");
+			expectEq(out.after, out.shipped, "to the shipped value");
+			// AND NOTHING ON THE WIRE STILL RESOLVES IT: the served bundle (comments
+			// ship in it) and the form script, read as text — a lookup keyed on a
+			// retired label is a normaliser, whatever it is called.
+			const bundle_url = await page.evaluate(
+				() => [...document.scripts].map((n) => n.src).find((u) => /\/dist\/js\/bunood\.[0-9a-f]+\.js/.test(u)) || ""
+			);
+			expect(bundle_url, "premise: the theme bundle is on the page");
+			const bundle = await (await page.request.get(bundle_url)).text();
+			const form = readFileSync(new URL("../bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url), "utf8");
+			for (const label of ["Hover-Expand", "Always Expanded", "Blurred Glass", "Colored Chips", "Duotone"]) {
+				expect(!bundle.includes('"' + label + '"'), "the served bundle maps no retired label (" + label + ")");
+			}
+			for (const label of ["Hover-Expand", "Always Expanded"]) {
+				expect(!form.includes('"' + label + '"'), "the form script maps no retired pane state (" + label + ")");
+			}
+		});
+
+		await test("settings: the settings page honours a personal value instead of reverting it", async () => {
+			// THE FORM PREVIEWED THE RAW SITE ROW (audit 2026-09-21, finding a-1,
+			// measured): with a personal width of Roomy, a fresh tab rendered roomy, the
+			// settings page rendered the site's, and after one unrelated click the desk
+			// stayed on the site's for the rest of the session while the store kept
+			// roomy. The previews read the reader's EFFECTIVE values now (decision i-2
+			// a), and the width group names the override with a way back. Measured as
+			// the Administrator — exactly the person who has the page open.
+			await withPersonal("Administrator", { bnd_body_width: "Roomy" }, async () => {
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 5000);
+				const onLoad = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-body-width"));
+				expectEq(onLoad, "roomy", "the settings page renders the person's own width after load");
+				// AN UNRELATED CLICK — the autosave, the refresh and the re-apply follow.
+				// The same subject the click-applies check drives, for the same reason.
+				const start = getSettings(["crumb_hover"]).crumb_hover;
+				const want = start === "Underline" ? "Darken" : "Underline";
+				await scrollToSettings("crumbs");
+				await page.waitForTimeout(800);
+				await page.click(`[data-field="crumb_hover"][data-value="${want}"]`);
+				await page.waitForTimeout(4500);
+				const afterClick = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-body-width"));
+				expectEq(afterClick, "roomy", "and still after an unrelated click and its autosave");
+				expect(
+					await q('[data-fieldname="desk_picker"] .bnd-dkp-mine[data-bnd-axis="bnd_body_width"] .bnd-dkp-mine-clear'),
+					"the width group names the override and offers the way back"
+				);
+				setSettings({ crumb_hover: start });
+			});
+		});
+
 		await test("settings: a container applies to the desk on click, with no reload", async () => {
 			// THE GAP CLICK-TO-APPLY EXPOSED. Every style kit — sidebar,
 			// breadcrumbs, palette, inbox — re-applies to the live desk the
@@ -4474,6 +4545,85 @@ async function main() {
 			expect(released !== "none" && released !== "(absent)",
 				`released, Frappe's header comes back (display is ${released}) -- a failed ` +
 					`mount degrades to stock rather than leaving the pane without a head`);
+		});
+
+		await test("sidepane: the container's one hide follows the arbiter's token, for both settings", async () => {
+			// TWO RULES FOR ONE NODE (the settings audit of 2026-09-21, D10 / v-5):
+			// chrome-off at (0,2,1) in _layouts.scss and Hidden at (0,3,1) in
+			// _sidebar.scss, both !important, a JS guard releasing either, and a
+			// cascade nobody arbitrated. One rule now, keyed on the `pane-hidden`
+			// ownership token sb_sync_pane_hidden stamps from both inputs. Measured on
+			// the workspace desk, page-locally (nothing is saved), and put back.
+			await goDesk("/app/home", "body", 3000);
+			const read = () =>
+				page.evaluate(() => ({
+					own: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/),
+					rects: document.querySelector(".body-sidebar-container").getClientRects().length,
+					panestate: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+					off: document.documentElement.getAttribute("data-bnd-chrome-off") || "",
+				}));
+			// The premise is made, not assumed: a filtered run can arrive here with the
+			// site on Top Taskbar (the layout section's write), pane Hidden and page
+			// head off. Page-local, put back by the next navigation.
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 1 }));
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForTimeout(1200);
+			const rest = await read();
+			expect(!rest.own.includes("pane-hidden") && rest.rects === 1, "premise: the pane is open and its container shows (" + JSON.stringify(rest) + ")");
+			await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
+			await page.waitForTimeout(1200);
+			const hidden = await read();
+			expect(hidden.own.includes("pane-hidden"), "Hidden stamps the token (" + JSON.stringify(hidden) + ")");
+			expectEq(hidden.rects, 0, "and the container is gone");
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForTimeout(1200);
+			const open = await read();
+			expect(!open.own.includes("pane-hidden") && open.rects === 1, "Open releases the token and the container returns (" + JSON.stringify(open) + ")");
+			// The other input: the container switched off. On the shipped pane-first
+			// desk the guard finds search, the bell and Log Out stranded and gives the
+			// pane back — the release must reach the token too, or the container would
+			// stay hidden with the declaration already gone. On a desk with a top bar
+			// the guard lets it go; either way token and declaration must agree.
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 0 }));
+			await page.waitForTimeout(1500);
+			const off = await read();
+			expectEq(
+				off.own.includes("pane-hidden"),
+				off.off.split(/\s+/).includes("sidepane"),
+				"the token agrees with the declaration after the guard's verdict (" + JSON.stringify(off) + ")"
+			);
+			expectEq(off.rects === 0, off.own.includes("pane-hidden"), "and the container follows the token, not the file order");
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 1 }));
+			await page.waitForTimeout(1500);
+			const back = await read();
+			expect(!back.own.includes("pane-hidden") && back.rects === 1, "switched back on, the container shows (" + JSON.stringify(back) + ")");
+		});
+
+		await test("sidepane: a quick-links change reaches a head menu that is open", async () => {
+			// panehead_apply MUTATED BOOT AND REPAINTED NOTHING (the settings audit of
+			// 2026-09-21, c-3 / iv-3). The flyouts are built on open, so the NEXT open
+			// was always right; an open menu was not. Measured on a workspace desk with
+			// the pane Open, page-locally; the site's value goes back through the same
+			// applier.
+			await goDesk("/app/home", "body", 3000);
+			// The premise is made, not assumed (a filtered run arrives on Top Taskbar).
+			await page.evaluate(() => window.bunood_theme.chrome_apply({ sidepane: 1 }));
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForSelector(".body-sidebar .bnd-sb-head", { timeout: 15000 });
+			await page.waitForTimeout(800);
+			const site = await page.evaluate(() => (frappe.boot.bnd_panehead || {}).quick_links || "Standard");
+			await page.evaluate(() => window.bunood_theme.panehead_apply({ panehead_quick_links: "Standard" }));
+			await page.click(".body-sidebar .bnd-sb-head");
+			await page.waitForSelector(".bnd-menu", { timeout: 5000 });
+			const flyouts = () => page.evaluate(() => document.querySelectorAll('.bnd-menu [aria-haspopup="menu"]').length);
+			expect((await flyouts()) > 0, "premise: with Standard links the open menu has flyout rows");
+			await page.evaluate(() => window.bunood_theme.panehead_apply({ panehead_quick_links: "Off" }));
+			await page.waitForTimeout(400);
+			expect(await q(".bnd-menu"), "the menu is still open after the change");
+			expectEq(await flyouts(), 0, "and it shows Off — no flyout rows — without a second click");
+			await page.evaluate((v) => window.bunood_theme.panehead_apply({ panehead_quick_links: v }), site);
+			await page.keyboard.press("Escape");
+			await page.waitForTimeout(300);
 		});
 
 		await test("sidepane: exactly one head renders, wherever the pane sits", async () => {
@@ -6609,11 +6759,13 @@ print("ok")
 			}
 		});
 
-		await test("sidepane: the place row and the rail button announce their identity", async () => {
+		await test("sidepane: the place row and the rail's pin announce their identity", async () => {
 			// Slice 9: parts, not classes — the placement board, desk order and
 			// the invariant matrix find components by data-bnd-part, and the
-			// audit found the pane's own nodes invisible to all three.
-			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_button"]);
+			// audit found the pane's own nodes invisible to all three. The rail's
+			// control is its PIN since the expand button retired (the settings audit
+			// of 2026-09-21, iv-2).
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
 			try {
 				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Open" });
 				await goDesk("/app/selling", "body", 3000);
@@ -6623,13 +6775,68 @@ print("ok")
 				);
 				expectEq(head, "panehead", `the place row is findable by part (${head})`);
 
-				setSettings({ sidebar_pane_state: "Rail", sidebar_rail_button: "Edge" });
+				setSettings({ sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover + Pin" });
 				await goDesk("/app/selling", "body", 3000);
-				await page.waitForFunction(() => !!document.querySelector(".bnd-railbtn"), null, { timeout: 20000 });
-				const btn = await page.evaluate(() =>
-					document.querySelector(".bnd-railbtn").getAttribute("data-bnd-part")
+				await page.waitForFunction(() => !!document.querySelector(".bnd-sb-pin"), null, { timeout: 20000 });
+				const pin = await page.evaluate(() =>
+					document.querySelector(".bnd-sb-pin").getAttribute("data-bnd-part")
 				);
-				expectEq(btn, "railbtn", `and so is the rail button (${btn})`);
+				expectEq(pin, "railpin", `and so is the rail's pin (${pin})`);
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: the rail's expand button is retired — the trigger is the affordance", async () => {
+			// TWO FIELDS THE 2026-09-02 ROUND SAID TO RETIRE were still shipped with
+			// values (the settings audit of 2026-09-21, D8; decision iv-2 b): the
+			// rail's always-visible expand button and its glyph. The three-state pane
+			// and the rail's trigger are the affordance; Hover + Pin keeps its pin.
+			// Four facts: the fields are gone from the doctype and the catalogue, a
+			// Rail desk mounts no such control and still opens, the patch deletes a
+			// stored row through the table, and nothing on the wire names the part.
+			const server = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import THEME_AXES\n` +
+						`from bunood_theme.registry import COMPONENTS, MARKS\n` +
+						`meta = frappe.get_meta("Theme Settings")\n` +
+						`frappe.db.sql("insert into tabSingles (doctype, field, value) values ('Theme Settings','sidebar_rail_button','Edge'), ('Theme Settings','icon_rail_button','Menu')")\n` +
+						`frappe.db.commit()\n` +
+						`from bunood_theme.patches.v0_49_0 import retire_rail_button as p\n` +
+						`p.execute()\n` +
+						`left = frappe.db.sql("select field from tabSingles where doctype='Theme Settings' and field in ('sidebar_rail_button','icon_rail_button')")\n` +
+						`print("BND" + json.dumps({"meta": [f for f in ("sidebar_rail_button", "icon_rail_button") if meta.has_field(f)], "axes": [f for f in THEME_AXES if "rail_button" in f], "parts": [c["part"] for c in COMPONENTS + MARKS if c.get("part") in ("railbtn", "railpin")], "left": [r[0] for r in left]}))\n`
+				)
+					.split("BND")[1]
+					.trim()
+			);
+			expectEq(server.meta.join(","), "", "neither field is on the doctype");
+			expectEq(server.axes.join(","), "", "and neither is a theme axis");
+			expectEq(server.parts.join(","), "railpin", "the registry names the rail's pin, not a button");
+			expectEq(server.left.join(","), "", "the patch deletes a stored row through the table");
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Rail", sidebar_rail_trigger: "Hover" });
+				await goDesk("/app/selling", ".page-head", 3500);
+				await page.waitForFunction(() => document.documentElement.getAttribute("data-bnd-sb-panestate") === "rail", null, { timeout: 20000 });
+				const desk = await page.evaluate(() => ({
+					buttons: document.querySelectorAll(".bnd-railbtn, [data-bnd-part=railbtn]").length,
+					edge: document.querySelector(".body-sidebar-container").getBoundingClientRect().right,
+				}));
+				expectEq(desk.buttons, 0, "a Rail desk mounts no expand button");
+				await page.mouse.move(desk.edge + 200, 450);
+				await page.waitForTimeout(300);
+				await page.mouse.move(desk.edge - 10, 450);
+				await page.waitForTimeout(700);
+				expect(
+					await page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open")),
+					"and the rail still opens from its trigger"
+				);
+				const bundle_url = await page.evaluate(
+					() => [...document.scripts].map((n) => n.src).find((u) => /\/dist\/js\/bunood\.[0-9a-f]+\.js/.test(u)) || ""
+				);
+				const bundle = await (await page.request.get(bundle_url)).text();
+				expect(!bundle.includes("railbtn") && !bundle.includes("rail_button"), "nothing on the wire names the retired control");
 			} finally {
 				setSettings(before);
 			}
@@ -8003,8 +8210,13 @@ print("ok")
 				expect(start.avatar && start.bell && start.band,
 					`premise: the pane carries the band and both tenants (${JSON.stringify(start)})`);
 
+				// PAGE-LOCAL, SAID SO. Since the settings audit of 2026-09-21 (i-3),
+				// `pane_state(v)` without `{ save: false }` IS the person's gesture and
+				// writes their preference — a preview that forgot the option left the
+				// Administrator's pane Hidden for the rest of a run (measured: two
+				// sidepane checks on /app/selling found no pane at all).
 				for (const state of ["Open", "Rail", "Hidden", "Open"]) {
-					await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
+					await page.evaluate((v) => window.bunood_theme.pane_state(v, { save: false }), state);
 					await page.waitForTimeout(900);
 					const now = await read();
 					if (state === "Hidden") {
@@ -8023,7 +8235,7 @@ print("ok")
 				// papering over a hole -- on the shipped desk Hidden could never be held.
 				// Now the page head lends the pane its tenants, so Hidden is honoured and
 				// identity is still one click away, at the head's end, beside the way back.
-				await page.evaluate(() => window.bunood_theme.pane_state("Hidden"));
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
 				await page.waitForTimeout(900);
 				const lent = await read();
 				expectEq(lent.state, "hidden",
@@ -8436,7 +8648,6 @@ print("ok")
 						head: document.querySelectorAll(".bnd-sb-head").length,
 						utils: document.querySelectorAll(".body-sidebar .bnd-sb-utils").length,
 						badges: document.querySelectorAll(".bnd-sb-badge").length,
-						railbtn: document.querySelectorAll(".bnd-railbtn").length,
 						iconized: document.querySelectorAll("[data-bnd-iconized]").length,
 						own: document.documentElement.getAttribute("data-bnd-own") || "",
 					}));
@@ -8450,7 +8661,6 @@ print("ok")
 				expectEq(off.head, 0, "the head is gone");
 				expectEq(off.utils, 0, "the pane's link rows are gone");
 				expectEq(off.badges, 0, "the badges are gone");
-				expectEq(off.railbtn, 0, "the rail button is gone");
 				expectEq(off.iconized, 0, "Frappe's own rows have their icons back");
 				expect(!/\bpanehead\b/.test(off.own),
 					`and the token agrees with the document (own=${off.own || "(none)"})`);
@@ -9117,17 +9327,21 @@ print("ok")
 			);
 			expectEq(bad.join(" | "), "", "every written placement is one the field offers");
 
-			// E3's order default is pinned the same way: the doctype's literal
-			// must equal what the registry derives, or a tenant added to the
-			// table would ship ranked by a stale string.
+			// E3's order default has ONE statement, the registry's: the doctype
+			// carries no `default` of its own any more (the settings audit of
+			// 2026-09-21, decision ii-2 — build.mjs's doctype-default guard holds
+			// it), so a tenant added to the table can never ship ranked by a
+			// stale string in the JSON.
 			const orderPin = JSON.parse(
 				benchPy(
 					"from bunood_theme.registry import default_desk_order\n" +
+					"from bunood_theme.setup import SHIPPED\n" +
 					"stored = frappe.get_meta('Theme Settings').get_field('desk_order').default\n" +
-					"print(json.dumps({'registry': default_desk_order(), 'doctype': stored}))\n"
+					"print(json.dumps({'registry': default_desk_order(), 'doctype': stored, 'shipped': SHIPPED['desk_order']}))\n"
 				).trim().split("\n").pop()
 			);
-			expectEq(orderPin.doctype, orderPin.registry, "desk_order's default is the registry's");
+			expectEq(orderPin.doctype, null, "desk_order carries no doctype default — the registry is the one statement");
+			expectEq(orderPin.shipped, orderPin.registry, "and the shipped set reads the registry's order");
 
 			// Belt and braces on the live site: whatever it is holding RIGHT NOW
 			// must be acceptable too, or the next save of any setting dies. This
@@ -9352,6 +9566,87 @@ print("ok")
 			expect(await visible(".bnd-topbar"), "a top bar on a Classic desk");
 		});
 
+		await test("container: one ladder, both directions — and a remount keeps the settings map placed", async () => {
+			// TWO MOUNT LADDERS (the settings audit of 2026-09-21, c-2 / v-6): boot's
+			// and the live remount's step lists had drifted apart, each missing calls
+			// the other made. One function, mount_containers, serves both now — read
+			// from the SERVED bundle (the tree would pass before a deploy), because
+			// that is the fact — and the behaviour that rides on it is measured: on the
+			// settings route with the pane Hidden, switching the page head off and on
+			// from the form leaves the settings map placed exactly once.
+			//
+			// THE PREMISE IS WRITTEN, AND PUT BACK: the page head on, the pane Open,
+			// and the bell and the profile IN the page head. With both Off (the state
+			// the check before this one leaves), the guard refuses Hidden — no route
+			// to Log Out outside the pane — which is right; a check that asked for
+			// Hidden anyway measured the guard, not the ladder (found in a family run).
+			const before = getSettings(["sidebar_enabled", "pagehead_enabled", "sidebar_pane_state", "inbox_placement", "user_placement"]);
+			try {
+				setSettings({
+					sidebar_enabled: 1,
+					pagehead_enabled: 1,
+					sidebar_pane_state: "Open",
+					inbox_placement: "Page Header End",
+					user_placement: "Page Header End",
+				});
+				await goDesk("/desk/theme-settings", ".bnd-cbp", 4000);
+				const bundle_url = await page.evaluate(
+					() => [...document.scripts].map((n) => n.src).find((u) => /\/dist\/js\/bunood\.[0-9a-f]+\.js/.test(u)) || ""
+				);
+				expect(bundle_url, "premise: the theme bundle is on the page");
+				const src = await (await page.request.get(bundle_url)).text();
+				const body = (name) => {
+					const i = src.indexOf("function " + name + "()");
+					return i < 0 ? "" : src.slice(i, src.indexOf("\n\t}\n", i));
+				};
+				expect(
+					body("mount_chrome").includes("mount_containers();") && body("remount_chrome").includes("mount_containers();"),
+					"mount_chrome and remount_chrome both read one ladder"
+				);
+				expect(
+					!body("remount_chrome").includes("mount_topbar()") && !body("mount_chrome").includes("mount_topbar()"),
+					"and neither keeps a copy of its steps"
+				);
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
+				const count = () => page.evaluate(() => document.querySelectorAll('.page-head [data-bnd-part="settingsmap"]').length);
+				// The map reaches the head through a retrying mount: wait for it, bounded.
+				await page
+					.waitForFunction(() => document.querySelectorAll('.page-head [data-bnd-part="settingsmap"]').length === 1, undefined, { timeout: 10000 })
+					.catch(() => {});
+				expectEq(await count(), 1, "premise: with the pane Hidden the map sits in the page head");
+				await page.evaluate(() => window.bunood_theme.chrome_apply({ pagehead: 0 }));
+				await page.waitForTimeout(1200);
+				await page.evaluate(() => window.bunood_theme.chrome_apply({ pagehead: 1 }));
+				await page
+					.waitForFunction(() => document.querySelectorAll('.page-head [data-bnd-part="settingsmap"]').length >= 1, undefined, { timeout: 10000 })
+					.catch(() => {});
+				expectEq(await count(), 1, "the map is placed exactly once after the page head is switched off and on");
+				await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("container: every container that mounts stamps its marker", async () => {
+			// `dock` was a CONTAINER_TEARDOWN key whose marker was torn down and never
+			// stamped (the settings audit of 2026-09-21, D2): container_mounted("dock")
+			// had no caller while the other four stamp theirs. Page-local, put back.
+			await goDesk("/app/home", "body", 3000);
+			const boot = await page.evaluate(() => Object.assign({}, frappe.boot.bnd_chrome));
+			const keys = ["topbar", "pagehead", "bottombar", "sidepane", "dock"];
+			const on = {};
+			for (const k of keys) on[k] = 1;
+			await page.evaluate((v) => window.bunood_theme.chrome_apply(v), on);
+			// The pane's kit — and its marker — stands down while the pane is Hidden,
+			// by design; a filtered run arrives here on Top Taskbar, so open it.
+			await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+			await page.waitForTimeout(1500);
+			const stamped = await page.evaluate((ks) => ks.filter((k) => document.documentElement.hasAttribute("data-bnd-" + k)), keys);
+			expectEq(stamped.join(","), keys.join(","), "with every container on, every marker is stamped");
+			await page.evaluate((b) => window.bunood_theme.chrome_apply(b), boot);
+			await page.waitForTimeout(1000);
+		});
+
 		await test("container: the Top Bar layout with the top bar switched off has none", async () => {
 			setSettings({ desk_layout: "Top Taskbar", topbar_enabled: 0 });
 			await goDesk("/desk/item", ".page-head", 4500);
@@ -9524,13 +9819,15 @@ print("ok")
 					// pane, so a desk whose only routes to identity were inside it has none,
 					// and the guard has to see the second way to hide a pane as well as the
 					// first.
+					// Page-local (`{ save: false }`): a bare pane_state(v) is the person's
+					// gesture since the settings audit of 2026-09-21 and would persist.
 					for (const state of ["Open", "Rail", "Hidden"]) {
-						await page.evaluate((v) => window.bunood_theme.pane_state(v), state);
+						await page.evaluate((v) => window.bunood_theme.pane_state(v, { save: false }), state);
 						await cell(`${layout}: pane=${state}`);
 					}
 					// ...and back to the row's own, so the next layout starts clean.
 					await page.evaluate(
-						(v) => window.bunood_theme.pane_state(v), cat.pane[layout] || "Open"
+						(v) => window.bunood_theme.pane_state(v, { save: false }), cat.pane[layout] || "Open"
 					);
 
 					// (d) THE ROUND TRIP (item 42, slice 10). Every switch above was flipped
@@ -10014,6 +10311,31 @@ print("ok")
 		//
 		// These assert SHAPE, not pixels. Absolute heights would be a snapshot
 		// of this machine's font rendering and would fail on anyone else's.
+		await test("theme: every theme card lights the layout it declares", async () => {
+			// THE FIELD TWO TABLES OWNED. `theme_settings()` wrote `sidebar_pane_state`
+			// from the layout's row and then let the sidebar LOOK overwrite it (the
+			// settings audit of 2026-09-21, finding a-4): Bunood Day and Studio declared
+			// Unified Side Pane, composed Rail through the "Bunood Light" look, and
+			// `layout_of()` named Rail + Flyout — so clicking one theme card lit a
+			// layout card the user never picked, and `bnd_desk_shape` followed. A
+			// preset's composition must survive its own derivation, for every card,
+			// which is only true when exactly one table writes the pane state.
+			const rows = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import THEME_PRESETS, theme_settings, layout_of\n` +
+						`print("BND" + json.dumps({n: [spec["layout"], layout_of(theme_settings(n))] for n, spec in THEME_PRESETS.items()}))\n`
+				).split("BND")[1].trim()
+			);
+			const wrong = Object.entries(rows).filter(([, [declared, derived]]) => declared !== derived);
+			expectEq(
+				wrong.length,
+				0,
+				"every card's composed desk derives back to the layout it declares (wrong: " +
+					wrong.map(([n, [d, x]]) => `${n} declares ${d}, derives ${x || '""'}`).join("; ") +
+					")"
+			);
+		});
+
 		await test("theme: the picker's own gesture writes the look the server composed", async () => {
 			// THE HEADLINE FEATURE, DRIVEN. Everything else about this catalogue was
 			// checked by COUNTING cards and reading a note; nothing clicked one. That is
@@ -10179,7 +10501,9 @@ print("ok")
 				// 8 cards, 24 options.
 				// A8b the Stage path group (2): 8 cards, 26 options.
 				// A8c the Pinned foot group (2): 8 cards, 28 options.
-				form_picker: { cards: 8, toggles: 1, opts: 28 },
+				// v0.48.0's form-actions capability gave that group a third option
+				// (Action Bar), met at the v0.49.0 merge: 8 cards, 29 options.
+				form_picker: { cards: 8, toggles: 1, opts: 29 },
 				// Desk body (item 43 A1): no cards — three option groups over the desk
 				// diagram. Item 45 took width from 4 to 5 (Original plus the four
 				// paired values, Compact/Balanced/Roomy/Full), so 5 + 4 type scale +
@@ -10214,13 +10538,14 @@ print("ok")
 				// session away from — so the only person who can open this picker is
 				// the only one who cannot see the page it configures.
 				login_picker: { cards: 4, toggles: 0, opts: 5 },
-				// Icon system kit (item 23): 6 style cards (the chip looks), and 13
-				// option chips across four groups — 4 weights, 3 missing-icon
-				// fallbacks, 3 breadcrumb-icon, 3 rail-button. No toggles; the
-				// specimen is aria-hidden decoration, not a control.
+				// Icon system kit (item 23): 6 style cards (the chip looks), and 10
+				// option chips across three groups — 4 weights, 3 missing-icon
+				// fallbacks, 3 breadcrumb-icon (the 3 rail-button glyphs left with
+				// `icon_rail_button`, the settings audit of 2026-09-21, iv-2). No
+				// toggles; the specimen is aria-hidden decoration, not a control.
 				// DERIVED, for the third time in this object and for the same reason: a
 				// literal 6 here outlived the six icon styles by exactly one slice.
-				icons_picker: { cards: iconCount, toggles: 0, opts: 13 },
+				icons_picker: { cards: iconCount, toggles: 0, opts: 10 },
 				// The three below joined this map in item 35 — web and email had been
 				// MISSING since their items shipped (only the fingerprint fixture
 				// covered them; a picker that silently rendered nothing would have
@@ -10231,7 +10556,9 @@ print("ok")
 				// accent's 3, the letterhead's 4, the six per-section switches'
 				// 3+2+3+3+2+3 and the preview's 4 chips (which share the opt
 				// class) — the preset-over-axes anchor plus the switch catalogue.
-				print_picker: { cards: 12, toggles: 0, opts: 50 },
+				// v0.48.0 gave the title-language switch a fourth option (Follow
+				// print language), met at the v0.49.0 merge: 51.
+				print_picker: { cards: 12, toggles: 0, opts: 51 },
 				// Item 36, Map 1: not a card picker — its complement is the five
 				// specimen cells and the four reset chips (company_name resets,
 				// three clear). The specimen fills async; the wait above settles it.
@@ -10389,6 +10716,78 @@ print("ok")
 				return bad;
 			});
 			expectEq(ragged.length, 0, `ragged rows: ${JSON.stringify(ragged.slice(0, 3))}`);
+		});
+
+		await test("settings: a selected option keeps its primary edge in every state, by weight alone", async () => {
+			// THE SETTINGS AUDIT, C2. The shared picker vocabulary drew a selected
+			// option's edge with `border-color: var(--primary) !important`, and what it
+			// beat was its OWN sheet: the options' base block restates `border` later at
+			// the same weight, (0,2,1). The `!important`s are gone and the selected
+			// rules weigh one class more. This pins the edge where a user sees it: each
+			// family that can be selected, in every state a pointer or a key can put it
+			// in, forced through CDP and read once three frames agree (the options
+			// transition border-color). Watched failing with the `!important` removed
+			// and no weight added: the option's edge fell back to the plain border.
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			const cdp = await page.context().newCDPSession(page);
+			try {
+				await cdp.send("DOM.enable");
+				await cdp.send("CSS.enable");
+				const { root } = await cdp.send("DOM.getDocument", { depth: -1 });
+				// The reference colour, resolved the way the edge resolves it.
+				const want = await page.evaluate(() => {
+					const probe = document.createElement("div");
+					probe.style.cssText = "border: 1px solid var(--primary); position: absolute; visibility: hidden";
+					document.body.appendChild(probe);
+					const c = getComputedStyle(probe).borderTopColor;
+					probe.remove();
+					return c;
+				});
+				const bad = [];
+				for (const family of [".bnd-cbp-style.bnd-cbp-on", ".bnd-cbp-opt.bnd-cbp-on", ".bnd-sbp-opt.bnd-sbp-on"]) {
+					const { nodeIds } = await cdp.send("DOM.querySelectorAll", { nodeId: root.nodeId, selector: family });
+					let nodeId = null;
+					for (const id of nodeIds) {
+						if (await cdp.send("DOM.getBoxModel", { nodeId: id }).catch(() => null)) {
+							nodeId = id;
+							break;
+						}
+					}
+					if (!nodeId) {
+						bad.push(`${family}: none rendered on the page`);
+						continue;
+					}
+					for (const state of [[], ["hover"], ["focus-visible"], ["active"]]) {
+						await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: state });
+						let last = "";
+						let same = 0;
+						let got = null;
+						for (let f = 0; f < 40 && same < 3; f++) {
+							await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
+							const { computedStyle } = await cdp.send("CSS.getComputedStyleForNode", { nodeId });
+							const v = (n) => (computedStyle.find((c) => c.name === n) || {}).value;
+							got = { edge: v("border-top-color"), style: v("border-top-style") };
+							const key = JSON.stringify(got);
+							same = key === last ? same + 1 : 1;
+							last = key;
+						}
+						if (same < 3) bad.push(`${family} ${state.join("+") || "rest"}: never settled`);
+						else if (got.edge !== want || got.style === "none") {
+							bad.push(`${family} ${state.join("+") || "rest"}: ${got.style} ${got.edge}, want solid ${want}`);
+						}
+					}
+					await cdp.send("CSS.forcePseudoState", { nodeId, forcedPseudoClasses: [] });
+				}
+				// Anti-vacuity: an UNSELECTED option does not already wear that edge.
+				const plain = await page.evaluate(() => {
+					const o = [...document.querySelectorAll(".bnd-cbp-opt:not(.bnd-cbp-on)")].find((n) => n.getClientRects().length && !n.matches(":hover"));
+					return o ? getComputedStyle(o).borderTopColor : null;
+				});
+				expect(plain && plain !== want, `an unselected option's edge differs from the selected one (${plain} vs ${want})`);
+				expect(!bad.length, bad.join("; "));
+			} finally {
+				await cdp.detach().catch(() => {});
+			}
 		});
 
 		// ── Master & detail settings shell (rework slice 1c step 2) ───────
@@ -10616,6 +11015,62 @@ print("ok")
 					expect(after.greyed, "every absent page carries its reason");
 				});
 			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("composer: the stage is given the desk's shape as boot derives it, never the card's label", async () => {
+			// THE SETTINGS AUDIT, C1, at its call site. `shape_apply(values, shape)` sets
+			// the frame's `frappe.boot.bnd_desk_shape`, the sole input to search's
+			// fallback chain, and boot derives it with `SHAPE_IGNORES`: a desk that asks
+			// for search in a container it does not mount is still the shape it is. The
+			// stage used to be handed the card's LABEL, which counts search, so the same
+			// values reached it as "" and search there walked the Top Bar chain. Watched
+			// failing on exactly that: the stage said "" where boot says the layout.
+			//
+			// The departure is chosen by the SERVER from the site's own values — a search
+			// slot where the label and the shape part company — and the frame's shape is
+			// set to a sentinel first, so a stage that was never told anything cannot
+			// pass by still holding the right answer from its own boot.
+			const before = getSettings(["search_placement"]);
+			const pick = JSON.parse(
+				benchPy(
+					"from bunood_theme.presets import layout_of\n" +
+						"doc = frappe.get_cached_doc('Theme Settings').as_dict()\n" +
+						"opts = [o for o in (frappe.get_meta('Theme Settings').get_field('search_placement').options or '').split(chr(10)) if o]\n" +
+						"pick = None\n" +
+						"for o in opts:\n" +
+						"    d = dict(doc, search_placement=o)\n" +
+						"    if layout_of(d, ignore=()) == '' and layout_of(d) != '':\n" +
+						"        pick = {'value': o, 'shape': layout_of(d)}\n" +
+						"        break\n" +
+						"print(json.dumps(pick))\n"
+				).trim().split("\n").pop()
+			);
+			expect(pick, "the site's values have a search slot where the card's label and the desk's shape part company");
+			try {
+				await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
+				await page.waitForFunction(() => {
+					const f = document.querySelector(".bnd-cmp-frame");
+					return f && f.getAttribute("data-bnd-route") && f.contentWindow && f.contentWindow.frappe && f.contentWindow.frappe.boot &&
+						f.contentWindow.document.documentElement.hasAttribute("data-bnd-desk");
+				}, undefined, { timeout: 45000 });
+				await page.evaluate(() => {
+					document.querySelector(".bnd-cmp-frame").contentWindow.frappe.boot.bnd_desk_shape = "<not told>";
+				});
+				await page.evaluate((v) => cur_frm.set_value("search_placement", v), pick.value);
+				await page.waitForFunction(
+					() => document.querySelector(".bnd-cmp-frame").contentWindow.frappe.boot.bnd_desk_shape !== "<not told>",
+					undefined,
+					{ timeout: 5000 }
+				);
+				expectEq(
+					await page.evaluate(() => document.querySelector(".bnd-cmp-frame").contentWindow.frappe.boot.bnd_desk_shape),
+					pick.shape,
+					`the stage's shape with search at ${pick.value}, where the card reads Custom`
+				);
+			} finally {
+				await page.waitForFunction(() => window.cur_frm && !cur_frm.is_dirty(), undefined, { timeout: 15000 }).catch(() => {});
 				setSettings(before);
 			}
 		});
@@ -11300,6 +11755,99 @@ print("ok")
 			expectEq(cards.map((c) => c.value).sort().join(","), [...cat.rows].sort().join(","), "the cards are the catalogue");
 			const current = cards.filter((c) => c.current).map((c) => c.value);
 			expectEq(current.join(","), cat.default, `the shipped layout is the current card (${JSON.stringify(current)})`);
+		});
+
+		await test("layout: the form derives the layout the server derives from the same values, as the card's label and as the desk's shape", async () => {
+			// THE SETTINGS AUDIT, C1. A layout's identity is derived in two places: the
+			// server's `presets.layout_of` (boot serves it as `bnd_desk_shape`) and the
+			// form's `bnd_match_layout` (it lights the card and names the Overview's
+			// preset). One derivation, asked two questions: the card's LABEL counts every
+			// field (`layout_of(ignore=())`); the desk's SHAPE — what the composer's
+			// stage is given, and the sole input to search's fallback chain — leaves out
+			// `SHAPE_IGNORES`. Watched failing before the repair, on these same 420
+			// cases: 17 labels and 39 shapes disagreed. An unset field matched whatever a
+			// row wanted in the form and took the shipped value on the server, and the
+			// form had no shape derivation at all — the composer handed its stage the
+			// label, so a desk with search somewhere unusual was previewed on the Top
+			// Bar chain.
+			//
+			// Every catalogue row, every single-field departure to every value the
+			// field accepts, and every field unset — built by the SERVER from the
+			// catalogue and the doctype, so a new row or option joins with no edit here.
+			//
+			// The form script runs inside Frappe's `new Function`, so nothing it
+			// declares is reachable from the page. The SERVED text is evaluated again in
+			// isolation — the same source the open form runs — with its one top-level
+			// side effect, registering the form's handlers, stubbed and counted. Pure
+			// computation: nothing is written.
+			const server = JSON.parse(
+				benchPy(
+					"from bunood_theme.registry import LAYOUT_CHROME, layout_settings\n" +
+						"from bunood_theme.presets import layout_of, _shipped_baseline\n" +
+						"meta = frappe.get_meta('Theme Settings')\n" +
+						"base = _shipped_baseline()\n" +
+						"fields = sorted({f for n in LAYOUT_CHROME for f in layout_settings(n)})\n" +
+						"def options(f):\n" +
+						"    df = meta.get_field(f)\n" +
+						"    if df is None: raise Exception('no such field: ' + f)\n" +
+						"    if df.fieldtype == 'Check': return [0, 1]\n" +
+						"    if df.fieldtype == 'Select': return [o for o in (df.options or '').split(chr(10)) if o]\n" +
+						"    raise Exception(f + ' is a ' + df.fieldtype)\n" +
+						"cases = []\n" +
+						"for name in LAYOUT_CHROME:\n" +
+						"    doc = {f: base.get(f) for f in fields}\n" +
+						"    doc.update(layout_settings(name))\n" +
+						"    cases.append({'id': name, 'row': name, 'doc': dict(doc)})\n" +
+						"    for f in fields:\n" +
+						"        for o in options(f):\n" +
+						"            if str(o) != str(doc[f]):\n" +
+						"                cases.append({'id': name + ' | ' + f + '=' + str(o), 'row': name, 'doc': dict(doc, **{f: o})})\n" +
+						"        cases.append({'id': name + ' | ' + f + ' unset', 'row': name, 'doc': dict(doc, **{f: None})})\n" +
+						"for c in cases:\n" +
+						"    c['label'] = layout_of(c['doc'], ignore=())\n" +
+						"    c['shape'] = layout_of(c['doc'])\n" +
+						"print(json.dumps({'cases': cases}))\n"
+				).trim().split("\n").pop()
+			);
+			// Anti-vacuity, on the server's own answers: a matcher that says "" to
+			// everything would agree with a server that did the same.
+			const own = server.cases.filter((c) => c.id === c.row);
+			expect(own.length >= 5 && own.every((c) => c.label === c.row && c.shape === c.row), "each catalogue row names itself, as a label and as a shape");
+			expect(server.cases.some((c) => c.label === "" && c.shape !== ""), "some case separates the label from the shape");
+			await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
+			const client = await page.evaluate(async (cases) => {
+				const src = frappe.get_meta("Theme Settings").__js;
+				if (!src || !src.includes("function bnd_match_layout")) throw new Error("the served form script is not on the meta");
+				const real = frappe.ui.form.on;
+				let registered = 0;
+				let api;
+				frappe.ui.form.on = () => {
+					registered++;
+				};
+				try {
+					api = new Function(src + "\n;return { bnd_match_layout, bnd_load_shipped, shape: typeof bnd_desk_shape_of === 'function' ? bnd_desk_shape_of : null };")();
+				} finally {
+					frappe.ui.form.on = real;
+				}
+				await api.bnd_load_shipped();
+				const out = cases.map((c) => {
+					const frm = { doc: c.doc, get_field: (f) => cur_frm.get_field(f) };
+					const label = api.bnd_match_layout(frm);
+					return {
+						label: label === "Custom" ? "" : label,
+						shape: api.shape ? api.shape(frm) : "<the form has no shape derivation>",
+					};
+				});
+				return { registered, out };
+			}, server.cases);
+			expectEq(client.registered, 1, "the isolated form script registered its handlers once, and nothing else of it ran");
+			const bad = [];
+			server.cases.forEach((c, i) => {
+				const k = client.out[i];
+				if (k.label !== c.label) bad.push(`label ${c.id}: form "${k.label}", server "${c.label}"`);
+				if (k.shape !== c.shape) bad.push(`shape ${c.id}: form "${k.shape}", server "${c.shape}"`);
+			});
+			expect(!bad.length, `${bad.length} of ${server.cases.length * 2} answers disagree:\n  ${bad.slice(0, 6).join("\n  ")}`);
 		});
 
 		await test("parts: one page carries every switch and every placement, and each one moves the desk", async () => {
@@ -15742,6 +16290,136 @@ print("ok")
 			expectEq(headOrder, "-1", "Headline puts the value first");
 		});
 
+		await test("workspace: a number card's delta clears AA in every state it can take, in both modes", async () => {
+			// THE KIT'S DELTA RULE NEVER APPLIED. Item 25 re-tokenised `.green-stat`
+			// and `.red-stat` at (0,4,1) against Frappe's own
+			// `.widget.number-widget-box .widget-body .widget-content .green-stat` at
+			// (0,5,0), so the desk kept Frappe's greens and reds — and `.grey-stat` was
+			// never re-pointed at all. Measured 2026-09-28 on the shipped desk: five of
+			// six state × mode pairs under 4.5:1 (light grey 4.06, green 2.32, red 4.30;
+			// dark grey 3.58, red 3.38). Found through the axe gate, whose dashboard
+			// count grew once the demo customer aged into the grey "0 %" state — the
+			// state was always there to be taken; the gate only saw it when the data
+			// took it. So every state is measured here, made rather than waited for: the
+			// class is set on the card's own stat row, in a separate evaluate from the
+			// read, and the read polls until three frames agree.
+			//
+			// Colours resolve through a canvas, which paints any syntax Chrome emits
+			// (rgb, color(srgb …), oklab from color-mix) — a digits-only parse would
+			// read `color(srgb 0.4 …)` as near-black — and an unparseable one THROWS.
+			// The background is the EFFECTIVE one: translucent layers composited up to
+			// the first opaque ancestor.
+			await goDesk("/desk/dashboard-view/Selling", ".widget-group-body .number-widget-box", 5000);
+			const STAT = ".number-widget-box:not([style*='background']) .card-stats";
+			expect(await q(STAT + " .percentage-stat-area"), "premise: a number card shows a delta on the dashboard");
+			const measure = () => {
+				const cv = document.createElement("canvas");
+				cv.width = cv.height = 1;
+				const ctx = cv.getContext("2d", { willReadFrequently: true });
+				const rgba = (css) => {
+					ctx.clearRect(0, 0, 1, 1);
+					ctx.fillStyle = "#010203";
+					ctx.fillStyle = css;
+					if (ctx.fillStyle === "#010203" && !/^#010203$/i.test(css)) throw new Error("unparseable colour: " + css);
+					ctx.fillRect(0, 0, 1, 1);
+					const d = ctx.getImageData(0, 0, 1, 1).data;
+					return [d[0], d[1], d[2], d[3] / 255];
+				};
+				const lum = ([r, g, b]) => {
+					const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+					return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+				};
+				const over = (top, under) => [0, 1, 2].map((i) => top[i] * top[3] + under[i] * (1 - top[3])).concat(1);
+				const effective = (el) => {
+					const layers = [];
+					for (let n = el; n; n = n.parentElement) {
+						const c = rgba(getComputedStyle(n).backgroundColor);
+						if (c[3] > 0) layers.push(c);
+						if (c[3] >= 1) break;
+					}
+					if (!layers.length || layers[layers.length - 1][3] < 1) layers.push([255, 255, 255, 1]);
+					let base = layers.pop();
+					while (layers.length) base = over(layers.pop(), base);
+					return base;
+				};
+				const ratio = (fg, bg) => {
+					const f = fg[3] < 1 ? over(fg, bg) : fg;
+					const [hi, lo] = [lum(f), lum(bg)].sort((x, y) => y - x);
+					return Math.round(((hi + 0.05) / (lo + 0.05)) * 100) / 100;
+				};
+				return { rgba, effective, ratio };
+			};
+			const failures = [];
+			const seen = [];
+			try {
+				for (const mode of ["light", "dark"]) {
+					await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+					for (const state of ["grey-stat", "green-stat", "red-stat"]) {
+						// The row takes the state; a rise or a fall also gets its arrow, built
+						// the way number_card_widget.js builds it (the round pill + Frappe's
+						// own icon helper), because a "0 %" card renders no arrow to measure.
+						await page.evaluate(
+							({ sel, s }) => {
+								const row = document.querySelector(sel);
+								row.classList.remove("grey-stat", "green-stat", "red-stat");
+								row.classList.add(s);
+								for (const old of row.querySelectorAll(".indicator-pill-round[data-bnd-test]")) old.remove();
+								if (s !== "grey-stat") {
+									const hue = s === "green-stat" ? "green" : "red";
+									const icon = s === "green-stat" ? "es-line-arrow-up-right" : "arrow-down-right";
+									row.querySelector(".percentage-stat-area").insertAdjacentHTML(
+										"afterbegin",
+										`<span class="indicator-pill-round ${hue}" data-bnd-test="">${frappe.utils.icon(icon, "xs")}</span>`
+									);
+								}
+							},
+							{ sel: STAT, s: state }
+						);
+						const r = await page.evaluate(
+							async ({ sel, src }) => {
+								const { rgba, effective, ratio } = new Function("return (" + src + ")()")();
+								const read = () => {
+									const el = document.querySelector(sel + " .percentage-stat-area");
+									const icon = document.querySelector(sel + " .indicator-pill-round use");
+									const fgCss = getComputedStyle(el).color;
+									const bg = effective(el);
+									return {
+										fg: fgCss,
+										text: ratio(rgba(fgCss), bg),
+										// The arrow is a graphic, 1.4.11's 3:1, measured against what it
+										// is drawn ON — the pill, not the card.
+										icon: icon ? ratio(rgba(getComputedStyle(icon).stroke), effective(icon.closest("svg"))) : null,
+									};
+								};
+								let last = null;
+								let same = 0;
+								for (let i = 0; i < 60; i++) {
+									await new Promise((res) => requestAnimationFrame(res));
+									const now = read();
+									same = last && now.fg === last.fg ? same + 1 : 0;
+									last = now;
+									if (same >= 2) break;
+								}
+								return last;
+							},
+							{ sel: STAT, src: measure.toString() }
+						);
+						seen.push(`${mode}/${state} ${r.text}${r.icon === null ? "" : " icon " + r.icon}`);
+						if (r.text < 4.5) failures.push(`${mode} ${state} text ${r.text}:1 (${r.fg})`);
+						// Anti-vacuity: a rise and a fall MUST have produced an arrow to measure.
+						if (state !== "grey-stat" && r.icon === null) failures.push(`${mode} ${state}: no arrow rendered to measure`);
+						if (r.icon !== null && r.icon < 3) failures.push(`${mode} ${state} icon ${r.icon}:1`);
+					}
+				}
+			} finally {
+				await page.evaluate(() => {
+					for (const n of document.querySelectorAll(".indicator-pill-round[data-bnd-test]")) n.remove();
+					document.documentElement.setAttribute("data-theme", "light");
+				});
+			}
+			expectEq(failures.join("; "), "", "every delta state clears AA on its card (" + seen.join(" · ") + ")");
+		});
+
 		// ── Chart series palette (item 25) ─────────────────────────────────
 		//
 		// A runtime kit, not a settings one: no attribute, no picker — bunood.js
@@ -16338,6 +17016,26 @@ print("ok")
 		// is the anchor + the four repairs; the band/mark/media/reveal axes and
 		// the calendar colour wrap are slice 3.
 		const VIEWS_KANBAN = "/app/todo/view/kanban/Bunood%20Memos";
+		// THE CALENDAR ON THE FIXTURE MONTH. tools/fixtures-views.mjs seeds a FIXED month and
+		// says the suite navigates to it; until v0.49.0 no check did. Each opened the CURRENT
+		// month, so they passed while that month happened to hold a couple of stray ToDos
+		// (September 2026) and timed out on an empty October. The month is read off the seeded
+		// rows themselves — restating the tool's date here would be a second copy of it.
+		let viewsMonth = null;
+		const goViewsCalendar = async () => {
+			if (!viewsMonth) {
+				viewsMonth = JSON.parse(
+					benchPy(
+						`print("BND" + json.dumps(str(frappe.db.sql("select min(date) from tabToDo where description like %s", ("%[bnd-fixture]%",))[0][0])))\n`
+					).split("BND")[1].trim()
+				);
+				if (!/^\d{4}-\d{2}-\d{2}$/.test(viewsMonth)) throw new Error(`no seeded fixture month (${viewsMonth}) — run \`npm run fixtures:views\``);
+			}
+			await goDesk("/app/todo/view/calendar", ".fc", 6000);
+			await page.waitForFunction(() => window.cur_list && cur_list.calendar && cur_list.calendar.fullCalendar, undefined, { timeout: 30000 });
+			await page.evaluate((d) => cur_list.calendar.fullCalendar.gotoDate(d), viewsMonth);
+			await page.waitForSelector(".fc-daygrid-block-event", { state: "visible", timeout: 30000 });
+		};
 
 		await test("views: Original applies nothing at all", async () => {
 			// The stand-down must be total: no attribute survives AND the kanban
@@ -16356,7 +17054,7 @@ print("ok")
 			// under Original, or events keep our accent while the SCSS reverts (an
 			// adversarial-review finding: the wrap was ungated). Events must carry
 			// NO accent-derived fill.
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const cal = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				const h = accent.replace("#", "");
@@ -16584,7 +17282,7 @@ print("seeded")
 			);
 			try {
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const g = await page.evaluate(() => {
 				const accent = getComputedStyle(document.documentElement).getPropertyValue("--bnd-accent").trim();
 				// accent hex -> "r, g, b"
@@ -16618,7 +17316,7 @@ print("cleared")
 			// hue; Outlined: transparent with a coloured border. Both fail against
 			// stock, whose events are always filled blocks.
 			setSettings({ views_style: "Floating Cards", views_mark: "Dot" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const dot = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				const main = ev.querySelector(".fc-event-main");
@@ -16633,7 +17331,7 @@ print("cleared")
 			expect(dot.dot && dot.dot !== "auto" && dot.dot !== "0px", `the dot ::before is rendered (width ${dot.dot})`);
 
 			setSettings({ views_mark: "Outlined" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const outlined = await page.evaluate(() => {
 				const ev = document.querySelector(".fc-daygrid-block-event");
 				return { bg: getComputedStyle(ev).backgroundColor, border: getComputedStyle(ev).borderInlineStartColor };
@@ -16649,7 +17347,7 @@ print("cleared")
 			// before and after a data-theme flip; it must change (accent moves
 			// #4463f0 -> #516ef1 in dark).
 			setSettings({ views_style: "Floating Cards", views_mark: "Chip" });
-			await goDesk("/app/todo/view/calendar", ".fc-daygrid-block-event", 6000);
+			await goViewsCalendar();
 			const flip = await page.evaluate(async () => {
 				const bg = () => {
 					const evs = [...document.querySelectorAll(".fc-daygrid-block-event")];
@@ -17458,7 +18156,6 @@ print("cleared")
 			expect(o, "the freeze overlay rendered under Original too");
 			expect(/^rgb\(/.test(o.boxBg), `Original leaves stock's opaque sheet alone (${o.boxBg})`);
 		});
-
 
 		await test("overlay: Blurred blurs, and is guarded", async () => {
 			// The blur is progressive enhancement — shadcn guards every one of its
@@ -20068,7 +20765,10 @@ print("cleared")
 							`meta = frappe.get_meta("Theme Settings")\n` +
 							`opts = {f: [o for o in (meta.get_field(f).options or "").split("\\n") if o]\n` +
 							`        for f in AUTH_CLASSES}\n` +
-							`defs = {f: meta.get_field(f).default for f in AUTH_CLASSES}\n` +
+							`from bunood_theme.setup import SHIPPED\n` +
+							// The SHIPPED value, not the doctype's `default`: the JSON carries
+							// none since the settings audit of 2026-09-21 (decision ii-2).
+							`defs = {f: SHIPPED.get(f) for f in AUTH_CLASSES}\n` +
 							`print(json.dumps({"map": AUTH_CLASSES,\n` +
 							`                  "opts": {k: sorted(v) for k, v in opts.items()},\n` +
 							`                  "defs": defs}))\n`
@@ -22781,7 +23481,6 @@ print("cleared")
 			}
 		});
 
-
 		await test("email: every email has a floor of its own", async () => {
 			// CONTRACT E1, and the finding that reshaped this item. `standard.html`
 			// paints a ground only under `with_container`, and
@@ -23000,7 +23699,6 @@ print("cleared")
 			}
 		});
 
-
 		await test("email: the class map and the field options are one fact", async () => {
 			// Item 32 built this check for the login kit after `SETTINGS_PANE_KEYS`
 			// was found listing seven kits short; item 33 never got one. It is
@@ -23054,8 +23752,10 @@ print("cleared")
 				for (const value of Object.keys(d.slugs)) {
 					expect(d.options.includes(value), `${field}: vocabulary has orphan "${value}"`);
 				}
-				expect(d.options.includes(d.default), `${field}: doctype default "${d.default}" is not an option`);
-				expectEq(d.default, d.shipped, `${field}: the doctype default and EMAIL_DEFAULTS disagree`);
+				expect(d.options.includes(d.shipped), `${field}: shipped default "${d.shipped}" is not an option`);
+				// The doctype carries no copy of the default (audit 2026-09-21, ii-2):
+				// EMAIL_DEFAULTS is the one statement and the seeder writes it.
+				expectEq(d.default, null, `${field}: the doctype carries no default of its own`);
 				// The neutral is always first, and for a MAPPED field it always means
 				// the ABSENCE of a class — which is what makes the stand-down
 				// structural rather than a rule that has to remember to do nothing.
@@ -23166,7 +23866,6 @@ print("cleared")
 				await ctx.close();
 			}
 		});
-
 
 		await test("email: both axes reach a rendered message", async () => {
 			// The whole point of an axis is that changing it changes the email. Item
@@ -23333,7 +24032,6 @@ print("cleared")
 			// "asserting something this app does not control" trap the markers check
 			// two tests up refuses by name.
 		});
-
 
 		await test("email: the framework's name is nowhere in a message", async () => {
 			// EACH HALF ASSERTS THE STOCK VALUE FIRST, BY NAME. Item 33 ran nine
@@ -24137,6 +24835,165 @@ print("cleared")
 			);
 		});
 
+		await test("personal: a personal pane state does not change the derived desk shape", async () => {
+			// THE DERIVATION READ THE OVERLAID MAP (the settings audit of 2026-09-21,
+			// finding c-1). `bnd_desk_shape` was computed AFTER `bnd_pane_state` had
+			// overwritten `sidebar_pane_state`, so a personal Rail derived Rail + Flyout
+			// and a personal Hidden derived "" — and `search_fallback_order` then took
+			// the Top Bar order on a desk with no top bar. Pane state is COMFORT
+			// (decision i-1 of that audit): the shape is the site's, or the person's
+			// named layout, never their pane comfort. Measured through the fixture
+			// user, whose comfort lock ships open.
+			const site = JSON.parse(
+				benchPy(
+					`from bunood_theme.presets import layout_of\n` +
+						`d = frappe.get_cached_doc("Theme Settings").as_dict()\n` +
+						`print("BND" + json.dumps({"shape": layout_of(d), "pane": d.get("sidebar_pane_state")}))\n`
+				)
+					.split("BND")[1]
+					.trim()
+			);
+			const siteShape = JSON.stringify(site.shape);
+			// A PERSONAL VALUE THAT DIFFERS FROM THE SITE'S, or the premise is empty:
+			// the first draft wrote Hidden while a filtered run had the site on Top
+			// Taskbar (pane Hidden already), and passed on a derivation that was wrong.
+			const personal = site.pane === "Rail" ? "Open" : "Rail";
+			await withPersonal(DESK_FIXTURE.user, { bnd_pane_state: personal }, async () => {
+				// THE SERVED PAYLOAD IS THE SUBJECT: `bnd_desk_shape` is composed once,
+				// server-side, in `extend_bootinfo`, and nothing on the client derives it
+				// again (only the form's `shape_apply` ever rewrites it). Built here as
+				// the fixture user, the way a desk load builds it.
+				const served = JSON.parse(
+					benchPy(
+						`U = ${JSON.stringify(DESK_FIXTURE.user)}\n` +
+							`from bunood_theme import boot\n` +
+							`frappe.set_user(U)\n` +
+							`bi = frappe._dict()\nboot.extend_bootinfo(bi)\n` +
+							`frappe.set_user("Administrator")\n` +
+							`print("BND" + json.dumps({"shape": bi.get("bnd_desk_shape") or "", "pane": (bi.get("bnd_sidebar") or {}).get("panestate")}))\n`
+					)
+						.split("BND")[1]
+						.trim()
+				);
+				expectEq(served.pane, personal, "premise: the personal pane state applies in the payload");
+				const client = await withDeskUser("/app", "body", async (dp) => {
+					await dp.waitForTimeout(1500);
+					return dp.evaluate(() => ({ shape: frappe.boot.bnd_desk_shape || "", pane: document.documentElement.getAttribute("data-bnd-sb-panestate") }));
+				});
+				expectEq(
+					JSON.stringify(served.shape),
+					siteShape,
+					"the derived shape is the site's layout, not the person's pane comfort (the desk's own client read: " +
+						JSON.stringify(client) +
+						")"
+				);
+			});
+		});
+
+		await test("personal: the pane's hide gesture is remembered across a reload", async () => {
+			// THE AXIS WITH A READER AND NO WRITER (the settings audit of 2026-09-21,
+			// finding a-2). `bnd_pane_state` was declared in personal.py, read at boot,
+			// documented in registry.py as "the person wins" — and nothing wrote it, so
+			// the pane's Hide button re-stamped attributes and forgot on reload. The
+			// gesture writes through `api.set_personal` now (decision i-3 a), under the
+			// comfort lock the fixture ships open. Measured as the fixture user on a
+			// LIST: /app/home is not a workspace this Desk User can open (its route
+			// resolves to a bare "home" and the pane kit never mounts there — measured
+			// 2026-09-21), while a list mounts the head and holds a hidden pane
+			// (v0.44.1). The pane starts Open FOR THIS PERSON whatever the site's state
+			// is at this point of a filtered run (the section-level Top Taskbar write
+			// hides it), the gesture is the button a person clicks, and the reload is
+			// a fresh boot.
+			const U = DESK_FIXTURE.user;
+			await withPersonal(U, { bnd_pane_state: "Open" }, async () => {
+				const seen = await withDeskUser("/app/todo", ".body-sidebar .bnd-sb-brand-hide", async (dp) => {
+					await dp.waitForTimeout(1500);
+					const clicked = await dp.evaluate(() => {
+						const hide = document.querySelector(".body-sidebar .bnd-sb-brand-hide");
+						if (!hide) return "no hide button";
+						hide.click();
+						return "clicked";
+					});
+					await dp.waitForTimeout(2000);
+					const stored = JSON.parse(
+						benchPy(
+							`U = ${JSON.stringify(U)}\n` +
+								`print("BND" + json.dumps(frappe.defaults.get_user_default("bnd_pane_state", U) or ""))\n`
+						).split("BND")[1].trim()
+					);
+					await dp.reload({ waitUntil: "domcontentloaded" });
+					await dp.waitForSelector("body", { timeout: 30000 });
+					await dp.waitForTimeout(3500);
+					const after = await dp.evaluate(() => ({
+						pane: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+						boot: ((frappe.boot && frappe.boot.bnd_personal) || {}).pane_state || "",
+					}));
+					return { clicked, stored, after };
+				});
+				expectEq(seen.clicked, "clicked", "premise: the pane's hide button is on the page");
+				expectEq(seen.stored, "Hidden", "the gesture wrote the person's pane state");
+				expectEq(seen.after.boot, "Hidden", "and boot serves it back after a reload");
+				expectEq(seen.after.pane, "hidden", "so the pane stays hidden on the next load");
+			});
+		});
+
+		await test("personal: the legacy side-pane look is retired, and its rows are carried", async () => {
+			// `api.set_user_sidebar_preset` had no caller anywhere, while a stored
+			// `bnd_sidebar_preset` row still applied twelve fields at boot with no way
+			// to change it (audit 2026-09-21, finding a-3; decision i-4 a). The axis is
+			// gone, the endpoint is gone, and the patch carries a stored name into
+			// `bnd_look` for a person who has none. The retired row is seeded the way
+			// frappe.defaults.add_default builds one — a DefaultValue document — because
+			// the build's personal-axes guard reads any `frappe.defaults.*("key")` call
+			// as that key being live.
+			const U = DESK_FIXTURE.user;
+			const axes = JSON.parse(
+				benchPy(`from bunood_theme import personal\nprint("BND" + json.dumps([r["key"] for r in personal.AXES]))\n`)
+					.split("BND")[1]
+					.trim()
+			);
+			expect(!axes.includes("bnd_sidebar_preset"), "the axis is retired");
+			// GONE, NOT REFUSING. Frappe answers a deleted whitelisted method with 417
+			// ("Failed to get method"), the same status a live method's frappe.throw
+			// gets — so the status alone cannot tell "deleted" from "refused", and the
+			// module is asked directly as well.
+			const gone = JSON.parse(
+				benchPy(`from bunood_theme import api\nprint("BND" + json.dumps(not hasattr(api, "set_user_sidebar_preset")))\n`)
+					.split("BND")[1]
+					.trim()
+			);
+			expect(gone, "the endpoint is gone from the module");
+			// FROM THE TEST'S OWN HTTP CLIENT, NOT THE PAGE: a fetch inside the page makes
+			// the browser log the 417, and the console-error budget then counted this
+			// check's deliberate probe as a desk error (full suite 2026-09-27, 553/555).
+			// `page.request` shares the context's cookies — the same session, the same
+			// route — and reaches no console.
+			const csrf = await page.evaluate(() => frappe.csrf_token);
+			const res = await page.request.post(`${URL_BASE}/api/method/bunood_theme.api.set_user_sidebar_preset`, {
+				headers: { "X-Frappe-CSRF-Token": csrf },
+				data: { preset: "" },
+			});
+			const status = res.status();
+			expect(status !== 200, "and nothing answers at its address (HTTP " + status + ")");
+			await withPersonal(U, { bnd_look: "" }, async () => {
+				const out = JSON.parse(
+					benchPy(
+						`U = ${JSON.stringify(U)}\n` +
+							`frappe.get_doc({"doctype": "DefaultValue", "parent": U, "parenttype": "__default", "parentfield": "system_defaults", "defkey": "bnd_sidebar_preset", "defvalue": "Focus"}).insert(ignore_permissions=True)\n` +
+							`frappe.db.commit()\n` +
+							`from bunood_theme.patches.v0_49_0 import retire_sidebar_preset_key as p\n` +
+							`p.execute()\n` +
+							`rows = frappe.db.sql("select defkey, defvalue from tabDefaultValue where parent=%s and defkey in ('bnd_sidebar_preset','bnd_look')", U, as_dict=True)\n` +
+							`print("BND" + json.dumps({r.defkey: r.defvalue for r in rows}))\n`
+					)
+						.split("BND")[1]
+						.trim()
+				);
+				expectEq(out.bnd_sidebar_preset, undefined, "the retired row is gone");
+				expectEq(out.bnd_look, "Focus", "and its name was carried into the whole-desk look");
+			});
+		});
+
 		await test("personal: Automatic survives a desk load", async () => {
 			// THE BRANCH NOBODY HAD EVER RUN. ARCHITECTURE §3 claimed from
 			// 2026-07-29 that `User.desk_theme = "Automatic"` normalises to Light
@@ -24168,7 +25025,9 @@ print("cleared")
 			// which is exactly what the first draft did.
 			const before = JSON.parse(read());
 			try {
-				const seen = await withDeskUser("/app", ".body-sidebar-container", async (dp) => {
+				// Waits on the BODY: the subject is two attributes on <html>, and the pane's
+				// visibility is another check's premise (a hidden pane once timed this out).
+				const seen = await withDeskUser("/app", "body", async (dp) => {
 					await dp.waitForTimeout(1200);
 					return dp.evaluate(() => ({
 						attr: document.documentElement.getAttribute("data-theme"),

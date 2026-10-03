@@ -42,7 +42,7 @@ THE RULES THIS TABLE ENCODES
 
     * **A preference is a NAME or an ergonomic value, never a loose style knob.**
       A person picks a whole designed look; option-level freedom is the
-      administrator's. Storing a name rather than 123 values is what lets a look
+      administrator's. Storing a name rather than every value is what lets a look
       be improved later without migrating everyone who chose it.
 
     * **Every write names its parent.** ``frappe.defaults.set_default`` without
@@ -118,9 +118,9 @@ STATE = "state"
 #: Declared here rather than beside the fields because the lock is a property of
 #: the PREFERENCE, and the doctype only holds its storage.
 #:
-#: ``default`` is what a site gets, and the two that already ship must default
-#: OPEN: ``bnd_density`` and ``bnd_sidebar_preset`` have live users, so a locked
-#: default would silently withdraw a working feature on upgrade. Shape defaults
+#: ``default`` is what a site gets, and the axes that already ship must default
+#: OPEN: ``bnd_density`` has live users, so a locked default would silently
+#: withdraw a working feature on upgrade. Shape defaults
 #: CLOSED because it is new, costs nobody anything to opt into, and is the only
 #: axis that invalidates written instructions — "click the bell in the top bar"
 #: is wrong in four of the five shapes.
@@ -167,8 +167,10 @@ AXES = (
         "since": "item 38",
         "note": (
             "A whole named look, applied across every desk surface — the fields "
-            "in LOOK_FIELDS and no others. Wins over the older, narrower "
-            "bnd_sidebar_preset wherever both are set."
+            "in LOOK_FIELDS and no others. The older, narrower bnd_sidebar_preset "
+            "retired into it (the settings audit of 2026-09-21, decision i-4): its "
+            "menu had been gone for releases while its rows still applied twelve "
+            "fields nobody could change."
         ),
     },
     {
@@ -250,26 +252,8 @@ AXES = (
             "the more recent and more specific statement about the same desk."
         ),
     },
-    {
-        "key": "bnd_sidebar_preset",
-        "kind": PREFERENCE,
-        "label": "Side pane look",
-        # The catalogue, not a copy of it. Item 37 re-pointed this key at the
-        # THEME presets and item 37's release review migrated the stored values;
-        # naming the source here is what stops a fifth spelling of that list.
-        "values": None,  # resolved by values_for() — see below
-        "catalogue": "THEME_PRESETS",
-        "lock": "personal_look",
-        "boot": "bnd_sidebar.user_preset",
-        "empty": "follow the site's side pane",
-        "since": "v0.6.0, re-pointed by item 37",
-        "note": (
-            "Applies the EIGHTEEN sidebar fields of the named look and nothing "
-            "else. Item 38 leaves both the name and that meaning alone and adds "
-            "the whole-desk look beside it, rather than widening ~100 fields "
-            "under people who chose an 18-field one."
-        ),
-    },
+    # `bnd_sidebar_preset` stood here from v0.6.0 until the settings audit of
+    # 2026-09-21 retired it into `bnd_look` (patches/v0_49_0/retire_sidebar_preset_key).
     {
         "key": "bnd_motion",
         "kind": PREFERENCE,
