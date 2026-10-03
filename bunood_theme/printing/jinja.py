@@ -55,10 +55,10 @@ def bunood_print_image_src(value):
 def bunood_amount_in_words(amount, currency, precision=2):
     """Print-only wording of the same payable number the template displays."""
     try:
-        # Integration v0.48.0: amount_words lives only on the experimental line,
-        # not on main. Until it is approved and ported, Arabic SAR falls through
-        # to ERPNext's own wording below instead of raising ImportError and
-        # taking the whole invoice render down.
+        # printing/amount_words ships with the theme again (team integration
+        # 2026-10-03). The guard stays: if its num2words dependency is ever
+        # missing, Arabic SAR falls through to ERPNext's own wording below
+        # instead of raising ImportError and taking the invoice render down.
         from bunood_theme.printing.amount_words import arabic_sar_words
     except ImportError:
         arabic_sar_words = None
@@ -79,7 +79,7 @@ def bunood_amount_in_words(amount, currency, precision=2):
 
     words = frappe.utils.money_in_words(abs(amount), currency)
     if currency == "SAR":
-        # Arabic prints reach here only while amount_words is absent (see the
+        # Arabic prints reach here only if amount_words cannot load (see the
         # import above); ERPNext's Arabic wording then needs an Arabic unit.
         unit = "ريال سعودي" if bunood_print_language() == "ar" else "Saudi riyals"
         words = words.replace("SAR", unit)
