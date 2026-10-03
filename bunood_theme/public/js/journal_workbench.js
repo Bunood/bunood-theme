@@ -271,6 +271,12 @@
 		applyHost.append(apply);
 		filters.append(companyHost, fromHost, toHost, applyHost);
 		const content = el("div", "bnd-close__content");
+		// Until the first evidence arrives (renderResult replaces it), say what
+		// to choose and that nothing is posted from here.
+		const prompt = el("section", "bnd-close__prompt");
+		prompt.append(el("h2", "", __("Review journals for a company and period")));
+		prompt.append(el("p", "", __("Choose the boundary to see draft entries and supporting evidence. Posting stays in the native Journal Entry.")));
+		content.append(prompt);
 		root.append(intro, filters, content);
 		container.append(root);
 

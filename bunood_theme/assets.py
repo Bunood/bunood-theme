@@ -10,7 +10,7 @@ bundle name, resolve it against a stale ``assets.json``, and prefix it with
 ``rtl_`` on Arabic sites. See ARCHITECTURE.md section 6.
 """
 
-THEME_CSS = "/assets/bunood_theme/dist/css/bunood.8e2b716f.css"
+THEME_CSS = "/assets/bunood_theme/dist/css/bunood.7789a1b0.css"
 WEB_CSS = "/assets/bunood_theme/dist/css/bunood-web.7c057716.css"
 EMAIL_CSS = "/assets/bunood_theme/dist/css/bunood-email.1c5e93a1.css"
 PRINT_CSS = "/assets/bunood_theme/dist/css/bunood-print.2ffa3ccd.css"
@@ -21,6 +21,6 @@ THEME_JS = "/assets/bunood_theme/dist/js/bunood.e896d4bb.js"
 STUDIO_JS = "/assets/bunood_theme/dist/js/bnd-studio.fe49b4ef.js"
 REPORT_LANDING_JS = "/assets/bunood_theme/dist/js/bnd-report-landing.100eb9be.js"
 BANKING_JS = "/assets/bunood_theme/dist/js/bnd-banking.67465a0d.js"
-FINANCE_CLOSE_JS = "/assets/bunood_theme/dist/js/bnd-finance-close.9c165470.js"
-JOURNAL_WORKBENCH_JS = "/assets/bunood_theme/dist/js/bnd-journal-workbench.6d55830c.js"
+FINANCE_CLOSE_JS = "/assets/bunood_theme/dist/js/bnd-finance-close.77302a66.js"
+JOURNAL_WORKBENCH_JS = "/assets/bunood_theme/dist/js/bnd-journal-workbench.756d4dc9.js"
 POS_JS = "/assets/bunood_theme/dist/js/bnd-pos.a4f0f9af.js"

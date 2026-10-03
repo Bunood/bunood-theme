@@ -198,7 +198,8 @@
 		"AND studio_js 38100 -> 38550 (measured 38,296) for the contextual hand-off a Studio link can carry (company and period in route_options, taken once).",
 		"AND studio_js 38550 -> 39050 (measured 38,770) for document links aimed at the served value, skipped on total rows and given the way back on Frappe's own anchors.",
 		"AND report_landing_js 2150 -> 2500 (measured 2,256) for the landing's permission gate: cards only for report Pages this user's roles open, from boot.bnd_report_landing_permitted_pages.",
-		"INTEGRATION team 2026-10-03, Studio routing (team R3): js 137800 -> 138550 (measured 138,311) for bunood.studio_report_route, the one mapping the finance desks' report buttons use; banking_js 5000 -> 5300 (measured 5,074) for the bank account's statement opened in the Studio with its company and period."
+		"INTEGRATION team 2026-10-03, Studio routing (team R3): js 137800 -> 138550 (measured 138,311) for bunood.studio_report_route, the one mapping the finance desks' report buttons use; banking_js 5000 -> 5300 (measured 5,074) for the bank account's statement opened in the Studio with its company and period.",
+		"AND finance_close_js 3700 -> 4100 (measured 3,827) / journal_workbench_js 4500 -> 4850 (measured 4,582) for the prompt each desk shows until its first evidence loads; css measured 31,007 of 32,000 with its panel."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
@@ -211,8 +212,8 @@
 		"pos_js_gzip": 9200,
 		"web_css_gzip": 4450,
 		"banking_js_gzip": 5300,
-		"finance_close_js_gzip": 3700,
-		"journal_workbench_js_gzip": 4500,
+		"finance_close_js_gzip": 4100,
+		"journal_workbench_js_gzip": 4850,
 		"email_css_gzip": 2000,
 		"print_css_gzip": 8000
 	},

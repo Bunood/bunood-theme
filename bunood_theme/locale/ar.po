@@ -11642,3 +11642,27 @@ msgstr "تعذّر تحميل التقرير"
 #, fuzzy
 msgid "Could not load matches. Try again."
 msgstr "تعذّر تحميل النتائج المطابقة. حاول مرة أخرى."
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the period before closing"
+msgstr "راجع الفترة قبل إقفالها"
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose a company and dates, then review the evidence. No books are changed here."
+msgstr "اختر الشركة والتواريخ ثم راجع المستندات المؤيدة. لا تتغير الدفاتر في هذه الخطوة."
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review journals for a company and period"
+msgstr "مراجعة القيود اليومية لشركة وفترة محددتين"
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose the boundary to see draft entries and supporting evidence. Posting stays in the native Journal Entry."
+msgstr "حدد نطاق الفترة لعرض القيود المسودة والمستندات المؤيدة. يبقى الترحيل في شاشة القيد اليومي الأصلية."

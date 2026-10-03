@@ -72,3 +72,12 @@ test("the first evidence loads once the default company has actually been set", 
 	assert.doesNotMatch(js, /\n\t\tif \(company\.get_value\(\)\) load\(\);/);
 	assert.match(js, /Promise\.resolve\(frappe\.call\(\{\s+method: METHOD,/);
 });
+
+test("until the first evidence loads, the desk says what to choose and that nothing is posted", () => {
+	assert.match(js, /const prompt = el\("section", "bnd-close__prompt"\);/);
+	assert.match(js, /__\("Review the period before closing"\)/);
+	assert.match(js, /content\.append\(prompt\);/);
+	assert.match(js, /function renderResult\(data, content\) \{\s+content\.replaceChildren\(\);/, "the first result replaces it");
+	assert.match(scss, /&__prompt \{[^}]*border-inline-start: 4px solid var\(--bnd-brand\);/s);
+	assert.ok(ar.split(/\r?\n/).some((line) => line.startsWith("Review the period before closing,")), "Review the period before closing");
+});

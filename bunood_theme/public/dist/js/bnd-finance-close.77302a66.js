@@ -170,6 +170,12 @@
 		applyHost.append(apply);
 		filters.append(companyHost, fromHost, toHost, applyHost);
 		const content = el("div", "bnd-close__content");
+		// Until the first evidence arrives (renderResult replaces it), say what
+		// to choose and that nothing is posted from here.
+		const prompt = el("section", "bnd-close__prompt");
+		prompt.append(el("h2", "", __("Review the period before closing")));
+		prompt.append(el("p", "", __("Choose a company and dates, then review the evidence. No books are changed here.")));
+		content.append(prompt);
 		root.append(intro, filters, content);
 		container.append(root);
 

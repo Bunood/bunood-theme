@@ -7894,6 +7894,23 @@ html[data-theme] .bnd-close__content {
   display: grid;
   gap: var(--bnd-sp-5);
 }
+html[data-theme] .bnd-close__prompt {
+  max-inline-size: 48rem;
+  padding: var(--bnd-sp-5);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-inline-start: 4px solid var(--bnd-brand);
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-surface);
+}
+html[data-theme] .bnd-close__prompt h2 {
+  margin: 0 0 var(--bnd-sp-2);
+  font-size: var(--bnd-text-lg);
+}
+html[data-theme] .bnd-close__prompt p {
+  margin: 0;
+  color: var(--bnd-ink-muted);
+  line-height: 1.65;
+}
 html[data-theme] .bnd-close__state, html[data-theme] .bnd-close__failure {
   padding: var(--bnd-sp-5);
   border-inline-start: 4px solid var(--bnd-warn);
