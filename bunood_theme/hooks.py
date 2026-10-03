@@ -62,6 +62,10 @@ doctype_js = {
 doctype_list_js = {
     "Quotation": "public/js/quotation_list.js",
     "Sales Invoice": "public/js/sales_invoice_list.js",
+    # Task-first columns (title, status, grand total, ID, due and posting
+    # dates) through ListView's column API, only when the user has no saved
+    # layout; ERPNext's own onload/before_render still run first.
+    "Purchase Invoice": "public/js/purchase_invoice_list.js",
 }
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
