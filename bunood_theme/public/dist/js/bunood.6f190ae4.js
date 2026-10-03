@@ -2160,6 +2160,17 @@
 		},
 		true
 	);
+	// Not modal: a click anywhere outside the panel and its toggle closes it,
+	// leaving focus where the click put it. The form is resolved per event,
+	// because Frappe caches pages.
+	document.addEventListener("pointerdown", (e) => {
+		if (document.documentElement.getAttribute(DRAWER_ATTR) !== "open") return;
+		const frm = window.cur_frm;
+		const footer = frm && frm.footer && frm.footer.wrapper && frm.footer.wrapper[0];
+		const path = (e.composedPath && e.composedPath()) || [];
+		if (path.includes(footer) || path.includes(drawer_current_toggle())) return;
+		drawer_set_open(false);
+	}, true);
 
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
