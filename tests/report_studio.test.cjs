@@ -102,6 +102,15 @@ test("Arabic Trial Balance and VAT Summary labels come from fieldnames, and serv
 	assert.match(source, /report\.name === "VAT Summary" && typeof raw === "string" &&\s+\["entry", "note"\]\.includes\(col\.fieldname\)\) raw = __\(raw\)/);
 });
 
+test("a report response that arrives after its view was replaced draws nothing", () => {
+	assert.match(source, /viewToken: 0,/);
+	assert.match(source, /function gallery\(\) \{\s+state\.viewToken\+\+;/);
+	assert.match(source, /const viewToken = \+\+state\.viewToken;/);
+	assert.match(source, /const loadId = \+\+loadSequence;/);
+	const guards = source.match(/if \(state\.viewToken !== viewToken \|\| loadId !== loadSequence\) return;/g) || [];
+	assert.equal(guards.length, 2, "both the success and the failure path are guarded");
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

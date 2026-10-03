@@ -1722,6 +1722,9 @@
 			query: "",
 			kind: "all",
 			entity: null,
+			// Bumped by every gallery and viewer render. A report request that
+			// resolves after its view was replaced must not draw into the new one.
+			viewToken: 0,
 		};
 
 		// ---- من هو صاحب الكشف — أنواعه الأربعة، تلزم المنتقي ومزامنة المسار ----
@@ -1818,6 +1821,7 @@
 
 		// ---- The gallery -----------------------------------------------------
 		function gallery() {
+			state.viewToken++;
 			container.innerHTML = "";
 			container.classList.remove("bnd-studio--viewer-open");
 			container.removeAttribute("aria-busy");
@@ -1973,6 +1977,10 @@
 
 		// ---- The viewer ------------------------------------------------------
 		function viewer() {
+			const viewToken = ++state.viewToken;
+			// Within one view, only the newest load may draw: Refresh, a company
+			// change and Retry can each start one while another is in flight.
+			let loadSequence = 0;
 			const report = state.report;
 			container.innerHTML = "";
 			container.classList.add("bnd-studio--viewer-open");
@@ -2495,6 +2503,7 @@
 			}
 
 			function load() {
+				const loadId = ++loadSequence;
 				skeleton();
 				const { filters, from, to } = buildFilters(report, state);
 				const [prevFrom, prevTo] = previousRange(from, to);
@@ -2505,6 +2514,7 @@
 					runReport(report.name, prevFilters).catch(() => null),
 				])
 					.then(([data, prevData]) => {
+						if (state.viewToken !== viewToken || loadId !== loadSequence) return;
 						const agg = aggregate(data, report);
 						const prevAgg = prevData ? aggregate(prevData, report) : null;
 						if (report.compose === "signSplit") composeSignSplit(agg, prevAgg, report);
@@ -2527,6 +2537,7 @@
 						resultActions.forEach((button) => { button.disabled = false; });
 					})
 					.catch((err) => {
+						if (state.viewToken !== viewToken || loadId !== loadSequence) return;
 						const message =
 							(err && err.message) || __("The report could not be run. Open the classic view for details.");
 						kpisEl.innerHTML = "";
