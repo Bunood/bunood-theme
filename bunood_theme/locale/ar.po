@@ -11600,3 +11600,9 @@ msgstr "عدد المستندات"
 #, fuzzy
 msgid "Report note"
 msgstr "ملاحظة"
+
+#. In report_studio.js (a point-in-time report's date)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "As of"
+msgstr "حتى تاريخ"

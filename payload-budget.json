@@ -190,12 +190,13 @@
 		"INTEGRATION v0.48.0: printing-documents' print-language choice adds its +600 js to the summed ceiling: 136250 + 600 = 136850.",
 		"INTEGRATION v0.49.0 (the settings audit onto v0.48.4): the audit's own net raise (js 131400 -> 132100, +700, the slice C writer, slice D1 ladder and the docblocks that ship, re-measured at the series' end) adds to the summed ceiling the same way: 136850 + 700 = 137550. css keeps the integration's 32000 — the audit shrank css (28,285 -> 28,003). Re-measured after the merged build: 137,557 gzip, 7 over the sum because gzip does not add; the ceiling takes the measurement plus the ~250 bytes of headroom both lines carried (274 at v0.46.7, 197-211 on the capability raises): 137800.",
 		"INTEGRATION team 2026-10-03, foundations: web_css 4200 -> 4450 for three width tokens the team's components share (--bnd-line-strong, --bnd-line-2, --bnd-focus-offset). _tokens.scss is shared with the web bundle, which carries every :root token: measured 4,203, +13 gzip.",
-		"INTEGRATION team 2026-10-03, Report Studio: studio_js 36000 -> 36500 (measured 36,220) for the team's translated column labels, tiles and notes and the stale-response guards (view and load tokens). The studio bundle ships unminified, so the comments count too."
+		"INTEGRATION team 2026-10-03, Report Studio: studio_js 36000 -> 36500 (measured 36,220) for the team's translated column labels, tiles and notes and the stale-response guards (view and load tokens). The studio bundle ships unminified, so the comments count too.",
+		"AND studio_js 36500 -> 36850 (measured 36,599) for the 'as of' reading of point-in-time reports: header chip, one-date custom period and export."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
 		"js_gzip": 137800,
-		"studio_js_gzip": 36500,
+		"studio_js_gzip": 36850,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,
 		"studio_css_gzip": 6500,

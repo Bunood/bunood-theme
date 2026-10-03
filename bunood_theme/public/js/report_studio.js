@@ -762,6 +762,11 @@
 			.then((r) => r.message || { columns: [], result: [] });
 	}
 
+	// A point-in-time report answers "as of" ONE date, the period's end (see
+	// filtersForRange). Its header, export and custom-period prompt say so,
+	// rather than showing a range whose start played no part in the figures.
+	const asOfDate = (report) => report.filter_mode === "asOn" || report.filter_mode === "postingDate";
+
 	function filtersForRange(report, state, from, to) {
 		let base;
 		switch (report.filter_mode) {
@@ -2009,8 +2014,9 @@
 				};
 				const [from, to] = periodRange(state.period, state.custom);
 				chip(__("Company VAT registration"), state.taxId);
-				chip(__("Report period"),
-					frappe.datetime.str_to_user(from) + " — " + frappe.datetime.str_to_user(to));
+				chip(asOfDate(report) ? __("As of") : __("Report period"),
+					asOfDate(report) ? frappe.datetime.str_to_user(to)
+						: frappe.datetime.str_to_user(from) + " — " + frappe.datetime.str_to_user(to));
 				chip(__("Printed on"),
 					frappe.datetime.str_to_user(D.get_today()) + " " + new Date().toLocaleTimeString());
 				if (agg) chip(__("Rows"), String(agg.bodyRows.length));
@@ -2068,13 +2074,21 @@
 				chip.setAttribute("aria-pressed", period.id === state.period ? "true" : "false");
 				chip.addEventListener("click", () => {
 					if (period.id === "custom") {
-						frappe.prompt(
-							[
+						const fields = asOfDate(report)
+							? [{ fieldname: "to", fieldtype: "Date", label: __("As of"), reqd: 1, default: state.custom.to }]
+							: [
 								{ fieldname: "from", fieldtype: "Date", label: __("From Date"), reqd: 1, default: state.custom.from },
 								{ fieldname: "to", fieldtype: "Date", label: __("To Date"), reqd: 1, default: state.custom.to },
-							],
+							];
+						frappe.prompt(
+							fields,
 							(values) => {
-								state.custom = { from: values.from, to: values.to };
+								// One date asked: the custom range keeps its start unless the
+								// new end falls before it — the range is shared with the next
+								// report opened, and an inverted one would read as empty there.
+								const from = values.from ||
+									(state.custom.from && state.custom.from <= values.to ? state.custom.from : values.to);
+								state.custom = { from: from, to: values.to };
 								state.period = "custom";
 								viewer();
 							},
@@ -3043,12 +3057,14 @@
 					: report.title();
 				const metaParts = [state.company || ""];
 				if (state.taxId) metaParts.push(__("Company VAT registration") + ": " + state.taxId);
-				metaParts.push(__("Report period") + ": " +
-					frappe.datetime.str_to_user(from) + " — " + frappe.datetime.str_to_user(to));
+				metaParts.push((asOfDate(report) ? __("As of") : __("Report period")) + ": " +
+					(asOfDate(report) ? frappe.datetime.str_to_user(to)
+						: frappe.datetime.str_to_user(from) + " — " + frappe.datetime.str_to_user(to)));
 				metaParts.push(__("Printed on") + ": " + frappe.datetime.str_to_user(D.get_today()));
 
 				xlsxDownload({
-					fileName: (report.key || frappe.scrub(report.name)) + "-" + from + "-" + to + ".xlsx",
+					fileName: (report.key || frappe.scrub(report.name)) + "-" +
+						(asOfDate(report) ? to : from + "-" + to) + ".xlsx",
 					sheetName: title,
 					rtl: isRtl(),
 					title: title,

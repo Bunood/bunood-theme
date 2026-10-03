@@ -111,6 +111,16 @@ test("a report response that arrives after its view was replaced draws nothing",
 	assert.equal(guards.length, 2, "both the success and the failure path are guarded");
 });
 
+test("a point-in-time report reads 'as of' one date in its header, export and custom period", () => {
+	assert.match(source, /const asOfDate = \(report\) => report\.filter_mode === "asOn" \|\| report\.filter_mode === "postingDate";/);
+	assert.match(source, /chip\(asOfDate\(report\) \? __\("As of"\) : __\("Report period"\),/);
+	assert.match(source, /\? \[\{ fieldname: "to", fieldtype: "Date", label: __\("As of"\), reqd: 1, default: state\.custom\.to \}\]/);
+	assert.match(source, /state\.custom\.from <= values\.to \? state\.custom\.from : values\.to/);
+	assert.match(source, /metaParts\.push\(\(asOfDate\(report\) \? __\("As of"\) : __\("Report period"\)\) \+ ": " \+/);
+	assert.match(source, /\(asOfDate\(report\) \? to : from \+ "-" \+ to\) \+ "\.xlsx"/);
+	assert.ok(ar.split(/\r?\n/).includes("As of,حتى تاريخ,"), "the label ships its Arabic");
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);
