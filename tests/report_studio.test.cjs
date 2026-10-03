@@ -79,6 +79,29 @@ test("Studio-owned Arabic labels are explicit and contextual", () => {
 	assert.match(source, /__\("Custom Period"\)/);
 });
 
+test("Arabic Trial Balance and VAT Summary labels come from fieldnames, and served text is translated", () => {
+	const rows = ar.split(/\r?\n/);
+	for (const [field, msgid, arabic] of [
+		["opening_debit", "Opening debit balance", "الرصيد الافتتاحي (مدين)"],
+		["opening_credit", "Opening credit balance", "الرصيد الافتتاحي (دائن)"],
+		["closing_debit", "Closing debit balance", "الرصيد الختامي (مدين)"],
+		["closing_credit", "Closing credit balance", "الرصيد الختامي (دائن)"],
+		["documents", "Document count", "عدد المستندات"],
+		["note", "Report note", "ملاحظة"],
+	]) {
+		assert.match(source, new RegExp(`${field}: \\(\\) => __\\("${msgid.replace(/[()]/g, "\\$&")}"\\)`), field);
+		assert.ok(rows.some((line) => line.startsWith(`${msgid},${arabic},`) || line.startsWith(`"${msgid}",${arabic},`)), msgid);
+	}
+	assert.match(source, /function classify\(columns, report\)/);
+	assert.match(source, /classify\(data\.columns \|\| \[\], report\)/);
+	assert.match(source, /isArabic\(\) && report && report\.name === "Trial Balance"/);
+	assert.match(source, /isArabic\(\) && report && report\.name === "VAT Summary"/);
+	assert.match(source, /let label = __\(col\.label\)/);
+	assert.match(source, /label: __\(s\.label\)/);
+	assert.match(source, /agg\.note = agg\.message \? __\(agg\.message\) : null/);
+	assert.match(source, /report\.name === "VAT Summary" && typeof raw === "string" &&\s+\["entry", "note"\]\.includes\(col\.fieldname\)\) raw = __\(raw\)/);
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

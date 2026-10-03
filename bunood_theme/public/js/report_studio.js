@@ -564,6 +564,9 @@
 	// toward the reading end — hardcoding either glyph breaks one language.
 	const isRtl = () => document.documentElement.dir === "rtl";
 	const ARROW = { back: () => (isRtl() ? "→" : "←"), go: () => (isRtl() ? "←" : "→") };
+	// The desk's LANGUAGE, not its direction: the relabelling below fixes
+	// Arabic that ERPNext serves half-translated, and is not an RTL concern.
+	const isArabic = () => String(frappe.boot?.lang || "").split(/[-_]/)[0] === "ar";
 
 	const cssVar = (name) =>
 		getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -623,16 +626,34 @@
 	}
 
 	// Column meaning, decided once per run.
-	function classify(columns) {
+	function classify(columns, report) {
 		const seen = new Set();
 		const meaningful = [];
+		const trialBalanceLabels = {
+			opening_debit: () => __("Opening debit balance"),
+			opening_credit: () => __("Opening credit balance"),
+			closing_debit: () => __("Closing debit balance"),
+			closing_credit: () => __("Closing credit balance"),
+		};
+		const vatLabels = {
+			documents: () => __("Document count"),
+			note: () => __("Report note"),
+		};
 		for (const raw of columns) {
 			const col = typeof raw === "string" ? { label: raw, fieldname: frappe.scrub(raw) } : raw;
 			if (!col.label || col.hidden) continue;
 			const fieldname = col.fieldname || frappe.scrub(col.label);
 			if (seen.has(fieldname)) continue;
 			seen.add(fieldname);
-			meaningful.push(Object.assign({}, col, { fieldname }));
+			// ERPNext can serve "افتتاحي (Dr)" in Arabic: translating that partial
+			// label again cannot fix it. The stable fieldname is the authority here.
+			let label = __(col.label);
+			if (isArabic() && report && report.name === "Trial Balance" && trialBalanceLabels[fieldname]) {
+				label = trialBalanceLabels[fieldname]();
+			} else if (isArabic() && report && report.name === "VAT Summary" && vatLabels[fieldname]) {
+				label = vatLabels[fieldname]();
+			}
+			meaningful.push(Object.assign({}, col, { fieldname, label }));
 		}
 		const byType = (types) => meaningful.filter((c) => types.includes(c.fieldtype));
 		return {
@@ -796,7 +817,7 @@
 	let state_entity_of = () => null;
 
 	function aggregate(data, report) {
-		const shape = classify(data.columns || []);
+		const shape = classify(data.columns || [], report);
 		const rows = (data.result || []).filter((row) => row && (Array.isArray(row) ? row.length : true));
 		const dictShaped = rows.some((r) => !Array.isArray(r) && !isSpacerRow(r));
 		const bodyRows = rows.filter((row) =>
@@ -1309,7 +1330,7 @@
 		const tiles = (summary) => (summary || [])
 			.filter((s) => s && s.label != null && s.value != null)
 			.map((s) => ({
-				label: s.label,
+				label: __(s.label),
 				value: s.value,
 				column: { fieldtype: s.datatype || "Currency", options: s.currency ? "currency" : undefined },
 				indicator: s.indicator,
@@ -1347,7 +1368,7 @@
 				}],
 			};
 		}
-		agg.note = agg.message || null;
+		agg.note = agg.message ? __(agg.message) : null;
 	}
 
 	// ── Excel (xlsx) — built by hand, no library ────────────────────────────
@@ -2823,6 +2844,10 @@
 						visible.forEach((col, position) => {
 							const index = shape.all.indexOf(col);
 							let raw = rowValue(row, col, index);
+							// The VAT worksheet builds its row captions and notes as English
+							// strings; the shared catalogue carries their Arabic.
+							if (report.name === "VAT Summary" && typeof raw === "string" &&
+								["entry", "note"].includes(col.fieldname)) raw = __(raw);
 							// شجرة القوائم: عمود الحساب يعرض اسمه المقروء لا معرّفه الكامل
 							if (isTree && position === 0 && !Array.isArray(row) && row.account_name && !totalRow) {
 								raw = row.account_name;

@@ -11564,3 +11564,39 @@ msgstr "تحديث كلمة المرور"
 #, fuzzy
 msgid "VAT figures and reconciliation checks to review before filing"
 msgstr "أرقام ضريبة القيمة المضافة وفحوص المطابقة لمراجعتها قبل تقديم الإقرار"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Opening debit balance"
+msgstr "الرصيد الافتتاحي (مدين)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Opening credit balance"
+msgstr "الرصيد الافتتاحي (دائن)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Closing debit balance"
+msgstr "الرصيد الختامي (مدين)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Closing credit balance"
+msgstr "الرصيد الختامي (دائن)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Document count"
+msgstr "عدد المستندات"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Report note"
+msgstr "ملاحظة"
