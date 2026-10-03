@@ -146,6 +146,10 @@ export function checkPayload() {
 	const now = measure();
 	const over = [];
 	for (const key of CEILING_KEYS) {
+		if (!Number.isFinite(ledger.ceiling[key])) {
+			over.push(`${key}: no finite ceiling is recorded`);
+			continue;
+		}
 		if (now[key] > ledger.ceiling[key]) {
 			over.push(`${key}: ${now[key]} > ceiling ${ledger.ceiling[key]} (+${now[key] - ledger.ceiling[key]} bytes)`);
 		}
