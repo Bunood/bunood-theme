@@ -186,9 +186,9 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
     if not selected:
         selected = stale_entries[0].pos_profile if stale_entries else pos_profile
     if not selected:
-        selected = next((row.name for row in profiles if row.is_default), None)
+        selected = next((row["name"] for row in profiles if row["is_default"]), None)
     if not selected and profiles:
-        selected = profiles[0].name
+        selected = profiles[0]["name"]
 
     profile_data = None
     groups = []
