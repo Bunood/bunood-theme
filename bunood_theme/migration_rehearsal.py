@@ -261,8 +261,6 @@ def start_isolated_migration_rehearsal(run_name: str, dataset_row_name: str) -> 
     run, dataset = _mapped_context(run_name, dataset_row_name)
     environment = _isolated_environment(run)
     data_import = _native_import(run, dataset, write=True)
-    if _clean(_value(data_import, "status")) != "Pending":
-        _throw(_("Use a pending native Data Import for a new isolated rehearsal."))
     file_reference, actual_hash = _file_hash(data_import)
     expected_hash = _clean(_value(dataset, "source_snapshot_hash"))
     if actual_hash != expected_hash:
@@ -290,6 +288,12 @@ def start_isolated_migration_rehearsal(run_name: str, dataset_row_name: str) -> 
             "isolated_environment": True,
             "production_import_authorized": False,
         }
+
+    # A completed native import may have an existing immutable receipt. The
+    # replay above must remain readable without enqueuing another import; only
+    # a genuinely new rehearsal requires a Pending native document.
+    if _clean(_value(data_import, "status")) != "Pending":
+        _throw(_("Use a pending native Data Import for a new isolated rehearsal."))
 
     now = now_datetime()
     rehearsal = frappe.get_doc(
@@ -371,6 +375,19 @@ def _row_numbers(value: Any) -> list[int]:
     return sorted(set(numbers))
 
 
+def _blocking_template_warning_count(value: Any) -> int:
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except (TypeError, ValueError):
+            value = [value] if value else []
+    if not isinstance(value, (list, tuple)):
+        value = [value] if value else []
+    # Match native Importer.import_data(): informational notices do not block
+    # the job and must not freeze a still-running rehearsal as an exception.
+    return sum(1 for warning in value if not isinstance(warning, dict) or warning.get("type") != "info")
+
+
 def _privacy_minimised_results(logs: list[dict[str, Any]]) -> list[dict[str, Any]]:
     results = []
     for log in logs:
@@ -433,7 +450,13 @@ def capture_isolated_migration_rehearsal(rehearsal_name: str) -> dict[str, Any]:
 
     native_status, native_logs = _native_result(_value(data_import, "name"))
     status = _clean(native_status.get("status"))
-    if status == "Pending":
+    # Native Data Import leaves status at Pending when template validation
+    # warnings prevent the worker from importing any row. Do not leave an
+    # immutable rehearsal stuck at "running" forever. Record only the warning
+    # count, never the potentially sensitive warning text.
+    warning_count = _blocking_template_warning_count(_value(data_import, "template_warnings"))
+    template_blocked = status == "Pending" and warning_count > 0
+    if status == "Pending" and not template_blocked:
         return {
             "route": ["Form", REHEARSAL_DOCTYPE, _value(rehearsal, "name")],
             "completed": False,
@@ -441,7 +464,7 @@ def capture_isolated_migration_rehearsal(rehearsal_name: str) -> dict[str, Any]:
             "native_status": status,
             "production_import_authorized": False,
         }
-    if status not in TERMINAL_NATIVE_STATES:
+    if status not in TERMINAL_NATIVE_STATES and not template_blocked:
         _throw(_("The native Data Import returned an unsupported status."))
 
     total = int(native_status.get("total_records") or 0)
@@ -483,6 +506,8 @@ def capture_isolated_migration_rehearsal(rehearsal_name: str) -> dict[str, Any]:
         "rehearsal_environment": environment,
         "native_result": {
             "status": status,
+            "template_validation_blocked": template_blocked,
+            "template_warning_count": warning_count,
             "total_records": total,
             "successful_records": successful,
             "failed_records": failed,
