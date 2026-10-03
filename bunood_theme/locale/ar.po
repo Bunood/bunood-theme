@@ -11552,3 +11552,9 @@ msgstr "المبيعات حسب مجموعة العملاء"
 #. src: js/report_studio.js
 msgid "What each customer group bought, month by month"
 msgstr "ما اشترته كل مجموعة عملاء، شهراً بشهر"
+
+#. In context.py (the reset route's tab title)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Update Password"
+msgstr "تحديث كلمة المرور"
