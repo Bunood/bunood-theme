@@ -1866,6 +1866,42 @@
 			galleryTools.append(gallerySearch, galleryCount);
 			container.append(galleryTools);
 
+			// Three common tasks, each a door into a report this person can run.
+			// They are routes into existing, permission-checked reports, never an
+			// alternative calculation or a saved copy of financial data.
+			const starters = [
+				{ key: "sales-register", prompt: __("Review sales"), period: "month" },
+				{ key: "accounts-receivable", prompt: __("Check customer balances"), period: "month" },
+				{ key: "vat-return", prompt: __("Review VAT"), period: "month" },
+			];
+			const starterReports = starters
+				.map((item) => ({ ...item, report: ALL_REPORTS.find((report) => report.key === item.key) }))
+				.filter((item) => item.report && state.available && state.available.has(item.report.name));
+			if (starterReports.length) {
+				const start = el("section", "bnd-studio__start");
+				const startTitle = el("h3", "bnd-studio__start-title", __("Start with a common task"));
+				startTitle.id = "bnd-studio-start-title";
+				start.setAttribute("aria-labelledby", startTitle.id);
+				start.append(startTitle);
+				const shortcuts = el("div", "bnd-studio__start-links");
+				for (const item of starterReports) {
+					const link = el("button", "bnd-studio__start-link");
+					link.type = "button";
+					link.append(el("strong", null, item.prompt));
+					link.append(el("span", null, item.report.title()));
+					const arrow = el("span", "bnd-studio__start-arrow", ARROW.go());
+					arrow.setAttribute("aria-hidden", "true");
+					link.append(arrow);
+					link.addEventListener("click", () => {
+						state.period = item.period;
+						frappe.set_route(...routeParts(item.report, null));
+					});
+					shortcuts.append(link);
+				}
+				start.append(shortcuts);
+				container.append(start);
+			}
+
 			const rail = el("nav", "bnd-studio__domains");
 			rail.setAttribute("aria-label", __("Reports"));
 			const galleryDomains = [

@@ -11606,3 +11606,27 @@ msgstr "ملاحظة"
 #, fuzzy
 msgid "As of"
 msgstr "حتى تاريخ"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Start with a common task"
+msgstr "ابدأ بمهمة شائعة"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review sales"
+msgstr "مراجعة المبيعات"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Check customer balances"
+msgstr "التحقق من أرصدة العملاء"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review VAT"
+msgstr "مراجعة ضريبة القيمة المضافة"

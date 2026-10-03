@@ -137,6 +137,26 @@ test("the gallery opens on every report, grouped under its area, and keeps the c
 	assert.match(styles, /\.bnd-studio__group-title \{[^}]*grid-column: 1 \/ -1;/s);
 });
 
+test("the gallery starts with three common tasks, each a report this person can run", () => {
+	for (const key of ["sales-register", "accounts-receivable", "vat-return"]) {
+		assert.ok(source.includes(`{ key: "${key}", prompt: __(`), `missing task: ${key}`);
+	}
+	assert.match(source, /\.filter\(\(item\) => item\.report && state\.available && state\.available\.has\(item\.report\.name\)\)/);
+	assert.match(source, /start\.setAttribute\("aria-labelledby", startTitle\.id\)/);
+	assert.match(source, /arrow\.setAttribute\("aria-hidden", "true"\)/);
+	assert.match(source, /frappe\.set_route\(\.\.\.routeParts\(item\.report, null\)\)/);
+	assert.match(styles, /\.bnd-studio__start-link \{[\s\S]*?&:focus-visible \{\s+outline: 2px solid var\(--bnd-accent\);/);
+	const rows = ar.split(/\r?\n/);
+	for (const [msgid, arabic] of [
+		["Start with a common task", "ابدأ بمهمة شائعة"],
+		["Review sales", "مراجعة المبيعات"],
+		["Check customer balances", "التحقق من أرصدة العملاء"],
+		["Review VAT", "مراجعة ضريبة القيمة المضافة"],
+	]) {
+		assert.ok(rows.includes(`${msgid},${arabic},`), msgid);
+	}
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

@@ -192,15 +192,16 @@
 		"INTEGRATION team 2026-10-03, foundations: web_css 4200 -> 4450 for three width tokens the team's components share (--bnd-line-strong, --bnd-line-2, --bnd-focus-offset). _tokens.scss is shared with the web bundle, which carries every :root token: measured 4,203, +13 gzip.",
 		"INTEGRATION team 2026-10-03, Report Studio: studio_js 36000 -> 36500 (measured 36,220) for the team's translated column labels, tiles and notes and the stale-response guards (view and load tokens). The studio bundle ships unminified, so the comments count too.",
 		"AND studio_js 36500 -> 36850 (measured 36,599) for the 'as of' reading of point-in-time reports: header chip, one-date custom period and export.",
-		"AND studio_js 36850 -> 37300 (measured 37,060) for the all-reports gallery grouped by area; studio_css measured 6,430 of its 6,500 for the group heading."
+		"AND studio_js 36850 -> 37300 (measured 37,060) for the all-reports gallery grouped by area; studio_css measured 6,430 of its 6,500 for the group heading.",
+		"AND studio_js 37300 -> 37750 (measured 37,500) / studio_css 6500 -> 6800 (measured 6,560) for the gallery's three common tasks and their quiet button row."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
 		"js_gzip": 137800,
-		"studio_js_gzip": 37300,
+		"studio_js_gzip": 37750,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,
-		"studio_css_gzip": 6500,
+		"studio_css_gzip": 6800,
 		"pos_css_gzip": 5700,
 		"pos_js_gzip": 9200,
 		"web_css_gzip": 4450,
