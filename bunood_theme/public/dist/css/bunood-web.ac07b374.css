@@ -480,6 +480,42 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+body.bnd-auth .bnd-auth-language-switch {
+  position: fixed;
+  z-index: 2;
+  inset-block-start: var(--bnd-sp-4);
+  inset-inline-start: var(--bnd-sp-4);
+  display: flex;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1);
+  border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-auth-field);
+}
+
+body.bnd-auth .bnd-auth-language-choice {
+  display: inline-flex;
+  align-items: center;
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  border-radius: var(--bnd-radius-sm);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+body.bnd-auth .bnd-auth-language-choice:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .bnd-auth-language-choice[aria-current=true] {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
 body.bnd-auth .page-card .page-card-head-text::after {
   content: var(--bnd-login-tagline, none);
   display: block;

@@ -251,6 +251,67 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+// ── The guest language switch ───────────────────────────────────────────────
+// Server-rendered by `context._auth_language_switch` from the languages Theme
+// Settings offers (item 44's list, so a one-language site draws nothing). Each
+// choice is a link carrying `_lang`, which Frappe resolves for a guest itself, so
+// it works with no script and is right at first paint. Ported from the team's
+// release 0a8b549 without its fixed English/Arabic pair. Not a contract — a
+// feature — but it lives outside the anchor because a visitor needs it under
+// every pole, `Original` included.
+//
+// FIXED, NOT IN THE FLOW. It arrives through `banner_html`, above Frappe's
+// wrapper, so a static box would push every pole's composition down by its own
+// height; fixed to the top-start corner it overlays the column's padding
+// instead. It is OUR node, so its logical insets have no rtlcss copy to compound
+// with: the prohibition in this file's header binds rules written over THEIR
+// physical properties.
+//
+// `z-index: 2` because Split's column is `z-index: 1` (its shadow falls on the
+// art panel), and the switch has to stay above it.
+//
+// NO NEW CONTRAST PAIR. `--bnd-ink-muted` on `--bnd-auth-field` is the
+// placeholder's pair (contract R4's notes), the current choice is a label on a
+// brand fill, the hover is `.btn-login-option`'s, and the focus ring is contract
+// R1's, which already covers `a`.
+body.bnd-auth .bnd-auth-language-switch {
+  position: fixed;
+  z-index: 2;
+  inset-block-start: var(--bnd-sp-4);
+  inset-inline-start: var(--bnd-sp-4);
+  display: flex;
+  gap: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1);
+  border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-auth-field);
+}
+
+body.bnd-auth .bnd-auth-language-choice {
+  display: inline-flex;
+  align-items: center;
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  border-radius: var(--bnd-radius-sm);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+body.bnd-auth .bnd-auth-language-choice:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
+// After `:hover`, at the same weight, so the current choice keeps its fill under
+// the pointer.
+body.bnd-auth .bnd-auth-language-choice[aria-current="true"] {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
 // ── Contract R11: the tagline stops being a promise ─────────────────────────
 // Theme Settings has shipped a `tagline` field whose description reads "Shown
 // on the login page." since day one, and nothing has ever read it. That is a
