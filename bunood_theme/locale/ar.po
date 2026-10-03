@@ -11666,3 +11666,15 @@ msgstr "مراجعة القيود اليومية لشركة وفترة محدد�
 #, fuzzy
 msgid "Choose the boundary to see draft entries and supporting evidence. Posting stays in the native Journal Entry."
 msgstr "حدد نطاق الفترة لعرض القيود المسودة والمستندات المؤيدة. يبقى الترحيل في شاشة القيد اليومي الأصلية."
+
+#. In pos.py (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose a valid POS sales filter."
+msgstr "اختر مرشحًا صالحًا لمبيعات نقطة البيع."
+
+#. In pos.py (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You cannot view POS receipts."
+msgstr "ليست لديك صلاحية لعرض إيصالات نقطة البيع."

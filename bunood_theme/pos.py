@@ -601,34 +601,106 @@ def held_carts(pos_profile: str, limit: int = 30) -> list[dict[str, Any]]:
 
 @frappe.whitelist(methods=["GET"])
 def sale_history(pos_profile: str, search_term: str = "", limit: int = 30) -> list[dict[str, Any]]:
-    profile = _profile(pos_profile)
-    invoice_type = _invoice_type()
-    _require(invoice_type, "read")
-    filters: dict[str, Any] = {"docstatus": 1, "pos_profile": profile.name, "is_pos": 1}
-    term = (search_term or "").strip()[:140]
+    # The configured invoice type can change. Read both native receipt types
+    # so older tickets do not disappear from the in-POS history tab; each row
+    # carries its own doctype for Print, Return and Open.
+    return receipt_register(
+        mode="all", pos_profile=pos_profile, search_term=search_term, limit=limit,
+    )["rows"]
+
+
+@frappe.whitelist(methods=["GET"])
+def receipt_register(
+    mode: str = "today", company: str = "", pos_profile: str = "",
+    search_term: str = "", limit: int = 30, cursor: Any = None,
+) -> dict[str, Any]:
+    """A permission-filtered, paginated union of actual POS receipts.
+
+    Read-only. Native consolidated Sales Invoices represent POS Invoices that are
+    already listed, not additional sales, so they are never shown as receipts of
+    their own. Each source goes through ``frappe.get_list``, so row permissions
+    hold, and a type the user cannot read is simply not a source.
+    """
+    modes = {"today", "shift", "mine", "all", "returns"}
+    if mode not in modes:
+        frappe.throw(_("Choose a valid POS sales filter."))
+    selected_profile = _profile(pos_profile).name if pos_profile else ""
+    companies = [row.name for row in frappe.get_list(
+        "Company", fields=["name"], order_by="name asc", limit_page_length=200,
+    )] if frappe.has_permission("Company", "read") else []
+    allowed = [doctype for doctype in ("POS Invoice", "Sales Invoice")
+               if frappe.db.exists("DocType", doctype) and frappe.has_permission(doctype, "read")]
+    if not allowed:
+        frappe.throw(_("You cannot view POS receipts."), frappe.PermissionError)
+    page_size = min(max(cint(limit), 1), 50)
+    position = _json(cursor, {})
+    if not isinstance(position, dict):
+        frappe.throw(_("The POS request is not valid."))
+    offsets = {}
+    for doctype in allowed:
+        offset = cint(position.get(doctype) or 0)
+        if offset < 0 or offset > 100000:
+            frappe.throw(_("The POS request is not valid."))
+        offsets[doctype] = offset
+    shift = None
+    if mode == "shift":
+        shift = next((row for row in _open_entries()
+                      if not company or row.company == company), None)
+        if not shift:
+            return {"rows": [], "next_cursor": None, "mode": mode,
+                    "has_open_shift": False, "sources": allowed, "companies": companies}
+    term = (search_term or "").strip()[:100]
     or_filters = None
     if term:
         like = ["like", f"%{term}%"]
         or_filters = {"name": like, "customer": like, "customer_name": like}
-    return frappe.get_list(
-        invoice_type,
-        filters=filters,
-        or_filters=or_filters,
-        fields=[
-            "name",
-            "customer",
-            "customer_name",
-            "posting_date",
-            "posting_time",
-            "grand_total",
-            "currency",
-            "status",
-            "is_return",
-            "return_against",
-        ],
-        order_by="posting_date desc, posting_time desc",
-        limit_page_length=min(max(cint(limit), 1), 100),
-    )
+    gathered = []
+    lengths = {}
+    for doctype in allowed:
+        meta = frappe.get_meta(doctype)
+        filters: dict[str, Any] = {"docstatus": 1, "is_pos": 1}
+        if company:
+            filters["company"] = company
+        if selected_profile:
+            filters["pos_profile"] = selected_profile
+        if doctype == "Sales Invoice" and meta.has_field("is_consolidated"):
+            filters["is_consolidated"] = 0
+        if mode == "today":
+            filters["posting_date"] = nowdate()
+        elif mode == "shift":
+            filters.update({"owner": frappe.session.user, "pos_profile": shift.pos_profile,
+                            "creation": [">=", str(shift.period_start_date)]})
+        elif mode == "mine":
+            filters["owner"] = frappe.session.user
+        elif mode == "returns":
+            filters["is_return"] = 1
+        rows = frappe.get_list(
+            doctype, filters=filters, or_filters=or_filters,
+            fields=[
+                "name", "customer", "customer_name", "posting_date", "posting_time", "creation",
+                "grand_total", "outstanding_amount", "currency", "status", "is_return",
+                "return_against", "owner", "pos_profile",
+            ],
+            order_by="posting_date desc, posting_time desc, creation desc",
+            limit_start=offsets[doctype], limit_page_length=page_size + 1,
+        )
+        lengths[doctype] = len(rows)
+        for row in rows[:page_size]:
+            gathered.append({**row, "doctype": doctype})
+    gathered.sort(key=lambda row: (
+        str(row.get("posting_date") or ""), str(row.get("posting_time") or ""),
+        str(row.get("creation") or ""), row["name"], row["doctype"]), reverse=True)
+    selected = gathered[:page_size]
+    consumed = {doctype: 0 for doctype in allowed}
+    for row in selected:
+        consumed[row["doctype"]] += 1
+    next_cursor = {doctype: offsets[doctype] + consumed[doctype] for doctype in allowed}
+    more = any(lengths[doctype] > consumed[doctype] for doctype in allowed)
+    return {
+        "rows": selected, "next_cursor": next_cursor if more else None,
+        "mode": mode, "has_open_shift": bool(shift) if mode == "shift" else None,
+        "sources": allowed, "companies": companies,
+    }
 
 
 @frappe.whitelist(methods=["GET"])

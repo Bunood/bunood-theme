@@ -703,17 +703,21 @@
 				const copy = el("div", "bnd-pos__list-copy");
 				copy.append(
 					el("strong", null, row.customer_name || row.customer || __("Walk-in customer")),
-					el("span", null, row.name),
+					el("span", null, kind === "history" ? `${row.name} · ${__(row.doctype || state.context.invoice_type)}` : row.name),
 					el("small", null, kind === "held" ? userDate(row.modified) : `${userDate(row.posting_date)} · ${row.status || ""}`)
 				);
 				const value = el("strong", "bnd-pos__list-value", money(row.grand_total, row.currency || state.context.profile.currency));
 				const actions = el("div", "bnd-pos__list-actions");
 				if (kind === "held") actions.append(button(__("Resume"), "play", "btn btn-primary", () => resume(row.name)));
 				else {
-					actions.append(button(__("Print"), "printer", "btn btn-default", () => printReceipt(state.context.invoice_type, row.name, state.context.profile.print_format)));
-					if (!row.is_return) actions.append(button(__("Return"), "rotate-ccw", "btn btn-default", () => createReturn(row.name)));
+					// A receipt of the OTHER invoice type (the profile's type changed)
+					// prints in Standard: the profile's format is built for its own type.
+					const doctype = row.doctype || state.context.invoice_type;
+					actions.append(button(__("Print"), "printer", "btn btn-default", () => printReceipt(doctype, row.name,
+						doctype === state.context.invoice_type ? state.context.profile.print_format : "Standard")));
+					if (!row.is_return) actions.append(button(__("Return"), "rotate-ccw", "btn btn-default", () => createReturn(row.name, doctype)));
 				}
-				actions.append(button(__("Open"), "external-link", "btn btn-default", () => frappe.set_route("Form", state.context.invoice_type, row.name)));
+				actions.append(button(__("Open"), "external-link", "btn btn-default", () => frappe.set_route("Form", row.doctype || state.context.invoice_type, row.name)));
 				card.append(copy, value, actions);
 				listBody.append(card);
 			}
@@ -742,10 +746,10 @@
 			}
 		}
 
-		async function createReturn(name) {
+		async function createReturn(name, doctype = state.context.invoice_type) {
 			frappe.confirm(__("Create a return from receipt {0}?", [name]), async () => {
 				try {
-					const result = await api("create_return", { source_doctype: state.context.invoice_type, source_name: name }, { freeze: true, message: __("Preparing native return…") });
+					const result = await api("create_return", { source_doctype: doctype, source_name: name }, { freeze: true, message: __("Preparing native return…") });
 					frappe.set_route.apply(frappe, result.route);
 				} catch (error) {
 					showFailure(error, __("The return draft could not be created."));

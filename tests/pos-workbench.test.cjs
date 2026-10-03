@@ -107,3 +107,15 @@ test("POS copy is fully shipped in Arabic", () => {
 		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",") || line.startsWith('"' + source.replaceAll('"', '""') + '",')), source);
 	}
 });
+
+test("receipts from both invoice types act on their own type", () => {
+	assert.match(server, /return receipt_register\(\s+mode="all", pos_profile=pos_profile, search_term=search_term, limit=limit,\s+\)\["rows"\]/);
+	assert.match(server, /filters\["is_consolidated"\] = 0/);
+	assert.match(js, /const doctype = row\.doctype \|\| state\.context\.invoice_type;/);
+	assert.match(js, /doctype === state\.context\.invoice_type \? state\.context\.profile\.print_format : "Standard"/);
+	assert.match(js, /createReturn\(row\.name, doctype\)/);
+	assert.match(js, /frappe\.set_route\("Form", row\.doctype \|\| state\.context\.invoice_type, row\.name\)/);
+	assert.match(js, /async function createReturn\(name, doctype = state\.context\.invoice_type\)/);
+	assert.match(js, /source_doctype: doctype, source_name: name/);
+});
+
