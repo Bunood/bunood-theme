@@ -195,12 +195,13 @@
 		"AND studio_js 36850 -> 37300 (measured 37,060) for the all-reports gallery grouped by area; studio_css measured 6,430 of its 6,500 for the group heading.",
 		"AND studio_js 37300 -> 37750 (measured 37,500) / studio_css 6500 -> 6800 (measured 6,560) for the gallery's three common tasks and their quiet button row.",
 		"AND studio_js 37750 -> 38100 (measured 37,813) for a failed report or statement search explained in the page's language, with a retry on the picker's count line.",
-		"AND studio_js 38100 -> 38550 (measured 38,296) for the contextual hand-off a Studio link can carry (company and period in route_options, taken once)."
+		"AND studio_js 38100 -> 38550 (measured 38,296) for the contextual hand-off a Studio link can carry (company and period in route_options, taken once).",
+		"AND studio_js 38550 -> 39050 (measured 38,770) for document links aimed at the served value, skipped on total rows and given the way back on Frappe's own anchors."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
 		"js_gzip": 137800,
-		"studio_js_gzip": 38550,
+		"studio_js_gzip": 39050,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,
 		"studio_css_gzip": 6800,

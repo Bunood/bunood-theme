@@ -180,6 +180,17 @@ test("a contextual link hands over its company and period once, and never anothe
 	assert.match(source, /if \(!contextChanged && state\.report === report &&/);
 });
 
+test("a document link opens the served record, never from a total row, and always offers the way back", () => {
+	assert.match(source, /const servedRaw = rowValue\(row, col, index\);\s+let raw = servedRaw;/);
+	assert.match(source, /const target = !totalRow && linkTarget\(row, col, servedRaw\);/);
+	assert.doesNotMatch(source, /if \(target && !td\.querySelector\("a"\)\)/, "the formatter's own anchor is re-aimed, not skipped");
+	assert.match(source, /let open = td\.querySelector\("a"\);/);
+	assert.match(source, /if \(!node\.classList \|\| !node\.classList\.contains\("bnd-studio__caret"\)\) open\.append\(node\);/);
+	assert.match(source, /open\.classList\.add\("bnd-studio__link"\);/);
+	assert.match(source, /if \(open\.hasAttribute\("data-name"\)\) open\.setAttribute\("data-name", target\.name\);/);
+	assert.match(source, /rememberReturn\(report\.title\(\)\);\s+frappe\.set_route\("Form", target\.doctype, target\.name\);/);
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

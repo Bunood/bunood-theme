@@ -2978,7 +2978,10 @@
 						let haystack = "";
 						visible.forEach((col, position) => {
 							const index = shape.all.indexOf(col);
-							let raw = rowValue(row, col, index);
+							// The value as served. A link opens THIS, whatever the cell ends
+							// up showing: a tree row shows the account's name, not its ID.
+							const servedRaw = rowValue(row, col, index);
+							let raw = servedRaw;
 							// The VAT worksheet builds its row captions and notes as English
 							// strings; the shared catalogue carries their Arabic.
 							if (report.name === "VAT Summary" && typeof raw === "string" &&
@@ -3012,14 +3015,31 @@
 							// خلية المرجع تفتح مستندها — كما في العرض التقليدي.
 							// الوِجهة من بيانات العمود لا من قائمةٍ نكتبها بأيدينا،
 							// فتنطبق على كل تقارير الاستوديو دفعةً واحدة.
-							const target = linkTarget(row, col, raw);
-							if (target && !td.querySelector("a")) {
-								const open = document.createElement("a");
-								open.className = "bnd-studio__link";
+							// A total row names no document: its cells carry captions.
+							const target = !totalRow && linkTarget(row, col, servedRaw);
+							if (target) {
+								// frappe.format already wraps a Link value in an anchor of its
+								// own, built from the DISPLAYED value (a tree row's pointed at
+								// the account's name) and without the way back. One anchor per
+								// cell: the formatter's is kept, re-aimed and given the return.
+								let open = td.querySelector("a");
+								if (!open) {
+									open = document.createElement("a");
+									// Nodes are MOVED, not re-parsed, and a tree row's caret stays
+									// a sibling: a copy would lose its click, and a button inside
+									// a link is neither valid nor clickable as itself.
+									for (const node of [...td.childNodes]) {
+										if (!node.classList || !node.classList.contains("bnd-studio__caret")) open.append(node);
+									}
+									td.append(open);
+								}
+								open.classList.add("bnd-studio__link");
 								open.href =
 									"/app/" + frappe.router.slug(target.doctype) +
 									"/" + encodeURIComponent(target.name);
-								open.innerHTML = td.innerHTML;
+								// Frappe's link preview reads these; keep them on the same record.
+								if (open.hasAttribute("data-name")) open.setAttribute("data-name", target.name);
+								if (open.hasAttribute("data-value")) open.setAttribute("data-value", target.name);
 								// النقرة العادية خطوةٌ داخل التطبيق بأيدينا لا بانتظار
 								// اعتراض الراوتر: التحميل الكامل يقتل حالة الوحدة —
 								// وحزمة الاستوديو لا تُحمَّل أصلاً على صفحة النموذج —
@@ -3034,8 +3054,6 @@
 									rememberReturn(report.title());
 									frappe.set_route("Form", target.doctype, target.name);
 								});
-								td.innerHTML = "";
-								td.append(open);
 							}
 							haystack += " " + td.textContent.toLowerCase();
 							tr.append(td);
