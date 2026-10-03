@@ -157,6 +157,19 @@ test("the gallery starts with three common tasks, each a report this person can 
 	}
 });
 
+test("a failed report or statement search explains itself in the page's language", () => {
+	assert.match(source, /const rawMessage = typeof err\?\.message === "string" \? err\.message\.trim\(\) : "";/);
+	assert.match(source, /const translated = rawMessage \? __\(rawMessage\) : "";/);
+	assert.match(source, /\? \(translated && !\/\[A-Za-z\]\{3\}\/\.test\(translated\) \? translated : fallback\)/);
+	assert.match(source, /alert\.append\(el\("strong", null, __\("Report could not load"\)\)\)/);
+	assert.doesNotMatch(source, /__\("Nothing to show"\)/);
+	assert.match(source, /retry\.addEventListener\("click", \(\) => refresh\(search\.value\.trim\(\)\)\);\s+count\.replaceChildren\(retry\);/);
+	assert.match(styles, /\.bnd-studio__picker-retry \{[\s\S]*?&:focus-visible \{\s+outline: 2px solid var\(--bnd-accent\);/);
+	const rows = ar.split(/\r?\n/);
+	assert.ok(rows.includes("Report could not load,تعذّر تحميل التقرير,"));
+	assert.ok(rows.includes("Could not load matches. Try again.,تعذّر تحميل النتائج المطابقة. حاول مرة أخرى.,"));
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

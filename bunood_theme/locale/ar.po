@@ -11630,3 +11630,15 @@ msgstr "التحقق من أرصدة العملاء"
 #, fuzzy
 msgid "Review VAT"
 msgstr "مراجعة ضريبة القيمة المضافة"
+
+#. In report_studio.js (a report or a statement search that failed)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Report could not load"
+msgstr "تعذّر تحميل التقرير"
+
+#. In report_studio.js (a report or a statement search that failed)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Could not load matches. Try again."
+msgstr "تعذّر تحميل النتائج المطابقة. حاول مرة أخرى."

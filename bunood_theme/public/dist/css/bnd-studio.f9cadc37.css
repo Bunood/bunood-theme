@@ -1197,6 +1197,23 @@ html[data-bnd-motion=reduce] {
   text-align: center;
   min-block-size: 1em;
 }
+.bnd-studio .bnd-studio__picker-retry {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  text-decoration: none;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+.bnd-studio .bnd-studio__picker-retry:hover, .bnd-studio .bnd-studio__picker-retry:focus-visible {
+  text-decoration: underline;
+}
+.bnd-studio .bnd-studio__picker-retry:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+}
 .bnd-studio .bnd-studio__picker-list {
   display: flex;
   flex-direction: column;

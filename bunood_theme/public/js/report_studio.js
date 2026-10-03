@@ -2530,7 +2530,12 @@
 						.catch(() => {
 							if (mine !== serial) return;
 							list.innerHTML = "";
-							list.append(el("div", "bnd-studio__picker-hint", __("Nothing found")));
+							// A failed search is not an empty one: say so, and offer the retry
+							// on the count line, outside the listbox (a button is no option).
+							const retry = el("button", "bnd-studio__picker-retry", __("Could not load matches. Try again."));
+							retry.type = "button";
+							retry.addEventListener("click", () => refresh(search.value.trim()));
+							count.replaceChildren(retry);
 						});
 				}
 
@@ -2612,14 +2617,21 @@
 					})
 					.catch((err) => {
 						if (state.viewToken !== viewToken || loadId !== loadSequence) return;
-						const message =
-							(err && err.message) || __("The report could not be run. Open the classic view for details.");
+						const fallback = __("The report could not be run. Open the classic view for details.");
+						const rawMessage = typeof err?.message === "string" ? err.message.trim() : "";
+						const translated = rawMessage ? __(rawMessage) : "";
+						// Frappe/ERPNext exceptions can carry constructed English that no
+						// catalogue holds. An Arabic recovery screen stays Arabic; the
+						// classic view, one button away, keeps the technical detail.
+						const message = isArabic()
+							? (translated && !/[A-Za-z]{3}/.test(translated) ? translated : fallback)
+							: rawMessage || fallback;
 						kpisEl.innerHTML = "";
 						chartCard.innerHTML = "";
 						tableCard.innerHTML = "";
 						const alert = el("div", "bnd-studio__error");
 						alert.setAttribute("role", "alert");
-						alert.append(el("strong", null, __("Nothing to show")));
+						alert.append(el("strong", null, __("Report could not load")));
 						alert.append(el("span", null, message));
 						const recovery = el("div", "bnd-studio__error-actions");
 						const retry = el("button", "bnd-studio__action is-primary", __("Retry"));

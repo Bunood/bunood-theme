@@ -1132,6 +1132,29 @@
 		min-block-size: 1em; // لا يقفز الجدول حين يظهر العدد أو يغيب
 	}
 
+	// A failed search offers its retry on the count line, as a text button in
+	// the brand's text ink, underlined on hover and focus like .bnd-studio__link.
+	.bnd-studio__picker-retry {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--bnd-brand-ink);
+		font-size: var(--bnd-text-sm);
+		text-decoration: none;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
+
+		&:hover,
+		&:focus-visible {
+			text-decoration: underline;
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
+	}
+
 	// ── الصفوف ──────────────────────────────────────────────────────────────
 	// عمودٌ واحد لا شبكةُ بطاقات: القراءة هنا مسحٌ رأسي عن اسم، والسهمان
 	// يمشيان في خطٍّ واحد لا في مصفوفة.

@@ -193,12 +193,13 @@
 		"INTEGRATION team 2026-10-03, Report Studio: studio_js 36000 -> 36500 (measured 36,220) for the team's translated column labels, tiles and notes and the stale-response guards (view and load tokens). The studio bundle ships unminified, so the comments count too.",
 		"AND studio_js 36500 -> 36850 (measured 36,599) for the 'as of' reading of point-in-time reports: header chip, one-date custom period and export.",
 		"AND studio_js 36850 -> 37300 (measured 37,060) for the all-reports gallery grouped by area; studio_css measured 6,430 of its 6,500 for the group heading.",
-		"AND studio_js 37300 -> 37750 (measured 37,500) / studio_css 6500 -> 6800 (measured 6,560) for the gallery's three common tasks and their quiet button row."
+		"AND studio_js 37300 -> 37750 (measured 37,500) / studio_css 6500 -> 6800 (measured 6,560) for the gallery's three common tasks and their quiet button row.",
+		"AND studio_js 37750 -> 38100 (measured 37,813) for a failed report or statement search explained in the page's language, with a retry on the picker's count line."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
 		"js_gzip": 137800,
-		"studio_js_gzip": 37750,
+		"studio_js_gzip": 38100,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2150,
 		"studio_css_gzip": 6800,
