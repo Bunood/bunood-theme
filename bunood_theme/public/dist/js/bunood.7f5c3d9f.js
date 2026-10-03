@@ -7059,29 +7059,53 @@
 	 * So stop guessing when: react to the DOM itself. Idempotent, cheap
 	 * (one paint per frame), and correct for every layout and page type.
 	 */
+	//
+	// ONE OBSERVER, and it also watches for the HOSTS arriving (team release
+	// 0a8b549): Frappe can replace the whole native notification row after the
+	// first pass decorated the outgoing one, and a layout's themed bell can be
+	// rebuilt the same way — so a native row or a bell arriving gets its badge
+	// ensured, not only a badge arriving painted. Without that, Classic and an
+	// "Off"-placed bell lost the count for good on cold loads and route changes.
+	let inbox_observer = null;
 	function inbox_observe() {
-		if (!inbox_state || !window.MutationObserver) return;
-		const observer = new MutationObserver((records) => {
+		if (!inbox_state || !window.MutationObserver || inbox_observer || !document.body) return;
+		inbox_observer = new MutationObserver((records) => {
 			if (inbox_paint_queued) return;
 			for (const record of records) {
 				for (const node of record.addedNodes) {
 					if (node.nodeType !== 1) continue;
+					const native_arrived =
+						(node.matches && node.matches(".sidebar-notification, .sidebar-notification .item-anchor")) ||
+						(node.querySelector && node.querySelector(".sidebar-notification .item-anchor"));
+					const bell_arrived =
+						(node.matches && node.matches(".bnd-bell")) ||
+						(node.querySelector && node.querySelector(".bnd-bell"));
 					if (
+						native_arrived ||
+						bell_arrived ||
 						node.classList.contains("bnd-inbox-badge") ||
 						node.querySelector(".bnd-inbox-badge")
 					) {
 						inbox_paint_queued = true;
 						requestAnimationFrame(() => {
 							inbox_paint_queued = false;
-							inbox_paint_badge();
+							inbox_ensure_badges();
 						});
 						return;
 					}
 				}
 			}
 		});
-		observer.observe(document.body, { childList: true, subtree: true });
+		inbox_observer.observe(document.body, { childList: true, subtree: true });
 	}
+
+	// Badge continuity is a DOM lifecycle concern, independent of the chosen
+	// chrome: watch before Frappe builds or replaces its native row, and let a
+	// deferred pass cover a row that already exists when this bundle runs. The
+	// rest of the kit (click routing, realtime, router) still mounts from the
+	// chrome ladder, once Frappe's own realtime client is up.
+	inbox_observe();
+	setTimeout(() => inbox_ensure_badges(), 0);
 
 	/**
 	 * Arrival tiering: an approval that blocks a document earns an
