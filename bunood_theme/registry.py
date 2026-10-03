@@ -667,14 +667,18 @@ MARKS = [
         "critical": False,
     },
     {
-        "key": "railbtn",
-        "part": "railbtn",
-        "label": "Rail button",
+        "key": "railpin",
+        "part": "railpin",
+        "label": "Rail pin",
         "type": MARK,
-        "selector": ".bnd-railbtn",
-        # The native this row's MODE owns (item 40, slice 11 - audit defect
-        # 3): rail mode used to leave two collapse affordances live, ours
-        # and Frappe's page-title hamburger. Hiding it is legal ONLY from
+        "selector": ".bnd-sb-pin",
+        # THE RAIL'S ONE CONTROL since the settings audit of 2026-09-21 (iv-2):
+        # the always-visible expand button (`sidebar_rail_button`, Edge/Header,
+        # with its own glyph field) retired — the three-state pane and the
+        # trigger are the affordance — and the Hover + Pin trigger's pin is what
+        # the rail still mounts. The native this row's MODE owns (item 40,
+        # slice 11 - audit defect 3): rail mode used to leave two collapse
+        # affordances live, ours and Frappe's page-title hamburger. Hiding it is legal ONLY from
         # data-bnd-own~="panetoggle", stamped by sb_mount_rail after the
         # trigger wiring is actually live - a rail whose JS failed to wire
         # leaves the native visible and working.
@@ -1138,7 +1142,9 @@ SURFACES = [
 #: a desk" are one fact. A tenant added to the table joins the order without
 #: anyone remembering a second edit.
 def default_desk_order() -> str:
-    """Tenant keys in registry order, comma-joined: "search,inbox,user,home,apps"."""
+    """Tenant keys in registry order, comma-joined — every TENANT row's key, so the
+    string grows with the table (eight keys as of item 44: search, inbox, user, home,
+    start, apps, language, appearance)."""
     return ",".join(c["key"] for c in COMPONENTS if c["type"] == TENANT)
 
 

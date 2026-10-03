@@ -945,31 +945,64 @@ function assertAutomaticArms(css, name) {
  *   named here so no NEW drift can enter unnoticed. Do not add to this list to
  *   make a build pass.
  */
-// `home` and `apps` joined in slice 2, when Home and All Apps stopped sharing
-// `sidebar_quick_links` and became the two components registry.py always said
-// they were. This list grows when a component is REGISTERED, never to make a
+// THE PREFIXES ARE DERIVED FROM `registry.py` (the settings audit of 2026-09-21,
+// C3). This was a hand-kept list of 36, and 28 of them restated registry keys —
+// a component, a container, a mark or a surface — so registering a component
+// meant remembering this file too, and DE-registering one left its prefix here,
+// passing its orphaned fields forever. Every registered key is a prefix now, and
+// so is every container's toggle prefix (the side pane's key is `sidepane`, its
+// fields are `sidebar_*`): `readFieldPrefixes` below, the same parse
+// `assertRegistryIdentity` uses. When derived it matched all 36 and added seven
+// registered keys no field uses yet (`sidepane` and six marks).
+//
+// WHAT STAYS HAND-KEPT is what no registry table names, and each entry is its
+// own registration:
+//   crumb, palette, status — kits with settings that are not PLACEABLE, so they
+//     have no registry row: the breadcrumbs (item 11), the command palette (12),
+//     and what the status bar SHOWS (14 — the bar itself is the `bottombar`
+//     container).
+//   desk — the desk-wide axes: order, width, scale, primary.
+//   icon — item 23's axis. More than one field, so a prefix rather than four
+//     rows in EXCEPTIONS, the shape a surface has.
+//   mobile — the narrow desk's per-tenant choices (item 24).
+//   density — the density axis (`density_default`, item 36's rename).
+//   personal — item 38's locks. Deliberately NOT `user`, which is the User
+//     profile COMPONENT (`user_placement`): overloading it would make "which
+//     user thing is this" a question the prefix no longer answers. The axis is
+//     declared in `bunood_theme/personal.py`, which `assertPersonalAxes` reads.
+// This list grows only for a new AXIS or an unplaceable kit, never to make a
 // build pass — that is what FIELD_EXCEPTIONS below is for, and it shrinks.
-// "topbar" and the container prefixes that follow it are here because a
-// CONTAINER was registered (registry.py); `list` and `form` because a SURFACE
-// was. Those are the only reasons this list is allowed to grow — never to make
-// a build pass.
-//
-// `icon` (item 23) is the first entry earned by neither a component nor a
-// surface but by an AXIS with more than one field. Colour and typography are
-// axes too and sit in FIELD_EXCEPTIONS below — but each is a SINGLE field, so
-// naming it there costs one line. Icons is `icon_set` / `icon_weight` /
-// `icon_style` / `icon_source` / … : listing every one in EXCEPTIONS is exactly
-// the hand-maintained list a prefix exists to delete. So the axis takes a
-// prefix, the same shape a surface does, and this comment is the registration.
-//
-// `personal` (item 38) is the second entry earned by an axis, on the same terms:
-// three Checks deciding whether a person may choose their own look, their own
-// desk shape, and their own comfort. It is deliberately NOT `user`, which is
-// already taken by the User profile COMPONENT (`user_placement`) — overloading
-// it would make "which user thing is this" a question the prefix no longer
-// answers. The axis itself is declared in `bunood_theme/personal.py`, which is
-// also what `assertPersonalAxes` reads.
-const FIELD_PREFIXES = ["crumb", "palette", "inbox", "status", "sidebar", "search", "desk", "user", "home", "apps", "start", "language", "appearance", "topbar", "pagehead", "panehead", "dock", "bottombar", "list", "form", "chart", "workspace", "report", "views", "overlay", "empty", "skeleton", "filters", "login", "web", "email", "print", "icon", "mobile", "density", "personal"];
+const FIELD_AXES = ["crumb", "palette", "status", "desk", "icon", "mobile", "density", "personal"];
+
+/**
+ * Every prefix a Theme Settings field may carry: each registered key, each
+ * container's toggle prefix, and FIELD_AXES.
+ *
+ * THROWS ON A PARSE IT DOES NOT RECOGNISE rather than guessing. Every row has a
+ * "key" and a "part", and every CONTAINER row a `<prefix>_enabled` toggle; a
+ * count that stops agreeing means registry.py stopped being the plain literal
+ * this reads, and the guard would otherwise shrink its list and fail every field
+ * — or, worse, keep passing on a list it no longer derives.
+ *
+ * @param {string} registrySrc - registry.py text
+ * @returns {string[]}
+ */
+function readFieldPrefixes(registrySrc) {
+	const keys = [...registrySrc.matchAll(/"key":\s*"([a-z]+)"/g)].map((m) => m[1]);
+	const parts = [...registrySrc.matchAll(/"part":\s*"([a-z]+)"/g)];
+	const toggles = [...registrySrc.matchAll(/"toggle":\s*"([^"]+)"/g)].map((m) => m[1]);
+	const containers = [...registrySrc.matchAll(/"type":\s*CONTAINER\b/g)].length;
+	const odd = toggles.filter((t) => !/^[a-z]+_enabled$/.test(t));
+	if (!keys.length || keys.length !== parts.length || toggles.length !== containers || odd.length) {
+		throw new Error(
+			`Field-naming guard: registry.py read as ${keys.length} keys, ${parts.length} parts, ` +
+				`${toggles.length} toggles for ${containers} containers` +
+				(odd.length ? ` (unrecognised toggles: ${odd.join(", ")})` : "") +
+				" — the extraction has stopped matching the file. Fix the parse, never the count."
+		);
+	}
+	return [...new Set([...keys, ...toggles.map((t) => t.replace(/_enabled$/, "")), ...FIELD_AXES])];
+}
 const FIELD_EXCEPTIONS = new Set([
 	// Identity and colour are axes, not components — they have no prefix by
 	// design. Typography joined in item 7(b): a typeface is an axis in exactly
@@ -1126,6 +1159,118 @@ function assertOwnershipPolarity(css, name, owned) {
 				'\nKey it on [data-bnd-own~="<token>"] instead — stamped after the replacement is ' +
 				"in the DOM, so a failed mount degrades to stock rather than deleting the " +
 				"affordance. A declaration lands at parse time; a mount can fail."
+		);
+	}
+}
+
+/**
+ * `!important` guard — every one outside a print sheet is a NAMED SITE of a
+ * sanctioned class, and every named site still exists.
+ *
+ * THE DOCTRINE AND THE CODE HAD DRIFTED APART, and nothing noticed (the settings
+ * audit of 2026-09-21, C2). GUIDELINES §1.3 and CLAUDE.md named a `font-family`
+ * block that no bundle carried, and did not name four sites the code did carry:
+ * the pane head's icon tile, the pane filter's reveal, and two picker borders
+ * that needed weight, not escalation (they are gone). A list in prose that the
+ * build never reads is a claim; this is the list, and the prose names the CLASSES
+ * — GUIDELINES §1.3 carries the test for each:
+ *
+ *   inline  — Frappe writes the declaration into the node's `style` attribute;
+ *             no selector outranks an inline declaration, and rewriting Frappe's
+ *             DOM is refused.
+ *   literal — Frappe's own rule is an `!important` LITERAL, and the alternative
+ *             is a measured failure (WCAG, or taking over a vendor state machine).
+ *   print   — `@media print`, and the print bundle as a whole (below: skipped).
+ *
+ * Selectors are matched as the COMPILED sheet spells them (Sass drops the quotes
+ * in `[attr~="x"]`). An edit that moves a sanctioned rule fails here until this
+ * table follows it — which is the point: the site list cannot drift silently
+ * again. A new entry needs its class, its vendor fact, and GUIDELINES' test.
+ */
+const SANCTIONED_IMPORTANT = [
+	{
+		// jQuery `.show()` in Frappe's sidebar.js writes `display: block` INLINE on
+		// the pane's container; the pane's one hide (_sidebar.scss) must beat it.
+		bundle: "bunood",
+		selector: "html[data-bnd-own~=pane-hidden] .body-sidebar-container",
+		property: "display",
+		class: "inline",
+	},
+	{
+		// `frappe.utils.desktop_icon` paints the pane head's tile with an INLINE
+		// `background-color` from its own palette; the tile takes the brand.
+		bundle: "bunood",
+		selector: "html[data-bnd-sb-color] .body-sidebar .sidebar-header .icon-container",
+		property: "background",
+		class: "inline",
+	},
+	{
+		// Frappe collapses a pane section with `.hidden` (`@extend .d-none`:
+		// `display: none !important`, a LITERAL). While a pane filter is live, a
+		// match inside a collapsed section must show — the alternative is toggling
+		// Frappe's own collapse class, their state machine. Scoped to the transient
+		// attribute our filter alone stamps.
+		bundle: "bunood",
+		selector:
+			"html[data-bnd-sb-filtering] .body-sidebar .sidebar-item-container.section-item:not(.bnd-sb-fhide) > .sidebar-child-item.hidden",
+		property: "display",
+		class: "literal",
+	},
+	{
+		// Item 33: `.text-muted { color: #7c7c7c !important }`, a LITERAL, at 4.17:1
+		// on /404's only link and every portal row; a website page has no `.bunood`
+		// root to escalate through.
+		bundle: "bunood-web",
+		selector: "body.bnd-web .text-muted",
+		property: "color",
+		class: "literal",
+	},
+];
+
+function assertImportantSanctioned(css, key) {
+	// The print sheet is the `print` class as a whole: wkhtmltopdf and the Print
+	// Style are print by definition, and assertPrintSafeCss bounds that sheet.
+	if (key === "bunood-print") return;
+	const stripped = css.replace(/\/\*[\s\S]*?\*\//g, "");
+	const found = [];
+	const offenders = [];
+	const stack = [];
+	let buf = "";
+	for (const ch of stripped) {
+		if (ch === "{") {
+			stack.push(buf.trim());
+			buf = "";
+		} else if (ch === "}") {
+			const body = buf;
+			buf = "";
+			const selector = (stack.pop() || "").replace(/\s+/g, " ");
+			if (!/!important/.test(body)) continue;
+			const inPrint = stack.some((s) => /^@media\b[^{]*\bprint\b/.test(s));
+			for (const decl of body.split(";")) {
+				if (!/!important/.test(decl)) continue;
+				const property = decl.split(":")[0].trim();
+				if (inPrint) continue;
+				const site = SANCTIONED_IMPORTANT.find(
+					(s) => s.bundle === key && s.selector === selector && s.property === property
+				);
+				if (site) found.push(site);
+				else offenders.push(`${selector} { ${decl.trim()} }`);
+			}
+		} else {
+			buf += ch;
+		}
+	}
+	if (stack.length) throw new Error(`!important guard: ${key}.css did not parse — ${stack.length} unclosed block(s)`);
+	const stale = SANCTIONED_IMPORTANT.filter((s) => s.bundle === key && !found.includes(s));
+	if (offenders.length || stale.length) {
+		throw new Error(
+			`!important guard: ${key}.css` +
+				(offenders.length ? `\n  unsanctioned:\n    ${offenders.join("\n    ")}` : "") +
+				(stale.length ? `\n  sanctioned but no longer in the sheet:\n    ${stale.map((s) => s.selector).join("\n    ")}` : "") +
+				"\nWeigh a rule up instead (one class more, or an attribute that is always present, used " +
+				"as weight). If the vendor writes the declaration INLINE or as an !important LITERAL and " +
+				"the alternative is a measured failure, name the site in SANCTIONED_IMPORTANT with its " +
+				"class and vendor fact (GUIDELINES §1.3); a sanctioned site that moved must move here too."
 		);
 	}
 }
@@ -1398,7 +1543,7 @@ function assertTypographySync(typographySrc, doctypeJson, fontFiles) {
  * parses registry.py rather than importing it: `el("button", "…", …)` calls
  * in bunood.js, and `<button … class="…">` HTML string literals in
  * theme_settings.js — everywhere either file builds a control. A class
- * fragment produced by string concatenation (`"bnd-railbtn-" + shape`) is
+ * fragment produced by string concatenation (a `"bnd-x-" + shape`) is
  * filtered out — it ends in `-` and is not a real class name until runtime —
  * but the identity class beside it in the same literal is still checked.
  * A literal that resolves to an empty prefix (the whole class list built
@@ -1493,103 +1638,159 @@ function assertRingCoverage(css, bunoodJs, themeSettingsJs) {
  * as a contradiction.
  */
 /**
- * Default mirrors (item 42) — `theme_settings.js`'s twenty `BND_*_DEFAULTS` maps are
- * hand copies of `presets.py`'s, and a copy nothing checks is a copy that drifts.
+ * No client copy of a shipped default (the settings audit of 2026-09-21, decision ii-3).
  *
- * IT HAD ALREADY DRIFTED THREE WAYS when this was written: `icon_style` read
- * "Colored Chips" against a shipped "Filled Color" (from before this item), and
- * `crumb_style` / `workspace_style` moved when the defaults were re-chosen. Every one
- * of them made a per-option reset chip write a value the site does not ship — the
- * `↺` control whose whole promise is putting a field back where it started.
- *
- * Compares by FIELDNAME across both files rather than map to map: the JS groups its
- * fields by picker and Python groups them by kit, and the two groupings are free to
- * disagree without either being wrong. A field the JS carries and Python does not is
- * reported too — that is a field with no shipped value at all.
+ * `theme_settings.js` used to carry twenty-three `BND_<X>_DEFAULTS` maps — hand copies
+ * of `presets.py` that this guard's predecessor compared value for value. Three had
+ * drifted by the time anybody looked, and a guard that compares copies still leaves
+ * two statements of every default. The form now awaits `api.get_shipped_defaults`
+ * before its first picker renders and reads every default through `bnd_default_of`,
+ * so there is nothing to mirror: a `BND_<X>_DEFAULTS` declaration is a second
+ * statement of the fact and is refused outright.
  *
  * @param {string} jsSrc - theme_settings.js text
- * @param {string} presetsSrc - presets.py text
  */
-function assertDefaultMirrors(jsSrc, presetsSrc) {
-	const py = new Map();
-	for (const m of presetsSrc.matchAll(/^ {4}"([a-z_0-9]+)":\s*("[^"]*"|\d+),/gm)) {
-		if (!py.has(m[1])) py.set(m[1], m[2]);
-	}
-	const offenders = [];
-	let read = 0;
-	// EVERY DECLARED MAP IS READ, and the count is checked rather than assumed. The
-	// first draft matched bodies with a non-greedy `[\s\S]*?` up to a `};` on its own
-	// line -- and `BND_CHART_DEFAULTS` is written on ONE line, so its match ran on and
-	// swallowed BND_REPORT_DEFAULTS whole: nineteen of twenty maps compared, the chart
-	// map's own field never read at all, and the guard said nothing. Worse, a drift in
-	// the swallowed map was reported against the WRONG map. That is this repo's "a
-	// helper that guesses at an unrecognised input" trap, inside the guard written to
-	// stop a different one. So: slice each body from its own brace to the first `};`,
-	// refuse to cross the next declaration, and throw when a body cannot be found.
-	const declared = [...jsSrc.matchAll(/const (BND_[A-Z_]+_DEFAULTS) = \{/g)];
-	for (let i = 0; i < declared.length; i += 1) {
-		const name = declared[i][1];
-		const from = declared[i].index + declared[i][0].length;
-		const limit = i + 1 < declared.length ? declared[i + 1].index : jsSrc.length;
-		const close = jsSrc.indexOf("};", from);
-		if (close === -1 || close >= limit) {
-			throw new Error(
-				`Default-mirror guard: cannot find the end of ${name}. Fix the parser rather than ` +
-					"working around it -- an unread map is an unchecked copy."
-			);
-		}
-		read += 1;
-		for (const row of jsSrc.slice(from, close).matchAll(/([a-z_0-9]+):\s*("[^"]*"|\d+)/g)) {
-			const want = py.get(row[1]);
-			if (want === undefined) continue;
-			if (want !== row[2]) offenders.push(`${name}.${row[1]}: js ${row[2]} vs presets.py ${want}`);
-		}
-	}
-	// A guard that reads no maps passes everything.
-	if (read < 15) {
+function assertDefaultMirrors(jsSrc) {
+	const declared = [...jsSrc.matchAll(/const (BND_[A-Z_]+_DEFAULTS)\s*=/g)].map((m) => m[1]);
+	if (declared.length) {
 		throw new Error(
-			`Default-mirror guard: only ${read} maps read -- the declaration pattern has stopped ` +
-				"matching. Fix the parser, not the count."
-		);
-	}
-	// AND EVERY KIT THAT HAS ONE HALF HAS THE OTHER. A floor cannot notice one map of
-	// twenty going missing -- renaming BND_CRUMB_DEFAULTS leaves nineteen, which clears
-	// any floor worth setting. The pairing does notice: a kit with a BND_<X>_FIELDS
-	// mirror and no BND_<X>_DEFAULTS has reset chips with nothing to reset to.
-	//
-	// The two standing exceptions are real and named rather than tolerated: SIDEBAR's
-	// defaults are the server's `_SIDEBAR_LOOKS` catalogue (there is no client literal
-	// to drift), and MOBILE's three fields are Checks whose reset is the toggle itself.
-	const PAIRLESS = new Set(["SIDEBAR", "MOBILE"]);
-	const haveDefaults = new Set(declared.map((d) => d[1].slice(4, -9)));
-	const unpaired = [...jsSrc.matchAll(/const BND_([A-Z_]+)_FIELDS = /g)]
-		.map((m) => m[1])
-		.filter((kit) => !PAIRLESS.has(kit) && !haveDefaults.has(kit));
-	if (unpaired.length) {
-		throw new Error(
-			"Default-mirror guard: these kits have a BND_<X>_FIELDS mirror and no readable\n" +
-				`BND_<X>_DEFAULTS map, so their reset chips have nothing to reset to: ${unpaired.join(", ")}.\n` +
-				"Either the map was renamed (fix the name) or the kit genuinely has none (add it\n" +
-				"to PAIRLESS with the reason, the way SIDEBAR and MOBILE are)."
-		);
-	}
-	if (offenders.length) {
-		throw new Error(
-			"Default-mirror guard: theme_settings.js disagrees with presets.py about the shipped\n" +
-				"default, so a reset chip writes a value the site does not ship:\n  " +
-				offenders.join("\n  ") +
-				"\n\nThe Python side is the canon. Fix the JS literal."
+			"Default-mirror guard: theme_settings.js declares a client copy of a shipped default:\n  " +
+				declared.join("\n  ") +
+				"\n\nThe server serves the defaults (api.get_shipped_defaults); read them through " +
+				"bnd_default_of(field) and delete the copy."
 		);
 	}
 }
 
 /**
- * Layout-slug guard (item 42) — `bunood.js` keys two tables on the catalogue's layout
+ * The doctype carries no `default` of its own (audit 2026-09-21, decision ii-2).
+ *
+ * A field's `default` in theme_settings.json was a THIRD statement of the shipped
+ * value — beside presets.py's dicts and the form's copies — and it never applied to
+ * this Single anyway: `after_install` and `after_migrate` seed every field from
+ * `setup.SHIPPED`, and a Single that already exists never reads a field default.
+ * 116 of 149 settable fields carried one; none of the 33 others ever missed it. So
+ * the JSON says what a field IS (type, options, label, section) and never what it
+ * ships as. Breaks and HTML hosts are not fields and are skipped.
+ *
+ * @param {object} doctype - parsed theme_settings.json
+ */
+function assertNoDoctypeDefaults(doctype) {
+	const BREAKS = new Set(["Section Break", "Column Break", "Tab Break", "HTML"]);
+	const carrying = doctype.fields
+		.filter((f) => !BREAKS.has(f.fieldtype) && f.default !== undefined && f.default !== null && f.default !== "")
+		.map((f) => `${f.fieldname} (${f.fieldtype}) = ${JSON.stringify(f.default)}`);
+	if (carrying.length) {
+		throw new Error(
+			`Doctype-default guard: ${carrying.length} field(s) in theme_settings.json carry a \`default\`, ` +
+				"a copy of the shipped value that presets.py owns and setup.py seeds:\n  " +
+				carrying.slice(0, 12).join("\n  ") +
+				(carrying.length > 12 ? `\n  … and ${carrying.length - 12} more` : "") +
+				"\n\nDelete the key; the seeder writes the shipped value on install and on every migrate."
+		);
+	}
+}
+
+/**
+ * No fallback LITERAL names a value for a doctype field (audit 2026-09-21, ii-1).
+ *
+ * `frm.doc.crumb_style || "Quiet Trail"`, `status_state.status_clock || "24 Hour"`,
+ * `{ field: "search_placement", fallback: "Side Pane Start" }` — each is a statement
+ * of a default that lives somewhere else, and by the time the audit ran three of the
+ * nineteen disagreed with what the site ships (search landed in a top bar, the
+ * crumbs on a retired style, the clock on). A fallback may be "" (inherit) or a
+ * served value; it may not be a literal the field could hold.
+ *
+ * Whole-word, bound to its own field, and blind to comment lines. Slug-space
+ * fallbacks (`SLUGS.map[obj.field] || "slug"`) are refused too: a slug is still a
+ * literal statement of the default, one translation away.
+ *
+ * @param {object} doctype - parsed theme_settings.json
+ * @param {{name: string, src: string}[]} sources - the scripts to scan
+ */
+function assertNoFallbackLiterals(doctype, sources) {
+	const BREAKS = new Set(["Section Break", "Column Break", "Tab Break", "HTML"]);
+	const fields = new Set(doctype.fields.filter((f) => !BREAKS.has(f.fieldtype)).map((f) => f.fieldname));
+	const problems = [];
+	for (const { name, src } of sources) {
+		src.split("\n").forEach((line, i) => {
+			if (/^\s*(\/\/|\/\*|\*)/.test(line)) return;
+			for (const m of line.matchAll(/(?<![A-Za-z0-9_])([a-z][a-z0-9_]*)\)?\s*(?:\|\||\?\?)\s*["']([^"']+)["']/g)) {
+				if (fields.has(m[1])) problems.push(`${name}:${i + 1} ${m[1]} || "${m[2]}"`);
+			}
+			for (const m of line.matchAll(/field:\s*["']([a-z0-9_]+)["'][^\n]*?fallback:\s*["']([^"']+)["']/g)) {
+				if (fields.has(m[1])) problems.push(`${name}:${i + 1} ${m[1]} fallback: "${m[2]}"`);
+			}
+			for (const m of line.matchAll(/\[[^\]]*?\.([a-z][a-z0-9_]*)\]\s*\|\|\s*["']([^"']+)["']/g)) {
+				if (fields.has(m[1])) problems.push(`${name}:${i + 1} ${m[1]} slug fallback "${m[2]}"`);
+			}
+		});
+	}
+	if (problems.length) {
+		throw new Error(
+			"Fallback-literal guard: a script names a default for a Theme Settings field, which is a\n" +
+				"second statement of a fact presets.py owns (and three of these disagreed with it):\n  " +
+				problems.join("\n  ") +
+				'\n\nFall back to "" (inherit) or to the served value (bnd_default_of / frappe.boot), never to a literal.'
+		);
+	}
+}
+
+/**
+ * No Jinja template states a default beside a Theme Settings read (the settings audit of
+ * 2026-09-21, ii-1 — "one guard extended to the macro").
+ *
+ * The print macros read seven switches as `get_single_value(...) or "<literal>"`, each a
+ * copy of a default `presets.PRINT_DEFAULTS` owns and nothing compared. Slice B routed
+ * them through `bunood_print_setting(field)`, which reads the catalogue; this is what
+ * keeps a literal from coming back. Refused, for any field the doctype has:
+ *   * `bunood_print_setting("f", ...)` or `_pset("f", ...)` — a second (default) argument;
+ *   * `bunood_print_setting("f") or "lit"`, `_pset("f") | default("lit")` — a fallback;
+ *   * `get_single_value("Theme Settings", "f") or "lit"` (and `get_cached_value`).
+ * Jinja comments are stripped first: the macro's own header records the history in
+ * words, and a guard that tripped on its own documentation would be switched off.
+ *
+ * @param {object} doctype - parsed theme_settings.json
+ * @param {{name: string, src: string}[]} templates - every .html template the app ships
+ */
+function assertNoTemplateDefaults(doctype, templates) {
+	const BREAKS = new Set(["Section Break", "Column Break", "Tab Break", "HTML"]);
+	const fields = new Set(doctype.fields.filter((f) => !BREAKS.has(f.fieldtype)).map((f) => f.fieldname));
+	const problems = [];
+	const PATTERNS = [
+		[/(?:bunood_print_setting|_pset)\(\s*["']([a-z0-9_]+)["']\s*,/g, "a default argument"],
+		[/(?:bunood_print_setting|_pset)\(\s*["']([a-z0-9_]+)["']\s*\)\s*(?:or\s*["'][^"']+["']|\|\s*default\(\s*["'])/g, "a literal fallback"],
+		[/get_(?:single|cached)_value\(\s*["']Theme Settings["']\s*,\s*["']([a-z0-9_]+)["'][^)]*\)\s*(?:or\s*["'][^"']+["']|\|\s*default\(\s*["'])/g, "a literal fallback"],
+	];
+	for (const { name, src } of templates) {
+		const code = src.replace(/\{#[\s\S]*?#\}/g, (c) => c.replace(/[^\n]/g, " ")).replace(/<!--[\s\S]*?-->/g, (c) => c.replace(/[^\n]/g, " "));
+		for (const [re, what] of PATTERNS) {
+			for (const m of code.matchAll(re)) {
+				if (!fields.has(m[1])) continue;
+				const line = code.slice(0, m.index).split("\n").length;
+				problems.push(`${name}:${line} ${m[1]} — ${what}`);
+			}
+		}
+	}
+	if (problems.length) {
+		throw new Error(
+			"Template-default guard: a template states a default for a Theme Settings field, a\n" +
+				"second copy of what presets.PRINT_DEFAULTS owns (seven such sat in the print macros):\n  " +
+				problems.join("\n  ") +
+				"\n\nRead through bunood_print_setting(field) and nothing else; the catalogue supplies the default."
+		);
+	}
+}
+
+/**
+ * Layout-slug guard (item 42) — `bunood.js` keys a table on the catalogue's layout
  * NAMES, slugified, and nothing checked that they are the catalogue's.
  *
  * `SEARCH_FALLBACKS` decides where search goes when the slot it asked for is not on
- * this desk; `LAYOUT_CONTAINERS` is the pre-boot floor for "is this container on".
- * Item 42 renamed every layout and neither table moved, so every desk fell through to
+ * this desk. (`LAYOUT_CONTAINERS`, the pre-boot floor for "is this container on",
+ * was the second table here until the settings audit of 2026-09-21 found it
+ * unreachable and deleted it.) Item 42 renamed every layout and the table did not
+ * move, so every desk fell through to
  * a row for a layout that no longer exists: on the shipped pane-first desk, search
  * asked for a top bar that is not there and landed in the STATUS STRIP rather than the
  * pane. Two suite checks found it; nothing offline did, and the `|| default` that makes
@@ -1610,7 +1811,7 @@ function assertLayoutSlugs(registrySrc, jsSrc) {
 	if (want.length < 2) {
 		throw new Error(`Layout-slug guard: only ${want.length} layouts parsed from LAYOUT_CHROME — fix the parser.`);
 	}
-	for (const table of ["SEARCH_FALLBACKS", "LAYOUT_CONTAINERS"]) {
+	for (const table of ["SEARCH_FALLBACKS"]) {
 		const blk = jsSrc.match(new RegExp(`const ${table} = \\{([\\s\\S]*?)\\n\\t\\};`));
 		if (!blk) throw new Error(`Layout-slug guard: ${table} not found in bunood.js`);
 		// QUOTED KEYS COUNT TOO. `layout()` strips whitespace and nothing else, so a
@@ -1938,21 +2139,22 @@ async function pythonSources(dirUrl, prefix = "bunood_theme") {
 	return out;
 }
 
-function assertFieldNaming(doctypeJson) {
+function assertFieldNaming(doctypeJson, prefixes) {
 	const offenders = [];
 	for (const f of doctypeJson.fields || []) {
 		const name = f.fieldname;
 		if (!name || FIELD_EXCEPTIONS.has(name)) continue;
 		// Layout furniture carries no data.
 		if (["Section Break", "Column Break", "Tab Break", "HTML"].includes(f.fieldtype)) continue;
-		if (!FIELD_PREFIXES.some((p) => name.startsWith(p + "_"))) offenders.push(name);
+		if (!prefixes.some((p) => name.startsWith(p + "_"))) offenders.push(name);
 	}
 	if (offenders.length) {
 		throw new Error(
 			`Field-naming guard: ${offenders.join(", ")} — Theme Settings fields must be ` +
-				`<component>_<property> using one of: ${FIELD_PREFIXES.join(", ")}. ` +
-				"Rename the field, or if it is genuinely not a component setting, add it to " +
-				"FIELD_EXCEPTIONS in build.mjs with a comment saying why."
+				`<component>_<property> using one of: ${prefixes.join(", ")}. ` +
+				"Rename the field; register its component in registry.py (the key becomes a " +
+				"prefix); or, if it is genuinely not a component setting, add its axis to " +
+				"FIELD_AXES or the field to FIELD_EXCEPTIONS in build.mjs with a comment saying why."
 		);
 	}
 }
@@ -2016,6 +2218,7 @@ async function buildEntry({ key, src, pyid }) {
 	assertTokensDeclared(result.css, `${key}.css`, RUNTIME_TOKENS, BASE_TOKENS);
 	assertOwnershipPolarity(result.css, `${key}.css`, OWNED_NATIVES);
 	assertCursiveSafe(result.css, `${key}.css`);
+	assertImportantSanctioned(result.css, key);
 	assertAutomaticArms(result.css, `${key}.css`);
 	assertMotionPrimitive(result.css, `${key}.css`);
 	assertBreakpointVocabulary(result.css, `${key}.css`);
@@ -2139,7 +2342,8 @@ async function main() {
 				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
 				"utf8"
 			)
-		)
+		),
+		readFieldPrefixes(await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"))
 	);
 	assertFieldOrder(
 		JSON.parse(
@@ -2192,9 +2396,58 @@ async function main() {
 		await readFile(
 			new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
 			"utf8"
-		),
-		await readFile(new URL("./bunood_theme/presets.py", import.meta.url), "utf8")
+		)
 	);
+	assertNoDoctypeDefaults(
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		)
+	);
+	assertNoFallbackLiterals(
+		JSON.parse(
+			await readFile(
+				new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+				"utf8"
+			)
+		),
+		[
+			{
+				name: "theme_settings.js",
+				src: await readFile(
+					new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js", import.meta.url),
+					"utf8"
+				),
+			},
+			{ name: "bunood.js", src: await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8") },
+		]
+	);
+	{
+		// Every Jinja template the app ships — found, not listed, so a new one is covered.
+		const templates = [];
+		const walk = async (dir) => {
+			for (const e of await readdir(dir, { withFileTypes: true })) {
+				const p = join(dir, e.name);
+				if (e.isDirectory()) await walk(p);
+				else if (e.name.endsWith(".html")) templates.push({ name: p.slice(APP.length + 1), src: await readFile(p, "utf8") });
+			}
+		};
+		await walk(APP);
+		if (!templates.some((t) => t.name.replace(/\\/g, "/").endsWith("templates/bunood_print_macros.html"))) {
+			throw new Error("Template-default guard: the print macros were not found under " + APP + " — fix the walk.");
+		}
+		assertNoTemplateDefaults(
+			JSON.parse(
+				await readFile(
+					new URL("./bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.json", import.meta.url),
+					"utf8"
+				)
+			),
+			templates
+		);
+	}
 	assertLayoutSlugs(
 		await readFile(new URL("./bunood_theme/registry.py", import.meta.url), "utf8"),
 		await readFile(new URL("./bunood_theme/public/js/bunood.js", import.meta.url), "utf8")

@@ -17,14 +17,16 @@
     ============================================================================ -#}
 
 {#- The per-section switches (item 35) read Theme Settings AT RENDER — no
-    sync step, no second copy: the field is the fact. `or default` keeps a
-    pre-migrate site (field not yet seeded) on today's behaviour. -#}
-{% macro _pset(field, default) -%}{{ frappe.db.get_single_value("Theme Settings", field) or default }}{%- endmacro %}
+    sync step, no second copy: the field is the fact. The default for an
+    unseeded site comes from presets.PRINT_DEFAULTS through
+    bunood_print_setting (hooks.jinja), never from a literal here: seven
+    literals sat in this file with nothing comparing them (audit 2026-09-21). -#}
+{% macro _pset(field) -%}{{ bunood_print_setting(field) }}{%- endmacro %}
 
 {#- Bilingual document title. `print_title_lang` picks which halves render —
     Both / Arabic only / English only (item 35). -#}
 {% macro doc_title(ar, en) -%}
-{%- set tl = _pset("print_title_lang", "Both") | trim -%}
+{%- set tl = _pset("print_title_lang") | trim -%}
 <div class="bnd-p-title">{% if tl != "English only" %}<div class="bnd-p-title__ar">{{ ar | e }}</div>{% endif %}{% if tl != "Arabic only" %}<div class="bnd-p-title__en">{{ en | e }}</div>{% endif %}</div>
 {%- endmacro %}
 
@@ -49,11 +51,11 @@
     setting, because a togglable legal mandate is not a setting, it is a
     defect. `print_qr_size` maps to concrete pixels; an unknown value falls
     back to the caller's size. -#}
-{%- set show = _pset("print_qr", "Show") | trim -%}
+{%- set show = _pset("print_qr") | trim -%}
 {#- Medium is the NEUTRAL: it means "the caller's size", not a fixed 110 —
     the thermal formats pass 120 and the review caught the first cut of this
     map silently shrinking them. Only the non-neutral values override. -#}
-{%- set sz = {"Small": 90, "Large": 130}.get(_pset("print_qr_size", "Medium") | trim, size) -%}
+{%- set sz = {"Small": 90, "Large": 130}.get(_pset("print_qr_size") | trim, size) -%}
 {%- if show != "Hide" or required -%}
 {%- set qr = bunood_zatca_qr_src(doc) if bunood_zatca_qr_src is defined else (doc.get("ksa_einv_qr") or doc.get("custom_zatca_qr") or doc.get("custom_qr_code")) -%}
 {% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ sz }}px;height:{{ sz }}px">
@@ -67,7 +69,7 @@
     placement is one fact; the formats call this instead of hand-building
     the two-cell table (item 35). -#}
 {% macro head_row(doc, required=False) -%}
-{%- set place = _pset("print_qr_place", "Head end") | trim -%}
+{%- set place = _pset("print_qr_place") | trim -%}
 <table class="bnd-p-head"><tr>
   {%- if place == "Head start" -%}
   <td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=required) }}</td>
@@ -155,12 +157,12 @@
     in the 130px end cell — the first cut stacked the QR below the words strip,
     which the review rightly called "below", not "beside". The words strip
     stays full-width AFTER the pair. -#}
-{%- if (_pset("print_qr_place", "Head end") | trim) == "Beside totals" -%}
+{%- if (_pset("print_qr_place") | trim) == "Beside totals" -%}
 <table class="bnd-p-head"><tr><td>{{ totals_tbl }}</td><td class="bnd-p-head__qr">{{ zatca_qr(doc, 110, required=kwargs.get("qr_required", False)) }}</td></tr></table>
 {%- else -%}
 {{ totals_tbl }}
 {%- endif -%}
-{% if doc.get("in_words") and (_pset("print_words", "Show") | trim) != "Hide" %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
+{% if doc.get("in_words") and (_pset("print_words") | trim) != "Hide" %}<div class="bnd-p-words">{{ doc.in_words | e }}</div>{% endif %}
 {%- endmacro %}
 
 {#- ===== THERMAL (80mm) blocks — no letterhead, so company head included ===== -#}
@@ -243,7 +245,7 @@
 {% macro sig_row(labels=None) -%}
 {%- set default_labels = ["المستلم / Received By", "المحاسب / Accountant", "المدير المالي / Finance Manager"] -%}
 {%- if labels is none -%}
-  {%- set pref = _pset("print_signatures", "Three lines") | trim -%}
+  {%- set pref = _pset("print_signatures") | trim -%}
   {%- if pref == "None" -%}{%- set labels = [] -%}
   {%- elif pref == "Two lines" -%}{%- set labels = default_labels[:2] -%}
   {%- else -%}{%- set labels = default_labels -%}

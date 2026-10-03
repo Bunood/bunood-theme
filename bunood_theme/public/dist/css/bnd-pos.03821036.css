@@ -133,7 +133,7 @@
   --bnd-series-6: #882255;
   --bnd-series-7: #3f9d8d;
   --bnd-series-other: #808080;
-  --bnd-good: #1a7f45;
+  --bnd-good: #197942;
   --bnd-warn: #965e00;
   --bnd-serious: #c2410c;
   --bnd-critical: #b42318;
@@ -401,8 +401,8 @@ html[data-theme] .bnd-pos-workbench .bnd-pos__eyebrow {
   text-transform: uppercase;
   opacity: 0.78;
 }
-html[data-theme] .bnd-pos-workbench .bnd-pos__subtitle {
-  margin-block-start: var(--bnd-sp-2) !important;
+html[data-theme] .bnd-pos-workbench .bnd-pos__title .bnd-pos__subtitle {
+  margin-block-start: var(--bnd-sp-2);
   font-size: var(--bnd-text-sm);
   opacity: 0.82;
 }

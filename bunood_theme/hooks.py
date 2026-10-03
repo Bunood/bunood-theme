@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.48.5"
+app_version = "0.49.1"
 
 required_apps = []
 
@@ -66,9 +66,9 @@ doctype_list_js = {
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
 # listed phantom assets and put four 404/MIME console errors on every page.
-# Each entry below is enabled in the commit that ships its file.
-#
-# app_include_icons = ["/assets/bunood_theme/icons/bunood.svg"]  # when the sprite ships
+# Each entry is enabled in the commit that ships its file. (`app_include_icons`
+# waited here, commented out, for a Tabler sprite that item 23 deferred and never
+# built; the settings audit of 2026-09-21 struck the feature, iv-1.)
 
 # ── Website / portal / login assets ─────────────────────────────────────────────
 # The login page is a WEBSITE page, not a desk page: it does not get app_include_css,
@@ -167,6 +167,9 @@ jinja = {
         "bunood_theme.printing.jinja.bunood_zatca_qr_src",
         "bunood_theme.printing.jinja.bunood_vat_totals",
         "bunood_theme.printing.jinja.bunood_item_vat_map",
+        # The print macros' settings reads, with their defaults from presets.PRINT_DEFAULTS
+        # rather than from literals in the template (settings audit 2026-09-21, ii-1).
+        "bunood_theme.printing.jinja.bunood_print_setting",
         # Item 34: the email stylesheet, substituted per site. Registered here
         # rather than delivered by Frappe's `email_css` hook because that hook is a
         # STATIC file list (so it can never carry a customer's seed) and its

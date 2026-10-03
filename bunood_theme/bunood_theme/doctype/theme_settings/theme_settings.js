@@ -377,7 +377,7 @@ function bnd_region_blocker(frm, region) {
 		// that shows no pane — the runtime falls back and the picture lies. Rail
 		// is NOT a blocker: the pane is still there, still expands, and a tenant
 		// in it is reachable the moment it does.
-		if (bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden") {
+		if (String(frm.doc.sidebar_pane_state ?? "") === "Hidden") {
 			return __("the side pane is hidden");
 		}
 		return "";
@@ -935,9 +935,21 @@ frappe.ui.form.on("Theme Settings", {
 	appearance_placement(frm) {
 		bnd_render_placement_board(frm);
 	},
-	refresh(frm) {
+	async refresh(frm) {
 		bnd_fix_primary_action(frm);
 		bnd_autosave_setup(frm);
+		// THE SERVED DEFAULTS FIRST (audit 2026-09-21, decision ii-3): every picker's
+		// reset chip, change dot and "Default/Changed" note reads `bnd_default_of`,
+		// and the client copies that used to stand in until this landed are gone.
+		// One awaited request (~300 ms on this stack, cached for the session); a
+		// failed fetch is said out loud rather than papered over with a literal.
+		await bnd_load_shipped();
+		if (!bnd_shipped) {
+			frm.dashboard.set_headline(
+				__("The shipped defaults could not be loaded — reset chips and change dots are unavailable until this page is reloaded."),
+				"red"
+			);
+		}
 		// The composer is a MODE read once from the address (item 43 C1): the
 		// class on the page container is what stands every other card down.
 		frm.page.wrapper.toggleClass("bnd-composing", bnd_compose_wanted());
@@ -947,10 +959,10 @@ frappe.ui.form.on("Theme Settings", {
 		// label (`bnd_match_layout`) has said what the desk actually IS since
 		// the last container landed, and the Overview reads it too.
 		//
-		// HIDDEN, NOT DELETED, and the reason is a live consumer the retirement
-		// plan had missed: boot still serves this name and `bunood.js` stamps
-		// `data-bnd-layout` from it, which a dozen `_layouts.scss` rules
-		// position panels by. Deleting the field today would leave a CUSTOM
+		// HIDDEN, NOT DELETED. (This used to say boot served the name and `bunood.js`
+		// stamped `data-bnd-layout` from it: item 37 deleted the field, the attribute
+		// is `data-bnd-desk` and it is DERIVED — boot.py says so where it composes
+		// `bnd_desk_shape`. The paragraph below is the sequence that was followed.) Deleting the field today would leave a CUSTOM
 		// desk — containers matching no preset — with nothing to stamp, i.e. a
 		// silent rendering change on exactly the sites that diverged. The
 		// honest sequence is to finish phase 0's own direction first (re-key
@@ -988,6 +1000,12 @@ frappe.ui.form.on("Theme Settings", {
 		bnd_render_language_picker(frm);
 		bnd_render_placement_board(frm);
 		bnd_render_compose_picker(frm);
+		// Density is a plain Select with a per-user twin: its note hangs under the
+		// field itself (audit 2026-09-21, i-2).
+		{
+			const df = frm.get_field("density_default");
+			if (df && df.$wrapper) bnd_note_mine(df.$wrapper, frm, "bnd_density", __("density"), null);
+		}
 		// The side pane's map (item 43 B3) reads the rendered sections: after
 		// the pickers, and again once the shipped defaults land (the dots).
 		bnd_settings_marks(frm);
@@ -1174,8 +1192,8 @@ const BND_SETTINGS_GROUPS = [
 			// own (the fonts entry claims the section first) — the entry exists for
 			// the Overview's goto. Its state lives in its own doctypes (Bunood
 			// Translation Settings / Scan / Proposal), not in Theme Settings
-			// fields, which keeps the FIELD_PREFIXES guard out of a feature that
-			// is not a desk component.
+			// fields, which keeps build.mjs's field-naming guard out of a feature
+			// that is not a desk component.
 			{ key: "translations", label: () => __("Translations"), anchors: ["language_translations"] },
 			// `density_default` has its own section. It used to share
 			// `section_features` with `palette_enabled`, and the shell's fallback
@@ -1282,22 +1300,19 @@ const BND_SETTINGS_GROUPS = [
 let bnd_shipped = null;
 
 /**
- * A field's SHIPPED default: the served fact first, the kit's literal only until it
- * arrives.
+ * A field's SHIPPED default, from the served fact and nowhere else.
  *
- * The `BND_*_DEFAULTS` maps below are twenty hand copies of `presets.py`, and three of
- * them had drifted by the time anybody looked — `icon_style` said "Colored Chips" while
- * the site shipped "Filled Color", and two more moved when this item re-chose the
- * defaults. Each one made a reset chip write a value the site does not ship, silently,
- * on a control whose entire promise is "put this back".
- *
- * The literals stay because a reset can be clicked before the xcall resolves and a chip
- * that does nothing is worse than one that is briefly a version behind; `build.mjs`'s
- * assertDefaultMirrors is what stops them drifting again.
+ * Twenty-three `BND_*_DEFAULTS` maps used to sit beside this — hand copies of
+ * `presets.py`, three of which had drifted by the time anybody looked. They are gone
+ * (the settings audit of 2026-09-21, decision ii-3): `refresh` awaits
+ * `bnd_load_shipped()` before the first picker renders, so by the time a chip can be
+ * clicked the served map is here, and `build.mjs`'s default-mirror guard refuses any
+ * client copy from returning. When the fetch has failed the answer is `""` — "cannot
+ * say" — and the form says so in its headline rather than resetting to a guess.
  */
-function bnd_default_of(field, fallback) {
+function bnd_default_of(field, fallback = "") {
 	const served = bnd_shipped && bnd_shipped[field];
-	return served === undefined || served === null || served === "" ? fallback : served;
+	return served === undefined || served === null ? fallback : served;
 }
 
 /**
@@ -1320,6 +1335,10 @@ let bnd_layout_tenants = null;
 //: two thirds of it.
 let bnd_layout_pane = null;
 let bnd_container_toggles = null;
+//: `presets.SHAPE_IGNORES` — the fields the desk's SHAPE does not read (search's
+//: own slot). Served with the catalogue so the form cannot restate it; see
+//: `bnd_desk_shape_of`.
+let bnd_shape_ignores = null;
 
 /** Served with the catalogue (item 42, slice 10): tenant key -> the slots its
  *  field accepts, straight from `registry.slots_for`. `null` until it arrives,
@@ -1355,8 +1374,8 @@ const BND_SETTINGS_OWNS = {
 	links: { fields: ["home_placement", "apps_placement"] },
 	// Item 44: the two prefixes ARE the naming rule, like every other kit here.
 	language: { prefixes: ["language_", "appearance_"] },
-	// The board OWNS the five placement fields it draws — deliberately the
-	// same fields the four entries around it own. It is a second view over one
+	// The board OWNS every placement field it draws, and their order — deliberately
+	// the same fields the entries around it own. It is a second view over one
 	// state, so a moved bell lights both its dot and the bell's: both claims
 	// are true, and a silent board over changed placements would be the lie.
 	placement: {
@@ -1442,11 +1461,12 @@ const BND_SETTINGS_OWNS = {
  * changed" therefore render identically, and that is the right way round: a mark
  * that appeared because a fetch failed would be a lie about the user's settings.
  *
- * Comparison goes through `bnd_sb_norm`, which is not decoration here. Two
- * values that mean the same thing arrive in different shapes — a Check reads
- * back as `1` from Python and `"1"` from some form paths, and
- * `sidebar_menu_rail` has two legacy spellings that both mean "Rail". Comparing
- * raw would mark a component changed that nobody had touched.
+ * Both sides are compared as STRINGS, because a Check reads back as `1` from
+ * Python and `"1"` from some form paths. Nothing else is normalised: a retired
+ * spelling is healed by the next migrate (setup.heal_unknown_selects), never
+ * tolerated here — the settings audit of 2026-09-21 (v-8) found this file
+ * carrying one of three normalisers for labels every site had been rewritten
+ * past, and a value the field cannot hold is a migration's job.
  */
 function bnd_changed_fields(key, frm) {
 	if (!bnd_shipped) return [];
@@ -1457,54 +1477,7 @@ function bnd_changed_fields(key, frm) {
 			(spec.fields || []).includes(f) ||
 			(spec.prefixes || []).some((p) => f.startsWith(p))
 	);
-	return owned.filter((f) => bnd_sb_norm(f, frm.doc[f]) !== bnd_sb_norm(f, bnd_shipped[f]));
-}
-
-/**
- * The note under a shell entry: a preset name where one genuinely exists,
- * otherwise how far the component is from stock.
- *
- * TWO ENTRIES HAVE A REAL CATALOGUE; the rest do not, and pretending otherwise
- * would be the defect this rework exists to remove.
- *
- *   sidepane  — `SIDEBAR_PRESETS`, every field in `presets.SIDEBAR_FIELDS`,
- *               matched since item 10.
- *   layout    — `registry.LAYOUT_CHROME` as of slice 2c. **This is new**, and
- *               it is what the whole container split was for. Until the split
- *               there was no table anywhere stating what a layout writes: the
- *               migration patch records what 0.10.0 *rendered*, which is a
- *               one-shot artefact, and the layout decided things at mount time
- *               that no field recorded at all. There was nothing to compare
- *               against, so this function said "Changed" or "Default" and the
- *               comment here said why. Now every layout is exactly five
- *               container values, so the name is DERIVED by comparing them —
- *               and reads "Custom" the moment one differs.
- *
- * `crumb_style`, `palette_style`, `inbox_style` and `status_style` are top-level
- * style CHOICES that compose with their extras — `presets.py` says so in as many
- * words — so there is still nothing to match and no "Custom" to derive. Those
- * get the honest two-state, computed by the SAME function the dot uses. One
- * comparison, two renderings — never two comparisons that can disagree.
- */
-function bnd_settings_note(key, frm) {
-	if (!bnd_shipped) return "";
-	// THE THEME ENTRY OWNS NO FIELDS OF ITS OWN — it writes other entries'. So it
-	// is answered BEFORE the ownership guard below, which would otherwise send it
-	// down the "no state to report" path and print nothing under the one control
-	// with the largest catalogue on the page. What it can honestly report is
-	// which shipped look the desk currently IS, which is a comparison rather than
-	// a field it holds. (The side pane used to answer with a look's NAME from a
-	// second fetch that raced this one — slice 10 deleted both, and the pane
-	// takes the generic two-state below.)
-	if (key === "theme" && bnd_theme_cache) return bnd_tr_layout(bnd_theme_match(frm));
-	// An entry that owns no fields has no state to report. The Overview READS
-	// settings; saying "Default" under it claims it has some, and would go on
-	// saying it while every component it shows had been changed.
-	if (!BND_SETTINGS_OWNS[key]) return "";
-	// Translated HERE, not in the matcher: this is a display string, while the
-	// picker compares the same answer against untranslated card values.
-	if (key === "layout") return bnd_tr_layout(bnd_match_layout(frm));
-	return bnd_changed_fields(key, frm).length ? __("Changed") : __("Default");
+	return owned.filter((f) => String(frm.doc[f] ?? "") !== String(bnd_shipped[f] ?? ""));
 }
 
 /**
@@ -1528,29 +1501,47 @@ function bnd_tr_layout(name) {
 }
 
 /**
- * Which layout the desk's containers currently ARE, or "Custom".
+ * Which layout these values spell, or "Custom" — the form's half of ONE derivation.
  *
- * Derived by comparing values, never by reading `desk_layout` back. Pinning the
+ * Derived by comparing values, never by reading a stored name back. Pinning the
  * name pins nothing: the name is what was last APPLIED, and every container has
  * its own switch afterwards, so a desk can carry the label "Dock" while showing
- * a top bar and a side pane. The side pane's picker has worked this way since
- * item 10 for exactly this reason — its label is derived by comparing every
- * field the catalogue names — and this is the same rule reaching the last
- * preset that lacked it.
+ * a top bar and a side pane.
  *
- * Falls back to the stored name when the catalogue has not arrived. That is the
- * honest answer to "cannot say": it is what a user picked, merely unverified.
+ * THE SERVER HAS THE OTHER HALF, `presets.layout_of`, and for the same values the
+ * two must give the same answer. The settings audit of 2026-09-21 (C1) found two
+ * places where they did not; the suite now compares them over every catalogue
+ * row and every single-field departure from one ("layout: the form and the
+ * server derive the same layout…"). The two rules that make them one:
+ *
+ *   AN UNSET FIELD TAKES THE SHIPPED VALUE, as `layout_of` does. This read
+ *   `frm.doc[field] ?? row[key]`, so an unset field MATCHED WHATEVER THE ROW
+ *   WANTED — it could not tell two rows apart, the first in the catalogue won,
+ *   and the server, comparing the shipped value, named another.
+ *
+ *   `ignore` IS THE SERVER'S PARAMETER, because there are two questions. The
+ *   card and the labels ask "which preset is this, exactly?": every field
+ *   counts, and one difference reads "Custom" (no ignore, the default here).
+ *   The desk's SHAPE asks "which fallback chain does search walk?", and
+ *   search's own slot is that question, so it is excluded — see
+ *   `bnd_desk_shape_of`, which is what the composer's stage is given.
+ *
+ * "" while the catalogue has not arrived: the honest "cannot say".
  */
-function bnd_match_layout(frm) {
+function bnd_match_layout(frm, ignore = []) {
 	if (!bnd_layout_chrome || !bnd_container_toggles) return "";
+	const live = (field, fallback) => {
+		const v = frm.doc[field];
+		return v === undefined || v === null || v === "" ? bnd_default_of(field, fallback) : v;
+	};
 
 	for (const name of Object.keys(bnd_layout_chrome)) {
 		const row = bnd_layout_chrome[name];
 		const matches = Object.keys(bnd_container_toggles).every((key) => {
 			const field = bnd_container_toggles[key];
 			// A container whose field the doctype has not grown cannot disagree.
-			if (!(key in row) || !frm.get_field(field)) return true;
-			return parseInt(frm.doc[field] ?? row[key], 10) === row[key];
+			if (ignore.includes(field) || !(key in row) || !frm.get_field(field)) return true;
+			return parseInt(live(field, row[key]), 10) === row[key];
 		});
 		// THE CONTAINERS ARE NOT ENOUGH, and Classic and Bottom Bar are why: their
 		// container rows are byte-identical, so comparing only the five toggles
@@ -1560,8 +1551,8 @@ function bnd_match_layout(frm) {
 		// comparing it is also what makes "Custom" mean what it says.
 		const tenants = (bnd_layout_tenants && bnd_layout_tenants[name]) || {};
 		const placed = Object.keys(tenants).every((field) => {
-			if (!frm.get_field(field)) return true;
-			return String(frm.doc[field] ?? tenants[field]) === String(tenants[field]);
+			if (ignore.includes(field) || !frm.get_field(field)) return true;
+			return String(live(field, tenants[field])) === String(tenants[field]);
 		});
 		// AND THE PANE'S STATE. Without it two rows with identical containers and
 		// tenants — Unified Side Pane and Rail + Flyout — are one row to this
@@ -1570,11 +1561,28 @@ function bnd_match_layout(frm) {
 		// side for exactly the same reason.
 		const wantPane = bnd_layout_pane && bnd_layout_pane[name];
 		const paneOk =
-			!wantPane || !frm.get_field("sidebar_pane_state") ||
-			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state ?? wantPane) === wantPane;
+			!wantPane || ignore.includes("sidebar_pane_state") || !frm.get_field("sidebar_pane_state") ||
+			String(live("sidebar_pane_state", wantPane)) === wantPane;
 		if (matches && placed && paneOk) return name;
 	}
 	return "Custom";
+}
+
+/**
+ * The desk's SHAPE for the form's values: what boot would serve as
+ * `bnd_desk_shape` if they were saved, "" when no layout matches.
+ *
+ * `bnd_desk_shape` is the sole input to the runtime's `search_fallback_order()`,
+ * and boot derives it as `layout_of(resolved)` — WITH `SHAPE_IGNORES`, because a
+ * desk that asks for search somewhere unusual is still the shape it is. The
+ * composer's stage used to be given the card's label instead, so the same values
+ * that boot calls "Unified Side Pane" reached the stage as "" and search there
+ * walked the Top Bar chain — the preview showed search where the saved desk
+ * would not put it (the settings audit, C1).
+ */
+function bnd_desk_shape_of(frm) {
+	const name = bnd_match_layout(frm, bnd_shape_ignores || []);
+	return name === "Custom" ? "" : name;
 }
 
 /**
@@ -1591,9 +1599,9 @@ function bnd_match_layout(frm) {
  * duplicated.
  */
 const BND_OVERVIEW_TENANTS = [
-	{ key: "search", field: "search_placement", label: () => __("Search"), fallback: "Side Pane Start" },
-	{ key: "inbox", field: "inbox_placement", label: () => __("Bell"), fallback: "Side Pane End" },
-	{ key: "user", field: "user_placement", label: () => __("You"), fallback: "Side Pane End" },
+	{ key: "search", field: "search_placement", label: () => __("Search") },
+	{ key: "inbox", field: "inbox_placement", label: () => __("Bell") },
+	{ key: "user", field: "user_placement", label: () => __("You") },
 ];
 
 /**
@@ -1762,13 +1770,13 @@ const BND_COMPOSER_ZONES = [
  * object would read them before they exist.
  */
 function bnd_composer_catalogue() {
-	const desk = { set: bnd_desk_set, groups: BND_DESK_GROUPS, defaults: BND_DESK_DEFAULTS };
-	const form = { set: bnd_form_set, groups: BND_FORM_GROUPS, defaults: BND_FORM_DEFAULTS };
+	const desk = { set: bnd_desk_set, groups: BND_DESK_GROUPS };
+	const form = { set: bnd_form_set, groups: BND_FORM_GROUPS };
 	return {
 		desk_width: desk,
 		desk_scale: desk,
 		desk_primary: desk,
-		form_style: { set: bnd_form_set, styles: BND_FORM_STYLES, title: () => __("Sections"), defaults: BND_FORM_DEFAULTS },
+		form_style: { set: bnd_form_set, styles: BND_FORM_STYLES, title: () => __("Sections") },
 		form_fields: form,
 		form_header: form,
 		form_header_tone: form,
@@ -1778,10 +1786,10 @@ function bnd_composer_catalogue() {
 		form_activity: form,
 		form_stage: form,
 		form_foot: form,
-		list_style: { set: bnd_list_set, styles: BND_LIST_STYLES, title: () => __("Lists"), defaults: BND_LIST_DEFAULTS },
-		workspace_style: { set: bnd_workspace_set, styles: BND_WORKSPACE_STYLES, title: () => __("Workspace"), defaults: BND_WORKSPACE_DEFAULTS },
-		report_style: { set: bnd_report_set, styles: BND_REPORT_STYLES, title: () => __("Data tables"), defaults: BND_REPORT_DEFAULTS },
-		chart_grid: { set: bnd_chart_set, styles: BND_CHART_STYLES, title: () => __("Charts"), defaults: BND_CHART_DEFAULTS },
+		list_style: { set: bnd_list_set, styles: BND_LIST_STYLES, title: () => __("Lists") },
+		workspace_style: { set: bnd_workspace_set, styles: BND_WORKSPACE_STYLES, title: () => __("Workspace") },
+		report_style: { set: bnd_report_set, styles: BND_REPORT_STYLES, title: () => __("Data tables") },
+		chart_grid: { set: bnd_chart_set, styles: BND_CHART_STYLES, title: () => __("Charts") },
 		// The sidebar picker's own entry: its option names carry the "pane state"
 		// context ("Open" the state, not the verb), and its Hidden option carries
 		// the reason the pane cannot go while the bell and the profile live in it.
@@ -1793,7 +1801,7 @@ function bnd_composer_catalogue() {
 function bnd_composer_value(frm, field, row) {
 	// Through the same normaliser the sidebar card uses: a site still holding a
 	// pre-item-42 pane label highlights Open on both, not on one.
-	return bnd_sb_norm(field, frm.doc[field] || bnd_default_of(field, row.defaults ? row.defaults[field] : "") || "");
+	return String(frm.doc[field] || bnd_default_of(field) || "");
 }
 
 let bnd_cmp_tick = 0;
@@ -1903,7 +1911,7 @@ function bnd_composer_build(frm, $host) {
 			e.stopPropagation();
 			const f = this.getAttribute("data-field");
 			const row = bnd_composer_catalogue()[f];
-			bnd_composer_set(frm, f, bnd_default_of(f, row.defaults ? row.defaults[f] : ""));
+			bnd_composer_set(frm, f, bnd_default_of(f));
 		})
 		.on("mouseenter.bndcompose", ".bnd-cmp .bnd-cbp-opt[data-field]", function () {
 			bnd_composer_name(frm, this.closest(".bnd-cmp-row"), this.querySelector(".bnd-cbp-oname").textContent);
@@ -2059,13 +2067,13 @@ function bnd_composer_push_frame(frm, frame) {
 	const fw = frame && frame.contentWindow;
 	const E = fw && fw.bunood_theme;
 	if (!E || !fw.frappe || !fw.frappe.boot) return false;
-	bnd_all_previews(frm, E);
+	// The stage shows the FORM, not this admin's effective desk — see bnd_all_previews.
+	bnd_all_previews(frm, E, { raw: true });
 	if (typeof E.shape_apply === "function") {
 		const values = {};
 		for (const f of BND_COMPOSER_SHAPE) values[f] = frm.doc[f];
-		values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
-		const shape = bnd_match_layout(frm);
-		E.shape_apply(values, shape === "Custom" ? "" : shape);
+		// The SHAPE, as boot derives it — never the card's label (C1).
+		E.shape_apply(values, bnd_desk_shape_of(frm));
 	}
 	if (typeof E.language_apply === "function") E.language_apply({ language_style: frm.doc.language_style });
 	if (typeof E.panehead_apply === "function") E.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
@@ -2575,7 +2583,7 @@ function bnd_render_overview(frm, $pane) {
 
 	BND_OVERVIEW_TENANTS.forEach((t, i) => {
 		// The served shipped map first (one fact); the literal only before it arrives.
-		const value = frm.doc[t.field] || (bnd_shipped || {})[t.field] || t.fallback;
+		const value = frm.doc[t.field] || bnd_default_of(t.field);
 		const g = bnd_slot_geom(value);
 		if (!g) {
 			off.push(t);
@@ -2706,8 +2714,13 @@ function bnd_render_translations(frm, $pane) {
 			rows = Object.entries(scan.apps)
 				.sort((a, b) => b[1].missing - a[1].missing)
 				.map(
+					// An app's NAME is an identifier, not a label: `lang="zxx"` (no
+					// linguistic content) and `translate="no"` keep a translator — and
+					// the suite's untranslated-label check — off it. Met at the v0.49.0
+					// integration, when a capability's own msgid "payments" collided with
+					// the payments app's row.
 					([app, t]) =>
-						"<tr><td>" + bnd_esc(app) + "</td><td>" + t.total + "</td><td>" +
+						'<tr><td lang="zxx" translate="no">' + bnd_esc(app) + "</td><td>" + t.total + "</td><td>" +
 						(t.missing ? "<strong>" + t.missing + "</strong>" : "0") + "</td></tr>"
 				)
 				.join("");
@@ -2960,6 +2973,7 @@ function bnd_load_shipped() {
 			bnd_layout_tenants = (data && data.layout_tenants) || null;
 			bnd_layout_pane = (data && data.layout_pane) || null;
 			bnd_container_toggles = (data && data.toggles) || null;
+			bnd_shape_ignores = (data && data.shape_ignores) || null;
 			bnd_layout_slots = (data && data.slots) || null;
 			bnd_brand_inputs = (data && data.brand_inputs) || null;
 		})
@@ -3034,7 +3048,6 @@ function bnd_apply_layout_preset(frm, name) {
 		}
 	});
 }
-
 
 // ════════════════════════════════════════════════════════════════════════════
 // Desk Layout picker (item 9) — unchanged behaviour.
@@ -3170,23 +3183,27 @@ const BND_LAYOUTS = [
  * sidebar through `_now` because its catalogue is already loaded. Folding those
  * together would be a behaviour change wearing a refactor's clothes.
  */
-function bnd_all_previews(frm, engine = window.bunood_theme) {
-	bnd_sb_preview(frm, engine);
-	bnd_crumb_preview(frm, engine);
-	bnd_palette_preview(frm, engine);
-	bnd_inbox_preview(frm, engine);
-	bnd_list_preview(frm, engine);
-	bnd_form_preview(frm, engine);
-	bnd_desk_preview(frm, engine);
-	bnd_workspace_preview(frm, engine);
-	bnd_chart_preview(frm, engine);
-	bnd_report_preview(frm, engine);
-	bnd_views_preview(frm, engine);
-	bnd_overlay_preview(frm, engine);
-	bnd_empty_preview(frm, engine);
-	bnd_skeleton_preview(frm, engine);
-	bnd_filters_preview(frm, engine);
-	bnd_icon_preview(frm, engine);
+function bnd_all_previews(frm, engine = window.bunood_theme, opts = {}) {
+	// ONE LIST, THE RUNTIME'S. This was a hand-kept list of sixteen previews beside
+	// `bunood.apply_look`'s seventeen appliers, and the two had drifted (`language`
+	// missing here) — the settings audit of 2026-09-21, finding c-3. The values are
+	// the reader's EFFECTIVE ones (`bnd_effective`): a refresh re-applies what this
+	// person's desk should show, never the raw site row over their own choices.
+	//
+	// EXCEPT ON A STAGE. The composer's frames are stages for the SITE's settings
+	// (item 43 C3: "the seam must still hand it the form's value"), so they get
+	// the form's raw values even where this administrator's own look would
+	// override them on their desk — measured 2026-09-21: with a personal Canvas
+	// look, the effective values left the stage on Canvas's list style while the
+	// form said Dense Table. The top window keeps the effective values, and its
+	// notes name the override.
+	if (!engine || !engine.apply_look) return;
+	const values = {};
+	for (const f of Object.keys(frm.doc)) {
+		if (f.startsWith("__") || f === "name" || f === "doctype") continue;
+		values[f] = opts.raw ? frm.doc[f] : bnd_effective(frm, f);
+	}
+	engine.apply_look(values);
 }
 
 function bnd_picker_host(frm, fieldname, host) {
@@ -3251,6 +3268,8 @@ function bnd_render_layout_picker(frm, host) {
 	// its strings were dead. Deleted in item 36; the fixture is byte-identical, which
 	// is the proof it never reached the DOM.
 	$host.html(P.wrap(cards));
+	// The person's own override on this axis, named, with the way back (audit 2026-09-21, i-2).
+	bnd_note_mine($host, frm, "bnd_shape", __("desk shape"), bnd_render_layout_picker);
 
 	$host.find(".bnd-lp-card").on("click", function () {
 		// `data-value`, not `data-layout`: the shared builder emits one
@@ -3295,7 +3314,7 @@ const BND_SB_GROUPS = [
 		field: "sidebar_placement",
 		// Nothing to attach or float when there is no pane (item 42).
 		disabled: (frm) =>
-			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+			String(frm.doc.sidebar_pane_state ?? "") === "Hidden"
 				? __("The pane is hidden")
 				: "",
 		zone: "placement",
@@ -3312,7 +3331,7 @@ const BND_SB_GROUPS = [
 		// pill and nothing else, so every card here would govern nothing —
 		// the same reason, and the same wording, as the placement group above.
 		disabled: (frm) =>
-			bnd_sb_norm("sidebar_pane_state", frm.doc.sidebar_pane_state) === "Hidden"
+			String(frm.doc.sidebar_pane_state ?? "") === "Hidden"
 				? __("The pane is hidden")
 				: "",
 		zone: "pane",
@@ -3443,17 +3462,6 @@ const BND_SB_GROUPS = [
 			{ value: "Hover + Pin", name: () => __("Hover + pin"), thumb: '<span class="bnd-sbp-glyph">⌖</span>' },
 		],
 	},
-	{
-		field: "sidebar_rail_button",
-		zone: "rail",
-		title: () => __("Rail expand button"),
-		desc: () => __("An always-visible expand/collapse control on the rail."),
-		options: [
-			{ value: "None", name: () => __("None"), thumb: bnd_sb_pane("currentColor", "opacity:.14") },
-			{ value: "Edge", name: () => __("Edge"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:50%;inset-inline-start:24px;translate:0 -50%"></span>' },
-			{ value: "Header", name: () => __("Header"), thumb: bnd_sb_pane("currentColor", "opacity:.14") + '<span class="bnd-sbp-btnmark" style="inset-block-start:8px;inset-inline-start:20px"></span>' },
-		],
-	},
 	// Rail button icon moved to the Icons axis (item 23).
 	{
 		field: "sidebar_badges",
@@ -3493,20 +3501,6 @@ function bnd_render_sidebar_picker(frm, host) {
 // note takes the same Changed/Default path as every other kit.
 
 /**
- * Normalise legacy stored values so old sites keep matching presets and the
- * picker highlights the right card: the pre-split rail labels both mean
- * "Rail" now.
- */
-function bnd_sb_norm(field, value) {
-	if (field !== "sidebar_pane_state") return String(value ?? "");
-	// The pre-split rail labels and the pre-item-42 mode name. A site whose boot
-	// was cached before the migration ran still highlights the right card.
-	if (value === "Hover-Expand" || value === "Hover + Pin") return "Rail";
-	if (value === "Always Expanded") return "Open";
-	return String(value ?? "");
-}
-
-/**
  * Full render of the sidebar picker. Wholesale re-render on every change —
  * state lives in the form document, never in this DOM.
  */
@@ -3530,11 +3524,11 @@ function bnd_render_sidebar_picker_now(frm, host) {
 	const kit_off = bnd_component_blocker(frm, "sidepane");
 
 	BND_SB_GROUPS.forEach((group) => {
-		const current = bnd_sb_norm(group.field, frm.doc[group.field]);
+		const current = String(frm.doc[group.field] ?? "");
 		const cards = group.options
 			.map((opt) => {
 				const reason = kit_off || (opt.disabled ? opt.disabled(frm) : "");
-				const on = bnd_sb_norm(group.field, opt.value) === current ? " bnd-sbp-on" : "";
+				const on = String(opt.value ?? "") === current ? " bnd-sbp-on" : "";
 				const dis = reason ? " bnd-sbp-dis" : "";
 				return (
 					'<button type="button" class="bnd-sbp-opt' + on + dis + '" data-field="' + group.field +
@@ -3555,7 +3549,6 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			'<div class="bnd-sbp-row-wrap">' + cards + "</div></div>"
 		));
 	});
-
 
 	BND_SB_TOGGLES.forEach((t) => {
 		const on = !!parseInt(frm.doc[t.field], 10);
@@ -3616,6 +3609,8 @@ function bnd_render_sidebar_picker_now(frm, host) {
 			]) +
 			"</div>"
 	);
+	// The person's own override on this axis, named, with the way back (audit 2026-09-21, i-2).
+	bnd_note_mine($host, frm, "bnd_pane_state", __("side pane state"), bnd_render_sidebar_picker);
 
 	// One delegated pass wires everything; re-render happens on any change.
 	$host.find(".bnd-sbp-opt, .bnd-sbp-stop, .bnd-sbp-toggle").on("click", function () {
@@ -3661,8 +3656,7 @@ function bnd_render_sidebar_picker_now(frm, host) {
 function bnd_sb_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.sb_apply) return;
 	const values = {};
-	for (const f of BND_SIDEBAR_FIELDS) values[f] = frm.doc[f];
-	values.sidebar_pane_state = bnd_sb_norm("sidebar_pane_state", values.sidebar_pane_state);
+	for (const f of BND_SIDEBAR_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.sb_apply(values);
 }
 
@@ -3699,7 +3693,7 @@ function bnd_sb_set(frm, fieldname, value) {
 // item 36 found a layout writing HALF of itself for the whole of phase 0 because
 // the form composed the containers while `registry.layout_settings` composed
 // containers AND tenant placements, so the suite drove a state no gesture could
-// produce. At ~124 values that failure is a certainty unless both writers call
+// produce. At a hundred-odd values that failure is a certainty unless both writers call
 // one function.
 //
 // ART AND BLURBS ONLY BELOW. A name listed here that the server does not know
@@ -3814,7 +3808,7 @@ function bnd_apply_theme_preset(frm, name) {
 	bnd_render_theme_picker(frm);
 	// AND THE LAYOUT PICKER, because a theme writes the five container toggles:
 	// without this the layout card kept its old highlight while the Overview's
-	// Layout row (recomputed by bnd_shell_marks) told the truth, and the two rows
+	// Layout row (recomputed with the rows) told the truth, and the two rows
 	// of one form disagreed about one desk.
 	bnd_render_layout_picker(frm);
 	bnd_settings_marks(frm);
@@ -3824,7 +3818,7 @@ function bnd_apply_theme_preset(frm, name) {
  * The theme picker — a GALLERY of complete looks.
  *
  * The presets write values and then stop existing (the settings-architecture
- * doctrine): clicking a card sets ~124 fields and nothing remembers the click.
+ * doctrine): clicking a card sets every axis and nothing remembers the click.
  * The highlighted card is DERIVED by comparing the live values against the
  * server's table, so it reads "Custom" the moment one differs — which, at this
  * scope, is the honest answer and will be the common one.
@@ -3905,6 +3899,8 @@ function bnd_render_theme_picker(frm, host) {
 			: "";
 
 	$host.html(P.wrap(cards + note));
+	// The person's own override on this axis, named, with the way back (audit 2026-09-21, i-2).
+	bnd_note_mine($host, frm, "bnd_look", __("look"), bnd_render_theme_picker);
 	$host.find(".bnd-thp-style").on("click", function () {
 		if (this.hasAttribute("disabled")) return;
 		bnd_apply_theme_preset(frm, this.getAttribute("data-value"));
@@ -3928,19 +3924,12 @@ const BND_SIDEBAR_FIELDS = [
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
-	"sidebar_rail_button", "sidebar_pane_width", "sidebar_badges",
+	"sidebar_pane_width", "sidebar_badges",
 	"sidebar_filter",
 ];
-const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_rail_button", "icon_crumbs"];
+const BND_ICON_FIELDS = ["icon_style", "icon_weight", "icon_source", "icon_crumbs"];
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.ICON_DEFAULTS. */
-const BND_ICON_DEFAULTS = {
-	icon_style: "Filled Color",
-	icon_weight: "1.5",
-	icon_source: "Smart",
-	icon_rail_button: "Chevron",
-	icon_crumbs: "First Crumb",
-};
 
 /**
  * The chip-style cards. These thumbs moved here verbatim from the sidebar
@@ -4000,16 +3989,6 @@ const BND_ICON_GROUPS = [
 			{ value: "Off", name: () => __("Off"), glyph: "a›b" },
 		],
 	},
-	{
-		field: "icon_rail_button",
-		title: () => __("Rail button icon"),
-		desc: () => __("The glyph on the side pane's collapse button."),
-		options: [
-			{ value: "Chevron", name: () => __("Chevron"), glyph: "›" },
-			{ value: "Menu", name: () => __("Menu"), glyph: "☰" },
-			{ value: "Arrows", name: () => __("Arrows"), glyph: "⇄" },
-		],
-	},
 ];
 
 /**
@@ -4049,7 +4028,7 @@ function bnd_render_icons_picker(frm, host) {
 	// `bnd_default_of` rather than a literal: the four reset chips that wrote a
 	// value the site does not ship were exactly this shape, and "Colored Chips"
 	// is not even an option any more.
-	const current_style = frm.doc.icon_style || bnd_default_of("icon_style", BND_ICON_DEFAULTS.icon_style);
+	const current_style = frm.doc.icon_style || bnd_default_of("icon_style");
 	const style_cards = P.cards(
 		BND_ICON_STYLES.map((s) => ({ value: s.value, name: s.name(), svg: s.thumb })),
 		{ selected: current_style, cls: "bnd-cbp-style bnd-icp-style" }
@@ -4094,7 +4073,7 @@ function bnd_render_icons_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_icon_set(frm, f, bnd_default_of(f, BND_ICON_DEFAULTS[f]));
+		bnd_icon_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -4109,7 +4088,7 @@ function bnd_icon_preview(frm, engine = window.bunood_theme) {
 	const bt = engine;
 	if (!bt) return;
 	const values = {};
-	for (const f of BND_ICON_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_ICON_FIELDS) values[f] = bnd_effective(frm, f);
 	if (bt.sb_apply) bt.sb_apply(values);
 	if (bt.crumb_apply) bt.crumb_apply(values);
 	if (bt.icon_apply) bt.icon_apply(values);
@@ -4138,14 +4117,6 @@ const BND_CRUMB_FIELDS = [
 ];
 
 /** Shipped defaults, for the per-group reset. Mirrors presets.CRUMB_DEFAULTS. */
-const BND_CRUMB_DEFAULTS = {
-	crumb_style: "Crumb Pills",
-	crumb_separator: "Chevron",
-	crumb_hover: "Soft Pill",
-	crumb_copy_link: 1,
-	crumb_status_pill: 0,
-	crumb_narrow_collapse: 0,
-};
 
 /**
  * The five styles: stored value, blurb, and a 120x36 trail thumbnail.
@@ -4265,7 +4236,7 @@ const BND_CRUMB_TOGGLES = [
 		desc: () => __("Pushes the document's Draft / Submitted pill to the row's end and calms its shape."),
 		// Item 43 A8b: the stage path hides that pill; moving it is moot.
 		disabled: (frm) =>
-			(frm.doc.form_stage || "Status Path") === "Status Path" && (frm.doc.form_header || "Hero Band") !== "Original"
+			(frm.doc.form_stage || bnd_default_of("form_stage")) === "Status Path" && (frm.doc.form_header || bnd_default_of("form_header")) !== "Original"
 				? __("The stage path shows the status")
 				: "",
 	},
@@ -4282,7 +4253,7 @@ function bnd_render_crumbs_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "crumbs_picker", host);
 	if (!$host) return;
 
-	const current_style = frm.doc.crumb_style || "Quiet Trail";
+	const current_style = frm.doc.crumb_style || bnd_default_of("crumb_style");
 	const kit_down = current_style === "Original";
 
 	const style_cards = P.cards(
@@ -4350,7 +4321,7 @@ function bnd_render_crumbs_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_crumb_set(frm, f, bnd_default_of(f, BND_CRUMB_DEFAULTS[f]));
+		bnd_crumb_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -4362,7 +4333,7 @@ function bnd_render_crumbs_picker(frm, host) {
 function bnd_crumb_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.crumb_apply) return;
 	const values = {};
-	for (const f of BND_CRUMB_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_CRUMB_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.crumb_apply(values);
 }
 
@@ -4384,15 +4355,6 @@ const BND_PALETTE_FIELDS = [
 ];
 
 /** Shipped defaults, for the picker's reset affordances. */
-const BND_PALETTE_DEFAULTS = {
-	palette_style: "Bunood Palette",
-	palette_frecency: 1,
-	palette_footer: 1,
-	palette_newtab: 1,
-	palette_fallbacks: 1,
-	palette_suggest: 1,
-	palette_sigils: 1,
-};
 
 /**
  * The four styles: stored value, blurb, and a 120x64 thumbnail sketching
@@ -4477,7 +4439,7 @@ function bnd_render_palette_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "palette_picker", host);
 	if (!$host) return;
 
-	const current_style = frm.doc.palette_style || "Bunood Palette";
+	const current_style = frm.doc.palette_style || bnd_default_of("palette_style");
 	const kit_down = current_style === "Original" || !parseInt(frm.doc.palette_enabled ?? 1, 10);
 	const is_pro = current_style === "Palette Pro";
 
@@ -4555,8 +4517,8 @@ function bnd_render_palette_picker(frm, host) {
 function bnd_palette_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.palette_apply) return;
 	const values = {};
-	for (const f of BND_PALETTE_FIELDS) values[f] = frm.doc[f];
-	if (!parseInt(frm.doc.palette_enabled ?? 1, 10)) values.palette_style = "Original";
+	for (const f of BND_PALETTE_FIELDS) values[f] = bnd_effective(frm, f);
+	if (!parseInt(bnd_effective(frm, "palette_enabled") ?? 1, 10)) values.palette_style = "Original";
 	engine.palette_apply(values);
 }
 
@@ -4575,11 +4537,9 @@ function bnd_palette_set(frm, fieldname, value) {
 const BND_LANGUAGE_FIELDS = ["language_style", "language_choices"];
 // The reset chip's target, mirroring presets.LANGUAGE_DEFAULTS (the default-mirror
 // guard pairs every BND_<X>_FIELDS with a BND_<X>_DEFAULTS).
-const BND_LANGUAGE_DEFAULTS = { language_style: "Globe", language_choices: "ar,en" };
 
 /** Client mirror of presets.PANEHEAD_FIELDS / PANEHEAD_DEFAULTS (2026-09-14). */
 const BND_PANEHEAD_FIELDS = ["panehead_quick_links"];
-const BND_PANEHEAD_DEFAULTS = { panehead_quick_links: "Standard" };
 
 /** The enabled Language rows, fetched once per form: what the picker may offer. */
 let bnd_language_rows = null;
@@ -4638,13 +4598,13 @@ function bnd_render_language_picker(frm, host) {
 /** LIVE PREVIEW (item 44): the switch redraws from the form's style. */
 function bnd_language_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.language_apply) return;
-	engine.language_apply({ language_style: frm.doc.language_style });
+	engine.language_apply({ language_style: bnd_effective(frm, "language_style") });
 }
 
 /** LIVE PREVIEW (2026-09-14): the head menu's next open reads the new caps. */
 function bnd_panehead_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.panehead_apply) return;
-	engine.panehead_apply({ panehead_quick_links: frm.doc.panehead_quick_links });
+	engine.panehead_apply({ panehead_quick_links: bnd_effective(frm, "panehead_quick_links") });
 }
 
 const BND_INBOX_FIELDS = [
@@ -4653,15 +4613,6 @@ const BND_INBOX_FIELDS = [
 ];
 
 /** Shipped defaults, for the per-option resets. */
-const BND_INBOX_DEFAULTS = {
-	inbox_style: "Inbox + Page",
-	inbox_badge: "Count",
-	inbox_arrival: "Approvals Only",
-	inbox_group: 1,
-	inbox_chips: 1,
-	inbox_row_actions: 1,
-	inbox_keyboard: 1,
-};
 
 /** The four styles: value, blurb, and a 120x64 anatomy thumbnail. */
 const BND_INBOX_STYLES = [
@@ -4771,7 +4722,7 @@ function bnd_render_inbox_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "inbox_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.inbox_style || "Inbox + Page";
+	const current = frm.doc.inbox_style || bnd_default_of("inbox_style");
 	const kit_down = current === "Original";
 	const panel_ours = current === "Bunood Inbox" || current === "Inbox + Page";
 
@@ -4855,14 +4806,14 @@ function bnd_render_inbox_picker(frm, host) {
 	});
 	$host.find(".bnd-ibp-reset-all").on("click", function (e) {
 		e.stopPropagation();
-		for (const t of BND_INBOX_TOGGLES) frm.set_value(t.field, bnd_default_of(t.field, BND_INBOX_DEFAULTS[t.field]));
+		for (const t of BND_INBOX_TOGGLES) frm.set_value(t.field, bnd_default_of(t.field));
 		bnd_inbox_preview(frm);
 		bnd_render_inbox_picker(frm);
 	});
 	$host.find(".bnd-ibp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_inbox_set(frm, f, bnd_default_of(f, BND_INBOX_DEFAULTS[f]));
+		bnd_inbox_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -4870,7 +4821,7 @@ function bnd_render_inbox_picker(frm, host) {
 function bnd_inbox_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.inbox_apply) return;
 	const values = {};
-	for (const f of BND_INBOX_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_INBOX_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.inbox_apply(values);
 }
 
@@ -4913,12 +4864,6 @@ function bnd_inbox_set(frm, fieldname, value) {
 const BND_LIST_FIELDS = ["list_style", "list_hover", "list_selection", "list_checkbox_reveal"];
 
 /** Client mirror of presets.LIST_DEFAULTS — keep in sync. */
-const BND_LIST_DEFAULTS = {
-	list_style: "Zebra Stripes",
-	list_hover: "Edge Rail",
-	list_selection: "Bold Bar",
-	list_checkbox_reveal: 1,
-};
 
 /**
  * The style catalogue. Thumbnails are abstract row diagrams; the tick glyph
@@ -5037,7 +4982,7 @@ function bnd_render_list_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "list_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.list_style || BND_LIST_DEFAULTS.list_style;
+	const current = frm.doc.list_style || bnd_default_of("list_style");
 	const off = current === "Original";
 
 	// Filtered against the field's real options — the rule that retired the
@@ -5061,7 +5006,7 @@ function bnd_render_list_picker(frm, host) {
 			field: g.field,
 			body: P.options(
 				g.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_LIST_DEFAULTS[g.field]) }
+				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field) }
 			),
 		})
 	).join("");
@@ -5100,7 +5045,7 @@ function bnd_render_list_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_list_set(frm, f, bnd_default_of(f, BND_LIST_DEFAULTS[f]));
+		bnd_list_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -5108,7 +5053,7 @@ function bnd_render_list_picker(frm, host) {
 function bnd_list_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.list_apply) return;
 	const values = {};
-	for (const f of BND_LIST_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_LIST_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.list_apply(values);
 }
 
@@ -5144,25 +5089,8 @@ const BND_MOBILE_FIELDS = ["mobile_inbox", "mobile_user", "mobile_apps"];
  * statement of the same two fieldnames in one file. The check was right; the
  * mirror was the mistake.
  */
-const BND_LINKS_DEFAULTS = {
-	home_placement: "Off",
-	apps_placement: "Off",
-};
 
 /** Client mirror of presets.FORM_DEFAULTS — keep in sync. */
-const BND_FORM_DEFAULTS = {
-	form_style: "Floating Panels",
-	form_fields: "Stacked Outlined",
-	form_grid: "Ruled Sheet",
-	form_tabs: "Solid Pill",
-	form_sidebar: "Inspector Rail",
-	form_activity: "Drawer",
-	form_header: "Hero Band",
-	form_header_tone: "Brand-dark",
-	form_stage: "Status Path",
-	form_foot: "Pinned Bar",
-	form_grid_checkbox_reveal: 1,
-};
 
 /** The style catalogue. Thumbnails are abstract form diagrams: a tab strip,
  * then the section containers the style is actually about. */
@@ -5343,7 +5271,7 @@ const BND_FORM_GROUPS = [
 			{ value: "Tinted", name: () => __("Tinted") },
 			{ value: "Brand-dark", name: () => __("Brand-dark") },
 		],
-		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Hero Band" ? "" : __("Only the hero band is painted"),
+		disabled: (frm) => (frm.doc.form_header || bnd_default_of("form_header")) === "Hero Band" ? "" : __("Only the hero band is painted"),
 	},
 	{
 		field: "form_stage",
@@ -5353,7 +5281,7 @@ const BND_FORM_GROUPS = [
 			{ value: "Off", name: () => __("Off") },
 			{ value: "Status Path", name: () => __("Status Path") },
 		],
-		disabled: (frm) => (frm.doc.form_header || "Hero Band") === "Original" ? __("The page head has no band to carry it") : "",
+		disabled: (frm) => (frm.doc.form_header || bnd_default_of("form_header")) === "Original" ? __("The page head has no band to carry it") : "",
 	},
 	{
 		field: "form_foot",
@@ -5380,7 +5308,7 @@ function bnd_render_form_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "form_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.form_style || BND_FORM_DEFAULTS.form_style;
+	const current = frm.doc.form_style || bnd_default_of("form_style");
 	const off = current === "Original";
 
 	// Filtered against the field's real options — the rule that retired the
@@ -5408,7 +5336,7 @@ function bnd_render_form_picker(frm, host) {
 			off: !!g_reason,
 			body: P.options(
 				g.options.map((o) => ({ value: o.value, name: o.name(), reason: g_reason })),
-				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_FORM_DEFAULTS[g.field]) }
+				{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field) }
 			),
 		});
 	}).join("");
@@ -5447,7 +5375,7 @@ function bnd_render_form_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_form_set(frm, f, bnd_default_of(f, BND_FORM_DEFAULTS[f]));
+		bnd_form_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -5455,7 +5383,7 @@ function bnd_render_form_picker(frm, host) {
 function bnd_form_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.form_apply) return;
 	const values = {};
-	for (const f of BND_FORM_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_FORM_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.form_apply(values);
 }
 
@@ -5474,11 +5402,6 @@ function bnd_form_set(frm, fieldname, value) {
 const BND_DESK_FIELDS = ["desk_width", "desk_scale", "desk_primary"];
 
 /** Client mirror of presets.DESK_DEFAULTS — keep in sync. */
-const BND_DESK_DEFAULTS = {
-	desk_width: "Balanced",
-	desk_scale: "Standard 14",
-	desk_primary: "Brand",
-};
 
 /**
  * Three rows and no style cards: the body kit has NO anchor. Each axis stands
@@ -5565,23 +5488,77 @@ const BND_DESK_GROUPS = [
  * through two full suites because the note only renders while an override is
  * in force, and no run happened to have one.
  */
-function bnd_desk_mine_note(mine) {
+
+/** The width this reader has chosen for themselves, or "" for none. */
+function bnd_desk_mine() {
+	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+	return p.body_width || "";
+}
+
+/**
+ * A field's value AS THIS READER'S DESK RENDERS IT: the person's resolved override
+ * where one is in force, the form's value otherwise.
+ *
+ * THE FORM USED TO PREVIEW THE RAW SITE ROW. `refresh` re-applied `frm.doc` to the
+ * desk 300 ms after every autosave, past `resolve_for_user`, so an administrator
+ * with a personal width, pane state or look watched their own desk revert to the
+ * site's on every click and stay reverted for the session (the settings audit of
+ * 2026-09-21, finding a-1 — measured, three views, all three axes). Boot serves
+ * the person's overrides as ONE map, computed in the function that owns the
+ * precedence chain; the two comfort twins with live setters are read from their
+ * own boot fields because the setters keep those current without a reload.
+ */
+function bnd_effective(frm, field) {
+	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
+	if (field === "desk_width" && p.body_width) return p.body_width;
+	if (field === "sidebar_pane_state" && p.pane_state) return p.pane_state;
+	const o = p.overrides || {};
+	return field in o ? o[field] : frm.doc[field];
+}
+
+/**
+ * "Your own X is overriding this on your desk" + a way back, for any twinned axis.
+ * Width had this since v0.46.1; density, the pane state, the look and the shape
+ * revert the same way and had no note at all (audit 2026-09-21, i-2).
+ */
+function bnd_mine_note(axis, what, mine) {
 	return (
-		'<div class="bnd-dkp-mine">' +
+		'<div class="bnd-dkp-mine" data-bnd-axis="' + bnd_esc(axis) + '">' +
 		"<span>" +
-		bnd_esc(__("Your own width ({0}) is overriding this on your desk.", [__(mine)])) +
+		bnd_esc(__("Your own {0} ({1}) is overriding this on your desk.", [what, __(mine)])) +
 		"</span>" +
-		'<button type="button" class="bnd-dkp-mine-clear">' +
+		'<button type="button" class="bnd-dkp-mine-clear" data-bnd-axis="' + bnd_esc(axis) + '">' +
 		bnd_esc(__("Follow the site")) +
 		"</button>" +
 		"</div>"
 	);
 }
 
-/** The width this reader has chosen for themselves, or "" for none. */
-function bnd_desk_mine() {
+/** Bind every "Follow the site" button under a host to the runtime's one clearer. */
+function bnd_bind_mine_notes($host, frm, rerender) {
+	$host.find(".bnd-dkp-mine-clear[data-bnd-axis]").on("click", function () {
+		const engine = window.bunood_theme;
+		if (!engine || !engine.follow_site) return;
+		const axis = this.getAttribute("data-bnd-axis");
+		// The pane's clearer needs the SITE's value to fall back to; the form holds it.
+		const site_value = axis === "bnd_pane_state" ? frm.doc.sidebar_pane_state : undefined;
+		Promise.resolve(engine.follow_site(axis, site_value)).then(() => rerender && rerender(frm));
+	});
+}
+
+/** The person's override on a twinned axis, or "" — what a note has to name. */
+function bnd_mine_of(axis) {
 	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
-	return p.body_width || "";
+	if (!p.open || !p.open[axis]) return "";
+	return { bnd_look: p.look, bnd_shape: p.shape, bnd_density: p.density, bnd_pane_state: p.pane_state, bnd_body_width: p.body_width }[axis] || "";
+}
+
+/** Append the override note for one axis under a rendered picker, and bind it. */
+function bnd_note_mine($host, frm, axis, what, rerender) {
+	$host.find('.bnd-dkp-mine[data-bnd-axis="' + axis + '"]').remove();
+	const mine = bnd_mine_of(axis);
+	if (mine) $host.append(bnd_mine_note(axis, what, mine));
+	bnd_bind_mine_notes($host, frm, rerender);
 }
 
 function bnd_render_desk_picker(frm, host) {
@@ -5605,11 +5582,11 @@ function bnd_render_desk_picker(frm, host) {
 					g.options
 						.filter((o) => offered.includes(o.value))
 						.map((o) => ({ value: o.value, name: o.name(), ...(o.blurb ? { sub: o.blurb() } : {}) })),
-					{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field, BND_DESK_DEFAULTS[g.field]) }
+					{ field: g.field, value: frm.doc[g.field] || bnd_default_of(g.field) }
 				) +
 				// Width is the one body axis with a per-user twin, so it is the one
 				// that can be silently overridden. Scale and primary have none.
-				(g.field === "desk_width" && bnd_desk_mine() ? bnd_desk_mine_note(bnd_desk_mine()) : ""),
+				(g.field === "desk_width" && bnd_desk_mine() ? bnd_mine_note("bnd_body_width", __("width"), bnd_desk_mine()) : ""),
 		});
 	}).join("");
 
@@ -5622,23 +5599,16 @@ function bnd_render_desk_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_desk_set(frm, f, bnd_default_of(f, BND_DESK_DEFAULTS[f]));
+		bnd_desk_set(frm, f, bnd_default_of(f));
 	});
-	$host.find(".bnd-dkp-mine-clear").on("click", function () {
-		const engine = window.bunood_theme;
-		if (!engine || !engine.set_body_width) return;
-		// Through the setter, never the row: it clears the stored intent, puts the
-		// site's width back on <html> and updates the boot seed both status-bar
-		// cycles read. Re-render so the note goes with it.
-		Promise.resolve(engine.set_body_width("")).then(() => bnd_render_desk_picker(frm));
-	});
+	bnd_bind_mine_notes($host, frm, bnd_render_desk_picker);
 }
 
 /** Hand the form's body values to the desk engine — live preview. */
 function bnd_desk_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.body_apply) return;
 	const values = {};
-	for (const f of BND_DESK_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_DESK_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.body_apply(values);
 }
 
@@ -5654,12 +5624,6 @@ function bnd_desk_set(frm, fieldname, value) {
 const BND_WORKSPACE_FIELDS = ["workspace_style", "workspace_metric", "workspace_rows", "workspace_menu_reveal"];
 
 /** Client mirror of presets.WORKSPACE_DEFAULTS — keep in sync. */
-const BND_WORKSPACE_DEFAULTS = {
-	workspace_style: "Soft Tiles",
-	workspace_metric: "Display",
-	workspace_rows: "Edge Rail",
-	workspace_menu_reveal: 1,
-};
 
 /** The tile-style catalogue. Thumbnails are a mini workspace: a title, a row of
  * small tiles, and a wide tile beneath — the shape of a real board. */
@@ -5790,7 +5754,7 @@ function bnd_render_workspace_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "workspace_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.workspace_style || BND_WORKSPACE_DEFAULTS.workspace_style;
+	const current = frm.doc.workspace_style || bnd_default_of("workspace_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "workspace_style");
 	const cards = P.cards(
@@ -5805,7 +5769,7 @@ function bnd_render_workspace_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_WORKSPACE_DEFAULTS[grp.field]) }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }),
 		})
 	).join("");
 
@@ -5837,7 +5801,7 @@ function bnd_render_workspace_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_workspace_set(frm, f, bnd_default_of(f, BND_WORKSPACE_DEFAULTS[f]));
+		bnd_workspace_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -5845,7 +5809,7 @@ function bnd_render_workspace_picker(frm, host) {
 function bnd_workspace_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.workspace_apply) return;
 	const values = {};
-	for (const f of BND_WORKSPACE_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_WORKSPACE_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.workspace_apply(values);
 }
 
@@ -5861,7 +5825,6 @@ function bnd_workspace_set(frm, fieldname, value) {
 const BND_CHART_FIELDS = ["chart_grid"];
 
 /** Client mirror of presets.CHART_DEFAULTS — keep in sync. */
-const BND_CHART_DEFAULTS = { chart_grid: "Filled Area" };
 
 /** The chart_grid catalogue. Thumbnails are a small chart showing the frame the
  * style produces: gridlines, an axis, a data line, and — for Filled Area — the
@@ -5919,7 +5882,7 @@ function bnd_render_chart_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "chart_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.chart_grid || BND_CHART_DEFAULTS.chart_grid;
+	const current = frm.doc.chart_grid || bnd_default_of("chart_grid");
 	const cards = P.cards(
 		BND_CHART_STYLES.map((s) => ({ value: s.value, name: __(s.value), blurb: s.blurb(), svg: s.svg })),
 		{ selected: current, cls: "bnd-cbp-style bnd-chp-style" }
@@ -5949,7 +5912,7 @@ function bnd_render_chart_picker(frm, host) {
 function bnd_chart_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.chart_apply) return;
 	const values = {};
-	for (const f of BND_CHART_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_CHART_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.chart_apply(values);
 }
 
@@ -5965,12 +5928,6 @@ function bnd_chart_set(frm, fieldname, value) {
 const BND_REPORT_FIELDS = ["report_style", "report_grain", "report_rows", "report_checkbox_reveal"];
 
 /** Client mirror of presets.REPORT_DEFAULTS — keep in sync. */
-const BND_REPORT_DEFAULTS = {
-	report_style: "Pinned Slab",
-	report_grain: "Row Stripes",
-	report_rows: "Edge Rail",
-	report_checkbox_reveal: 1,
-};
 
 /** The table-style catalogue. Each thumbnail is a mini datatable — a header band
  * over three rows — drawn to that style's fill, boundary and grid. */
@@ -6065,7 +6022,7 @@ function bnd_render_report_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "report_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.report_style || BND_REPORT_DEFAULTS.report_style;
+	const current = frm.doc.report_style || bnd_default_of("report_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "report_style");
 	const cards = P.cards(
@@ -6080,7 +6037,7 @@ function bnd_render_report_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_REPORT_DEFAULTS[grp.field]) }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }),
 		})
 	).join("");
 
@@ -6112,7 +6069,7 @@ function bnd_render_report_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_report_set(frm, f, bnd_default_of(f, BND_REPORT_DEFAULTS[f]));
+		bnd_report_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -6120,7 +6077,7 @@ function bnd_render_report_picker(frm, host) {
 function bnd_report_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.report_apply) return;
 	const values = {};
-	for (const f of BND_REPORT_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_REPORT_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.report_apply(values);
 }
 
@@ -6136,13 +6093,6 @@ function bnd_report_set(frm, fieldname, value) {
 const BND_VIEWS_FIELDS = ["views_style", "views_band", "views_mark", "views_media", "views_reveal"];
 
 /** Client mirror of presets.VIEWS_DEFAULTS — keep in sync. */
-const BND_VIEWS_DEFAULTS = {
-	views_style: "Floating Cards",
-	views_band: "Tinted",
-	views_mark: "Chip",
-	views_media: "Cover",
-	views_reveal: 1,
-};
 
 /** The view-style catalogue. Each thumbnail is a mini object — a card — drawn to
  * that style's fill, boundary, radius and lift. ONE anchor dresses the kanban
@@ -6236,7 +6186,7 @@ function bnd_render_views_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "views_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.views_style || BND_VIEWS_DEFAULTS.views_style;
+	const current = frm.doc.views_style || bnd_default_of("views_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "views_style");
 	const cards = P.cards(
@@ -6251,7 +6201,7 @@ function bnd_render_views_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_VIEWS_DEFAULTS[grp.field]) }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }),
 		})
 	).join("");
 
@@ -6283,7 +6233,7 @@ function bnd_render_views_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_views_set(frm, f, bnd_default_of(f, BND_VIEWS_DEFAULTS[f]));
+		bnd_views_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -6291,7 +6241,7 @@ function bnd_render_views_picker(frm, host) {
 function bnd_views_preview(frm, engine = window.bunood_theme) {
 	if (!engine || !engine.views_apply) return;
 	const values = {};
-	for (const f of BND_VIEWS_FIELDS) values[f] = frm.doc[f];
+	for (const f of BND_VIEWS_FIELDS) values[f] = bnd_effective(frm, f);
 	engine.views_apply(values);
 }
 
@@ -6315,11 +6265,6 @@ const BND_SKELETON_FIELDS = ["skeleton_style"];
 // this is a SUPERSET of it — the item-18 "escapee" class, which bit items 25
 // and 26 before that guard existed.
 const BND_FILTERS_FIELDS = ["filters_style", "filters_applied", "filters_saved"];
-const BND_FILTERS_DEFAULTS = {
-	filters_style: "Outlined",
-	filters_applied: "Accented",
-	filters_saved: "Listed",
-};
 
 // The JS mirror of presets.LOGIN_FIELDS (item 32).
 //
@@ -6334,16 +6279,6 @@ const BND_LOGIN_FIELDS = ["login_style", "login_action", "login_theme"];
  * SKIPS a family that has no mirror here, so an absent one is not a warning,
  * it is a hole. Item 32 closed that hole; do not reopen it. */
 const BND_WEB_FIELDS = ["web_style", "web_header", "web_theme"];
-const BND_WEB_DEFAULTS = {
-	web_style: "Panel",
-	web_header: "Branded",
-	web_theme: "Follow OS",
-};
-const BND_LOGIN_DEFAULTS = {
-	login_style: "Split",
-	login_action: "Branded",
-	login_theme: "Follow OS",
-};
 
 /**
  * Client mirror of presets.EMAIL_FIELDS (item 34).
@@ -6355,12 +6290,6 @@ const BND_LOGIN_DEFAULTS = {
  * this is not the place to reopen it.
  */
 const BND_EMAIL_FIELDS = ["email_style", "email_header", "email_action", "email_theme"];
-const BND_EMAIL_DEFAULTS = {
-	email_style: "Card",
-	email_header: "Logo + wordmark",
-	email_action: "Brand fill",
-	email_theme: "Follow the client",
-};
 
 /** Client mirror of presets.PRINT_FIELDS. Keep in sync. */
 const BND_PRINT_FIELDS = [
@@ -6369,39 +6298,12 @@ const BND_PRINT_FIELDS = [
 	"print_title_lang", "print_qr", "print_qr_place", "print_qr_size",
 	"print_words", "print_signatures",
 ];
-const BND_PRINT_DEFAULTS = {
-	print_header_style: "Wash Card",
-	print_table_style: "Washed",
-	print_totals_style: "Washed Panel",
-	print_heading_style: "Original",
-	print_accent: "Brand panels",
-	print_letterhead: "Bilingual Split",
-	print_title_lang: "Follow print language",
-	print_qr: "Show",
-	print_qr_place: "Head end",
-	print_qr_size: "Medium",
-	print_words: "Show",
-	print_signatures: "Three lines",
-};
 
 /** Client mirror of presets.SKELETON_DEFAULTS — keep in sync. */
-const BND_SKELETON_DEFAULTS = {
-	skeleton_style: "Sweep",
-};
 
 /** Client mirror of presets.EMPTY_DEFAULTS — keep in sync. */
-const BND_EMPTY_DEFAULTS = {
-	empty_style: "Open",
-	empty_media: "Marked",
-	empty_action: "Primary",
-};
 
 /** Client mirror of presets.OVERLAY_DEFAULTS — keep in sync. */
-const BND_OVERLAY_DEFAULTS = {
-	overlay_style: "Floating",
-	overlay_scrim: "Tinted",
-	overlay_menu: "Inset",
-};
 
 /** The overlay-style catalogue. Each thumbnail is one floating panel drawn to
  * that style's fill, boundary, radius and lift. ONE anchor dresses the dialog,
@@ -6487,7 +6389,7 @@ function bnd_render_overlay_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "overlay_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.overlay_style || BND_OVERLAY_DEFAULTS.overlay_style;
+	const current = frm.doc.overlay_style || bnd_default_of("overlay_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "overlay_style");
 	const cards = P.cards(
@@ -6502,7 +6404,7 @@ function bnd_render_overlay_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_OVERLAY_DEFAULTS[grp.field]) }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }),
 		})
 	).join("");
 
@@ -6527,7 +6429,7 @@ function bnd_render_overlay_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_overlay_set(frm, f, bnd_default_of(f, BND_OVERLAY_DEFAULTS[f]));
+		bnd_overlay_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -6539,7 +6441,7 @@ function bnd_overlay_preview(frm, engine = window.bunood_theme) {
 	// frm.doc[f] is empty and sending it raw CLEARS the anchor the boot payload
 	// had just set — opening the settings form would strip the style. The two
 	// call sites in the renderer above already fall back; this one did not.
-	for (const f of BND_OVERLAY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_OVERLAY_DEFAULTS[f]);
+	for (const f of BND_OVERLAY_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.overlay_apply(values);
 }
 
@@ -6635,7 +6537,7 @@ function bnd_render_empty_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "empty_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.empty_style || BND_EMPTY_DEFAULTS.empty_style;
+	const current = frm.doc.empty_style || bnd_default_of("empty_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "empty_style");
 	const cards = P.cards(
@@ -6650,7 +6552,7 @@ function bnd_render_empty_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_EMPTY_DEFAULTS[grp.field]) }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }),
 		})
 	).join("");
 
@@ -6675,7 +6577,7 @@ function bnd_render_empty_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_empty_set(frm, f, bnd_default_of(f, BND_EMPTY_DEFAULTS[f]));
+		bnd_empty_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -6687,7 +6589,7 @@ function bnd_empty_preview(frm, engine = window.bunood_theme) {
 	// a field was never written, frm.doc[f] is empty, and sending it raw CLEARS
 	// the anchor the boot payload had just set — opening the settings form would
 	// strip the style.
-	for (const f of BND_EMPTY_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_EMPTY_DEFAULTS[f]);
+	for (const f of BND_EMPTY_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.empty_apply(values);
 }
 
@@ -6747,7 +6649,7 @@ function bnd_render_skeleton_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "skeleton_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.skeleton_style || BND_SKELETON_DEFAULTS.skeleton_style;
+	const current = frm.doc.skeleton_style || bnd_default_of("skeleton_style");
 	const offered = bnd_field_slots(frm, "skeleton_style");
 	const cards = P.cards(
 		BND_SKELETON_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
@@ -6772,7 +6674,7 @@ function bnd_skeleton_preview(frm, engine = window.bunood_theme) {
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
-	for (const f of BND_SKELETON_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_SKELETON_DEFAULTS[f]);
+	for (const f of BND_SKELETON_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.skeleton_apply(values);
 }
 
@@ -6863,7 +6765,7 @@ function bnd_render_filters_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "filters_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.filters_style || BND_FILTERS_DEFAULTS.filters_style;
+	const current = frm.doc.filters_style || bnd_default_of("filters_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "filters_style");
 	const cards = P.cards(
@@ -6878,7 +6780,7 @@ function bnd_render_filters_picker(frm, host) {
 		P.group({
 			title: grp.title(), desc: grp.desc(), field: grp.field,
 			body: P.options(grp.options.map((o) => ({ value: o.value, name: o.name(), reason })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_FILTERS_DEFAULTS[grp.field]) }),
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }),
 		})
 	).join("");
 
@@ -6903,7 +6805,7 @@ function bnd_render_filters_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_filters_set(frm, f, bnd_default_of(f, BND_FILTERS_DEFAULTS[f]));
+		bnd_filters_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -6914,7 +6816,7 @@ function bnd_filters_preview(frm, engine = window.bunood_theme) {
 	// `|| DEFAULT`, for the reason the overlays picker records: on a site where
 	// the field was never written, frm.doc[f] is empty and sending it raw would
 	// CLEAR the anchor boot had just set.
-	for (const f of BND_FILTERS_FIELDS) values[f] = frm.doc[f] || bnd_default_of(f, BND_FILTERS_DEFAULTS[f]);
+	for (const f of BND_FILTERS_FIELDS) values[f] = bnd_effective(frm, f) || bnd_default_of(f);
 	engine.filters_apply(values);
 }
 
@@ -7021,7 +6923,7 @@ function bnd_render_login_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "login_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.login_style || BND_LOGIN_DEFAULTS.login_style;
+	const current = frm.doc.login_style || bnd_default_of("login_style");
 	const off = current === "Original";
 	const offered = bnd_field_slots(frm, "login_style");
 	const cards = P.cards(
@@ -7051,7 +6953,7 @@ function bnd_render_login_picker(frm, host) {
 							? __("Original leaves the sign-in page stock — this does not apply.")
 							: "",
 				})),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_LOGIN_DEFAULTS[grp.field]) }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }
 			),
 		})
 	).join("");
@@ -7082,7 +6984,7 @@ function bnd_render_login_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_login_set(frm, f, bnd_default_of(f, BND_LOGIN_DEFAULTS[f]));
+		bnd_login_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -7200,7 +7102,7 @@ function bnd_render_web_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "web_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.web_style || BND_WEB_DEFAULTS.web_style;
+	const current = frm.doc.web_style || bnd_default_of("web_style");
 	const offered = bnd_field_slots(frm, "web_style");
 	const cards = P.cards(
 		BND_WEB_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
@@ -7222,7 +7124,7 @@ function bnd_render_web_picker(frm, host) {
 			field: grp.field,
 			body: P.options(
 				grp.options.map((o) => ({ value: o.value, name: o.name(), reason: "" })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_WEB_DEFAULTS[grp.field]) }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }
 			),
 		})
 	).join("");
@@ -7266,7 +7168,7 @@ function bnd_render_web_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_web_set(frm, f, bnd_default_of(f, BND_WEB_DEFAULTS[f]));
+		bnd_web_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -7394,7 +7296,7 @@ function bnd_render_email_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "email_picker", host);
 	if (!$host) return;
 
-	const current = frm.doc.email_style || BND_EMAIL_DEFAULTS.email_style;
+	const current = frm.doc.email_style || bnd_default_of("email_style");
 	const offered = bnd_field_slots(frm, "email_style");
 	const cards = P.cards(
 		BND_EMAIL_STYLES.filter((s) => s.value === "Original" || offered.includes(s.value)).map((s) => ({
@@ -7413,7 +7315,7 @@ function bnd_render_email_picker(frm, host) {
 			field: grp.field,
 			body: P.options(
 				grp.options.map((o) => ({ value: o.value, name: o.name(), reason: "" })),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_EMAIL_DEFAULTS[grp.field]) }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }
 			),
 		})
 	).join("");
@@ -7470,7 +7372,7 @@ function bnd_render_email_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_email_set(frm, f, bnd_default_of(f, BND_EMAIL_DEFAULTS[f]));
+		bnd_email_set(frm, f, bnd_default_of(f));
 	});
 
 	bnd_email_preview(frm, $host);
@@ -7699,7 +7601,7 @@ function bnd_print_match_preset(frm) {
 	if (!bnd_print_presets_cache) return null;
 	const { axes, presets } = bnd_print_presets_cache;
 	for (const [name, comp] of Object.entries(presets)) {
-		if (axes.every((f) => (frm.doc[f] || bnd_default_of(f, BND_PRINT_DEFAULTS[f])) === comp[f])) return name;
+		if (axes.every((f) => (frm.doc[f] || bnd_default_of(f)) === comp[f])) return name;
 	}
 	return "Custom";
 }
@@ -7766,7 +7668,7 @@ function bnd_render_print_picker(frm, host) {
 					name: v === "Open" ? __("Open rows") : __(v),
 					reason: "",
 				})),
-				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field, BND_PRINT_DEFAULTS[grp.field]) }
+				{ field: grp.field, value: frm.doc[grp.field] || bnd_default_of(grp.field) }
 			),
 		})
 	).join("");
@@ -7842,7 +7744,7 @@ function bnd_render_print_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_print_set(frm, f, bnd_default_of(f, BND_PRINT_DEFAULTS[f]));
+		bnd_print_set(frm, f, bnd_default_of(f));
 	});
 	$host.find(".bnd-prp-chip").on("click", function () {
 		const k = this.getAttribute("data-k");
@@ -7919,14 +7821,6 @@ const BND_STATUS_FIELDS = [
 ];
 
 /** Shipped defaults, for the reset chips. */
-const BND_STATUS_DEFAULTS = {
-	// The layout row's value, as the doctype default reads (item 43's review found
-	// "Top Bar Center" here — the mirror guard reads only literal Python rows).
-	search_placement: "Side Pane Start", status_style: "Quiet", status_clock: "Off",
-	status_interval: "60s", status_segments_jobs: 1, status_segments_errors: 1,
-	status_segments_scheduler: 1, status_segments_connection: 1, status_segments_density: 1,
-	status_segments_width: 1, status_freshness: 1, status_escalate: 0,
-};
 
 /**
  * Can this slot exist with the settings currently on screen? Used to WARN,
@@ -8506,7 +8400,7 @@ function bnd_render_links_picker(frm, host) {
 		// default" was writing the one value guaranteed to make the shell's
 		// change dot say Changed. A mirror of presets.LINKS_DEFAULTS, guarded
 		// by assertFieldMirrors like every other kit's.
-		bnd_inbox_set(frm, this.getAttribute("data-field"), BND_LINKS_DEFAULTS[this.getAttribute("data-field")]);
+		bnd_inbox_set(frm, this.getAttribute("data-field"), bnd_default_of(this.getAttribute("data-field")));
 	});
 }
 
@@ -8514,7 +8408,7 @@ function bnd_render_links_picker(frm, host) {
 function bnd_render_search_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "search_picker", host);
 	if (!$host) return;
-	const current = frm.doc.search_placement || "Top Bar Center";
+	const current = frm.doc.search_placement || bnd_default_of("search_placement");
 
 	// One diagram of the desk, six slots on it — replacing six hand-drawn
 	// thumbnails of the same desk that each had to stay truthful on their own.
@@ -8634,7 +8528,7 @@ const BND_STATUS_TOGGLES = [
 function bnd_render_status_picker(frm, host) {
 	const $host = bnd_picker_host(frm, "status_picker", host);
 	if (!$host) return;
-	const current = frm.doc.status_style || "Quiet";
+	const current = frm.doc.status_style || bnd_default_of("status_style");
 	// WAS `current === "Off"`, which stopped being reachable when the bottom
 	// bar became a container and the style lost that option. The real question
 	// is whether the bar exists at all, and it is not this field's to answer.
@@ -8729,7 +8623,7 @@ function bnd_render_status_picker(frm, host) {
 	$host.find(".bnd-cbp-reset").on("click", function (e) {
 		e.stopPropagation();
 		const f = this.getAttribute("data-field");
-		bnd_status_set(frm, f, bnd_default_of(f, BND_STATUS_DEFAULTS[f]));
+		bnd_status_set(frm, f, bnd_default_of(f));
 	});
 }
 
@@ -8883,7 +8777,7 @@ function bnd_render_identity_picker(frm, host) {
 	if (!$host) return;
 
 	const esc = bnd_esc;
-	const shipped = (bnd_shipped && bnd_shipped.company_name) || "Bunood";
+	const shipped = bnd_default_of("company_name");
 	// The honesty ledger: one group per identity field with a reset/clear chip
 	// (bound below) and its effective-value line. company_name RESETS to the
 	// shipped name (the user's pick — and the migrate seeder would refill it

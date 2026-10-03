@@ -24,7 +24,10 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [0.48.5] — 2026-09-28 — the vendor's adverts, gone from every desk (patch)
+## [0.49.1] — 2026-10-03 — the vendor's adverts, gone from every desk (patch)
+
+**Numbered after v0.49.0 shipped first.** Prepared as 0.48.5 on 2026-09-28 and never tagged; the settings audit
+(item 47) shipped as v0.49.0 on 2026-10-02, so by the policy above this patch on top of it is 0.49.1.
 
 ### Fixed — "Switch to Frappe CRM" and "Switch to Helpdesk" in the side pane
 
@@ -72,7 +75,169 @@ protocol:
   rebuild is byte-identical. `node --check` and `compileall` pass, and
   contrast passes 9,464 of 9,464 pairs.
 
-Payload: css +61b gzip against v0.48.4; every other bucket byte-identical.
+Merged onto v0.49.0 (2026-10-03): the sheet rebuilt from the merged sources is byte-identical on a rebuild, `npm run
+build` and its guards pass, and contrast passes 9,464 of 9,464 pairs. The bench probes above ran on the v0.48.4 base.
+
+Payload: css +54b gzip against v0.49.0 (+61b against v0.48.4 as prepared); every other bucket byte-identical.
+
+## [0.49.0] — 2026-10-02 — the settings audit: one owner per fact (item 47)
+
+**Numbered at the owner's word** (2026-10-02, "do recommended"): a new ROADMAP item, 47,
+released as the next free MINOR. Decision group (vi) had offered item 47 / v0.47.0 or a
+46.x patch series; while this work was in flight main moved on to v0.48.4 — 0.47 went to
+item 46 (the Report Studio) and 0.48 to the capability integration — so the item takes the
+next free number, as item 46 did. The two patches moved from `patches/unreleased/` to
+`patches/v0_49_0/`. Nineteen commits, 2026-09-21 to 2026-09-28, from a full audit whose census, findings, decision menu and render walk live
+outside the tree (`.claude/audit/`, untracked; `phase1/` is the before). The user answered
+the menu "do recommended", then "do everything", then — for the four findings the first
+pass had left without a decision, and the dashboard's contrast — "continue with
+recommended".
+
+**The complaint, measured.** The settings existed in several versions: a value was
+defaulted, stored, composed, overlaid and applied in more than one place, the copies
+disagreed, and the desk rendered a look no single setting described. The audit counted
+17 layers and 149 settable fields, and per field the copies that HOLD a value:
+0:8 · 1:16 · 2:18 · **3:92** · 4:11 · 5:1 · 6:3, four of them disagreeing. It measured,
+live: a personal width, pane state or whole look rendered in a fresh tab, flipped to the
+site's values the moment Theme Settings opened, and stayed flipped for the session; the
+pane's Hide button was a preference with no writer; a legacy per-user sidebar look had no
+caller and still applied twelve fields at boot; two shipped looks lit the wrong layout card.
+
+**What changed, slice by slice.**
+
+- **A · The pane state has one owner** (41a60b0). `sidebar_pane_state` was written by the
+  layout table AND overwritten by every sidebar look, so Bunood Day and Studio derived
+  Rail + Flyout. The layout owns it; the derived shape never follows a person's pane
+  comfort.
+- **B · One owner per default** (c3b9814). The doctype's 116 `default` keys,
+  `setup.DEFAULTS`' own literals, 23 `BND_*_DEFAULTS` mirrors in the form, every
+  `|| "Literal"` fallback in both scripts and the print macro's seven literals are gone;
+  everything reads the catalogue (`presets.py` → `setup.SHIPPED` → the form's
+  `bnd_shipped`, awaited before the first picker render). Three build guards refuse a copy
+  coming back.
+- **C · The person's settings have a writer and a preview that respects them** (9029216).
+  The pane gesture writes `bnd_pane_state`; the Appearance dialog gains the pane row; boot
+  serves the person's overrides as ONE map and the form previews the effective values,
+  naming every override in force with "Follow the site" (`bunood.follow_site`) — the
+  composer's frames keep the FORM's values, which is their contract. `bnd_sidebar_preset`
+  retires into `bnd_look` by patch.
+- **D1 · One ladder, one hide, one stamper, no tolerance** (adc4c41). `mount_containers()`
+  is the one container ladder boot and the live remount read; the pane container has ONE
+  hide, keyed on the `pane-hidden` ownership token its arbiter stamps from both settings;
+  the pane state has one stamper; the three normalisers for labels `v0_42_0` had rewritten
+  on every site are gone, and `setup.heal_unknown_selects()` heals every Select on every
+  migrate; `panehead_apply` rebuilds an open menu; the dock stamps its marker; the
+  unreachable `LAYOUT_CONTAINERS` fallback is deleted.
+- **D2 · Dead code out** (314711a): a dead export, a never-called note helper, 57 lines of
+  picker CSS for classes nothing emits, two cursive selectors nothing renders, a `@use` for
+  a partial that never existed; three misfiled blocks re-filed.
+- **E · The rail's expand button retires** (fdb2d0c): `sidebar_rail_button` and
+  `icon_rail_button`, with a patch; the Hover + Pin trigger's pin is the rail's identified
+  control (`railpin`). THEME_AXES 133 → 131.
+- **F · Tools and docs** (b3b6ca2). ONE settings-write path (`tools/session.mjs`; the suite
+  and the fixture tool call it); `settingsDrift()` sees the six shipped-empty fields and the
+  second settings Single (its first run found a suite's scratch `tagline` stranded in the
+  brand sheet); the suite's section-level layout write runs only when a check after it
+  runs; `npm run fixtures:views`; two dead tools and three stray images deleted; the
+  `app_include_icons` line and item 23's unbuilt remainder struck; 66 wrong statements in
+  the docs and the code's own comments fixed by exact text.
+- **After the full suite** — three more. The retired-endpoint probe stops spending another
+  check's console budget (4f629a4: slice C's check POSTed to the deleted method from inside
+  the page and the browser logged the 417). The two approved items no slice had carried
+  (2d32f67): a build guard that refuses a default stated beside a Theme Settings read in any
+  Jinja template (ii-1's "one guard extended to the macro", watched failing on four planted
+  forms), and a `site data:` preflight that fails first, naming `npm run fixtures:views`,
+  when the alternate-views fixtures are absent (iv-8, watched failing on a cleared site).
+  Three placement defaults stop restating the default layout's row (895bdd2: a refactor,
+  the shipped defaults, the baseline and the default preset byte-identical before and
+  after).
+- **The last calls (2026-09-28)** — seven more. The contrast gate stops comparing the lock
+  defaults with a doctype default ii-2 a had deleted (0b63ed6: `npm run contrast`, a CI
+  gate, was red from c3b9814 on, and nothing in the series ran it — the colour-gate rule
+  sends nobody to a commit that changes no colour). A number card's delta clears AA in all
+  three states (e677d4a): the kit's rule had NEVER applied — (0,4,1) against Frappe's
+  (0,5,0) — so five of six state × mode pairs sat under 4.5:1 and the grey was never
+  re-pointed; `--bnd-good` is fitted as text now. Item 23's box reads `[ ]`, to the letter
+  of iv-1 b (9306518). And the four open findings, each by its recommended option: the form
+  derives a layout's identity the way the server does, and the composer's stage gets the
+  desk's SHAPE instead of the card's label (2175d69 — guarding the two derivations' agreement
+  found 17 labels and 39 shapes that disagreed over 420 cases); the field-naming guard reads
+  its prefixes from `registry.py` (305d1f3); `!important` is build-enforced to four named
+  vendor-reach sites, the doctrine names the classes, and the two picker borders take weight
+  instead (c7c6849); `data-bnd-zone`'s three writers are by design, and the runtime says so
+  where it reads the attribute (cfcb9b7).
+- **Onto v0.48.4 (2026-10-02)** — merged, not rebased (dc2a975: every one of this work's
+  commits rebuilt the hashed bundles). Upstream's print_title_lang move to "Follow print
+  language" lands in the catalogue it already edited, without the doctype `default` and the
+  form's BND_PRINT_DEFAULTS it also touched — both deleted here; its HELD patch notes keep
+  the healer last; the Arabic catalogue is the union (812 upstream entries, 8 here, none on
+  both sides), re-emitted; the JS ceiling sums both lines' raises and is re-measured
+  (137,557 → 137,800). Two pieces of upstream code met this work's guards and were brought
+  under them with unchanged output: the letterhead's title-language read goes through
+  `bunood_print_setting()` instead of a literal fallback, and the POS subtitle's
+  `!important` (which beat only its own sheet) became weight. Upstream's two print-engine
+  tests that asserted the default in five places assert its one owner instead (bdaaca8). The
+  eight Arabic rows this work added are accepted, two corrected — a gender agreement and a
+  `لـ` that met `ال` at runtime (0f410d0). The merged tree's suite found what neither line
+  could alone, fixed in four commits — the identifier cell (3496641), the chevron's name
+  (efc13e2), the calendar's fixture month (8ece2f1), the counts and the fixture (57c4f6a).
+
+**Checks added, every one watched failing first:** the layout a theme card lights; a
+personal pane state and the derived shape; the hide gesture across a reload; the settings
+page honouring a personal width through an unrelated click; the legacy look retired and its
+rows carried; a retired Select value healed by migrate and mapped nowhere on the wire; the
+container's one hide following the token for both settings; a quick-links change reaching an
+open menu; one ladder both directions; every container's marker; the rail button's
+retirement; the views-fixture preflight; a number card's delta in every state and mode; the
+form's layout identity against the server's over every catalogue row and single-field
+departure; the shape the composer's stage is given; a selected option's edge in every state.
+
+**Full suite** at b3b6ca2 (2026-09-27, 123 min on a loaded host): **553/555**. One failure was
+this series' own and is fixed (4f629a4, 2/2 after). The other is NOT this series': the axe
+gate's color-contrast count on `/desk/dashboard-view/Selling` grew 3 → 4 because the demo data
+aged — the "Active Customers" number card compares with last month, Frappe hides the
+percentage while last month's count is 0, and the only customer was created 2026-08-23, so
+from 2026-09-23 the card shows a grey "0 %" at 4.06:1 (computed with Frappe's own
+`get_result` for both dates; reproduced alone on a freshly restarted backend). It was left
+red for a decision, and the decision found more under it: the card's delta rule had never
+applied, so that "0 %" was Frappe's grey all along — repaired in e677d4a, and the route's
+ceiling is 1. **Full suite at cfcb9b7** (2026-09-28, 123 min): **560/560**. Merged onto v0.48.4,
+at bdaaca8 (2026-10-02, 122 min): 552/560 — the two lines meeting, each failure traced and
+repaired in its own commit: two picker counts and the shape fixture meeting upstream's new
+options (57c4f6a); a capability's new msgid "payments" colliding with the payments app's
+name in the Translations table (3496641); Frappe's nameless section chevron reaching the
+settings route, named now on every route, 30 banked axe nodes fewer (efc13e2); five
+calendar checks that had only ever passed by coincidence (8ece2f1). An eighth, the form
+head's hover check, failed once in that run and passed alone and in every rerun. At the
+release: **560/560** (122 min). Upstream's own
+suites on the merged tree: Python unittest 111/111, `node --test` 61/61, the v1
+onboarding contract green. `tests/studio.mjs` was not run here: it runs inside a bench
+container with Playwright and a seeded "Bunood Development" company, which this stack has
+not; every new page (studio, banking, finance close, journal workbench, POS, quick sale,
+the two list queues) was loaded on the merged desk instead and renders without a page
+error.
+
+**Measured after.** The census re-run over the consolidated code (147 settable fields after the two retirements) counts the copies holding a value per field as **0:16 · 1:120 · 2:11**, none disagreeing (was 4). The zeros are fields whose one owner derives them (the palette's seeds, the registry's desk order, the typography module's face) or that ship empty by design; the eleven twos are the five container switches and six placements, each a kit dict that indexes the default layout's row — one owner, counted twice because the census reads runtime values. The cascade census finds ONE `!important` hide on the pane container, keyed on the token (was two), and 5 `!important`s in the desk sheet (was 6). The docs scan: live unresolved identifiers outside CHANGELOG 33 → 16 and stale counts 30 → 21; what remains is dated narrative about things deleted before this work, plus counts the scanner cannot tie to a referent. The render walk re-run (169 min; its restore verified row for row) measured the complaint itself in the personal arm: a personal width of Roomy now reads roomy on the settings page and after an unrelated click (was balanced), a personal Rail stays rail (was open), and a personal look differs from its fresh tab on 0 attributes on the settings page (was 34). The site's own options render as before: 247 measured, 147 in session and fresh, 24 on the next load only, 0 inert, 0 errors, 0 stored-value mismatches. The one option newly counted as "views disagree", `desk_width = Original`, applies (the attribute and `--page-max-width` move) but cannot show at the walk's 1440px with the pane open, where the form column (873px) is narrower than both caps.
+
+**Payload.** js gzip 131,176 (v0.46.7) → 131,996, ceiling 131,400 → 132,100 (the pane
+writer, the Appearance row and the clearer; the docblocks that ship in the bundle; the rail
+button and the dead code gave most of it back). css gzip 28,285 → 28,003. Bundles
+`bunood.8dd3e296.js` / `bunood.7b0431d5.css` → `bunood.6455f116.js` / `bunood.43491a3e.css` on
+this work's own line. Merged onto v0.48.4: js 137,557 gzip against a 137,800 ceiling (the
+integration's 136,850 plus this work's +700, re-measured), css 30.2 KB against 32,000;
+bundles `bunood.41b2e22f.js` / `bunood.5f6ac18a.css`.
+
+**Deliberately not done, and why.** Nothing on the menu is left open: the four findings the
+first pass had no decision for are closed above, by their recommended options. iv-1 is carried
+out to the letter: item 23's roadmap box reads `[ ]` with its reason — the reframed scope shipped, the
+original switchable icon set was struck rather than built, and the open box keeps that goal
+visible as unmet (which also makes it one of the items v1.0.0 waits on). iv-12's "Alert" debt was already paid before this work (the row exists and
+its check is green); iv-11's "check_icons.py regeneration" does not exist, so the corrected
+pointer says so.
+
+**Left for the owner.** 926 fuzzy `ar.po` rows, none of them this work's: the drafts
+earlier items left for review and the ~755 upstream's capabilities added. Upstream's HELD
+patches (print_title_lang for existing tenants, pos-retail's five) stay held.
 
 ## [0.48.4] — 2026-09-26 — five more ways to read the same sales (patch)
 
@@ -412,6 +577,7 @@ to the fils and the exported xlsx reopened with openpyxl.
 **Named debt** (PR #8): dateRange cards' previous-period probe sends filters those
 reports ignore, so their delta chips have always compared the period to itself —
 its own slice, nothing here depends on it.
+
 
 ## [0.46.7] — 2026-09-15 — The words we could not defend, and one we could (patch)
 

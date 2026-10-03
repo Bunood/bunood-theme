@@ -47,18 +47,27 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   narrower than `[data-theme]`, not wider. GUIDELINES §1.3 carries the argument and
   the second half nobody expects: `brand.py`'s dark blocks need that scope too, or a
   customer's dark sign-in page silently paints the *shipped* seed.
-- **`!important`** only in the sanctioned places — the `font-family` block, `@media
-  print`, and (item 33) inside `body.bnd-web` to beat a vendor `!important` **literal**
-  where the alternative is a measured WCAG failure. That third place exists because a
-  website page has no `.bunood` on `<html>` to escalate through. GUIDELINES §1.3 carries
-  the test; it is not a general licence.
+- **`!important`** only in the sanctioned CLASSES, each a vendor reach no selector can
+  beat — print (`@media print`, the print bundle); a vendor INLINE style (Frappe writes
+  `display: block` on the pane's container, which the pane's one hide must beat, and a
+  background on the pane head's icon tile); and a vendor `!important` **literal** where
+  the alternative is a measured failure (item 33's `.text-muted` inside `body.bnd-web`,
+  because a website page has no `data-theme` on `<html>` to escalate through; the pane
+  filter's reveal over Frappe's `.hidden`). Everything else is weight — `html[data-theme]`,
+  one class more, an always-present attribute. **Build-enforced:** `build.mjs`'s
+  `SANCTIONED_IMPORTANT` names every site and refuses any other; the prose list drifted
+  from the code once (the settings audit, C2). GUIDELINES §1.3 carries the test; it is
+  not a general licence.
 - **Never touch Frappe-generated DOM.** Colour it through tokens. The ONE sanctioned
   exception (item 24): `repair_viewport_meta` in `bunood.js` rewrites the `<head>` viewport
   `<meta>` to unlock pinch-zoom — a meta tag is neither layout nor styling, there is no
   hook to reach it, and forking `desk.html` is retired (ARCHITECTURE §4).
 - **Hide a native affordance only from `data-bnd-own`**, stamped after our
-  replacement is in the DOM — never from `data-bnd-layout`/`data-bnd-search`, which
-  are declarations that can outrun reality. Build-enforced.
+  replacement is in the DOM — never from `data-bnd-desk`/`data-bnd-search`, which
+  are declarations that can outrun reality. Build-enforced. The ONE hide of a vendor
+  node that also needs `!important` — the pane's container, which Frappe styles INLINE —
+  is one rule in `_sidebar.scss` keyed on the `pane-hidden` token the runtime's arbiter
+  (`sb_sync_pane_hidden`) stamps from both settings that hide it (the settings audit of 2026-09-21, v-5).
 - **Identity is `data-bnd-part`, defined in `registry.py`.** Classes are for styling.
   Build-enforced both ways.
 - **Fields are `<component>_<property>`.** Build-enforced, with a shrinking
@@ -69,7 +78,7 @@ disagree, GUIDELINES wins and this file is stale — fix it.
 - **The same fact in two places.** Every critical defect traces to it: layout vs DOM,
   on/off vs placement, declared reserve vs measured chrome, preset name vs values.
   Fix: make the second copy impossible, or derive it. The sidebar picker's label is
-  derived by comparing 23 values — pinning the *name* pins nothing.
+  derived by comparing every sidebar value — pinning the *name* pins nothing.
 - **Sizing the CONTAINER while the vendor sizes the CONTENT.** Item 40's width
   control set `--bnd-sb-w` on `.body-sidebar-container`; Frappe sizes the pane
   inside it from `--sidebar-width` (their variable, default 220px) in their own
@@ -248,8 +257,10 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   case's failure, and nothing in the output looks like caching. Same shape one level up:
   `from package import submodule` resolves as `getattr(package, "submodule")`, so popping
   `bunood_theme.palette` and leaving `bunood_theme` cached hands back the OLD module and
-  the file on disk is never read. `tools/sabotage_sidebar.py` does both; copy it rather
-  than rediscovering either.
+  the file on disk is never read. `tools/sabotage_sidebar.py` did both until the pane's
+  colour phase deleted it with the guards it exercised; write a sabotage the same way
+  (mutate, delete the `.pyc`, pop the package from `sys.modules`, restore) rather than
+  rediscovering either.
 - **Running a documented gate can damage the site — and the damage class is a ROW THAT
   DID NOT EXIST.** `tools/sweep-settings.mjs` once left eleven `print_*` fields off
   their shipped defaults while printing "state restored": a Single field never yet
@@ -308,6 +319,8 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   reads from it, never the reverse (item 41).
 - `tools/verify.mjs` · `tools/fingerprint.mjs` — the suite runner and the shape
   capture. Regenerate the fixture *deliberately* after an intended change.
+  `npm run fixtures:views` seeds the records the alternate-views checks need on a
+  fresh site (three checks render empty chrome without them).
 - `tools/session.mjs` — the stack's constants and an authenticated browser
   session. **Use it for any ad-hoc probe.** The forty lines it replaces were
   retyped into eight throwaway scripts in one session before it existed.

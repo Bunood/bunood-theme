@@ -35,7 +35,6 @@ Completed	frappe: أكتمل
 Custom	frappe: مخصص
 Customer	erpnext: العميل
 Dashboard	frappe: لوحة القيادة
-Default	frappe: الافتراضي
 Desktop	frappe: سطح المكتب
 Document	frappe: وثيقة
 Documents	frappe: وثائق
@@ -73,7 +72,6 @@ Loading...	frappe: تحميل ...
 Logo	erpnext: شعار
 Manual	erpnext: يدوي
 Medium	frappe: متوسط
-Menu	frappe: الخيارات
 Missing	erpnext: مفتقد
 Name	frappe: اسم
 New	frappe: جديد

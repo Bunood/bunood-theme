@@ -11,12 +11,10 @@
 //
 // THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
 //   data-bnd-sb-placement   attached | floating
-// A RETIRED LABEL STILL RESOLVES, in `SB_SLUGS` — Glass and Blurred Glass to
-// `elevated`, the six old icon styles to their four successors. A boot cached
-// before the patch ran still serves the old string, and an unknown label sets NO
-// attribute at all: a pane with no surface, rather than the one the migration
-// chose for it. The map is where that is expressible; this is where it is said,
-// because build.mjs copies bunood.js verbatim and every comment there ships.
+// NO RETIRED LABEL RESOLVES in `SB_SLUGS` any more (the settings audit of
+// 2026-09-21, v-8): the patches that renamed them ran on every site, and a value
+// the field cannot hold is healed by the next migrate (setup.heal_unknown_selects)
+// rather than tolerated on the wire. An unknown label sets NO attribute at all.
 //   data-bnd-sb-material    solid | bordered | elevated | textured |
 //                           tinted | gradient   (item 42, slice S)
 //   data-bnd-sb-color       theme | minimal | dark | brand
@@ -609,27 +607,35 @@ html[data-theme] .bnd-icon-btn.bnd-sb-start {
 // wash; a zero-width box still paints its border as a hairline down the page,
 // and every measured reserve would still count it. Gone means gone.
 //
-// `!important` IS REQUIRED, and it is the same one `_layouts.scss` already
-// carries for the same node and the same reason: Frappe's sidebar JS writes
-// `style="display: block"` INLINE on this container, and no selector",
-// specificity beats an inline style. Measured here on the first run of the
-// three states -- the attribute was right, the rule was in the bundle, the
-// container still rendered, and the computed style said `block` with
-// `display: block; width: ...` sitting in the element's own style attribute.
-// The chrome-off rule two files over hit this in July 2026 and wrote it down;
-// this is the second control on the same element, so it inherits the finding
-// rather than rediscovering it.
+// ONE RULE, TWO SETTINGS, ONE ARBITER. The container switched off
+// (`sidebar_enabled: 0`, `_layouts.scss`) and the pane state Hidden used to be
+// two `display: none !important` rules for this node in two files at (0,2,1)
+// and (0,3,1), so which one won was an accident of the cascade and the JS guard
+// that releases either had to know both. Since the settings audit of 2026-09-21
+// (v-5) both feed `sb_sync_pane_hidden` in bunood.js, which stamps the ownership
+// token this selector reads — the same polarity every other hide of a vendor
+// node uses — in the same synchronous load-time calls that stamp the two
+// declarations, so nothing flashes that did not before.
+//
+// `!important` IS REQUIRED: Frappe's sidebar JS writes `style="display: block"`
+// INLINE on this container, and no selector specificity beats an inline style.
+// Measured on the first run of the three states -- the attribute was right, the
+// rule was in the bundle, the container still rendered, and the computed style
+// said `block` with `display: block; width: ...` sitting in the element's own
+// style attribute (July 2026 for chrome-off; again here for Hidden).
+//
 // ...AND HIDDEN IS A DESKTOP STATE. Below 768 the pane IS Frappe's drawer, and
 // the drawer is the only route to the workspace list on a phone -- the
 // page-title hamburger opens it and nothing else does. Hiding it there removes
-// navigation outright, which is not a state any picker offers; it is this rule
-// reaching a breakpoint it was never written for. FOUND BY THE SUITE, at 390px:
-// the drawer opened 0px wide.
+// navigation outright, which is not a state any picker offers. FOUND BY THE
+// SUITE, at 390px: the drawer opened 0px wide. The `:not([data-bnd-narrow])`
+// that used to guard this selector is the arbiter's business now: it stamps the
+// token only off the narrow preset, and re-stamps on every crossing.
 //
 // The page-head brand below is a desktop affordance for the mirror-image
 // reason: on a phone the page-title hamburger already carries the way to the
 // drawer, so this is the second half of one decision, not a new one.
-html[data-bnd-sb-panestate="hidden"]:not([data-bnd-narrow]) .body-sidebar-container {
+html[data-bnd-own~="pane-hidden"] .body-sidebar-container {
   display: none !important;
 }
 
@@ -998,7 +1004,6 @@ html[data-bnd-sb-color] .bnd-sb-item {
     text-decoration: none;
   }
 }
-
 
 // ── The Place row ───────────────────────────────────────────────────────────
 // One node and the whole of the pane head: the brand mark, the place you are
@@ -1435,11 +1440,9 @@ html[data-bnd-sb-active="rail"] .body-sidebar .standard-sidebar-item.active-side
   background: color-mix(in srgb, var(--bnd-sb-accent) 9%, transparent);
 }
 
-
 html[data-bnd-sb-active="outline"] .body-sidebar .standard-sidebar-item.active-sidebar {
   box-shadow: inset 0 0 0 1.5px var(--bnd-sb-accent);
 }
-
 
 // Folder tab: the active link takes the PAGE surface and merges into it.
 // Only offered on attached panes (the picker enforces it) because a floating
@@ -1764,7 +1767,7 @@ html[data-bnd-sb-color] .body-sidebar .sidebar-header {
   }
 
   .icon-container {
-    background: var(--bnd-brand-solid) !important; // beats Frappe's INLINE style (the 2nd documented legitimate use)
+    background: var(--bnd-brand-solid) !important; // a vendor INLINE style (desktop_icon): GUIDELINES §1.3, build.mjs SANCTIONED_IMPORTANT
     border-radius: var(--bnd-radius-md);
   }
 }
@@ -1816,7 +1819,6 @@ html[data-bnd-sb-badges="dots"] .bnd-sb-badge {
   border-radius: var(--bnd-radius-pill);
   background: var(--bnd-serious);
 }
-
 
 // ── Menu rail: hover-expand ─────────────────────────────────────────────────
 // The container narrows to the rail width (its inline width is set by
@@ -1933,82 +1935,6 @@ html[data-bnd-rail]:not([data-bnd-narrow]) .body-sidebar .sidebar-resize-handle 
 // documents that the statusbar consumes it; see observe_sidebar_width() in
 // bunood.js. It used to say "and the apps rail", which the rail's deletion
 // (item 40) made false.
-
-// ── Rail expand button ──────────────────────────────────────────────────────
-// Mounted by bunood.js when the tenant chooses one (or picks the Button-only
-// trigger). Placement, shape and glyph are all Theme Settings options; the
-// element carries them as modifier classes so the CSS stays a flat list.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  position: absolute;
-  z-index: calc(var(--bnd-z-flyout) + 1);
-  display: grid;
-  place-items: center;
-  inline-size: 24px;
-  block-size: 24px;
-  border: var(--bnd-line) solid var(--bnd-sb-line);
-  background: var(--bnd-sb-card-base);
-  color: var(--bnd-sb-ink-muted);
-  cursor: pointer;
-  box-shadow: var(--bnd-shadow-sm);
-  // One shape since item 40: all eight shipped looks chose Circle, and the
-  // other two rendered through a CONCATENATED class the focus-ring guard
-  // cannot see. The radius lives on the identity class instead.
-  border-radius: var(--bnd-radius-pill);
-
-  svg {
-    inline-size: 13px;
-    block-size: 13px;
-    transition: rotate var(--bnd-dur-base) var(--bnd-ease);
-  }
-
-  &:hover {
-    color: var(--bnd-sb-ink);
-  }
-}
-
-// Placements. Edge rides the pane's end border, vertically centred; top sits
-// in the header row; bottom is pinned above the pane's end.
-//
-// TWO POSITIONS EACH, because the pane and the button have different parents.
-// The button is absolute against the CONTAINER, which stays at the rail's
-// 52px; the open pane is an overlay that grows to --bnd-sb-w PAST it. With
-// only the at-rest offset, opening slid the pane out from under the button
-// and left it floating over the workspace list, 40px from the left edge — a
-// chevron on top of "Material Request", measured 2026-08-08, and the broken
-// render reported that day. So each placement states where it sits at REST
-// (against the rail) and where it sits OPEN (against the pane's real edge,
-// derived from the same two widths the pane itself uses), with the same
-// duration as the pane's growth so the button glides with the edge it rides.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn {
-  transition: inset-inline-end var(--bnd-dur-base) var(--bnd-ease);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-edge {
-  inset-inline-end: -12px;
-  inset-block-start: 50%;
-  translate: 0 -50%;
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-edge,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-edge {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) - 12px);
-}
-// The head placement, named for where it sits rather than for a compass
-// point (item 40). BOTTOM IS GONE, and it was measured out rather than
-// dropped on taste: at `inset-inline-end: 50%` it sat over the foot's own
-// controls — Frappe's collapse link and resize handle both live there.
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-railbtn-header {
-  inset-inline-end: var(--bnd-sp-1);
-  inset-block-start: var(--bnd-sp-2);
-}
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-open .bnd-railbtn-header,
-html[data-bnd-rail]:not([data-bnd-narrow]) .bnd-rail-pinned .bnd-railbtn-header {
-  inset-inline-end: calc(var(--bnd-sb-rail-w) - var(--bnd-sb-w) + var(--bnd-sp-1));
-}
-
-
-// Open state: the chevron/arrow glyphs flip to point back.
-.bnd-rail-open .bnd-railbtn svg {
-  rotate: 180deg;
-}
 
 // ── Icon source overrides ───────────────────────────────────────────────────
 // "Original" hands the icon area back to Frappe untouched — every chip rule

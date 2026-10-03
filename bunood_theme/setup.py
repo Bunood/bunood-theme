@@ -27,7 +27,7 @@ import frappe
 
 from bunood_theme.brand import write_brand_css
 from bunood_theme.printing.install import sync_print_theme
-from bunood_theme.registry import default_desk_order
+from bunood_theme.registry import LAYOUT_PANE, default_desk_order
 from bunood_theme.typography import DEFAULT_FACE as _DEFAULT_FACE
 from bunood_theme.presets import (
     CHART_DEFAULTS,
@@ -61,6 +61,9 @@ from bunood_theme.presets import (
     PANEHEAD_DEFAULTS,
     STATUS_DEFAULTS,
     USER_DEFAULTS,
+    DEFAULT_PALETTE,
+    PALETTES,
+    SITE_DEFAULTS,
 )
 
 #: Check-type fields whose shipped default is 1. These CANNOT go through the
@@ -129,9 +132,11 @@ for _lock, _row in _personal.LOCKS.items():
 #: Values seeded on install and re-checked on every migrate. Only applied when the
 #: current value is empty, so this is safe to re-run forever.
 DEFAULTS = {
-    "company_name": "Bunood",
-    "brand_color": "#3d8150",
-    "accent_color": "#0090ff",
+    # Owned by presets.py (SITE_DEFAULTS and the default palette), never restated
+    # here: the audit of 2026-09-21 found these four stated four times over.
+    "company_name": SITE_DEFAULTS["company_name"],
+    "brand_color": PALETTES[DEFAULT_PALETTE]["brand_color"],
+    "accent_color": PALETTES[DEFAULT_PALETTE]["accent_color"],
     # Item 7(b). Read from the face catalogue, never restated: typography.py is
     # the one table, and this seeder is just another of its consumers. Seeded
     # here because a field `default` only applies to NEW records and Theme
@@ -140,7 +145,7 @@ DEFAULTS = {
     # Density site default (decision "G with C"). Seeded here because a field
     # `default` only applies to NEW records and Theme Settings already exists on
     # every upgraded site — the exact bug v1 shipped with nav_layout.
-    "density_default": "Comfortable",
+    "density_default": SITE_DEFAULTS["density_default"],
     # Desk layout (checklist item 9; re-chosen in item 42). "Unified Side Pane"
     # is the layout the user chose as the default: everything in the side pane,
     # no top bar, the slim status bar below. Same seeding rationale as
@@ -158,6 +163,9 @@ DEFAULTS = {
     # default to the same function.
     "desk_order": default_desk_order(),
     **_SIDEBAR_LOOKS[_DEFAULT_SIDEBAR_LOOK],
+    # The pane state: from the layout catalogue, its one owner (the sidebar look
+    # used to carry a second copy — the settings audit of 2026-09-21).
+    "sidebar_pane_state": LAYOUT_PANE[DEFAULT_DESK_LAYOUT],
     # Breadcrumb (item 11) + palette (item 12) kits: the Select fields only —
     # the Check fields live in CHECK_DEFAULTS above, where None-aware seeding
     # protects an admin's explicit 0.
@@ -538,6 +546,9 @@ def after_migrate() -> None:
     neither is redundant with ``after_install``.
     """
     _seed_defaults()
+    # After the seeder (an empty Select is the seeder's), before anything reads the
+    # row: a value the field no longer offers fails validation for the WHOLE Single.
+    heal_unknown_selects()
     _seed_navbar_appearance_item()
     write_brand_css()
     # Same contract as after_install: the files in printing/ and letterhead/
@@ -651,6 +662,56 @@ def on_theme_settings_update(doc, method=None) -> None:
         frappe.clear_cache()
     except Exception:
         frappe.log_error("bunood_theme: clear_cache after Theme Settings save failed")
+
+
+def heal_unknown_selects() -> list:
+    """Put back the SHIPPED value wherever a Select holds a value its field no longer offers.
+
+    Returns the fieldnames healed. Runs on EVERY migrate (``after_migrate``) and once, at
+    its position in the order, as ``patches.v0_11_0.heal_unknown_placements`` — whose
+    docstring carries the argument: ONE illegal value fails validation for the whole
+    Single, so every later save of any other field fails with it, and six unrelated
+    checks went red on 2026-08-08 for a placement a retired vocabulary had left behind.
+
+    WIDENED FROM THE PLACEMENT FIELDS TO EVERY SELECT on 2026-09-21 (the settings audit,
+    v-8). The runtime carried three normalisers for spellings ``v0_42_0.rename_pane_state``
+    had rewritten on every site — tolerance on the wire for a value the field cannot
+    hold. A migration is the place that repairs a stored row; the client and the form
+    now read the string as it is. And it now genuinely runs forever: the patch module
+    said so of itself, but Frappe records a patch as run and never re-runs it.
+
+    ``update_modified=False`` for the reason ``_seed_defaults`` gives. An empty value is
+    the seeder's business, not this one's. A Select whose SHIPPED default is itself not
+    an option (``sidebar_color`` has none) is logged and left, exactly as before:
+    overwriting one illegal value with another only moves the damage.
+    """
+    healed: list = []
+    if not frappe.db.exists("DocType", "Theme Settings"):
+        return healed
+    stored = dict(frappe.db.sql("select field, value from tabSingles where doctype=%s", ("Theme Settings",)))
+    for df in frappe.get_meta("Theme Settings").fields:
+        if df.fieldtype != "Select" or df.fieldname not in stored:
+            continue
+        current = stored[df.fieldname]
+        if current in (None, ""):
+            continue
+        legal = (df.options or "").split("\n")
+        if current in legal:
+            continue
+        fallback = SHIPPED.get(df.fieldname)
+        if fallback not in legal:
+            frappe.log_error(
+                title="bunood_theme: no legal default for " + df.fieldname,
+                message=f"stored {current!r}, shipped {fallback!r}, offered {legal!r}",
+            )
+            continue
+        frappe.db.set_single_value("Theme Settings", df.fieldname, fallback, update_modified=False)
+        healed.append(df.fieldname)
+    if healed:
+        # Commit, then clear — the order every cache-clearing helper here keeps.
+        frappe.db.commit()
+        frappe.clear_cache(doctype="Theme Settings")
+    return healed
 
 
 def _seed_defaults() -> None:

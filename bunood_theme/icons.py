@@ -144,7 +144,7 @@ FA_ALIAS = {
 def _norm_fa(icon):
     """Strip a FontAwesome class down to its bare name, or return "" for a
     non-fa value. `"fa fa-file-text"` → `"file-text"`; `"icon-list"` → `""`
-    (already a sprite id, handled by `sprite_for_doctype`); `""`/None → `""`."""
+    (already a sprite id, handled by `sprite_for_item_icon`); `""`/None → `""`."""
     if not icon:
         return ""
     token = str(icon).strip().split()[-1] if str(icon).strip() else ""

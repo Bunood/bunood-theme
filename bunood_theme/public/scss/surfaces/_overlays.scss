@@ -114,7 +114,7 @@ html[data-theme] #alert-container {
 // The subtitle takes `--text-light` (toast.scss:69). Measured in stock dark:
 // 4.26:1 on the green wash and 3.23:1 on the blue — both under AA. These are
 // Frappe-token-on-Frappe-wash pairs and sit OUTSIDE `npm run contrast`, whose
-// 1,656 pairs cover `--bnd-*` only, so nothing else here would ever catch them.
+// pairs cover `--bnd-*` only, so nothing else here would ever catch them.
 // `--bnd-ink`, NOT `--bnd-ink-muted`, and the release review is why. Muted
 // preserved the hierarchy the subtitle wants, but it is SEED-DERIVED while the
 // four alert washes are Frappe constants — swept over the eleven gate seeds it

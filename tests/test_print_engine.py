@@ -157,9 +157,12 @@ class PrintEngineTests(unittest.TestCase):
 		fixture = json.loads((ROOT / "tests/fixtures/picker-shape.json").read_text(encoding="utf-8"))
 		field = next(item for item in settings["fields"] if item.get("fieldname") == "print_letterhead")
 
+		# ONE OWNER since the settings audit (decisions ii-2 a, ii-3): the value lives in
+		# presets.PRINT_DEFAULTS; the doctype carries no `default` and the form no client
+		# copy (build.mjs refuses both), so no shipping surface can disagree with it.
 		self.assertIn('"print_letterhead": "Bilingual Split"', presets)
-		self.assertEqual(field["default"], "Bilingual Split")
-		self.assertIn('print_letterhead: "Bilingual Split"', settings_js)
+		self.assertNotIn("default", field)
+		self.assertNotIn("BND_PRINT_DEFAULTS", settings_js)
 		self.assertEqual(fixture["state"]["print_letterhead"], "Bilingual Split")
 		self.assertIn('or PRINT_DEFAULTS["print_letterhead"]', SOURCE.read_text(encoding="utf-8"))
 
@@ -175,10 +178,11 @@ class PrintEngineTests(unittest.TestCase):
 		fixture = json.loads((ROOT / "tests/fixtures/picker-shape.json").read_text(encoding="utf-8"))
 		field = next(item for item in settings["fields"] if item.get("fieldname") == "print_title_lang")
 
+		# One owner, as above: the catalogue holds the value, the doctype only offers it.
 		self.assertIn('"print_title_lang": "Follow print language"', presets)
-		self.assertEqual(field["default"], "Follow print language")
+		self.assertNotIn("default", field)
 		self.assertIn("Follow print language", field["options"].splitlines())
-		self.assertIn('print_title_lang: "Follow print language"', settings_js)
+		self.assertNotIn("BND_PRINT_DEFAULTS", settings_js)
 		self.assertEqual(fixture["state"]["print_title_lang"], "Follow print language")
 
 	def test_managed_customer_documents_declare_language_and_direction(self):

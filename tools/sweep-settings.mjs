@@ -267,7 +267,7 @@ for (const key of items) {
 		// class now excludes itself from the catch-all by existing.
 		// CARDS THAT WRITE MANY FIELDS, NOT ONE. The layout cards and (item 37)
 		// the theme cards apply a whole PRESET — the layout cards write the five
-		// container toggles, a theme card writes 124 values — so there is no
+		// container toggles, a theme card writes every axis — so there is no
 		// single `field` to click-and-assert, and `desk_layout` (which this list
 		// mapped until item 37 deleted it) does not exist to hold the answer.
 		// They still have to be NAMED here, because the crumbs catch-all below is

@@ -24,10 +24,12 @@
 //
 // SCOPING
 //   `html[data-theme]` for the same reason as every other partial — (0,2,0)
-//   beats Frappe's unlayered class rules without !important. The two
-//   `!important`s carried over are on selected-state borders, beating an
-//   inline-ish base rule; they were in the original and are left alone rather
-//   than quietly re-engineered during a move.
+//   beats Frappe's unlayered class rules without !important. The move carried
+//   two `!important`s over, on the selected-state borders, and what they beat was
+//   nothing of Frappe's: the options' own block below restates `border` LATER at
+//   the same weight. They are gone (the settings audit of 2026-09-21, C2); each
+//   selected rule names the option's base class beside the state instead, one
+//   class more than anything else that paints that edge.
 // ============================================================================
 
 @use "../breakpoints" as *;
@@ -72,8 +74,14 @@ html[data-theme] {
     }
   }
 
-  .bnd-cbp-on {
-    border-color: var(--primary) !important;
+  // The selected edge, BY WEIGHT. `.bnd-cbp-opt`'s own block (below) restates
+  // `border` at (0,2,1) after this one, so the bare state lost it to source
+  // order; `.bnd-cbp-opt.bnd-cbp-on` is (0,3,1) and wins wherever the rule sits.
+  // The bare state stays for every other carrier — a card, a kit's toggle, a
+  // chip — none of which has a later rule restating its border.
+  .bnd-cbp-on,
+  .bnd-cbp-opt.bnd-cbp-on {
+    border-color: var(--primary);
     box-shadow: 0 0 0 1px var(--primary);
   }
 
@@ -562,60 +570,11 @@ html[data-theme] {
     }
   }
 
-  .bnd-sbp-presets {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 8px;
-  }
-
-  .bnd-sbp-preset {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding: 9px;
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    background: var(--control-bg);
-    cursor: pointer;
-    text-align: start;
-
-    &:hover {
-      border-color: var(--primary);
-    }
-  }
-
-  .bnd-sbp-pname {
-    font-weight: 600;
-    font-size: var(--text-sm);
-  }
-
   .bnd-sbp-pblurb {
     font-size: var(--text-xs);
     color: var(--text-muted);
     line-height: 1.4;
   }
-
-  .bnd-sbp-dots {
-    display: flex;
-    gap: 3px;
-    margin-block-start: 2px;
-  }
-
-  .bnd-sbp-dot {
-    inline-size: 9px;
-    block-size: 9px;
-    border-radius: 50%;
-    outline: 1px solid var(--border-color);
-    outline-offset: -1px;
-  }
-
-  .bnd-sbp-custom {
-    font-size: var(--text-sm);
-    color: var(--text-muted);
-  }
-
-
-
 
   .bnd-sbp-row-wrap {
     display: flex;
@@ -638,8 +597,12 @@ html[data-theme] {
     }
   }
 
-  .bnd-sbp-on {
-    border-color: var(--primary) !important;
+  // Same weight, same reason as `.bnd-cbp-on` — this one won on source order
+  // alone, which is one reordering from losing. The width stops draw their
+  // selection as a fill and a ring instead (`.bnd-sbp-stop`, below).
+  .bnd-sbp-on,
+  .bnd-sbp-opt.bnd-sbp-on {
+    border-color: var(--primary);
     box-shadow: 0 0 0 1px var(--primary);
   }
 
@@ -762,16 +725,6 @@ html[data-theme] {
     opacity: 0.7;
   }
 
-  .bnd-sbp-shape {
-    position: absolute;
-    inset-block-start: 12px;
-    inset-inline-start: 38px;
-    inline-size: 16px;
-    block-size: 16px;
-    border: 1.5px solid currentColor;
-    opacity: 0.6;
-  }
-
   .bnd-sbp-steps {
     display: flex;
     align-items: center;
@@ -798,7 +751,6 @@ html[data-theme] {
     }
   }
 }
-
 
 // ── The Compose card (item 43 B2) ────────────────────────────────────────────
 // One line and one button, on the card's own row; the note beneath.

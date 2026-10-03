@@ -43,18 +43,13 @@ const SITE = "demo.bunood.test";
 const BACKEND = "bunood-backend-1";
 const URL_BASE = process.env.BND_URL || "http://localhost:8080";
 
-// The same routes the suite's baseline test walks — the three page shapes a
-// desk session lives in: a list view, a document form, and the settings form.
-//
-// KEPT IN STEP BY `assertAxeRoutesAgree` IN build.mjs, not by hand. This list
-// and the one inside `a11y: axe over the Desk` in tests/smoke.mjs are the same
-// fact twice — this one CAPTURES the baseline, that one ENFORCES it — and the
-// build fails when they disagree about a route, its selector, or the SESSION it
-// is scanned in. They are allowed to stay separate because their commentary
-// answers different questions and because the suite's entries legitimately
-// carry `bust: true` where these do not: the scan below runs straight after a
-// `frappe.clear_cache()`, so its pages are fresh by construction. Adding a route
-// here without adding it there is now a build error rather than a silent hole.
+// THE ROUTES ARE NOT HERE. They were, and so was a second copy inside the suite's
+// `a11y: axe over the Desk`: item 40 made them ONE list, `ROUTES` in
+// tools/axe-routes.mjs, which this tool (it CAPTURES the baseline) and the suite
+// (it ENFORCES it) both import, with the one scan configuration beside it.
+// `assertAxeScanShared` in build.mjs fails the build if either stops importing it
+// or builds a scan of its own. (This note named a guard, `assertAxeRoutesAgree`,
+// that no longer exists — the settings audit of 2026-09-21 found it.)
 
 
 const py = (c) =>

@@ -14,7 +14,7 @@ section rhythm, the grid, the sidebar, the activity, the document header, and th
 the whole thing runs at. Each of those has a vendor rule to beat or a vendor variable to
 feed, and this file records which is which, with the weight of each.
 
-Re-measure with `BND_URL=http://127.0.0.1:8080 node tools/probe-body.mjs` (writes
+The probe (`tools/probe-body.mjs`) was a one-shot and was deleted on 2026-09-21 once its numbers lived here; re-measure with an ad-hoc `tools/session.mjs` script (it wrote
 nothing; ensures the suite's Item fixture idempotently).
 
 Siblings: `frappe-is-rtl.md` (item 7) · `frappe-datatable-rtl.md` (26) ·

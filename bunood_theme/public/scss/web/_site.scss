@@ -388,9 +388,10 @@ body:is(.bnd-web-panel, .bnd-web-plate) .portal-container {
 // So two re-points and one ordinary rule carry eighteen of the nineteen, and the
 // `!important` below is the only one on this surface.
 //
-// WHY AN `!important` IS SANCTIONED HERE AT ALL. GUIDELINES §1.3 allows two
-// places and says everything else "escalates through the `.bunood` class on
-// `<html>`". THAT ESCAPE DOES NOT EXIST ON A WEBSITE PAGE: `<html>` is hardcoded
+// WHY AN `!important` IS SANCTIONED HERE AT ALL. GUIDELINES §1.3 says that
+// everything not sanctioned escalates by weight through `html[data-theme]`, which
+// Frappe stamps on every desk page. THAT ESCAPE DOES NOT EXIST ON A WEBSITE PAGE:
+// no `data-theme` there, and `<html>` is hardcoded
 // in `templates/base.html`, there is no hook to add a class to it, and a JS stamp
 // would land after first paint — `_login.scss`'s header records the same dead
 // end. Item 32 met `!important` twice and beat it both times by re-pointing the

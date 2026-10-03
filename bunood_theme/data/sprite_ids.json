@@ -1,5 +1,5 @@
 {
-"_readme": "icon-* symbol ids present in Frappe v16 loaded sprites (lucide+timeless), snapshotted from demo.bunood.test 2026-08-13. Regenerate with tools/snapshot_sprite_ids via the container. tools/check_icons.py asserts bunood_theme/icons.py emits only ids in this set.",
+"_readme": "icon-* symbol ids present in Frappe v16 loaded sprites (lucide+timeless), snapshotted from demo.bunood.test 2026-08-13. Regenerate deliberately by re-snapshotting the <symbol id> set of every sprite the desk loads (an ad-hoc tools/session.mjs probe; no script ships for it — the one this pointed at never existed). tools/check_icons.py asserts bunood_theme/icons.py emits only ids in this set.",
 "count": 1781,
 "ids": [
 "icon-a-arrow-down",

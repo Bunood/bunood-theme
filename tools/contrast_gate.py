@@ -1113,7 +1113,7 @@ _SHARMA_2005 = [
 def check_theme_catalogue() -> list[str]:
     """The theme catalogue, held to what the doctype will actually accept.
 
-    Item 37. A theme preset writes ~124 values in one click — the largest blast
+    Item 37. A theme preset writes every axis in one click — the largest blast
     radius any control in this app has had — so the table is checked against the
     doctype rather than trusted, on four properties:
 
@@ -1872,7 +1872,7 @@ def check_layout_catalogue() -> list[str]:
 def check_personal_partition() -> list[str]:
     """Every theme axis is filed as exactly one kind of thing — item 38.
 
-    ``personal.py`` splits the 124 fields a theme preset writes into four sets:
+    ``personal.py`` splits the fields a theme preset writes into four sets:
     what a person's LOOK may carry, what their SHAPE is, what belongs to surfaces
     that are not the desk, and what stays the administrator's. The split decides
     what the per-user layer is allowed to touch, so it has to be a partition and
@@ -1928,13 +1928,15 @@ def check_personal_partition() -> list[str]:
             + (f" (extra {', '.join(extra)})" if extra else "")
         )
 
-    # EVERY LOCK IS A REAL FIELD, WITH THE DEFAULT THE TABLE CLAIMS. `LOCKS` and
-    # the doctype are the same fact in two files — the trap this repo pays for
-    # more than any other — and the failure is silent in both directions: a lock
-    # naming a field the doctype lacks reads back None forever and the axis is
-    # permanently open, while a default that disagrees means the seeder writes
-    # one answer and `lock_open` resolves another for every site that has not
-    # migrated yet.
+    # EVERY LOCK IS A REAL FIELD, AND ITS DEFAULT LIVES IN ONE PLACE. A lock naming
+    # a field the doctype lacks reads back None forever and the axis is
+    # permanently open. The default used to be compared with the doctype's own
+    # `default` — the same fact in two files — until the settings audit of
+    # 2026-09-21 (decision ii-2 a) deleted every doctype default: `personal.LOCKS`
+    # is the one owner, `setup.CHECK_DEFAULTS` reads it, the seeder writes it. So
+    # a doctype default here would be the second copy coming back, and is refused
+    # (build.mjs's assertNoDoctypeDefaults refuses it for every field too; this
+    # keeps the gate from asserting against a copy that no longer exists).
     doctype_path = os.path.join(
         os.path.dirname(os.path.abspath(__file__)), "..", "bunood_theme",
         "bunood_theme", "doctype", "theme_settings", "theme_settings.json",
@@ -1949,12 +1951,13 @@ def check_personal_partition() -> list[str]:
             continue
         if field.get("fieldtype") != "Check":
             bad.append(f"{lock} is a {field.get('fieldtype')} — a lock must be a Check")
-        declared = str(row["default"])
-        stored = str(field.get("default", "0"))
-        if declared != stored:
+        if "default" in field:
             bad.append(
-                f"{lock} defaults to {declared} in personal.LOCKS but {stored} in the doctype"
+                f"{lock} carries a doctype default ({field['default']!r}); its default is "
+                f"personal.LOCKS's ({row['default']!r}), seeded through setup.CHECK_DEFAULTS"
             )
+        if row.get("default") not in (0, 1):
+            bad.append(f"{lock} defaults to {row.get('default')!r} in personal.LOCKS — a Check is 0 or 1")
 
     # Every axis this app stores must name a lock that exists, or be one of the
     # deliberately unlockable ones. A typo here would read as "no lock" and the
