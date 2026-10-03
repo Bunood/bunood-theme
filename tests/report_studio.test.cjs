@@ -121,6 +121,13 @@ test("a point-in-time report reads 'as of' one date in its header, export and cu
 	assert.ok(ar.split(/\r?\n/).includes("As of,حتى تاريخ,"), "the label ships its Arabic");
 });
 
+test("row filters and the company follow the report and the companies the user can read", () => {
+	assert.match(source, /if \(state\.report !== report\) \{\s+state\.query = "";\s+state\.kind = "all";\s+state\.showAllColumns = false;\s+\}\s+state\.report = report;/);
+	assert.match(source, /if \(!state\.companies\.includes\(state\.company\)\) state\.company = state\.companies\[0\] \|\| null;/);
+	assert.doesNotMatch(source, /if \(!state\.company && state\.companies\.length\) state\.company = state\.companies\[0\];/);
+	assert.match(source, /fetchTaxId\(\);[\s\S]{0,200}if \(report\.picker && !state\.entity\) viewer\(\);\s+else load\(\);/);
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

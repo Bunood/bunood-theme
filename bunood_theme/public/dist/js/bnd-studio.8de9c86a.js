@@ -1780,6 +1780,14 @@
 			const sameEntity = state.entity && entity && state.entity.name === entity.name;
 			if (state.report === report && (sameEntity || (!state.entity && !entity))) return;
 			state.domain = report.domain_id;
+			// A row filter, a document-type tab and the all-columns toggle belong
+			// to the report they were set on: carried into the next one, a type
+			// it does not have filters its table to nothing.
+			if (state.report !== report) {
+				state.query = "";
+				state.kind = "all";
+				state.showAllColumns = false;
+			}
 			state.report = report;
 			if (!sameEntity) state.entity = entity;
 			viewer();
@@ -1805,7 +1813,9 @@
 			.get_list("Company", { pluck: "name", limit: 0 })
 			.then((names) => {
 				state.companies = names || [];
-				if (!state.company && state.companies.length) state.company = state.companies[0];
+				// The user's default company may be one they cannot read; then it is
+				// not in the list, and every report would run against it and fail.
+				if (!state.companies.includes(state.company)) state.company = state.companies[0] || null;
 				fetchTaxId();
 				return frappe.db.get_list("Report", {
 					filters: { name: ["in", DOMAINS.flatMap((d) => d.reports.map((r) => r.name))] },
@@ -2117,7 +2127,10 @@
 				select.addEventListener("change", () => {
 					state.company = select.value;
 					fetchTaxId();
-					load();
+					// While the picker is up there is no statement to load: it is the
+					// picker that changes, since its accounts belong to the company.
+					if (report.picker && !state.entity) viewer();
+					else load();
 				});
 				companyControl.append(select);
 				controls.append(companyControl);
