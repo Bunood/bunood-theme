@@ -5220,11 +5220,15 @@
 		// existing cluster, returned success, and the incoming page never
 		// got one at all: no cluster, no bell, no badge, indefinitely.
 		const outgoing = frappe.container && frappe.container.page;
-		const wait_for_swap = !!(outgoing && outgoing.querySelector(".bnd-cluster"));
+		const outgoing_cluster = outgoing && outgoing.querySelector(".bnd-cluster");
+		const wait_for_swap = !!outgoing_cluster;
 		try_for(() => {
 			const page = frappe.container && frappe.container.page;
 			if (!page) return false;
-			if (wait_for_swap && page === outgoing) return false;
+			// List-to-list navigation REUSES the page object and replaces its
+			// head in place, so waiting on identity waited forever (no cluster
+			// on the new list). Wait only while the outgoing cluster is attached.
+			if (wait_for_swap && page === outgoing && outgoing_cluster.isConnected) return false;
 			const section = page.querySelector(".page-head .standard-items-section");
 			if (!section) return false;
 			if (section.querySelector(".bnd-cluster")) {
@@ -5232,7 +5236,11 @@
 				// per-ROUTE: arriving back on a cached page that still has its
 				// cluster must re-assert the attribute, or a navigation away
 				// and back leaves the stylesheet believing there is no cluster.
+				// Its placement and badge are re-asserted too: they may have
+				// changed while the page sat in the cache.
 				container_mounted("pagehead");
+				mount_placed_tenants();
+				inbox_ensure_badges();
 				return true;
 			}
 			section.appendChild(el("span", "bnd-cluster-divider"));
