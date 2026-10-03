@@ -201,7 +201,8 @@
 		"INTEGRATION team 2026-10-03, Studio routing (team R3): js 137800 -> 138550 (measured 138,311) for bunood.studio_report_route, the one mapping the finance desks' report buttons use; banking_js 5000 -> 5300 (measured 5,074) for the bank account's statement opened in the Studio with its company and period.",
 		"AND finance_close_js 3700 -> 4100 (measured 3,827) / journal_workbench_js 4500 -> 4850 (measured 4,582) for the prompt each desk shows until its first evidence loads; css measured 31,007 of 32,000 with its panel.",
 		"INTEGRATION team 2026-10-03, POS: pos_js 9200 -> 11300 (measured 11,053) for the receipt register page's renderer (filters, paging, rows, native reprint) and the counter's link to it; pos_css 5700 -> 6200 (measured 5,925) for the register's re-tokenised styles.",
-		"AND pos_js 11300 -> 12550 (measured 12,270) for catalogue tiles: four line drawings chosen by Arabic or English keywords, a stable group tint, and a Service label for non-stock items; pos_css measured 6,039 of 6,200 with the six tint rules."
+		"AND pos_js 11300 -> 12550 (measured 12,270) for catalogue tiles: four line drawings chosen by Arabic or English keywords, a stable group tint, and a Service label for non-stock items; pos_css measured 6,039 of 6,200 with the six tint rules.",
+		"INTEGRATION team 2026-10-03, ZATCA workspace: new route bundle bnd-zatca, zatca_css_gzip 4350 (measured 4,081, of which the :root token set the phantom-token guard requires every route sheet to carry) and zatca_js_gzip 5400 (measured 5,120: the read-only status, Sandbox path and invoice monitor)."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
@@ -217,7 +218,9 @@
 		"finance_close_js_gzip": 4100,
 		"journal_workbench_js_gzip": 4850,
 		"email_css_gzip": 2000,
-		"print_css_gzip": 8000
+		"print_css_gzip": 8000,
+		"zatca_css_gzip": 4350,
+		"zatca_js_gzip": 5400
 	},
 	"history": [
 		{

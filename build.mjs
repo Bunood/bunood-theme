@@ -112,6 +112,8 @@ const ENTRIES = [
 	// Report Studio is styled only on its own page, before the renderer mounts.
 	{ key: "bnd-studio", src: "studio.scss", pyid: "STUDIO_CSS" },
 	{ key: "bnd-pos", src: "pos_workbench.scss", pyid: "POS_CSS" },
+	// The read-only ZATCA workspace, styled only on its own page.
+	{ key: "bnd-zatca", src: "zatca_workspace.scss", pyid: "ZATCA_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -2266,6 +2268,7 @@ const JS_ENTRIES = [
 	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
 	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
 	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
+	{ key: "bnd-zatca", src: "zatca_workspace.js", pyid: "ZATCA_JS" },
 ];
 
 // Capability controllers stay testable as focused source files while shipping

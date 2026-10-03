@@ -1,7 +1,7 @@
 {
  "app": "bunood_theme",
  "charts": [],
- "content": "[{\"id\":\"bndBanking\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bank Reconciliation\",\"col\":4}},{\"id\":\"bndClose\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Finance and close\",\"col\":4}},{\"id\":\"bndJournal\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Journal workbench\",\"col\":4}},{\"id\":\"bndReportsHead\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Report Studio\",\"col\":4}},{\"id\":\"bndReportsVat\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return\",\"col\":4}},{\"id\":\"bndReportsStmt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Statement of Account\",\"col\":4}}]",
+ "content": "[{\"id\":\"bndClose\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Finance and close\",\"col\":4}},{\"id\":\"bndJournal\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Journal workbench\",\"col\":4}},{\"id\":\"bndBanking\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Bank Reconciliation\",\"col\":4}},{\"id\":\"bndReportsHead\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Report Studio\",\"col\":4}},{\"id\":\"bndReportsVat\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"VAT Return\",\"col\":4}},{\"id\":\"bndReportsStmt\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Statement of Account\",\"col\":4}},{\"id\":\"bndZatca\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"ZATCA workspace\",\"col\":12}}]",
  "creation": "2026-08-27 13:30:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -14,7 +14,7 @@
  "is_hidden": 0,
  "label": "Reports",
  "links": [],
- "modified": "2026-09-25 12:00:00.000000",
+ "modified": "2026-10-03 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "Reports",
@@ -68,6 +68,13 @@
    "label": "Statement of Account",
    "type": "URL",
    "url": "/app/bnd-report-studio/account-statement"
+  },
+  {
+   "color": "Green",
+   "doc_view": "",
+   "label": "ZATCA workspace",
+   "link_to": "bnd-zatca",
+   "type": "Page"
   }
  ],
  "title": "Reports",

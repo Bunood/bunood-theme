@@ -11918,3 +11918,519 @@ msgstr "يجب ألا يكون تاريخ البداية بعد تاريخ ال�
 #, fuzzy
 msgid "Invalid invoice."
 msgstr "الفاتورة غير صالحة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Accepted with warnings"
+msgstr "مقبول مع تحذيرات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Duplicate response"
+msgstr "استجابة مكررة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Ready for batch"
+msgstr "جاهز للإرسال ضمن دفعة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Needs resend"
+msgstr "يحتاج إلى إعادة إرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Corrected; review before sending"
+msgstr "مصحح؛ راجعه قبل الإرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Clearance switched off"
+msgstr "التخليص معطل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review native record"
+msgstr "راجع السجل الأصلي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Not set"
+msgstr "غير محدد"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Pending ZATCA result"
+msgstr "بانتظار نتيجة زاتكا"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No ZATCA record"
+msgstr "لا يوجد سجل زاتكا"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Saudi riyal"
+msgstr "ريال سعودي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Connector installed"
+msgstr "الموصل مثبت"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install KSA Compliance"
+msgstr "ثبّت موصل الامتثال السعودي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install and migrate KSA Compliance on the site."
+msgstr "ثبّت موصل الامتثال السعودي ورحّله على الموقع."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox selected"
+msgstr "بيئة الاختبار محددة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Select Sandbox"
+msgstr "اختر بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the seller identity and select Sandbox in native settings."
+msgstr "راجع هوية البائع واختر بيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Device onboarded"
+msgstr "الجهاز مسجل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboard the device"
+msgstr "سجّل الجهاز"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Complete the connector's OTP onboarding in native settings."
+msgstr "أكمل تسجيل الجهاز برمز التحقق في إعدادات الموصل الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox CSID present"
+msgstr "شهادة الجهاز لبيئة الاختبار موجودة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Obtain the Sandbox CSID"
+msgstr "استخرج شهادة جهاز بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Run the connector's checks and obtain its Sandbox-issued CSID."
+msgstr "شغّل فحوصات الموصل واستخرج شهادة الجهاز الصادرة لبيئة الاختبار."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Integration enabled"
+msgstr "الربط مفعّل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Enable Sandbox integration"
+msgstr "فعّل الربط ببيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Enable the integration for Sandbox only after reviewing setup."
+msgstr "فعّل الربط لبيئة الاختبار فقط بعد مراجعة الإعدادات."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Connector not installed"
+msgstr "الموصل غير مثبت"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install KSA Compliance before starting Sandbox setup."
+msgstr "ثبّت موصل الامتثال السعودي قبل بدء إعداد بيئة الاختبار."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Company setup needed"
+msgstr "إعداد الشركة مطلوب"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Create the company's native ZATCA Business Settings."
+msgstr "أنشئ إعدادات الفوترة الإلكترونية الأصلية لهذه الشركة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox is not selected"
+msgstr "بيئة الاختبار غير محددة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "This page will not switch environments. Review the server in native settings."
+msgstr "لن تغيّر هذه الصفحة البيئة. راجع الخادم في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboarding needed"
+msgstr "تسجيل الجهاز مطلوب"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboard the device with the Sandbox OTP in native settings."
+msgstr "سجّل الجهاز برمز تحقق بيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox CSID needed"
+msgstr "شهادة جهاز بيئة الاختبار مطلوبة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Complete Sandbox checks and obtain the Sandbox-issued CSID."
+msgstr "أكمل فحوصات بيئة الاختبار واستخرج شهادة الجهاز الصادرة لها."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Integration is disabled"
+msgstr "الربط معطل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the configuration, then enable Sandbox integration in native settings."
+msgstr "راجع التهيئة، ثم فعّل الربط ببيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox connection configured"
+msgstr "اتصال بيئة الاختبار مهيأ"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Configuration is present. Test each invoice type and review its native ZATCA response."
+msgstr "التهيئة موجودة. اختبر كل نوع فاتورة وراجع استجابة الهيئة في سجله الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice monitor"
+msgstr "متابعة الفواتير"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native ZATCA records"
+msgstr "فتح سجلات زاتكا الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Submitted Sales and POS invoices. ZATCA outcomes come from the native connector."
+msgstr "فواتير المبيعات ونقطة البيع المعتمدة. تُؤخذ نتائج زاتكا من الموصل الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have permission to view ZATCA validation records."
+msgstr "ليس لديك صلاحية عرض سجلات التحقق من الفوترة الإلكترونية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All statuses"
+msgstr "جميع الحالات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Needs attention"
+msgstr "يحتاج متابعة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sales and POS invoices"
+msgstr "فواتير المبيعات ونقطة البيع"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Apply filters"
+msgstr "تطبيق المرشحات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Document type"
+msgstr "نوع المستند"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status"
+msgstr "حالة الفوترة الإلكترونية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Last attempt"
+msgstr "آخر محاولة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Load more invoices"
+msgstr "تحميل مزيد من الفواتير"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice ZATCA details"
+msgstr "تفاصيل زاتكا للفاتورة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Loading invoice details…"
+msgstr "جارٍ تحميل تفاصيل الفاتورة…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "UUID"
+msgstr "المعرّف الفريد (UUID)"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No ZATCA record exists yet for this submitted invoice."
+msgstr "لا يوجد حتى الآن سجل زاتكا لهذه الفاتورة المعتمدة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open invoice"
+msgstr "فتح الفاتورة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native validation record"
+msgstr "فتح سجل التحقق الأصلي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native integration logs"
+msgstr "فتح سجلات الربط الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice details are temporarily unavailable."
+msgstr "تفاصيل الفاتورة غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "View details"
+msgstr "عرض التفاصيل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Checking invoices…"
+msgstr "جارٍ فحص الفواتير…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoices shown: {0}"
+msgstr "الفواتير المعروضة: {0}"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No matching invoices in this batch. Continue searching."
+msgstr "لا توجد فواتير مطابقة في هذه الدفعة. تابع البحث."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No matching invoices for these filters."
+msgstr "لا توجد فواتير تطابق هذه المرشحات."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice monitor is temporarily unavailable."
+msgstr "متابعة الفواتير غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No permitted company is available. Ask your administrator for company access."
+msgstr "لا توجد شركة متاحة وفق صلاحياتك. اطلب من مسؤول النظام منحك صلاحية الشركة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Current state"
+msgstr "الحالة الحالية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Environment"
+msgstr "البيئة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sync mode"
+msgstr "نمط الإرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Next action"
+msgstr "الإجراء التالي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native ZATCA settings"
+msgstr "فتح إعدادات الفوترة الإلكترونية الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Ask an Accounts Manager with ZATCA settings access to complete this step."
+msgstr "اطلب من مدير حسابات لديه صلاحية إعدادات الفوترة الإلكترونية إكمال هذه الخطوة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Test a controlled invoice"
+msgstr "اختبر فاتورة منضبطة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Check standard and simplified Sales and POS invoices, then review their native clearance or reporting records."
+msgstr "افحص فواتير المبيعات ونقطة البيع القياسية والمبسطة، ثم راجع سجلات التخليص أو الإبلاغ الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sales invoices"
+msgstr "فواتير المبيعات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS invoices"
+msgstr "فواتير نقطة البيع"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox path"
+msgstr "مسار بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox evidence is not Production approval. A qualified Saudi reviewer must approve legal identity, tax, prints and operational controls before Production activation."
+msgstr "أدلة بيئة الاختبار ليست اعتمادًا للإنتاج. يجب أن يراجع مختص سعودي مؤهل الهوية النظامية والضريبة والطباعة والضوابط التشغيلية قبل تفعيل بيئة الإنتاج."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA workspace"
+msgstr "مساحة عمل الفوترة الإلكترونية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Set up Sandbox, inspect evidence and continue in the native connector."
+msgstr "أعدّ بيئة الاختبار، وراجع الأدلة، ثم أكمل العمل في موصل الفوترة الإلكتروني الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Refresh status"
+msgstr "تحديث الحالة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Checking ZATCA setup…"
+msgstr "جارٍ التحقق من إعدادات هيئة الزكاة والضريبة والجمارك…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status is temporarily unavailable."
+msgstr "حالة الربط مع الهيئة غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "The ZATCA workspace could not load. Rebuild the theme assets and try again."
+msgstr "تعذر تحميل مساحة عمل الفوترة الإلكترونية. أعد بناء ملفات الواجهة ثم حاول مرة أخرى."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review Sandbox setup and native invoice evidence by company."
+msgstr "راجع إعداد بيئة الاختبار وأدلة الفواتير الأصلية لكل شركة."

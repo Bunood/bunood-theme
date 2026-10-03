@@ -244,7 +244,9 @@ from bunood_theme import personal as personal_axes
 
 #: The report Pages the Reports landing links (``report_landing.js``,
 #: ``REPORTS[].route[0]``). Its permission gate is computed for these alone.
-REPORT_LANDING_PAGES = ("bnd-finance-close", "bnd-journal-workbench", "bnd-banking", "bnd-report-studio")
+REPORT_LANDING_PAGES = (
+    "bnd-finance-close", "bnd-journal-workbench", "bnd-banking", "bnd-zatca", "bnd-report-studio",
+)
 
 
 def _permitted_pages(names) -> list:
@@ -335,6 +337,12 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_pos_css = POS_CSS
         bootinfo.bnd_pos_js = POS_JS
+        # The read-only ZATCA workspace stays out of the global desk bundle;
+        # its page loads these two only when opened.
+        from bunood_theme.assets import ZATCA_CSS, ZATCA_JS
+
+        bootinfo.bnd_zatca_css = ZATCA_CSS
+        bootinfo.bnd_zatca_js = ZATCA_JS
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them
