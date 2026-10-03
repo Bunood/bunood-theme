@@ -26,7 +26,9 @@
   </table>
 
   <div class="bnd-p-amountbox">
-    <div class="bnd-p-amountbox__l">{{ "استلمنا من" if is_receive else "صرفنا إلى" }} / {{ "Received From" if is_receive else "Paid To" }}</div>
+    {#- An Internal Transfer moves money between the company's own accounts:
+        it has no payee, so it is not "Paid To" (team release 0a8b549). -#}
+    <div class="bnd-p-amountbox__l">{{ "استلمنا من" if is_receive else ("صرفنا إلى" if doc.payment_type == "Pay" else "تحويل داخلي") }} / {{ "Received From" if is_receive else ("Paid To" if doc.payment_type == "Pay" else "Internal Transfer") }}</div>
     <div class="bnd-p-party__n">{{ (doc.get("party_name") or doc.get("party") or "—") | e }}</div>
     <div class="bnd-p-amountbox__v num">{{ doc.get_formatted("paid_amount") }} {{ doc.get("paid_from_account_currency") or "" }}</div>
   </div>
