@@ -19,6 +19,9 @@
   --bnd-ink-subtle: #666a71;
   --bnd-ink-inverse: #ffffff;
   --bnd-line: 0.5px;
+  --bnd-line-strong: 1px;
+  --bnd-line-2: 2px;
+  --bnd-focus-offset: 2px;
   --bnd-border: rgba(0, 0, 0, 0.09);
   --bnd-border-strong: rgba(0, 0, 0, 0.16);
   --bnd-icon-w-hairline: 1.25px;

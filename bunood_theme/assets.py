@@ -10,13 +10,13 @@ bundle name, resolve it against a stale ``assets.json``, and prefix it with
 ``rtl_`` on Arabic sites. See ARCHITECTURE.md section 6.
 """
 
-THEME_CSS = "/assets/bunood_theme/dist/css/bunood.c0f02124.css"
-WEB_CSS = "/assets/bunood_theme/dist/css/bunood-web.24c0a98a.css"
+THEME_CSS = "/assets/bunood_theme/dist/css/bunood.8e2b716f.css"
+WEB_CSS = "/assets/bunood_theme/dist/css/bunood-web.9ba8ed66.css"
 EMAIL_CSS = "/assets/bunood_theme/dist/css/bunood-email.1c5e93a1.css"
 PRINT_CSS = "/assets/bunood_theme/dist/css/bunood-print.bdcc90e4.css"
-REPORT_LANDING_CSS = "/assets/bunood_theme/dist/css/bnd-report-landing.e42c8030.css"
-STUDIO_CSS = "/assets/bunood_theme/dist/css/bnd-studio.650c3f10.css"
-POS_CSS = "/assets/bunood_theme/dist/css/bnd-pos.03821036.css"
+REPORT_LANDING_CSS = "/assets/bunood_theme/dist/css/bnd-report-landing.9bb5782f.css"
+STUDIO_CSS = "/assets/bunood_theme/dist/css/bnd-studio.a3f50e20.css"
+POS_CSS = "/assets/bunood_theme/dist/css/bnd-pos.ba5bbd0e.css"
 THEME_JS = "/assets/bunood_theme/dist/js/bunood.0c9b138c.js"
 STUDIO_JS = "/assets/bunood_theme/dist/js/bnd-studio.c376e1d6.js"
 REPORT_LANDING_JS = "/assets/bunood_theme/dist/js/bnd-report-landing.d6e61f25.js"
