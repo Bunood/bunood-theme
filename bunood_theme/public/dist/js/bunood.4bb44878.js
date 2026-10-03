@@ -255,6 +255,66 @@
 	(function patch_chart_colors() {
 		if (!window.frappe || typeof frappe.Chart !== "function") return;
 
+		// Period labels ("Jan 2026") are English from the server; an Arabic desk
+		// reads the month in Arabic (Gregorian), the year kept.
+		const MONTH_KEYS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+		function localize_chart_periods(options) {
+			if (!options || !options.data || !options.data.labels ||
+				String(frappe.boot.lang || "").split(/[-_]/)[0] !== "ar") return options;
+			const formatter = new Intl.DateTimeFormat("ar-u-ca-gregory", { month: "long" });
+			let changed = false;
+			const labels = options.data.labels.map((label) => {
+				const match = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/.exec(String(label).trim());
+				if (!match) return label;
+				changed = true;
+				return `${formatter.format(new Date(2000, MONTH_KEYS.indexOf(match[1]), 15))} ${match[2]}`;
+			});
+			return changed ? Object.assign({}, options, { data: Object.assign({}, options.data, { labels }) }) : options;
+		}
+
+		// A chart is a named group, and a selected point is read out: the label
+		// and each series' value, through a polite live region beside the chart.
+		let chart_uid = 0;
+		function chart_point_text(options, index) {
+			const data = (options && options.data) || {};
+			const label = ((data.labels || [])[index] || "").toString();
+			const values = (data.datasets || []).map((dataset, i) =>
+				`${dataset.name || __("Series") + " " + (i + 1)}: ${(dataset.values || [])[index] ?? 0}`);
+			return [label, ...values].filter(Boolean).join(". ");
+		}
+		function decorate_chart(chart, parent, options) {
+			const host = parent && parent.nodeType === 1 ? parent
+				: typeof parent === "string" ? document.querySelector(parent)
+				: chart.container.parentElement;
+			if (!host) return;
+			const title = options.title ||
+				((options.data && options.data.datasets) || []).map((d) => d.name).filter(Boolean).join(", ") ||
+				__("Interactive chart");
+			chart.container.setAttribute("role", "group");
+			chart.container.setAttribute("aria-label", title);
+			// ONE announcer and ONE listener per host: a dashboard re-creates its
+			// chart in the same parent on every refresh, and the newest chart's
+			// data is the one read out.
+			let live_text = host.querySelector(":scope > .bnd-chart-announcer");
+			if (!live_text) {
+				live_text = el("span", "bnd-visually-hidden bnd-chart-announcer", {
+					id: `bnd-chart-help-${++chart_uid}`, role: "status", "aria-live": "polite",
+				});
+				host.appendChild(live_text);
+			}
+			chart.container.setAttribute("aria-describedby", live_text.id);
+			host._bnd_chart_options = options;
+			if (host._bnd_chart_select) return;
+			host._bnd_chart_select = true;
+			host.addEventListener("data-select", (event) => {
+				const index = Number(event.index ?? (event.detail && event.detail.index));
+				const node = host.querySelector(":scope > .bnd-chart-announcer");
+				if (node && Number.isInteger(index) && index >= 0) {
+					node.textContent = chart_point_text(host._bnd_chart_options, index);
+				}
+			});
+		}
+
 		// Whether a slot carries an admin colour worth KEEPING — deliberately
 		// permissive: any non-empty string. frappe-charts accepts more than #hex /
 		// rgb() / hsl() (its own PRESET_COLOR_MAP honours "teal", "blue", … via
@@ -263,6 +323,14 @@
 		// the opposite of the intent. A `[]` (the vendor's `[[]]` degenerate for an
 		// uncoloured chart), `""`, undefined or a non-string is an empty slot.
 		const admin_set = (c) => typeof c === "string" && c.trim().length > 0;
+
+		// frappe-charts cannot read var(): an admin colour given as one token is
+		// resolved to its computed value; anything else is kept as given.
+		function resolve_color(color) {
+			const match = admin_set(color) && color.trim().match(/^var\(\s*(--[\w-]+)\s*\)$/);
+			if (!match) return color;
+			return getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim() || color;
+		}
 
 		// The resolved ramp, cached per theme generation. getComputedStyle returns
 		// the token's computed value; our tokens are authored as plain 6-digit hex
@@ -300,7 +368,7 @@
 			const out = [];
 			for (let i = 0; i < n; i++) {
 				const a = given[i];
-				out[i] = admin_set(a) ? a : ramp[i % ramp.length];
+				out[i] = admin_set(a) ? resolve_color(a) : ramp[i % ramp.length];
 			}
 			return out;
 		}
@@ -375,6 +443,12 @@
 
 		const NativeChart = frappe.Chart;
 		function BndChart(parent, options) {
+			// A line needs two x positions: one period drew NaN paths. The vendor's
+			// bar renderer shows the same single observation.
+			if (options && options.type === "line" && ((options.data && options.data.labels) || []).length < 2) {
+				options = Object.assign({}, options, { type: "bar" });
+			}
+			options = localize_chart_periods(options);
 			const given =
 				options && Array.isArray(options.colors) ? options.colors.slice() : [];
 			if (options) options.colors = merged_colors(given, options.type);
@@ -392,6 +466,7 @@
 			if (chart && chart.container) {
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
+				decorate_chart(chart, parent, options || {});
 				// Prune opportunistically so the set cannot grow without bound on a
 				// long-lived desk that renders many charts — and RETIRE rather than
 				// forget: a chart Frappe has re-rendered past is still bound to the

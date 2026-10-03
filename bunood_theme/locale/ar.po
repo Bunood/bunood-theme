@@ -12446,3 +12446,15 @@ msgstr "تغييرات غير محفوظة"
 #, fuzzy
 msgid "Discard changes and switch"
 msgstr "تجاهل التغييرات والتبديل"
+
+#. In bunood.js (charts: the named group and its read-out)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Series"
+msgstr "سلسلة"
+
+#. In bunood.js (charts: the named group and its read-out)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Interactive chart"
+msgstr "رسم بياني تفاعلي"
