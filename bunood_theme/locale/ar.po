@@ -12458,3 +12458,417 @@ msgstr "سلسلة"
 #, fuzzy
 msgid "Interactive chart"
 msgstr "رسم بياني تفاعلي"
+
+#. In asset_workbench.py (the fixed-asset workbench)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Maximum fixed-asset review period in days: {0}"
+msgstr "الحد الأقصى لفترة مراجعة الأصول الثابتة بالأيام: {0}"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset attention is required"
+msgstr "يلزم الانتباه إلى الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review due or failed depreciation and open repairs in their native records before close."
+msgstr "راجع الإهلاك المستحق أو المتعثر والإصلاحات المفتوحة في سجلاتها الأصلية قبل الإقفال."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset review is required"
+msgstr "تلزم مراجعة الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Draft asset lifecycle records still require authorised review and native submission."
+msgstr "ما زالت مسودات دورة حياة الأصول تحتاج إلى مراجعة معتمدة واعتماد في مستنداتها الأصلية."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset evidence is incomplete"
+msgstr "بيانات الأصول غير مكتملة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "A permitted query failed or a bounded result was truncated. No clean-register conclusion was inferred."
+msgstr "تعذّر أحد الاستعلامات المسموح بها أو اقتُطعت نتيجة محدودة، فلم يُستنتج أن السجل سليم."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No exceptions observed in this bounded view"
+msgstr "لم تُرصد استثناءات في هذا العرض المحدود"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This is not fixed-asset or General Ledger reconciliation. Complete the native reports and qualified review."
+msgstr "هذه ليست مطابقة للأصول الثابتة ولا لدفتر الأستاذ العام. أكمل التقارير الأصلية والمراجعة المؤهلة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review the native asset records for this company and period."
+msgstr "راجع سجلات الأصول الأصلية لهذه الشركة والفترة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation posting failed"
+msgstr "تعذّر ترحيل الإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation due by boundary"
+msgstr "إهلاك مستحق حتى نهاية النطاق"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Maintenance or repair attention"
+msgstr "تحتاج إلى صيانة أو إصلاح"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fully depreciated"
+msgstr "مُهلك بالكامل"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "In use"
+msgstr "قيد الاستخدام"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Disposed"
+msgstr "مستبعد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fixed-asset lifecycle"
+msgstr "دورة حياة الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Physical custody and accounting value are different controls. Use the native document that matches the event."
+msgstr "العهدة المادية والقيمة المحاسبية ضابطان مختلفان. استخدم المستند الأصلي المطابق للحدث."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Acquire and capitalize"
+msgstr "الاقتناء والرسملة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Create the asset from its fixed-asset Item or combine eligible costs through Asset Capitalization."
+msgstr "أنشئ الأصل من صنف الأصل الثابت الخاص به، أو اجمع التكاليف المؤهلة عبر رسملة الأصول."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New capitalization"
+msgstr "رسملة جديدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Put in use and depreciate"
+msgstr "التشغيل والإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Confirm available-for-use date, Finance Book, method, useful life, residual value and schedule before posting."
+msgstr "تحقق من تاريخ الجاهزية للاستخدام والدفتر المالي والطريقة والعمر الإنتاجي والقيمة المتبقية والجدول قبل الترحيل."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation schedules"
+msgstr "جداول الإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Move and assign custody"
+msgstr "النقل وتسليم العهدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use Asset Movement for location and custodian changes. Do not edit the visible location as an unaudited shortcut."
+msgstr "استخدم «حركة الأصل» لتغيير الموقع وأمين العهدة، ولا تعدّل الموقع الظاهر اختصارًا بلا تدقيق."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New movement"
+msgstr "حركة جديدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Maintain and repair"
+msgstr "الصيانة والإصلاح"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Keep planned maintenance separate from failures, repair cost and any policy-approved capitalization."
+msgstr "افصل الصيانة المخططة عن الأعطال وتكلفة الإصلاح وأي رسملة تجيزها السياسة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New repair"
+msgstr "إصلاح جديد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Adjust or dispose"
+msgstr "التسوية أو الاستبعاد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use a supported value adjustment, fixed-asset sale or scrap workflow so carrying value and gain or loss remain traceable."
+msgstr "استخدم مسارًا معتمدًا لتسوية القيمة أو بيع الأصل أو تخريده، لتبقى القيمة الدفترية والربح أو الخسارة قابلة للتتبع."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Value adjustment"
+msgstr "تسوية القيمة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current asset queue"
+msgstr "قائمة الأصول الحالية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The period filters lifecycle activity. This queue shows the current permitted Asset register state, prioritised by attention."
+msgstr "الفترة تُصفّي نشاط دورة الحياة، أما هذه القائمة فتعرض الحالة الحالية لسجل الأصول المسموح به مرتبةً حسب الحاجة إلى الانتباه."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted Asset records were observed for this company."
+msgstr "لم تُرصد سجلات أصول مسموح بها لهذه الشركة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Lifecycle state"
+msgstr "حالة دورة الحياة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Location or custodian"
+msgstr "الموقع أو أمين العهدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Next depreciation"
+msgstr "الإهلاك التالي"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Carrying value"
+msgstr "القيمة الدفترية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This is a bounded queue. Open the native Asset list and reports for the complete permitted result."
+msgstr "هذه قائمة محدودة. افتح قائمة الأصول والتقارير الأصلية للاطلاع على النتيجة الكاملة المسموح بها."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "A schedule is not a posted expense. Verify each Finance Book, future row and linked Journal Entry in the native schedule and ledger report."
+msgstr "الجدول ليس مصروفًا مرحّلًا. تحقق من كل دفتر مالي وكل صف مستقبلي وقيد اليومية المرتبط في الجدول وتقرير الأستاذ الأصليين."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted Asset Depreciation Schedule was observed."
+msgstr "لم يُرصد جدول إهلاك أصول مسموح به."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current scheduled value"
+msgstr "القيمة المجدولة الحالية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Lifecycle activity and open repairs"
+msgstr "نشاط دورة الحياة والإصلاحات المفتوحة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Open the source document to verify affected assets, stock or service cost, accounting date, evidence and approval history."
+msgstr "افتح المستند المصدر للتحقق من الأصول المتأثرة وتكلفة المخزون أو الخدمة والتاريخ المحاسبي والإثباتات وسجل الاعتماد."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted lifecycle activity or open repair was observed in this boundary."
+msgstr "لم يُرصد في هذا النطاق نشاط لدورة الحياة أو إصلاح مفتوح مسموح به."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset or purpose"
+msgstr "الأصل أو الغرض"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Register-to-ledger review"
+msgstr "مراجعة السجل مقابل الأستاذ"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use the same company, cutoff date, Finance Book, currency and dimensions. Reconcile asset cost, accumulated depreciation, depreciation expense, value adjustments and disposal gain or loss; investigate manual journals and timing differences."
+msgstr "استخدم الشركة وتاريخ القطع والدفتر المالي والعملة والأبعاد نفسها. طابق تكلفة الأصول ومجمع الإهلاك ومصروف الإهلاك وتسويات القيمة وربح الاستبعاد أو خسارته، وافحص القيود اليدوية وفروق التوقيت."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation and balances"
+msgstr "الإهلاك والأرصدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This view does not declare the boundary reconciled. Qualified preparer and reviewer evidence remains required."
+msgstr "لا يعلن هذا العرض أن النطاق مطابَق، وتبقى إثباتات المُعِدّ والمراجع المؤهلَين مطلوبة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Assets observed"
+msgstr "الأصول المرصودة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current permitted register rows"
+msgstr "صفوف السجل الحالية المسموح بها"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Attention queue"
+msgstr "قائمة الانتباه"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Due or failed depreciation and open repairs"
+msgstr "إهلاك مستحق أو متعثر وإصلاحات مفتوحة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Observed carrying value"
+msgstr "القيمة الدفترية المرصودة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Not a reconciled register total"
+msgstr "ليست إجماليًا مطابقًا للسجل"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Period activity"
+msgstr "نشاط الفترة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Movements, capitalization, adjustments and disposal"
+msgstr "الحركات والرسملة والتسويات والاستبعاد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Native ERPNext asset lifecycle"
+msgstr "دورة حياة الأصول الأصلية في ERPNext"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fixed asset workbench"
+msgstr "مساحة عمل الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Track acquisition, custody, depreciation, maintenance, value changes and disposal without hiding native accounting controls."
+msgstr "تتبّع الاقتناء والعهدة والإهلاك والصيانة وتغيرات القيمة والاستبعاد دون حجب الضوابط المحاسبية الأصلية."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review assets"
+msgstr "مراجعة الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench could not be loaded"
+msgstr "تعذّر تحميل مساحة عمل الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No asset or accounting record was changed. Review the error, then try again."
+msgstr "لم يتغير أي سجل للأصول أو للمحاسبة. راجع الخطأ ثم حاول مرة أخرى."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench bundle is not registered. Rebuild the theme assets."
+msgstr "حزمة مساحة عمل الأصول الثابتة غير مسجلة. أعد بناء ملفات السمة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench failed to load. Check the browser console."
+msgstr "تعذر تحميل مساحة عمل الأصول الثابتة. تحقق من وحدة تحكم المتصفح."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review assets, depreciation, repairs and lifecycle drafts by company and period."
+msgstr "راجع الأصول والإهلاك والإصلاحات ومسودات دورة الحياة حسب الشركة والفترة."

@@ -1752,6 +1752,19 @@ def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
         from_date=from_date,
         to_date=to_date,
     )
+
+
+@frappe.whitelist()
+def asset_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native fixed-asset evidence (read-only)."""
+    from bunood_theme.asset_workbench import get_asset_workbench
+
+    return get_asset_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
 @frappe.whitelist()
 def start_readiness_review(company: str) -> dict:
     from bunood_theme.readiness_work import start_readiness_review as start

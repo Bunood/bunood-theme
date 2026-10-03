@@ -245,7 +245,8 @@ from bunood_theme import personal as personal_axes
 #: The report Pages the Reports landing links (``report_landing.js``,
 #: ``REPORTS[].route[0]``). Its permission gate is computed for these alone.
 REPORT_LANDING_PAGES = (
-    "bnd-finance-close", "bnd-journal-workbench", "bnd-banking", "bnd-zatca", "bnd-report-studio",
+    "bnd-finance-close", "bnd-journal-workbench", "bnd-asset-workbench", "bnd-banking", "bnd-zatca",
+    "bnd-report-studio",
 )
 
 
@@ -333,6 +334,10 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_finance_close_js = FINANCE_CLOSE_JS
         bootinfo.bnd_journal_workbench_js = JOURNAL_WORKBENCH_JS
+        # The fixed-asset workbench is route-scoped like the close desks.
+        from bunood_theme.assets import ASSET_WORKBENCH_JS
+
+        bootinfo.bnd_asset_workbench_js = ASSET_WORKBENCH_JS
         from bunood_theme.assets import POS_CSS, POS_JS
 
         bootinfo.bnd_pos_css = POS_CSS

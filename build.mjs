@@ -2267,6 +2267,7 @@ const JS_ENTRIES = [
 	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
 	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
 	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
+	{ key: "bnd-asset-workbench", src: "asset_workbench.js", pyid: "ASSET_WORKBENCH_JS" },
 	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
 	{ key: "bnd-zatca", src: "zatca_workspace.js", pyid: "ZATCA_JS" },
 ];

@@ -7,6 +7,7 @@
 	const REPORTS = [
 		{ label: "Finance and close", description: "Review period readiness, exceptions and close evidence.", icon: "calendar", route: ["bnd-finance-close"], bootAsset: "bnd_finance_close_js" },
 		{ label: "Journal workbench", description: "Prepare and review native journal entries with their supporting details.", icon: "book-open", route: ["bnd-journal-workbench"], bootAsset: "bnd_journal_workbench_js" },
+		{ label: "Fixed asset workbench", description: "Review assets, depreciation, repairs and lifecycle drafts by company and period.", icon: "package", route: ["bnd-asset-workbench"], bootAsset: "bnd_asset_workbench_js" },
 		{ label: "Bank Reconciliation", description: "Match bank activity to native transactions and investigate differences.", icon: "banknote", route: ["bnd-banking"], bootAsset: "bnd_banking_js" },
 		{ label: "ZATCA workspace", description: "Review Sandbox setup and native invoice evidence by company.", icon: "shield", route: ["bnd-zatca"], bootAsset: "bnd_zatca_js" },
 		{ label: "Report Studio", description: "Browse sales, purchasing and accounting reports in one responsive catalogue.", icon: "chart-bar", route: ["bnd-report-studio"] },
