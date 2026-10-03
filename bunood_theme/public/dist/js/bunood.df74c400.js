@@ -4733,10 +4733,19 @@
 	 * with the split.
 	 */
 	function search_fallback_order() {
-		// THE DEFAULT IS THE SHIPPED DESK'S, and it is reached often: `layout()`
-		// answers "" for any shape no card names, which is every desk that has
-		// customised a container — the honest majority, not an edge case.
-		return SEARCH_FALLBACKS[layout()] || SEARCH_FALLBACKS.unifiedsidepane;
+		const named = SEARCH_FALLBACKS[layout()];
+		if (named) return named;
+		// A SHAPE NO CARD NAMES, and it is reached often: `layout()` answers ""
+		// for every desk that has customised a container — the honest majority,
+		// not an edge case. The pane's order used to answer for all of them,
+		// which left a dock-only or bar-only desk trying slots it does not have.
+		// Resolve from the live containers instead: the dock first where there
+		// is one, then a top bar, the pane, a bottom bar; the widest order last.
+		if (container_on("dock")) return SEARCH_FALLBACKS.floatingbar;
+		if (container_on("topbar")) return SEARCH_FALLBACKS.toptaskbar;
+		if (container_on("sidepane")) return SEARCH_FALLBACKS.unifiedsidepane;
+		if (container_on("bottombar")) return SEARCH_FALLBACKS.taskbar;
+		return SEARCH_FALLBACKS.toptaskbar;
 	}
 
 	/** The container a slot needs, or null when this layout has no such bar. */
