@@ -170,6 +170,16 @@ test("a failed report or statement search explains itself in the page's language
 	assert.ok(rows.includes("Could not load matches. Try again.,تعذّر تحميل النتائج المطابقة. حاول مرة أخرى.,"));
 });
 
+test("a contextual link hands over its company and period once, and never another company's books", () => {
+	assert.match(source, /if \(!options \|\| options\.bnd_studio_context !== 1\) return null;\s+frappe\.route_options = null;/);
+	assert.match(source, /pendingRouteContext: takeRouteContext\(\),/);
+	assert.match(source, /const context = takeRouteContext\(\) \|\| state\.pendingRouteContext;/);
+	assert.match(source, /if \(context && !state\.available\) \{[\s\S]*?state\.pendingRouteContext = context;\s+return;/);
+	assert.match(source, /if \(context\?\.company && !state\.companies\.includes\(context\.company\)\) \{\s+frappe\.set_route\(ROUTE_PAGE\);/);
+	assert.match(source, /context\.from_date <= context\.to_date\) \{\s+state\.custom = \{ from: context\.from_date, to: context\.to_date \};\s+state\.period = "custom";/);
+	assert.match(source, /if \(!contextChanged && state\.report === report &&/);
+});
+
 test("the VAT Return card promises a review, not proof that it can be filed", () => {
 	assert.doesNotMatch(source, /proof it can be filed/);
 	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);

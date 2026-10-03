@@ -1712,6 +1712,15 @@
 		// مرةً واحدة لكل جلسة: المستمع يعيش بعد مغادرة صفحة الاستوديو، وهو
 		// المقصود — المستند الذي تفتحه صفحةٌ أخرى.
 		wireReturnBar();
+		// A contextual link (the banking workbench's statement button) arrives
+		// with route_options naming a company and a period. Taken once and
+		// cleared, so a later visit is never steered by a stale hand-off.
+		function takeRouteContext() {
+			const options = frappe.route_options;
+			if (!options || options.bnd_studio_context !== 1) return null;
+			frappe.route_options = null;
+			return options;
+		}
 		const state = {
 			// The gallery opens on every report, grouped under its area, and keeps
 			// whichever area the person picked: opening a report no longer moves it.
@@ -1732,6 +1741,8 @@
 			// Bumped by every gallery and viewer render. A report request that
 			// resolves after its view was replaced must not draw into the new one.
 			viewToken: 0,
+			// A hand-off that arrived before the company list did (first visit).
+			pendingRouteContext: takeRouteContext(),
 		};
 
 		// ---- من هو صاحب الكشف — أنواعه الأربعة، تلزم المنتقي ومزامنة المسار ----
@@ -1772,6 +1783,33 @@
 			const key = route[1] || null;
 			const report = (key && ALL_REPORTS.find((r) => r.key === key)) || null;
 			const entity = report && report.picker && route[2] ? entityFromSegment(String(route[2])) : null;
+			const context = takeRouteContext() || state.pendingRouteContext;
+			state.pendingRouteContext = null;
+			if (context && !state.available) {
+				// The companies are not in yet: hold the hand-off for the sync the
+				// availability fetch runs when it lands.
+				state.pendingRouteContext = context;
+				return;
+			}
+			// A contextual link must not silently show another company's books.
+			if (context?.company && !state.companies.includes(context.company)) {
+				frappe.set_route(ROUTE_PAGE);
+				return;
+			}
+			let contextChanged = false;
+			if (context?.company && state.company !== context.company) {
+				state.company = context.company;
+				fetchTaxId();
+				contextChanged = true;
+			}
+			if (context?.from_date && context?.to_date &&
+				/^\d{4}-\d{2}-\d{2}$/.test(context.from_date) &&
+				/^\d{4}-\d{2}-\d{2}$/.test(context.to_date) &&
+				context.from_date <= context.to_date) {
+				state.custom = { from: context.from_date, to: context.to_date };
+				state.period = "custom";
+				contextChanged = true;
+			}
 			if (!report) {
 				if (!state.report) return;
 				state.report = null;
@@ -1780,7 +1818,7 @@
 				return;
 			}
 			const sameEntity = state.entity && entity && state.entity.name === entity.name;
-			if (state.report === report && (sameEntity || (!state.entity && !entity))) return;
+			if (!contextChanged && state.report === report && (sameEntity || (!state.entity && !entity))) return;
 			// A row filter, a document-type tab and the all-columns toggle belong
 			// to the report they were set on: carried into the next one, a type
 			// it does not have filters its table to nothing.
