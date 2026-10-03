@@ -134,6 +134,23 @@ test('unrelated confirmation is not silently accepted', async () => {
   assert.deepEqual(calls, ['Review tax treatment?']);
 });
 
+test('journal commit respects submitted, cancelled and read-only native states', () => {
+  for (const status of [1, 2]) assert.equal(canSaveAndSubmit(form('Journal Entry', {docstatus:status})), false);
+  assert.equal(canSaveAndSubmit(form('Journal Entry', {docstatus:0}, {permissions:{write:0}})), false);
+  assert.equal(canSaveAndSubmit(form('Journal Entry', {docstatus:0,__islocal:1}, {permissions:{create:0}})), false);
+  assert.equal(canSaveAndSubmit(form('Journal Entry', {docstatus:0}, {submittable:false})), false);
+});
+
+test('native save failure cannot proceed to submit', async () => {
+  const frm=form('Journal Entry',{docstatus:0,__islocal:1});
+  let submissions=0;
+  context.frappe.ui.form.check_mandatory=()=>true;
+  frm.save=async()=>{throw new Error('Native validation failure');};
+  frm.savesubmit=()=>{submissions++;};
+  await assert.rejects(saveAndSubmit(frm),/Native validation failure/);
+  assert.equal(submissions,0);
+});
+
 test('native form action bar is sticky and stands down for Simple workbenches', () => {
   const desk = fs.readFileSync('bunood_theme/public/js/bunood.js', 'utf8');
   const formCss = fs.readFileSync('bunood_theme/public/scss/surfaces/_form.scss', 'utf8');
