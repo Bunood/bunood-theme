@@ -3869,14 +3869,26 @@
 	}
 
 	let language_switch_pending = false;
-	async function switch_language(code) {
+	async function switch_language(code, discard_dirty = false) {
 		if (language_switch_pending || !code) return;
-		// Unsaved edits would be lost to the reload: say so instead of losing them.
+		// Unsaved edits would be lost to the reload: say so instead of losing
+		// them, and offer the deliberate way through rather than a dead end.
 		const dirty = Object.values(window.locals || {}).some((records) =>
 			Object.values(records || {}).some((doc) => doc && doc.__unsaved && !doc.parenttype)
 		);
-		if (dirty) {
-			frappe.msgprint(__("Save or discard your unsaved changes before switching language."));
+		if (dirty && !discard_dirty) {
+			frappe.msgprint({
+				title: __("Unsaved changes"),
+				message: __("Save or discard your unsaved changes before switching language."),
+				indicator: "orange",
+				primary_action: {
+					label: __("Discard changes and switch"),
+					action: () => {
+						frappe.hide_msgprint();
+						switch_language(code, true);
+					},
+				},
+			});
 			return;
 		}
 		language_switch_pending = true;

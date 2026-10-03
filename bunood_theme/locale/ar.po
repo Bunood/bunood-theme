@@ -12434,3 +12434,15 @@ msgstr "تعذر تحميل مساحة عمل الفوترة الإلكترون�
 #, fuzzy
 msgid "Review Sandbox setup and native invoice evidence by company."
 msgstr "راجع إعداد بيئة الاختبار وأدلة الفواتير الأصلية لكل شركة."
+
+#. In bunood.js (switching language with unsaved changes)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Unsaved changes"
+msgstr "تغييرات غير محفوظة"
+
+#. In bunood.js (switching language with unsaved changes)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Discard changes and switch"
+msgstr "تجاهل التغييرات والتبديل"

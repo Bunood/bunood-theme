@@ -206,11 +206,12 @@
 		"AND js 138550 -> 138950 (measured 138,702) for sidebar badges counted by each link's DocType target (team R24), not its translated label.",
 		"AND js 138950 -> 139500 (measured 139,231) for one inbox observer that also re-badges a replaced native row or rebuilt bell (team R23).",
 		"AND js 139500 -> 139850 (measured 139,568) for palette rows in the desk's language and run on click (team R22).",
-		"AND js 139850 -> 140150 (measured 139,879) for the current crumb announced and bidi-isolated, and a hidden cached page no longer renaming the pane (team R21)."
+		"AND js 139850 -> 140150 (measured 139,879) for the current crumb announced and bidi-isolated, and a hidden cached page no longer renaming the pane (team R21).",
+		"AND js 140150 -> 140450 (measured 140,190) for switching language with unsaved changes: a prompt that offers to discard them and switch (team R15)."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
-		"js_gzip": 140150,
+		"js_gzip": 140450,
 		"studio_js_gzip": 39050,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,
