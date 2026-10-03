@@ -56,10 +56,18 @@
     the thermal formats pass 120 and the review caught the first cut of this
     map silently shrinking them. Only the non-neutral values override. -#}
 {%- set sz = {"Small": 90, "Large": 130}.get(_pset("print_qr_size") | trim, size) -%}
-{%- if show != "Hide" or required -%}
+{#- A seller's tax invoice (a Sales or POS Invoice carrying the company VAT
+    number) keeps its QR whatever `print_qr` says, as `required` does: the
+    setting is a preference, and the QR on a VAT seller's invoice is not one.
+    Quotations, receipts and a seller without a VAT number keep the optional
+    Hide. When the QR is expected but absent, the note says WHY in both
+    languages: a draft or a cancelled invoice has none by design; otherwise
+    the connector has not produced it yet (team release 0a8b549). -#}
+{%- set tax_invoice = doc.get("doctype") in ["Sales Invoice", "POS Invoice"] and doc.get("company_tax_id") -%}
+{%- if show != "Hide" or required or tax_invoice -%}
 {%- set qr = bunood_zatca_qr_src(doc) if bunood_zatca_qr_src is defined else (doc.get("ksa_einv_qr") or doc.get("custom_zatca_qr") or doc.get("custom_qr_code")) -%}
-{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="ZATCA QR" style="width:{{ sz }}px;height:{{ sz }}px">
-{% elif required %}<div class="bnd-p-qr-missing">رمز الاستجابة QR غير متوفر — لا تصلح فاتورة ضريبية مبسطة<br>QR missing — not valid as a simplified tax invoice</div>{% endif %}
+{% if qr %}<img class="bnd-p-qr" src="{{ qr | e }}" alt="رمز الاستجابة السريعة للفاتورة / Invoice QR code" style="width:{{ sz }}px;height:{{ sz }}px">
+{% elif required or tax_invoice %}<div class="bnd-p-qr-missing" role="note">{% if doc.get("docstatus") == 0 %}مسودة — رمز الفاتورة غير جاهز<br>Draft — the invoice QR is not ready{% elif doc.get("docstatus") == 2 %}فاتورة ملغاة — رمز الفاتورة غير متوفر<br>Cancelled invoice — the QR is unavailable{% elif required %}رمز الاستجابة QR غير متوفر — لا تصلح فاتورة ضريبية مبسطة<br>QR missing — not valid as a simplified tax invoice{% else %}رمز الفاتورة غير جاهز — راجع إعدادات الربط<br>The invoice QR is not ready — review the connector setup{% endif %}</div>{% endif %}
 {%- endif -%}
 {%- endmacro %}
 
