@@ -202,11 +202,12 @@
 		"AND finance_close_js 3700 -> 4100 (measured 3,827) / journal_workbench_js 4500 -> 4850 (measured 4,582) for the prompt each desk shows until its first evidence loads; css measured 31,007 of 32,000 with its panel.",
 		"INTEGRATION team 2026-10-03, POS: pos_js 9200 -> 11300 (measured 11,053) for the receipt register page's renderer (filters, paging, rows, native reprint) and the counter's link to it; pos_css 5700 -> 6200 (measured 5,925) for the register's re-tokenised styles.",
 		"AND pos_js 11300 -> 12550 (measured 12,270) for catalogue tiles: four line drawings chosen by Arabic or English keywords, a stable group tint, and a Service label for non-stock items; pos_css measured 6,039 of 6,200 with the six tint rules.",
-		"INTEGRATION team 2026-10-03, ZATCA workspace: new route bundle bnd-zatca, zatca_css_gzip 4350 (measured 4,081, of which the :root token set the phantom-token guard requires every route sheet to carry) and zatca_js_gzip 5400 (measured 5,120: the read-only status, Sandbox path and invoice monitor)."
+		"INTEGRATION team 2026-10-03, ZATCA workspace: new route bundle bnd-zatca, zatca_css_gzip 4350 (measured 4,081, of which the :root token set the phantom-token guard requires every route sheet to carry) and zatca_js_gzip 5400 (measured 5,120: the read-only status, Sandbox path and invoice monitor).",
+		"AND js 138550 -> 138950 (measured 138,702) for sidebar badges counted by each link's DocType target (team R24), not its translated label."
 	],
 	"ceiling": {
 		"css_gzip": 32000,
-		"js_gzip": 138550,
+		"js_gzip": 138950,
 		"studio_js_gzip": 39050,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,

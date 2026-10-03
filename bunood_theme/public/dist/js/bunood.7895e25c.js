@@ -8613,44 +8613,73 @@
 		}
 	}
 
-	/** The last label set we fetched counts for, and when. Keyed on the SET,
-	 *  not on the clock alone — see sb_mount_badges. */
+	/** The last DocType set we fetched counts for, when, and its first node.
+	 *  Keyed on the SET, not on the clock alone — see sb_mount_badges. */
 	let sb_badges_at = 0;
 	let sb_badges_key = "";
+	let sb_badges_node = null;
+
+	/**
+	 * The pane's DocType links, by Frappe's STABLE target (item.link_to), never by
+	 * the label. The label is translated: on an Arabic desk "فاتورة مبيعات" is no
+	 * DocType name, so counting by label gave every Arabic sidebar no badges at
+	 * all. Read from the sidebar's own item instances, connected and in the pane.
+	 */
+	function sb_badge_links() {
+		const sidebar = window.frappe?.app?.sidebar;
+		const links = [];
+		const visit = (instance) => {
+			if (!instance) return;
+			const item = instance.item;
+			const node = instance.wrapper?.[0];
+			if (item?.type === "Link" && item.link_type === "DocType" &&
+				item.link_to && node?.isConnected &&
+				node.closest(".body-sidebar-top")) {
+				links.push({ node, doctype: item.link_to });
+			}
+			for (const child of instance.items || []) visit(child);
+		};
+		for (const instance of sidebar?.items || []) visit(instance);
+		return links;
+	}
 
 	/**
 	 * Live badges on sidebar links. One batched server call
-	 * (bunood_theme.api.get_sidebar_counts) returns counts for the labels
-	 * that are readable DocTypes; anything else is silently skipped. "dots"
-	 * mode marks only nonzero rows; "counts" shows the number.
+	 * (bunood_theme.api.get_sidebar_counts) returns counts for the DocTypes that
+	 * are readable and countable; anything else is silently skipped. "dots" mode
+	 * marks only nonzero rows; "counts" shows the number.
 	 */
 	function sb_mount_badges() {
 		const mode = document.documentElement.getAttribute("data-bnd-sb-badges");
 		if (mode !== "dots" && mode !== "counts") return;
 
-		const items = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container[item-name]:not(.section-item)")];
-		const labels = items.map((i) => i.getAttribute("item-name")).filter(Boolean);
-		if (!labels.length) return;
+		const links = sb_badge_links().slice(0, 40);
+		if (!links.length) return;
 
-		// The window applies WITHIN one label set, never across two: a workspace
-		// switch replaces every label and must refetch. _sidebar.scss has why.
-		const key = labels.join("|");
-		if (key === sb_badges_key && Date.now() - sb_badges_at < 60000) return;
-		// Stamp only once there is something to fetch — at first mount the item
-		// list is often not built yet, and stamping on the empty attempt
-		// throttled away the observer's retry (measured).
+		// The window applies WITHIN one DocType set on one built pane, never across
+		// two: a workspace switch changes the set, and a language switch rebuilds
+		// the nodes over the SAME set (so the first node is compared too). Stamp
+		// only once there is something to fetch — at first mount the items are
+		// often not built yet, and stamping on the empty attempt throttled away the
+		// observer's retry (measured).
+		const key = links.map((link) => link.doctype).join("|");
+		if (key === sb_badges_key && links[0].node === sb_badges_node &&
+			Date.now() - sb_badges_at < 60000) return;
 		sb_badges_key = key;
 		sb_badges_at = Date.now();
+		sb_badges_node = links[0].node;
 
 		frappe
-			.xcall("bunood_theme.api.get_sidebar_counts", { labels: labels.slice(0, 40) })
+			.xcall("bunood_theme.api.get_sidebar_counts", {
+				labels: links.map((link) => link.doctype),
+			})
 			.then((counts) => {
-				for (const item of items) {
-					const label = item.getAttribute("item-name");
-					if (!(label in counts)) continue;
-					const anchor = item.querySelector(".item-anchor");
+				for (const link of links) {
+					if (!link.node.isConnected) continue;
+					if (!Object.hasOwn(counts || {}, link.doctype)) continue;
+					const anchor = link.node.querySelector(".item-anchor");
 					if (!anchor || anchor.querySelector(".bnd-sb-badge")) continue;
-					const count = counts[label];
+					const count = counts[link.doctype];
 					// Zero is silence in BOTH modes — a wall of "0" pills reads
 					// as clutter, and an empty dot means nothing needs you.
 					if (!count) continue;
@@ -8870,6 +8899,7 @@
 		for (const n of document.querySelectorAll(".bnd-sb-badge")) n.remove();
 		sb_badges_at = 0;
 		sb_badges_key = "";
+		sb_badges_node = null;
 	}
 
 	/** Hand the container's width back to the stylesheet. */
