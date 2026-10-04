@@ -13175,7 +13175,7 @@
 			return api.document_actions.decorateAction(button, { label, key });
 		}
 		ensureMounted() {
-			const layout = this.frm.$wrapper?.find(".form-layout").first()?.[0];
+			const layout = this.frm.$wrapper?.find(".std-form-layout > .form-layout").first()?.[0];
 			const fallback = this.frm.$wrapper?.[0];
 			if (layout) {
 				const parent = layout.parentNode;
