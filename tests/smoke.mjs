@@ -1445,6 +1445,11 @@ const MUTABLE_FIELDS = [
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
+	// Shipped-look matching includes paper; snapshot these before any reset so
+	// a site's own print choices are restored after the complete suite.
+	"print_header_style", "print_table_style", "print_totals_style", "print_heading_style",
+	"print_accent", "print_letterhead", "print_title_lang", "print_qr",
+	"print_qr_place", "print_qr_size", "print_words", "print_signatures",
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
