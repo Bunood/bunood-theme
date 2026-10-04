@@ -24,6 +24,25 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.50.0] — 2026-10-04 — official simplified business screens
+
+This integration minor names the unified official edition rather than closing a
+new roadmap item. Existing roadmap acceptance remains as recorded.
+
+### Added
+
+- Simplified sales/purchase invoice composers, reversible task forms,
+  journal/payment panels and a permission-checked accounting desk.
+- Reviewed team report, finance-close, bank and asset interfaces over native
+  document permissions and financial execution.
+
+### Preserved
+
+- Owner print fonts and bounded inline logo handling, existing theme settings
+  and ERPNext rounding. Team tenant/bootstrap controls are not installed.
+- Screen coverage and measured source checks are recorded in
+  `docs/official-screen-integration.md`; final native acceptance is separate.
+
 ## [0.49.2] — 2026-10-03 — the Saudi riyal sign on every desk (patch)
 
 **Numbered after v0.49.1.** Prepared as 0.48.6 on 2026-09-28, on top of 0.48.5, and never tagged; 0.48.5 shipped as
