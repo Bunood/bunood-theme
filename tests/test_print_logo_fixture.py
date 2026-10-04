@@ -9,9 +9,12 @@ class LogoSafety(TestCase):
  def setUp(self):
   self.docs={}
   def save(name,content,*args,**kw):
-   doc=SimpleNamespace(name=str(len(self.docs)),file_name=name,file_url='/files/'+name,owner='Administrator',is_private=0,attached_to_doctype=None,attached_to_name=None,get_content=lambda:content)
+   doc=SimpleNamespace(name=str(len(self.docs)),file_name=name,file_url='/files/'+name,owner='Administrator',is_private=0,attached_to_doctype=None,attached_to_name=None,get_content=lambda **kw:content)
    self.docs[doc.name]=doc;return doc
-  self.api=SimpleNamespace(local=SimpleNamespace(site='demo.bunood.test'),conf={'allow_tests':1},session=SimpleNamespace(user='Administrator'),db=SimpleNamespace(exists=Mock(return_value=False)),get_doc=lambda dt,name:self.docs[name],delete_doc=Mock())
+  def get_doc(dt,name=None):
+   if isinstance(dt,dict): return SimpleNamespace(insert=lambda:save(dt['file_name'],dt['content']))
+   return self.docs[name]
+  self.api=SimpleNamespace(local=SimpleNamespace(site='demo.bunood.test'),conf={'allow_tests':1},session=SimpleNamespace(user='Administrator'),db=SimpleNamespace(exists=Mock(return_value=False),rollback=Mock()),get_doc=get_doc,delete_doc=Mock())
   self.mods={'frappe':self.api,'frappe.utils':SimpleNamespace(),'frappe.utils.file_manager':SimpleNamespace(save_file=save)}
  def test_real_png_distinct_payload_and_owned_cleanup(self):
   with patch.dict('sys.modules',self.mods):
@@ -24,7 +27,7 @@ class LogoSafety(TestCase):
       self.assertEqual(crc,f.zlib.crc32(kind+data)&0xffffffff)
       if kind==b'IDAT': self.assertEqual(len(f.zlib.decompress(data)),5)
       at+=length+12
-   self.assertEqual(self.api.delete_doc.call_count,2)
+   self.assertEqual(self.api.delete_doc.call_count,2);self.api.db.rollback.assert_called_once()
  def test_wrong_site_refused(self):
   with patch.dict('sys.modules',self.mods),self.assertRaises(RuntimeError):
    with f.owned_print_logos('production'): pass
@@ -40,7 +43,7 @@ class LogoSafety(TestCase):
   self.api.delete_doc.assert_not_called()
  def test_changed_content_refuses_cleanup(self):
   with patch.dict('sys.modules',self.mods),self.assertRaisesRegex(RuntimeError,'OWNED_LOGO_CLEANUP_FAILED'):
-   with f.owned_print_logos('demo.bunood.test'): self.docs['1'].get_content=lambda:b'changed'
+   with f.owned_print_logos('demo.bunood.test'): self.docs['1'].get_content=lambda **kw:b'changed'
   self.api.delete_doc.assert_not_called()
  def test_callback_error_preserved_when_cleanup_succeeds(self):
   original=ValueError('original')
@@ -48,7 +51,7 @@ class LogoSafety(TestCase):
    try:
     with f.owned_print_logos('demo.bunood.test'): raise original
    except ValueError as error:self.assertIs(error,original)
-  self.assertEqual(self.api.delete_doc.call_count,2)
+  self.assertEqual(self.api.delete_doc.call_count,2);self.api.db.rollback.assert_called_once()
  def test_cleanup_failure_keeps_original_cause(self):
   original=ValueError('original');self.api.delete_doc.side_effect=RuntimeError('cleanup')
   with patch.dict('sys.modules',self.mods):
