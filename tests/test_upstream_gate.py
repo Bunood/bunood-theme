@@ -39,6 +39,7 @@ class UpgradeGateTests(unittest.TestCase):
 
     def test_release_contract_accepts_reviewed_app_versions(self):
         expected = {
+            "bunood_comms": "0.0.0",
             "bunood_crm": "0.1.0", "bunood_real_estate": "1.7.0",
             "bunood_engineering": "0.14.0", "bunood_setup": "0.8.0",
             "bunood_dining": "0.1.0", "bunood_tenant": "0.6.0",
@@ -49,7 +50,7 @@ class UpgradeGateTests(unittest.TestCase):
         self.assertNotIn("crm", self.pins["versions"])
 
     def test_missing_or_unreviewed_bunood_version_is_rejected(self):
-        for app in ("bunood_crm", "bunood_real_estate", "bunood_engineering",
+        for app in ("bunood_comms", "bunood_crm", "bunood_real_estate", "bunood_engineering",
                     "bunood_setup", "bunood_dining", "bunood_tenant"):
             for mutation in ("missing", "changed"):
                 with self.subTest(app=app, mutation=mutation):
