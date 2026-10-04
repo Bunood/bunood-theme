@@ -72,7 +72,7 @@
 {%- if address or phone or email or website or privacy -%}
 {#- The 6px trailing inset safely exceeds Chrome's unmeasured 1mm body inset.
     Without it the final contact line is moved to a discarded overlay page. -#}
-<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" style="font-family:'Cairo','Amiri','Tajawal','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 6px; border-top:1px solid var(--bnd-border);">
+<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" style="font-family:'Cairo','Amiri','Noto Naskh Arabic','Noto Sans Arabic',sans-serif; color:var(--bnd-ink-muted); font-size:10px; line-height:1.7; text-align:center; padding:6px 6px 6px; border-top:1px solid var(--bnd-border);">
   {% if address %}<div dir="auto">{{ address | e }}</div>{% endif %}
   {% if phone or email or website %}
   <div>

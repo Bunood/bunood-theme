@@ -126,8 +126,8 @@ pdf_header_html = "bunood_theme.printing.pdf_direction.pdf_header_html"
 pdf_footer_html = "bunood_theme.printing.pdf_direction.pdf_footer_html"
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
-after_install = "bunood_theme.setup.after_install"
-after_migrate = "bunood_theme.setup.after_migrate"
+after_install = ["bunood_theme.setup.after_install", "bunood_theme.screen_install.install"]
+after_migrate = ["bunood_theme.setup.after_migrate", "bunood_theme.screen_install.install"]
 
 doc_events = {
     "Theme Settings": {

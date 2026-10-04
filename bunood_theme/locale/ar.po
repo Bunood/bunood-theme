@@ -12872,3 +12872,665 @@ msgstr "تعذر تحميل مساحة عمل الأصول الثابتة. تح�
 #, fuzzy
 msgid "Review assets, depreciation, repairs and lifecycle drafts by company and period."
 msgstr "راجع الأصول والإهلاك والإصلاحات ومسودات دورة الحياة حسب الشركة والفترة."
+
+msgid "Accounting desk"
+msgstr "مكتب المحاسبة"
+
+msgid "Select a company"
+msgstr "اختر شركة"
+
+msgid "Not permitted to read customer ledger entries."
+msgstr "غير مصرح بقراءة قيود دفتر العميل."
+
+msgid "This preview is only available for submitted Sandbox invoices."
+msgstr "هذه المعاينة متاحة فقط للفواتير المعتمدة في البيئة التجريبية."
+
+msgid "The signed ZATCA XML or QR code is not ready yet."
+msgstr "ملف الفاتورة الموقع أو رمز الاستجابة السريعة غير جاهز بعد."
+
+msgid "Only customer sales and POS invoices can be delivered here."
+msgstr "يمكن تسليم فواتير مبيعات العملاء ونقاط البيع فقط هنا."
+
+msgid "Use the ZATCA Phase 2 print format for this invoice."
+msgstr "استخدم تنسيق طباعة المرحلة الثانية لهذه الفاتورة."
+
+msgid "Overdue receivables"
+msgstr "مستحقات متأخرة"
+
+msgid "Payables due"
+msgstr "مبالغ مستحقة للدفع"
+
+msgid "Some checks are unavailable. Review the native records."
+msgstr "بعض الفحوصات غير متاحة. راجع السجلات الأصلية."
+
+msgid "Work queue"
+msgstr "قائمة العمل"
+
+msgid "More records are available in the full lists."
+msgstr "توجد سجلات أخرى في القوائم الكاملة."
+
+msgid "A signed reconciliation and closing balance have not been verified."
+msgstr "لم يتم التحقق من التسوية المعتمدة والرصيد الختامي."
+
+msgid "Unable to load accounting evidence."
+msgstr "تعذّر تحميل بيانات المحاسبة."
+
+
+#. Payment Entry payment-type option: money received into the company.
+#. src: observed Payment Entry form, reviewed 2026-09-19
+msgid "Receive"
+msgstr "قبض"
+
+#. Payment Entry payment-type option: money disbursed by the company.
+#. src: observed Payment Entry form, reviewed 2026-09-19
+msgid "Pay"
+msgstr "صرف"
+
+msgid "Payment Entry"
+msgstr "سند دفع أو قبض"
+
+#. src: sales-bill
+msgid "Add item"
+msgstr "إضافة الصنف"
+
+#. src: stock entry simple workbench
+msgid "Add items and quantities"
+msgstr "أضف الأصناف والكميات"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Add the items and quantities. Stock changes only after submission."
+msgstr "أضف الأصناف والكميات. لا يتغير المخزون إلا بعد الاعتماد."
+
+#. src: simple forms
+msgid "Advanced"
+msgstr "متقدّم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the customer and warehouse, then add the items being delivered. Use Advanced for transport, billing, and accounting details."
+msgstr "اختر العميل والمستودع، ثم أضف الأصناف المراد تسليمها. استخدم الوضع المتقدم لتفاصيل النقل والفوترة والمحاسبة."
+
+#. src: stock entry simple workbench
+msgid "Choose the movement"
+msgstr "اختر نوع الحركة"
+
+#. src: stock entry simple workbench
+msgid "Choose the movement, warehouses, and items. Use Advanced for manufacturing, subcontracting, and accounting options."
+msgstr "اختر نوع الحركة والمستودعات والأصناف. استخدم الوضع المتقدم لخيارات التصنيع والمقاولات الفرعية والمحاسبة."
+
+#. src: stock entry simple workbench
+msgid "Choose the route"
+msgstr "حدّد مسار المخزون"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the source warehouse used for the delivered items."
+msgstr "اختر مستودع المصدر للأصناف التي سيتم تسليمها."
+
+#. src: simple forms
+msgid "Choose whether money came in, went out, or moved between accounts. Then select the party, amount, accounts, and invoices that apply."
+msgstr "اختر ما إذا كان المبلغ واردًا أو صادرًا أو محولًا بين الحسابات، ثم حدّد الطرف والمبلغ والحسابات والفواتير المعنية."
+msgid "Series"
+msgstr "سلسلة"
+
+#. src: simple forms
+msgid "Create Sales Invoice"
+msgstr "إنشاء فاتورة مبيعات"
+
+#. src: stock entry simple workbench
+msgid "Date and company"
+msgstr "التاريخ والشركة"
+
+#. src: simple forms
+msgid "Delete"
+msgstr "حذف"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery steps"
+msgstr "خطوات التسليم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery summary"
+msgstr "ملخص التسليم"
+
+#. src: stock entry simple workbench
+msgid "Difference"
+msgstr "الفرق"
+
+#. src: simple forms
+msgid "Form mode"
+msgstr "وضع النموذج"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Fulfilment"
+msgstr "التنفيذ"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Grand total"
+msgstr "الإجمالي العام"
+
+#. src: stock entry simple workbench
+msgid "Incoming"
+msgstr "الوارد"
+
+#. In sales_bill.js
+#. src: ai
+msgid "Item"
+msgstr "الصنف"
+
+#. src: stock entry simple workbench
+msgid "Items"
+msgstr "الأصناف"
+
+#. src: stock entry simple workbench
+msgid "Move stock"
+msgstr "نقل المخزون"
+
+#. src: stock entry simple workbench
+msgid "Movement"
+msgstr "الحركة"
+
+#. src: stock entry simple workbench
+msgid "Movement summary"
+msgstr "ملخص حركة المخزون"
+
+#. src: form-summary
+#, fuzzy
+msgid "No"
+msgstr "لا"
+
+#. src: stock entry simple workbench
+msgid "Only the warehouses required for this movement are shown."
+msgstr "تظهر فقط المستودعات المطلوبة لهذه الحركة."
+
+#. src: stock entry simple workbench
+msgid "Outgoing"
+msgstr "الصادر"
+
+#. src: simple forms
+msgid "Payment"
+msgstr "دفعة"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Prepare a delivery"
+msgstr "تجهيز تسليم"
+
+#. src: simple forms
+msgid "Record a payment"
+msgstr "تسجيل دفعة"
+
+msgid "row"
+msgstr "صف"
+
+#. src: simple sales invoice stock controls
+msgid "Stock movement"
+msgstr "حركة المخزون"
+
+#. src: stock entry simple workbench
+msgid "Scan, search, or add items in the table. Stock is posted only after submission."
+msgstr "امسح الباركود أو ابحث أو أضف الأصناف في الجدول. لا تُرحّل حركة المخزون إلا بعد الاعتماد."
+
+#. src: stock entry simple workbench
+msgid "Select how stock should enter, leave, or move between warehouses."
+msgstr "حدّد ما إذا كان المخزون سيدخل أو يخرج أو يُنقل بين المستودعات."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Select the customer for this delivery note."
+msgstr "اختر العميل لإشعار التسليم هذا."
+
+#. src: simple forms
+msgid "Simple"
+msgstr "مبسّط"
+
+#. src: simple forms
+msgid "Simple mode"
+msgstr "الوضع المبسّط"
+
+#. src: stock entry simple workbench
+msgid "Stock movement steps"
+msgstr "خطوات حركة المخزون"
+
+#. src: shared simple-form actions
+msgid "Submit"
+msgstr "اعتماد"
+
+#. src: simple forms
+msgid "The fields needed for this task are shown. Advanced mode keeps every ERPNext option on the same document."
+msgstr "تظهر الحقول اللازمة لهذه المهمة. يحتفظ الوضع المتقدم بجميع خيارات النظام في المستند نفسه."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Total quantity"
+msgstr "إجمالي الكمية"
+
+#. src: mobile-shell
+msgid "Account"
+msgstr "الحساب"
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Warehouse"
+msgstr "المستودع"
+
+#. src: stock entry simple workbench
+msgid "Warehouses"
+msgstr "المستودعات"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "What are you delivering?"
+msgstr "ما الأصناف التي ستسلّمها؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Where is it leaving from?"
+msgstr "من أي مستودع ستخرج الأصناف؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Who is receiving this delivery?"
+msgstr "من سيستلم هذا التسليم؟"
+
+#. src: Real Estate command desk
+msgid "Leasing"
+msgstr "التأجير"
+
+msgid "Cancel document"
+msgstr "إلغاء المستند"
+
+msgid "Delete draft"
+msgstr "حذف المسودة"
+
+msgid "Duplicate"
+msgstr "تكرار"
+
+msgid "Expired"
+msgstr "منتهي الصلاحية"
+
+msgid "Currency"
+msgstr "العملة"
+
+msgid "Required to save"
+msgstr "مطلوب للحفظ"
+
+#. In simple_forms.js task workbenches.
+#. src: purpose-built transaction pages
+msgid "Document outcome"
+msgstr "نتيجة المستند"
+
+msgid "Who is this offer for?"
+msgstr "لمن يُقدَّم هذا العرض؟"
+
+msgid "Customer, company and validity stay together at the top of the offer."
+msgstr "تظهر بيانات العميل والشركة وصلاحية العرض معًا في أعلى الصفحة."
+
+msgid "Build the offer"
+msgstr "إعداد العرض"
+
+msgid "Add the products or services, quantities and prices the customer will receive."
+msgstr "أضف المنتجات أو الخدمات والكميات والأسعار التي سيحصل عليها العميل."
+
+msgid "Commercial terms"
+msgstr "الشروط التجارية"
+
+msgid "Choose currency, price list, tax and any document-level discount."
+msgstr "اختر العملة وقائمة الأسعار والضريبة وأي خصم على مستوى المستند."
+
+msgid "Offer total"
+msgstr "إجمالي العرض"
+
+msgid "Customer commitment"
+msgstr "التزام العميل"
+
+msgid "Confirm who ordered and the dates Bunood is promising."
+msgstr "حدّد صاحب الطلب والمواعيد التي تلتزم بها بنود."
+
+msgid "What was ordered?"
+msgstr "ما الذي تم طلبه؟"
+
+msgid "Keep quantities, prices and delivery expectations together in one working sheet."
+msgstr "اجمع الكميات والأسعار ومواعيد التسليم المتوقعة في جدول عمل واحد."
+
+msgid "Fulfilment and pricing"
+msgstr "التنفيذ والتسعير"
+
+msgid "Set the source warehouse and the commercial defaults for this order."
+msgstr "حدّد المستودع المصدر والإعدادات التجارية الافتراضية لهذا الطلب."
+
+msgid "Committed total"
+msgstr "إجمالي الالتزام"
+
+msgid "Supplier and schedule"
+msgstr "المورد والجدول الزمني"
+
+msgid "Keep the supplier, company and required delivery date visible before ordering."
+msgstr "أبقِ المورد والشركة وتاريخ التسليم المطلوب واضحة قبل إصدار الطلب."
+
+msgid "What are we ordering?"
+msgstr "ماذا نطلب؟"
+
+msgid "Add the exact products or services, quantities and agreed prices."
+msgstr "أضف المنتجات أو الخدمات والكميات والأسعار المتفق عليها بدقة."
+
+msgid "Receiving and commercial terms"
+msgstr "شروط الاستلام والشروط التجارية"
+
+msgid "Choose the receiving warehouse, currency, price list, tax and discount."
+msgstr "اختر مستودع الاستلام والعملة وقائمة الأسعار والضريبة والخصم."
+
+msgid "Purchase commitment"
+msgstr "إجمالي التزام الشراء"
+
+msgid "Incoming delivery"
+msgstr "توريد وارد"
+
+msgid "Identify the supplier, company and actual receipt time."
+msgstr "حدّد المورد والشركة ووقت الاستلام الفعلي."
+
+msgid "Verify received items"
+msgstr "التحقق من الأصناف المستلمة"
+
+msgid "Record only the quantities physically received into the selected warehouse."
+msgstr "سجّل فقط الكميات التي استُلمت فعليًا في المستودع المحدد."
+
+msgid "Receiving destination"
+msgstr "وجهة الاستلام"
+
+msgid "Confirm where the accepted stock will be stored."
+msgstr "حدّد المستودع الذي سيُحفظ فيه المخزون المقبول."
+
+msgid "Received quantity"
+msgstr "الكمية المستلمة"
+
+msgid "Receipt value"
+msgstr "قيمة الاستلام"
+
+msgid "What is needed?"
+msgstr "ما المطلوب؟"
+
+msgid "Choose the request purpose, company and required date before adding items."
+msgstr "اختر غرض الطلب والشركة والتاريخ المطلوب قبل إضافة الأصناف."
+
+msgid "Requested items"
+msgstr "الأصناف المطلوبة"
+
+msgid "Record each item, quantity and the warehouse that needs it."
+msgstr "سجّل كل صنف وكميته والمستودع الذي يحتاج إليه."
+
+msgid "Default destination"
+msgstr "الوجهة الافتراضية"
+
+msgid "Use a warehouse default when the request shares one destination."
+msgstr "استخدم مستودعًا افتراضيًا عندما تشترك بنود الطلب في وجهة واحدة."
+
+msgid "Requested quantity"
+msgstr "الكمية المطلوبة"
+
+msgid "Count context"
+msgstr "سياق الجرد"
+
+msgid "Choose the company, warehouse and exact posting time for this physical count."
+msgstr "اختر الشركة والمستودع ووقت الترحيل الدقيق لهذا الجرد الفعلي."
+
+msgid "Counted stock"
+msgstr "المخزون المعدود"
+
+msgid "Enter the physical quantity and valuation for every counted item."
+msgstr "أدخل الكمية الفعلية والتقييم لكل صنف تم جرده."
+
+msgid "Value difference"
+msgstr "فرق القيمة"
+
+msgid "How is money moving?"
+msgstr "كيف تتحرك الأموال؟"
+
+msgid "Choose receive, pay or transfer and the payment method."
+msgstr "اختر قبضًا أو دفعًا أو تحويلًا، ثم حدّد طريقة الدفع."
+
+msgid "Who is this payment for?"
+msgstr "لمن تخص هذه الدفعة؟"
+
+msgid "Select the customer, supplier or other party when the movement belongs to one."
+msgstr "اختر العميل أو المورد أو الطرف الآخر عندما ترتبط الحركة به."
+
+msgid "From account to account"
+msgstr "من حساب إلى حساب"
+
+msgid "The native account pair remains the source of truth for the posting."
+msgstr "يبقى زوج الحسابات الأصلي هو المصدر المعتمد للترحيل."
+
+msgid "Enter the paid and received amounts in their native currencies."
+msgstr "أدخل المبلغ المدفوع والمبلغ المستلم بعملتيهما الأصليتين."
+
+msgid "Allocate invoices"
+msgstr "تخصيص الفواتير"
+
+msgid "Apply the payment to native invoice references and keep any difference visible."
+msgstr "خصّص الدفعة على مراجع الفواتير الأصلية مع إبقاء أي فرق ظاهرًا."
+
+msgid "Payment evidence"
+msgstr "مرجع الدفع"
+
+msgid "Add the bank or payment reference and its date."
+msgstr "أضف مرجع البنك أو الدفع وتاريخه."
+
+msgid "Unallocated difference"
+msgstr "الفرق غير المخصص"
+
+msgid "Journal context"
+msgstr "بيانات القيد"
+
+msgid "Choose the voucher type, company and posting evidence."
+msgstr "اختر نوع السند والشركة ومرجع الترحيل."
+
+msgid "Debit and credit lines"
+msgstr "سطور المدين والدائن"
+
+msgid "Every line remains a native account row with its original dimensions and validation."
+msgstr "يبقى كل سطر صف حساب أصليًا بأبعاده وقواعد التحقق الخاصة به."
+
+msgid "Claimant and approval"
+msgstr "صاحب المطالبة والاعتماد"
+
+msgid "Identify the employee, company, posting date and current approval state."
+msgstr "حدّد الموظف والشركة وتاريخ الترحيل وحالة الاعتماد الحالية."
+
+msgid "Claimed expenses"
+msgstr "المصروفات المطالب بها"
+
+msgid "Add each expense with its receipt, category and amount."
+msgstr "أضف كل مصروف مع إيصالِه وتصنيفه ومبلغه."
+
+msgid "Settlement"
+msgstr "التسوية"
+
+msgid "Review sanctioned totals and the payable account before submission."
+msgstr "راجع الإجماليات المعتمدة وحساب الدفع قبل الاعتماد."
+
+msgid "Claimed"
+msgstr "المطالب به"
+
+msgid "Approved"
+msgstr "المعتمد"
+
+msgid "Offer"
+msgstr "العرض"
+
+msgid "Review"
+msgstr "المراجعة"
+
+msgid "Commitment"
+msgstr "الالتزام"
+
+msgid "Verify"
+msgstr "التحقق"
+
+msgid "Need"
+msgstr "الاحتياج"
+
+msgid "Direction"
+msgstr "اتجاه الحركة"
+
+msgid "Allocation"
+msgstr "التخصيص"
+
+msgid "Confirmation"
+msgstr "التأكيد"
+
+msgid "Voucher"
+msgstr "السند"
+
+msgid "Debit and credit"
+msgstr "المدين والدائن"
+
+msgid "Total debit"
+msgstr "إجمالي المدين"
+
+msgid "Total credit"
+msgstr "إجمالي الدائن"
+
+msgid "Balance"
+msgstr "الرصيد"
+
+msgid "Expenses"
+msgstr "المصروفات"
+
+msgid "Prepare an offer"
+msgstr "إعداد عرض سعر"
+
+msgid "Confirm a sales order"
+msgstr "تأكيد أمر بيع"
+
+msgid "Capture the customer commitment, promised delivery, fulfilment route and commercial total in one place."
+msgstr "سجّل التزام العميل وموعد التسليم ومسار التنفيذ والإجمالي التجاري في مكان واحد."
+
+msgid "Place a purchase order"
+msgstr "إصدار أمر شراء"
+
+msgid "Agree the supplier, schedule, receiving destination and commercial terms before committing the purchase."
+msgstr "حدّد المورد والجدول الزمني ووجهة الاستلام والشروط التجارية قبل الالتزام بالشراء."
+
+msgid "Receive a supplier delivery"
+msgstr "استلام توريد من مورد"
+
+msgid "Verify what physically arrived and where accepted stock will be stored before submission."
+msgstr "تحقق مما وصل فعليًا ومن مستودع حفظ المخزون المقبول قبل الاعتماد."
+
+msgid "Request materials"
+msgstr "طلب مواد"
+
+msgid "State what is needed, when it is needed and which warehouse should receive it."
+msgstr "حدّد المطلوب وموعد الحاجة إليه والمستودع الذي سيستلمه."
+
+msgid "Reconcile a stock count"
+msgstr "تسوية جرد المخزون"
+
+msgid "Record a dated physical count and review the native quantity and value difference before submission."
+msgstr "سجّل جردًا فعليًا مؤرخًا وراجع فرق الكمية والقيمة الأصلي قبل الاعتماد."
+
+msgid "Record a journal entry"
+msgstr "تسجيل قيد يومية"
+
+msgid "Build a balanced native debit and credit voucher with the evidence required for review."
+msgstr "أنشئ سندًا أصليًا متوازنًا للمدين والدائن مع المستندات اللازمة للمراجعة."
+
+msgid "Review an expense claim"
+msgstr "مراجعة مطالبة مصروفات"
+
+msgid "Capture the employee, receipt evidence, approval state and payable outcome in one review flow."
+msgstr "اجمع الموظف وإثباتات الإيصالات وحالة الاعتماد ونتيجة الدفع في مسار مراجعة واحد."
+
+#. In pos_workbench.js
+msgid "POS Profile"
+msgstr "ملف نقطة البيع"
+
+#. Quotation task guidance
+msgid "Once the quotation is submitted, use Create Sales Invoice above. The customer, items, and prices carry into a draft invoice for review."
+msgstr "بعد اعتماد عرض السعر، اضغط «إنشاء فاتورة مبيعات» أعلاه. سينتقل العميل والأصناف والأسعار إلى فاتورة مسودة لمراجعتها."
+
+#. Missing pilot UI strings, reviewed for accounting and operational context.
+#. src: human-reviewed Arabic UI, 2026-09-28
+msgid "Sales"
+msgstr "المبيعات"
+
+msgid "Table"
+msgstr "الطاولة"
+
+
+#. src: 8102 reviewed Arabic catalogue
+msgid "of"
+msgstr "من"
+
+#. src: merged reviewed catalogue
+msgid "Lease"
+msgstr "عقد إيجار"
+
+#. src: merged reviewed catalogue
+msgid "Property"
+msgstr "العقار"
+
+#. src: merged reviewed catalogue
+msgid "Real Estate Unit"
+msgstr "الوحدة العقارية"
+
+msgid "Reference details"
+msgstr "تفاصيل المرجع"
+
+
+msgid "Review accounting drafts and bank evidence."
+msgstr "مراجعة مسودات المحاسبة والأدلة البنكية."
+
+
+msgid "VAT"
+msgstr "ضريبة القيمة المضافة"
+
+#. src: form-summary
+#, fuzzy
+msgid "Yes"
+msgstr "نعم"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Report scope"
+msgstr "نطاق التقرير"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Review filters"
+msgstr "مراجعة عوامل التصفية"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Retrying…"
+msgstr "جارٍ إعادة المحاولة…"
+
+#. src: merged reviewed production catalogue
+msgid "Check your connection and try again."
+msgstr "تحقق من اتصالك ثم حاول مرة أخرى."
+
+#. src: system-state production copy
+msgid "Could not refresh this report"
+msgstr "تعذّر تحديث هذا التقرير"
+
+#. In bunood.js
+#. src: human-reviewed
+msgid "Accounts"
+msgstr "الحسابات"
+
+msgid "Additional filters: {0}"
+msgstr "عوامل تصفية إضافية: {0}"
+
+
+#. src: 8102 reviewed Arabic catalogue
+msgid "Summary"
+msgstr "ملخص"
+
+msgid "Rent Roll"
+msgstr "سجل الإيجارات"
+
+msgid "Owner Ledger"
+msgstr "كشف حساب المالك"

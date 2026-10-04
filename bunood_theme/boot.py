@@ -245,7 +245,7 @@ from bunood_theme import personal as personal_axes
 #: The report Pages the Reports landing links (``report_landing.js``,
 #: ``REPORTS[].route[0]``). Its permission gate is computed for these alone.
 REPORT_LANDING_PAGES = (
-    "bnd-finance-close", "bnd-journal-workbench", "bnd-asset-workbench", "bnd-banking", "bnd-zatca",
+    "bnd-accounting-home", "bnd-finance-close", "bnd-journal-workbench", "bnd-asset-workbench", "bnd-banking", "bnd-zatca",
     "bnd-report-studio",
 )
 

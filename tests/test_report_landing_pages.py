@@ -52,7 +52,7 @@ class PermittedPagesTests(unittest.TestCase):
 		scope = load(fake_frappe({}))
 		self.assertEqual(
 			set(scope["REPORT_LANDING_PAGES"]),
-			{"bnd-finance-close", "bnd-journal-workbench", "bnd-asset-workbench", "bnd-banking", "bnd-zatca",
+			{"bnd-accounting-home", "bnd-finance-close", "bnd-journal-workbench", "bnd-asset-workbench", "bnd-banking", "bnd-zatca",
 			 "bnd-report-studio"},
 		)
 

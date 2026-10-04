@@ -5,6 +5,7 @@
 	"use strict";
 
 	const REPORTS = [
+		{ label: "Accounting desk", description: "Review accounting drafts and bank evidence.", icon: "book-open", route: ["bnd-accounting-home"] },
 		{ label: "Finance and close", description: "Review period readiness, exceptions and close evidence.", icon: "calendar", route: ["bnd-finance-close"], bootAsset: "bnd_finance_close_js" },
 		{ label: "Journal workbench", description: "Prepare and review native journal entries with their supporting details.", icon: "book-open", route: ["bnd-journal-workbench"], bootAsset: "bnd_journal_workbench_js" },
 		{ label: "Fixed asset workbench", description: "Review assets, depreciation, repairs and lifecycle drafts by company and period.", icon: "package", route: ["bnd-asset-workbench"], bootAsset: "bnd_asset_workbench_js" },

@@ -30,6 +30,7 @@ See ARCHITECTURE.md section 10.
 """
 
 import frappe
+from frappe.utils import flt
 from frappe import _
 
 
@@ -1821,3 +1822,45 @@ def prepare_migration_reconciliation(rehearsal_name: str) -> dict:
     from bunood_theme.migration_reconciliation import prepare_migration_reconciliation as prepare
 
     return prepare(rehearsal_name)
+
+
+@frappe.whitelist()
+def get_customer_account_summary(customer: str, company: str) -> dict:
+    """Return the permission-filtered customer control-account balance.
+
+    GL debit/credit values are already in company currency.  A positive
+    balance is money due from the customer; a negative balance is an advance
+    or other customer credit.  Draft invoices never appear because they have
+    no GL Entries, and submitted receipts reduce the same balance by crediting
+    Accounts Receivable.
+    """
+    if not customer or not company:
+        return {"balance": 0.0, "debit": 0.0, "credit": 0.0, "currency": ""}
+
+    frappe.get_doc("Customer", customer).check_permission("read")
+    frappe.get_doc("Company", company).check_permission("read")
+    if not frappe.has_permission("GL Entry", "read"):
+        frappe.throw(frappe._("Not permitted to read customer ledger entries."), frappe.PermissionError)
+
+    rows = frappe.get_list(
+        "GL Entry",
+        filters={
+            "company": company,
+            "party_type": "Customer",
+            "party": customer,
+            "is_cancelled": 0,
+        },
+        fields=[
+            {"SUM": "debit", "AS": "debit"},
+            {"SUM": "credit", "AS": "credit"},
+        ],
+        limit=1,
+    )
+    debit = flt(rows[0].debit) if rows else 0.0
+    credit = flt(rows[0].credit) if rows else 0.0
+    return {
+        "balance": debit - credit,
+        "debit": debit,
+        "credit": credit,
+        "currency": frappe.db.get_value("Company", company, "default_currency") or "",
+    }

@@ -1,0 +1,10 @@
+{
+ "doctype": "Page",
+ "name": "bnd-accounting-home",
+ "page_name": "bnd-accounting-home",
+ "title": "Accounting desk",
+ "module": "Bunood Theme",
+ "standard": "Yes",
+ "modified": "2026-10-04 00:00:00.000000",
+ "roles": [{"role":"Accounts User"},{"role":"Accounts Manager"},{"role":"Auditor"},{"role":"System Manager"}]
+}

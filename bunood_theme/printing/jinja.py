@@ -17,40 +17,90 @@ def bunood_print_language():
     return "ar" if language.startswith("ar") else "en"
 
 
-def bunood_print_image_src(value):
-    """Return a PDF-safe source for a managed brand image.
+#: A logo has to survive a render that has no page to be relative to, so the
+#: budget is the whole letterhead's weight on EVERY printed page. 512 KB of
+#: source is already generous for a 54px-tall mark; past that, dropping the
+#: logo beats bloating every invoice.
+_MAX_INLINE_BYTES = 512 * 1024
 
-    Public and remote sources can remain URLs.  Private Frappe files cannot be
-    fetched by the isolated Chromium header renderer, even though the signed-in
-    browser preview can display them, so embed that tenant-owned asset at render
-    time.  This is intentionally for compact brand marks, not line-item images.
+_MIME_BY_SUFFIX = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+}
+
+
+def bunood_print_image_src(src):
+    """Inline a site file as a data: URI so an isolated PDF header can show it.
+
+    WHY THIS EXISTS -- measured 2026-09-12, not theorised.
+
+    wkhtmltopdf renders the page header and footer as SEPARATE documents,
+    written to /tmp and rendered with no base URL. A root-relative logo like
+
+        /private/files/<arabic name>.png
+
+    therefore has nothing to resolve against; and being under `private/` it
+    would still need a session cookie even if it were absolute. wkhtmltopdf
+    exits rc=1, pdfkit raises, and frappe rethrows it as "PDF generation failed
+    because of broken image links" -- which names the symptom and hides that
+    the whole PDF was lost. EVERY managed format failed this way, and so did
+    stock `Standard`, because both carry the same letterhead.
+
+    Measured, with only the src changed and everything else held:
+
+        /private/files/... (relative)   ERR   no PDF at all
+        absolute http /assets/...       OK    76,566 B
+        data:image/png;base64,...       OK    75,532 B
+        no <img>                        OK    75,229 B
+
+    Both working forms were verified; the data: URI is the one chosen, because
+    an absolute URL cannot fetch a PRIVATE file without a session, and because
+    it does not depend on `host_name` being correct or on the site being
+    reachable from whichever process happens to render.
+
+    Degrades to "" rather than raising: a letterhead that loses its logo still
+    prints, and a printout that fails entirely does not. The caller's
+    `{% if logo %}` then drops the tag, which is also the only form measured to
+    be safe when there is nothing to show.
     """
-    if not value or not isinstance(value, str):
-        return ""
-    if value.startswith(("data:image", "http://", "https://")):
-        return value
-    if not value.startswith(("/files/", "/private/files/")):
-        return value
-    try:
-        file_name = frappe.db.get_value("File", {"file_url": value}, "name")
-        if not file_name:
-            return value
-        file_doc = frappe.get_doc("File", file_name)
-        content = file_doc.get_content()
-        if isinstance(content, str):
-            content = content.encode()
-        mime = (
-            getattr(file_doc, "mime_type", None)
-            or mimetypes.guess_type(file_doc.get("file_name") or value)[0]
-            or "application/octet-stream"
-        )
-        if not mime.startswith("image/"):
-            return ""
-        return f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
-    except Exception:
-        frappe.log_error(title="bunood_theme: print image resolution failed"[:140])
-        return ""
+    src = (src or "").strip()
+    if not src or src.startswith(("data:", "http://", "https://")):
+        return src
 
+    try:
+        import base64
+        import os
+
+        if src.startswith("/private/files/"):
+            path = frappe.get_site_path("private", "files",
+                                        src[len("/private/files/"):])
+        elif src.startswith("/files/"):
+            path = frappe.get_site_path("public", "files", src[len("/files/"):])
+        else:
+            return ""          # not a site file; nothing safe to inline
+
+        if not os.path.isfile(path):
+            return ""
+        size = os.path.getsize(path)
+        if size > _MAX_INLINE_BYTES:
+            frappe.log_error(
+                title="bunood_theme: letterhead logo too large to inline"[:140],
+                message="%s is %d bytes, over %d" % (src, size, _MAX_INLINE_BYTES),
+            )
+            return ""
+        mime = _MIME_BY_SUFFIX.get(os.path.splitext(path)[1].lower())
+        if not mime:
+            return ""
+        with open(path, "rb") as fh:
+            return "data:%s;base64,%s" % (
+                mime, base64.b64encode(fh.read()).decode("ascii"))
+    except Exception:
+        frappe.log_error(title="bunood_theme: letterhead logo inline failed"[:140])
+        return ""
 
 def bunood_amount_in_words(amount, currency, precision=2):
     """Print-only wording of the same payable number the template displays."""

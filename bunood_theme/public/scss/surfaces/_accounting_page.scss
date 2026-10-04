@@ -1,0 +1,24 @@
+.bnd-accounting-page {
+  padding: var(--bnd-sp-4);
+  color: var(--bnd-ink);
+  h2, h3 { color: var(--bnd-ink); }
+  .bnd-accounting-actions, .bnd-accounting-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--bnd-sp-3);
+    margin-block-end: var(--bnd-sp-4);
+  }
+  section {
+    padding: var(--bnd-sp-3);
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-md);
+  }
+  .bnd-accounting-records > div, .bnd-accounting-bank {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bnd-sp-3);
+    padding-block: var(--bnd-sp-2);
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+}
