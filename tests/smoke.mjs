@@ -7967,7 +7967,10 @@ print("ok")
 				expectEq(back, "Selling", "and focus returns to the row");
 
 				// Hover opens it too, after the intent delay.
-				await page.hover('.bnd-menu:not(.bnd-menu-fly) .bnd-menu-item:has-text("Selling")');
+				// The installed Bunood Selling workspace precedes Selling. A substring
+				// locator hovered that different row, unlike focusRow's exact identity.
+				await page.locator(".bnd-menu:not(.bnd-menu-fly)")
+					.getByRole("menuitem", { name: "Selling", exact: true }).hover();
 				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu LTR hover: " + error.message; throw error; });
 				expect((await fly()).items.includes("New Sales Invoice"), "hover opens the same flyout");
 				// A quick link goes where it says: a NEW Sales Invoice, every menu closed.
