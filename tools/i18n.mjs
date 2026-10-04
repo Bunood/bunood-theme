@@ -171,6 +171,11 @@ export function fromJs(paths = JS_SOURCES) {
 		const add = msg => out.push({ msg, comment: `Descriptor in ${name}` });
 		if (name === "sales_bill.js") {
 			for (const match of src.matchAll(/\btitle:\s*"([^"]+)"/g)) add(match[1]);
+			for (const constant of ["CREDIT_SALE", "MIXED_PAYMENT"]) {
+				const match = src.match(new RegExp(`const ${constant} = "([^"]+)";`));
+				if (!match) throw new Error(`Missing translated settlement constant ${constant}`);
+				add(match[1]);
+			}
 		}
 		if (name === "report_landing.js") {
 			for (const match of src.matchAll(/\b(?:label|description):\s*"([^"]+)"/g)) add(match[1]);

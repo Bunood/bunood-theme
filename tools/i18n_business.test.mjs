@@ -33,3 +33,13 @@ test("invoice prompts translate complete sentences without noun-governing placeh
 	assert.ok(!catalogue.has("Choose a {0} to see their document context here."));
 	assert.equal(assertNoCountGoverned(), 0);
 });
+
+test("native settlement values have Arabic display translations", () => {
+	const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+	const dictionary = readTranslations(join(root, "bunood_theme/translations/ar.csv"));
+	const catalogue = extractCatalogue();
+	for (const [value, display] of [["On Credit", "آجل"], ["Mixed Payment", "دفع متعدد"]]) {
+		assert.ok(catalogue.has(value), `Settlement constant not extracted: ${value}`);
+		assert.equal(dictionary.get(value), display);
+	}
+});

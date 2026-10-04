@@ -14617,3 +14617,13 @@ msgstr "راجع الفترة الضريبية من معاملات ERPNext ال�
 #, fuzzy
 msgid "Open a clear customer, supplier, employee or ledger statement."
 msgstr "افتح كشفاً واضحاً لحساب العميل أو المورد أو الموظف أو دفتر الأستاذ."
+
+#. src: native settlement display, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "On Credit"
+msgstr "آجل"
+
+#. src: native settlement display, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Mixed Payment"
+msgstr "دفع متعدد"
