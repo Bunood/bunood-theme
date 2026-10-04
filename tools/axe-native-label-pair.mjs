@@ -48,6 +48,22 @@ async function snapshot(page, result) {
   return { rows, failures, themePresent: await page.evaluate(() => !!window.bunood_theme) };
 }
 
+// Even an immediate close rejection leaves isolation uncertain. Stop the
+// browser with the same bounded fatal cleanup used for an audit timeout.
+export async function closeStockContext(context, browser, originalError, timeoutMs = 10000, cleanupMs = 10000) {
+  try {
+    await boundedAudit(async () => {
+      try { await context.close(); }
+      catch (error) { error.fatalSuite = true; throw error; }
+    }, () => browser.close(), timeoutMs, cleanupMs);
+  } catch (error) {
+    const fatal = originalError || error;
+    fatal.fatalSuite = true;
+    if (originalError) fatal.cleanupError = error;
+    throw fatal;
+  }
+}
+
 export async function verifyItemLabelsAgainstStock({ browser, page, result, AxeBuilder }) {
   const url = new URL(page.url());
   assert.equal(url.pathname, '/desk/item', 'Paired exception only supports Item list');
@@ -70,11 +86,7 @@ export async function verifyItemLabelsAgainstStock({ browser, page, result, AxeB
       assertNativeLabelPair(themed, stock);
     } catch (error) { failure = error; throw error; }
     finally {
-      try { await boundedAudit(() => context.close(), () => browser.close(), 10000); }
-      catch (error) {
-        if (failure) { failure.fatalSuite = true; failure.cleanupError = error; throw failure; }
-        throw error;
-      }
+      await closeStockContext(context, browser, failure);
     }
   }, () => browser.close());
 }
