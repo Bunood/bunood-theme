@@ -32,6 +32,8 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { DOCKER_BIN, dockerArgv } from "./docker.mjs";
+
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const require = createRequire(join(ROOT, "package.json"));
 
@@ -70,11 +72,11 @@ export function benchPy(code) {
 	for (let attempt = 1; ; attempt++) {
 		try {
 			return execFileSync(
-				"docker",
-				[
+				DOCKER_BIN,
+				dockerArgv(
 					"exec", "-i", BACKEND, "bash", "-lc",
 					"cd /home/frappe/frappe-bench/sites && ../env/bin/python -",
-				],
+				),
 				{
 					input:
 						"import frappe, json\n" +
@@ -148,7 +150,8 @@ export function mintSid(user = "Administrator") {
 export async function openDesk({ width = 1440, height = 900, user = "Administrator" } = {}) {
 	const { chromium } = require("playwright");
 	const sid = mintSid(user);
-	const browser = await chromium.launch();
+	const executablePath = process.env.BND_BROWSER_EXECUTABLE;
+	const browser = await chromium.launch(executablePath ? { executablePath } : {});
 	const context = await browser.newContext({ viewport: { width, height } });
 	await context.addCookies([
 		// The cookie must belong to the host BND_URL names: a "localhost" cookie is never

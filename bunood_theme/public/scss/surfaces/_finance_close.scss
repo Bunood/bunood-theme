@@ -65,6 +65,20 @@ html[data-theme] .bnd-close {
 
 	&__content { display: grid; gap: var(--bnd-sp-5); }
 
+	// The prompt shown until the first evidence loads: a panel in this desk's
+	// dialect, carrying the brand rail the intro and a protected state wear.
+	&__prompt {
+		max-inline-size: 48rem;
+		padding: var(--bnd-sp-5);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-inline-start: 4px solid var(--bnd-brand);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+
+		h2 { margin: 0 0 var(--bnd-sp-2); font-size: var(--bnd-text-lg); }
+		p { margin: 0; color: var(--bnd-ink-muted); line-height: 1.65; }
+	}
+
 	&__state,
 	&__failure {
 		padding: var(--bnd-sp-5);

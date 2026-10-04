@@ -12,6 +12,10 @@ __pycache__/
 # build (see ARCHITECTURE.md section 7). The LOCKFILE is committed so CI's
 # `npm ci` gate is reproducible.
 node_modules/
+/bunood_theme/public/node_modules
+
+# Local visual-acceptance captures are review artifacts, not application assets.
+/artifacts/
 
 # Env / editor
 .env

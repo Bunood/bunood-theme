@@ -1,6 +1,13 @@
 {# The native Print Language selects one complete layout. Numeric runs and
    document identifiers remain LTR inside the mirrored Arabic tables.
    Translate presentation only; never save changes to invoice data. #}
+<style>
+.bnd-invoice .bnd-inv-summary-row { width: 100%; table-layout: fixed; break-inside: avoid; }
+.bnd-invoice .bnd-inv-summary-row > tbody > tr > td { padding: 0; vertical-align: bottom; }
+.bnd-invoice .bnd-inv-summary-row .bnd-inv-summary-qr { width: 44%; text-align: center; padding-inline-end: 1rem; }
+.bnd-invoice .bnd-inv-summary-row .bnd-inv-summary-amount { width: 56%; }
+.bnd-invoice .bnd-inv-summary-row .bnd-inv-totals { width: 100%; margin-inline: 0; }
+</style>
 {% set rtl = (bnd_print_language or "en").startswith("ar") %}
 {% set lang = "ar" if rtl else "en" %}
 {% set direction = "rtl" if rtl else "ltr" %}
@@ -45,6 +52,7 @@
 {% set title_ar = "فاتورة ضريبية مبسطة" if simplified else "فاتورة ضريبية" %}
 {% endif %}
 <div class="bnd-invoice" dir="{{ direction }}" lang="{{ lang }}">
+{% from "templates/bunood_print_macros.html" import zatca_qr %}
   {% if not no_letterhead and letter_head %}
   <div {% if print_settings and print_settings.repeat_header_footer %}id="header-html" class="hidden-pdf"{% endif %}><div class="letter-head">{{ letter_head }}</div></div>
   {% endif %}
@@ -73,6 +81,9 @@
     </tr>{% endfor %}</tbody>
   </table>
   <div class="bnd-inv-summary">
+    {% if not purchase %}<table class="bnd-inv-summary-row"><tr>
+      <td class="bnd-inv-summary-qr">{{ zatca_qr(doc, 110, required=seller_vat and simplified) }}</td>
+      <td class="bnd-inv-summary-amount">{% endif %}
     <table class="bnd-inv-totals">
       <tr><th scope="row">{{ label("Net subtotal", "الإجمالي قبل الضريبة") }}</th><td dir="ltr">{{ money(doc.net_total, doc.precision("net_total")) }}</td></tr>
       <tr><th scope="row">{{ label("Taxes and charges", "إجمالي الضرائب والرسوم") }}
@@ -81,6 +92,7 @@
       {% if rounded and doc.get("rounding_adjustment") %}<tr><th scope="row">{{ label("Rounding adjustment", "تسوية التقريب") }}</th><td dir="ltr">{{ money(doc.rounding_adjustment, doc.precision("rounding_adjustment")) }}</td></tr>{% endif %}
       <tr class="bnd-inv-grand"><th scope="row">{{ label("Grand total", "الإجمالي شامل الضريبة") }}</th><td dir="ltr">{{ money(doc.rounded_total if rounded else doc.grand_total, doc.precision("grand_total"), with_currency=true) }}</td></tr>
     </table>
+    {% if not purchase %}</td></tr></table>{% endif %}
     {% if doc.get("discount_amount") %}<table class="bnd-inv-discount"><tr><th scope="row">{{ label("Additional discount (already included)", "الخصم الإضافي محتسب في الإجماليات") }}</th><td dir="ltr">{{ money(doc.discount_amount, doc.precision("discount_amount"), with_currency=true) }}{% if doc.get("additional_discount_percentage") %} ({{ doc.additional_discount_percentage | e }}%){% endif %}</td></tr></table>{% endif %}
     {% if doc.get("in_words") and frappe.db.get_single_value("Theme Settings", "print_words") != "Hide" %}
     {% set words = bunood_amount_in_words(doc.rounded_total if rounded else doc.grand_total, currency, doc.precision("grand_total")) %}
@@ -88,7 +100,6 @@
     {% endif %}
   </div>
   {% if doc.get("terms") %}<div class="bnd-inv-terms">{{ label("Terms and conditions", "الشروط والأحكام") }}<div dir="auto">{{ doc.terms }}</div></div>{% endif %}
-  {% if bunood_zatca_qr_src is defined %}{% set qr = bunood_zatca_qr_src(doc) %}{% if qr %}<div class="bnd-inv-qr"><img src="{{ qr | e }}" alt="{{ 'رمز الفاتورة' if rtl else 'Invoice QR' }}" width="100" height="100"></div>{% endif %}{% endif %}
   {# Frappe v16's Chromium path drops mixed contact/page-number footers on
      later pages once .page/.topage marks the overlay dynamic. Keep this
      managed footer static: Frappe then renders it once and merges the same

@@ -255,6 +255,66 @@
 	(function patch_chart_colors() {
 		if (!window.frappe || typeof frappe.Chart !== "function") return;
 
+		// Period labels ("Jan 2026") are English from the server; an Arabic desk
+		// reads the month in Arabic (Gregorian), the year kept.
+		const MONTH_KEYS = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ");
+		function localize_chart_periods(options) {
+			if (!options || !options.data || !options.data.labels ||
+				String(frappe.boot.lang || "").split(/[-_]/)[0] !== "ar") return options;
+			const formatter = new Intl.DateTimeFormat("ar-u-ca-gregory", { month: "long" });
+			let changed = false;
+			const labels = options.data.labels.map((label) => {
+				const match = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})$/.exec(String(label).trim());
+				if (!match) return label;
+				changed = true;
+				return `${formatter.format(new Date(2000, MONTH_KEYS.indexOf(match[1]), 15))} ${match[2]}`;
+			});
+			return changed ? Object.assign({}, options, { data: Object.assign({}, options.data, { labels }) }) : options;
+		}
+
+		// A chart is a named group, and a selected point is read out: the label
+		// and each series' value, through a polite live region beside the chart.
+		let chart_uid = 0;
+		function chart_point_text(options, index) {
+			const data = (options && options.data) || {};
+			const label = ((data.labels || [])[index] || "").toString();
+			const values = (data.datasets || []).map((dataset, i) =>
+				`${dataset.name || __("Series") + " " + (i + 1)}: ${(dataset.values || [])[index] ?? 0}`);
+			return [label, ...values].filter(Boolean).join(". ");
+		}
+		function decorate_chart(chart, parent, options) {
+			const host = parent && parent.nodeType === 1 ? parent
+				: typeof parent === "string" ? document.querySelector(parent)
+				: chart.container.parentElement;
+			if (!host) return;
+			const title = options.title ||
+				((options.data && options.data.datasets) || []).map((d) => d.name).filter(Boolean).join(", ") ||
+				__("Interactive chart");
+			chart.container.setAttribute("role", "group");
+			chart.container.setAttribute("aria-label", title);
+			// ONE announcer and ONE listener per host: a dashboard re-creates its
+			// chart in the same parent on every refresh, and the newest chart's
+			// data is the one read out.
+			let live_text = host.querySelector(":scope > .bnd-chart-announcer");
+			if (!live_text) {
+				live_text = el("span", "bnd-visually-hidden bnd-chart-announcer", {
+					id: `bnd-chart-help-${++chart_uid}`, role: "status", "aria-live": "polite",
+				});
+				host.appendChild(live_text);
+			}
+			chart.container.setAttribute("aria-describedby", live_text.id);
+			host._bnd_chart_options = options;
+			if (host._bnd_chart_select) return;
+			host._bnd_chart_select = true;
+			host.addEventListener("data-select", (event) => {
+				const index = Number(event.index ?? (event.detail && event.detail.index));
+				const node = host.querySelector(":scope > .bnd-chart-announcer");
+				if (node && Number.isInteger(index) && index >= 0) {
+					node.textContent = chart_point_text(host._bnd_chart_options, index);
+				}
+			});
+		}
+
 		// Whether a slot carries an admin colour worth KEEPING — deliberately
 		// permissive: any non-empty string. frappe-charts accepts more than #hex /
 		// rgb() / hsl() (its own PRESET_COLOR_MAP honours "teal", "blue", … via
@@ -263,6 +323,14 @@
 		// the opposite of the intent. A `[]` (the vendor's `[[]]` degenerate for an
 		// uncoloured chart), `""`, undefined or a non-string is an empty slot.
 		const admin_set = (c) => typeof c === "string" && c.trim().length > 0;
+
+		// frappe-charts cannot read var(): an admin colour given as one token is
+		// resolved to its computed value; anything else is kept as given.
+		function resolve_color(color) {
+			const match = admin_set(color) && color.trim().match(/^var\(\s*(--[\w-]+)\s*\)$/);
+			if (!match) return color;
+			return getComputedStyle(document.documentElement).getPropertyValue(match[1]).trim() || color;
+		}
 
 		// The resolved ramp, cached per theme generation. getComputedStyle returns
 		// the token's computed value; our tokens are authored as plain 6-digit hex
@@ -300,7 +368,7 @@
 			const out = [];
 			for (let i = 0; i < n; i++) {
 				const a = given[i];
-				out[i] = admin_set(a) ? a : ramp[i % ramp.length];
+				out[i] = admin_set(a) ? resolve_color(a) : ramp[i % ramp.length];
 			}
 			return out;
 		}
@@ -375,6 +443,12 @@
 
 		const NativeChart = frappe.Chart;
 		function BndChart(parent, options) {
+			// A line needs two x positions: one period drew NaN paths. The vendor's
+			// bar renderer shows the same single observation.
+			if (options && options.type === "line" && ((options.data && options.data.labels) || []).length < 2) {
+				options = Object.assign({}, options, { type: "bar" });
+			}
+			options = localize_chart_periods(options);
 			const given =
 				options && Array.isArray(options.colors) ? options.colors.slice() : [];
 			if (options) options.colors = merged_colors(given, options.type);
@@ -392,6 +466,7 @@
 			if (chart && chart.container) {
 				chart._bnd_given = given;
 				chart._bnd_type = options && options.type;
+				decorate_chart(chart, parent, options || {});
 				// Prune opportunistically so the set cannot grow without bound on a
 				// long-lived desk that renders many charts — and RETIRE rather than
 				// forget: a chart Frappe has re-rendered past is still bound to the
@@ -2160,6 +2235,17 @@
 		},
 		true
 	);
+	// Not modal: a click anywhere outside the panel and its toggle closes it,
+	// leaving focus where the click put it. The form is resolved per event,
+	// because Frappe caches pages.
+	document.addEventListener("pointerdown", (e) => {
+		if (document.documentElement.getAttribute(DRAWER_ATTR) !== "open") return;
+		const frm = window.cur_frm;
+		const footer = frm && frm.footer && frm.footer.wrapper && frm.footer.wrapper[0];
+		const path = (e.composedPath && e.composedPath()) || [];
+		if (path.includes(footer) || path.includes(drawer_current_toggle())) return;
+		drawer_set_open(false);
+	}, true);
 
 	// ── Calendar event colours (item 27 slice 3) ────────────────────────────
 	// A FullCalendar event's fill is an INLINE colour calendar.js computes in JS
@@ -2399,6 +2485,13 @@
 	function ws_symbol(icon) {
 		const want = "icon-" + (icon || "folder-normal");
 		return sb_existing_symbol([want, "icon-folder-normal"]) || want;
+	}
+
+	// A workspace title as a person reads it. The raw title is the lookup KEY;
+	// what we draw is __(title), as Frappe's header does (tests/workspace_title).
+	function ws_label(ws) {
+		const title = ws && ws.title;
+		return title ? __(title) : "";
 	}
 
 	/** A workspace's ORIGINAL desktop icon (the vendor's header uses the same
@@ -3862,14 +3955,26 @@
 	}
 
 	let language_switch_pending = false;
-	async function switch_language(code) {
+	async function switch_language(code, discard_dirty = false) {
 		if (language_switch_pending || !code) return;
-		// Unsaved edits would be lost to the reload: say so instead of losing them.
+		// Unsaved edits would be lost to the reload: say so instead of losing
+		// them, and offer the deliberate way through rather than a dead end.
 		const dirty = Object.values(window.locals || {}).some((records) =>
 			Object.values(records || {}).some((doc) => doc && doc.__unsaved && !doc.parenttype)
 		);
-		if (dirty) {
-			frappe.msgprint(__("Save or discard your unsaved changes before switching language."));
+		if (dirty && !discard_dirty) {
+			frappe.msgprint({
+				title: __("Unsaved changes"),
+				message: __("Save or discard your unsaved changes before switching language."),
+				indicator: "orange",
+				primary_action: {
+					label: __("Discard changes and switch"),
+					action: () => {
+						frappe.hide_msgprint();
+						switch_language(code, true);
+					},
+				},
+			});
 			return;
 		}
 		language_switch_pending = true;
@@ -4246,11 +4351,19 @@
 	 * @returns {HTMLElement}
 	 */
 	function build_user() {
+		// The button names whose menu it opens: the person's name in its label,
+		// and their email (or the company) beside it in the tooltip.
+		const session = frappe.session || {};
+		const user = (frappe.boot && frappe.boot.user) || {};
+		const name = session.user_fullname || user.full_name || user.first_name || session.user || "";
+		const email = user.email || session.user_email || "";
+		const detail = email && email !== name ? email : (frappe.boot?.sysdefaults?.company || "");
 		const avatar = el("button", "bnd-avatar-btn", {
 			type: "button",
 			"data-bnd-part": "user",
-			"aria-label": __("User menu"),
+			"aria-label": name ? `${__("User menu")}: ${name}` : __("User menu"),
 		});
+		if (name) avatar.title = detail ? `${name}\n${detail}` : name;
 		avatar.innerHTML = user_avatar_html();
 		avatar.setAttribute("aria-haspopup", "dialog");
 		avatar.setAttribute("aria-expanded", "false");
@@ -4695,10 +4808,19 @@
 	 * with the split.
 	 */
 	function search_fallback_order() {
-		// THE DEFAULT IS THE SHIPPED DESK'S, and it is reached often: `layout()`
-		// answers "" for any shape no card names, which is every desk that has
-		// customised a container — the honest majority, not an edge case.
-		return SEARCH_FALLBACKS[layout()] || SEARCH_FALLBACKS.unifiedsidepane;
+		const named = SEARCH_FALLBACKS[layout()];
+		if (named) return named;
+		// A SHAPE NO CARD NAMES, and it is reached often: `layout()` answers ""
+		// for every desk that has customised a container — the honest majority,
+		// not an edge case. The pane's order used to answer for all of them,
+		// which left a dock-only or bar-only desk trying slots it does not have.
+		// Resolve from the live containers instead: the dock first where there
+		// is one, then a top bar, the pane, a bottom bar; the widest order last.
+		if (container_on("dock")) return SEARCH_FALLBACKS.floatingbar;
+		if (container_on("topbar")) return SEARCH_FALLBACKS.toptaskbar;
+		if (container_on("sidepane")) return SEARCH_FALLBACKS.unifiedsidepane;
+		if (container_on("bottombar")) return SEARCH_FALLBACKS.taskbar;
+		return SEARCH_FALLBACKS.toptaskbar;
 	}
 
 	/** The container a slot needs, or null when this layout has no such bar. */
@@ -5213,11 +5335,15 @@
 		// existing cluster, returned success, and the incoming page never
 		// got one at all: no cluster, no bell, no badge, indefinitely.
 		const outgoing = frappe.container && frappe.container.page;
-		const wait_for_swap = !!(outgoing && outgoing.querySelector(".bnd-cluster"));
+		const outgoing_cluster = outgoing && outgoing.querySelector(".bnd-cluster");
+		const wait_for_swap = !!outgoing_cluster;
 		try_for(() => {
 			const page = frappe.container && frappe.container.page;
 			if (!page) return false;
-			if (wait_for_swap && page === outgoing) return false;
+			// List-to-list navigation REUSES the page object and replaces its
+			// head in place, so waiting on identity waited forever (no cluster
+			// on the new list). Wait only while the outgoing cluster is attached.
+			if (wait_for_swap && page === outgoing && outgoing_cluster.isConnected) return false;
 			const section = page.querySelector(".page-head .standard-items-section");
 			if (!section) return false;
 			if (section.querySelector(".bnd-cluster")) {
@@ -5225,7 +5351,11 @@
 				// per-ROUTE: arriving back on a cached page that still has its
 				// cluster must re-assert the attribute, or a navigation away
 				// and back leaves the stylesheet believing there is no cluster.
+				// Its placement and badge are re-asserted too: they may have
+				// changed while the page sat in the cache.
 				container_mounted("pagehead");
+				mount_placed_tenants();
+				inbox_ensure_badges();
 				return true;
 			}
 			section.appendChild(el("span", "bnd-cluster-divider"));
@@ -5323,6 +5453,14 @@
 			let resolved = false;
 
 			for (const trail of trails) {
+				// The trail's last link is the page being read: say so, and let a
+				// record title that mixes Arabic, Latin codes and punctuation take
+				// its direction from its own first strong character.
+				const current_link = trail.querySelector("li:last-child > a");
+				if (current_link) {
+					current_link.setAttribute("aria-current", "page");
+					current_link.setAttribute("dir", "auto");
+				}
 				// 1. Resolution (always) — find the workspace crumb.
 				let ws_link = null;
 				let ws = null;
@@ -5339,8 +5477,11 @@
 					if (!hit) continue;
 					ws_link = link;
 					ws = hit;
-					sb_current_workspace = ws;
-					sb_update_head();
+					// A hidden cached page's trail must not rename the current pane.
+					if (trail.closest(".page-container")?.offsetParent != null) {
+						sb_current_workspace = ws;
+						sb_update_head();
+					}
 					resolved = true;
 					break;
 				}
@@ -5603,18 +5744,26 @@
 		return "label:" + (opt.value || opt.label || "");
 	}
 
+	/** Frappe's presentation tags removed, before our own highlighting. */
+	function pal_plain_text(value) {
+		return new DOMParser().parseFromString(String(value || ""), "text/html").body.textContent || "";
+	}
+
 	/**
 	 * Map one frappe.search.utils option into a palette row model. The
 	 * marked label (match highlighting) comes from Frappe's own fuzzy_search
 	 * so the palette shows the same "why it matched" the stock bar would.
+	 * Marked over the TRANSLATED label: opt.value is Frappe's stable English
+	 * routing value, and marking it put "Item" on an Arabic palette.
 	 */
 	function pal_row(opt, species, txt) {
-		let marked = opt.label || opt.value || "";
+		const display = pal_plain_text(__(opt.label || opt.value || ""));
+		let marked = frappe.utils.escape_html(display);
 		if (txt && frappe.search.utils.fuzzy_search) {
-			const scored = frappe.search.utils.fuzzy_search(txt, opt.value || "", true);
+			const scored = frappe.search.utils.fuzzy_search(txt, display, true);
 			if (scored && scored.marked_string) marked = scored.marked_string;
 		}
-		const plain = opt.value || opt.label || "";
+		const plain = pal_plain_text(opt.value || opt.label || "");
 		// The badge names what Enter does, so a "X Report" or "X Tree" row
 		// must not wear the generic List badge of its species. Match on the
 		// UNTRANSLATED opt.type Frappe supplies — the value string is
@@ -5974,13 +6123,11 @@
 			item.appendChild(badge);
 		}
 		item.addEventListener("mousemove", () => pal_highlight(flat_index));
-		item.addEventListener("mousedown", (ev) => {
-			ev.preventDefault();
-			pal_execute(row, ev.ctrlKey || ev.metaKey);
-		});
-		// Click too: assistive tech that synthesises activation sends a plain
-		// click, not the mousedown the pointer path uses. Idempotent — the
-		// mousedown's preventDefault means a real pointer never fires both.
+		// mousedown only keeps focus in the input; the row runs on click.
+		// Running on mousedown removed the palette mid-click, and the rest of
+		// the click landed on whatever lay beneath it. Assistive activation
+		// sends the same click, so there is one path.
+		item.addEventListener("mousedown", (ev) => ev.preventDefault());
 		item.addEventListener("click", (ev) => {
 			ev.preventDefault();
 			pal_execute(row, ev.ctrlKey || ev.metaKey);
@@ -7052,29 +7199,53 @@
 	 * So stop guessing when: react to the DOM itself. Idempotent, cheap
 	 * (one paint per frame), and correct for every layout and page type.
 	 */
+	//
+	// ONE OBSERVER, and it also watches for the HOSTS arriving (team release
+	// 0a8b549): Frappe can replace the whole native notification row after the
+	// first pass decorated the outgoing one, and a layout's themed bell can be
+	// rebuilt the same way — so a native row or a bell arriving gets its badge
+	// ensured, not only a badge arriving painted. Without that, Classic and an
+	// "Off"-placed bell lost the count for good on cold loads and route changes.
+	let inbox_observer = null;
 	function inbox_observe() {
-		if (!inbox_state || !window.MutationObserver) return;
-		const observer = new MutationObserver((records) => {
+		if (!inbox_state || !window.MutationObserver || inbox_observer || !document.body) return;
+		inbox_observer = new MutationObserver((records) => {
 			if (inbox_paint_queued) return;
 			for (const record of records) {
 				for (const node of record.addedNodes) {
 					if (node.nodeType !== 1) continue;
+					const native_arrived =
+						(node.matches && node.matches(".sidebar-notification, .sidebar-notification .item-anchor")) ||
+						(node.querySelector && node.querySelector(".sidebar-notification .item-anchor"));
+					const bell_arrived =
+						(node.matches && node.matches(".bnd-bell")) ||
+						(node.querySelector && node.querySelector(".bnd-bell"));
 					if (
+						native_arrived ||
+						bell_arrived ||
 						node.classList.contains("bnd-inbox-badge") ||
 						node.querySelector(".bnd-inbox-badge")
 					) {
 						inbox_paint_queued = true;
 						requestAnimationFrame(() => {
 							inbox_paint_queued = false;
-							inbox_paint_badge();
+							inbox_ensure_badges();
 						});
 						return;
 					}
 				}
 			}
 		});
-		observer.observe(document.body, { childList: true, subtree: true });
+		inbox_observer.observe(document.body, { childList: true, subtree: true });
 	}
+
+	// Badge continuity is a DOM lifecycle concern, independent of the chosen
+	// chrome: watch before Frappe builds or replaces its native row, and let a
+	// deferred pass cover a row that already exists when this bundle runs. The
+	// rest of the kit (click routing, realtime, router) still mounts from the
+	// chrome ladder, once Frappe's own realtime client is up.
+	inbox_observe();
+	setTimeout(() => inbox_ensure_badges(), 0);
 
 	/**
 	 * Arrival tiering: an approval that blocks a document earns an
@@ -7360,7 +7531,7 @@
 		for (const ws of roots.slice(0, DOCK_SLOTS)) {
 			const item = el("button", "bnd-dock-item", {
 				type: "button",
-				title: ws.title,
+				title: ws_label(ws),
 				"data-ws": slug(ws.name),
 			});
 			item.appendChild(sprite_icon(ws_symbol(ws.icon)));
@@ -7381,7 +7552,7 @@
 				show_menu(
 					more,
 					rest.map((ws) => ({
-						label: ws.title,
+						label: ws_label(ws),
 						icon: ws_symbol(ws.icon),
 						run: () => frappe.set_route(slug(ws.name)),
 					}))
@@ -7976,7 +8147,7 @@
 		const name = document.querySelector(".bnd-sb-head .bnd-sb-head-name");
 		if (!name) return;
 		const ws = sb_current_workspace;
-		const label = (ws && ws.title) || frappe.boot.bnd_company || __("Home");
+		const label = ws_label(ws) || frappe.boot.bnd_company || __("Home");
 		name.textContent = label;
 		// The rail hides the name span; the button keeps its name regardless
 		// (measured: a rail-state scan reported .bnd-sb-head with no name).
@@ -8112,9 +8283,11 @@
 	 *  of its quick links. The cascade is an OBLIGATION of the "keep replacing"
 	 *  posture; roots only, no cap — _sidebar.scss carries why. */
 	function sb_head_menu() {
+		// `key` is the UNTRANSLATED name the dedupe below matches on; `label` is read.
 		const items = [
-			{ label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
+			{ key: "Home", label: __("Home"), icon: "icon-home", run: () => frappe.set_route("") },
 			{
+				key: "All Apps",
 				label: __("All Apps"),
 				icon: "icon-grid-2x2",
 				run: () => {
@@ -8127,7 +8300,10 @@
 		// DIFFERENT routes (/desk and /desk/home, measured) that render the same
 		// page. Two rows a person cannot tell apart are not two choices -- the
 		// rule the command palette's empty state follows one component over.
-		const taken = new Set(items.map((i) => i.label));
+		// UNTRANSLATED ON BOTH SIDES: matching the __() labels against w.title
+		// (English) only worked on an English desk; in Arabic nothing dropped
+		// and Home was listed twice (reported 2026-09-07).
+		const taken = new Set(items.map((i) => i.key));
 		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
 			(w) => !w.parent_page && !taken.has(w.title || w.name)
 		);
@@ -8606,44 +8782,73 @@
 		}
 	}
 
-	/** The last label set we fetched counts for, and when. Keyed on the SET,
-	 *  not on the clock alone — see sb_mount_badges. */
+	/** The last DocType set we fetched counts for, when, and its first node.
+	 *  Keyed on the SET, not on the clock alone — see sb_mount_badges. */
 	let sb_badges_at = 0;
 	let sb_badges_key = "";
+	let sb_badges_node = null;
+
+	/**
+	 * The pane's DocType links, by Frappe's STABLE target (item.link_to), never by
+	 * the label. The label is translated: on an Arabic desk "فاتورة مبيعات" is no
+	 * DocType name, so counting by label gave every Arabic sidebar no badges at
+	 * all. Read from the sidebar's own item instances, connected and in the pane.
+	 */
+	function sb_badge_links() {
+		const sidebar = window.frappe?.app?.sidebar;
+		const links = [];
+		const visit = (instance) => {
+			if (!instance) return;
+			const item = instance.item;
+			const node = instance.wrapper?.[0];
+			if (item?.type === "Link" && item.link_type === "DocType" &&
+				item.link_to && node?.isConnected &&
+				node.closest(".body-sidebar-top")) {
+				links.push({ node, doctype: item.link_to });
+			}
+			for (const child of instance.items || []) visit(child);
+		};
+		for (const instance of sidebar?.items || []) visit(instance);
+		return links;
+	}
 
 	/**
 	 * Live badges on sidebar links. One batched server call
-	 * (bunood_theme.api.get_sidebar_counts) returns counts for the labels
-	 * that are readable DocTypes; anything else is silently skipped. "dots"
-	 * mode marks only nonzero rows; "counts" shows the number.
+	 * (bunood_theme.api.get_sidebar_counts) returns counts for the DocTypes that
+	 * are readable and countable; anything else is silently skipped. "dots" mode
+	 * marks only nonzero rows; "counts" shows the number.
 	 */
 	function sb_mount_badges() {
 		const mode = document.documentElement.getAttribute("data-bnd-sb-badges");
 		if (mode !== "dots" && mode !== "counts") return;
 
-		const items = [...document.querySelectorAll(".body-sidebar-top .sidebar-item-container[item-name]:not(.section-item)")];
-		const labels = items.map((i) => i.getAttribute("item-name")).filter(Boolean);
-		if (!labels.length) return;
+		const links = sb_badge_links().slice(0, 40);
+		if (!links.length) return;
 
-		// The window applies WITHIN one label set, never across two: a workspace
-		// switch replaces every label and must refetch. _sidebar.scss has why.
-		const key = labels.join("|");
-		if (key === sb_badges_key && Date.now() - sb_badges_at < 60000) return;
-		// Stamp only once there is something to fetch — at first mount the item
-		// list is often not built yet, and stamping on the empty attempt
-		// throttled away the observer's retry (measured).
+		// The window applies WITHIN one DocType set on one built pane, never across
+		// two: a workspace switch changes the set, and a language switch rebuilds
+		// the nodes over the SAME set (so the first node is compared too). Stamp
+		// only once there is something to fetch — at first mount the items are
+		// often not built yet, and stamping on the empty attempt throttled away the
+		// observer's retry (measured).
+		const key = links.map((link) => link.doctype).join("|");
+		if (key === sb_badges_key && links[0].node === sb_badges_node &&
+			Date.now() - sb_badges_at < 60000) return;
 		sb_badges_key = key;
 		sb_badges_at = Date.now();
+		sb_badges_node = links[0].node;
 
 		frappe
-			.xcall("bunood_theme.api.get_sidebar_counts", { labels: labels.slice(0, 40) })
+			.xcall("bunood_theme.api.get_sidebar_counts", {
+				labels: links.map((link) => link.doctype),
+			})
 			.then((counts) => {
-				for (const item of items) {
-					const label = item.getAttribute("item-name");
-					if (!(label in counts)) continue;
-					const anchor = item.querySelector(".item-anchor");
+				for (const link of links) {
+					if (!link.node.isConnected) continue;
+					if (!Object.hasOwn(counts || {}, link.doctype)) continue;
+					const anchor = link.node.querySelector(".item-anchor");
 					if (!anchor || anchor.querySelector(".bnd-sb-badge")) continue;
-					const count = counts[label];
+					const count = counts[link.doctype];
 					// Zero is silence in BOTH modes — a wall of "0" pills reads
 					// as clutter, and an empty dot means nothing needs you.
 					if (!count) continue;
@@ -8863,6 +9068,7 @@
 		for (const n of document.querySelectorAll(".bnd-sb-badge")) n.remove();
 		sb_badges_at = 0;
 		sb_badges_key = "";
+		sb_badges_node = null;
 	}
 
 	/** Hand the container's width back to the stylesheet. */
@@ -9821,6 +10027,31 @@
 			});
 		}
 	}
+
+	// Report shortcuts (the finance desks) open a report the Studio presents
+	// in the Studio when this user may open its page AND run the report, else
+	// Frappe's query report as before. Runnable: bnd_navigation_reports if a
+	// site sends it, else Frappe's allowed_reports. Page: the landing's gate.
+	const STUDIO_REPORT_NAMES = new Set([
+		"Sales Register", "Purchase Register", "Gross Profit", "General Ledger",
+		"Accounts Receivable", "Accounts Payable", "Trial Balance",
+		"Profit and Loss Statement", "Balance Sheet", "VAT Summary",
+	]);
+	// report_studio.js derives a report's key the same way (report.key).
+	const studio_report_key = (report) =>
+		report === "VAT Summary" ? "vat-return" : report.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+	function studio_report_route(report) {
+		const boot = window.frappe?.boot || {};
+		const runnable = Array.isArray(boot.bnd_navigation_reports)
+			? boot.bnd_navigation_reports
+			: Object.keys(boot.allowed_reports || {});
+		const pages = boot.bnd_report_landing_permitted_pages;
+		const studio = Array.isArray(pages) && pages.includes("bnd-report-studio");
+		return STUDIO_REPORT_NAMES.has(report) && studio && runnable.includes(report)
+			? ["bnd-report-studio", studio_report_key(report)]
+			: ["query-report", report];
+	}
+	bunood.studio_report_route = studio_report_route;
 
 	// The Reports dashboard is fetched only on its workspace. If the optional
 	// bundle cannot load, the native workspace stays visible and usable.

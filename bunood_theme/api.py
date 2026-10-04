@@ -1508,15 +1508,20 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
 
     Returns a WHOLE document (the email preview's iframe argument — a print
     page IS one), or ``""`` on any failure: a failed preview is not a failed
-    picker.
+    picker. Normal invoice guards still apply to the fixed draft specimen;
+    if they refuse it, its thumbnail stays empty without opening a modal.
     """
     frappe.only_for("System Manager")
+    # Only the optional specimen's failed render may stand down. Keep earlier
+    # alerts, and leave the authorization denial outside this boundary.
+    message_count = len(frappe.local.message_log or [])
     try:
         import json
 
         shape = shape if shape in ("document", "invoice") else "document"
         lang = lang if lang in ("en", "ar") else "en"
         keep = frappe.local.lang
+        keep_form_dict = frappe.local.form_dict
         frappe.local.lang = lang
         try:
             from frappe.utils.jinja_globals import bundled_asset
@@ -1577,7 +1582,12 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
             )
         finally:
             frappe.local.lang = keep
+            frappe.local.form_dict = keep_form_dict
     except Exception:
+        # frappe.throw queues a client modal before raising. Catching the
+        # refused preview alone would still send that modal with HTTP 200.
+        if frappe.local.message_log:
+            del frappe.local.message_log[message_count:]
         frappe.log_error(title="bunood_theme: print preview stood down")
         return ""
 
@@ -1742,6 +1752,19 @@ def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
         from_date=from_date,
         to_date=to_date,
     )
+
+
+@frappe.whitelist()
+def asset_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native fixed-asset evidence (read-only)."""
+    from bunood_theme.asset_workbench import get_asset_workbench
+
+    return get_asset_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
 @frappe.whitelist()
 def start_readiness_review(company: str) -> dict:
     from bunood_theme.readiness_work import start_readiness_review as start

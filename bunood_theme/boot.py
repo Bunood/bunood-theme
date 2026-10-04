@@ -242,6 +242,27 @@ from bunood_theme.registry import LAYOUT_PANE
 from bunood_theme import personal as personal_axes
 
 
+#: The report Pages the Reports landing links (``report_landing.js``,
+#: ``REPORTS[].route[0]``). Its permission gate is computed for these alone.
+REPORT_LANDING_PAGES = (
+    "bnd-finance-close", "bnd-journal-workbench", "bnd-asset-workbench", "bnd-banking", "bnd-zatca",
+    "bnd-report-studio",
+)
+
+
+def _permitted_pages(names) -> list:
+    """The Pages among ``names`` that exist and whose roles admit this user.
+
+    ``Page.is_permitted`` is Frappe's own rule (no roles set, or one of the
+    user's). A Page that is not installed is simply absent from the answer.
+    """
+    return [
+        name
+        for name in names
+        if frappe.db.exists("Page", name) and frappe.get_cached_doc("Page", name).is_permitted()
+    ]
+
+
 def extend_bootinfo(bootinfo):
     """Add the theme's behaviour flags to ``frappe.boot``.
 
@@ -296,6 +317,14 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_report_landing_css = REPORT_LANDING_CSS
         bootinfo.bnd_report_landing_js = REPORT_LANDING_JS
+        # The asset manifest says a workbench is INSTALLED, not that this user
+        # may open its Page; Frappe's own Page rule (its roles) answers that. Its
+        # own try: a Page metadata hiccup costs the landing its permission gate
+        # (report_landing.js falls back to the installed gate), never the boot.
+        try:
+            bootinfo.bnd_report_landing_permitted_pages = _permitted_pages(REPORT_LANDING_PAGES)
+        except Exception:
+            bootinfo.bnd_report_landing_permitted_pages = None
         # Banking workbench is loaded only on its Page route.
         from bunood_theme.assets import BANKING_JS
 
@@ -305,10 +334,20 @@ def extend_bootinfo(bootinfo):
 
         bootinfo.bnd_finance_close_js = FINANCE_CLOSE_JS
         bootinfo.bnd_journal_workbench_js = JOURNAL_WORKBENCH_JS
+        # The fixed-asset workbench is route-scoped like the close desks.
+        from bunood_theme.assets import ASSET_WORKBENCH_JS
+
+        bootinfo.bnd_asset_workbench_js = ASSET_WORKBENCH_JS
         from bunood_theme.assets import POS_CSS, POS_JS
 
         bootinfo.bnd_pos_css = POS_CSS
         bootinfo.bnd_pos_js = POS_JS
+        # The read-only ZATCA workspace stays out of the global desk bundle;
+        # its page loads these two only when opened.
+        from bunood_theme.assets import ZATCA_CSS, ZATCA_JS
+
+        bootinfo.bnd_zatca_css = ZATCA_CSS
+        bootinfo.bnd_zatca_js = ZATCA_JS
         # Branding identifiers. The LOGO and FAVICON are handled natively by Frappe
         # (Website Settings / Navbar Settings feed `favicon` and `app_logo` straight
         # into the template), so they are intentionally absent here — setting them

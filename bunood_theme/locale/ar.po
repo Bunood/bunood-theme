@@ -11552,3 +11552,1323 @@ msgstr "المبيعات حسب مجموعة العملاء"
 #. src: js/report_studio.js
 msgid "What each customer group bought, month by month"
 msgstr "ما اشترته كل مجموعة عملاء، شهراً بشهر"
+
+#. In context.py (the reset route's tab title)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Update Password"
+msgstr "تحديث كلمة المرور"
+
+#. In report_studio.js (the VAT Return card)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "VAT figures and reconciliation checks to review before filing"
+msgstr "أرقام ضريبة القيمة المضافة وفحوص المطابقة لمراجعتها قبل تقديم الإقرار"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Opening debit balance"
+msgstr "الرصيد الافتتاحي (مدين)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Opening credit balance"
+msgstr "الرصيد الافتتاحي (دائن)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Closing debit balance"
+msgstr "الرصيد الختامي (مدين)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Closing credit balance"
+msgstr "الرصيد الختامي (دائن)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Document count"
+msgstr "عدد المستندات"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Report note"
+msgstr "ملاحظة"
+
+#. In report_studio.js (a point-in-time report's date)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "As of"
+msgstr "حتى تاريخ"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Start with a common task"
+msgstr "ابدأ بمهمة شائعة"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review sales"
+msgstr "مراجعة المبيعات"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Check customer balances"
+msgstr "التحقق من أرصدة العملاء"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review VAT"
+msgstr "مراجعة ضريبة القيمة المضافة"
+
+#. In report_studio.js (a report or a statement search that failed)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Report could not load"
+msgstr "تعذّر تحميل التقرير"
+
+#. In report_studio.js (a report or a statement search that failed)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Could not load matches. Try again."
+msgstr "تعذّر تحميل النتائج المطابقة. حاول مرة أخرى."
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the period before closing"
+msgstr "راجع الفترة قبل إقفالها"
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose a company and dates, then review the evidence. No books are changed here."
+msgstr "اختر الشركة والتواريخ ثم راجع المستندات المؤيدة. لا تتغير الدفاتر في هذه الخطوة."
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review journals for a company and period"
+msgstr "مراجعة القيود اليومية لشركة وفترة محددتين"
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose the boundary to see draft entries and supporting evidence. Posting stays in the native Journal Entry."
+msgstr "حدد نطاق الفترة لعرض القيود المسودة والمستندات المؤيدة. يبقى الترحيل في شاشة القيد اليومي الأصلية."
+
+#. In pos.py (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose a valid POS sales filter."
+msgstr "اختر مرشحًا صالحًا لمبيعات نقطة البيع."
+
+#. In pos.py (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You cannot view POS receipts."
+msgstr "ليست لديك صلاحية لعرض إيصالات نقطة البيع."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "This shift"
+msgstr "هذه الوردية"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "My sales"
+msgstr "مبيعاتي"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All permitted sales"
+msgstr "جميع المبيعات المصرح بها"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipts"
+msgstr "إيصالات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS sales register"
+msgstr "سجل مبيعات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Find receipts from both POS invoice types without counting shift consolidation twice."
+msgstr "ابحث في إيصالات نوعَي فواتير نقطة البيع دون تكرار احتساب فاتورة تجميع الوردية."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open POS"
+msgstr "فتح نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS sales filters"
+msgstr "مرشحات مبيعات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Receipt or customer"
+msgstr "الإيصال أو العميل"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Search receipt number or customer"
+msgstr "ابحث برقم الإيصال أو العميل"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All permitted companies"
+msgstr "جميع الشركات المصرح بها"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Original records, including older POS invoice types"
+msgstr "السجلات الأصلية، بما فيها أنواع فواتير نقطة البيع السابقة"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Customer and cashier"
+msgstr "العميل وأمين الصندوق"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Payment and type"
+msgstr "السداد والنوع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Load more receipts"
+msgstr "تحميل مزيد من الإيصالات"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Walk-in customer"
+msgstr "عميل نقدي"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipt"
+msgstr "إيصال نقطة بيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Partly paid"
+msgstr "مدفوعة جزئيًا"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Payment status"
+msgstr "حالة السداد"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Reprint"
+msgstr "إعادة الطباعة"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No shift is open. Open POS to start a shift."
+msgstr "لا توجد وردية مفتوحة. افتح نقطة البيع لبدء وردية."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No POS receipts match these filters."
+msgstr "لا توجد إيصالات نقطة بيع تطابق هذه المرشحات."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Your current open shift only"
+msgstr "ورديتك المفتوحة الحالية فقط"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Receipts could not be loaded. Try again."
+msgstr "تعذر تحميل الإيصالات. حاول مرة أخرى."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Loading POS receipts…"
+msgstr "جارٍ تحميل إيصالات نقطة البيع…"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipts could not be loaded. Rebuild the theme assets and try again."
+msgstr "تعذر تحميل إيصالات نقطة البيع. أعد بناء ملفات الواجهة وحاول مرة أخرى."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "View all POS receipts"
+msgstr "عرض جميع إيصالات نقطة البيع"
+
+#. In pos_workbench.js (the cart's start-over button)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "New sale"
+msgstr "عملية جديدة"
+
+#. In pos_workbench.js (resuming a held sale)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Replace the current ticket with this held sale? Hold it first if you need to keep it."
+msgstr "هل تريد استبدال الطلب الحالي بهذه العملية المعلّقة؟ علّق الطلب الحالي أولًا إذا أردت الاحتفاظ به."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status is only available for sales and POS invoices."
+msgstr "حالة الفوترة الإلكترونية متاحة لفواتير المبيعات ونقطة البيع فقط."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have access to the ZATCA workspace."
+msgstr "ليس لديك صلاحية الوصول إلى مساحة عمل الفوترة الإلكترونية."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have access to this company."
+msgstr "ليس لديك صلاحية الوصول إلى هذه الشركة."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid start date."
+msgstr "تاريخ البداية غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid end date."
+msgstr "تاريخ النهاية غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice page cursor."
+msgstr "مؤشر صفحة الفواتير غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Full connector diagnostic is available in the native record."
+msgstr "التشخيص الكامل للموصل متاح في السجل الأصلي."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid ZATCA status filter."
+msgstr "مرشح حالة زاتكا غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice type filter."
+msgstr "مرشح نوع الفاتورة غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Start date must not be after end date."
+msgstr "يجب ألا يكون تاريخ البداية بعد تاريخ النهاية."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice."
+msgstr "الفاتورة غير صالحة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Accepted with warnings"
+msgstr "مقبول مع تحذيرات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Duplicate response"
+msgstr "استجابة مكررة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Ready for batch"
+msgstr "جاهز للإرسال ضمن دفعة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Needs resend"
+msgstr "يحتاج إلى إعادة إرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Corrected; review before sending"
+msgstr "مصحح؛ راجعه قبل الإرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Clearance switched off"
+msgstr "التخليص معطل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review native record"
+msgstr "راجع السجل الأصلي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Not set"
+msgstr "غير محدد"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Pending ZATCA result"
+msgstr "بانتظار نتيجة زاتكا"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No ZATCA record"
+msgstr "لا يوجد سجل زاتكا"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Saudi riyal"
+msgstr "ريال سعودي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Connector installed"
+msgstr "الموصل مثبت"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install KSA Compliance"
+msgstr "ثبّت موصل الامتثال السعودي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install and migrate KSA Compliance on the site."
+msgstr "ثبّت موصل الامتثال السعودي ورحّله على الموقع."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox selected"
+msgstr "بيئة الاختبار محددة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Select Sandbox"
+msgstr "اختر بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the seller identity and select Sandbox in native settings."
+msgstr "راجع هوية البائع واختر بيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Device onboarded"
+msgstr "الجهاز مسجل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboard the device"
+msgstr "سجّل الجهاز"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Complete the connector's OTP onboarding in native settings."
+msgstr "أكمل تسجيل الجهاز برمز التحقق في إعدادات الموصل الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox CSID present"
+msgstr "شهادة الجهاز لبيئة الاختبار موجودة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Obtain the Sandbox CSID"
+msgstr "استخرج شهادة جهاز بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Run the connector's checks and obtain its Sandbox-issued CSID."
+msgstr "شغّل فحوصات الموصل واستخرج شهادة الجهاز الصادرة لبيئة الاختبار."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Integration enabled"
+msgstr "الربط مفعّل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Enable Sandbox integration"
+msgstr "فعّل الربط ببيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Enable the integration for Sandbox only after reviewing setup."
+msgstr "فعّل الربط لبيئة الاختبار فقط بعد مراجعة الإعدادات."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Connector not installed"
+msgstr "الموصل غير مثبت"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install KSA Compliance before starting Sandbox setup."
+msgstr "ثبّت موصل الامتثال السعودي قبل بدء إعداد بيئة الاختبار."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Company setup needed"
+msgstr "إعداد الشركة مطلوب"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Create the company's native ZATCA Business Settings."
+msgstr "أنشئ إعدادات الفوترة الإلكترونية الأصلية لهذه الشركة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox is not selected"
+msgstr "بيئة الاختبار غير محددة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "This page will not switch environments. Review the server in native settings."
+msgstr "لن تغيّر هذه الصفحة البيئة. راجع الخادم في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboarding needed"
+msgstr "تسجيل الجهاز مطلوب"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboard the device with the Sandbox OTP in native settings."
+msgstr "سجّل الجهاز برمز تحقق بيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox CSID needed"
+msgstr "شهادة جهاز بيئة الاختبار مطلوبة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Complete Sandbox checks and obtain the Sandbox-issued CSID."
+msgstr "أكمل فحوصات بيئة الاختبار واستخرج شهادة الجهاز الصادرة لها."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Integration is disabled"
+msgstr "الربط معطل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the configuration, then enable Sandbox integration in native settings."
+msgstr "راجع التهيئة، ثم فعّل الربط ببيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox connection configured"
+msgstr "اتصال بيئة الاختبار مهيأ"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Configuration is present. Test each invoice type and review its native ZATCA response."
+msgstr "التهيئة موجودة. اختبر كل نوع فاتورة وراجع استجابة الهيئة في سجله الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice monitor"
+msgstr "متابعة الفواتير"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native ZATCA records"
+msgstr "فتح سجلات زاتكا الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Submitted Sales and POS invoices. ZATCA outcomes come from the native connector."
+msgstr "فواتير المبيعات ونقطة البيع المعتمدة. تُؤخذ نتائج زاتكا من الموصل الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have permission to view ZATCA validation records."
+msgstr "ليس لديك صلاحية عرض سجلات التحقق من الفوترة الإلكترونية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All statuses"
+msgstr "جميع الحالات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Needs attention"
+msgstr "يحتاج متابعة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sales and POS invoices"
+msgstr "فواتير المبيعات ونقطة البيع"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Apply filters"
+msgstr "تطبيق المرشحات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Document type"
+msgstr "نوع المستند"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status"
+msgstr "حالة الفوترة الإلكترونية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Last attempt"
+msgstr "آخر محاولة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Load more invoices"
+msgstr "تحميل مزيد من الفواتير"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice ZATCA details"
+msgstr "تفاصيل زاتكا للفاتورة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Loading invoice details…"
+msgstr "جارٍ تحميل تفاصيل الفاتورة…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "UUID"
+msgstr "المعرّف الفريد (UUID)"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No ZATCA record exists yet for this submitted invoice."
+msgstr "لا يوجد حتى الآن سجل زاتكا لهذه الفاتورة المعتمدة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open invoice"
+msgstr "فتح الفاتورة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native validation record"
+msgstr "فتح سجل التحقق الأصلي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native integration logs"
+msgstr "فتح سجلات الربط الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice details are temporarily unavailable."
+msgstr "تفاصيل الفاتورة غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "View details"
+msgstr "عرض التفاصيل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Checking invoices…"
+msgstr "جارٍ فحص الفواتير…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoices shown: {0}"
+msgstr "الفواتير المعروضة: {0}"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No matching invoices in this batch. Continue searching."
+msgstr "لا توجد فواتير مطابقة في هذه الدفعة. تابع البحث."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No matching invoices for these filters."
+msgstr "لا توجد فواتير تطابق هذه المرشحات."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice monitor is temporarily unavailable."
+msgstr "متابعة الفواتير غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No permitted company is available. Ask your administrator for company access."
+msgstr "لا توجد شركة متاحة وفق صلاحياتك. اطلب من مسؤول النظام منحك صلاحية الشركة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Current state"
+msgstr "الحالة الحالية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Environment"
+msgstr "البيئة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sync mode"
+msgstr "نمط الإرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Next action"
+msgstr "الإجراء التالي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native ZATCA settings"
+msgstr "فتح إعدادات الفوترة الإلكترونية الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Ask an Accounts Manager with ZATCA settings access to complete this step."
+msgstr "اطلب من مدير حسابات لديه صلاحية إعدادات الفوترة الإلكترونية إكمال هذه الخطوة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Test a controlled invoice"
+msgstr "اختبر فاتورة منضبطة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Check standard and simplified Sales and POS invoices, then review their native clearance or reporting records."
+msgstr "افحص فواتير المبيعات ونقطة البيع القياسية والمبسطة، ثم راجع سجلات التخليص أو الإبلاغ الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sales invoices"
+msgstr "فواتير المبيعات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS invoices"
+msgstr "فواتير نقطة البيع"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox path"
+msgstr "مسار بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox evidence is not Production approval. A qualified Saudi reviewer must approve legal identity, tax, prints and operational controls before Production activation."
+msgstr "أدلة بيئة الاختبار ليست اعتمادًا للإنتاج. يجب أن يراجع مختص سعودي مؤهل الهوية النظامية والضريبة والطباعة والضوابط التشغيلية قبل تفعيل بيئة الإنتاج."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA workspace"
+msgstr "مساحة عمل الفوترة الإلكترونية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Set up Sandbox, inspect evidence and continue in the native connector."
+msgstr "أعدّ بيئة الاختبار، وراجع الأدلة، ثم أكمل العمل في موصل الفوترة الإلكتروني الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Refresh status"
+msgstr "تحديث الحالة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Checking ZATCA setup…"
+msgstr "جارٍ التحقق من إعدادات هيئة الزكاة والضريبة والجمارك…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status is temporarily unavailable."
+msgstr "حالة الربط مع الهيئة غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "The ZATCA workspace could not load. Rebuild the theme assets and try again."
+msgstr "تعذر تحميل مساحة عمل الفوترة الإلكترونية. أعد بناء ملفات الواجهة ثم حاول مرة أخرى."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review Sandbox setup and native invoice evidence by company."
+msgstr "راجع إعداد بيئة الاختبار وأدلة الفواتير الأصلية لكل شركة."
+
+#. In bunood.js (switching language with unsaved changes)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Unsaved changes"
+msgstr "تغييرات غير محفوظة"
+
+#. In bunood.js (switching language with unsaved changes)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Discard changes and switch"
+msgstr "تجاهل التغييرات والتبديل"
+
+#. In bunood.js (charts: the named group and its read-out)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Series"
+msgstr "سلسلة"
+
+#. In bunood.js (charts: the named group and its read-out)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Interactive chart"
+msgstr "رسم بياني تفاعلي"
+
+#. In asset_workbench.py (the fixed-asset workbench)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Maximum fixed-asset review period in days: {0}"
+msgstr "الحد الأقصى لفترة مراجعة الأصول الثابتة بالأيام: {0}"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset attention is required"
+msgstr "يلزم الانتباه إلى الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review due or failed depreciation and open repairs in their native records before close."
+msgstr "راجع الإهلاك المستحق أو المتعثر والإصلاحات المفتوحة في سجلاتها الأصلية قبل الإقفال."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset review is required"
+msgstr "تلزم مراجعة الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Draft asset lifecycle records still require authorised review and native submission."
+msgstr "ما زالت مسودات دورة حياة الأصول تحتاج إلى مراجعة معتمدة واعتماد في مستنداتها الأصلية."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset evidence is incomplete"
+msgstr "بيانات الأصول غير مكتملة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "A permitted query failed or a bounded result was truncated. No clean-register conclusion was inferred."
+msgstr "تعذّر أحد الاستعلامات المسموح بها أو اقتُطعت نتيجة محدودة، فلم يُستنتج أن السجل سليم."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No exceptions observed in this bounded view"
+msgstr "لم تُرصد استثناءات في هذا العرض المحدود"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This is not fixed-asset or General Ledger reconciliation. Complete the native reports and qualified review."
+msgstr "هذه ليست مطابقة للأصول الثابتة ولا لدفتر الأستاذ العام. أكمل التقارير الأصلية والمراجعة المؤهلة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review the native asset records for this company and period."
+msgstr "راجع سجلات الأصول الأصلية لهذه الشركة والفترة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation posting failed"
+msgstr "تعذّر ترحيل الإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation due by boundary"
+msgstr "إهلاك مستحق حتى نهاية النطاق"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Maintenance or repair attention"
+msgstr "تحتاج إلى صيانة أو إصلاح"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fully depreciated"
+msgstr "مُهلك بالكامل"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "In use"
+msgstr "قيد الاستخدام"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Disposed"
+msgstr "مستبعد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fixed-asset lifecycle"
+msgstr "دورة حياة الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Physical custody and accounting value are different controls. Use the native document that matches the event."
+msgstr "العهدة المادية والقيمة المحاسبية ضابطان مختلفان. استخدم المستند الأصلي المطابق للحدث."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Acquire and capitalize"
+msgstr "الاقتناء والرسملة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Create the asset from its fixed-asset Item or combine eligible costs through Asset Capitalization."
+msgstr "أنشئ الأصل من صنف الأصل الثابت الخاص به، أو اجمع التكاليف المؤهلة عبر رسملة الأصول."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New capitalization"
+msgstr "رسملة جديدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Put in use and depreciate"
+msgstr "التشغيل والإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Confirm available-for-use date, Finance Book, method, useful life, residual value and schedule before posting."
+msgstr "تحقق من تاريخ الجاهزية للاستخدام والدفتر المالي والطريقة والعمر الإنتاجي والقيمة المتبقية والجدول قبل الترحيل."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation schedules"
+msgstr "جداول الإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Move and assign custody"
+msgstr "النقل وتسليم العهدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use Asset Movement for location and custodian changes. Do not edit the visible location as an unaudited shortcut."
+msgstr "استخدم «حركة الأصل» لتغيير الموقع وأمين العهدة، ولا تعدّل الموقع الظاهر اختصارًا بلا تدقيق."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New movement"
+msgstr "حركة جديدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Maintain and repair"
+msgstr "الصيانة والإصلاح"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Keep planned maintenance separate from failures, repair cost and any policy-approved capitalization."
+msgstr "افصل الصيانة المخططة عن الأعطال وتكلفة الإصلاح وأي رسملة تجيزها السياسة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New repair"
+msgstr "إصلاح جديد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Adjust or dispose"
+msgstr "التسوية أو الاستبعاد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use a supported value adjustment, fixed-asset sale or scrap workflow so carrying value and gain or loss remain traceable."
+msgstr "استخدم مسارًا معتمدًا لتسوية القيمة أو بيع الأصل أو تخريده، لتبقى القيمة الدفترية والربح أو الخسارة قابلة للتتبع."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Value adjustment"
+msgstr "تسوية القيمة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current asset queue"
+msgstr "قائمة الأصول الحالية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The period filters lifecycle activity. This queue shows the current permitted Asset register state, prioritised by attention."
+msgstr "الفترة تُصفّي نشاط دورة الحياة، أما هذه القائمة فتعرض الحالة الحالية لسجل الأصول المسموح به مرتبةً حسب الحاجة إلى الانتباه."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted Asset records were observed for this company."
+msgstr "لم تُرصد سجلات أصول مسموح بها لهذه الشركة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Lifecycle state"
+msgstr "حالة دورة الحياة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Location or custodian"
+msgstr "الموقع أو أمين العهدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Next depreciation"
+msgstr "الإهلاك التالي"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Carrying value"
+msgstr "القيمة الدفترية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This is a bounded queue. Open the native Asset list and reports for the complete permitted result."
+msgstr "هذه قائمة محدودة. افتح قائمة الأصول والتقارير الأصلية للاطلاع على النتيجة الكاملة المسموح بها."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "A schedule is not a posted expense. Verify each Finance Book, future row and linked Journal Entry in the native schedule and ledger report."
+msgstr "الجدول ليس مصروفًا مرحّلًا. تحقق من كل دفتر مالي وكل صف مستقبلي وقيد اليومية المرتبط في الجدول وتقرير الأستاذ الأصليين."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted Asset Depreciation Schedule was observed."
+msgstr "لم يُرصد جدول إهلاك أصول مسموح به."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current scheduled value"
+msgstr "القيمة المجدولة الحالية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Lifecycle activity and open repairs"
+msgstr "نشاط دورة الحياة والإصلاحات المفتوحة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Open the source document to verify affected assets, stock or service cost, accounting date, evidence and approval history."
+msgstr "افتح المستند المصدر للتحقق من الأصول المتأثرة وتكلفة المخزون أو الخدمة والتاريخ المحاسبي والإثباتات وسجل الاعتماد."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted lifecycle activity or open repair was observed in this boundary."
+msgstr "لم يُرصد في هذا النطاق نشاط لدورة الحياة أو إصلاح مفتوح مسموح به."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset or purpose"
+msgstr "الأصل أو الغرض"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Register-to-ledger review"
+msgstr "مراجعة السجل مقابل الأستاذ"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use the same company, cutoff date, Finance Book, currency and dimensions. Reconcile asset cost, accumulated depreciation, depreciation expense, value adjustments and disposal gain or loss; investigate manual journals and timing differences."
+msgstr "استخدم الشركة وتاريخ القطع والدفتر المالي والعملة والأبعاد نفسها. طابق تكلفة الأصول ومجمع الإهلاك ومصروف الإهلاك وتسويات القيمة وربح الاستبعاد أو خسارته، وافحص القيود اليدوية وفروق التوقيت."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation and balances"
+msgstr "الإهلاك والأرصدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This view does not declare the boundary reconciled. Qualified preparer and reviewer evidence remains required."
+msgstr "لا يعلن هذا العرض أن النطاق مطابَق، وتبقى إثباتات المُعِدّ والمراجع المؤهلَين مطلوبة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Assets observed"
+msgstr "الأصول المرصودة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current permitted register rows"
+msgstr "صفوف السجل الحالية المسموح بها"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Attention queue"
+msgstr "قائمة الانتباه"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Due or failed depreciation and open repairs"
+msgstr "إهلاك مستحق أو متعثر وإصلاحات مفتوحة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Observed carrying value"
+msgstr "القيمة الدفترية المرصودة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Not a reconciled register total"
+msgstr "ليست إجماليًا مطابقًا للسجل"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Period activity"
+msgstr "نشاط الفترة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Movements, capitalization, adjustments and disposal"
+msgstr "الحركات والرسملة والتسويات والاستبعاد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Native ERPNext asset lifecycle"
+msgstr "دورة حياة الأصول الأصلية في ERPNext"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fixed asset workbench"
+msgstr "مساحة عمل الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Track acquisition, custody, depreciation, maintenance, value changes and disposal without hiding native accounting controls."
+msgstr "تتبّع الاقتناء والعهدة والإهلاك والصيانة وتغيرات القيمة والاستبعاد دون حجب الضوابط المحاسبية الأصلية."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review assets"
+msgstr "مراجعة الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench could not be loaded"
+msgstr "تعذّر تحميل مساحة عمل الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No asset or accounting record was changed. Review the error, then try again."
+msgstr "لم يتغير أي سجل للأصول أو للمحاسبة. راجع الخطأ ثم حاول مرة أخرى."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench bundle is not registered. Rebuild the theme assets."
+msgstr "حزمة مساحة عمل الأصول الثابتة غير مسجلة. أعد بناء ملفات السمة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench failed to load. Check the browser console."
+msgstr "تعذر تحميل مساحة عمل الأصول الثابتة. تحقق من وحدة تحكم المتصفح."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review assets, depreciation, repairs and lifecycle drafts by company and period."
+msgstr "راجع الأصول والإهلاك والإصلاحات ومسودات دورة الحياة حسب الشركة والفترة."

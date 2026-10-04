@@ -877,6 +877,14 @@ def _auth_context(context):
     The page's title and subtitle remain literals in ``www/login.html`` with no
     seam at all, which is filed upstream.
     """
+    # THE TAB TITLE IN THE PAGE'S LANGUAGE. `www/login.py` sets the literal
+    # "Login" and `base.html` prints `title` through `striptags` with no `_()`,
+    # so an Arabic sign-in page carried an English tab title. Both strings are
+    # Frappe's own, so their Arabic comes with the framework. Set BEFORE
+    # `_identity_meta` below composes the tenant's name onto it.
+    context.title = frappe._(
+        "Update Password" if context.get("template") == "www/update-password.html" else "Login"
+    )
     classes = (context.get("body_class") or "").split()
     if AUTH_BODY_CLASS not in classes:
         classes.append(AUTH_BODY_CLASS)
@@ -908,6 +916,8 @@ def _auth_context(context):
 
     _vendor_marks(context)
 
+    _auth_language_switch(context)
+
     # THE LOGO, and slice 7b turned item 32's one-way override into a chain.
     #
     # `www/login.py:51` sets `context.logo = get_app_logo()`, which reads Website
@@ -932,6 +942,75 @@ def _auth_context(context):
         context.logo = _attr(VENDOR_MARK)
 
     _identity_meta(context, compose_title=True)
+
+
+def _auth_language_switch(context):
+    """The guest language switch on ``/login`` and ``/update-password``.
+
+    Ported from the team's release (0a8b549, ``context._auth_extras``) WITHOUT its
+    fixed English/Arabic pair, its script and its ``before_request`` hook:
+
+    * **The languages are the site's.** Item 44's ``language.offered_languages`` —
+      the list the desk switch draws from and ``api.set_language`` validates
+      against — so a site offering one language draws no switch and a site
+      offering three draws three. Each choice is written in its own language and
+      direction (``lang``/``dir``), so a visitor who cannot read the current
+      interface can still find theirs.
+    * **No script, no hook.** Each choice is a link carrying ``_lang``, which
+      Frappe's ``get_language`` honours for a guest by itself (measured on a
+      website route, ``docs/upstream/frappe-website.md`` §9 — the team's
+      ``before_request`` hook, which also overrode every guest's language, is not
+      needed for it), so the switch works before any script runs and is right
+      at first paint.
+    * **A query-only relative link.** ``?…&_lang=xx`` keeps the current path, so
+      the request path is never echoed into the page, and the rest of the query
+      (``redirect-to``, the reset ``key``) survives the switch. ``urlencode``
+      percent-encodes every pair, so a hostile query string arrives as inert
+      ``%xx`` text; the language names are escaped as element text.
+
+    Rendered through ``banner_html`` (APPENDED: a Website Settings banner keeps
+    its place) because the auth templates offer no other seam above the card;
+    ``web/_login.scss`` fixes it to the top-start corner, out of the flow.
+    """
+    import html
+    from urllib.parse import parse_qsl, urlencode
+
+    from bunood_theme.language import offered_languages
+    from bunood_theme.setup import is_rtl
+
+    languages = offered_languages()
+    if len(languages) < 2:
+        return
+
+    request = getattr(frappe.local, "request", None)
+    raw = getattr(request, "query_string", b"") or b""
+    if isinstance(raw, bytes):
+        raw = raw.decode("utf-8", "replace")
+    query = [(key, value) for key, value in parse_qsl(raw, keep_blank_values=True) if key != "_lang"]
+
+    # The current choice: the request's language, or failing an exact match its
+    # parent (`ar-SA` marks `ar`), the way `setup.is_rtl` resolves a dialect.
+    codes = [row["code"] for row in languages]
+    current = str(getattr(frappe.local, "lang", "") or "")
+    if current not in codes:
+        parent = current.split("-")[0].split("_")[0]
+        current = next((c for c in codes if c.split("-")[0].split("_")[0] == parent), "")
+
+    choices = []
+    for row in languages:
+        code = row["code"]
+        href = html.escape("?" + urlencode([*query, ("_lang", code)]))
+        mark = ' aria-current="true"' if code == current else ""
+        choices.append(
+            f'<a class="bnd-auth-language-choice" href="{href}" hreflang="{html.escape(code)}" '
+            f'lang="{html.escape(code)}" dir="{"rtl" if is_rtl(code) else "ltr"}"{mark}>'
+            f"{html.escape(row['name'])}</a>"
+        )
+    label = html.escape(frappe._("Language"))
+    context.banner_html = (
+        f'{context.get("banner_html") or ""}'
+        f'<div class="bnd-auth-language-switch" role="group" aria-label="{label}">{"".join(choices)}</div>'
+    )
 
 
 def _brand_css_url():

@@ -152,6 +152,21 @@ class MigrationScopePolicyTests(unittest.TestCase):
     def tearDown(self):
         self.throw_patch.stop()
 
+    def test_frozen_scope_digest_survives_restore_to_isolated_site(self):
+        run = migration_run(
+            source_site="migration.localhost",
+            source_database_digest="a" * 64,
+        )
+        source = migration_scope.build_migration_snapshot(run)
+        with patch.object(migration_scope.frappe.local, "site", "rehearsal.localhost"):
+            restored = migration_scope.build_migration_snapshot(run)
+        self.assertEqual(source, restored)
+        self.assertEqual(source["site"], "migration.localhost")
+        self.assertEqual(
+            migration_scope.snapshot_digest(source),
+            migration_scope.snapshot_digest(restored),
+        )
+
     def test_dependency_order_accepts_subset_and_rejects_reversal(self):
         ordered = migration_run(
             datasets=[
@@ -511,6 +526,32 @@ class MigrationRehearsalPolicyTests(unittest.TestCase):
         self.assertTrue(result["native_job_enqueued"])
         self.assertFalse(result["production_import_authorized"])
 
+    def test_completed_native_rehearsal_replay_returns_existing_receipt(self):
+        run = migration_run(name="BND-MIG-2026-00001")
+        row = run.datasets[0]
+        native = types.SimpleNamespace(status="Success")
+        with (
+            patch.object(migration_rehearsal, "_mapped_context", return_value=(run, row)),
+            patch.object(
+                migration_rehearsal,
+                "_isolated_environment",
+                return_value={"site": "rehearsal.localhost", "database_digest": "b" * 64},
+            ),
+            patch.object(migration_rehearsal, "_native_import", return_value=native),
+            patch.object(migration_rehearsal, "_file_hash", return_value=("/private/files/source.csv", "a" * 64)),
+            patch.object(migration_rehearsal, "_identity", return_value="c" * 64),
+            patch.object(
+                migration_rehearsal.frappe,
+                "get_list",
+                return_value=[{"name": "BND-REH-2026-00001", "docstatus": 1, "control_state": "dry-run-validated"}],
+                create=True,
+            ),
+        ):
+            result = migration_rehearsal.start_isolated_migration_rehearsal(run.name, row.name)
+        self.assertFalse(result["created"])
+        self.assertFalse(result["native_job_enqueued"])
+        self.assertEqual(result["name"], "BND-REH-2026-00001")
+
     def test_row_receipt_hashes_sensitive_native_errors(self):
         rows = migration_rehearsal._privacy_minimised_results(
             [
@@ -634,6 +675,94 @@ class MigrationRehearsalPolicyTests(unittest.TestCase):
         self.assertFalse(result["production_import_authorized"])
         self.assertFalse(result["reconciled"])
         self.assertFalse(result["accepted"])
+
+    def test_native_template_warnings_close_pending_rehearsal_without_leaking_text(self):
+        self.assertEqual(
+            migration_rehearsal._blocking_template_warning_count('[{"type":"info","message":"ordinary notice"}]'),
+            0,
+        )
+        self.assertEqual(
+            migration_rehearsal._blocking_template_warning_count('[{"type":"warning","message":"invalid link"}]'),
+            1,
+        )
+        row = dataset()
+        run = migration_run(
+            docstatus=1,
+            control_state="mapped",
+            source_site="production.localhost",
+            source_database_digest="a" * 64,
+            datasets=[row],
+            scope_digest="c" * 64,
+        )
+        native = types.SimpleNamespace(
+            name="Customer Import on clone",
+            template_warnings='[{"type":"warning","message":"Sensitive customer number 12345"}]',
+        )
+
+        class Rehearsal(types.SimpleNamespace):
+            def check_permission(self, _permission):
+                pass
+
+            def set(self, fieldname, value):
+                setattr(self, fieldname, value)
+
+            def append(self, fieldname, value):
+                getattr(self, fieldname).append(types.SimpleNamespace(**value))
+
+            def save(self):
+                migration_rehearsal.validate_rehearsal_document(self)
+
+            def submit(self):
+                migration_rehearsal.validate_rehearsal_document(self)
+                self.docstatus = 1
+
+        receipt = Rehearsal(
+            name="BND-REH-2026-00002",
+            docstatus=0,
+            flags=types.SimpleNamespace(),
+            migration_run=run.name,
+            dataset_row=row.name,
+            data_import=native.name,
+            control_state="running",
+            source_site=run.source_site,
+            source_database_digest=run.source_database_digest,
+            rehearsal_site="rehearsal.localhost",
+            rehearsal_database_digest="b" * 64,
+            isolated_environment=1,
+            scope_digest=run.scope_digest,
+            rehearsal_identity="d" * 64,
+            actual_file_hash=row.source_snapshot_hash,
+            identity_rule_reference=row.identity_rule_reference,
+            duplicate_disposition=row.duplicate_disposition,
+            row_results=[],
+        )
+        environment = {"site": "rehearsal.localhost", "database_digest": "b" * 64}
+        with (
+            patch.object(migration_rehearsal.frappe, "get_doc", return_value=receipt, create=True),
+            patch.object(migration_rehearsal, "runtime_environment_identity", return_value=environment),
+            patch.object(migration_rehearsal, "_mapped_context", return_value=(run, row)),
+            patch.object(migration_rehearsal, "_isolated_environment", return_value=environment),
+            patch.object(migration_rehearsal, "_native_import", return_value=native),
+            patch.object(
+                migration_rehearsal,
+                "_file_hash",
+                return_value=("/private/files/customers.csv", row.source_snapshot_hash),
+            ),
+            patch.object(
+                migration_rehearsal,
+                "_native_result",
+                return_value=({"status": "Pending", "total_records": 1}, []),
+            ),
+        ):
+            result = migration_rehearsal.capture_isolated_migration_rehearsal(receipt.name)
+
+        snapshot = migration_rehearsal.json.loads(receipt.result_snapshot)
+        self.assertEqual(receipt.docstatus, 1)
+        self.assertEqual(receipt.control_state, "exception")
+        self.assertFalse(result["dry_run_validated"])
+        self.assertTrue(snapshot["native_result"]["template_validation_blocked"])
+        self.assertEqual(snapshot["native_result"]["template_warning_count"], 1)
+        self.assertNotIn("12345", receipt.result_snapshot)
 
     def test_failed_row_download_delegates_to_native_export_after_receipt_guards(self):
         row = dataset()

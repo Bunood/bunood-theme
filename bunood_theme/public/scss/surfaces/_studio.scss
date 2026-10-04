@@ -149,6 +149,75 @@
 		color: var(--bnd-ink-muted);
 	}
 
+	// ── Common tasks — three doors into existing reports ────────────────────
+	// Quiet buttons above the areas, in the card's hairline dialect but a step
+	// smaller: they open the same permission-checked reports the cards do, so
+	// they must not outshout them. auto-fit stacks them on a narrow screen
+	// without a breakpoint of their own.
+	.bnd-studio__start {
+		margin-block-end: var(--bnd-sp-4);
+	}
+
+	.bnd-studio__start-title {
+		margin: 0;
+		margin-block-end: var(--bnd-sp-2);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-studio__start-links {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr));
+		gap: var(--bnd-sp-3);
+	}
+
+	.bnd-studio__start-link {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		align-items: center;
+		gap: var(--bnd-sp-1) var(--bnd-sp-3);
+		padding-block: var(--bnd-sp-3);
+		padding-inline: var(--bnd-sp-4);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-surface);
+		color: inherit;
+		text-align: start;
+		cursor: pointer;
+		transition:
+			background var(--bnd-dur-fast) var(--bnd-ease),
+			border-color var(--bnd-dur-fast) var(--bnd-ease);
+
+		&:hover {
+			background: var(--bnd-hover);
+			border-color: var(--bnd-border-strong);
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
+
+		strong {
+			grid-column: 1;
+			font-size: var(--bnd-text-base);
+			font-weight: var(--bnd-weight-semibold);
+		}
+
+		> span:not(.bnd-studio__start-arrow) {
+			grid-column: 1;
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-sm);
+		}
+	}
+
+	.bnd-studio__start-arrow {
+		grid-column: 2;
+		grid-row: 1 / 3;
+		color: var(--bnd-ink-muted);
+	}
+
 	// ── Gallery grid ────────────────────────────────────────────────────────
 	.bnd-studio__gallery-tools {
 		display: flex;
@@ -165,6 +234,24 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(min(19rem, 100%), 1fr));
 		gap: var(--bnd-sp-3);
+	}
+
+	// The all-reports gallery groups its cards under their area's name: a row
+	// of the grid, not a card, so it spans every column. A section line in the
+	// hero's hairline dialect, muted semibold like the domain label it replaces.
+	.bnd-studio__group-title {
+		grid-column: 1 / -1;
+		margin: 0;
+		margin-block-start: var(--bnd-sp-3);
+		padding-block-end: var(--bnd-sp-1);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		font-weight: var(--bnd-weight-semibold);
+
+		&:first-child {
+			margin-block-start: 0;
+		}
 	}
 
 	.bnd-studio__gallery-empty {
@@ -1043,6 +1130,29 @@
 		font-variant-numeric: tabular-nums;
 		text-align: center;
 		min-block-size: 1em; // لا يقفز الجدول حين يظهر العدد أو يغيب
+	}
+
+	// A failed search offers its retry on the count line, as a text button in
+	// the brand's text ink, underlined on hover and focus like .bnd-studio__link.
+	.bnd-studio__picker-retry {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--bnd-brand-ink);
+		font-size: var(--bnd-text-sm);
+		text-decoration: none;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
+
+		&:hover,
+		&:focus-visible {
+			text-decoration: underline;
+		}
+
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
 	}
 
 	// ── الصفوف ──────────────────────────────────────────────────────────────

@@ -289,7 +289,11 @@ def build_migration_snapshot(doc: Any) -> dict[str, Any]:
     snapshot = {
         "schema_version": 1,
         "claim_boundary": "mapped-scope-only-not-imported-reconciled-or-accepted",
-        "site": _clean(getattr(getattr(frappe, "local", None), "site", "")),
+        # A submitted packet is deliberately restored to another site for its
+        # rehearsal. Its frozen source site remains part of the scope digest;
+        # the current runtime site is only the fallback while drafting.
+        "site": _clean(_value(doc, "source_site"))
+        or _clean(getattr(getattr(frappe, "local", None), "site", "")),
         "candidate_reference": _clean(_value(doc, "candidate_reference")),
         "app": {
             "name": "bunood_theme",

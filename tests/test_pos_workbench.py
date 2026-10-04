@@ -79,6 +79,10 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn("getdate(row.period_start_date) != today", self.source)
         self.assertIn('"stale_opening_entry"', self.source)
 
+    def test_context_selects_profile_from_mapping_payload(self):
+        self.assertIn('row["name"] for row in profiles if row["is_default"]', self.source)
+        self.assertIn('profiles[0]["name"]', self.source)
+
 
 if __name__ == "__main__":
     unittest.main()

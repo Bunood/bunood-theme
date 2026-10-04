@@ -228,7 +228,9 @@ async function main() {
 
 	// آلة التعافي: لقطة للحطام، ثم عودة قسرية إلى شبكة النطاق الجاري.
 	let shotIndex = 0;
-	let currentDomain = "المبيعات";
+	// The gallery opens on every report, grouped by area (team integration 0a8b549).
+	const OPENING_DOMAIN = "كل التقارير";
+	let currentDomain = OPENING_DOMAIN;
 	snapshot = async () => {
 		try {
 			const path = `/tmp/studio-shots/fail-${String(++shotIndex).padStart(2, "0")}.png`;
@@ -249,7 +251,7 @@ async function main() {
 				await page.goto(`${URL_BASE}/app/bnd-report-studio`, { waitUntil: "domcontentloaded" });
 				await page.waitForSelector(".bnd-studio__grid", { timeout: 20000 });
 			}
-			if (currentDomain !== "المبيعات") {
+			if (currentDomain !== OPENING_DOMAIN) {
 				await page.click(`.bnd-studio__domain >> text="${currentDomain}"`);
 				await page.waitForTimeout(300);
 			}

@@ -43,6 +43,7 @@ class PrintQrTests(unittest.TestCase):
                 get_value=lambda *args, **kwargs: "SIAF-0001",
             ),
             get_meta=lambda doctype: meta,
+            get_all=Mock(return_value=[SimpleNamespace(name="SIAF-0001")]),
             get_doc=lambda doctype, name: AdditionalFields(),
             log_error=Mock(),
             local=SimpleNamespace(lang="en"),
@@ -57,6 +58,35 @@ class PrintQrTests(unittest.TestCase):
             module.bunood_zatca_qr_src(invoice),
             "data:image/png;base64,phase-two-image",
         )
+        fake_frappe.log_error.assert_not_called()
+
+    def test_pos_invoice_reads_the_latest_record_for_its_own_doctype(self):
+        fields = {"sales_invoice", "invoice_doctype", "is_latest"}
+        meta = SimpleNamespace(has_field=lambda field: field in fields)
+        fake_frappe = SimpleNamespace(
+            db=SimpleNamespace(exists=lambda doctype, name=None: doctype == "DocType"),
+            get_meta=lambda doctype: meta,
+            get_all=Mock(return_value=[SimpleNamespace(name="SIAF-0002")]),
+            get_doc=lambda doctype, name: AdditionalFields(),
+            log_error=Mock(),
+            local=SimpleNamespace(lang="en"),
+        )
+        spec = importlib.util.spec_from_file_location("isolated_print_jinja_pos", SOURCE)
+        module = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {"frappe": fake_frappe}):
+            spec.loader.exec_module(module)
+
+        invoice = Invoice(doctype="POS Invoice", name="ACC-PSINV-TEST")
+        self.assertEqual(
+            module.bunood_zatca_qr_src(invoice),
+            "data:image/png;base64,phase-two-image",
+        )
+        kwargs = fake_frappe.get_all.call_args.kwargs
+        self.assertEqual(
+            kwargs["filters"],
+            {"sales_invoice": "ACC-PSINV-TEST", "invoice_doctype": "POS Invoice", "is_latest": 1},
+        )
+        self.assertEqual(kwargs["order_by"], "creation desc")
         fake_frappe.log_error.assert_not_called()
 
     def test_private_brand_image_is_embedded_for_isolated_pdf_headers(self):

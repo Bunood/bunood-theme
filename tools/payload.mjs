@@ -61,6 +61,7 @@ const BUCKETS = [
 	{ dir: ["css"], prefix: "bnd-report-landing.", key: "report_landing_css" },
 	{ dir: ["css"], prefix: "bnd-studio.", key: "studio_css" },
 	{ dir: ["css"], prefix: "bnd-pos.", key: "pos_css" },
+	{ dir: ["css"], prefix: "bnd-zatca.", key: "zatca_css" },
 	{ dir: ["css"], prefix: "bunood-web.", key: "web_css" },
 	{ dir: ["css"], prefix: "bunood-email.", key: "email_css" },
 	// Substitution INPUT, not wire bytes: printing/sheet.py reads this file and
@@ -78,7 +79,10 @@ const BUCKETS = [
 	{ dir: ["js"], prefix: "bnd-banking.", key: "banking_js" },
 	{ dir: ["js"], prefix: "bnd-finance-close.", key: "finance_close_js" },
 	{ dir: ["js"], prefix: "bnd-journal-workbench.", key: "journal_workbench_js" },
+	{ dir: ["js"], prefix: "bnd-asset-workbench.", key: "asset_workbench_js" },
 	{ dir: ["js"], prefix: "bnd-pos.", key: "pos_js" },
+	// The read-only ZATCA workspace loads its bundle only on bnd-zatca.
+	{ dir: ["js"], prefix: "bnd-zatca.", key: "zatca_js" },
 ];
 
 export function measure() {
@@ -128,8 +132,9 @@ export function measure() {
 export const CEILING_KEYS = [
 	"css_gzip", "js_gzip", "studio_js_gzip", "studio_css_gzip",
 	"report_landing_css_gzip", "report_landing_js_gzip", "banking_js_gzip",
-	"finance_close_js_gzip", "journal_workbench_js_gzip",
+	"finance_close_js_gzip", "journal_workbench_js_gzip", "asset_workbench_js_gzip",
 	"pos_css_gzip", "pos_js_gzip",
+	"zatca_css_gzip", "zatca_js_gzip",
 	"web_css_gzip", "email_css_gzip", "print_css_gzip",
 ];
 
@@ -146,6 +151,10 @@ export function checkPayload() {
 	const now = measure();
 	const over = [];
 	for (const key of CEILING_KEYS) {
+		if (!Number.isFinite(ledger.ceiling[key])) {
+			over.push(`${key}: no finite ceiling is recorded`);
+			continue;
+		}
 		if (now[key] > ledger.ceiling[key]) {
 			over.push(`${key}: ${now[key]} > ceiling ${ledger.ceiling[key]} (+${now[key] - ledger.ceiling[key]} bytes)`);
 		}

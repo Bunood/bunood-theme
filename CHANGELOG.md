@@ -24,6 +24,104 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.49.2] — 2026-10-03 — the Saudi riyal sign on every desk (patch)
+
+**Numbered after v0.49.1.** Prepared as 0.48.6 on 2026-09-28, on top of 0.48.5, and never tagged; 0.48.5 shipped as
+0.49.1 after the settings audit (v0.49.0), so this patch on top of it is 0.49.2. Its patch keeps its module path,
+`v0_48_6.saudi_riyal_symbol`, and runs before the placement healer, which the audit keeps last.
+
+### Changed — SAR is written with the sign SAMA published
+
+The owner asked for the Saudi riyal sign (U+20C1) everywhere: «العمله الريال السعودي svg … رمز
+الريال السعودي يكون في النظام كامل». The theme already carried SAMA's own artwork
+(`fonts/riyal/Saudi_Riyal_Symbol-official.svg`) and the font built from it, but only the print
+sheet used them.
+
+- **The mark.** Frappe writes every amount's mark from `Currency.symbol`, so one value decides
+  every form, list, report, print and portal page of every app. Patch
+  `v0_48_6.saudi_riyal_symbol` sets SAR's symbol to U+20C1 wherever it still reads a stock
+  spelling («ر.س», «﷼», `SAR`, `SR`, or blank). A symbol somebody chose is kept. A second run
+  changes nothing.
+- **The glyph.** The brand sheet now always declares the `Bunood Riyal` face
+  (`bunood-riyal.woff2`, `unicode-range: U+20C1`, 1 KB, downloaded only where the sign shows),
+  and leads the body stack with it. That includes the "System" face, which downloads no Arabic
+  face at all. Before this, no operating system could be relied on to draw the sign (Unicode
+  17.0, September 2025). The print sheet already embeds the same face.
+
+Verified on the isolated P0-07 bench (`crm-theme.test`), which was restored exactly afterwards:
+
+- **The patch.** SAR went from «ر.س» to U+20C1 ("set"), then "already the riyal sign" on the
+  second run.
+- **Server formatting.** `fmt_money(1234567.89, "SAR")` gives `⃁ 1,234,567.89`.
+- **The desk.** `frappe.format` gives the sign, drawn in `Bunood Riyal` (face status `loaded`, and
+  the computed stack leads with it), in Arabic RTL. There were no console errors.
+
+Not drawn by us: an e-mail or a text message carries the character, and the reader's own fonts
+draw it. An older phone or mail client may show a box. That is measured on real clients after
+the first deploy.
+
+Merged onto v0.49.1 (2026-10-03): `npm run build` and its guards pass with every bundle byte-identical to v0.49.1,
+contrast passes, and the Python tests pass, `test_riyal_sign` among them. The bench checks above ran on the v0.48.5 base.
+
+Payload: every bucket byte-identical to v0.49.1 (and to v0.48.5 as prepared). The face is the one the print sheet
+already ships, and the brand sheet is generated per site.
+
+## [0.49.1] — 2026-10-03 — the vendor's adverts, gone from every desk (patch)
+
+**Numbered after v0.49.0 shipped first.** Prepared as 0.48.5 on 2026-09-28 and never tagged; the settings audit
+(item 47) shipped as v0.49.0 on 2026-10-02, so by the policy above this patch on top of it is 0.49.1.
+
+### Fixed — "Switch to Frappe CRM" and "Switch to Helpdesk" in the side pane
+
+Frappe (`ui/sidebar/sidebar.js:79-166`, v16.34.0) puts both adverts in the pane
+foot's `.promotional-banners` for every System Manager: "Switch to Frappe CRM"
+on the CRM module, "Switch to Helpdesk" on Support, linking to frappe.io.
+Frappe's own switch, System Settings' Disable Product Suggestion, is per site
+and off by default; the owner's rule is that no Bunood desk advertises the
+vendor's products, so the theme answers for every desk. The holder is
+`display: contents` and each advert `display: none`, scoped
+`html[data-theme]`. The split is the fix. v0.48.4 already hid the holder in
+the rail and in Frappe's collapse, but Frappe shows it with jQuery's
+`.show()`, which answers a stylesheet `display: none` with an inline
+`display: block`, so the advert painted in both whenever the page loaded in
+that state. A presentation rule, not a claim: nothing replaces an advert,
+and `EXTRA_OWNED_NATIVES` is unchanged.
+
+### Fixed — "please use Frappe CRM instead" at the top of two workspaces
+
+ERPNext's v16 line (erpnext `fd6683e`, 2026-01-06) opens the CRM and Support
+workspaces with a header, in English on every desk: "This module is scheduled
+for deprecation and will be completely removed in version 17, please use
+Frappe CRM instead" (Frappe Helpdesk on Support). Frappe deferred any such
+deprecation on 2026-05-25 until its apps reach parity, and ERPNext's develop
+dropped the header with its rebuilt workspaces (`2a14b5d`, 2026-08-27); the
+v16 line still ships it. The block is hidden by where its link goes, header
+blocks only, and it shows again in edit mode so a System Manager can still
+delete it.
+
+Verified on the isolated P0-07 bench (`crm-theme.test`, frappe 16.34.0,
+erpnext 16.34.1), with the suite's two new probes run over the DevTools
+protocol:
+
+- **The adverts.** v0.48.4 painted an advert in 32 of 40 cases. This release
+  paints none: CRM and Support; Open, Frappe's collapse, loaded collapsed,
+  and the rail at rest and hovered; ar and en; light and dark. Every
+  sabotage was caught, 64 of 64: the holder keeping its margins, and an
+  advert at opacity 0, at visibility hidden, or off-screen.
+- **The header.** It painted in 8 of 8 cases before and in 0 of 8 after. The
+  block below it moves up into its place, and it shows again in edit mode
+  in 8 of 8. Every sabotage was caught, 16 of 16.
+- **Everything else in the pane.** Only the foot box, and the zero-height
+  `<p>` inside it, moved. The Core module's 500 elements are unchanged.
+- **Gates.** Console errors 0. `npm run build` and its guards pass, and a
+  rebuild is byte-identical. `node --check` and `compileall` pass, and
+  contrast passes 9,464 of 9,464 pairs.
+
+Merged onto v0.49.0 (2026-10-03): the sheet rebuilt from the merged sources is byte-identical on a rebuild, `npm run
+build` and its guards pass, and contrast passes 9,464 of 9,464 pairs. The bench probes above ran on the v0.48.4 base.
+
+Payload: css +54b gzip against v0.49.0 (+61b against v0.48.4 as prepared); every other bucket byte-identical.
+
 ## [0.49.0] — 2026-10-02 — the settings audit: one owner per fact (item 47)
 
 **Numbered at the owner's word** (2026-10-02, "do recommended"): a new ROADMAP item, 47,
