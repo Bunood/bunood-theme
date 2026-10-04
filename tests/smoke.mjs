@@ -1108,35 +1108,55 @@ async function withPersonal(user, values, fn) {
 		// the personal checks at the end cleared it (full run 2026-09-09).
 		`frappe.db.commit()\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`;
 
-	const before = JSON.parse(
-		benchPy(
-			`U = ${JSON.stringify(user)}\n` +
-				`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k, U) or "") for k in ${JSON.stringify(keys)}}))\n`
-		).split("BND")[1].trim()
-	);
-	benchPy(py(Object.entries(values)));
+	// Snapshot storage separately from effective defaults: inherited/cache values
+	// are not the user's row and must never be materialized during restoration.
+	const read = () => JSON.parse(benchPy(
+		`U = ${JSON.stringify(user)}\n` +
+		`keys = ${JSON.stringify(keys)}\n` +
+		`rows = frappe.get_all("DefaultValue", filters={"parent": U, "defkey": ["in", keys]}, fields=["defkey", "defvalue"])\n` +
+		`print("BND" + json.dumps({"stored": {k: [r.defvalue for r in rows if r.defkey == k] for k in keys}, "effective": {k: (frappe.defaults.get_user_default(k, U) or "") for k in keys}}))\n`
+	).split("BND")[1].trim());
+	const before = read();
+	if (keys.some(k => before.stored[k].length > 1)) throw new Error("Personal snapshot contains duplicate defaults; refusing to mutate");
+	let originalError;
 	try {
+		benchPy(py(Object.entries(values)));
 		return await fn();
+	} catch (error) {
+		originalError = error;
+		throw error;
 	} finally {
-		benchPy(py(Object.entries(before)));
-		// READ BACK. A restore that silently failed is worse than none, because
-		// every later check then measures a desk nobody configured.
-		const after = JSON.parse(
+		try {
+			// Restore only the explicitly named user's selected keys, including a
+			// stored empty value versus an absent row.
 			benchPy(
 				`U = ${JSON.stringify(user)}\n` +
-					`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k, U) or "") for k in ${JSON.stringify(keys)}}))\n`
-			).split("BND")[1].trim()
-		);
-		for (const k of keys) {
-			if (after[k] !== before[k]) {
-				console.error(
-					`\n!! PERSONAL RESTORE FAILED for ${user}: ${k} is ${JSON.stringify(after[k])} ` +
-						`and should be ${JSON.stringify(before[k])}. ` +
-						"Fix by hand: node tools/desk-fixture.mjs --clean\n"
-				);
+				keys.map(k => `frappe.defaults.clear_default(${JSON.stringify(k)}, parent=U)\n` +
+					(before.stored[k].length ? `frappe.defaults.set_default(${JSON.stringify(k)}, ${before.stored[k][0] === null ? "None" : JSON.stringify(before.stored[k][0])}, parent=U)\n` : "")).join("") +
+				`frappe.db.commit()\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`
+			);
+			let after = read();
+			const storageMatches = () => keys.every(k => JSON.stringify(after.stored[k]) === JSON.stringify(before.stored[k]));
+			const effectiveMatches = () => keys.every(k => after.effective[k] === before.effective[k]);
+			if (storageMatches() && !effectiveMatches()) {
+				// One bounded cache-only recovery; never retry a business write.
+				benchPy(`U = ${JSON.stringify(user)}\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`);
+				after = read();
 			}
+			if (!storageMatches() || !effectiveMatches()) throw new Error(
+				`PERSONAL RESTORE FAILED for ${user}: ${JSON.stringify({before, after})}`
+			);
+		} catch (restoreError) {
+			// Keep the original test failure while making uncertain restoration
+			// fatal: the suite's outer settings/language finally still executes.
+			const fatal = originalError || restoreError;
+			fatal.fatalSuite = true;
+			if (originalError) fatal.restoreError = restoreError;
+			console.error(restoreError.message);
+			throw fatal;
 		}
 	}
+
 }
 
 async function withPortalUser(route, waitSel, fn, opts = {}) {
@@ -7925,7 +7945,7 @@ print("ok")
 				// into it; the key toward the START closes it and comes back to the row.
 				expect(await focusRow("Selling"), "the row takes focus");
 				await page.keyboard.press("ArrowRight");
-				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu LTR keyboard: " + error.message; throw error; });
 				const f1 = await fly();
 				expect(f1, "ArrowRight opens the flyout");
 				expectEq(f1.heading, "Selling", "headed by the module's name");
@@ -7947,7 +7967,7 @@ print("ok")
 
 				// Hover opens it too, after the intent delay.
 				await page.hover('.bnd-menu:not(.bnd-menu-fly) .bnd-menu-item:has-text("Selling")');
-				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu LTR hover: " + error.message; throw error; });
 				expect((await fly()).items.includes("New Sales Invoice"), "hover opens the same flyout");
 				// A quick link goes where it says: a NEW Sales Invoice, every menu closed.
 				await page.click('.bnd-menu-fly .bnd-menu-item:has-text("New Sales Invoice")');
@@ -7972,7 +7992,7 @@ print("ok")
 				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
 				await focusRow("Selling");
 				await page.keyboard.press("ArrowLeft");
-				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu RTL keyboard: " + error.message; throw error; });
 				const f2 = await fly();
 				expect(f2.right <= f2.menuLeft + 2, `in RTL it sits at the menu's start edge, the left (flyout.right ${f2.right}, menu.left ${f2.menuLeft})`);
 				expect(f2.inView, "still inside the viewport");
@@ -11002,6 +11022,8 @@ print("ok")
 			const before = getSettings(["list_style"]);
 			try {
 				await withPersonal("Administrator", { bnd_look: "Canvas" }, async () => {
+					let stageError;
+					try {
 					await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
 					await page.waitForFunction(() => {
 						const f = document.querySelector(".bnd-cmp-frame");
@@ -11035,6 +11057,12 @@ print("ok")
 					const after = await page.evaluate(() => ({ len: history.length, greyed: [...document.querySelectorAll(".bnd-cmp-page[disabled]")].every((b) => b.title) }));
 					expectEq(after.len, nav.len, "the joint history did not grow on a page switch");
 					expect(after.greyed, "every absent page carries its reason");
+					} catch (error) { stageError = error; throw error; } finally {
+						// Destroy the composer and its nested desks before restoring defaults.
+						try { await page.goto("about:blank", { waitUntil: "load", timeout: 10000 }); }
+						catch (error) { const fatal = stageError || error; fatal.fatalSuite = true; if (stageError) fatal.cleanupError = error; throw fatal; }
+					}
+
 				});
 			} finally {
 				setSettings(before);
