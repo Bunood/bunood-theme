@@ -11299,6 +11299,8 @@ print("ok")
 			// its card; the Selling workspace carries no map and Frappe's own rows
 			// stay untouched.
 			const shipped = JSON.parse(benchPy('from bunood_theme.api import get_shipped_defaults\nprint(json.dumps(get_shipped_defaults()["defaults"]))\n').trim().split("\n").pop());
+			// Font is tenant identity, outside the broad reset: use its verified restore guard.
+			await withBranding({ arabic_font: shipped.arabic_font }, async () => {
 			setSettings({ ...Object.fromEntries(Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))), sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/desk/theme-settings", ".bnd-sb-map .bnd-sb-map-row", 4500);
 			const g = await page.evaluate(() => {
@@ -11364,6 +11366,7 @@ print("ok")
 			await goDesk("/desk/selling", ".body-sidebar .standard-sidebar-item", 3000);
 			const away = await page.evaluate(() => ({ map: document.querySelectorAll(".bnd-sb-map").length, route: document.documentElement.getAttribute("data-bnd-route"), rows: document.querySelectorAll(".body-sidebar .standard-sidebar-item").length }));
 			expect(away.map === 0 && away.route !== "settings" && away.rows > 0, `no map away from the settings route (${JSON.stringify(away)})`);
+			});
 		});
 
 		await test("map: the rail keeps one chip that opens the map as a menu, and the hidden pane lends a Sections menu to the page head", async () => {
