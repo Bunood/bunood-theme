@@ -24352,6 +24352,10 @@ print("cleared")
 			try {
 				out = benchPy(`
 import json
+expected_site = ${JSON.stringify(SITE)}
+assert expected_site in {'team-rc.localhost', 'official-native-acceptance.localhost', 'rc20.localhost'}, 'isolated print test site required'
+assert frappe.local.site == expected_site, 'print test site mismatch'
+assert frappe.conf.get('allow_tests') and frappe.session.user == 'Administrator', 'authorized test context required'
 from bunood_theme.patches.v0_35_0.claim_print_style import execute
 from bunood_theme.printing.install import _sync_style
 assert frappe.db.exists('Print Style', 'Bunood'), 'Bunood style missing'
