@@ -13045,7 +13045,11 @@ print("ok")
 					const record = (el, text, how) => {
 						const t = (text || "").trim();
 						if (t && set.has(t)) {
-							seen.push(`${how} ${JSON.stringify(t)} in ${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0]}`);
+							const ancestry = [];
+							for (let node = el; node && ancestry.length < 5; node = node.parentElement) {
+								ancestry.push(`${node.tagName.toLowerCase()}.${String(node.className).split(/\s+/).join(".")}`);
+							}
+							seen.push(`${how} ${JSON.stringify(t)} in ${ancestry.join(" < ")}`);
 						}
 					};
 					for (const root of roots) {
@@ -14706,6 +14710,8 @@ print("ok")
 		// doc survived, and the grid needs two rows so hover exercises a real
 		// row set.
 
+		// These checks measure native sections, tabs and grids. Item now opens
+		// in its task composer; enter Advanced through the real mode switch.
 		const FORM_ROUTE = "/desk/item/BND-TEST-001";
 
 		await test("form: control height obeys density under Original", async () => {
@@ -14735,7 +14741,7 @@ print("ok")
 			// is the state it is measured in — which also pins the rule to the
 			// html[data-theme] scope, never the kit anchor.
 			setSettings({ form_style: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			const geom = await page.evaluate(() => {
 				const input = document.querySelector('.frappe-control[data-fieldtype="Data"] input.form-control');
 				const html = getComputedStyle(document.documentElement);
@@ -14757,7 +14763,7 @@ print("ok")
 					form_style: label, form_tabs: "Brand Underline",
 					form_sidebar: "Hairline Edge", form_grid_checkbox_reveal: 0,
 				});
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-form"), slug, "style attribute");
 				// One computed-pixel proof per style — an attribute alone is a
 				// green test that asserts existence, not correctness.
@@ -14804,7 +14810,7 @@ print("ok")
 
 		await test("form: Original applies nothing at all", async () => {
 			setSettings({ form_style: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			const state = await page.evaluate(() => ({
 				attrs: [...document.documentElement.attributes]
 					.filter((a) => a.name.startsWith("data-bnd-form")).map((a) => a.name),
@@ -14826,7 +14832,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form"), "cards", "boot applied cards");
 			await page.evaluate(() => window.bunood_theme.form_apply({ form_style: "Paper Sheet" }));
 			expectEq(await attr("data-bnd-form"), "sheet", "preview flipped to sheet");
@@ -14839,7 +14845,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			const pill = await page.evaluate(() => {
 				const active = document.querySelector(".form-tabs .nav-link.active");
 				const other = document.querySelector(".form-tabs .nav-link:not(.active)");
@@ -14871,7 +14877,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			// The uoms grid lives on the UOM tab — activate it first.
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
@@ -14914,7 +14920,7 @@ print("ok")
 				desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
 				status_style: "Quiet",
 			});
-			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
+			await goNativeForm(FORM_ROUTE, ".form-sidebar", 4000);
 			// Measure the PINNED state: the _layouts.scss sizing is written for
 			// the stuck column (top: 48px). At natural scroll the column sits
 			// ~45px lower (the tab bar's height above it) and tucks under the
@@ -14959,7 +14965,7 @@ print("ok")
 				form_style: "Floating Panels", form_sidebar: "Inspector Rail",
 				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
+			await goNativeForm(FORM_ROUTE, ".form-sidebar", 4000);
 			const g = await page.evaluate(() => {
 				const sb = document.querySelector(".form-sidebar");
 				const r = (el) => el.getBoundingClientRect();
@@ -15009,7 +15015,7 @@ print("ok")
 				form_style: "Floating Panels", form_sidebar: "Floating Pane",
 				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1, form_activity: "Drawer",
 			});
-			await goDesk(FORM_ROUTE, ".bnd-drawer-toggle", 4000);
+			await goNativeForm(FORM_ROUTE, ".bnd-drawer-toggle", 4000);
 			const own = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-own") || "");
 			expect(/(^|\s)drawer(\s|$)/.test(own), `the theme owns the drawer (${own})`);
 			// Sabotage in place: strip the token, read in a SEPARATE evaluate.
@@ -15079,7 +15085,7 @@ print("ok")
 				await page.waitForFunction(() => ((document.querySelector(".form-footer .ql-editor") || {}).textContent || "").trim() === "", undefined, { timeout: 5000 });
 				const rows = parseInt(benchPy('print(len(frappe.get_all("Comment", filters=' + commentFilter + ')))\n').trim().split("\n").pop(), 10);
 				expect(rows >= 1, `the comment landed in the database (${rows})`);
-				await goDesk(FORM_ROUTE, ".bnd-drawer-toggle", 3000);
+				await goNativeForm(FORM_ROUTE, ".bnd-drawer-toggle", 3000);
 				const after = await page.evaluate(() => ({
 					chip: document.querySelector(".bnd-drawer-toggle .bnd-drawer-count").textContent,
 					docinfo: (cur_frm.get_docinfo().comments || []).length + (cur_frm.get_docinfo().communications || []).length,
@@ -15102,7 +15108,7 @@ print("ok")
 					form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1, form_activity: "Beside",
 				});
 				await page.setViewportSize({ width: 1600, height: 900 });
-				await goDesk(FORM_ROUTE, ".form-footer", 4000);
+				await goNativeForm(FORM_ROUTE, ".form-footer", 4000);
 				const wide = await page.evaluate(() => {
 					const f = document.querySelector(".form-footer").getBoundingClientRect();
 					const m = document.querySelector(".layout-main-section").getBoundingClientRect();
@@ -15113,7 +15119,7 @@ print("ok")
 				expect(wide.footerW > 200, `and has a real width (${wide.footerW})`);
 				expect(!wide.toggle, "no drawer toggle under Beside");
 				await page.setViewportSize({ width: 1200, height: 900 });
-				await goDesk(FORM_ROUTE, ".form-footer", 4000);
+				await goNativeForm(FORM_ROUTE, ".form-footer", 4000);
 				const narrow = await page.evaluate(() => {
 					const f = document.querySelector(".form-footer").getBoundingClientRect();
 					const m = document.querySelector(".layout-main-section").getBoundingClientRect();
@@ -15135,7 +15141,7 @@ print("ok")
 				// The foot (A8c) homes the toggle before the band does; this is the band's check.
 				form_foot: "Off",
 			});
-			await goDesk(FORM_ROUTE, ".bnd-dochead", 4000);
+			await goNativeForm(FORM_ROUTE, ".bnd-dochead", 4000);
 			const g = await page.evaluate(() => {
 				const frm = cur_frm;
 				const heads = document.querySelectorAll(".bnd-dochead");
@@ -15189,7 +15195,7 @@ print("ok")
 
 		await test("form: the band is absent under the page head and present for a desk user", async () => {
 			setSettings({ form_header: "Original", form_header_tone: "Brand-dark", form_activity: "Drawer" });
-			await goDesk(FORM_ROUTE, ".form-layout", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-layout", 3000);
 			const none = await page.evaluate(() => document.querySelectorAll(".bnd-dochead").length);
 			expectEq(none, 0, "no band under the page head");
 			setSettings({ form_header: "Hero Band" });
@@ -15229,7 +15235,7 @@ print("ok")
 				form_style: "Floating Panels", form_activity: "Drawer", form_header: "Hero Band",
 				form_header_tone: "Brand-dark", form_stage: "Status Path",
 			});
-			await goDesk(FORM_ROUTE, ".bnd-dochead", 3000);
+			await goNativeForm(FORM_ROUTE, ".bnd-dochead", 3000);
 			const item = await page.evaluate(() => ({
 				path: document.querySelectorAll(".bnd-stagepath").length,
 				owned: /(^|\s)stagepath(\s|$)/.test(document.documentElement.getAttribute("data-bnd-own") || ""),
@@ -15527,7 +15533,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 0,
 			});
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
 			// The pencil reveals on row hover (probed: an un-hovered click
@@ -15674,7 +15680,7 @@ print("ok")
 
 		await test("body: Full makes the card and the section body one width", async () => {
 			setSettings({ desk_width: "Full" });
-			await goDesk(BODY_ROUTE, ".form-section", 3000);
+			await goNativeForm(BODY_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-width"), "full", "width attribute");
 			const w = await bodyWidths();
 			expect(w.column > 1000, `a new Item's column is the whole main section (${w.column})`);
@@ -15682,7 +15688,7 @@ print("ok")
 		});
 		await test("body: Original leaves Frappe's 900px cap exactly where it was", async () => {
 			setSettings({ desk_width: "Original" });
-			await goDesk(BODY_ROUTE, ".form-section", 3000);
+			await goNativeForm(BODY_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-width"), null, "no width attribute");
 			const w = await bodyWidths();
 			expectEq(w.cap, "900px", "the vendor's cap");
@@ -15775,7 +15781,7 @@ print("ok")
 		for (const [label, [slug, px]] of Object.entries(BODY_SCALE)) {
 			await test(`body: ${label} leads with the section head`, async () => {
 				setSettings({ desk_scale: label });
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-body-scale"), slug, "scale attribute");
 				const t = await typeScale();
 				expectEq(t.value, px, `values render at ${px}px`);
@@ -15785,7 +15791,7 @@ print("ok")
 		}
 		await test("body: Original scale is the flat stock set — head equals label", async () => {
 			setSettings({ desk_scale: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-scale"), null, "no scale attribute");
 			const t = await typeScale();
 			expectEq(t.head, t.label, "stock: 14 over 14, the census's diagnosis");
@@ -15800,7 +15806,7 @@ print("ok")
 			// review's check lens; the proxy's own pair is asserted in the foot's
 			// check, which is where it belongs.
 			setSettings({ desk_primary: "Brand", form_foot: "Off" });
-			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
+			await goNativeForm(FORM_ROUTE, ".page-actions .primary-action", 3000);
 			expectEq(await attr("data-bnd-body-primary"), "brand", "primary attribute");
 			const want = await resolvePair("var(--bnd-brand-solid)", "var(--bnd-on-brand)");
 			const got = await page.evaluate(() => {
@@ -15812,7 +15818,7 @@ print("ok")
 		});
 		await test("body: Black keeps Frappe's own primary", async () => {
 			setSettings({ desk_primary: "Black", form_foot: "Off" }); // the premise; see above
-			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
+			await goNativeForm(FORM_ROUTE, ".page-actions .primary-action", 3000);
 			expectEq(await attr("data-bnd-body-primary"), null, "no primary attribute");
 			const want = await resolvePair("var(--gray-900)", "var(--neutral)");
 			const got = await page.evaluate(() => getComputedStyle(document.querySelector(".page-actions .btn-primary")).backgroundColor);
@@ -15846,7 +15852,7 @@ print("ok")
 
 		await test("form: Stacked Outlined boxes the field on the theme's strong border", async () => {
 			setSettings({ form_style: "Floating Panels", form_fields: "Stacked Outlined" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "outline", "fields attribute");
 			const g = await fieldGeom();
 			expect(g.labelBottom <= g.inputTop + 1, `label above the box (${g.labelBottom} <= ${g.inputTop})`);
@@ -15855,7 +15861,7 @@ print("ok")
 		});
 		await test("form: Property Rows puts the label beside the value in a 160px column", async () => {
 			setSettings({ form_fields: "Property Rows" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "rows", "fields attribute");
 			const g = await fieldGeom();
 			expectEq(g.group, "grid", "the control is a grid");
@@ -15891,7 +15897,7 @@ print("ok")
 		});
 		await test("form: Quiet Underline keeps only the block-end edge", async () => {
 			setSettings({ form_fields: "Quiet Underline" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "underline", "fields attribute");
 			const g = await fieldGeom();
 			expectEq(g.borderW, "0px", "no inline edge");
@@ -15900,7 +15906,7 @@ print("ok")
 		});
 		await test("form: Inline Text draws no box at rest and one on hover", async () => {
 			setSettings({ form_fields: "Inline Text" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "inline", "fields attribute");
 			const rest = await fieldGeom();
 			expectEq(rest.bg, "rgba(0, 0, 0, 0)", "no fill at rest");
@@ -15913,7 +15919,7 @@ print("ok")
 		});
 		await test("form: Original fields are the stock box — tint, no edge, label above", async () => {
 			setSettings({ form_fields: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), null, "no fields attribute");
 			const g = await fieldGeom();
 			expectEq(g.borderW, "0px", "stock has no edge");
@@ -15968,7 +15974,7 @@ print("ok")
 			// `hover()` can put the cursor under something else and paint nothing.
 			// Left to inherit, it read `rgba(0,0,0,0)` and looked like a CSS defect.
 			setSettings({ form_style: "Tinted Heads", sidebar_enabled: 1, sidebar_pane_state: "Open" });
-			await goDesk(FORM_ROUTE, ".form-layout", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-layout", 3000);
 			const sel = ".std-form-layout .section-head.collapsible .collapse-indicator";
 			const el = await page.$(sel);
 			expect(el, "a collapsible section head to hover");
@@ -16012,7 +16018,7 @@ print("ok")
 			// `margin: auto !important` — so this asserts the box, not the rule.
 			for (const [style, tinted] of [["Floating Panels", false], ["Headed Groups", false], ["Paper Sheet", false], ["Grouped Insets", false], ["Tinted Heads", true], ["Original", false]]) {
 				setSettings({ form_style: style });
-				await goDesk(FORM_ROUTE, ".form-layout", 2500);
+				await goNativeForm(FORM_ROUTE, ".form-layout", 2500);
 				const g = await sectionGeom();
 				expect(g.headTextX !== null && g.ctrlX !== null, `${style}: a head with text and a field to line up with`);
 				expect(
@@ -16048,7 +16054,7 @@ print("ok")
 		for (const [label, [slug, assertStyle]] of Object.entries(NEW_STYLES)) {
 			await test(`form: ${label}`, async () => {
 				setSettings({ form_style: label, desk_scale: "Standard 14" });
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-form"), slug, "style attribute");
 				const g = await sectionGeom();
 				const raised = await resolvePair("var(--bnd-raised)", "var(--bnd-ink)");
@@ -16059,7 +16065,7 @@ print("ok")
 		await test("form: the collapse indicator is a 20px control on every style", async () => {
 			for (const label of ["Floating Panels", "Headed Groups", "Paper Sheet"]) {
 				setSettings({ form_style: label });
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				const g = await sectionGeom();
 				expect(g.indicator && g.indicator.w >= 20 && g.indicator.h >= 20, `${label}: indicator ${g.indicator && g.indicator.w}×${g.indicator && g.indicator.h}`);
 			}
@@ -16092,7 +16098,7 @@ print("ok")
 		});
 		await test("form: Ruled Sheet rules the grid, raises its head and stripes its rows", async () => {
 			setSettings({ form_style: "Floating Panels", form_grid: "Ruled Sheet" });
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			expectEq(await attr("data-bnd-form-grid"), "ruled", "grid attribute");
 			const g = await gridGeom();
 			const border = await resolvePair("var(--bnd-border)", "var(--bnd-ink)");
@@ -16118,7 +16124,7 @@ print("ok")
 			// everywhere would still satisfy "even differs from its rest colour"
 			// on nothing, and the check would be asserting its own sabotage.
 			setSettings({ form_style: "Floating Panels", form_grid: "Ruled Sheet" });
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			await page.evaluate(async () => {
 				const tab = [...document.querySelectorAll(".form-tabs .nav-link")].find((a) => /uom/i.test(a.textContent));
 				if (tab && !tab.classList.contains("active")) { tab.click(); await new Promise((r) => setTimeout(r, 600)); }
@@ -16159,7 +16165,7 @@ print("ok")
 
 		await test("form: Hairline Ledger drops the verticals and sets a small-caps head", async () => {
 			setSettings({ form_grid: "Hairline Ledger" });
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			expectEq(await attr("data-bnd-form-grid"), "ledger", "grid attribute");
 			const g = await gridGeom();
 			expectEq(g.vrule, "rgba(0, 0, 0, 0)", "no vertical rule");
@@ -16170,7 +16176,7 @@ print("ok")
 		await test("form: the grid row follows density under every grid option, Original included", async () => {
 			for (const opt of ["Original", "Ruled Sheet"]) {
 				setSettings({ form_grid: opt });
-				await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 				for (const density of ["comfortable", "compact"]) {
 					await page.evaluate((d) => document.documentElement.setAttribute("data-bnd-density", d), density);
 					await page.waitForTimeout(150);
@@ -16228,7 +16234,7 @@ print("ok")
 			await page.setViewportSize({ width: 1920, height: 900 });
 			await goDesk("/desk/selling", ".layout-main", 4000);
 			const ws = await page.evaluate(() => Math.round(document.querySelector(".layout-main").getBoundingClientRect().width));
-			await goDesk("/desk/item/new", ".form-section", 4000);
+			await goNativeForm("/desk/item/new", ".form-section:visible", 4000);
 			// The card (.form-section) is what the cap sizes on the form; its
 			// .section-body sits inside the card's padding (measured 1088 in 1120).
 			const form = await page.evaluate(() => Math.round(document.querySelector(".std-form-layout .form-section").getBoundingClientRect().width));
