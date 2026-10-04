@@ -32,6 +32,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
+import { boundedAudit } from "../tools/bounded-audit.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
 import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
@@ -253,6 +254,7 @@ async function test(name, fn) {
 	} catch (err) {
 		results.push({ name, ok: false, err: String(err.message || err) });
 		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 300)}\n`);
+		if (err.fatalSuite) throw err;
 	}
 }
 
@@ -14050,7 +14052,7 @@ print("ok")
 			const scan = async (label) => {
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS) builder = builder.include(root);
-				const res = await builder.analyze();
+				const res = await boundedAudit(() => builder.analyze(), () => browser.close());
 				const present = await page.evaluate(
 					(sels) => sels.filter((s) => document.querySelector(s)),
 					OURS
@@ -14283,7 +14285,7 @@ print("ok")
 				// separate document, whose own markup is checked where it is
 				// generated rather than through a browser chrome scan.
 				builder = builder.exclude(".bnd-emp-frame");
-				const res = await builder.analyze();
+				const res = await boundedAudit(() => builder.analyze(), () => browser.close());
 				for (const v of res.violations) {
 					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
 				}
@@ -14442,7 +14444,7 @@ print("ok")
 						waitFor,
 						async (pp) => {
 							await pp.waitForTimeout(1500);
-							return scanForBaseline(AxeBuilder, pp);
+							return boundedAudit(() => scanForBaseline(AxeBuilder, pp), () => browser.close());
 						},
 						{ bust: !!opts.bust }
 					);
@@ -14452,13 +14454,13 @@ print("ok")
 						waitFor,
 						async (gp) => {
 							await gp.waitForTimeout(1500);
-							return scanForBaseline(AxeBuilder, gp);
+							return boundedAudit(() => scanForBaseline(AxeBuilder, gp), () => browser.close());
 						},
 						{ bust: !!opts.bust }
 					);
 				} else {
 					await goDesk(route, waitFor, 4000);
-					res = await scanForBaseline(AxeBuilder, page);
+					res = await boundedAudit(() => scanForBaseline(AxeBuilder, page), () => browser.close());
 				}
 				const seen = {};
 				for (const v of res.violations) seen[v.id] = v.nodes.length;
@@ -20005,12 +20007,12 @@ print("cleared")
 				setSettings(topBar());
 				await page.setViewportSize(NARROW);
 				await goDesk("/desk/item", ".page-head", 3500);
-				const res = await new AxeBuilder({ page })
+				const res = await boundedAudit(() => new AxeBuilder({ page })
 					.include(".bnd-statusbar")
 					.withTags(["wcag2a", "wcag2aa"])
 					// Page-level rules have no meaning in a scoped include.
 					.disableRules(["region", "page-has-heading-one", "landmark-one-main", "bypass"])
-					.analyze();
+					.analyze(), () => browser.close());
 				await wideAgain();
 				const bad = res.violations.map(
 					(v) => `${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`
