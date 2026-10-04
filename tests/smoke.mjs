@@ -823,7 +823,7 @@ const consoleErrors = [];
 /** Navigate to a desk route and wait for it to be usable. `waitSel` is the
  * readiness selector (pass null/"" to skip); `settle` is a trailing wait in ms
  * for post-render mounts (bars, rail, icons) that attach after the DOM. */
-async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500) {
+async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500, waitState = "visible") {
 	// THE SUITE IS FRAME-FREE on the settings page (item 43 C1): `?compare=0`
 	// disables the composer's frames, appended here — in ONE place — for every
 	// settings route, so no check pays for a 1440x900 desk it did not ask for.
@@ -840,8 +840,19 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 		await page.waitForTimeout(4000);
 		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
 	}
-	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000 });
+	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000, state: waitState });
 	await page.waitForTimeout(settle);
+}
+
+/** Native-layout checks explicitly leave the task composer through its real switch. */
+async function goNativeForm(route, waitSel, settle = 3000) {
+	await goDesk(route, ".form-layout", settle, "attached");
+	await page.evaluate(() => {
+		const wrapper = window.cur_frm?.$wrapper?.[0];
+		const advanced = wrapper?.querySelector(".bnd-simple-switch button:nth-child(2)");
+		if (advanced && advanced.getAttribute("aria-pressed") !== "true") advanced.click();
+	});
+	await page.waitForSelector(waitSel, { timeout: 30000 });
 }
 
 /**
@@ -2316,7 +2327,7 @@ async function main() {
 			});
 			await page.waitForTimeout(2500);
 			expect(
-				await page.evaluate(() => location.pathname.replace(/\/$/, "").endsWith("/item")),
+				await page.evaluate(() => { const route = frappe.get_route(); return route[0] === "List" && route[1] === "Item"; }),
 				"routed from the Sales Invoice list to the Item list"
 			);
 			const usage = benchPy(
@@ -3001,10 +3012,10 @@ async function main() {
 			// `resolve_for_user` and the first half reads "balanced".
 			setSettings({ desk_width: "Balanced" });
 			await withPersonal("Administrator", { bnd_body_width: "Roomy" }, async () => {
-				await goDesk("/desk/item/new", ".form-section", 3000);
+				await goNativeForm("/desk/item/new", ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-body-width"), "roomy", "the reader's width, not the site's");
 			});
-			await goDesk("/desk/item/new", ".form-section", 3000);
+			await goNativeForm("/desk/item/new", ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-width"), "balanced", "cleared, the site's width is back");
 		});
 
@@ -3121,7 +3132,7 @@ async function main() {
 			// Watched failing before: inset-block-end 24px, the vendor's own.
 			setSettings({ form_foot: "Pinned Bar", status_style: "Always On" });
 			try {
-				await goDesk("/desk/item/BND-TEST-001", ".bnd-docfoot", 4000);
+				await goNativeForm("/desk/item/BND-TEST-001", ".bnd-docfoot", 4000);
 				const m = await page.evaluate(() => {
 					const panel = document.querySelector(".onb-panel");
 					if (!panel) return { panel: false };
@@ -7594,7 +7605,7 @@ print("ok")
 						for (const pane of ["Open", "Rail"]) {
 							setSettings({ sidebar_enabled: 1, sidebar_pane_state: pane, sidebar_rail_trigger: "Hover" });
 							for (const [route, module] of [["/app/crm", "CRM"], ["/app/support", "Support"]]) {
-								await goDesk(route, ".body-sidebar .promotional-banners", 3000);
+								await goDesk(route, ".body-sidebar .promotional-banners", 3000, "attached");
 								await page.mouse.move(700, 450);
 								await page.waitForFunction(() => !document.querySelector(".body-sidebar-container.bnd-rail-open"), null, { timeout: 5000 });
 								const served = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
@@ -7620,7 +7631,7 @@ print("ok")
 													// And LOADED collapsed: sidebar.setup(), and with it jQuery's
 													// `.show()`, then runs under the collapse rules. That is the path
 													// on which v0.48.4's own rest-state rule lost to an inline display.
-													await goDesk(route, ".body-sidebar .promotional-banners", 3000);
+													await goDesk(route, ".body-sidebar .promotional-banners", 3000, "attached");
 													await page.mouse.move(700, 450);
 													await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
 													judge(await page.evaluate(vendorAdvertProbe), module, `${where} loaded Frappe-collapsed`);
@@ -7669,7 +7680,7 @@ print("ok")
 			for (const lang of ["ar", "en"]) {
 				await withLang(lang, async () => {
 					for (const route of ["/app/crm", "/app/support"]) {
-						await goDesk(route, ".layout-main-section .codex-editor .ce-block", 3000);
+						await goDesk(route, ".layout-main-section .codex-editor .ce-block", 3000, "attached");
 						const served = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
 						try {
 							for (const mode of ["light", "dark"]) {
@@ -7891,6 +7902,7 @@ print("ok")
 			try {
 				setSettings({ sidebar_pane_state: "Open", sidebar_enabled: 1 });
 				await goDesk("/app/selling", ".body-sidebar .bnd-sb-head", 3000);
+				await page.evaluate(() => document.documentElement.setAttribute("dir", "ltr"));
 				await page.click(".body-sidebar .bnd-sb-head");
 				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
 				const a = await rows();
