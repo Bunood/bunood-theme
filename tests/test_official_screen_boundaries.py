@@ -64,7 +64,15 @@ def test_owner_logo_inlines_public_and_private_files_and_drops_missing(tmp_path)
     private = tmp_path / "private/files"; private.mkdir(parents=True)
     (public / "logo.png").write_bytes(b"public-logo")
     (private / "logo.png").write_bytes(b"private-logo")
-    fake = SimpleNamespace(get_site_path=lambda *parts: str(tmp_path.joinpath(*parts)), log_error=Mock())
+    denied = set()
+    def get_file(doctype, filters):
+        url = filters["file_url"]
+        path = tmp_path / ("public" + url if url.startswith("/files/") else url.lstrip("/"))
+        def check_permission(permission):
+            if url in denied:
+                raise PermissionError(url)
+        return SimpleNamespace(check_permission=check_permission, get_full_path=lambda: str(path))
+    fake = SimpleNamespace(get_site_path=lambda *parts: str(tmp_path.joinpath(*parts)), get_doc=Mock(side_effect=get_file))
     namespace = {"frappe": fake}
     exec(compile(ast.Module(body=nodes, type_ignores=[]), "logo", "exec"), namespace)
     resolve = namespace["bunood_print_image_src"]
@@ -73,6 +81,18 @@ def test_owner_logo_inlines_public_and_private_files_and_drops_missing(tmp_path)
     assert resolve("/files/missing.png") == ""
     (public / "large.png").write_bytes(b"x" * (512 * 1024 + 1))
     assert resolve("/files/large.png") == ""
+    (public / "not-image.txt").write_bytes(b"private configuration")
+    assert resolve("/files/not-image.txt") == ""
+    denied.add("/private/files/logo.png")
+    assert resolve("/private/files/logo.png") == ""
+    for url in ["/files/../private/files/logo.png", "/files/%2e%2e/private/files/logo.png", "/files/..\\private\\files/logo.png"]:
+        fake.get_doc.reset_mock()
+        assert resolve(url) == ""
+        fake.get_doc.assert_not_called()
+    # Even a registered File cannot point outside its declared storage root.
+    fake.get_doc.return_value = None
+    fake.get_doc.side_effect = lambda *args: SimpleNamespace(check_permission=lambda p: None, get_full_path=lambda: str(private / "logo.png"))
+    assert resolve("/files/escaped.png") == ""
 
 
 def test_original_financial_policy_hooks_remain_unregistered():

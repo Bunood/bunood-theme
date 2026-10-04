@@ -1753,7 +1753,8 @@ async function main() {
 		benchPy(`from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
-	browser = await chromium.launch();
+	const executablePath = process.env.BND_BROWSER_EXECUTABLE;
+	browser = await chromium.launch(executablePath ? { executablePath } : {});
 	const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 	const host = new URL(URL_BASE).hostname;
 	await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]);

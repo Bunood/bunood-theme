@@ -73,34 +73,42 @@ def bunood_print_image_src(src):
 
     try:
         import base64
-        import os
+        from pathlib import Path
+        from urllib.parse import unquote, urlsplit
 
-        if src.startswith("/private/files/"):
-            path = frappe.get_site_path("private", "files",
-                                        src[len("/private/files/"):])
-        elif src.startswith("/files/"):
-            path = frappe.get_site_path("public", "files", src[len("/files/"):])
+        parsed = urlsplit(src)
+        decoded = unquote(parsed.path)
+        if parsed.query or parsed.fragment or "\\" in decoded or "\x00" in decoded:
+            return ""
+        if any(part in {".", ".."} for part in decoded.split("/")):
+            return ""
+        if decoded.startswith("/private/files/"):
+            area = "private"
+        elif decoded.startswith("/files/"):
+            area = "public"
         else:
-            return ""          # not a site file; nothing safe to inline
+            return ""
 
-        if not os.path.isfile(path):
+        # Resolve registered attachments through Frappe, including the native
+        # private File/attached-document permission check, before opening bytes.
+        file_doc = frappe.get_doc("File", {"file_url": src})
+        file_doc.check_permission("read")
+        base = Path(frappe.get_site_path(area, "files")).resolve()
+        path = Path(file_doc.get_full_path()).resolve()
+        if not path.is_relative_to(base) or not path.is_file():
             return ""
-        size = os.path.getsize(path)
-        if size > _MAX_INLINE_BYTES:
-            frappe.log_error(
-                title="bunood_theme: letterhead logo too large to inline"[:140],
-                message="%s is %d bytes, over %d" % (src, size, _MAX_INLINE_BYTES),
-            )
+        mime = _MIME_BY_SUFFIX.get(path.suffix.lower())
+        if not mime or path.stat().st_size > _MAX_INLINE_BYTES:
             return ""
-        mime = _MIME_BY_SUFFIX.get(os.path.splitext(path)[1].lower())
-        if not mime:
+        with path.open("rb") as handle:
+            content = handle.read(_MAX_INLINE_BYTES + 1)
+        if len(content) > _MAX_INLINE_BYTES:
             return ""
-        with open(path, "rb") as fh:
-            return "data:%s;base64,%s" % (
-                mime, base64.b64encode(fh.read()).decode("ascii"))
+        return "data:%s;base64,%s" % (mime, base64.b64encode(content).decode("ascii"))
     except Exception:
-        frappe.log_error(title="bunood_theme: letterhead logo inline failed"[:140])
+        # Missing/denied/unsafe images must not break a permitted document PDF.
         return ""
+
 
 def bunood_amount_in_words(amount, currency, precision=2):
     """Print-only wording of the same payable number the template displays."""

@@ -12525,7 +12525,14 @@
 			catch (error) { this.message(error.message, true); }
 		}
 	}
+	function visibleInvoiceForm(frm) {
+		const route = frappe.get_route?.() || [];
+		return window.cur_frm === frm && !!frm?.$wrapper?.[0]?.isConnected &&
+			route[0] === "Form" && route[1] === frm.doctype;
+	}
 	function open(frm) {
+		// Embedded native invoice controllers (Fast Sale) own their presentation.
+		if (!visibleInvoiceForm(frm)) return;
 		if (!supports(frm)) {
 			frappe.msgprint(__("Use the advanced form for this document type or permission level."));
 			return;
@@ -12575,13 +12582,13 @@
 			on_submit(frm) { setTimeout(() => showInvoiceDelivery(frm, true), 0); },
 		});
 	}
-	api.sales_bill = { open, newInvoice, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
+	api.sales_bill = { open, newInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
 		// Let native refresh_fields finish on the next turn, but do not wait for
 		// unrelated desk requests before replacing the visible native form.
 		setTimeout(async () => {
-			if (window.cur_frm !== frm) return;
+			if (!visibleInvoiceForm(frm)) return;
 			const page = frm.$wrapper?.[0]?.closest(".page-container");
 			const release = setTimeout(() => page?.classList.add("bnd-bill-native-ready"), 8000);
 			try {

@@ -1383,3 +1383,17 @@ test('official screen loads with the official Desk and native ZATCA actions', ()
  assert.match(source,/bunood_theme\.zatca\.status\.get_status/);
  assert.doesNotMatch(source,/bunood_theme\.zatca\.status\.queue_invoice/);
 });
+
+test('embedded Fast Sale controllers cannot acquire invoice presentation', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
+  const body=source.match(/function visibleInvoiceForm\(frm\) \{([\s\S]*?)\n\t\}/)[1];
+  const form={doctype:'Sales Invoice',$wrapper:[{isConnected:false}]};
+  const scope={window:{cur_frm:form},frappe:{get_route:()=>['Form','Sales Invoice','new']},frm:form};
+  const visible=()=>vm.runInNewContext('(function(frm){'+body+'})(frm)',scope);
+  assert.equal(visible(),false);
+  form.$wrapper[0].isConnected=true;
+  assert.equal(visible(),true);
+  scope.frappe.get_route=()=>['bunood-fast-sale'];
+  assert.equal(visible(),false);
+  assert.match(source,/function open\(frm\)[\s\S]*?if \(!visibleInvoiceForm\(frm\)\) return/);
+});
