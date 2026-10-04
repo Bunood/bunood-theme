@@ -215,7 +215,7 @@ test('invoice customer panel reads the native customer ledger and opens its stat
 });
 test('removing a populated bill row requires explicit confirmation', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
-  assert.match(source, /removeItem\(row\)[\s\S]*?frappe\.confirm\(\s*__\("Remove \{0\} from this invoice\?"/);
+  assert.match(source, /removeItem\(row\)[\s\S]*?frappe\.confirm\(\s*__\("Remove this item from the invoice\? Item: \{0\}", \[label\]\),\s*\(\) => this\.deleteItem\(row\)/);
   assert.match(source, /deleteItem\(row\)[\s\S]*?native\.remove\(\)/);
 });
 test('blank invoice rows are removed while completed item rows are retained', async () => {
