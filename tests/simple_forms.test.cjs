@@ -87,6 +87,13 @@ test('submitted quotation keeps native mapping prominent in its action bar', () 
   assert.match(source,/Once the quotation is submitted, use Create Sales Invoice above/);
   assert.match(css,/\[data-primary="create-invoice"\] \.bnd-simple-actions-identity \{ flex: 0 1 auto; \}/);
 });
+test('Payment allocations retain native invoice and order actions before the references grid', () => {
+  const spec=context.window.bunood_theme.simple_forms.taskWorkbenches['Payment Entry'];
+  const fields=Array.from(spec.panels.find(panel=>panel[0]==='allocations')[3]);
+  assert.deepEqual(fields,['get_outstanding_invoices','get_outstanding_orders','references']);
+  const selected=fallbackFields(frm('Payment Entry','Accounts'));
+  for(const name of fields) assert.ok(selected.has(name),name+' must remain reachable');
+});
 test('every purpose-built task label and explanation ships in Arabic', () => {
   const firstCell=line=>{
     if (!line.startsWith('"')) return line.split(',',1)[0];

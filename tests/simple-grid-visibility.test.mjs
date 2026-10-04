@@ -7,6 +7,31 @@ const filename=assets.match(/THEME_CSS = "\/assets\/bunood_theme\/(.*?)"/)[1];
 const css=readFileSync(new URL('../bunood_theme/public/'+filename,import.meta.url),'utf8');
 const simpleSource=readFileSync(new URL('../bunood_theme/public/js/simple_forms.js',import.meta.url),'utf8');
 
+test('Payment native allocation buttons keep handlers, visibility and keyboard order when moved', async()=>{
+ const fields=JSON.parse(simpleSource.match(/\["allocations", "Allocate invoices",[^\n]+?(\["get_outstanding_invoices"[^\]]+\])/)[1]);
+ const move=simpleSource.split('\t\tmove(name, target) {')[1].split('\n\t\trestore() {')[0];
+ const browser=await chromium.launch({executablePath:process.env.BND_BROWSER_EXECUTABLE||(process.platform==='win32'?'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe':undefined)});
+ try{
+  const page=await browser.newPage();
+  await page.setContent('<input id="amount"><section id="allocation"></section><aside id="native"><div id="get_outstanding_invoices"><button>Invoices</button></div><div id="get_outstanding_orders"><button>Orders</button></div><div id="references"><span tabindex="0">References</span><input readonly value="native locked"></div></aside>');
+  await page.evaluate(({fields,move})=>{
+   window.calls=[];window.originalButtons=[...document.querySelectorAll('button')];
+   for(const button of originalButtons)button.addEventListener('click',()=>calls.push(button.textContent));
+   const controller={frm:{fields_dict:Object.fromEntries(fields.map(name=>[name,{$wrapper:[document.getElementById(name)]}]))},locations:new Map()};
+   const moveNative=new Function('name','target',move.slice(0,move.lastIndexOf('}')));
+   for(const name of fields)moveNative.call(controller,name,document.querySelector('#allocation'));
+  },{fields,move});
+  await page.locator('#amount').focus();await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement===originalButtons[0]),true);
+  await page.keyboard.press('Enter');await page.keyboard.press('Tab');await page.keyboard.press('Enter');
+  assert.deepEqual(await page.evaluate(()=>calls),['Invoices','Orders']);
+  assert.equal(await page.locator('#references input').isEditable(),false);
+  await page.locator('#get_outstanding_invoices').evaluate(el=>el.hidden=true);
+  await page.locator('#amount').focus();await page.keyboard.press('Tab');
+  assert.equal(await page.evaluate(()=>document.activeElement===originalButtons[1]),true,'native hidden control stays excluded');
+ }finally{await browser.close();}
+});
+
 test('refresh mounts beside the native root even when an expanded grid precedes it', async()=>{
  const browser=await chromium.launch({executablePath:process.env.BND_BROWSER_EXECUTABLE||(process.platform==='win32'?'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe':undefined)});
  try {
