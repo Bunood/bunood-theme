@@ -14046,8 +14046,8 @@ msgstr "هذا الصنف"
 
 #. src: official business screens, Arabic proposal 2026-10-04
 #, fuzzy
-msgid "Remove {0} from this invoice?"
-msgstr "هل تريد إزالة {0} من هذه الفاتورة؟"
+msgid "Remove this item from the invoice? Item: {0}"
+msgstr "هل تريد إزالة هذا الصنف من الفاتورة؟ الصنف: {0}"
 
 #. src: official business screens, Arabic proposal 2026-10-04
 #, fuzzy
@@ -14156,8 +14156,12 @@ msgstr "ثبّت تطبيق الامتثال السعودي وشغّل التر�
 
 #. src: official business screens, Arabic proposal 2026-10-04
 #, fuzzy
-msgid "Choose a {0} to see their document context here."
-msgstr "اختر {0} لعرض المستندات المرتبطة به هنا."
+msgid "Choose a customer to see their document context here."
+msgstr "اختر عميلاً لعرض سياق مستنداته هنا."
+
+#, fuzzy
+msgid "Choose a supplier to see their document context here."
+msgstr "اختر مورداً لعرض سياق مستنداته هنا."
 
 #. src: official business screens, Arabic proposal 2026-10-04
 #, fuzzy

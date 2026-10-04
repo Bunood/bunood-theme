@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { extractCatalogue, assertTranslationCoverage, readTranslations } from "./i18n.mjs";
+import { extractCatalogue, assertTranslationCoverage, assertNoCountGoverned, readTranslations } from "./i18n.mjs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,4 +21,15 @@ test("Arabic business translations ship through the generated runtime dictionary
 		assert.ok(/[\u0600-\u06ff]/u.test(dictionary.get(text)), `No Arabic runtime value: ${text}`);
 	}
 	assertTranslationCoverage("ar");
+});
+
+test("invoice prompts translate complete sentences without noun-governing placeholders", () => {
+	const catalogue = extractCatalogue();
+	for (const text of ["Remove this item from the invoice? Item: {0}",
+		"Choose a customer to see their document context here.",
+		"Choose a supplier to see their document context here."])
+		assert.ok(catalogue.has(text));
+	assert.ok(!catalogue.has("Remove {0} from this invoice?"));
+	assert.ok(!catalogue.has("Choose a {0} to see their document context here."));
+	assert.equal(assertNoCountGoverned(), 0);
 });

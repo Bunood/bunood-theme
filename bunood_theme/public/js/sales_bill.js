@@ -1333,7 +1333,7 @@
 			if (!row.item_code) { this.deleteItem(row); return; }
 			const label = row.item_name || row.item_code || __("this item");
 			frappe.confirm(
-				__("Remove {0} from this invoice?", [label]),
+				__("Remove this item from the invoice? Item: {0}", [label]),
 				() => this.deleteItem(row),
 			);
 		}
@@ -1614,7 +1614,9 @@
 			node("h3", "", __(this.profile.partyDoctype), summary);
 			const name = doc[`${this.profile.party}_name`] || doc[this.profile.party];
 			if (!name) {
-				node("p", "bnd-bill-preview-empty", __("Choose a {0} to see their document context here.", [__(this.profile.partyDoctype).toLowerCase()]), summary);
+				node("p", "bnd-bill-preview-empty", this.profile.party === "customer"
+					? __("Choose a customer to see their document context here.")
+					: __("Choose a supplier to see their document context here."), summary);
 				return;
 			}
 			node("strong", "bnd-bill-customer-name", name, summary);
