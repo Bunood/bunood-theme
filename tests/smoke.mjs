@@ -34,6 +34,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { scanPrintPreview } from "../tools/axe-print-preview.mjs";
 import { boundedAudit } from "../tools/bounded-audit.mjs";
+import { withNumberCardDelta } from "../tools/number-card-delta-fixture.mjs";
 import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
@@ -16380,6 +16381,7 @@ print("ok")
 		});
 
 		await test("workspace: a number card's delta clears AA in every state it can take, in both modes", async () => {
+			await withNumberCardDelta(async fixture => {
 			// THE KIT'S DELTA RULE NEVER APPLIED. Item 25 re-tokenised `.green-stat`
 			// and `.red-stat` at (0,4,1) against Frappe's own
 			// `.widget.number-widget-box .widget-body .widget-content .green-stat` at
@@ -16398,7 +16400,7 @@ print("ok")
 			// read `color(srgb 0.4 …)` as near-black — and an unparseable one THROWS.
 			// The background is the EFFECTIVE one: translucent layers composited up to
 			// the first opaque ancestor.
-			await goDesk("/desk/dashboard-view/Selling", ".widget-group-body .number-widget-box", 5000);
+			await goDesk(fixture.route, ".widget-group-body .number-widget-box", 5000);
 			const STAT = ".number-widget-box:not([style*='background']) .card-stats";
 			expect(await q(STAT + " .percentage-stat-area"), "premise: a number card shows a delta on the dashboard");
 			const measure = () => {
@@ -16452,7 +16454,9 @@ print("ok")
 								const row = document.querySelector(sel);
 								row.classList.remove("grey-stat", "green-stat", "red-stat");
 								row.classList.add(s);
-								for (const old of row.querySelectorAll(".indicator-pill-round[data-bnd-test]")) old.remove();
+								// Native fixture starts at +100% with its own arrow; each state
+								// must measure its own arrow, never the preceding one.
+								for (const old of row.querySelectorAll(".indicator-pill-round")) old.remove();
 								if (s !== "grey-stat") {
 									const hue = s === "green-stat" ? "green" : "red";
 									const icon = s === "green-stat" ? "es-line-arrow-up-right" : "arrow-down-right";
@@ -16507,6 +16511,7 @@ print("ok")
 				});
 			}
 			expectEq(failures.join("; "), "", "every delta state clears AA on its card (" + seen.join(" · ") + ")");
+			});
 		});
 
 		// ── Chart series palette (item 25) ─────────────────────────────────
