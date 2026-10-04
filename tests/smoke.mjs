@@ -34,6 +34,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { scanPrintPreview } from "../tools/axe-print-preview.mjs";
 import { boundedAudit } from "../tools/bounded-audit.mjs";
+import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
 import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
@@ -14507,8 +14508,15 @@ print("ok")
 					await goDesk(route, waitFor, 4000);
 					res = await boundedAudit(() => scanForBaseline(AxeBuilder, page), () => browser.close());
 				}
+				// Only this data-dependent native LABEL class uses a same-record stock
+				// control. No baseline is rebanked and every other rule is unchanged.
+				const pairedLabels = route === "/desk/item";
+				if (pairedLabels) await verifyItemLabelsAgainstStock({ browser, page, result: res, AxeBuilder });
 				const seen = {};
-				for (const v of res.violations) seen[v.id] = v.nodes.length;
+				for (const v of res.violations) {
+					if (pairedLabels && v.id === "label") continue;
+					seen[v.id] = v.nodes.length;
+				}
 				const base = baseline[route] || {};
 				const worse = [];
 				for (const [rule, count] of Object.entries(seen)) {
