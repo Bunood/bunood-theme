@@ -16401,8 +16401,9 @@ print("ok")
 			// The background is the EFFECTIVE one: translucent layers composited up to
 			// the first opaque ancestor.
 			await goDesk(fixture.route, ".widget-group-body .number-widget-box", 5000);
-			const STAT = ".number-widget-box:not([style*='background']) .card-stats";
+			const STAT = `.number-widget-box[data-widget-name="${fixture.receipt.card}"]:not([style*='background']) .card-stats`;
 			expect(await q(STAT + " .percentage-stat-area"), "premise: a number card shows a delta on the dashboard");
+			expect(/100\s*%/.test(await page.locator(STAT + " .percentage-stat-area").innerText()), "native fixture rendered its proven 100% before state simulation");
 			const measure = () => {
 				const cv = document.createElement("canvas");
 				cv.width = cv.height = 1;
