@@ -2328,7 +2328,7 @@ async function main() {
 					'.bnd-palette-row[data-bnd-key="route:List/Item"]'
 				);
 				if (!row) throw new Error("no row with data-bnd-key=route:List/Item");
-				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+				row.click();
 			});
 			await page.waitForTimeout(2500);
 			expect(
@@ -13278,6 +13278,10 @@ print("ok")
 			expectEq(open.controls, open.listId, "aria-controls points at the listbox");
 			// The selection moves without focus moving — activedescendant is
 			// the contract, asserted as a TRANSITION.
+			// Empty-state recents are tenant data and may contain just one row.
+			// Search real permitted Item routes to establish a multi-option transition.
+			await page.fill(".bnd-palette-input", "Item");
+			await page.waitForFunction(() => document.querySelectorAll(".bnd-palette-row").length >= 2, null, { timeout: 5000 });
 			const before = await page.evaluate(() =>
 				document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant")
 			);
@@ -13298,6 +13302,9 @@ print("ok")
 				"Tab stays inside the dialog"
 			);
 			// Two-stage Esc, then focus is back on the trigger.
+			await page.keyboard.press("Escape");
+			expectEq(await page.inputValue(".bnd-palette-input"), "", "first Escape clears the query");
+			expect(await page.locator(".bnd-palette-backdrop:not([hidden])").isVisible(), "clearing keeps the dialog open");
 			await page.keyboard.press("Escape");
 			// state:"attached", NOT the default: the default wait is for
 			// visibility, and a [hidden] element is precisely never visible.
