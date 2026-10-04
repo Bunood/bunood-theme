@@ -24344,23 +24344,49 @@ print("cleared")
 			}
 		});
 
-		await test("print: the Bunood style is the system default — v16's Redesign vacancy, claimed once", async () => {
-			// The legacy installer's STOCK_STYLES predates v16, whose shipped
-			// default is "Redesign" — so the vacancy check NEVER fired and the
-			// Bunood style has never applied on any v16 site (measured: this site
-			// printed with Redesign since install). The v0_35_0 patch claims it
-			// once; Patch Log is the record that it was the patch, not an admin.
-			const out = benchPy(
-				"import json\n" +
-					"style = frappe.db.get_single_value('Print Settings', 'print_style')\n" +
-					"logged = frappe.db.count('Patch Log', {'patch': ['like', '%v0_35_0.claim_print_style%']})\n" +
-					"print('BND_DEF' + json.dumps({'style': style, 'logged': logged}))\n"
-			);
-			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_DEF"));
-			if (!line) throw new Error("default probe produced no JSON: " + String(out).slice(-300));
+		await test("print: one-time stock claim and later owner choice have distinct ownership", async () => {
+			// Exercise the real patch and ongoing sync without changing the site's
+			// chosen default or Patch Log. All DB writes live in one rolled-back savepoint.
+			let out;
+			try {
+				out = benchPy(`
+import json
+from bunood_theme.patches.v0_35_0.claim_print_style import execute
+from bunood_theme.printing.install import _sync_style
+assert frappe.db.exists('Print Style', 'Bunood'), 'Bunood style missing'
+assert frappe.db.get_value('Print Style', 'Redesign', 'standard'), 'stock control missing'
+keep = frappe.db.get_single_value('Print Settings', 'print_style')
+frappe.db.savepoint('bnd_print_ownership_probe')
+res = {}
+try:
+    settings = frappe.get_single('Print Settings')
+    settings.print_style = 'Redesign'
+    settings.save(ignore_permissions=True)
+    execute()
+    res['claimed'] = frappe.db.get_single_value('Print Settings', 'print_style')
+    settings = frappe.get_single('Print Settings')
+    settings.print_style = 'Redesign'
+    settings.save(ignore_permissions=True)
+    _sync_style()
+    res['preserved'] = frappe.db.get_single_value('Print Settings', 'print_style')
+    settings = frappe.get_single('Print Settings')
+    settings.print_style = ''
+    settings.save(ignore_permissions=True)
+    _sync_style()
+    res['vacancy'] = frappe.db.get_single_value('Print Settings', 'print_style')
+finally:
+    frappe.db.rollback(save_point='bnd_print_ownership_probe')
+    frappe.clear_document_cache('Print Settings', 'Print Settings')
+    assert frappe.db.get_single_value('Print Settings', 'print_style') == keep, 'print default restoration failed'
+print('BND_DEF' + json.dumps(res))
+`);
+			} catch (error) { error.fatalSuite = true; throw error; }
+			const line = String(out).split(/\r?\n/).find(l => l.startsWith("BND_DEF"));
+			if (!line) { const error = new Error("Print ownership probe/restoration not proven"); error.fatalSuite = true; throw error; }
 			const r = JSON.parse(line.slice("BND_DEF".length));
-			expectEq(r.style, "Bunood", "the Bunood Print Style is not the system default");
-			expect(r.logged > 0, "the claim patch never ran — the default was set some other way, or not at all");
+			expectEq(r.claimed, "Bunood", "one-time patch claims stock style");
+			expectEq(r.preserved, "Redesign", "ongoing sync preserves subsequent owner choice");
+			expectEq(r.vacancy, "Bunood", "ongoing sync claims true vacancy");
 		});
 
 		await test("print: a brand seed change re-papers the Print Style record", async () => {
