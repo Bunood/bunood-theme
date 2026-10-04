@@ -19,7 +19,7 @@ def validate_receipt(receipt):
 
 def guard(expected_site):
     import frappe
-    if expected_site not in {"team-rc.localhost", "official-native-acceptance.localhost"}:
+    if expected_site not in {"demo.bunood.test", "team-rc.localhost", "official-native-acceptance.localhost"}:
         raise RuntimeError("Delta fixtures require an explicitly disposable site")
     if frappe.local.site != expected_site or not frappe.conf.get("allow_tests"):
         raise RuntimeError("Delta fixtures require exact site and allow_tests")

@@ -83,7 +83,7 @@ export const AXE_TAGS = ["wcag2a", "wcag2aa"];
  */
 export const ROUTES = [
 	["/desk/item", ".page-head"],
-	["/desk/item/BND-TEST-001", ".form-tabs-list"],
+	["/desk/item/BND-TEST-001", ".form-tabs-list", { nativeForm: true }],
 	// Item 43 B1: one scroll of section cards; the readiness selector is a picker.
 	["/desk/theme-settings", ".bnd-cbp"],
 	// Item 43 C5: the composer mode, frame-free (compare=0) — the rail, the head,

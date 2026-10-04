@@ -35,6 +35,7 @@ const { AxeBuilder } = require("@axe-core/playwright");
 // The routes and the scan configuration live in ONE place, shared with the
 // check that enforces what this tool banks. See tools/axe-routes.mjs.
 import { ROUTES, scanForBaseline } from "./axe-routes.mjs";
+import { ensureAdvancedForm } from "./native-form-mode.mjs";
 import { FIXTURE as PORTAL_FIXTURE, fixturesReady, status as portalStatus } from "./portal-fixtures.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -134,6 +135,7 @@ for (const [route, waitFor, opts] of ROUTES) {
 		waitUntil: "domcontentloaded",
 		timeout: 60000,
 	});
+	if (opts?.nativeForm) await ensureAdvancedForm(target);
 	await target.waitForSelector(waitFor, { timeout: 30000 });
 	await target.waitForTimeout(2500);
 	const res = await scanForBaseline(AxeBuilder, target);

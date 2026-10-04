@@ -32,6 +32,16 @@ class FixtureSafety(TestCase):
         self.clear()
         self.assertEqual([c.args for c in self.frappe.delete_doc.call_args_list],list(self.docs))
         self.frappe.db.commit.assert_called_once()
+    def test_canonical_demo_requires_tests_enabled(self):
+        self.frappe.local.site='demo.bunood.test'
+        with patch.dict('sys.modules',frappe=self.frappe):
+            fixture.guard('demo.bunood.test')
+            self.frappe.conf['allow_tests']=0
+            with self.assertRaises(RuntimeError): fixture.guard('demo.bunood.test')
+    def test_unknown_localhost_refused(self):
+        self.frappe.local.site='other.localhost'
+        with patch.dict('sys.modules',frappe=self.frappe):
+            with self.assertRaises(RuntimeError): fixture.guard('other.localhost')
     def test_wrong_site(self): self.frappe.local.site='production';self.refuses_without_deletion()
     def test_tests_disabled(self): self.frappe.conf['allow_tests']=0;self.refuses_without_deletion()
     def test_last_todo_changed_validates_all_before_first_delete(self): self.docs[('ToDo','two')].description='other';self.refuses_without_deletion()

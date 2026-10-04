@@ -34,6 +34,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { scanPrintPreview } from "../tools/axe-print-preview.mjs";
 import { boundedAudit } from "../tools/bounded-audit.mjs";
+import { ensureAdvancedForm } from "../tools/native-form-mode.mjs";
 import { withNumberCardDelta } from "../tools/number-card-delta-fixture.mjs";
 import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
@@ -852,11 +853,7 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500,
 /** Native-layout checks explicitly leave the task composer through its real switch. */
 async function goNativeForm(route, waitSel, settle = 3000) {
 	await goDesk(route, ".form-layout", settle, "attached");
-	await page.evaluate(() => {
-		const wrapper = window.cur_frm?.$wrapper?.[0];
-		const advanced = wrapper?.querySelector(".bnd-simple-switch button:nth-child(2)");
-		if (advanced && advanced.getAttribute("aria-pressed") !== "true") advanced.click();
-	});
+	await ensureAdvancedForm(page);
 	await page.waitForSelector(waitSel, { timeout: 30000 });
 }
 
@@ -14509,7 +14506,8 @@ print("ok")
 						{ bust: !!opts.bust }
 					);
 				} else {
-					await goDesk(route, waitFor, 4000);
+					if (opts?.nativeForm) await goNativeForm(route, waitFor, 4000);
+					else await goDesk(route, waitFor, 4000);
 					res = await boundedAudit(() => scanForBaseline(AxeBuilder, page), () => browser.close());
 				}
 				// Only this data-dependent native LABEL class uses a same-record stock
@@ -18514,7 +18512,7 @@ print("cleared")
 			// fieldname that an Item layout reshuffle would silently orphan. Measuring
 			// a hidden node is the item-16 .checkbox-actions trap; visibility is
 			// asserted before any colour is trusted.
-			await goDesk("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
+			await goNativeForm("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
 			const g = await page.evaluate(async () => {
 				const find = () =>
 					[...document.querySelectorAll(".grid-empty")].find(
@@ -18623,7 +18621,7 @@ print("cleared")
 			expectEq(g.ring, "none", "and no boundary");
 			expectEq(g.maxInline, "none", "and stock's own width is back");
 			// The contract, on the same setting.
-			await goDesk("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
+			await goNativeForm("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
 			const ink = await page.evaluate(async () => {
 				const find = () =>
 					[...document.querySelectorAll(".grid-empty")].find(
