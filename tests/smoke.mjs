@@ -32,6 +32,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
+import { scanPrintPreview } from "../tools/axe-print-preview.mjs";
 import { boundedAudit } from "../tools/bounded-audit.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
@@ -14284,7 +14285,9 @@ print("ok")
 				// run. And the frame is not our UI: it is a rendered email, a
 				// separate document, whose own markup is checked where it is
 				// generated rather than through a browser chrome scan.
-				builder = builder.exclude(".bnd-emp-frame");
+				// Print is equally script-forbidden. Audit the identical generated
+                // document separately below instead of waiting on a sandbox handshake.
+                builder = builder.exclude(".bnd-emp-frame").exclude(".bnd-prp-frame");
 				const res = await boundedAudit(() => builder.analyze(), () => browser.close());
 				for (const v of res.violations) {
 					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
@@ -14296,6 +14299,16 @@ print("ok")
 				for (const s of present) matched.add(s);
 			}
 
+            const sandbox = await page.locator(".bnd-prp-frame").getAttribute("sandbox");
+            expect(!sandbox.split(/\s+/).includes("allow-scripts"), "print preview keeps scripts forbidden");
+            const printAudit = await boundedAudit(
+                () => scanPrintPreview(AxeBuilder, page, ["wcag2a", "wcag2aa"], PAGE_RULES),
+                () => browser.close(),
+            );
+            expect(printAudit, "the exact print specimen was audited");
+            for (const violation of printAudit.violations) {
+                bad.push(`print specimen: ${violation.id} — ${violation.nodes.map(n => n.target.join(" ")).join(", ")}`);
+            }
 			expectEq(bad.join("\n"), "", "axe over the settings page");
 			const missed = OURS_SETTINGS.filter((s) => !matched.has(s));
 			expectEq(missed.join(","), "", `every settings root matched in some pane (missed: ${missed.join(", ")})`);

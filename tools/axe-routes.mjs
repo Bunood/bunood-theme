@@ -1,3 +1,4 @@
+import { scanPrintPreview } from "./axe-print-preview.mjs";
 /**
  * The axe baseline's scan configuration — the routes, and how they are scanned.
  *
@@ -147,6 +148,16 @@ export const ROUTES = [
  * @param {import("playwright").Page} page - the page to scan
  * @returns {Promise<{violations: Array}>} axe's result object
  */
-export function scanForBaseline(AxeBuilder, page) {
-	return new AxeBuilder({ page }).withTags(AXE_TAGS).exclude(AXE_EXCLUDE).analyze();
+export async function scanForBaseline(AxeBuilder, page) {
+    const result = await new AxeBuilder({ page }).withTags(AXE_TAGS)
+        .exclude(AXE_EXCLUDE).exclude(".bnd-prp-frame").analyze();
+    const print = await scanPrintPreview(AxeBuilder, page, AXE_TAGS);
+    if (print) {
+        for (const violation of print.violations) {
+            const existing = result.violations.find(v => v.id === violation.id);
+            if (existing) existing.nodes.push(...violation.nodes);
+            else result.violations.push(violation);
+        }
+    }
+    return result;
 }

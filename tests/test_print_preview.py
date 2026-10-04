@@ -106,6 +106,14 @@ class PrintPreviewTests(unittest.TestCase):
         self.assertEqual(frappe.local.lang, "ar")
         frappe.log_error.assert_not_called()
 
+    def test_preview_title_is_localized_and_escaped(self):
+        frappe, _, _, preview, render, modules = self.fixture()
+        frappe._ = lambda text: "Preview <localized>"
+        render.return_value = {"html": "<p>Specimen</p>"}
+        with patch.dict(sys.modules, modules):
+            html = preview()
+        self.assertIn("<title>Preview &lt;localized&gt;</title>", html)
+
     def test_empty_render_restores_request_without_discarding_successful_messages(self):
         frappe, form_dict, prior, preview, render, modules = self.fixture()
         render.return_value = {"html": ""}

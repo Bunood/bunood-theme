@@ -1518,6 +1518,7 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
     message_count = len(frappe.local.message_log or [])
     try:
         import json
+        from html import escape
 
         shape = shape if shape in ("document", "invoice") else "document"
         lang = lang if lang in ("en", "ar") else "en"
@@ -1575,7 +1576,8 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
             bundle = bundled_asset("print.bundle.css")
             return (
                 f'<!DOCTYPE html><html lang="{lang}" dir="{direction}"><head>'
-                f'<meta charset="utf-8"><link rel="stylesheet" href="{bundle}">'
+                f'<meta charset="utf-8"><title>{escape(frappe._("Print preview"))}</title>'
+                f'<link rel="stylesheet" href="{bundle}">'
                 f'<style>{r.get("style") or ""}</style></head>'
                 f'<body class="print-format-gutter">'
                 f'<div class="print-format print-format-preview">{r["html"]}</div>'
