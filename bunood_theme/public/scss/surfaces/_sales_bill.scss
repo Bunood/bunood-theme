@@ -769,9 +769,11 @@ html[data-theme] .bnd-generic-simple .bnd-simple-tab-omitted { display: none; }
 html[data-theme][data-bnd-own~="salesbill"] .bnd-docfoot { display: none; }
 html[data-theme] .bnd-generic-simple .bnd-simple-omitted { display: none; }
 html[data-theme] .bnd-generic-simple .bnd-form-summary { display: none; }
-html[data-theme] .bnd-generic-simple .form-section:not(:has(.bnd-simple-visible)) { display: none; }
-html[data-theme] .bnd-generic-simple .form-tab-content > .tab-pane:not(:has(.bnd-simple-visible)) { display: none; }
-html[data-theme] .bnd-composed-simple-active .form-layout { display: none; }
+// A moved native grid owns nested layouts/sections for its expanded editor.
+// Hide only the original form layout; never its live grid-row editor.
+html[data-theme] .bnd-generic-simple .form-section:not(.form-in-grid *):not(:has(.bnd-simple-visible)) { display: none; }
+html[data-theme] .bnd-generic-simple .form-tab-content > .tab-pane:not(.form-in-grid *):not(:has(.bnd-simple-visible)) { display: none; }
+html[data-theme] .bnd-composed-simple-active .std-form-layout > .form-layout { display: none; }
 // The composed Simple view already owns its actions and fields. Leaving Frappe's
 // inspector rail in the flex layout reserves a visually empty side column and
 // centres every Simple section against the wrong rectangle. Advanced mode keeps
@@ -784,8 +786,8 @@ html[data-theme] .page-container.bnd-composed-simple-active .layout-main.layout-
   }
   > .layout-side-section { display: none; }
 }
-html[data-theme] .bnd-stock-simple-active .form-layout { display: none; }
-html[data-theme] .bnd-delivery-simple-active .form-layout { display: none; }
+html[data-theme] .bnd-stock-simple-active .std-form-layout > .form-layout { display: none; }
+html[data-theme] .bnd-delivery-simple-active .std-form-layout > .form-layout { display: none; }
 .bnd-simple-composer {
   display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--bnd-sp-3);
   margin-block: 0 var(--bnd-sp-5); color: var(--bnd-ink);

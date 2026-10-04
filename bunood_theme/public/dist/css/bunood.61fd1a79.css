@@ -9988,15 +9988,15 @@ html[data-theme] .bnd-generic-simple .bnd-form-summary {
   display: none;
 }
 
-html[data-theme] .bnd-generic-simple .form-section:not(:has(.bnd-simple-visible)) {
+html[data-theme] .bnd-generic-simple .form-section:not(.form-in-grid *):not(:has(.bnd-simple-visible)) {
   display: none;
 }
 
-html[data-theme] .bnd-generic-simple .form-tab-content > .tab-pane:not(:has(.bnd-simple-visible)) {
+html[data-theme] .bnd-generic-simple .form-tab-content > .tab-pane:not(.form-in-grid *):not(:has(.bnd-simple-visible)) {
   display: none;
 }
 
-html[data-theme] .bnd-composed-simple-active .form-layout {
+html[data-theme] .bnd-composed-simple-active .std-form-layout > .form-layout {
   display: none;
 }
 
@@ -10009,11 +10009,11 @@ html[data-theme] .page-container.bnd-composed-simple-active .layout-main.layout-
   display: none;
 }
 
-html[data-theme] .bnd-stock-simple-active .form-layout {
+html[data-theme] .bnd-stock-simple-active .std-form-layout > .form-layout {
   display: none;
 }
 
-html[data-theme] .bnd-delivery-simple-active .form-layout {
+html[data-theme] .bnd-delivery-simple-active .std-form-layout > .form-layout {
   display: none;
 }
 
