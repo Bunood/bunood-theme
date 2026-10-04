@@ -72,3 +72,15 @@ def test_only_new_adapter_is_get_endpoint_and_js_uses_it():
     assert "bunood_theme.zatca.status.get_invoice_status" in js
     assert "bunood_theme.zatca.status.get_status" not in js
     assert "bunood_theme.zatca.status.queue_invoice" not in js
+
+
+def test_settings_route_checks_selected_document_not_just_doctype():
+    call, fake, _, snapshot = adapter()
+    permissions = Mock(side_effect=lambda dt, perm, **kw: not (dt == "ZATCA Business Settings" and kw.get("doc")))
+    fake.has_permission = permissions
+    snapshot.return_value["settings"]["route"] = ["Form", "ZATCA Business Settings", "Denied setup"]
+    result = call(company="A")
+    assert "route" not in result["settings"]
+    permissions.assert_any_call("ZATCA Business Settings", "read", doc="Denied setup")
+    snapshot.return_value["settings"]["route"] = ["List", "ZATCA Business Settings"]
+    assert call(company="A")["settings"]["route"] == ["List", "ZATCA Business Settings"]

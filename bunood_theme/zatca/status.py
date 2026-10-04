@@ -252,8 +252,12 @@ def get_invoice_status(invoice_name: str | None = None, company: str | None = No
     safe_settings = {key: settings.get(key) for key in (
         "enabled", "server", "sync", "compliance_ready", "production_ready"
     )}
-    if settings.get("route") and frappe.has_permission("ZATCA Business Settings", "read"):
-        safe_settings["route"] = settings.get("route") or []
+    route = settings.get("route") or []
+    if route and frappe.has_permission(
+        "ZATCA Business Settings", "read",
+        **({"doc": route[2]} if len(route) >= 3 and route[0] == "Form" else {}),
+    ):
+        safe_settings["route"] = route
     safe_invoice = {"integration_status": record.get("integration_status") or ""}
     if record.get("name") and frappe.has_permission("Sales Invoice Additional Fields", "read", doc=record["name"]):
         safe_invoice["name"] = record["name"]
