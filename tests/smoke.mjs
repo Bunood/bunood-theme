@@ -34,6 +34,7 @@ import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 import { scanPrintPreview } from "../tools/axe-print-preview.mjs";
 import { boundedAudit } from "../tools/bounded-audit.mjs";
+import { benchWithPrintLogos } from "../tools/print-logo-fixture.mjs";
 import { ensureAdvancedForm } from "../tools/native-form-mode.mjs";
 import { withNumberCardDelta } from "../tools/number-card-delta-fixture.mjs";
 import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
@@ -24581,7 +24582,7 @@ print('BND_DEF' + json.dumps(res))
 			// at all — the tenant keeps whatever letterhead they use, proved by a
 			// sentinel surviving a resync. The other poles recompose, and the
 			// theme's own logo takes precedence over the Company's at render.
-			const out = benchPy(
+			const out = benchWithPrintLogos(
 				"import json\n" +
 					"from bunood_theme.printing.install import resync_print_brand\n" +
 					"keep = {\n" +
@@ -24614,15 +24615,15 @@ print('BND_DEF' + json.dumps(res))
 					// win, not a dead branch).
 					"    keep_clogo = frappe.db.get_value('Company', company, 'company_logo')\n" +
 					"    try:\n" +
-					"        frappe.db.set_value('Company', company, 'company_logo', '/files/company-own.png', update_modified=False)\n" +
-					"        frappe.db.set_single_value('Theme Settings', 'logo', '/files/bnd&spec.png')\n" +
+					"        frappe.db.set_value('Company', company, 'company_logo', logos['company_url'], update_modified=False)\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'logo', logos['theme_url'])\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', 'Bilingual Split')\n" +
 					"        frappe.clear_cache(doctype='Theme Settings')\n" +
 					"        resync_print_brand()\n" +
 					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
 					"        rendered = frappe.render_template(html, {'doc': frappe._dict(company=company)})\n" +
-					"        res['theme_logo_precedence'] = 'src=\"/files/bnd&amp;spec.png\"' in rendered\n" +
-					"        res['company_logo_lost'] = '/files/company-own.png' not in rendered\n" +
+					"        res['theme_logo_precedence'] = ('src=\"' + logos['theme_src'] + '\"') in rendered\n" +
+					"        res['company_logo_lost'] = logos['company_src'] not in rendered\n" +
 					"        res['logo_single_escaped'] = '&amp;amp;' not in rendered\n" +
 					"        import re as _re\n" +
 					"        res['no_none_name'] = not _re.search(r'>\\s*None\\s*<', rendered)\n" +
@@ -24631,7 +24632,7 @@ print('BND_DEF' + json.dumps(res))
 					"        resync_print_brand()\n" +
 					"        html2 = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
 					"        rendered2 = frappe.render_template(html2, {'doc': frappe._dict(company=company)})\n" +
-					"        res['company_arm_live'] = '/files/company-own.png' in rendered2\n" +
+					"        res['company_arm_live'] = ('src=\"' + logos['company_src'] + '\"') in rendered2\n" +
 					"    finally:\n" +
 					"        frappe.db.set_value('Company', company, 'company_logo', keep_clogo, update_modified=False)\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'logo', keep_logo)\n" +
