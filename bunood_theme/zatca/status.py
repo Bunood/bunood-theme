@@ -224,6 +224,43 @@ def get_status(invoice_name: str | None = None, company: str | None = None,
     }
 
 
+
+@frappe.whitelist(methods=["GET"])
+def get_invoice_status(invoice_name: str | None = None, company: str | None = None,
+                       invoice_doctype: str = "Sales Invoice") -> dict[str, Any]:
+    """Read-only invoice-screen projection; native document permissions are authoritative.
+
+    Unsaved forms require both invoice create/read and Company read permission.
+    A supplied missing name never silently falls back to a company-wide lookup.
+    The workspace-only helper remains internal; connector payloads/logs are omitted.
+    """
+    invoice_doctype = _invoice_doctype(invoice_doctype)
+    if frappe.session.user == "Guest" or not frappe.has_permission(invoice_doctype, "read"):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if invoice_name:
+        invoice = frappe.get_doc(invoice_doctype, invoice_name)
+        invoice.check_permission("read")
+        company = invoice.company
+    elif not frappe.has_permission(invoice_doctype, "create"):
+        frappe.throw(_("Not permitted"), frappe.PermissionError)
+    if not company:
+        frappe.throw(_("Select a company"))
+    frappe.get_doc("Company", company).check_permission("read")
+    snapshot = get_status(invoice_name, company, invoice_doctype)
+    settings = snapshot.get("settings") or {}
+    record = snapshot.get("invoice") or {}
+    safe_settings = {key: settings.get(key) for key in (
+        "enabled", "server", "sync", "compliance_ready", "production_ready"
+    )}
+    if settings.get("route") and frappe.has_permission("ZATCA Business Settings", "read"):
+        safe_settings["route"] = settings.get("route") or []
+    safe_invoice = {"integration_status": record.get("integration_status") or ""}
+    if record.get("name") and frappe.has_permission("Sales Invoice Additional Fields", "read", doc=record["name"]):
+        safe_invoice["name"] = record["name"]
+    return {"installed": bool(snapshot.get("installed")), "company": company,
+            "state": snapshot.get("state"), "settings": safe_settings, "invoice": safe_invoice}
+
+
 def _recent_evidence(company: str) -> list[dict[str, Any]]:
     """A bounded, permission-filtered view of native connector records.
 

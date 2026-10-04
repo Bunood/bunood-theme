@@ -1380,7 +1380,7 @@ test('official screen loads with the official Desk and native ZATCA actions', ()
  const build=fs.readFileSync('build.mjs','utf8');
  assert.match(build,/"sales_bill.js"/);
  const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
- assert.match(source,/bunood_theme\.zatca\.status\.get_status/);
+ assert.match(source,/bunood_theme\.zatca\.status\.get_invoice_status/);
  assert.doesNotMatch(source,/bunood_theme\.zatca\.status\.queue_invoice/);
 });
 

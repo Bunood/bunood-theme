@@ -1542,8 +1542,9 @@
 			const request = this.zatcaRequest = (this.zatcaRequest || 0) + 1;
 			this.zatcaStatus.textContent = __("Checking ZATCA setup…");
 			try {
+				if (!this.doc.company) { this.zatcaStatus.textContent = __("Select a company"); return; }
 				const args = this.doc.__islocal ? { company: this.doc.company } : { invoice_name: this.doc.name, company: this.doc.company };
-				const response = await frappe.call({ method: "bunood_theme.zatca.status.get_status", type: "GET", args });
+				const response = await frappe.call({ method: "bunood_theme.zatca.status.get_invoice_status", type: "GET", args });
 				if (!this.active() || request !== this.zatcaRequest) return;
 				this.zatcaData = response.message || {}; this.renderZatca();
 			} catch (error) {
