@@ -29,6 +29,7 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
 // The routes and the scan configuration are shared with the tool that BANKS
@@ -3728,10 +3729,10 @@ async function main() {
 			// manifest), so it runs the same way payload.mjs does below: spawn,
 			// assert exit 0. Making the docstring's claim true, not softening it.
 			const res = spawnSync(process.execPath, ["tools/icons.mjs"], {
-				cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+				cwd: fileURLToPath(new URL("..", import.meta.url)),
 				encoding: "utf8",
 			});
-			expectEq(res.status, 0, `icons:check: ${(res.stdout + res.stderr).trim().slice(0, 400)}`);
+			expectEq(res.status, 0, `icons:check: ${[res.error?.message, res.stdout, res.stderr].filter(Boolean).join("\n").trim().slice(0, 400)}`);
 		});
 
 		await test("icon engine: smart mode leaves no link glyph-less", async () => {
@@ -25260,10 +25261,10 @@ print("cleared")
 			// payload-budget.json in the same commit as the growth, with the
 			// why in its message.
 			const res = spawnSync(process.execPath, ["tools/payload.mjs", "--check"], {
-				cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+				cwd: fileURLToPath(new URL("..", import.meta.url)),
 				encoding: "utf8",
 			});
-			expectEq(res.status, 0, `payload check: ${(res.stdout + res.stderr).trim().slice(0, 400)}`);
+			expectEq(res.status, 0, `payload check: ${[res.error?.message, res.stdout, res.stderr].filter(Boolean).join("\n").trim().slice(0, 400)}`);
 		});
 
 		await test("console error budget: nothing beyond the allowlist", async () => {

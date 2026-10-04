@@ -34,6 +34,8 @@ Owner Q7 font and inline public/private logo behavior are retained from 1db2a8d,
 
 ## Local runtime runner
 
-Set `BND_URL=http://team-rc.localhost:8197`, `BND_SITE=team-rc.localhost`, `BND_BACKEND=bunood-team-rc-bench`, and optionally `BND_BROWSER_EXECUTABLE` to an installed Chromium/Edge executable. Windows host Edge was found at `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`; the override is also supported by `tools/session.mjs`.
+Set `BND_URL=http://127.0.0.1:8197`, `BND_SITE=team-rc.localhost`, `BND_BACKEND=bunood-team-rc-bench`, and optionally `BND_BROWSER_EXECUTABLE` to an installed Chromium/Edge executable. Windows host Edge was found at `C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`; the override is also supported by `tools/session.mjs`.
 
 After root synchronizes/migrates the local runtime, create the isolated fixtures with `node tools/portal-fixtures.mjs --create` and `node tools/desk-fixture.mjs --create`, then run `node tools/verify.mjs --quiet --log artifacts/official-full-smoke.log` with those environment variables. The runner uses Docker to mint its Administrator session, prune its stale sessions, and snapshot/reset/restore Theme Settings and language; run only on the disposable acceptance site. It needs one Company for the portal fixture. No production site is targeted.
+
+Windows acceptance uses `127.0.0.1` for the HTTP host: Chromium resolves `*.localhost` internally, but Node API requests may use OS DNS and fail to resolve it. Keep `BND_SITE=team-rc.localhost` for bench operations. The native form assertions additionally require an Item named `BND-TEST-001`; `tools/fixtures-views.mjs` only creates `BND-VIEW-*`, so those gallery records do not satisfy this prerequisite. Preserve any existing canonical item and create a non-stock test Item only in the disposable site before the full run.
