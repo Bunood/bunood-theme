@@ -1,5 +1,5 @@
 /** A timed-out browser audit aborts the suite; it never runs alongside later checks. */
-export async function boundedAudit(run, stopBrowser, timeoutMs = 120000) {
+export async function boundedAudit(run, stopBrowser, timeoutMs = 120000, cleanupMs = 10000) {
   let timer;
   const audit = Promise.resolve().then(run);
   const timeout = new Promise((_, reject) => {
@@ -13,10 +13,20 @@ export async function boundedAudit(run, stopBrowser, timeoutMs = 120000) {
     return await Promise.race([audit, timeout]);
   } catch (error) {
     if (error.fatalSuite) {
-      // Closing Chromium terminates pending frame evaluations. Join the audit
-      // before rethrowing: no evaluation may survive into another test.
-      await stopBrowser();
-      await audit.catch(() => {});
+      // No later test runs after this fatal error. Attempt browser shutdown and
+      // join canceled evaluations, but cleanup failure must never replace the
+      // fatal error or prevent the outer finally from restoring site settings.
+      let cleanupTimer;
+      const cleanup = Promise.allSettled([
+        Promise.resolve().then(stopBrowser), audit,
+      ]);
+      try {
+        await Promise.race([cleanup, new Promise(resolve => {
+          cleanupTimer = setTimeout(resolve, cleanupMs);
+        })]);
+      } finally {
+        clearTimeout(cleanupTimer);
+      }
     }
     throw error;
   } finally {

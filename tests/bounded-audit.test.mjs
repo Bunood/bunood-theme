@@ -15,3 +15,15 @@ test("deadline closes browser and joins canceled evaluation before fatal failure
   assert.equal(stopped,true); assert.equal(joined,true); assert.equal(error.fatalSuite,true); return true;
  });
 });
+test("browser-close rejection preserves fatal timeout",async()=>{
+ await assert.rejects(boundedAudit(()=>new Promise(()=>{}),()=>Promise.reject(Error("close failed")),5,15),error=>{
+  assert.equal(error.fatalSuite,true); assert.match(error.message,/Accessibility audit exceeded/); return true;
+ });
+});
+test("unsettled audit and cleanup cannot block restoration",async()=>{
+ const start=Date.now();
+ await assert.rejects(boundedAudit(()=>new Promise(()=>{}),()=>new Promise(()=>{}),5,15),error=>{
+  assert.equal(error.fatalSuite,true); return true;
+ });
+ assert.ok(Date.now()-start<1000,"fatal timeout returns to outer finally");
+});
