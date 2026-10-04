@@ -25,10 +25,10 @@ Owner Q7 font and inline public/private logo behavior are retained from 1db2a8d,
 
 ## Validation
 
-- Build and payload gate pass: Desk CSS 39,193 gzip bytes, Desk JS 187,651; measured caps 39,500 / 188,000 retain a small explicit margin for the invoice/task/report controllers.
+- Build and payload gate pass: Desk CSS 39,213 gzip bytes, Desk JS 187,651; measured caps 39,500 / 188,000 retain a small explicit margin for the invoice/task/report controllers.
 - 149 invoice, simple-form, Reports landing, Report Studio and routing Node tests pass; 21 finance/bank/journal/asset Node tests pass.
 - 31 site-free Python tests pass, covering company/role boundaries, source availability, owner logo behavior, Page permission navigation and finance/print regressions.
-- Arabic coverage passes: 2,557 source strings, eight existing exemptions. The imported screens have 219 added Arabic dictionary entries; the owner's existing translations remain preserved.
+- Arabic coverage passes: 2,557 source strings, eight existing exemptions. The imported screens include Arabic dictionary entries and the two payment decisions Mixed Payment/On Credit; the owner's existing translations remain preserved.
 - Delivery runtime checks passed: 11 invoice-delivery and 9 ZATCA-delivery tests. The adapter's separate 10 tests cover native permissions and response projection.
 - The full unfiltered live browser suite is running after the fixes described below; its final verdict remains pending. Source checks alone do not establish runtime acceptance.
 
@@ -75,3 +75,21 @@ Item-row count changed the historical Axe label count14 to20. A paired same-reco
 The native Selling dashboard had no previous-period records, so Frappe omitted all percentage-stat nodes. The contrast test now creates its own native Dashboard, Number Card, required Chart and two marker-filtered ToDos. Only the newly created owned historical ToDo receives fixture creation metadata eight days earlier; native get_result and percentage APIs must prove current2/previous1/100 before commit. Native browser rendering must show100% before the original light/dark and three-state contrast assertions. Ownership of all five parent documents is verified before the first cleanup deletion. The helper permits exactly the three documented test sites and requires allow_tests plus Administrator;13 safety tests and the filtered actual contrast check passed, with cleanup. No existing dashboard, financial record or accounting guard is changed.
 
 The earlier full run used pre-correction test source and still has failures; personal-restoration cleanup is now fatal on uncertainty. A new unfiltered full run after runtime translation synchronization is required before merging or tagging the release.
+
+## Expanded native editors and print ownership
+
+The original Simple-mode CSS hid every descendant `.form-layout`, including a
+native Journal Entry row editor. The corrected selector hides only the root
+native form layout; native grid sections and tabs keep their own visibility and
+readonly rules. The compiled-CSS regression failed before the correction and
+passed afterwards for journal, stock and delivery wrappers. Its editable field
+and locked control assertions do not replace actual financial UI acceptance.
+Both isolated HTTP endpoints now serve CSS `bunood.61fd1a79.css` and JS
+`bunood.1b7000e0.js`, verified byte-for-byte against committed assets.
+
+Print checks exercise the one-time stock-style claim separately from ongoing
+sync preserving a later owner choice. Temporary changes are rolled back and the
+original print default is verified. Logo composition uses unique native File
+attachments with actual PNG bytes, rather than fabricated file URLs; native
+File permissions and binary resolver behavior are preserved. Their full-suite
+acceptance and cleanup remain release requirements.
