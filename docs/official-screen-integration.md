@@ -25,12 +25,12 @@ Owner Q7 font and inline public/private logo behavior are retained from 1db2a8d,
 
 ## Validation
 
-- Build and payload gate pass: Desk CSS 39,213 gzip bytes, Desk JS 187,651; measured caps 39,500 / 188,000 retain a small explicit margin for the invoice/task/report controllers.
+- Build and payload gate pass at 100d6d4: Desk CSS 39,213 gzip bytes (`bunood.61fd1a79.css`), Desk JS 187,678 (`bunood.1347875d.js`); caps 39,500 / 188,000 leave 287 / 322 bytes respectively.
 - 149 invoice, simple-form, Reports landing, Report Studio and routing Node tests pass; 21 finance/bank/journal/asset Node tests pass.
 - 31 site-free Python tests pass, covering company/role boundaries, source availability, owner logo behavior, Page permission navigation and finance/print regressions.
 - Arabic coverage passes: 2,557 source strings, eight existing exemptions. The imported screens include Arabic dictionary entries and the two payment decisions Mixed Payment/On Credit; the owner's existing translations remain preserved.
 - Delivery runtime checks passed: 11 invoice-delivery and 9 ZATCA-delivery tests. The adapter's separate 10 tests cover native permissions and response projection.
-- The full unfiltered live browser suite is running after the fixes described below; its final verdict remains pending. Source checks alone do not establish runtime acceptance.
+- The full 562-check unfiltered live browser verdict, current filtered print verdict and final-image acceptance remain pending. Interrupted earlier runs are not passes. Source checks alone do not establish runtime acceptance.
 
 ## Local runtime runner
 
@@ -66,6 +66,8 @@ Native draft Sales/Purchase Invoice records rendered with their managed A4 forma
 
 The actual simplified quantity input and invoice-tools buttons saved and submitted one native Sales Invoice and one Purchase Invoice on the isolated site. Read-only GL verification found five and ten native rows respectively, balanced within fixture tolerance. Both ZATCA phases were disabled in the fixture company. This proves these two quantity-edit flows, not all payment methods or locked native fields.
 
+All four targeted financial UI flows have clean local acceptance: Sales Invoice (five GL rows), Purchase Invoice (ten), Journal Entry (two) and Payment Entry (two), each balanced. The Journal and Payment receipt `finance-final-acceptance.json` records one uninterrupted run against served `bunood.1347875d.js`, without merging earlier evidence: both expanded native Journal controls were edited to 475, and the actual Payment amount was changed to 125 followed by Tab to the native Get Outstanding Invoices button. Both drafts had zero GL before native Simple submission, both submitted successfully, and the browser reported no errors. Native readonly controls were not bypassed. This targeted evidence does not replace full-suite or final-image acceptance.
+
 ## Deterministic browser acceptance
 
 The new Setup workspace `Bunood Selling` precedes `Selling` in the native module list. The hover test now names Selling exactly, matching its keyboard arm. A filtered live check passed LTR keyboard/hover, RTL keyboard and restricted Desk User permissions. Three filtered native-layout checks passed density, Hairline Panels and Compact13. Native form mode is shared by baseline capture and enforcement through the real Advanced switch, including the two empty-grid contrast checks. These filtered results do not establish a full-suite verdict.
@@ -74,7 +76,7 @@ Item-row count changed the historical Axe label count14 to20. A paired same-reco
 
 The native Selling dashboard had no previous-period records, so Frappe omitted all percentage-stat nodes. The contrast test now creates its own native Dashboard, Number Card, required Chart and two marker-filtered ToDos. Only the newly created owned historical ToDo receives fixture creation metadata eight days earlier; native get_result and percentage APIs must prove current2/previous1/100 before commit. Native browser rendering must show100% before the original light/dark and three-state contrast assertions. Ownership of all five parent documents is verified before the first cleanup deletion. The helper permits exactly the three documented test sites and requires allow_tests plus Administrator;13 safety tests and the filtered actual contrast check passed, with cleanup. No existing dashboard, financial record or accounting guard is changed.
 
-The earlier full run used pre-correction test source and still has failures; personal-restoration cleanup is now fatal on uncertainty. A new unfiltered full run after runtime translation synchronization is required before merging or tagging the release.
+Earlier full runs used pre-correction source and are not release acceptance; personal-restoration cleanup is now fatal on uncertainty. A complete unfiltered 562-check run against the final synchronized assets is required before merging or tagging the release.
 
 ## Expanded native editors and print ownership
 
@@ -82,14 +84,30 @@ The original Simple-mode CSS hid every descendant `.form-layout`, including a
 native Journal Entry row editor. The corrected selector hides only the root
 native form layout; native grid sections and tabs keep their own visibility and
 readonly rules. The compiled-CSS regression failed before the correction and
-passed afterwards for journal, stock and delivery wrappers. Its editable field
-and locked control assertions do not replace actual financial UI acceptance.
-Both isolated HTTP endpoints now serve CSS `bunood.61fd1a79.css` and JS
-`bunood.1b7000e0.js`, verified byte-for-byte against committed assets.
+passed afterwards for journal, stock and delivery wrappers. Native field edits
+also exposed an independent mount bug: selecting the first descendant layout
+could select the expanded grid editor and insert its workbench ancestor inside
+itself. `ensureMounted` now anchors at `.std-form-layout > .form-layout`.
+The browser regression reproduced the original `HierarchyRequestError` before
+the correction and verifies the nested editor survives refresh and root replacement.
+
+Payment's Simple profile had omitted the native Get Outstanding Invoices and
+Get Outstanding Orders controls. In a paired same-draft probe, amount 125 plus
+Tab entered the empty references grid under Theme and exposed a native delayed
+row-focus race; stock moved to Get Outstanding Invoices without error. Both
+existing native controls now precede references in the allocation panel, retaining
+their native handlers, visibility, dependencies and permissions. The 28 relevant
+source/browser tests pass, including native node/event identity, keyboard order,
+hidden-control behavior and readonly preservation. The final native UI run above
+confirms the corrected served JS `bunood.1347875d.js`; CSS remains `bunood.61fd1a79.css`.
 
 Print checks exercise the one-time stock-style claim separately from ongoing
 sync preserving a later owner choice. Temporary changes are rolled back and the
 original print default is verified. Logo composition uses unique native File
 attachments with actual PNG bytes, rather than fabricated file URLs; native
-File permissions and binary resolver behavior are preserved. Their full-suite
-acceptance and cleanup remain release requirements.
+File permissions and binary resolver behavior are preserved. The fixture passes
+binary content directly to native File insertion and explicitly rolls back its
+transaction so native upload cleanup callbacks run. Seven safety tests and both
+exact native print test bodies passed; eight earlier byte-verified owned residues
+were removed, leaving none. The current filtered smoke print verdict and full-suite
+acceptance remain pending.
