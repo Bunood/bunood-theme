@@ -38,6 +38,7 @@ import { benchWithPrintLogos } from "../tools/print-logo-fixture.mjs";
 import { ensureAdvancedForm } from "../tools/native-form-mode.mjs";
 import { withNumberCardDelta } from "../tools/number-card-delta-fixture.mjs";
 import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
+import { nativeVersionValueNodes } from "../tools/native-version-values.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
 import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
@@ -13025,8 +13026,9 @@ print("ok")
 			// searched too — 18 of our msgids are aria-labels, invisible to
 			// innerText, and they are exactly the accessibility strings item 7
 			// most owes a translation.
-			const collect = () =>
-				page.evaluate((ids) => {
+			const collect = async () => {
+				const nativeValues = await page.evaluateHandle(nativeVersionValueNodes);
+				try { return await page.evaluate(({ ids, nativeValues }) => {
 					const set = new Set(ids);
 					const seen = [];
 					const vis = (el) => {
@@ -13066,14 +13068,18 @@ print("ok")
 							const tagged = el.closest("[lang]");
 							if (tagged && tagged !== document.documentElement) continue;
 							if (!vis(el)) continue;
-							if (el.children.length === 0) record(el, el.textContent, "text");
+							// Exact native Version old/new values are historical record data.
+							// Attributes and all other timeline/UI text remain audited.
+							if (el.children.length === 0 && !nativeValues.has(el)) record(el, el.textContent, "text");
 							for (const attr of ["aria-label", "title", "placeholder"]) {
 								record(el, el.getAttribute(attr), attr);
 							}
 						}
 					}
 					return [...new Set(seen)];
-				}, translated);
+				}, { ids: translated, nativeValues });
+				} finally { await nativeValues.dispose(); }
+			};
 
 			await withLang("ar", async () => {
 				const offenders = [];
