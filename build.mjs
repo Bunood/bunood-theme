@@ -1191,6 +1191,14 @@ function assertOwnershipPolarity(css, name, owned) {
  */
 const SANCTIONED_IMPORTANT = [
 	{
+		// Native jQuery.show caches inline block while Theme Hidden wins. Preserve
+		// the vendor flex layout on reopening without overriding native none.
+		bundle: "bunood",
+		selector: 'html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~=pane-hidden]) .body-sidebar-container[style*="display: block"], html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~=pane-hidden]) .body-sidebar-container[style*="display:block"]',
+		property: "display",
+		class: "inline",
+	},
+	{
 		// jQuery `.show()` in Frappe's sidebar.js writes `display: block` INLINE on
 		// the pane's container; the pane's one hide (_sidebar.scss) must beat it.
 		bundle: "bunood",

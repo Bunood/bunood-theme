@@ -149,8 +149,11 @@ export const ROUTES = [
  * @returns {Promise<{violations: Array}>} axe's result object
  */
 export async function scanForBaseline(AxeBuilder, page) {
+    // Match the settings hard gate: the email child document has an opaque,
+    // script-forbidden sandbox and is covered by the rendered-email family.
+    // Only its iframe is excluded; parent email controls stay in this scan.
     const result = await new AxeBuilder({ page }).withTags(AXE_TAGS)
-        .exclude(AXE_EXCLUDE).exclude(".bnd-prp-frame").analyze();
+        .exclude(AXE_EXCLUDE).exclude(".bnd-emp-frame").exclude(".bnd-prp-frame").analyze();
     const print = await scanPrintPreview(AxeBuilder, page, AXE_TAGS);
     if (print) {
         for (const violation of print.violations) {

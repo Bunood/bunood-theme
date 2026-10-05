@@ -49,7 +49,8 @@ disagree, GUIDELINES wins and this file is stale — fix it.
   customer's dark sign-in page silently paints the *shipped* seed.
 - **`!important`** only in the sanctioned CLASSES, each a vendor reach no selector can
   beat — print (`@media print`, the print bundle); a vendor INLINE style (Frappe writes
-  `display: block` on the pane's container, which the pane's one hide must beat, and a
+  `display: block` on the pane's container, which the pane's one hide must beat and
+  its visible non-narrow reopen must correct back to native flex, and a
   background on the pane head's icon tile); and a vendor `!important` **literal** where
   the alternative is a measured failure (item 33's `.text-muted` inside `body.bnd-web`,
   because a website page has no `data-theme` on `<html>` to escalate through; the pane

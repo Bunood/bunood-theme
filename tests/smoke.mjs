@@ -8915,6 +8915,50 @@ print("ok")
 			}
 		});
 
+		await test("sidepane: native show after Hidden keeps the pane aligned and native hide intact", async () => {
+			const fields = ["sidebar_enabled", "sidebar_pane_state", "sidebar_placement", "desk_layout", "topbar_enabled", "search_placement", "inbox_placement", "user_placement", "start_placement"];
+			const before = getSettings(fields);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Hidden", sidebar_placement: "Attached", desk_layout: "Top Taskbar", topbar_enabled: 1, search_placement: "Top Bar Center", inbox_placement: "Top Bar End", user_placement: "Top Bar End", start_placement: "Top Bar Start" });
+				await goDesk("/desk/item", ".page-head", 2500);
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
+				const premise = await page.evaluate(() => ({
+					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+					owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("pane-hidden"),
+					display: getComputedStyle(document.querySelector(".body-sidebar-container")).display,
+				}));
+				expect(premise.state === "hidden" && premise.owned && premise.display === "none", "premise: reachable top-bar tenants allow real Theme Hidden (" + JSON.stringify(premise) + ")");
+				const hidden = await page.evaluate(() => {
+					frappe.app.sidebar.toggle(false);
+					const pane = document.querySelector(".body-sidebar-container");
+					return { inline: pane.style.display, display: getComputedStyle(pane).display };
+				});
+				expectEq(hidden.inline, "block", "native show while CSS-hidden reproduces its inline block");
+				expectEq(hidden.display, "none", "Theme Hidden still wins over native show");
+				await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+				await page.waitForFunction(() => document.documentElement.getAttribute("data-bnd-sb-panestate") === "open");
+				const open = await page.evaluate(async () => {
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+					const pane = document.querySelector(".body-sidebar-container");
+					const child = pane.querySelector(".body-sidebar");
+					const parentRect = pane.getBoundingClientRect(), childRect = child.getBoundingClientRect();
+					return { display: getComputedStyle(pane).display, parentTop: parentRect.top, childTop: childRect.top, height: childRect.height, viewport: innerHeight };
+				});
+				expectEq(open.display, "flex", "visible native container keeps its flex layout");
+				expect(Math.abs(open.childTop - open.parentTop) <= 1, "sidebar stays aligned with container after native show");
+				expect(open.childTop >= -1 && open.childTop < open.viewport && open.height > 0, "sidebar remains in the viewport");
+				const nativeHidden = await page.evaluate(() => {
+					frappe.app.sidebar.toggle(true);
+					const pane = document.querySelector(".body-sidebar-container");
+					return { inline: pane.style.display, display: getComputedStyle(pane).display };
+				});
+				expectEq(nativeHidden.inline, "none", "native hide retains its inline none");
+				expectEq(nativeHidden.display, "none", "visible-pane correction does not override native hide");
+			} finally {
+				setSettings(before);
+			}
+		});
+
 		await test("sidepane: the five active-link styles mark the row five different ways", async () => {
 			// SEVEN BECAME FIVE, and the two that went were measured rather than
 			// judged. Glow Ring is Outline plus a blur. Dot Marker's `::after`
@@ -14492,6 +14536,7 @@ print("ok")
 			// deterministic scan.
 			setLang("en");
 			for (const [route, waitFor, opts] of AXE_ROUTES) {
+				console.log(`[axe] route scan start: ${route}`);
 				let res;
 				if (opts && opts.portal) {
 					res = await withPortalUser(
@@ -14518,12 +14563,17 @@ print("ok")
 					else await goDesk(route, waitFor, 4000);
 					res = await boundedAudit(() => scanForBaseline(AxeBuilder, page), () => browser.close());
 				}
+				console.log(`[axe] route scan complete: ${route}`);
 				// Only this data-dependent native LABEL class uses a same-record stock
 				// control. No baseline is rebanked and every other rule is unchanged.
-				const pairedLabels = route === "/desk/item";
+				const pairedLabels = ["/desk/item", "/app/item/view/image", "/desk/item/view/image"].includes(route);
+				if (pairedLabels) console.log(`[axe] label pair start: ${route}`);
 				if (pairedLabels) await verifyItemLabelsAgainstStock({ browser, page, result: res, AxeBuilder });
+				if (pairedLabels) console.log(`[axe] label pair complete: ${route}`);
+				if (route === "/desk/item/BND-TEST-001") console.log(`[axe] attachment pair start: ${route}`);
 				const pairedAttachments = route === "/desk/item/BND-TEST-001"
 					? await verifyItemAttachmentsAgainstStock({ browser, page, result: res, AxeBuilder }) : {};
+				if (route === "/desk/item/BND-TEST-001") console.log(`[axe] attachment pair complete: ${route}`);
 				const seen = {};
 				for (const v of res.violations) {
 					if (pairedLabels && v.id === "label") continue;
@@ -15668,7 +15718,8 @@ print("ok")
 						["report", "/app/query-report/General%20Ledger", ".page-head", ".layout-main-section", "wide"],
 						["workspace", "/desk/selling", ".layout-main", ".layout-main", "wide"],
 					]) {
-						await goDesk(route, wait, 2600);
+						if (name === "form") await goNativeForm(route, wait, 2600);
+						else await goDesk(route, wait, 2600);
 						const w = await page.evaluate((s) => {
 							const el = [...document.querySelectorAll(s)].find((n) => n.getBoundingClientRect().width > 0);
 							return el ? Math.round(el.getBoundingClientRect().width) : null;
@@ -17272,6 +17323,32 @@ print("ok")
 			const transparent = g.bg === "rgba(0, 0, 0, 0)" || g.bg === "transparent";
 			const noBorder = g.borderW === "0px" || g.borderC === "rgba(0, 0, 0, 0)";
 			expect(!transparent || !noBorder, `the tile has a fill or a boundary (bg ${g.bg}, border ${g.borderW} ${g.borderC})`);
+		});
+
+		await test("views: gallery metadata and missing-image initials clear AA in both modes", async () => {
+			const before = getSettings(["views_style"]);
+			let originalMode;
+			try {
+				setSettings({ views_style: "Floating Cards" });
+				await goDesk("/app/item/view/image", ".image-view-container", 6000);
+				originalMode = await page.locator("html").getAttribute("data-theme");
+				for (const selector of [".image-view-info", ".placeholder-text"]) {
+					const count = await page.locator(`.image-view-container ${selector}`).evaluateAll(els => els.filter(el => el.getClientRects().length && el.textContent.trim()).length);
+					expect(count > 0, `native gallery has visible nonempty ${selector} coverage`);
+				}
+				for (const mode of ["light", "dark"]) {
+					await page.evaluate(mode => document.documentElement.setAttribute("data-theme", mode), mode);
+					await page.waitForTimeout(500);
+					const result = await boundedAudit(() => new AxeBuilder({ page })
+						.include(".image-view-container .image-view-info")
+						.include(".image-view-container .placeholder-text")
+						.withRules(["color-contrast"]).analyze(), () => browser.close());
+					expectEq(result.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(", ")}`).join("\n"), "", `${mode}: native gallery text clears AA`);
+				}
+			} finally {
+				if (originalMode !== undefined && !page.isClosed()) await page.evaluate(mode => mode === null ? document.documentElement.removeAttribute("data-theme") : document.documentElement.setAttribute("data-theme", mode), originalMode);
+				setSettings(before);
+			}
 		});
 
 		await test("views: live preview flips the style and back", async () => {

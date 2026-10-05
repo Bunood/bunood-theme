@@ -1946,6 +1946,10 @@ html[data-bnd-own~=pane-hidden] .body-sidebar-container {
   display: none !important;
 }
 
+html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~=pane-hidden]) .body-sidebar-container[style*="display: block"], html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~=pane-hidden]) .body-sidebar-container[style*="display:block"] {
+  display: flex !important;
+}
+
 .bnd-ph-brand {
   display: inline-flex;
   align-items: center;
@@ -6831,6 +6835,11 @@ html[data-bnd-views] .image-view-container .image-view-item:hover {
 
 html[data-bnd-views] .image-view-container .image-view-item:hover img {
   filter: none;
+}
+
+html[data-bnd-views] .image-view-container .image-view-info,
+html[data-bnd-views] .image-view-container .image-field .placeholder-text {
+  color: var(--bnd-ink-muted);
 }
 
 html[data-bnd-views] .fc .fc-daygrid-block-event,

@@ -36,12 +36,30 @@ new roadmap item. Existing roadmap acceptance remains as recorded.
 - Reviewed team report, finance-close, bank and asset interfaces over native
   document permissions and financial execution.
 
+### Fixed
+
+- Expanded native Journal controls remain reachable in Simple mode; Payment
+  retains its native allocation actions and keyboard order.
+- Reopening a CSS-hidden sidebar keeps its native flex layout, preserving
+  native hide, Theme Hidden and narrow drawer behavior.
+- Native gallery metadata and missing-image initials use readable Theme inks
+  in light and dark modes, while Original retains the stock presentation.
+
 ### Preserved
 
 - Owner print fonts and bounded inline logo handling, existing theme settings
   and ERPNext rounding. Team tenant/bootstrap controls are not installed.
 - Screen coverage and measured source checks are recorded in
   `docs/official-screen-integration.md`; final native acceptance is separate.
+
+### Verified — 2026-10-05
+
+- Full unfiltered live browser acceptance passed564/564 on the isolated release
+  site with CSS7f7c2fbc/JS1347875d and zero cleanup warnings. All136 original
+  mutable settings and both language values were independently verified restored.
+- Four native financial UI posting paths produce balanced ERPNext entries;
+  five Arabic business screens and five native pane states were visually reviewed.
+- Built-image acceptance and publication are separately required before rollout.
 
 ## [0.49.2] — 2026-10-03 — the Saudi riyal sign on every desk (patch)
 

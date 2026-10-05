@@ -639,6 +639,19 @@ html[data-bnd-own~="pane-hidden"] .body-sidebar-container {
   display: none !important;
 }
 
+// Native Sidebar.refresh/toggle calls jQuery.show while our ownership rule
+// hides this container. jQuery then caches block as the default display. On
+// reopening, its absolute child follows the full-height placeholder below
+// the viewport instead of sharing the native flex container's start edge.
+// Correct only that visible inline block; native inline none, our one hide,
+// and the narrow drawer retain their own visibility and layout decisions.
+html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~="pane-hidden"]) .body-sidebar-container {
+  &[style*="display: block"],
+  &[style*="display:block"] {
+    display: flex !important;
+  }
+}
+
 // ── The brand in the page head (Hidden) ──────────────────────────────────
 // WHAT SURVIVES A HIDDEN PANE, AND WHERE. The first draft was a floating pill
 // -- tile, name and a way back, fixed over the page's leading corner. The user

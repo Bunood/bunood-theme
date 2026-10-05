@@ -25,12 +25,31 @@ Owner Q7 font and inline public/private logo behavior are retained from 1db2a8d,
 
 ## Validation
 
-- Build and payload gate pass at 100d6d4: Desk CSS 39,213 gzip bytes (`bunood.61fd1a79.css`), Desk JS 187,678 (`bunood.1347875d.js`); caps 39,500 / 188,000 leave 287 / 322 bytes respectively.
+The first CSS7f7c2fbc complete attempt was canceled after a genuine Socket.IO
+namespace authentication failure; it has no full-suite verdict. Its original
+136 mutable settings were independently verified restored. Local Node DNS with
+ADDRCONFIG blocked in the kernel's rtnl_dumpit; the test-only proxies now send
+native authentication through their own numeric internal HTTP endpoints while
+retaining native cookie, Host/Origin equality and exact site namespace checks.
+Both isolated browsers connected as Administrator to their exact namespaces
+with zero console errors. Independent polling probes rejected port80 and
+accepted port8080 on both sites, closing their own sessions. The actual complete
+container switch/placement matrix and console budget then passed2/2 filtered
+checks. No console allowlist or historical baseline was weakened. A fresh
+unfiltered run passed564/564 on2026-10-05, exited0 with no cleanup warnings and
+cleared its process wakefulness request. All136 original fields and both language
+values matched the independently recorded state after cleanup (SHA256
+`a0fca810504b7e58f202815ea65ab62c1f45d88233d3ca765c63704fa9175f99`).
+The40709-byte full log SHA256 is
+`48a8a43c74d393f1dbce813155ab0b67d8d0df276cf5449dd9f09e5ad28bbc5e`.
+Final-image acceptance remains pending.
+
+- Build and payload gate pass on the sidebar and gallery corrections: Desk CSS 39,266 gzip bytes (`bunood.7f7c2fbc.css`), Desk JS 187,678 (`bunood.1347875d.js`); caps 39,500 / 188,000 leave 234 / 322 bytes respectively. Both local acceptance servers served byte-identical final CSS/JS.
 - 149 invoice, simple-form, Reports landing, Report Studio and routing Node tests pass; 21 finance/bank/journal/asset Node tests pass.
 - 31 site-free Python tests pass, covering company/role boundaries, source availability, owner logo behavior, Page permission navigation and finance/print regressions.
 - Arabic coverage passes: 2,557 source strings, eight existing exemptions. The imported screens include Arabic dictionary entries and the two payment decisions Mixed Payment/On Credit; the owner's existing translations remain preserved.
 - Delivery runtime checks passed: 11 invoice-delivery and 9 ZATCA-delivery tests. The adapter's separate 10 tests cover native permissions and response projection.
-- The full 562-check unfiltered live browser verdict, current filtered print verdict and final-image acceptance remain pending. Interrupted earlier runs are not passes. Source checks alone do not establish runtime acceptance.
+- The full unfiltered live browser run passed564/564, including native print ownership/logo checks; original settings and both language values were independently verified restored. Final-image acceptance remains pending. Interrupted earlier runs are not passes. Source checks alone do not establish runtime acceptance.
 
 ## Local runtime runner
 
@@ -76,7 +95,15 @@ Item-row count changed the historical Axe label count14 to20. A paired same-reco
 
 The native Selling dashboard had no previous-period records, so Frappe omitted all percentage-stat nodes. The contrast test now creates its own native Dashboard, Number Card, required Chart and two marker-filtered ToDos. Only the newly created owned historical ToDo receives fixture creation metadata eight days earlier; native get_result and percentage APIs must prove current2/previous1/100 before commit. Native browser rendering must show100% before the original light/dark and three-state contrast assertions. Ownership of all five parent documents is verified before the first cleanup deletion. The helper permits exactly the three documented test sites and requires allow_tests plus Administrator;13 safety tests and the filtered actual contrast check passed, with cleanup. No existing dashboard, financial record or accounting guard is changed.
 
-Earlier full runs used pre-correction source and are not release acceptance; personal-restoration cleanup is now fatal on uncertainty. A complete unfiltered 562-check run against the final synchronized assets is required before merging or tagging the release.
+Native Version history deliberately renders old/new field values verbatim. The i18n helper accepts only matching same-record Version entries and exact native formatted bold value leaves; accessibility attributes stay checked. Its six positive and seven negative browser cases and the two actual filtered i18n checks passed. Native Item image/attachment accessibility failures also require a strict same-record stock pair with Theme assets blocked. Exact attachment metadata, inventories and qualified failures must match. Unrelated stock-only improvements are allowed, while every outside Theme target must also exist in the stock scan and remains unsubtracted from the historical gate. A new Theme target cannot be hidden by another target disappearing at the same rule count. Twenty-six safety tests passed, including the actual DOM classifier's rejection of ownership markers on the sidebar root and descendants. Both the stock-only logo case and the root ownership case failed before their corrections. Historical baselines were not increased.
+
+Arabic screenshots of all five simplified business screens passed with aligned visible sidebars and no browser errors. Visual review found a real native-show regression: jQuery writes inline block when it shows the CSS-hidden sidebar, placing its absolute child below the full-height placeholder. The scoped CSS correction restores the native flex layout only for visible inline block on a non-narrow Theme Desk. Native inline none and the single Theme ownership hide remain effective. The new native-method regression failed on block before correction and passed afterwards. Open, native collapsed, Rail, hovered Rail and Hidden screenshots were reviewed; measurements proved all five states and exact restoration of the disposable site's settings, defaults and language. The earlier Arabic-language helper's lost original snapshot remains explicitly unverified; the final captures left its current state unchanged.
+
+The complete run against CSS4906d457/JS1347875d passed560/563: the attachment comparison included an unrelated stock header logo, a width test waited for a native layout hidden by Simple mode, and the console budget caught Windows network suspension. The comparison is now scoped as above; only the width test's form row switches through the real Advanced control, retaining every edge measurement. Actual focused width and console checks subsequently passed with process-scoped wakefulness, without changing the machine power plan or the console error allowlist. Personal-restoration cleanup remains fatal on uncertainty. The subsequent complete unfiltered run against CSS7f7c2fbc/JS1347875d passed564/564; its final cleanup and original state were independently verified as recorded above.
+
+The focused accessibility scan then reached a gallery defect that the earlier failure had masked. Native metadata gray and missing-image initials did not meet contrast requirements on themed tiles. The scoped gallery rules now use the existing mode-aware muted ink token. A new actual native-gallery contrast test failed before correction and passed after correction in light and dark modes. Original has no views anchor, so its presentation is unchanged. Label growth from14 to20 came from the first-page Item inventory; a separate stock context rendered the same20 Item identities with the same20 native label failures and no Theme runtime. The label helper now validates the measured Item/Image route, native header structure, checkbox/title/body identities and exact cur_list metadata before comparison. Twenty-two safety tests pass; missing encoded attributes cannot coerce to the valid Item name `null`, and root or descendant Theme ownership rejects the exception. Historical contrast and other baselines remain unchanged.
+
+The shared scan excludes the existing script-forbidden email preview iframe as well as the print preview iframe, matching the settings hard gate. Parent controls remain scanned, the exact print specimen remains audited separately, and existing rendered-email checks retain child coverage. This resolves the measured settings scan stall without increasing its deadline or accessibility baseline.
 
 ## Expanded native editors and print ownership
 
@@ -99,7 +126,7 @@ existing native controls now precede references in the allocation panel, retaini
 their native handlers, visibility, dependencies and permissions. The 28 relevant
 source/browser tests pass, including native node/event identity, keyboard order,
 hidden-control behavior and readonly preservation. The final native UI run above
-confirms the corrected served JS `bunood.1347875d.js`; CSS remains `bunood.61fd1a79.css`.
+confirms the corrected served JS `bunood.1347875d.js`; final sidebar/gallery CSS is `bunood.7f7c2fbc.css`.
 
 Print checks exercise the one-time stock-style claim separately from ongoing
 sync preserving a later owner choice. Temporary changes are rolled back and the
@@ -109,5 +136,5 @@ File permissions and binary resolver behavior are preserved. The fixture passes
 binary content directly to native File insertion and explicitly rolls back its
 transaction so native upload cleanup callbacks run. Seven safety tests and both
 exact native print test bodies passed; eight earlier byte-verified owned residues
-were removed, leaving none. The current filtered smoke print verdict and full-suite
-acceptance remain pending.
+were removed, leaving none. Both current filtered smoke print checks passed;
+both also pass in the final564/564 unfiltered run recorded above.

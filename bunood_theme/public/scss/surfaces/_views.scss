@@ -169,6 +169,13 @@ html[data-bnd-views] .image-view-container .image-view-item:hover img {
   filter: none;
 }
 
+// Native gallery metadata and missing-image initials use fixed gray inks.
+// Pair them with the themed tile surface in both modes; Original stays stock.
+html[data-bnd-views] .image-view-container .image-view-info,
+html[data-bnd-views] .image-view-container .image-field .placeholder-text {
+  color: var(--bnd-ink-muted);
+}
+
 // ── The object: calendar event ──────────────────────────────────────────────
 // FullCalendar events are `.fc-event` (block) / `.fc-daygrid-event`. The FILL
 // is an inline colour FullCalendar computes in JS (prepare_colors) — beaten
