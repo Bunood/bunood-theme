@@ -198,7 +198,7 @@
    below stays bnd-p-namespaced so third-party formats are never touched
    structurally. */
 .print-format {
-	font-family: "Bunood Riyal", "Cairo", "Amiri", "Tajawal", "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
+	font-family: "Bunood Riyal", "Cairo", "Amiri", "Noto Naskh Arabic", "Noto Sans Arabic", sans-serif;
 	color: var(--bnd-ink);
 	font-size: 12px;
 	line-height: 1.55;
@@ -365,9 +365,9 @@
 	color: var(--bnd-ink-muted);
 }
 .bnd-p-totals .g td {
-	/* The legacy gold rule over the grand total — the accent's 3:1 fit is
-	   exactly right for a 2px mark. */
-	border-top: 2px solid var(--bnd-accent);
+	/* Totals belong to the document brand. Using the interactive accent here
+	   produced a bright blue streak in otherwise green tenant PDFs. */
+	border-top: 2px solid var(--bnd-brand-solid);
 	font-weight: 800;
 	color: var(--bnd-brand-ink);
 	font-size: 13px;

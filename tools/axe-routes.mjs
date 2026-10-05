@@ -1,3 +1,4 @@
+import { scanPrintPreview } from "./axe-print-preview.mjs";
 /**
  * The axe baseline's scan configuration — the routes, and how they are scanned.
  *
@@ -82,7 +83,7 @@ export const AXE_TAGS = ["wcag2a", "wcag2aa"];
  */
 export const ROUTES = [
 	["/desk/item", ".page-head"],
-	["/desk/item/BND-TEST-001", ".form-tabs-list"],
+	["/desk/item/BND-TEST-001", ".form-tabs-list", { nativeForm: true }],
 	// Item 43 B1: one scroll of section cards; the readiness selector is a picker.
 	["/desk/theme-settings", ".bnd-cbp"],
 	// Item 43 C5: the composer mode, frame-free (compare=0) — the rail, the head,
@@ -147,6 +148,19 @@ export const ROUTES = [
  * @param {import("playwright").Page} page - the page to scan
  * @returns {Promise<{violations: Array}>} axe's result object
  */
-export function scanForBaseline(AxeBuilder, page) {
-	return new AxeBuilder({ page }).withTags(AXE_TAGS).exclude(AXE_EXCLUDE).analyze();
+export async function scanForBaseline(AxeBuilder, page) {
+    // Match the settings hard gate: the email child document has an opaque,
+    // script-forbidden sandbox and is covered by the rendered-email family.
+    // Only its iframe is excluded; parent email controls stay in this scan.
+    const result = await new AxeBuilder({ page }).withTags(AXE_TAGS)
+        .exclude(AXE_EXCLUDE).exclude(".bnd-emp-frame").exclude(".bnd-prp-frame").analyze();
+    const print = await scanPrintPreview(AxeBuilder, page, AXE_TAGS);
+    if (print) {
+        for (const violation of print.violations) {
+            const existing = result.violations.find(v => v.id === violation.id);
+            if (existing) existing.nodes.push(...violation.nodes);
+            else result.violations.push(violation);
+        }
+    }
+    return result;
 }

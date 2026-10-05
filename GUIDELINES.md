@@ -126,6 +126,8 @@ that cannot change the verdict.
   1. **Print:** `@media print`, and the print bundle as a whole.
   2. **A vendor INLINE style.** Frappe writes the declaration into the node's `style`
      attribute — jQuery `.show()` puts `display: block` on the pane's container, and
+     reopening after Theme Hidden needs native flex restored only for that visible
+     inline block (native none, the ownership hide and narrow drawer are untouched).
      `frappe.utils.desktop_icon` paints the pane head's tile its own background. No
      selector outranks an inline declaration, and rewriting Frappe's DOM is refused.
   3. **A vendor `!important` LITERAL, where the alternative is a measured failure.**

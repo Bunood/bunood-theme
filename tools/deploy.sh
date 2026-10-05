@@ -33,7 +33,16 @@ cd "$ROOT"
 SITE="${BND_SITE:-demo.bunood.test}"
 BACKEND="${BND_BACKEND:-bunood-backend-1}"
 FRONTEND="${BND_FRONTEND:-bunood-frontend-1}"
-APP_CONTAINERS=(bunood-backend-1 bunood-queue-long-1 bunood-queue-short-1 bunood-scheduler-1)
+# Derive the sibling services from the selected backend so the same verified
+# deploy path can target a disposable candidate stack. The old hard-coded list
+# silently skipped every worker when BND_BACKEND pointed at another project.
+STACK_PREFIX="${BND_STACK_PREFIX:-${BACKEND%-backend-1}}"
+APP_CONTAINERS=(
+	"$BACKEND"
+	"${STACK_PREFIX}-queue-long-1"
+	"${STACK_PREFIX}-queue-short-1"
+	"${STACK_PREFIX}-scheduler-1"
+)
 # Where the app lives inside the frontend image — a different tree from the
 # backend's, which is why assets 404 on the frontend if only the backend is fed.
 FRONTEND_ASSETS="/home/frappe/frappe-bench/assets/bunood_theme/dist"
@@ -61,6 +70,20 @@ for c in "${APP_CONTAINERS[@]}"; do
 	if docker inspect "$c" >/dev/null 2>&1; then PRESENT+=("$c"); else say "  (no $c on this stack — skipped)"; fi
 done
 APP_CONTAINERS=("${PRESENT[@]}")
+
+# The frontend owns an independent copy of the app tree. Shipping only `dist/`
+# leaves its raw public modules stale (or missing), even though the backend and
+# workers are current. Desk sessions can then keep executing the older form
+# composer after a deploy. Keep every app container on the same source tree;
+# the explicit dist copy below remains the fast, verified asset delivery path.
+SOURCE_CONTAINERS=("${APP_CONTAINERS[@]}")
+if docker inspect "$FRONTEND" >/dev/null 2>&1; then
+	SEEN_FRONTEND=0
+	for c in "${SOURCE_CONTAINERS[@]}"; do
+		[[ "$c" == "$FRONTEND" ]] && SEEN_FRONTEND=1
+	done
+	[[ "$SEEN_FRONTEND" == "1" ]] || SOURCE_CONTAINERS+=("$FRONTEND")
+fi
 
 # ── Build ───────────────────────────────────────────────────────────────────
 if [[ "${1:-}" != "--no-build" ]]; then
@@ -118,7 +141,7 @@ else
 	TAR="$(mktemp -t bnd-XXXXXX.tgz)"
 	trap 'rm -f "$TAR"' EXIT
 	tar -czf "$TAR" bunood_theme
-	for c in "${APP_CONTAINERS[@]}"; do
+	for c in "${SOURCE_CONTAINERS[@]}"; do
 		docker cp "$TAR" "$c:/tmp/bnd.tgz" >/dev/null
 		docker exec "$c" bash -lc 'cd /home/frappe/frappe-bench/apps/bunood_theme && tar -xzf /tmp/bnd.tgz'
 		say "shipped -> $c"

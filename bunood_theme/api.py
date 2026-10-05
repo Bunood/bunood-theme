@@ -30,6 +30,7 @@ See ARCHITECTURE.md section 10.
 """
 
 import frappe
+from frappe.utils import flt
 from frappe import _
 
 
@@ -1508,15 +1509,21 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
 
     Returns a WHOLE document (the email preview's iframe argument — a print
     page IS one), or ``""`` on any failure: a failed preview is not a failed
-    picker.
+    picker. Normal invoice guards still apply to the fixed draft specimen;
+    if they refuse it, its thumbnail stays empty without opening a modal.
     """
     frappe.only_for("System Manager")
+    # Only the optional specimen's failed render may stand down. Keep earlier
+    # alerts, and leave the authorization denial outside this boundary.
+    message_count = len(frappe.local.message_log or [])
     try:
         import json
+        from html import escape
 
         shape = shape if shape in ("document", "invoice") else "document"
         lang = lang if lang in ("en", "ar") else "en"
         keep = frappe.local.lang
+        keep_form_dict = frappe.local.form_dict
         frappe.local.lang = lang
         try:
             from frappe.utils.jinja_globals import bundled_asset
@@ -1569,7 +1576,8 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
             bundle = bundled_asset("print.bundle.css")
             return (
                 f'<!DOCTYPE html><html lang="{lang}" dir="{direction}"><head>'
-                f'<meta charset="utf-8"><link rel="stylesheet" href="{bundle}">'
+                f'<meta charset="utf-8"><title>{escape(frappe._("Print preview"))}</title>'
+                f'<link rel="stylesheet" href="{bundle}">'
                 f'<style>{r.get("style") or ""}</style></head>'
                 f'<body class="print-format-gutter">'
                 f'<div class="print-format print-format-preview">{r["html"]}</div>'
@@ -1577,7 +1585,12 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
             )
         finally:
             frappe.local.lang = keep
+            frappe.local.form_dict = keep_form_dict
     except Exception:
+        # frappe.throw queues a client modal before raising. Catching the
+        # refused preview alone would still send that modal with HTTP 200.
+        if frappe.local.message_log:
+            del frappe.local.message_log[message_count:]
         frappe.log_error(title="bunood_theme: print preview stood down")
         return ""
 
@@ -1742,6 +1755,19 @@ def finance_close_cockpit(company: str, from_date=None, to_date=None) -> dict:
         from_date=from_date,
         to_date=to_date,
     )
+
+
+@frappe.whitelist()
+def asset_workbench(company: str, from_date=None, to_date=None) -> dict:
+    """Permission-filtered native fixed-asset evidence (read-only)."""
+    from bunood_theme.asset_workbench import get_asset_workbench
+
+    return get_asset_workbench(
+        company=company,
+        from_date=from_date,
+        to_date=to_date,
+    )
+
 @frappe.whitelist()
 def start_readiness_review(company: str) -> dict:
     from bunood_theme.readiness_work import start_readiness_review as start
@@ -1798,3 +1824,45 @@ def prepare_migration_reconciliation(rehearsal_name: str) -> dict:
     from bunood_theme.migration_reconciliation import prepare_migration_reconciliation as prepare
 
     return prepare(rehearsal_name)
+
+
+@frappe.whitelist()
+def get_customer_account_summary(customer: str, company: str) -> dict:
+    """Return the permission-filtered customer control-account balance.
+
+    GL debit/credit values are already in company currency.  A positive
+    balance is money due from the customer; a negative balance is an advance
+    or other customer credit.  Draft invoices never appear because they have
+    no GL Entries, and submitted receipts reduce the same balance by crediting
+    Accounts Receivable.
+    """
+    if not customer or not company:
+        return {"balance": 0.0, "debit": 0.0, "credit": 0.0, "currency": ""}
+
+    frappe.get_doc("Customer", customer).check_permission("read")
+    frappe.get_doc("Company", company).check_permission("read")
+    if not frappe.has_permission("GL Entry", "read"):
+        frappe.throw(frappe._("Not permitted to read customer ledger entries."), frappe.PermissionError)
+
+    rows = frappe.get_list(
+        "GL Entry",
+        filters={
+            "company": company,
+            "party_type": "Customer",
+            "party": customer,
+            "is_cancelled": 0,
+        },
+        fields=[
+            {"SUM": "debit", "AS": "debit"},
+            {"SUM": "credit", "AS": "credit"},
+        ],
+        limit=1,
+    )
+    debit = flt(rows[0].debit) if rows else 0.0
+    credit = flt(rows[0].credit) if rows else 0.0
+    return {
+        "balance": debit - credit,
+        "debit": debit,
+        "credit": credit,
+        "currency": frappe.db.get_value("Company", company, "default_currency") or "",
+    }

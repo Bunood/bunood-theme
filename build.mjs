@@ -112,6 +112,8 @@ const ENTRIES = [
 	// Report Studio is styled only on its own page, before the renderer mounts.
 	{ key: "bnd-studio", src: "studio.scss", pyid: "STUDIO_CSS" },
 	{ key: "bnd-pos", src: "pos_workbench.scss", pyid: "POS_CSS" },
+	// The read-only ZATCA workspace, styled only on its own page.
+	{ key: "bnd-zatca", src: "zatca_workspace.scss", pyid: "ZATCA_CSS" },
 ];
 
 /** Short content hash. 8 hex chars matches what Frappe's Website Theme uses. */
@@ -1189,6 +1191,14 @@ function assertOwnershipPolarity(css, name, owned) {
  */
 const SANCTIONED_IMPORTANT = [
 	{
+		// Native jQuery.show caches inline block while Theme Hidden wins. Preserve
+		// the vendor flex layout on reopening without overriding native none.
+		bundle: "bunood",
+		selector: 'html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~=pane-hidden]) .body-sidebar-container[style*="display: block"], html[data-bnd-desk]:not([data-bnd-narrow]):not([data-bnd-own~=pane-hidden]) .body-sidebar-container[style*="display:block"]',
+		property: "display",
+		class: "inline",
+	},
+	{
 		// jQuery `.show()` in Frappe's sidebar.js writes `display: block` INLINE on
 		// the pane's container; the pane's one hide (_sidebar.scss) must beat it.
 		bundle: "bunood",
@@ -2265,14 +2275,16 @@ const JS_ENTRIES = [
 	{ key: "bnd-banking", src: "banking_workbench.js", pyid: "BANKING_JS" },
 	{ key: "bnd-finance-close", src: "finance_close.js", pyid: "FINANCE_CLOSE_JS" },
 	{ key: "bnd-journal-workbench", src: "journal_workbench.js", pyid: "JOURNAL_WORKBENCH_JS" },
+	{ key: "bnd-asset-workbench", src: "asset_workbench.js", pyid: "ASSET_WORKBENCH_JS" },
 	{ key: "bnd-pos", src: "pos_workbench.js", pyid: "POS_JS" },
+	{ key: "bnd-zatca", src: "zatca_workspace.js", pyid: "ZATCA_JS" },
 ];
 
 // Capability controllers stay testable as focused source files while shipping
 // with the global desk entry, concatenated in this order after bunood.js:
 // list_presets.js (native list quick-filter queues) and document_actions.js
-// (the shared native-form action contract). Invoice workbenches are separate.
-const DESK_JS_SOURCES = ["bunood.js", "list_presets.js", "document_actions.js"];
+// (the shared native-form action contract), invoice/task controllers and reports.
+const DESK_JS_SOURCES = ["bunood.js", "list_presets.js", "document_actions.js", "sales_bill.js", "simple_forms.js", "report_workbench.js"];
 
 async function readDeskJs() {
 	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))

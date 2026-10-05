@@ -342,6 +342,28 @@ html[data-theme] .bnd-pos-workbench {
 			block-size: 100%;
 			object-fit: cover;
 		}
+
+		svg {
+			inline-size: 70%;
+			block-size: 70%;
+		}
+	}
+
+	// An image-less tile wears one of six categorical tints (the theme's
+	// --bnd-cat-1..6 at its tint strength) chosen by item group in the JS, so
+	// a shelf of same-group items reads as one family. Ink, not brand ink, on
+	// the tint: the initials are text, and a tinted pane is not a gated pair
+	// for the brand's text ink.
+	.bnd-pos__product[data-tone="0"] { --bnd-pos-tone: var(--bnd-cat-1); }
+	.bnd-pos__product[data-tone="1"] { --bnd-pos-tone: var(--bnd-cat-2); }
+	.bnd-pos__product[data-tone="2"] { --bnd-pos-tone: var(--bnd-cat-3); }
+	.bnd-pos__product[data-tone="3"] { --bnd-pos-tone: var(--bnd-cat-4); }
+	.bnd-pos__product[data-tone="4"] { --bnd-pos-tone: var(--bnd-cat-5); }
+	.bnd-pos__product[data-tone="5"] { --bnd-pos-tone: var(--bnd-cat-6); }
+
+	.bnd-pos__product[data-tone]:not(.has-image) .bnd-pos__product-media {
+		background: color-mix(in srgb, var(--bnd-pos-tone) var(--bnd-cat-tint), var(--bnd-pane));
+		color: var(--bnd-ink);
 	}
 
 	.bnd-pos__product-copy {
@@ -678,6 +700,262 @@ html[data-theme] .bnd-pos-receipt-result {
 		color: var(--bnd-brand-ink);
 		font-size: var(--bnd-text-xl);
 		font-variant-numeric: var(--bnd-numeric);
+	}
+}
+
+// ── The receipt register (bnd-pos-register) ─────────────────────────────────
+// A list of evidence, not another checkout: a heading, a quiet filter toolbar
+// and one row per receipt, in this surface's raised-card dialect. From the
+// team's release 0a8b549, re-tokenised (its palette was hard-coded).
+html[data-theme] [data-page-route="bnd-pos-register"] .layout-main-section {
+	max-inline-size: none;
+	padding: 0;
+	background: var(--bnd-page);
+}
+
+html[data-theme] .bnd-pos-register {
+	display: grid;
+	gap: var(--bnd-sp-4);
+	max-inline-size: var(--bnd-wide-w);
+	margin-inline: auto;
+	padding: var(--bnd-sp-4);
+	color: var(--bnd-ink);
+
+	.bnd-pos-register__heading,
+	.bnd-pos-register__toolbar,
+	.bnd-pos-register__results {
+		min-inline-size: 0;
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-raised);
+	}
+
+	.bnd-pos-register__heading {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--bnd-sp-4);
+		padding: var(--bnd-sp-5);
+
+		h1 {
+			margin-block: var(--bnd-sp-1);
+			font-size: var(--bnd-text-2xl);
+		}
+
+		p {
+			margin: 0;
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-sm);
+		}
+	}
+
+	.bnd-pos-register__eyebrow {
+		color: var(--bnd-brand-ink);
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-pos-register__toolbar {
+		display: grid;
+		gap: var(--bnd-sp-3);
+		padding: var(--bnd-sp-4);
+	}
+
+	.bnd-pos-register__modes {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2);
+	}
+
+	.bnd-pos-register__mode {
+		padding-block: var(--bnd-sp-2);
+		padding-inline: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink-muted);
+		font-weight: var(--bnd-weight-semibold);
+		cursor: pointer;
+
+		&:hover {
+			background: var(--bnd-hover);
+			color: var(--bnd-ink);
+		}
+
+		&.is-active {
+			border-color: var(--bnd-brand-solid);
+			background: var(--bnd-brand-solid);
+			color: var(--bnd-on-brand);
+		}
+	}
+
+	.bnd-pos-register__mode,
+	.bnd-pos-register__heading .btn,
+	.bnd-pos-register__actions .btn,
+	.bnd-pos-register__more {
+		&:focus-visible {
+			outline: 2px solid var(--bnd-accent);
+			outline-offset: 2px;
+		}
+	}
+
+	.bnd-pos-register__fields {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-3);
+	}
+
+	.bnd-pos-register__field {
+		display: grid;
+		flex: 1 1 15rem;
+		gap: var(--bnd-sp-1);
+		min-inline-size: 0;
+		margin: 0;
+
+		span {
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-sm);
+		}
+	}
+
+	.bnd-pos-register__results {
+		overflow: hidden;
+	}
+
+	.bnd-pos-register__results-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: var(--bnd-sp-1) var(--bnd-sp-4);
+		padding: var(--bnd-sp-4);
+
+		h2 {
+			margin: 0;
+			font-size: var(--bnd-text-lg);
+		}
+
+		p {
+			margin: 0;
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-sm);
+		}
+	}
+
+	.bnd-pos-register__columns,
+	.bnd-pos-register__row {
+		display: grid;
+		grid-template-columns: minmax(9rem, 1.2fr) minmax(10rem, 1.4fr) minmax(9rem, 1.1fr) minmax(7rem, 0.8fr) auto;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		padding-block: var(--bnd-sp-3);
+		padding-inline: var(--bnd-sp-4);
+	}
+
+	.bnd-pos-register__columns {
+		border-block: var(--bnd-line) solid var(--bnd-border);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-pos-register__row {
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+
+		&:last-child {
+			border-block-end: 0;
+		}
+
+		> div {
+			min-inline-size: 0;
+		}
+
+		strong {
+			overflow-wrap: anywhere;
+		}
+
+		small {
+			overflow-wrap: anywhere;
+			color: var(--bnd-ink-muted);
+			font-size: var(--bnd-text-xs);
+		}
+	}
+
+	.bnd-pos-register__identity,
+	.bnd-pos-register__person,
+	.bnd-pos-register__status {
+		display: grid;
+		justify-items: start;
+		gap: var(--bnd-sp-1);
+	}
+
+	.bnd-pos-register__kind,
+	.bnd-pos-register__return {
+		padding-inline: var(--bnd-sp-2);
+		border-radius: var(--bnd-radius-sm);
+		background: var(--bnd-active);
+		color: var(--bnd-brand-ink);
+		font-size: var(--bnd-text-xs);
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-pos-register__return {
+		background: color-mix(in srgb, var(--bnd-warn) 14%, var(--bnd-surface));
+		color: var(--bnd-ink);
+	}
+
+	.bnd-pos-register__amount {
+		color: var(--bnd-brand-ink);
+		font-variant-numeric: var(--bnd-numeric);
+		white-space: nowrap;
+	}
+
+	.bnd-pos-register__actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-1);
+	}
+
+	.bnd-pos-register__empty {
+		margin: 0;
+		padding-block: var(--bnd-sp-6);
+		padding-inline: var(--bnd-sp-4);
+		color: var(--bnd-ink-muted);
+		text-align: center;
+	}
+
+	// `display: flex` would beat the hidden attribute: say it twice.
+	.bnd-pos-register__more {
+		display: flex;
+		margin: var(--bnd-sp-3) auto;
+
+		&[hidden] {
+			display: none;
+		}
+	}
+}
+
+@include bnd-until(lg) {
+	html[data-theme] .bnd-pos-register {
+		.bnd-pos-register__columns {
+			display: none;
+		}
+
+		.bnd-pos-register__row {
+			grid-template-columns: minmax(0, 1fr) auto;
+		}
+
+		.bnd-pos-register__status,
+		.bnd-pos-register__actions {
+			grid-column: 1 / -1;
+		}
+
+		.bnd-pos-register__amount {
+			grid-column: 2;
+			grid-row: 1;
+		}
 	}
 }
 

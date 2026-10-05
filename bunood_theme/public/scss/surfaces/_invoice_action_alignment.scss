@@ -1,0 +1,11 @@
+@use "../breakpoints" as bp;
+
+// The former three-column grid reserved a second icon slot on plain buttons.
+// Center the actual icon/label pair; the tools summary still needs its caret
+// column, menu rows keep their shortcuts, and mobile icon-only rules stand.
+@media (width >= bp.bnd-bp(sm)) {
+  html[data-theme] .bnd-bill-toolbar > .bnd-bill-action,
+  html[data-theme] .bnd-bill-action-group-commit > .bnd-bill-action {
+    grid-template-columns: max-content max-content;
+  }
+}

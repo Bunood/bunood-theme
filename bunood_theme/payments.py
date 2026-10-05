@@ -17,7 +17,7 @@ from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 
 import frappe
 from frappe import _
-from frappe.utils import getdate, nowdate
+from frappe.utils import getdate, nowdate, sbool
 
 
 CASH_MODE = "Cash"
@@ -56,6 +56,7 @@ def post_mixed_invoice_payment(
     network_amount: object,
     network_reference_no: str,
     reference_date: str | None = None,
+    at_invoice_checkout: bool = False,
 ) -> dict[str, object]:
     """Post one mixed receipt through two native Payment Entries.
 
@@ -126,6 +127,10 @@ def post_mixed_invoice_payment(
             reference_date=payment_date,
         )
         payment.mode_of_payment = mode
+        payment.set(
+            PAYMENT_ORIGIN_FIELD,
+            INVOICE_CHECKOUT_ORIGIN if sbool(at_invoice_checkout) else SEPARATE_RECEIPT_ORIGIN,
+        )
         if mode == NETWORK_MODE:
             payment.reference_no = network_reference_no
             payment.reference_date = payment_date
@@ -431,3 +436,35 @@ def ensure_pos_payment_setup() -> dict[str, object]:
         result["network_accounts"][company.name] = network_account
 
     return result
+
+
+def ensure_payment_origin_field() -> None:
+    """Record checkout provenance on native Payment Entries, without altering posting."""
+    from bunood_theme.custom_fields import ensure_custom_fields
+
+    if not frappe.db.exists("DocType", "Payment Entry"):
+        return
+    if frappe.get_meta("Payment Entry").has_field(PAYMENT_ORIGIN_FIELD):
+        return
+    ensure_custom_fields(
+        frappe,
+        {
+            "Payment Entry": [
+                {
+                    "fieldname": PAYMENT_ORIGIN_FIELD,
+                    "label": "Bunood Payment Origin",
+                    "fieldtype": "Data",
+                    "insert_after": "mode_of_payment",
+                    "hidden": 1,
+                    "read_only": 1,
+                    "no_copy": 1,
+                    "default": SEPARATE_RECEIPT_ORIGIN,
+                }
+            ]
+        },
+    )
+
+
+PAYMENT_ORIGIN_FIELD = "custom_bunood_payment_origin"
+INVOICE_CHECKOUT_ORIGIN = "invoice_checkout"
+SEPARATE_RECEIPT_ORIGIN = "separate_receipt"

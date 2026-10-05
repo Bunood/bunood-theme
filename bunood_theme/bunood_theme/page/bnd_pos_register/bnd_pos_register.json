@@ -1,0 +1,26 @@
+{
+ "content": null,
+ "creation": "2026-09-28 10:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2026-09-28 10:00:00.000000",
+ "module": "Bunood Theme",
+ "modified_by": "Administrator",
+ "name": "bnd-pos-register",
+ "owner": "Administrator",
+ "page_name": "bnd-pos-register",
+ "roles": [
+  {"role": "Sales User"},
+  {"role": "Sales Manager"},
+  {"role": "Accounts User"},
+  {"role": "Accounts Manager"},
+  {"role": "Auditor"},
+  {"role": "System Manager"}
+ ],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "POS Sales Register"
+}

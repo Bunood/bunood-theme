@@ -67,3 +67,20 @@ test("operator-facing journal language is present in the generated Arabic catalo
 		assert.ok(ar.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
 	}
 });
+
+test("the first evidence loads once the default company has actually been set", () => {
+	// A Link control sets its value only after validating it: reading it right
+	// after set_value saw "" and the desk never loaded on arrival.
+	assert.match(js, /Promise\.resolve\(company\.set_value\(defaultCompany\)\)\.then\(\(\) => \{\s+if \(company\.get_value\(\)\) load\(\);/);
+	assert.doesNotMatch(js, /\n\t\tif \(company\.get_value\(\)\) load\(\);/);
+	assert.match(js, /Promise\.resolve\(frappe\.call\(\{\s+method: METHOD,/);
+});
+
+test("until the first evidence loads, the desk says what to choose and that nothing is posted", () => {
+	assert.match(js, /const prompt = el\("section", "bnd-close__prompt"\);/);
+	assert.match(js, /__\("Review journals for a company and period"\)/);
+	assert.match(js, /content\.append\(prompt\);/);
+	assert.match(js, /function renderResult\(data, content\) \{\s+content\.replaceChildren\(\);/, "the first result replaces it");
+	assert.match(scss, /&__prompt \{[^}]*border-inline-start: 4px solid var\(--bnd-brand\);/s);
+	assert.ok(ar.split(/\r?\n/).some((line) => line.startsWith("Review journals for a company and period,")), "Review journals for a company and period");
+});

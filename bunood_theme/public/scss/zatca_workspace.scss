@@ -1,0 +1,459 @@
+// Route-scoped ZATCA workspace (bnd-zatca): evidence and the next action, never a
+// compliance claim. Loaded only on its own page; the global desk pays nothing.
+//
+// From the team's release 0a8b549, RE-TOKENISED: the team's sheet carried its own
+// hard-coded green palette and the "Bunood Plex Arabic" face. Here every colour is
+// a --bnd-* token (so a tenant's brand and dark mode follow), the tenant's fonts
+// apply, and Frappe's buttons keep the desk's own styling. The state panel takes
+// this theme's rail idiom (the finance desks' state panels) instead of a dark
+// green slab, so its text is ink on a surface, a pair the contrast gate holds.
+//
+// NOT GATED ON html[data-theme], for the Report Studio's reason (_studio.scss):
+// the surface owns its DOM, and its layout must not wait for an attribute.
+@use "tokens";
+@use "breakpoints" as *;
+
+.bnd-zatca-workspace {
+	display: block;
+	box-sizing: border-box;
+	inline-size: 100%;
+	max-inline-size: var(--bnd-wide-w);
+	margin-inline: auto;
+	padding: var(--bnd-sp-4);
+	color: var(--bnd-ink);
+
+	* { box-sizing: border-box; }
+
+	h1,
+	h2,
+	h3,
+	p { margin: 0; }
+
+	h1 { font-size: var(--bnd-text-2xl); line-height: 1.2; }
+	h2 { font-size: var(--bnd-text-lg); line-height: 1.3; }
+	h3 { font-size: var(--bnd-text-md); line-height: 1.35; }
+
+	button:focus-visible,
+	select:focus-visible,
+	input:focus-visible,
+	.bnd-zatca__table-scroll:focus-visible {
+		outline: 2px solid var(--bnd-accent);
+		outline-offset: 2px;
+	}
+
+	// ── Head: title and the company picker ──────────────────────────────────
+	.bnd-zatca__toolbar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		justify-content: space-between;
+		gap: var(--bnd-sp-4) var(--bnd-sp-6);
+		margin-block-end: var(--bnd-sp-4);
+
+		p {
+			margin-block-start: var(--bnd-sp-1);
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	.bnd-zatca__controls {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: end;
+		gap: var(--bnd-sp-2);
+
+		label {
+			display: grid;
+			gap: var(--bnd-sp-1);
+			min-inline-size: min(19rem, 100%);
+			margin: 0;
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	.bnd-zatca__content {
+		display: grid;
+		gap: var(--bnd-sp-4);
+	}
+
+	// ── Panels: one dialect for every card on the page ──────────────────────
+	.bnd-zatca__summary,
+	.bnd-zatca__next,
+	.bnd-zatca__path,
+	.bnd-zatca__evidence,
+	.bnd-zatca__empty,
+	.bnd-zatca__loading,
+	.bnd-zatca__error {
+		min-inline-size: 0;
+		padding: var(--bnd-sp-5);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+	}
+
+	// The current state: a rail carries its tone (brand configured, warn when
+	// something needs doing, critical when the connector is missing).
+	.bnd-zatca__summary {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) minmax(13rem, 19rem);
+		align-items: center;
+		gap: var(--bnd-sp-4) var(--bnd-sp-6);
+		border-inline-start: 4px solid var(--bnd-brand);
+
+		&.is-attention { border-inline-start-color: var(--bnd-warn); }
+		&.is-blocked { border-inline-start-color: var(--bnd-critical); }
+
+		h2 {
+			max-inline-size: 34ch;
+			margin-block: var(--bnd-sp-1) var(--bnd-sp-2);
+			font-size: var(--bnd-text-xl);
+		}
+
+		p {
+			max-inline-size: 65ch;
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	.bnd-zatca__eyebrow {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-zatca__environment {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: var(--bnd-sp-2) var(--bnd-sp-4);
+		padding: var(--bnd-sp-4);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-pane);
+
+		span { color: var(--bnd-ink-muted); }
+
+		strong {
+			font-weight: var(--bnd-weight-semibold);
+			text-align: end;
+		}
+	}
+
+	// ── Next action and the Sandbox path ────────────────────────────────────
+	.bnd-zatca__columns {
+		display: grid;
+		grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 1fr);
+		gap: var(--bnd-sp-4);
+	}
+
+	.bnd-zatca__next {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: var(--bnd-sp-3);
+
+		h3 {
+			color: var(--bnd-brand-ink);
+			font-size: var(--bnd-text-lg);
+		}
+
+		p {
+			max-inline-size: 62ch;
+			color: var(--bnd-ink-muted);
+		}
+	}
+
+	.bnd-zatca__routes {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2);
+		margin-block-start: auto;
+		padding-block-start: var(--bnd-sp-3);
+	}
+
+	.bnd-zatca__path {
+		ol {
+			display: grid;
+			gap: var(--bnd-sp-1);
+			margin: 0;
+			margin-block-start: var(--bnd-sp-3);
+			padding: 0;
+			list-style: none;
+		}
+
+		li {
+			display: flex;
+			align-items: center;
+			gap: var(--bnd-sp-3);
+			padding-block: var(--bnd-sp-2);
+			border-block-end: var(--bnd-line) solid var(--bnd-border);
+
+			&:last-child { border-block-end: 0; }
+		}
+
+		.is-pending { color: var(--bnd-ink-muted); }
+	}
+
+	.bnd-zatca__step-mark {
+		display: grid;
+		place-items: center;
+		flex: 0 0 auto;
+		inline-size: calc(var(--bnd-sp-5) + var(--bnd-sp-1));
+		block-size: calc(var(--bnd-sp-5) + var(--bnd-sp-1));
+		border: var(--bnd-line-strong) solid var(--bnd-border-strong);
+		border-radius: var(--bnd-radius-pill);
+		color: var(--bnd-ink-muted);
+	}
+
+	.bnd-zatca__path .is-done .bnd-zatca__step-mark {
+		border-color: var(--bnd-brand-solid);
+		background: var(--bnd-brand-solid);
+		color: var(--bnd-on-brand);
+	}
+
+	// ── The invoice monitor ─────────────────────────────────────────────────
+	.bnd-zatca__section-head {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--bnd-sp-3);
+	}
+
+	.bnd-zatca__hint {
+		margin-block: var(--bnd-sp-1) var(--bnd-sp-3);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-zatca__filters {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(9rem, 1fr)) auto;
+		align-items: end;
+		gap: var(--bnd-sp-3);
+		margin-block: var(--bnd-sp-4);
+
+		label {
+			display: grid;
+			gap: var(--bnd-sp-1);
+			min-inline-size: 0;
+			margin: 0;
+			color: var(--bnd-ink-muted);
+			font-weight: var(--bnd-weight-semibold);
+		}
+
+		.form-control { inline-size: 100%; }
+	}
+
+	.bnd-zatca__feedback {
+		min-block-size: 1.5em;
+		margin-block-end: var(--bnd-sp-2);
+		color: var(--bnd-ink-muted);
+	}
+
+	.bnd-zatca__table-scroll { overflow-x: auto; }
+
+	.bnd-zatca__table {
+		inline-size: 100%;
+		border-collapse: collapse;
+
+		th,
+		td {
+			padding-block: var(--bnd-sp-3);
+			padding-inline: var(--bnd-sp-2);
+			border-block-end: var(--bnd-line) solid var(--bnd-border);
+			text-align: start;
+			vertical-align: middle;
+		}
+
+		th {
+			background: var(--bnd-pane);
+			color: var(--bnd-ink-muted);
+			font-weight: var(--bnd-weight-semibold);
+		}
+
+		td[dir="ltr"] { font-variant-numeric: var(--bnd-numeric); }
+	}
+
+	// A status chip: the hue only tints the fill and draws the edge; the text
+	// is ink, so no hue/fill pair needs a contrast row of its own.
+	.bnd-zatca__state {
+		display: inline-flex;
+		align-items: center;
+		padding-block: var(--bnd-sp-1);
+		padding-inline: var(--bnd-sp-2);
+		border: var(--bnd-line) solid var(--bnd-border-strong);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-pane);
+		color: var(--bnd-ink);
+		font-weight: var(--bnd-weight-semibold);
+		white-space: nowrap;
+
+		&.is-accepted {
+			border-color: var(--bnd-good);
+			background: color-mix(in srgb, var(--bnd-good) 12%, var(--bnd-surface));
+		}
+
+		&.is-warnings,
+		&.is-pending {
+			border-color: var(--bnd-warn);
+			background: color-mix(in srgb, var(--bnd-warn) 14%, var(--bnd-surface));
+		}
+
+		&.is-rejected,
+		&.is-duplicate {
+			border-color: var(--bnd-critical);
+			background: color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface));
+		}
+	}
+
+	.bnd-zatca__money {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--bnd-sp-1);
+		direction: ltr;
+		font-variant-numeric: var(--bnd-numeric);
+		white-space: nowrap;
+	}
+
+	// The riyal sign as a mask over currentColor: it takes the amount's ink.
+	.bnd-zatca__riyal {
+		display: inline-block;
+		inline-size: 1em;
+		block-size: 1em;
+		background: currentColor;
+		mask: url("/assets/bunood_theme/fonts/riyal/Saudi_Riyal_Symbol-official.svg") center / contain no-repeat;
+	}
+
+	.bnd-zatca__more { margin-block-start: var(--bnd-sp-3); }
+
+	// ── The detail dialog (a native <dialog>) ───────────────────────────────
+	.bnd-zatca__dialog {
+		inline-size: min(42rem, calc(100vw - 2rem));
+		max-block-size: calc(100vh - 2rem);
+		margin: auto;
+		padding: var(--bnd-sp-5);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink);
+		box-shadow: var(--bnd-shadow-lg);
+
+		&::backdrop { background: color-mix(in srgb, var(--bnd-ink) 45%, transparent); }
+	}
+
+	.bnd-zatca__dialog-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: var(--bnd-sp-4);
+		margin-block-end: var(--bnd-sp-4);
+	}
+
+	.bnd-zatca__dialog-body {
+		display: grid;
+		gap: var(--bnd-sp-3);
+	}
+
+	.bnd-zatca__detail-grid {
+		display: grid;
+		grid-template-columns: minmax(7rem, auto) minmax(0, 1fr);
+		gap: var(--bnd-sp-2) var(--bnd-sp-4);
+		margin: 0;
+
+		dt { color: var(--bnd-ink-muted); }
+
+		dd {
+			margin: 0;
+			overflow-wrap: anywhere;
+			direction: ltr;
+			text-align: end;
+		}
+	}
+
+	.bnd-zatca__detail-error,
+	.bnd-zatca__detail-note {
+		margin: 0;
+		padding: var(--bnd-sp-3);
+		border-radius: var(--bnd-radius-md);
+		color: var(--bnd-ink);
+		font: inherit;
+		white-space: pre-wrap;
+		overflow-wrap: anywhere;
+	}
+
+	.bnd-zatca__detail-error { background: color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface)); }
+	.bnd-zatca__detail-note { background: var(--bnd-pane); }
+
+	.bnd-zatca__error { border-color: var(--bnd-critical); }
+
+	// The boundary: Sandbox evidence is not Production approval.
+	.bnd-zatca__boundary {
+		padding-block: var(--bnd-sp-3);
+		padding-inline: var(--bnd-sp-4);
+		border-radius: var(--bnd-radius-md);
+		background: color-mix(in srgb, var(--bnd-warn) 10%, var(--bnd-surface));
+		color: var(--bnd-ink);
+	}
+}
+
+.bnd-zatca-load-error {
+	padding: var(--bnd-sp-5);
+	border: var(--bnd-line) solid var(--bnd-critical);
+	border-radius: var(--bnd-radius-lg);
+	background: var(--bnd-surface);
+	color: var(--bnd-ink);
+}
+
+@include bnd-until(lg) {
+	.bnd-zatca-workspace {
+		.bnd-zatca__summary,
+		.bnd-zatca__columns { grid-template-columns: minmax(0, 1fr); }
+
+		.bnd-zatca__filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+		.bnd-zatca__toolbar,
+		.bnd-zatca__controls { align-items: stretch; }
+
+		.bnd-zatca__controls,
+		.bnd-zatca__controls label { inline-size: 100%; }
+	}
+}
+
+// On a phone the monitor's table becomes one card per invoice, each cell
+// carrying its column's name (data-label, set by the JS).
+@include bnd-until(sm) {
+	.bnd-zatca-workspace {
+		padding: var(--bnd-sp-3);
+
+		.bnd-zatca__filters { grid-template-columns: minmax(0, 1fr); }
+
+		.bnd-zatca__controls .btn,
+		.bnd-zatca__routes .btn { flex: 1; }
+
+		.bnd-zatca__table {
+			thead { display: none; }
+			tbody { display: grid; gap: var(--bnd-sp-3); }
+
+			tr {
+				display: grid;
+				padding-block: var(--bnd-sp-1);
+				padding-inline: var(--bnd-sp-3);
+				border: var(--bnd-line) solid var(--bnd-border);
+				border-radius: var(--bnd-radius-md);
+			}
+
+			td {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: var(--bnd-sp-3);
+				min-inline-size: 0;
+
+				&::before {
+					content: attr(data-label);
+					color: var(--bnd-ink-muted);
+					font-weight: var(--bnd-weight-semibold);
+				}
+			}
+		}
+	}
+}

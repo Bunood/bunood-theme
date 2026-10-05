@@ -5492,7 +5492,7 @@ const BND_DESK_GROUPS = [
 /** The width this reader has chosen for themselves, or "" for none. */
 function bnd_desk_mine() {
 	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
-	return p.body_width || "";
+	return p.open && p.open.bnd_body_width ? p.body_width || "" : "";
 }
 
 /**
@@ -5510,8 +5510,12 @@ function bnd_desk_mine() {
  */
 function bnd_effective(frm, field) {
 	const p = (window.frappe && frappe.boot && frappe.boot.bnd_personal) || {};
-	if (field === "desk_width" && p.body_width) return p.body_width;
-	if (field === "sidebar_pane_state" && p.pane_state) return p.pane_state;
+	// Boot serves the raw comfort intents even while a lock closes them (the
+	// dialog needs both), so a twin is the desk's value only when its axis is
+	// open; a locked-out personal width or pane state is not what renders.
+	const open = p.open || {};
+	if (field === "desk_width" && open.bnd_body_width && p.body_width) return p.body_width;
+	if (field === "sidebar_pane_state" && open.bnd_pane_state && p.pane_state) return p.pane_state;
 	const o = p.overrides || {};
 	return field in o ? o[field] : frm.doc[field];
 }

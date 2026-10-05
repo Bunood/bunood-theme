@@ -433,3 +433,32 @@ html[data-bnd-ws-metric="inline"] #{$num} {
   font-size: var(--bnd-text-xl);
   font-weight: 600;
 }
+
+// ── ERPNext's deprecation header: never painted (v0.48.5) ────────────────────
+// THE OWNER, 2026-09-28: a Bunood desk does not advertise the vendor's other
+// products. ERPNext's v16 line (erpnext fd6683e, 2026-01-06) opens the CRM and
+// Support workspaces with a header block, in English on every desk: "This module
+// is scheduled for deprecation and will be completely removed in version 17,
+// please use Frappe CRM instead" (Frappe Helpdesk on Support), linking to
+// frappe.io. Measured on 16.34.1: a block 1212px wide and 33-36px tall above the
+// charts, 8 of 8 cases (ar and en, light and dark, both workspaces). It is the
+// sidebar advert's twin, and it tells a tenant the module in front of them is
+// going away. That is also no longer what Frappe says: on 2026-05-25 Frappe
+// deferred any deprecation until Frappe CRM and Helpdesk reach parity, and
+// ERPNext's develop (17.0.0-dev) dropped the header from its rebuilt
+// workspaces (2a14b5d, 2026-08-27). The v16 line still ships it.
+//
+// Keyed on WHERE IT SENDS PEOPLE, not on its words. The block is ordinary
+// workspace content with no class of its own, and the link is the one stable
+// fact about it. Header blocks only, so a tenant's own paragraph that cites the
+// same page survives. And not in EDIT MODE: `.layout-main-section.edit-mode`
+// (the flag this file's gutter already stands down on) is where a System Manager
+// may want to see the block in order to delete it.
+//
+// A PRESENTATION RULE, like the sidebar's: nothing replaces the header, so it
+// claims no native, and it is scoped `html[data-theme]` so it holds from the
+// first paint and under the Original tile style.
+html[data-theme] .layout-main-section:not(.edit-mode) .codex-editor .ce-block:has(> .ce-block__content > .ce-header a[href^="https://frappe.io/crm"]),
+html[data-theme] .layout-main-section:not(.edit-mode) .codex-editor .ce-block:has(> .ce-block__content > .ce-header a[href^="https://frappe.io/helpdesk"]) {
+  display: none;
+}

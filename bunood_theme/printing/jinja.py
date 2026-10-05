@@ -17,48 +17,106 @@ def bunood_print_language():
     return "ar" if language.startswith("ar") else "en"
 
 
-def bunood_print_image_src(value):
-    """Return a PDF-safe source for a managed brand image.
+#: A logo has to survive a render that has no page to be relative to, so the
+#: budget is the whole letterhead's weight on EVERY printed page. 512 KB of
+#: source is already generous for a 54px-tall mark; past that, dropping the
+#: logo beats bloating every invoice.
+_MAX_INLINE_BYTES = 512 * 1024
 
-    Public and remote sources can remain URLs.  Private Frappe files cannot be
-    fetched by the isolated Chromium header renderer, even though the signed-in
-    browser preview can display them, so embed that tenant-owned asset at render
-    time.  This is intentionally for compact brand marks, not line-item images.
+_MIME_BY_SUFFIX = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".gif": "image/gif",
+    ".webp": "image/webp",
+    ".svg": "image/svg+xml",
+}
+
+
+def bunood_print_image_src(src):
+    """Inline a site file as a data: URI so an isolated PDF header can show it.
+
+    WHY THIS EXISTS -- measured 2026-09-12, not theorised.
+
+    wkhtmltopdf renders the page header and footer as SEPARATE documents,
+    written to /tmp and rendered with no base URL. A root-relative logo like
+
+        /private/files/<arabic name>.png
+
+    therefore has nothing to resolve against; and being under `private/` it
+    would still need a session cookie even if it were absolute. wkhtmltopdf
+    exits rc=1, pdfkit raises, and frappe rethrows it as "PDF generation failed
+    because of broken image links" -- which names the symptom and hides that
+    the whole PDF was lost. EVERY managed format failed this way, and so did
+    stock `Standard`, because both carry the same letterhead.
+
+    Measured, with only the src changed and everything else held:
+
+        /private/files/... (relative)   ERR   no PDF at all
+        absolute http /assets/...       OK    76,566 B
+        data:image/png;base64,...       OK    75,532 B
+        no <img>                        OK    75,229 B
+
+    Both working forms were verified; the data: URI is the one chosen, because
+    an absolute URL cannot fetch a PRIVATE file without a session, and because
+    it does not depend on `host_name` being correct or on the site being
+    reachable from whichever process happens to render.
+
+    Degrades to "" rather than raising: a letterhead that loses its logo still
+    prints, and a printout that fails entirely does not. The caller's
+    `{% if logo %}` then drops the tag, which is also the only form measured to
+    be safe when there is nothing to show.
     """
-    if not value or not isinstance(value, str):
-        return ""
-    if value.startswith(("data:image", "http://", "https://")):
-        return value
-    if not value.startswith(("/files/", "/private/files/")):
-        return value
+    src = (src or "").strip()
+    if not src or src.startswith(("data:", "http://", "https://")):
+        return src
+
     try:
-        file_name = frappe.db.get_value("File", {"file_url": value}, "name")
-        if not file_name:
-            return value
-        file_doc = frappe.get_doc("File", file_name)
-        content = file_doc.get_content()
-        if isinstance(content, str):
-            content = content.encode()
-        mime = (
-            getattr(file_doc, "mime_type", None)
-            or mimetypes.guess_type(file_doc.get("file_name") or value)[0]
-            or "application/octet-stream"
-        )
-        if not mime.startswith("image/"):
+        import base64
+        from pathlib import Path
+        from urllib.parse import unquote, urlsplit
+
+        parsed = urlsplit(src)
+        decoded = unquote(parsed.path)
+        if parsed.query or parsed.fragment or "\\" in decoded or "\x00" in decoded:
             return ""
-        return f"data:{mime};base64,{base64.b64encode(content).decode('ascii')}"
+        if any(part in {".", ".."} for part in decoded.split("/")):
+            return ""
+        if decoded.startswith("/private/files/"):
+            area = "private"
+        elif decoded.startswith("/files/"):
+            area = "public"
+        else:
+            return ""
+
+        # Resolve registered attachments through Frappe, including the native
+        # private File/attached-document permission check, before opening bytes.
+        file_doc = frappe.get_doc("File", {"file_url": src})
+        file_doc.check_permission("read")
+        base = Path(frappe.get_site_path(area, "files")).resolve()
+        path = Path(file_doc.get_full_path()).resolve()
+        if not path.is_relative_to(base) or not path.is_file():
+            return ""
+        mime = _MIME_BY_SUFFIX.get(path.suffix.lower())
+        if not mime or path.stat().st_size > _MAX_INLINE_BYTES:
+            return ""
+        with path.open("rb") as handle:
+            content = handle.read(_MAX_INLINE_BYTES + 1)
+        if len(content) > _MAX_INLINE_BYTES:
+            return ""
+        return "data:%s;base64,%s" % (mime, base64.b64encode(content).decode("ascii"))
     except Exception:
-        frappe.log_error(title="bunood_theme: print image resolution failed"[:140])
+        # Missing/denied/unsafe images must not break a permitted document PDF.
         return ""
 
 
 def bunood_amount_in_words(amount, currency, precision=2):
     """Print-only wording of the same payable number the template displays."""
     try:
-        # Integration v0.48.0: amount_words lives only on the experimental line,
-        # not on main. Until it is approved and ported, Arabic SAR falls through
-        # to ERPNext's own wording below instead of raising ImportError and
-        # taking the whole invoice render down.
+        # printing/amount_words ships with the theme again (team integration
+        # 2026-10-03). The guard stays: if its num2words dependency is ever
+        # missing, Arabic SAR falls through to ERPNext's own wording below
+        # instead of raising ImportError and taking the invoice render down.
         from bunood_theme.printing.amount_words import arabic_sar_words
     except ImportError:
         arabic_sar_words = None
@@ -79,7 +137,7 @@ def bunood_amount_in_words(amount, currency, precision=2):
 
     words = frappe.utils.money_in_words(abs(amount), currency)
     if currency == "SAR":
-        # Arabic prints reach here only while amount_words is absent (see the
+        # Arabic prints reach here only if amount_words cannot load (see the
         # import above); ERPNext's Arabic wording then needs an Arabic unit.
         unit = "ريال سعودي" if bunood_print_language() == "ar" else "Saudi riyals"
         words = words.replace("SAR", unit)
@@ -111,7 +169,7 @@ def bunood_zatca_qr_src(doc):
             ):
                 return value
 
-        if doc.get("doctype") == "Sales Invoice" and frappe.db.exists(
+        if doc.get("doctype") in {"Sales Invoice", "POS Invoice"} and frappe.db.exists(
             "DocType", "Sales Invoice Additional Fields"
         ):
             meta = frappe.get_meta("Sales Invoice Additional Fields")
@@ -121,9 +179,16 @@ def bunood_zatca_qr_src(doc):
                 None,
             )
             if link_field:
-                name = frappe.db.get_value(
-                    "Sales Invoice Additional Fields", {link_field: doc.name}, "name"
+                filters = {link_field: doc.name}
+                if meta.has_field("invoice_doctype"):
+                    filters["invoice_doctype"] = doc.doctype
+                if meta.has_field("is_latest"):
+                    filters["is_latest"] = 1
+                rows = frappe.get_all(
+                    "Sales Invoice Additional Fields", filters=filters, fields=["name"],
+                    order_by="creation desc", limit=1,
                 )
+                name = rows[0].name if rows else None
                 if name:
                     saf = frappe.get_doc("Sales Invoice Additional Fields", name)
                     for field in ("qr_image_src", "qr_code_image", "qr_image"):

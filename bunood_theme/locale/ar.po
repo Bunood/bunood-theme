@@ -11552,3 +11552,3078 @@ msgstr "المبيعات حسب مجموعة العملاء"
 #. src: js/report_studio.js
 msgid "What each customer group bought, month by month"
 msgstr "ما اشترته كل مجموعة عملاء، شهراً بشهر"
+
+#. In context.py (the reset route's tab title)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Update Password"
+msgstr "تحديث كلمة المرور"
+
+#. In report_studio.js (the VAT Return card)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "VAT figures and reconciliation checks to review before filing"
+msgstr "أرقام ضريبة القيمة المضافة وفحوص المطابقة لمراجعتها قبل تقديم الإقرار"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Opening debit balance"
+msgstr "الرصيد الافتتاحي (مدين)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Opening credit balance"
+msgstr "الرصيد الافتتاحي (دائن)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Closing debit balance"
+msgstr "الرصيد الختامي (مدين)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Closing credit balance"
+msgstr "الرصيد الختامي (دائن)"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Document count"
+msgstr "عدد المستندات"
+
+#. In report_studio.js (Trial Balance and VAT Summary column labels)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Report note"
+msgstr "ملاحظة"
+
+#. In report_studio.js (a point-in-time report's date)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "As of"
+msgstr "حتى تاريخ"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Start with a common task"
+msgstr "ابدأ بمهمة شائعة"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review sales"
+msgstr "مراجعة المبيعات"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Check customer balances"
+msgstr "التحقق من أرصدة العملاء"
+
+#. In report_studio.js (the gallery's common tasks)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review VAT"
+msgstr "مراجعة ضريبة القيمة المضافة"
+
+#. In report_studio.js (a report or a statement search that failed)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Report could not load"
+msgstr "تعذّر تحميل التقرير"
+
+#. In report_studio.js (a report or a statement search that failed)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Could not load matches. Try again."
+msgstr "تعذّر تحميل النتائج المطابقة. حاول مرة أخرى."
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the period before closing"
+msgstr "راجع الفترة قبل إقفالها"
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose a company and dates, then review the evidence. No books are changed here."
+msgstr "اختر الشركة والتواريخ ثم راجع المستندات المؤيدة. لا تتغير الدفاتر في هذه الخطوة."
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review journals for a company and period"
+msgstr "مراجعة القيود اليومية لشركة وفترة محددتين"
+
+#. In finance_close.js and journal_workbench.js (the prompt before the first evidence)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose the boundary to see draft entries and supporting evidence. Posting stays in the native Journal Entry."
+msgstr "حدد نطاق الفترة لعرض القيود المسودة والمستندات المؤيدة. يبقى الترحيل في شاشة القيد اليومي الأصلية."
+
+#. In pos.py (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Choose a valid POS sales filter."
+msgstr "اختر مرشحًا صالحًا لمبيعات نقطة البيع."
+
+#. In pos.py (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You cannot view POS receipts."
+msgstr "ليست لديك صلاحية لعرض إيصالات نقطة البيع."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "This shift"
+msgstr "هذه الوردية"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "My sales"
+msgstr "مبيعاتي"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All permitted sales"
+msgstr "جميع المبيعات المصرح بها"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipts"
+msgstr "إيصالات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS sales register"
+msgstr "سجل مبيعات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Find receipts from both POS invoice types without counting shift consolidation twice."
+msgstr "ابحث في إيصالات نوعَي فواتير نقطة البيع دون تكرار احتساب فاتورة تجميع الوردية."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open POS"
+msgstr "فتح نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS sales filters"
+msgstr "مرشحات مبيعات نقطة البيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Receipt or customer"
+msgstr "الإيصال أو العميل"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Search receipt number or customer"
+msgstr "ابحث برقم الإيصال أو العميل"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All permitted companies"
+msgstr "جميع الشركات المصرح بها"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Original records, including older POS invoice types"
+msgstr "السجلات الأصلية، بما فيها أنواع فواتير نقطة البيع السابقة"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Customer and cashier"
+msgstr "العميل وأمين الصندوق"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Payment and type"
+msgstr "السداد والنوع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Load more receipts"
+msgstr "تحميل مزيد من الإيصالات"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Walk-in customer"
+msgstr "عميل نقدي"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipt"
+msgstr "إيصال نقطة بيع"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Partly paid"
+msgstr "مدفوعة جزئيًا"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Payment status"
+msgstr "حالة السداد"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Reprint"
+msgstr "إعادة الطباعة"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No shift is open. Open POS to start a shift."
+msgstr "لا توجد وردية مفتوحة. افتح نقطة البيع لبدء وردية."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No POS receipts match these filters."
+msgstr "لا توجد إيصالات نقطة بيع تطابق هذه المرشحات."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Your current open shift only"
+msgstr "ورديتك المفتوحة الحالية فقط"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Receipts could not be loaded. Try again."
+msgstr "تعذر تحميل الإيصالات. حاول مرة أخرى."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Loading POS receipts…"
+msgstr "جارٍ تحميل إيصالات نقطة البيع…"
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS receipts could not be loaded. Rebuild the theme assets and try again."
+msgstr "تعذر تحميل إيصالات نقطة البيع. أعد بناء ملفات الواجهة وحاول مرة أخرى."
+
+#. In pos_workbench.js and the bnd-pos-register page (the receipt register)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "View all POS receipts"
+msgstr "عرض جميع إيصالات نقطة البيع"
+
+#. In pos_workbench.js (the cart's start-over button)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "New sale"
+msgstr "عملية جديدة"
+
+#. In pos_workbench.js (resuming a held sale)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Replace the current ticket with this held sale? Hold it first if you need to keep it."
+msgstr "هل تريد استبدال الطلب الحالي بهذه العملية المعلّقة؟ علّق الطلب الحالي أولًا إذا أردت الاحتفاظ به."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status is only available for sales and POS invoices."
+msgstr "حالة الفوترة الإلكترونية متاحة لفواتير المبيعات ونقطة البيع فقط."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have access to the ZATCA workspace."
+msgstr "ليس لديك صلاحية الوصول إلى مساحة عمل الفوترة الإلكترونية."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have access to this company."
+msgstr "ليس لديك صلاحية الوصول إلى هذه الشركة."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid start date."
+msgstr "تاريخ البداية غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid end date."
+msgstr "تاريخ النهاية غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice page cursor."
+msgstr "مؤشر صفحة الفواتير غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Full connector diagnostic is available in the native record."
+msgstr "التشخيص الكامل للموصل متاح في السجل الأصلي."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid ZATCA status filter."
+msgstr "مرشح حالة زاتكا غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice type filter."
+msgstr "مرشح نوع الفاتورة غير صالح."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Start date must not be after end date."
+msgstr "يجب ألا يكون تاريخ البداية بعد تاريخ النهاية."
+
+#. In zatca/status.py and zatca/monitor.py (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invalid invoice."
+msgstr "الفاتورة غير صالحة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Accepted with warnings"
+msgstr "مقبول مع تحذيرات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Duplicate response"
+msgstr "استجابة مكررة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Ready for batch"
+msgstr "جاهز للإرسال ضمن دفعة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Needs resend"
+msgstr "يحتاج إلى إعادة إرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Corrected; review before sending"
+msgstr "مصحح؛ راجعه قبل الإرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Clearance switched off"
+msgstr "التخليص معطل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review native record"
+msgstr "راجع السجل الأصلي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Not set"
+msgstr "غير محدد"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Pending ZATCA result"
+msgstr "بانتظار نتيجة زاتكا"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No ZATCA record"
+msgstr "لا يوجد سجل زاتكا"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Saudi riyal"
+msgstr "ريال سعودي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Connector installed"
+msgstr "الموصل مثبت"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install KSA Compliance"
+msgstr "ثبّت موصل الامتثال السعودي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install and migrate KSA Compliance on the site."
+msgstr "ثبّت موصل الامتثال السعودي ورحّله على الموقع."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox selected"
+msgstr "بيئة الاختبار محددة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Select Sandbox"
+msgstr "اختر بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the seller identity and select Sandbox in native settings."
+msgstr "راجع هوية البائع واختر بيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Device onboarded"
+msgstr "الجهاز مسجل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboard the device"
+msgstr "سجّل الجهاز"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Complete the connector's OTP onboarding in native settings."
+msgstr "أكمل تسجيل الجهاز برمز التحقق في إعدادات الموصل الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox CSID present"
+msgstr "شهادة الجهاز لبيئة الاختبار موجودة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Obtain the Sandbox CSID"
+msgstr "استخرج شهادة جهاز بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Run the connector's checks and obtain its Sandbox-issued CSID."
+msgstr "شغّل فحوصات الموصل واستخرج شهادة الجهاز الصادرة لبيئة الاختبار."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Integration enabled"
+msgstr "الربط مفعّل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Enable Sandbox integration"
+msgstr "فعّل الربط ببيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Enable the integration for Sandbox only after reviewing setup."
+msgstr "فعّل الربط لبيئة الاختبار فقط بعد مراجعة الإعدادات."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Connector not installed"
+msgstr "الموصل غير مثبت"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Install KSA Compliance before starting Sandbox setup."
+msgstr "ثبّت موصل الامتثال السعودي قبل بدء إعداد بيئة الاختبار."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Company setup needed"
+msgstr "إعداد الشركة مطلوب"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Create the company's native ZATCA Business Settings."
+msgstr "أنشئ إعدادات الفوترة الإلكترونية الأصلية لهذه الشركة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox is not selected"
+msgstr "بيئة الاختبار غير محددة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "This page will not switch environments. Review the server in native settings."
+msgstr "لن تغيّر هذه الصفحة البيئة. راجع الخادم في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboarding needed"
+msgstr "تسجيل الجهاز مطلوب"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Onboard the device with the Sandbox OTP in native settings."
+msgstr "سجّل الجهاز برمز تحقق بيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox CSID needed"
+msgstr "شهادة جهاز بيئة الاختبار مطلوبة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Complete Sandbox checks and obtain the Sandbox-issued CSID."
+msgstr "أكمل فحوصات بيئة الاختبار واستخرج شهادة الجهاز الصادرة لها."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Integration is disabled"
+msgstr "الربط معطل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review the configuration, then enable Sandbox integration in native settings."
+msgstr "راجع التهيئة، ثم فعّل الربط ببيئة الاختبار في الإعدادات الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox connection configured"
+msgstr "اتصال بيئة الاختبار مهيأ"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Configuration is present. Test each invoice type and review its native ZATCA response."
+msgstr "التهيئة موجودة. اختبر كل نوع فاتورة وراجع استجابة الهيئة في سجله الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice monitor"
+msgstr "متابعة الفواتير"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native ZATCA records"
+msgstr "فتح سجلات زاتكا الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Submitted Sales and POS invoices. ZATCA outcomes come from the native connector."
+msgstr "فواتير المبيعات ونقطة البيع المعتمدة. تُؤخذ نتائج زاتكا من الموصل الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "You do not have permission to view ZATCA validation records."
+msgstr "ليس لديك صلاحية عرض سجلات التحقق من الفوترة الإلكترونية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "All statuses"
+msgstr "جميع الحالات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Needs attention"
+msgstr "يحتاج متابعة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sales and POS invoices"
+msgstr "فواتير المبيعات ونقطة البيع"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Apply filters"
+msgstr "تطبيق المرشحات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Document type"
+msgstr "نوع المستند"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status"
+msgstr "حالة الفوترة الإلكترونية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Last attempt"
+msgstr "آخر محاولة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Load more invoices"
+msgstr "تحميل مزيد من الفواتير"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice ZATCA details"
+msgstr "تفاصيل زاتكا للفاتورة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Loading invoice details…"
+msgstr "جارٍ تحميل تفاصيل الفاتورة…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "UUID"
+msgstr "المعرّف الفريد (UUID)"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No ZATCA record exists yet for this submitted invoice."
+msgstr "لا يوجد حتى الآن سجل زاتكا لهذه الفاتورة المعتمدة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open invoice"
+msgstr "فتح الفاتورة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native validation record"
+msgstr "فتح سجل التحقق الأصلي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native integration logs"
+msgstr "فتح سجلات الربط الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice details are temporarily unavailable."
+msgstr "تفاصيل الفاتورة غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "View details"
+msgstr "عرض التفاصيل"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Checking invoices…"
+msgstr "جارٍ فحص الفواتير…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoices shown: {0}"
+msgstr "الفواتير المعروضة: {0}"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No matching invoices in this batch. Continue searching."
+msgstr "لا توجد فواتير مطابقة في هذه الدفعة. تابع البحث."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No matching invoices for these filters."
+msgstr "لا توجد فواتير تطابق هذه المرشحات."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Invoice monitor is temporarily unavailable."
+msgstr "متابعة الفواتير غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "No permitted company is available. Ask your administrator for company access."
+msgstr "لا توجد شركة متاحة وفق صلاحياتك. اطلب من مسؤول النظام منحك صلاحية الشركة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Current state"
+msgstr "الحالة الحالية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Environment"
+msgstr "البيئة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sync mode"
+msgstr "نمط الإرسال"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Next action"
+msgstr "الإجراء التالي"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Open native ZATCA settings"
+msgstr "فتح إعدادات الفوترة الإلكترونية الأصلية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Ask an Accounts Manager with ZATCA settings access to complete this step."
+msgstr "اطلب من مدير حسابات لديه صلاحية إعدادات الفوترة الإلكترونية إكمال هذه الخطوة."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Test a controlled invoice"
+msgstr "اختبر فاتورة منضبطة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Check standard and simplified Sales and POS invoices, then review their native clearance or reporting records."
+msgstr "افحص فواتير المبيعات ونقطة البيع القياسية والمبسطة، ثم راجع سجلات التخليص أو الإبلاغ الأصلية."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sales invoices"
+msgstr "فواتير المبيعات"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "POS invoices"
+msgstr "فواتير نقطة البيع"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox path"
+msgstr "مسار بيئة الاختبار"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Sandbox evidence is not Production approval. A qualified Saudi reviewer must approve legal identity, tax, prints and operational controls before Production activation."
+msgstr "أدلة بيئة الاختبار ليست اعتمادًا للإنتاج. يجب أن يراجع مختص سعودي مؤهل الهوية النظامية والضريبة والطباعة والضوابط التشغيلية قبل تفعيل بيئة الإنتاج."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA workspace"
+msgstr "مساحة عمل الفوترة الإلكترونية"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Set up Sandbox, inspect evidence and continue in the native connector."
+msgstr "أعدّ بيئة الاختبار، وراجع الأدلة، ثم أكمل العمل في موصل الفوترة الإلكتروني الأصلي."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Refresh status"
+msgstr "تحديث الحالة"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Checking ZATCA setup…"
+msgstr "جارٍ التحقق من إعدادات هيئة الزكاة والضريبة والجمارك…"
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "ZATCA status is temporarily unavailable."
+msgstr "حالة الربط مع الهيئة غير متاحة مؤقتًا."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "The ZATCA workspace could not load. Rebuild the theme assets and try again."
+msgstr "تعذر تحميل مساحة عمل الفوترة الإلكترونية. أعد بناء ملفات الواجهة ثم حاول مرة أخرى."
+
+#. In zatca_workspace.js, the bnd-zatca page and the Reports landing (the read-only ZATCA workspace)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Review Sandbox setup and native invoice evidence by company."
+msgstr "راجع إعداد بيئة الاختبار وأدلة الفواتير الأصلية لكل شركة."
+
+#. In bunood.js (switching language with unsaved changes)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Unsaved changes"
+msgstr "تغييرات غير محفوظة"
+
+#. In bunood.js (switching language with unsaved changes)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Discard changes and switch"
+msgstr "تجاهل التغييرات والتبديل"
+
+#. In bunood.js (charts: the named group and its read-out)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Series"
+msgstr "سلسلة"
+
+#. In bunood.js (charts: the named group and its read-out)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Interactive chart"
+msgstr "رسم بياني تفاعلي"
+
+#. In asset_workbench.py (the fixed-asset workbench)
+#. src: team release 0a8b549
+#, fuzzy
+msgid "Maximum fixed-asset review period in days: {0}"
+msgstr "الحد الأقصى لفترة مراجعة الأصول الثابتة بالأيام: {0}"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset attention is required"
+msgstr "يلزم الانتباه إلى الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review due or failed depreciation and open repairs in their native records before close."
+msgstr "راجع الإهلاك المستحق أو المتعثر والإصلاحات المفتوحة في سجلاتها الأصلية قبل الإقفال."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset review is required"
+msgstr "تلزم مراجعة الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Draft asset lifecycle records still require authorised review and native submission."
+msgstr "ما زالت مسودات دورة حياة الأصول تحتاج إلى مراجعة معتمدة واعتماد في مستنداتها الأصلية."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset evidence is incomplete"
+msgstr "بيانات الأصول غير مكتملة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "A permitted query failed or a bounded result was truncated. No clean-register conclusion was inferred."
+msgstr "تعذّر أحد الاستعلامات المسموح بها أو اقتُطعت نتيجة محدودة، فلم يُستنتج أن السجل سليم."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No exceptions observed in this bounded view"
+msgstr "لم تُرصد استثناءات في هذا العرض المحدود"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This is not fixed-asset or General Ledger reconciliation. Complete the native reports and qualified review."
+msgstr "هذه ليست مطابقة للأصول الثابتة ولا لدفتر الأستاذ العام. أكمل التقارير الأصلية والمراجعة المؤهلة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review the native asset records for this company and period."
+msgstr "راجع سجلات الأصول الأصلية لهذه الشركة والفترة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation posting failed"
+msgstr "تعذّر ترحيل الإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation due by boundary"
+msgstr "إهلاك مستحق حتى نهاية النطاق"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Maintenance or repair attention"
+msgstr "تحتاج إلى صيانة أو إصلاح"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fully depreciated"
+msgstr "مُهلك بالكامل"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "In use"
+msgstr "قيد الاستخدام"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Disposed"
+msgstr "مستبعد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fixed-asset lifecycle"
+msgstr "دورة حياة الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Physical custody and accounting value are different controls. Use the native document that matches the event."
+msgstr "العهدة المادية والقيمة المحاسبية ضابطان مختلفان. استخدم المستند الأصلي المطابق للحدث."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Acquire and capitalize"
+msgstr "الاقتناء والرسملة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Create the asset from its fixed-asset Item or combine eligible costs through Asset Capitalization."
+msgstr "أنشئ الأصل من صنف الأصل الثابت الخاص به، أو اجمع التكاليف المؤهلة عبر رسملة الأصول."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New capitalization"
+msgstr "رسملة جديدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Put in use and depreciate"
+msgstr "التشغيل والإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Confirm available-for-use date, Finance Book, method, useful life, residual value and schedule before posting."
+msgstr "تحقق من تاريخ الجاهزية للاستخدام والدفتر المالي والطريقة والعمر الإنتاجي والقيمة المتبقية والجدول قبل الترحيل."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation schedules"
+msgstr "جداول الإهلاك"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Move and assign custody"
+msgstr "النقل وتسليم العهدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use Asset Movement for location and custodian changes. Do not edit the visible location as an unaudited shortcut."
+msgstr "استخدم «حركة الأصل» لتغيير الموقع وأمين العهدة، ولا تعدّل الموقع الظاهر اختصارًا بلا تدقيق."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New movement"
+msgstr "حركة جديدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Maintain and repair"
+msgstr "الصيانة والإصلاح"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Keep planned maintenance separate from failures, repair cost and any policy-approved capitalization."
+msgstr "افصل الصيانة المخططة عن الأعطال وتكلفة الإصلاح وأي رسملة تجيزها السياسة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "New repair"
+msgstr "إصلاح جديد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Adjust or dispose"
+msgstr "التسوية أو الاستبعاد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use a supported value adjustment, fixed-asset sale or scrap workflow so carrying value and gain or loss remain traceable."
+msgstr "استخدم مسارًا معتمدًا لتسوية القيمة أو بيع الأصل أو تخريده، لتبقى القيمة الدفترية والربح أو الخسارة قابلة للتتبع."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Value adjustment"
+msgstr "تسوية القيمة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current asset queue"
+msgstr "قائمة الأصول الحالية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The period filters lifecycle activity. This queue shows the current permitted Asset register state, prioritised by attention."
+msgstr "الفترة تُصفّي نشاط دورة الحياة، أما هذه القائمة فتعرض الحالة الحالية لسجل الأصول المسموح به مرتبةً حسب الحاجة إلى الانتباه."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted Asset records were observed for this company."
+msgstr "لم تُرصد سجلات أصول مسموح بها لهذه الشركة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Lifecycle state"
+msgstr "حالة دورة الحياة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Location or custodian"
+msgstr "الموقع أو أمين العهدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Next depreciation"
+msgstr "الإهلاك التالي"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Carrying value"
+msgstr "القيمة الدفترية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This is a bounded queue. Open the native Asset list and reports for the complete permitted result."
+msgstr "هذه قائمة محدودة. افتح قائمة الأصول والتقارير الأصلية للاطلاع على النتيجة الكاملة المسموح بها."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "A schedule is not a posted expense. Verify each Finance Book, future row and linked Journal Entry in the native schedule and ledger report."
+msgstr "الجدول ليس مصروفًا مرحّلًا. تحقق من كل دفتر مالي وكل صف مستقبلي وقيد اليومية المرتبط في الجدول وتقرير الأستاذ الأصليين."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted Asset Depreciation Schedule was observed."
+msgstr "لم يُرصد جدول إهلاك أصول مسموح به."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current scheduled value"
+msgstr "القيمة المجدولة الحالية"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Lifecycle activity and open repairs"
+msgstr "نشاط دورة الحياة والإصلاحات المفتوحة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Open the source document to verify affected assets, stock or service cost, accounting date, evidence and approval history."
+msgstr "افتح المستند المصدر للتحقق من الأصول المتأثرة وتكلفة المخزون أو الخدمة والتاريخ المحاسبي والإثباتات وسجل الاعتماد."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No permitted lifecycle activity or open repair was observed in this boundary."
+msgstr "لم يُرصد في هذا النطاق نشاط لدورة الحياة أو إصلاح مفتوح مسموح به."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Asset or purpose"
+msgstr "الأصل أو الغرض"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Register-to-ledger review"
+msgstr "مراجعة السجل مقابل الأستاذ"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Use the same company, cutoff date, Finance Book, currency and dimensions. Reconcile asset cost, accumulated depreciation, depreciation expense, value adjustments and disposal gain or loss; investigate manual journals and timing differences."
+msgstr "استخدم الشركة وتاريخ القطع والدفتر المالي والعملة والأبعاد نفسها. طابق تكلفة الأصول ومجمع الإهلاك ومصروف الإهلاك وتسويات القيمة وربح الاستبعاد أو خسارته، وافحص القيود اليدوية وفروق التوقيت."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Depreciation and balances"
+msgstr "الإهلاك والأرصدة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "This view does not declare the boundary reconciled. Qualified preparer and reviewer evidence remains required."
+msgstr "لا يعلن هذا العرض أن النطاق مطابَق، وتبقى إثباتات المُعِدّ والمراجع المؤهلَين مطلوبة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Assets observed"
+msgstr "الأصول المرصودة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Current permitted register rows"
+msgstr "صفوف السجل الحالية المسموح بها"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Attention queue"
+msgstr "قائمة الانتباه"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Due or failed depreciation and open repairs"
+msgstr "إهلاك مستحق أو متعثر وإصلاحات مفتوحة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Observed carrying value"
+msgstr "القيمة الدفترية المرصودة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Not a reconciled register total"
+msgstr "ليست إجماليًا مطابقًا للسجل"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Period activity"
+msgstr "نشاط الفترة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Movements, capitalization, adjustments and disposal"
+msgstr "الحركات والرسملة والتسويات والاستبعاد"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Native ERPNext asset lifecycle"
+msgstr "دورة حياة الأصول الأصلية في ERPNext"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Fixed asset workbench"
+msgstr "مساحة عمل الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Track acquisition, custody, depreciation, maintenance, value changes and disposal without hiding native accounting controls."
+msgstr "تتبّع الاقتناء والعهدة والإهلاك والصيانة وتغيرات القيمة والاستبعاد دون حجب الضوابط المحاسبية الأصلية."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review assets"
+msgstr "مراجعة الأصول"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench could not be loaded"
+msgstr "تعذّر تحميل مساحة عمل الأصول الثابتة"
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "No asset or accounting record was changed. Review the error, then try again."
+msgstr "لم يتغير أي سجل للأصول أو للمحاسبة. راجع الخطأ ثم حاول مرة أخرى."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench bundle is not registered. Rebuild the theme assets."
+msgstr "حزمة مساحة عمل الأصول الثابتة غير مسجلة. أعد بناء ملفات السمة."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "The fixed-asset workbench failed to load. Check the browser console."
+msgstr "تعذر تحميل مساحة عمل الأصول الثابتة. تحقق من وحدة تحكم المتصفح."
+
+#. In asset_workbench.js, the bnd-asset-workbench page and the Reports landing (the fixed-asset workbench)
+#. src: integration (not in the team's catalogue)
+#, fuzzy
+msgid "Review assets, depreciation, repairs and lifecycle drafts by company and period."
+msgstr "راجع الأصول والإهلاك والإصلاحات ومسودات دورة الحياة حسب الشركة والفترة."
+
+msgid "Accounting desk"
+msgstr "مكتب المحاسبة"
+
+msgid "Select a company"
+msgstr "اختر شركة"
+
+msgid "Not permitted to read customer ledger entries."
+msgstr "غير مصرح بقراءة قيود دفتر العميل."
+
+msgid "This preview is only available for submitted Sandbox invoices."
+msgstr "هذه المعاينة متاحة فقط للفواتير المعتمدة في البيئة التجريبية."
+
+msgid "The signed ZATCA XML or QR code is not ready yet."
+msgstr "ملف الفاتورة الموقع أو رمز الاستجابة السريعة غير جاهز بعد."
+
+msgid "Only customer sales and POS invoices can be delivered here."
+msgstr "يمكن تسليم فواتير مبيعات العملاء ونقاط البيع فقط هنا."
+
+msgid "Use the ZATCA Phase 2 print format for this invoice."
+msgstr "استخدم تنسيق طباعة المرحلة الثانية لهذه الفاتورة."
+
+msgid "Overdue receivables"
+msgstr "مستحقات متأخرة"
+
+msgid "Payables due"
+msgstr "مبالغ مستحقة للدفع"
+
+msgid "Some checks are unavailable. Review the native records."
+msgstr "بعض الفحوصات غير متاحة. راجع السجلات الأصلية."
+
+msgid "Work queue"
+msgstr "قائمة العمل"
+
+msgid "More records are available in the full lists."
+msgstr "توجد سجلات أخرى في القوائم الكاملة."
+
+msgid "A signed reconciliation and closing balance have not been verified."
+msgstr "لم يتم التحقق من التسوية المعتمدة والرصيد الختامي."
+
+msgid "Unable to load accounting evidence."
+msgstr "تعذّر تحميل بيانات المحاسبة."
+
+
+#. Payment Entry payment-type option: money received into the company.
+#. src: observed Payment Entry form, reviewed 2026-09-19
+msgid "Receive"
+msgstr "قبض"
+
+#. Payment Entry payment-type option: money disbursed by the company.
+#. src: observed Payment Entry form, reviewed 2026-09-19
+msgid "Pay"
+msgstr "صرف"
+
+msgid "Payment Entry"
+msgstr "سند دفع أو قبض"
+
+#. src: sales-bill
+msgid "Add item"
+msgstr "إضافة الصنف"
+
+#. src: stock entry simple workbench
+msgid "Add items and quantities"
+msgstr "أضف الأصناف والكميات"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Add the items and quantities. Stock changes only after submission."
+msgstr "أضف الأصناف والكميات. لا يتغير المخزون إلا بعد الاعتماد."
+
+#. src: simple forms
+msgid "Advanced"
+msgstr "متقدّم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the customer and warehouse, then add the items being delivered. Use Advanced for transport, billing, and accounting details."
+msgstr "اختر العميل والمستودع، ثم أضف الأصناف المراد تسليمها. استخدم الوضع المتقدم لتفاصيل النقل والفوترة والمحاسبة."
+
+#. src: stock entry simple workbench
+msgid "Choose the movement"
+msgstr "اختر نوع الحركة"
+
+#. src: stock entry simple workbench
+msgid "Choose the movement, warehouses, and items. Use Advanced for manufacturing, subcontracting, and accounting options."
+msgstr "اختر نوع الحركة والمستودعات والأصناف. استخدم الوضع المتقدم لخيارات التصنيع والمقاولات الفرعية والمحاسبة."
+
+#. src: stock entry simple workbench
+msgid "Choose the route"
+msgstr "حدّد مسار المخزون"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Choose the source warehouse used for the delivered items."
+msgstr "اختر مستودع المصدر للأصناف التي سيتم تسليمها."
+
+#. src: simple forms
+msgid "Choose whether money came in, went out, or moved between accounts. Then select the party, amount, accounts, and invoices that apply."
+msgstr "اختر ما إذا كان المبلغ واردًا أو صادرًا أو محولًا بين الحسابات، ثم حدّد الطرف والمبلغ والحسابات والفواتير المعنية."
+msgid "Series"
+msgstr "سلسلة"
+
+#. src: simple forms
+msgid "Create Sales Invoice"
+msgstr "إنشاء فاتورة مبيعات"
+
+#. src: stock entry simple workbench
+msgid "Date and company"
+msgstr "التاريخ والشركة"
+
+#. src: simple forms
+msgid "Delete"
+msgstr "حذف"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery steps"
+msgstr "خطوات التسليم"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Delivery summary"
+msgstr "ملخص التسليم"
+
+#. src: stock entry simple workbench
+msgid "Difference"
+msgstr "الفرق"
+
+#. src: simple forms
+msgid "Form mode"
+msgstr "وضع النموذج"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Fulfilment"
+msgstr "التنفيذ"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Grand total"
+msgstr "الإجمالي العام"
+
+#. src: stock entry simple workbench
+msgid "Incoming"
+msgstr "الوارد"
+
+#. In sales_bill.js
+#. src: ai
+msgid "Item"
+msgstr "الصنف"
+
+#. src: stock entry simple workbench
+msgid "Items"
+msgstr "الأصناف"
+
+#. src: stock entry simple workbench
+msgid "Move stock"
+msgstr "نقل المخزون"
+
+#. src: stock entry simple workbench
+msgid "Movement"
+msgstr "الحركة"
+
+#. src: stock entry simple workbench
+msgid "Movement summary"
+msgstr "ملخص حركة المخزون"
+
+#. src: form-summary
+#, fuzzy
+msgid "No"
+msgstr "لا"
+
+#. src: stock entry simple workbench
+msgid "Only the warehouses required for this movement are shown."
+msgstr "تظهر فقط المستودعات المطلوبة لهذه الحركة."
+
+#. src: stock entry simple workbench
+msgid "Outgoing"
+msgstr "الصادر"
+
+#. src: simple forms
+msgid "Payment"
+msgstr "دفعة"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Prepare a delivery"
+msgstr "تجهيز تسليم"
+
+#. src: simple forms
+msgid "Record a payment"
+msgstr "تسجيل دفعة"
+
+msgid "row"
+msgstr "صف"
+
+#. src: simple sales invoice stock controls
+msgid "Stock movement"
+msgstr "حركة المخزون"
+
+#. src: stock entry simple workbench
+msgid "Scan, search, or add items in the table. Stock is posted only after submission."
+msgstr "امسح الباركود أو ابحث أو أضف الأصناف في الجدول. لا تُرحّل حركة المخزون إلا بعد الاعتماد."
+
+#. src: stock entry simple workbench
+msgid "Select how stock should enter, leave, or move between warehouses."
+msgstr "حدّد ما إذا كان المخزون سيدخل أو يخرج أو يُنقل بين المستودعات."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Select the customer for this delivery note."
+msgstr "اختر العميل لإشعار التسليم هذا."
+
+#. src: simple forms
+msgid "Simple"
+msgstr "مبسّط"
+
+#. src: simple forms
+msgid "Simple mode"
+msgstr "الوضع المبسّط"
+
+#. src: stock entry simple workbench
+msgid "Stock movement steps"
+msgstr "خطوات حركة المخزون"
+
+#. src: shared simple-form actions
+msgid "Submit"
+msgstr "اعتماد"
+
+#. src: simple forms
+msgid "The fields needed for this task are shown. Advanced mode keeps every ERPNext option on the same document."
+msgstr "تظهر الحقول اللازمة لهذه المهمة. يحتفظ الوضع المتقدم بجميع خيارات النظام في المستند نفسه."
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Total quantity"
+msgstr "إجمالي الكمية"
+
+#. src: mobile-shell
+msgid "Account"
+msgstr "الحساب"
+
+#. Bunood bill workbench line labels
+#. src: human-reviewed
+msgid "Warehouse"
+msgstr "المستودع"
+
+#. src: stock entry simple workbench
+msgid "Warehouses"
+msgstr "المستودعات"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "What are you delivering?"
+msgstr "ما الأصناف التي ستسلّمها؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Where is it leaving from?"
+msgstr "من أي مستودع ستخرج الأصناف؟"
+
+#. Bunood delivery note workbench
+#. src: ai
+msgid "Who is receiving this delivery?"
+msgstr "من سيستلم هذا التسليم؟"
+
+#. src: Real Estate command desk
+msgid "Leasing"
+msgstr "التأجير"
+
+msgid "Cancel document"
+msgstr "إلغاء المستند"
+
+msgid "Delete draft"
+msgstr "حذف المسودة"
+
+msgid "Duplicate"
+msgstr "تكرار"
+
+msgid "Expired"
+msgstr "منتهي الصلاحية"
+
+msgid "Currency"
+msgstr "العملة"
+
+msgid "Required to save"
+msgstr "مطلوب للحفظ"
+
+#. In simple_forms.js task workbenches.
+#. src: purpose-built transaction pages
+msgid "Document outcome"
+msgstr "نتيجة المستند"
+
+msgid "Who is this offer for?"
+msgstr "لمن يُقدَّم هذا العرض؟"
+
+msgid "Customer, company and validity stay together at the top of the offer."
+msgstr "تظهر بيانات العميل والشركة وصلاحية العرض معًا في أعلى الصفحة."
+
+msgid "Build the offer"
+msgstr "إعداد العرض"
+
+msgid "Add the products or services, quantities and prices the customer will receive."
+msgstr "أضف المنتجات أو الخدمات والكميات والأسعار التي سيحصل عليها العميل."
+
+msgid "Commercial terms"
+msgstr "الشروط التجارية"
+
+msgid "Choose currency, price list, tax and any document-level discount."
+msgstr "اختر العملة وقائمة الأسعار والضريبة وأي خصم على مستوى المستند."
+
+msgid "Offer total"
+msgstr "إجمالي العرض"
+
+msgid "Customer commitment"
+msgstr "التزام العميل"
+
+msgid "Confirm who ordered and the dates Bunood is promising."
+msgstr "حدّد صاحب الطلب والمواعيد التي تلتزم بها بنود."
+
+msgid "What was ordered?"
+msgstr "ما الذي تم طلبه؟"
+
+msgid "Keep quantities, prices and delivery expectations together in one working sheet."
+msgstr "اجمع الكميات والأسعار ومواعيد التسليم المتوقعة في جدول عمل واحد."
+
+msgid "Fulfilment and pricing"
+msgstr "التنفيذ والتسعير"
+
+msgid "Set the source warehouse and the commercial defaults for this order."
+msgstr "حدّد المستودع المصدر والإعدادات التجارية الافتراضية لهذا الطلب."
+
+msgid "Committed total"
+msgstr "إجمالي الالتزام"
+
+msgid "Supplier and schedule"
+msgstr "المورد والجدول الزمني"
+
+msgid "Keep the supplier, company and required delivery date visible before ordering."
+msgstr "أبقِ المورد والشركة وتاريخ التسليم المطلوب واضحة قبل إصدار الطلب."
+
+msgid "What are we ordering?"
+msgstr "ماذا نطلب؟"
+
+msgid "Add the exact products or services, quantities and agreed prices."
+msgstr "أضف المنتجات أو الخدمات والكميات والأسعار المتفق عليها بدقة."
+
+msgid "Receiving and commercial terms"
+msgstr "شروط الاستلام والشروط التجارية"
+
+msgid "Choose the receiving warehouse, currency, price list, tax and discount."
+msgstr "اختر مستودع الاستلام والعملة وقائمة الأسعار والضريبة والخصم."
+
+msgid "Purchase commitment"
+msgstr "إجمالي التزام الشراء"
+
+msgid "Incoming delivery"
+msgstr "توريد وارد"
+
+msgid "Identify the supplier, company and actual receipt time."
+msgstr "حدّد المورد والشركة ووقت الاستلام الفعلي."
+
+msgid "Verify received items"
+msgstr "التحقق من الأصناف المستلمة"
+
+msgid "Record only the quantities physically received into the selected warehouse."
+msgstr "سجّل فقط الكميات التي استُلمت فعليًا في المستودع المحدد."
+
+msgid "Receiving destination"
+msgstr "وجهة الاستلام"
+
+msgid "Confirm where the accepted stock will be stored."
+msgstr "حدّد المستودع الذي سيُحفظ فيه المخزون المقبول."
+
+msgid "Received quantity"
+msgstr "الكمية المستلمة"
+
+msgid "Receipt value"
+msgstr "قيمة الاستلام"
+
+msgid "What is needed?"
+msgstr "ما المطلوب؟"
+
+msgid "Choose the request purpose, company and required date before adding items."
+msgstr "اختر غرض الطلب والشركة والتاريخ المطلوب قبل إضافة الأصناف."
+
+msgid "Requested items"
+msgstr "الأصناف المطلوبة"
+
+msgid "Record each item, quantity and the warehouse that needs it."
+msgstr "سجّل كل صنف وكميته والمستودع الذي يحتاج إليه."
+
+msgid "Default destination"
+msgstr "الوجهة الافتراضية"
+
+msgid "Use a warehouse default when the request shares one destination."
+msgstr "استخدم مستودعًا افتراضيًا عندما تشترك بنود الطلب في وجهة واحدة."
+
+msgid "Requested quantity"
+msgstr "الكمية المطلوبة"
+
+msgid "Count context"
+msgstr "سياق الجرد"
+
+msgid "Choose the company, warehouse and exact posting time for this physical count."
+msgstr "اختر الشركة والمستودع ووقت الترحيل الدقيق لهذا الجرد الفعلي."
+
+msgid "Counted stock"
+msgstr "المخزون المعدود"
+
+msgid "Enter the physical quantity and valuation for every counted item."
+msgstr "أدخل الكمية الفعلية والتقييم لكل صنف تم جرده."
+
+msgid "Value difference"
+msgstr "فرق القيمة"
+
+msgid "How is money moving?"
+msgstr "كيف تتحرك الأموال؟"
+
+msgid "Choose receive, pay or transfer and the payment method."
+msgstr "اختر قبضًا أو دفعًا أو تحويلًا، ثم حدّد طريقة الدفع."
+
+msgid "Who is this payment for?"
+msgstr "لمن تخص هذه الدفعة؟"
+
+msgid "Select the customer, supplier or other party when the movement belongs to one."
+msgstr "اختر العميل أو المورد أو الطرف الآخر عندما ترتبط الحركة به."
+
+msgid "From account to account"
+msgstr "من حساب إلى حساب"
+
+msgid "The native account pair remains the source of truth for the posting."
+msgstr "يبقى زوج الحسابات الأصلي هو المصدر المعتمد للترحيل."
+
+msgid "Enter the paid and received amounts in their native currencies."
+msgstr "أدخل المبلغ المدفوع والمبلغ المستلم بعملتيهما الأصليتين."
+
+msgid "Allocate invoices"
+msgstr "تخصيص الفواتير"
+
+msgid "Apply the payment to native invoice references and keep any difference visible."
+msgstr "خصّص الدفعة على مراجع الفواتير الأصلية مع إبقاء أي فرق ظاهرًا."
+
+msgid "Payment evidence"
+msgstr "مرجع الدفع"
+
+msgid "Add the bank or payment reference and its date."
+msgstr "أضف مرجع البنك أو الدفع وتاريخه."
+
+msgid "Unallocated difference"
+msgstr "الفرق غير المخصص"
+
+msgid "Journal context"
+msgstr "بيانات القيد"
+
+msgid "Choose the voucher type, company and posting evidence."
+msgstr "اختر نوع السند والشركة ومرجع الترحيل."
+
+msgid "Debit and credit lines"
+msgstr "سطور المدين والدائن"
+
+msgid "Every line remains a native account row with its original dimensions and validation."
+msgstr "يبقى كل سطر صف حساب أصليًا بأبعاده وقواعد التحقق الخاصة به."
+
+msgid "Claimant and approval"
+msgstr "صاحب المطالبة والاعتماد"
+
+msgid "Identify the employee, company, posting date and current approval state."
+msgstr "حدّد الموظف والشركة وتاريخ الترحيل وحالة الاعتماد الحالية."
+
+msgid "Claimed expenses"
+msgstr "المصروفات المطالب بها"
+
+msgid "Add each expense with its receipt, category and amount."
+msgstr "أضف كل مصروف مع إيصالِه وتصنيفه ومبلغه."
+
+msgid "Settlement"
+msgstr "التسوية"
+
+msgid "Review sanctioned totals and the payable account before submission."
+msgstr "راجع الإجماليات المعتمدة وحساب الدفع قبل الاعتماد."
+
+msgid "Claimed"
+msgstr "المطالب به"
+
+msgid "Approved"
+msgstr "المعتمد"
+
+msgid "Offer"
+msgstr "العرض"
+
+msgid "Review"
+msgstr "المراجعة"
+
+msgid "Commitment"
+msgstr "الالتزام"
+
+msgid "Verify"
+msgstr "التحقق"
+
+msgid "Need"
+msgstr "الاحتياج"
+
+msgid "Direction"
+msgstr "اتجاه الحركة"
+
+msgid "Allocation"
+msgstr "التخصيص"
+
+msgid "Confirmation"
+msgstr "التأكيد"
+
+msgid "Voucher"
+msgstr "السند"
+
+msgid "Debit and credit"
+msgstr "المدين والدائن"
+
+msgid "Total debit"
+msgstr "إجمالي المدين"
+
+msgid "Total credit"
+msgstr "إجمالي الدائن"
+
+msgid "Balance"
+msgstr "الرصيد"
+
+msgid "Expenses"
+msgstr "المصروفات"
+
+msgid "Prepare an offer"
+msgstr "إعداد عرض سعر"
+
+msgid "Confirm a sales order"
+msgstr "تأكيد أمر بيع"
+
+msgid "Capture the customer commitment, promised delivery, fulfilment route and commercial total in one place."
+msgstr "سجّل التزام العميل وموعد التسليم ومسار التنفيذ والإجمالي التجاري في مكان واحد."
+
+msgid "Place a purchase order"
+msgstr "إصدار أمر شراء"
+
+msgid "Agree the supplier, schedule, receiving destination and commercial terms before committing the purchase."
+msgstr "حدّد المورد والجدول الزمني ووجهة الاستلام والشروط التجارية قبل الالتزام بالشراء."
+
+msgid "Receive a supplier delivery"
+msgstr "استلام توريد من مورد"
+
+msgid "Verify what physically arrived and where accepted stock will be stored before submission."
+msgstr "تحقق مما وصل فعليًا ومن مستودع حفظ المخزون المقبول قبل الاعتماد."
+
+msgid "Request materials"
+msgstr "طلب مواد"
+
+msgid "State what is needed, when it is needed and which warehouse should receive it."
+msgstr "حدّد المطلوب وموعد الحاجة إليه والمستودع الذي سيستلمه."
+
+msgid "Reconcile a stock count"
+msgstr "تسوية جرد المخزون"
+
+msgid "Record a dated physical count and review the native quantity and value difference before submission."
+msgstr "سجّل جردًا فعليًا مؤرخًا وراجع فرق الكمية والقيمة الأصلي قبل الاعتماد."
+
+msgid "Record a journal entry"
+msgstr "تسجيل قيد يومية"
+
+msgid "Build a balanced native debit and credit voucher with the evidence required for review."
+msgstr "أنشئ سندًا أصليًا متوازنًا للمدين والدائن مع المستندات اللازمة للمراجعة."
+
+msgid "Review an expense claim"
+msgstr "مراجعة مطالبة مصروفات"
+
+msgid "Capture the employee, receipt evidence, approval state and payable outcome in one review flow."
+msgstr "اجمع الموظف وإثباتات الإيصالات وحالة الاعتماد ونتيجة الدفع في مسار مراجعة واحد."
+
+#. In pos_workbench.js
+msgid "POS Profile"
+msgstr "ملف نقطة البيع"
+
+#. Quotation task guidance
+msgid "Once the quotation is submitted, use Create Sales Invoice above. The customer, items, and prices carry into a draft invoice for review."
+msgstr "بعد اعتماد عرض السعر، اضغط «إنشاء فاتورة مبيعات» أعلاه. سينتقل العميل والأصناف والأسعار إلى فاتورة مسودة لمراجعتها."
+
+#. Missing pilot UI strings, reviewed for accounting and operational context.
+#. src: human-reviewed Arabic UI, 2026-09-28
+msgid "Sales"
+msgstr "المبيعات"
+
+msgid "Table"
+msgstr "الطاولة"
+
+
+#. src: 8102 reviewed Arabic catalogue
+msgid "of"
+msgstr "من"
+
+#. src: merged reviewed catalogue
+msgid "Lease"
+msgstr "عقد إيجار"
+
+#. src: merged reviewed catalogue
+msgid "Property"
+msgstr "العقار"
+
+#. src: merged reviewed catalogue
+msgid "Real Estate Unit"
+msgstr "الوحدة العقارية"
+
+msgid "Reference details"
+msgstr "تفاصيل المرجع"
+
+
+msgid "Review accounting drafts and bank evidence."
+msgstr "مراجعة مسودات المحاسبة والأدلة البنكية."
+
+
+msgid "VAT"
+msgstr "ضريبة القيمة المضافة"
+
+#. src: form-summary
+#, fuzzy
+msgid "Yes"
+msgstr "نعم"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Report scope"
+msgstr "نطاق التقرير"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Review filters"
+msgstr "مراجعة عوامل التصفية"
+
+#. src: human review — seven-report workbench 2026-09-13
+msgid "Retrying…"
+msgstr "جارٍ إعادة المحاولة…"
+
+#. src: merged reviewed production catalogue
+msgid "Check your connection and try again."
+msgstr "تحقق من اتصالك ثم حاول مرة أخرى."
+
+#. src: system-state production copy
+msgid "Could not refresh this report"
+msgstr "تعذّر تحديث هذا التقرير"
+
+#. In bunood.js
+#. src: human-reviewed
+msgid "Accounts"
+msgstr "الحسابات"
+
+msgid "Additional filters: {0}"
+msgstr "عوامل تصفية إضافية: {0}"
+
+
+#. src: 8102 reviewed Arabic catalogue
+msgid "Summary"
+msgstr "ملخص"
+
+msgid "Rent Roll"
+msgstr "سجل الإيجارات"
+
+msgid "Owner Ledger"
+msgstr "كشف حساب المالك"
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Price before discount"
+msgstr "السعر قبل الخصم"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Unit price"
+msgstr "سعر الوحدة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Discount (%)"
+msgstr "الخصم (%)"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Discount Amount"
+msgstr "مبلغ الخصم"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Use a discount amount of zero or more."
+msgstr "أدخل مبلغ خصم صفراً أو أكثر."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Use a quantity above zero and a price of zero or more."
+msgstr "أدخل كمية أكبر من صفر وسعراً صفراً أو أكثر."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Enter a price before discount first."
+msgstr "أدخل السعر قبل الخصم أولاً."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Discount amounts need an item price in the selected price list. Choose a priced item or price list, or set Discount Amount to 0 and use Net unit price."
+msgstr "يتطلب مبلغ الخصم سعراً للصنف في قائمة الأسعار المحددة. اختر صنفاً له سعر أو قائمة أسعار أخرى، أو اجعل مبلغ الخصم صفراً واستخدم صافي سعر الوحدة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Percentage discounts need an item price in the selected price list. Choose a priced item or price list, or set Discount (%) to 0 and use Net unit price."
+msgstr "يتطلب الخصم النسبي سعراً للصنف في قائمة الأسعار المحددة. اختر صنفاً له سعر أو قائمة أسعار أخرى، أو اجعل نسبة الخصم صفراً واستخدم صافي سعر الوحدة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Submit the document before recording payment."
+msgstr "اعتمد المستند قبل تسجيل الدفعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Use Split payment to record the Cash and Network amounts together."
+msgstr "استخدم الدفع المجزأ لتسجيل المبلغ النقدي ومبلغ الشبكة معاً."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Open the advanced form to create this payment."
+msgstr "افتح النموذج المتقدم لإنشاء هذه الدفعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Could not create the payment entry."
+msgstr "تعذّر إنشاء سند الدفع."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Taxes and charges"
+msgstr "الضرائب والرسوم"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose a supplier before setting VAT."
+msgstr "اختر مورداً قبل تحديد ضريبة القيمة المضافة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose a customer before setting VAT."
+msgstr "اختر عميلاً قبل تحديد ضريبة القيمة المضافة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Submitted invoices cannot be changed."
+msgstr "لا يمكن تعديل الفواتير المعتمدة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "VAT setup is incomplete. Configure a standard and exempt tax rule, or use Advanced."
+msgstr "إعداد الضريبة غير مكتمل. اضبط قاعدة للضريبة القياسية وأخرى للإعفاء، أو استخدم النموذج المتقدم."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "VAT treatment"
+msgstr "المعاملة الضريبية"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Could not update VAT. Use Advanced to review the tax settings."
+msgstr "تعذّر تحديث الضريبة. استخدم النموذج المتقدم لمراجعة إعداداتها."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The selected tax template contains no tax rows. Choose a valid standard, zero-rate, exempt, or out-of-scope template."
+msgstr "القالب الضريبي المحدد لا يحتوي على بنود ضريبية. اختر قالباً صالحاً للضريبة القياسية أو الصفرية أو الإعفاء أو العمليات خارج النطاق."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Tax issue. Rows: {0}. Conflicting rates: {1}. Use one rate per tax account or separate the rates into different tax accounts."
+msgstr "مشكلة ضريبية. الصفوف: {0}. النسب المتعارضة: {1}. استخدم نسبة واحدة لكل حساب ضريبي أو وزّع النسب على حسابات ضريبية مختلفة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Tax issue. Row: {0}. The rate is missing or invalid. Enter a rate, or choose an explicit zero-rate, exempt, or out-of-scope template."
+msgstr "مشكلة ضريبية. الصف: {0}. النسبة مفقودة أو غير صالحة. أدخل نسبة أو اختر قالباً صريحاً للضريبة الصفرية أو الإعفاء أو العمليات خارج النطاق."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "This invoice is no longer active. Open it again to continue."
+msgstr "هذه الفاتورة لم تعد نشطة. افتحها مجدداً للمتابعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Complete the required fields highlighted in the form, then try again."
+msgstr "أكمل الحقول المطلوبة المميزة في النموذج، ثم أعد المحاولة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The draft was not saved. Review the message or open the full invoice."
+msgstr "لم تُحفظ المسودة. راجع الرسالة أو افتح الفاتورة الكاملة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Permanently Submit {0}?"
+msgstr "هل تريد اعتماد {0} نهائياً؟"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "You do not have permission to email this invoice."
+msgstr "ليس لديك صلاحية إرسال هذه الفاتورة بالبريد الإلكتروني."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Email ZATCA invoice with PDF and XML"
+msgstr "إرسال الفاتورة الإلكترونية بالبريد مع PDF وXML"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Email invoice with PDF"
+msgstr "إرسال الفاتورة بالبريد مع PDF"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Customer email"
+msgstr "البريد الإلكتروني للعميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Subject"
+msgstr "الموضوع"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Message"
+msgstr "الرسالة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Please find your invoice attached."
+msgstr "تجدون فاتورتكم في المرفقات."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Send email"
+msgstr "إرسال البريد"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice email queued with its PDF and ZATCA XML."
+msgstr "أُضيف بريد الفاتورة إلى قائمة الإرسال مع ملف PDF وملف XML للفاتورة الإلكترونية."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice email queued with its PDF."
+msgstr "أُضيف بريد الفاتورة إلى قائمة الإرسال مع ملف PDF."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Review the address before sending. The ZATCA XML and a PDF reading copy are attached."
+msgstr "راجع العنوان قبل الإرسال. ملف XML للفاتورة الإلكترونية ونسخة PDF للقراءة مرفقان."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Review the address before sending. A PDF copy is attached to the email."
+msgstr "راجع العنوان قبل الإرسال. نسخة PDF مرفقة بالبريد."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Share invoice on WhatsApp"
+msgstr "مشاركة الفاتورة عبر واتساب"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Customer WhatsApp number"
+msgstr "رقم واتساب العميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Include the country code, for example +966501234567."
+msgstr "أدخل رمز الدولة، مثل ‎+966501234567."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Your invoice is ready. Number: {0}. Total: {1}."
+msgstr "فاتورتكم جاهزة. الرقم: {0}. الإجمالي: {1}."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Open WhatsApp"
+msgstr "فتح واتساب"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Enter a WhatsApp number with its country code."
+msgstr "أدخل رقم واتساب مع رمز الدولة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Download invoice PDF"
+msgstr "تنزيل الفاتورة بصيغة PDF"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Attach the ZATCA XML to the WhatsApp chat. The PDF is a reading copy; opening WhatsApp does not send either file automatically."
+msgstr "أرفق ملف XML للفاتورة الإلكترونية في محادثة واتساب. ملف PDF نسخة للقراءة؛ فتح واتساب لا يرسل أياً من الملفين تلقائياً."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Download the PDF and attach it in WhatsApp. Opening the chat does not send the invoice automatically."
+msgstr "نزّل ملف PDF وأرفقه في واتساب. فتح المحادثة لا يرسل الفاتورة تلقائياً."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Download ZATCA XML"
+msgstr "تنزيل ملف XML للفاتورة الإلكترونية"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice delivery status is unavailable. Try again shortly."
+msgstr "حالة إرسال الفاتورة غير متاحة. أعد المحاولة بعد قليل."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice delivery is not ready."
+msgstr "إرسال الفاتورة غير جاهز."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice submitted"
+msgstr "اعتُمدت الفاتورة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Send invoice to customer"
+msgstr "إرسال الفاتورة للعميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The invoice is posted. How would you like to share it with the customer?"
+msgstr "رُحّلت الفاتورة. كيف تريد مشاركتها مع العميل؟"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose how to share this submitted invoice with the customer."
+msgstr "اختر طريقة مشاركة هذه الفاتورة المعتمدة مع العميل."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Email with PDF and XML"
+msgstr "بريد مع PDF وXML"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Email with PDF"
+msgstr "بريد مع PDF"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "WhatsApp"
+msgstr "واتساب"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Later"
+msgstr "لاحقاً"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Download PDF"
+msgstr "تنزيل PDF"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Loading print preview..."
+msgstr "جارٍ تحميل معاينة الطباعة..."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice print preview is unavailable. Try again shortly."
+msgstr "معاينة طباعة الفاتورة غير متاحة. أعد المحاولة بعد قليل."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Draft actions"
+msgstr "إجراءات المسودة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Customer & preview"
+msgstr "العميل والمعاينة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice tools"
+msgstr "أدوات الفاتورة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice actions"
+msgstr "إجراءات الفاتورة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Save, submit and print"
+msgstr "حفظ واعتماد وطباعة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Save and create new"
+msgstr "حفظ وإنشاء جديد"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Record payment"
+msgstr "تسجيل دفعة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Find item"
+msgstr "البحث عن صنف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Revert invalid edits"
+msgstr "التراجع عن التعديلات غير الصالحة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Changes stay in this invoice when you close this view."
+msgstr "تبقى التغييرات في هذه الفاتورة عند إغلاق هذا العرض."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice details"
+msgstr "تفاصيل الفاتورة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice number"
+msgstr "رقم الفاتورة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice number assigned on save; set the series in Document options."
+msgstr "يُحدّد رقم الفاتورة عند الحفظ؛ اضبط سلسلة الترقيم في خيارات المستند."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Stock and warehouse"
+msgstr "المخزون والمستودع"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Add line"
+msgstr "إضافة صف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "New item"
+msgstr "صنف جديد"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Scan barcode"
+msgstr "مسح الباركود"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Type or search directly in the item column. Use Add line when you need another item."
+msgstr "اكتب أو ابحث مباشرة في عمود الصنف. استخدم إضافة صف لإدخال صنف آخر."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Row"
+msgstr "الصف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Bill total"
+msgstr "إجمالي الفاتورة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "VAT added to price"
+msgstr "تُضاف الضريبة إلى السعر"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Price includes VAT"
+msgstr "السعر شامل الضريبة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "VAT exempt (0%)"
+msgstr "معفى من الضريبة (0%)"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Loading VAT choices…"
+msgstr "جارٍ تحميل الخيارات الضريبية…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Close customer and preview panel"
+msgstr "إغلاق لوحة العميل والمعاينة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA e-invoicing"
+msgstr "الفوترة الإلكترونية — هيئة الزكاة والضريبة والجمارك"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Document options"
+msgstr "خيارات المستند"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Discount and tax"
+msgstr "الخصم والضريبة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."
+msgstr "المسودة لا ترحّل الحسابات ولا تحرّك المخزون ولا تسجّل دفعة. الاعتماد يستخدم مسار التحقق والتأكيد الأصلي."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Review tax rows in Advanced"
+msgstr "مراجعة البنود الضريبية في النموذج المتقدم"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Updating invoice…"
+msgstr "جارٍ تحديث الفاتورة…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Could not update the invoice. Open the full invoice to review."
+msgstr "تعذّر تحديث الفاتورة. افتح الفاتورة الكاملة للمراجعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "This field is not editable. Use the full invoice."
+msgstr "هذا الحقل غير قابل للتعديل. استخدم الفاتورة الكاملة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "This item is no longer on the invoice."
+msgstr "هذا الصنف لم يعد موجوداً في الفاتورة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "New line"
+msgstr "صف جديد"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose an item from the search results."
+msgstr "اختر صنفاً من نتائج البحث."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "VAT added to price ({0}%)"
+msgstr "تُضاف الضريبة إلى السعر ({0}%)"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Price includes VAT ({0}%)"
+msgstr "السعر شامل الضريبة ({0}%)"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Uses ERPNext's configured tax category, template, and inclusive-price setting."
+msgstr "يستخدم الفئة الضريبية والقالب وإعداد شمول السعر للضريبة المضبوطة في ERPNext."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "this item"
+msgstr "هذا الصنف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Remove this item from the invoice? Item: {0}"
+msgstr "هل تريد إزالة هذا الصنف من الفاتورة؟ الصنف: {0}"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The item was not removed. Review the full invoice."
+msgstr "لم يُحذف الصنف. راجع الفاتورة الكاملة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "This field is not editable. Use the advanced form."
+msgstr "هذا الحقل غير قابل للتعديل. استخدم النموذج المتقدم."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Tax ID"
+msgstr "الرقم الضريبي"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "You do not have permission to create an item."
+msgstr "ليس لديك صلاحية إنشاء صنف."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Camera scanning is not available in this browser. Type the barcode in item search."
+msgstr "المسح بالكاميرا غير متاح في هذا المتصفح. اكتب الباركود في بحث الأصناف."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The ZATCA connector is not installed on this site."
+msgstr "موصّل الفوترة الإلكترونية غير مثبّت على هذا الموقع."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Create ZATCA Business Settings for this company."
+msgstr "أنشئ إعدادات الفوترة الإلكترونية لهذه الشركة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA integration is disabled for this company."
+msgstr "تكامل الفوترة الإلكترونية معطّل لهذه الشركة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Complete device onboarding with the OTP from Fatoora."
+msgstr "أكمل تهيئة الجهاز باستخدام رمز التحقق من منصة فاتورة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Run compliance checks, then obtain the production CSID."
+msgstr "شغّل فحوص الامتثال، ثم احصل على معرّف ختم التشفير للإنتاج (CSID)."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA is ready. This invoice will be prepared when it is submitted."
+msgstr "الفوترة الإلكترونية جاهزة. ستُجهّز هذه الفاتورة عند اعتمادها."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The signed invoice is being prepared for ZATCA."
+msgstr "جارٍ تجهيز الفاتورة الموقّعة لهيئة الزكاة والضريبة والجمارك."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The signed invoice is ready to send to ZATCA."
+msgstr "الفاتورة الموقّعة جاهزة للإرسال إلى هيئة الزكاة والضريبة والجمارك."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA accepted this invoice."
+msgstr "قبلت هيئة الزكاة والضريبة والجمارك هذه الفاتورة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA accepted this invoice with warnings."
+msgstr "قبلت هيئة الزكاة والضريبة والجمارك هذه الفاتورة مع تحذيرات."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA returned a duplicate response. Reconcile it with the original submission before treating this invoice as accepted."
+msgstr "أعادت الهيئة استجابة تفيد بالتكرار. طابقها مع الإرسال الأصلي قبل اعتبار هذه الفاتورة مقبولة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA rejected this invoice. Open the validation record before correcting it."
+msgstr "رفضت الهيئة هذه الفاتورة. افتح سجل التحقق قبل تصحيحها."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA clearance is switched off. Review the validation record and company settings."
+msgstr "اعتماد الهيئة معطّل. راجع سجل التحقق وإعدادات الشركة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "ZATCA settings"
+msgstr "إعدادات الفوترة الإلكترونية"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "View ZATCA record"
+msgstr "عرض سجل الفوترة الإلكترونية"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Install and migrate the KSA Compliance app before configuring ZATCA."
+msgstr "ثبّت تطبيق الامتثال السعودي وشغّل الترحيلات قبل ضبط الفوترة الإلكترونية."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose a customer to see their document context here."
+msgstr "اختر عميلاً لعرض سياق مستنداته هنا."
+
+#, fuzzy
+msgid "Choose a supplier to see their document context here."
+msgstr "اختر مورداً لعرض سياق مستنداته هنا."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Price list"
+msgstr "قائمة الأسعار"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Settlement Method"
+msgstr "طريقة التسوية"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Loading customer balance…"
+msgstr "جارٍ تحميل رصيد العميل…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Customer credit"
+msgstr "رصيد دائن للعميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Amount due from customer"
+msgstr "المبلغ المستحق على العميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Open customer statement"
+msgstr "فتح كشف حساب العميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Edit customer fields"
+msgstr "تعديل حقول العميل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "On submission, quantities are deducted from stock. The source warehouse is used for every item unless changed on its row."
+msgstr "عند الاعتماد، تُخصم الكميات من المخزون. يُستخدم المستودع المصدر لكل صنف ما لم تغيّره في صفه."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Warehouse is a default. Stock moves only when Update Stock is on."
+msgstr "المستودع قيمة افتراضية. لا يتحرّك المخزون إلا عند تفعيل تحديث المخزون."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Items before discount"
+msgstr "الأصناف قبل الخصم"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Discount Amount (incl. tax)"
+msgstr "مبلغ الخصم (شامل الضريبة)"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Items total"
+msgstr "إجمالي الأصناف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Net before VAT"
+msgstr "الصافي قبل الضريبة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Not Saved"
+msgstr "غير محفوظة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Assigned after saving"
+msgstr "يُحدّد بعد الحفظ"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Default warehouse"
+msgstr "المستودع الافتراضي"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Sets suggested item prices; you can still edit each price."
+msgstr "يحدّد الأسعار المقترحة للأصناف؛ ويمكنك تعديل سعر كل صنف."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Your bill starts here"
+msgstr "ابدأ فاتورتك هنا"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Add your first item. Prices and taxes follow your invoice settings."
+msgstr "أضف أول صنف. تتبع الأسعار والضرائب إعدادات فاتورتك."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Description or search items"
+msgstr "الوصف أو البحث عن أصناف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Item code"
+msgstr "رمز الصنف"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Remove"
+msgstr "إزالة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Stock will be updated when the invoice is submitted."
+msgstr "سيُحدّث المخزون عند اعتماد الفاتورة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Stock is not updated by this invoice."
+msgstr "هذه الفاتورة لا تحدّث المخزون."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Split payment"
+msgstr "دفع مجزأ"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Payment received now"
+msgstr "المبلغ المحصّل الآن"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Credit sale"
+msgstr "بيع آجل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Before submission, enter the Cash and Network amounts. ERPNext will post two linked Payment Entries and settle this invoice."
+msgstr "أدخل المبلغ النقدي ومبلغ الشبكة قبل الاعتماد. سينشئ ERPNext سندَي دفع مرتبطين ويسوّي هذه الفاتورة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "After submission, a linked Payment Entry opens with the selected method. Submit that receipt to reduce the customer balance."
+msgstr "بعد الاعتماد، يُفتح سند دفع مرتبط بالطريقة المحددة. اعتمد سند القبض لتخفيض رصيد العميل."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Submission increases Accounts Receivable. A later receipt reduces the same customer balance."
+msgstr "يزيد الاعتماد الذمم المدينة. ويخفض سند قبض لاحق رصيد العميل نفسه."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "This is a live draft summary, not the final PDF layout."
+msgstr "هذا ملخص مباشر للمسودة، وليس تنسيق PDF النهائي."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Open print preview for the final A4 or thermal layout."
+msgstr "افتح معاينة الطباعة لرؤية التنسيق النهائي بحجم A4 أو للطابعة الحرارية."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Your invoice preview will update as you enter items."
+msgstr "تتحدّث معاينة الفاتورة عند إدخال الأصناف."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Open print preview"
+msgstr "فتح معاينة الطباعة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Correct the highlighted value before saving."
+msgstr "صحّح القيمة المميزة قبل الحفظ."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Could not update the document. Open the advanced form to review."
+msgstr "تعذّر تحديث المستند. افتح النموذج المتقدم للمراجعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose a supplier before continuing."
+msgstr "اختر مورداً قبل المتابعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose a customer before continuing."
+msgstr "اختر عميلاً قبل المتابعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Add at least one item before continuing."
+msgstr "أضف صنفاً واحداً على الأقل قبل المتابعة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Draft saved. Submit it when it is ready to affect accounts or stock."
+msgstr "حُفظت المسودة. اعتمدها عندما تصبح جاهزة للتأثير في الحسابات أو المخزون."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The draft was not saved. Review the message or open the advanced form."
+msgstr "لم تُحفظ المسودة. راجع الرسالة أو افتح النموذج المتقدم."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Saving and preparing print…"
+msgstr "جارٍ الحفظ وتجهيز الطباعة…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Saving and submitting…"
+msgstr "جارٍ الحفظ والاعتماد…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Saving invoice…"
+msgstr "جارٍ حفظ الفاتورة…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Submitting invoice…"
+msgstr "جارٍ اعتماد الفاتورة…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Recording payment…"
+msgstr "جارٍ تسجيل الدفعة…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Invoice submitted, but payment could not be recorded: {0}"
+msgstr "اعتُمدت الفاتورة، لكن تعذّر تسجيل الدفعة: {0}"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The document was not submitted. Review the highlighted fields."
+msgstr "لم يُعتمد المستند. راجع الحقول المميزة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Discard unsaved changes and reload this document?"
+msgstr "هل تريد تجاهل التغييرات غير المحفوظة وإعادة تحميل هذا المستند؟"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Amount due"
+msgstr "المبلغ المستحق"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Cash amount"
+msgstr "المبلغ النقدي"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Network amount"
+msgstr "مبلغ الشبكة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Network reference number"
+msgstr "رقم مرجع الشبكة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Reference date"
+msgstr "تاريخ المرجع"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Submit invoice and record payments"
+msgstr "اعتماد الفاتورة وتسجيل الدفعات"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Cash and Network must total the amount due."
+msgstr "يجب أن يساوي مجموع النقد والشبكة المبلغ المستحق."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Two original ERPNext Payment Entries will be posted and linked to this invoice."
+msgstr "سيُرحّل سندا دفع أصليان في ERPNext ويُربطان بهذه الفاتورة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Fully allocated"
+msgstr "مخصّص بالكامل"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Remaining"
+msgstr "المتبقي"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Recording Cash and Network payments…"
+msgstr "جارٍ تسجيل دفعتي النقد والشبكة…"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Could not record the mixed payment."
+msgstr "تعذّر تسجيل الدفعة المجزأة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Payment recorded"
+msgstr "سُجّلت الدفعة"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "The invoice is paid. Both receipts are available in Payment Entry and the General Ledger."
+msgstr "سُدّدت الفاتورة. سندا القبض متاحان في سندات الدفع ودفتر الأستاذ العام."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Use the advanced form for this document type or permission level."
+msgstr "استخدم النموذج المتقدم لهذا النوع من المستندات أو مستوى الصلاحية."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Off applies the configured standard VAT. On applies the configured exempt treatment."
+msgstr "عند إيقافه تُطبّق الضريبة القياسية المضبوطة. وعند تشغيله تُطبّق معاملة الإعفاء المضبوطة."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Choose the question you need to answer. Every result comes from native ERPNext documents and ledgers."
+msgstr "اختر السؤال الذي تريد إجابته. تأتي كل نتيجة من مستندات ERPNext ودفاتره الأصلية."
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Sales bill"
+msgstr "فاتورة مبيعات"
+
+#. src: official business screens, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Purchase bill"
+msgstr "فاتورة مشتريات"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Essentials"
+msgstr "البيانات الأساسية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Contact and tax"
+msgstr "الاتصال والضريبة"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Defaults"
+msgstr "القيم الافتراضية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Tax and branding"
+msgstr "الضريبة والهوية التجارية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Sales and purchasing"
+msgstr "المبيعات والمشتريات"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Description and defaults"
+msgstr "الوصف والقيم الافتراضية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Address and area"
+msgstr "العنوان والمساحة"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Plans and ownership"
+msgstr "المخططات والملكية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Leasing and status"
+msgstr "التأجير والحالة"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Area"
+msgstr "المساحة"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Agreement"
+msgstr "الاتفاقية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Parties"
+msgstr "الأطراف"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Term"
+msgstr "المدة"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Compliance"
+msgstr "الامتثال"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Payment methods"
+msgstr "طرق الدفع"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Currency and write-off defaults"
+msgstr "القيم الافتراضية للعملة والشطب"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Review period readiness, exceptions and close evidence."
+msgstr "راجع جاهزية الفترة والاستثناءات ومستندات الإقفال."
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Prepare and review native journal entries with their supporting details."
+msgstr "أعد القيود اليومية وراجعها مع تفاصيلها المؤيدة."
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Bank Reconciliation"
+msgstr "التسوية البنكية"
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Match bank activity to native transactions and investigate differences."
+msgstr "طابق الحركات البنكية مع معاملات النظام وتحقق من الفروقات."
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Browse sales, purchasing and accounting reports in one responsive catalogue."
+msgstr "تصفح تقارير المبيعات والمشتريات والمحاسبة في دليل واحد يناسب مختلف الشاشات."
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Review the VAT period from submitted ERPNext transactions."
+msgstr "راجع الفترة الضريبية من معاملات ERPNext المعتمدة."
+
+#. src: business descriptors, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Open a clear customer, supplier, employee or ledger statement."
+msgstr "افتح كشفاً واضحاً لحساب العميل أو المورد أو الموظف أو دفتر الأستاذ."
+
+#. src: native settlement display, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "On Credit"
+msgstr "آجل"
+
+#. src: native settlement display, Arabic proposal 2026-10-04
+#, fuzzy
+msgid "Mixed Payment"
+msgstr "دفع متعدد"

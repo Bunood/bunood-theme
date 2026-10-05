@@ -44,6 +44,7 @@
 // Viewport — Frappe's $grid-breakpoints. Keep in lockstep with upstream; the
 // guard reads these exact values as the only ones a @media width may carry.
 $bnd-bp: (
+	xs: 380px, // Invoice action wrapping.
 	sm: 576px,
 	md: 768px,
 	lg: 992px,
@@ -55,6 +56,7 @@ $bnd-bp: (
 // named so a change is a one-line edit here and the guard reads these as the
 // only ones a @container width may carry.
 $bnd-cq: (
+	bill-rail: 960px, // Invoice rail becomes a drawer.
 	bar-1: 900px, // status/top bar: drop ranks 1-2 (freshness, density)
 	bar-2: 700px, // ...rank 3 (clock) and the search field's label + kbd
 	bar-3: 460px, // ...rank 4 (errors)

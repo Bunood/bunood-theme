@@ -107,3 +107,68 @@ test("POS copy is fully shipped in Arabic", () => {
 		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",") || line.startsWith('"' + source.replaceAll('"', '""') + '",')), source);
 	}
 });
+
+test("receipts from both invoice types act on their own type", () => {
+	assert.match(server, /return receipt_register\(\s+mode="all", pos_profile=pos_profile, search_term=search_term, limit=limit,\s+\)\["rows"\]/);
+	assert.match(server, /filters\["is_consolidated"\] = 0/);
+	assert.match(js, /const doctype = row\.doctype \|\| state\.context\.invoice_type;/);
+	assert.match(js, /doctype === state\.context\.invoice_type \? state\.context\.profile\.print_format : "Standard"/);
+	assert.match(js, /createReturn\(row\.name, doctype\)/);
+	assert.match(js, /frappe\.set_route\("Form", row\.doctype \|\| state\.context\.invoice_type, row\.name\)/);
+	assert.match(js, /async function createReturn\(name, doctype = state\.context\.invoice_type\)/);
+	assert.match(js, /source_doctype: doctype, source_name: name/);
+});
+
+
+test("the receipt register is a role-gated Page over the read-only union, reprinting natively", () => {
+	const page = JSON.parse(read("bunood_theme/bunood_theme/page/bnd_pos_register/bnd_pos_register.json"));
+	assert.equal(page.name, "bnd-pos-register");
+	assert.deepEqual(page.roles.map((row) => row.role).sort(),
+		["Accounts Manager", "Accounts User", "Auditor", "Sales Manager", "Sales User", "System Manager"]);
+	const loader = read("bunood_theme/bunood_theme/page/bnd_pos_register/bnd_pos_register.js");
+	assert.match(loader, /window\.bunood_theme\.pos_register_render\(container, page\)/);
+	assert.match(loader, /method: "bunood_theme\.api\.get_pos_assets"/);
+	assert.match(js, /window\.bunood_theme\.pos_register_render = renderRegister;/);
+	assert.match(js, /api\("receipt_register", \{/);
+	assert.match(js, /button\(__\("Reprint"\), "printer", "btn btn-default", \(\) => openPrintView\(row\.doctype, row\.name, "Standard"\)\)/);
+	assert.match(js, /window\.open\(`\/printview\?\$\{query\.toString\(\)\}`, "_blank", "noopener"\)/);
+	assert.doesNotMatch(js, /get_delivery_status|printCustomerReceipt|queue_invoice/, "no ZATCA delivery gate on reprint");
+	assert.match(js, /frappe\.set_route\("bnd-pos-register"\)/);
+	assert.match(js, /allReceipts\.hidden = view !== "history";/);
+	assert.match(scss, /html\[data-theme\] \.bnd-pos-register \{/);
+	assert.doesNotMatch(scss.slice(scss.indexOf("The receipt register")), /#[0-9a-fA-F]{3,6}\b/, "re-tokenised");
+	for (const source of ["POS sales register", "View all POS receipts", "Reprint", "Load more receipts"]) {
+		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
+	}
+});
+
+test("catalogue tiles: a drawing or initials on a stable group tint, services without stock", () => {
+	assert.match(js, /function productIllustration\(item\)/);
+	assert.match(js, /if \(!kind\) return el\("span", null, initials\(item\.item_name \|\| item\.item_code\)\);/);
+	assert.match(js, /svg\.setAttribute\("aria-hidden", "true"\);/);
+	assert.match(js, /card\.dataset\.tone = String\(\[\.\.\.key\]\.reduce\(\(sum, char\) => sum \+ char\.codePointAt\(0\), 0\) % 6\);/);
+	assert.match(js, /card\.classList\.add\("has-image"\);/);
+	assert.match(js, /card\.classList\.remove\("has-image"\);\s+media\.replaceChildren\(productIllustration\(item\)\);/);
+	assert.match(js, /item\.is_stock_item\s+\? __\("Stock \{0\}", \[number\(item\.actual_qty\)\]\)\s+: __\("Service"\)/);
+	assert.match(js, /if \(group === "All Item Groups"\) continue;\s+const control = button\(__\(group\), null, "bnd-pos__group", \(\) => chooseGroup\(group\)\);/);
+	for (let tone = 0; tone < 6; tone += 1) {
+		assert.ok(scss.includes(`.bnd-pos__product[data-tone="${tone}"] { --bnd-pos-tone: var(--bnd-cat-${tone + 1}); }`), `tone ${tone}`);
+	}
+	assert.match(scss, /\[data-tone\]:not\(\.has-image\) \.bnd-pos__product-media \{\s+background: color-mix\(in srgb, var\(--bnd-pos-tone\) var\(--bnd-cat-tint\), var\(--bnd-pane\)\);\s+color: var\(--bnd-ink\);/);
+});
+
+test("the cart says New sale, always offers it, and holds only with a customer", () => {
+	assert.match(js, /const newSale = button\(__\("New sale"\), "plus", "btn btn-default", resetSale\);/);
+	assert.match(js, /hold\.disabled = !enabled \|\| state\.busy \|\| !state\.customer;/);
+	assert.match(js, /pay\.disabled = !enabled \|\| state\.busy \|\| !state\.customer;/);
+	assert.match(js, /newSale\.disabled = state\.busy;/);
+	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("New sale,")), "New sale");
+});
+
+test("resuming a held sale asks before replacing a ticket in progress", () => {
+	assert.match(js, /function resume\(name\) \{\s+if \(state\.cart\.size \|\| state\.draft\) \{\s+frappe\.confirm\(__\("Replace the current ticket with this held sale\? Hold it first if you need to keep it\."\), \(\) => resumeNow\(name\)\);\s+return;/);
+	assert.match(js, /async function resumeNow\(name\) \{\s+setBusy\(true, __\("Resuming held sale…"\)\);/);
+	assert.match(js, /button\(__\("Resume"\), "play", "btn btn-primary", \(\) => resume\(row\.name\)\)/);
+	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("Replace the current ticket with this held sale? Hold it first if you need to keep it.,")));
+});
+

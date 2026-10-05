@@ -78,3 +78,124 @@ test("Studio-owned Arabic labels are explicit and contextual", () => {
 	assert.doesNotMatch(source, /__\("Custom"\)/);
 	assert.match(source, /__\("Custom Period"\)/);
 });
+
+test("Arabic Trial Balance and VAT Summary labels come from fieldnames, and served text is translated", () => {
+	const rows = ar.split(/\r?\n/);
+	for (const [field, msgid, arabic] of [
+		["opening_debit", "Opening debit balance", "الرصيد الافتتاحي (مدين)"],
+		["opening_credit", "Opening credit balance", "الرصيد الافتتاحي (دائن)"],
+		["closing_debit", "Closing debit balance", "الرصيد الختامي (مدين)"],
+		["closing_credit", "Closing credit balance", "الرصيد الختامي (دائن)"],
+		["documents", "Document count", "عدد المستندات"],
+		["note", "Report note", "ملاحظة"],
+	]) {
+		assert.match(source, new RegExp(`${field}: \\(\\) => __\\("${msgid.replace(/[()]/g, "\\$&")}"\\)`), field);
+		assert.ok(rows.some((line) => line.startsWith(`${msgid},${arabic},`) || line.startsWith(`"${msgid}",${arabic},`)), msgid);
+	}
+	assert.match(source, /function classify\(columns, report\)/);
+	assert.match(source, /classify\(data\.columns \|\| \[\], report\)/);
+	assert.match(source, /isArabic\(\) && report && report\.name === "Trial Balance"/);
+	assert.match(source, /isArabic\(\) && report && report\.name === "VAT Summary"/);
+	assert.match(source, /let label = __\(col\.label\)/);
+	assert.match(source, /label: __\(s\.label\)/);
+	assert.match(source, /agg\.note = agg\.message \? __\(agg\.message\) : null/);
+	assert.match(source, /report\.name === "VAT Summary" && typeof raw === "string" &&\s+\["entry", "note"\]\.includes\(col\.fieldname\)\) raw = __\(raw\)/);
+});
+
+test("a report response that arrives after its view was replaced draws nothing", () => {
+	assert.match(source, /viewToken: 0,/);
+	assert.match(source, /function gallery\(\) \{\s+state\.viewToken\+\+;/);
+	assert.match(source, /const viewToken = \+\+state\.viewToken;/);
+	assert.match(source, /const loadId = \+\+loadSequence;/);
+	const guards = source.match(/if \(state\.viewToken !== viewToken \|\| loadId !== loadSequence\) return;/g) || [];
+	assert.equal(guards.length, 2, "both the success and the failure path are guarded");
+});
+
+test("a point-in-time report reads 'as of' one date in its header, export and custom period", () => {
+	assert.match(source, /const asOfDate = \(report\) => report\.filter_mode === "asOn" \|\| report\.filter_mode === "postingDate";/);
+	assert.match(source, /chip\(asOfDate\(report\) \? __\("As of"\) : __\("Report period"\),/);
+	assert.match(source, /\? \[\{ fieldname: "to", fieldtype: "Date", label: __\("As of"\), reqd: 1, default: state\.custom\.to \}\]/);
+	assert.match(source, /state\.custom\.from <= values\.to \? state\.custom\.from : values\.to/);
+	assert.match(source, /metaParts\.push\(\(asOfDate\(report\) \? __\("As of"\) : __\("Report period"\)\) \+ ": " \+/);
+	assert.match(source, /\(asOfDate\(report\) \? to : from \+ "-" \+ to\) \+ "\.xlsx"/);
+	assert.ok(ar.split(/\r?\n/).includes("As of,حتى تاريخ,"), "the label ships its Arabic");
+});
+
+test("row filters and the company follow the report and the companies the user can read", () => {
+	assert.match(source, /if \(state\.report !== report\) \{\s+state\.query = "";\s+state\.kind = "all";\s+state\.showAllColumns = false;\s+\}\s+state\.report = report;/);
+	assert.match(source, /if \(!state\.companies\.includes\(state\.company\)\) state\.company = state\.companies\[0\] \|\| null;/);
+	assert.doesNotMatch(source, /if \(!state\.company && state\.companies\.length\) state\.company = state\.companies\[0\];/);
+	assert.match(source, /fetchTaxId\(\);[\s\S]{0,200}if \(report\.picker && !state\.entity\) viewer\(\);\s+else load\(\);/);
+});
+
+test("the gallery opens on every report, grouped under its area, and keeps the chosen area", () => {
+	assert.match(source, /domain: "all",/);
+	assert.doesNotMatch(source, /state\.domain = report\.domain_id;/);
+	assert.match(source, /if \(!needle && state\.domain === "all" && report\.domain_id !== lastDomain\)/);
+	assert.match(source, /grid\.append\(el\("h3", "bnd-studio__group-title", owner\.label\(\)\)\)/);
+	assert.match(source, /if \(needle\) \{\s+const owner = DOMAINS\.find/);
+	assert.match(styles, /\.bnd-studio__group-title \{[^}]*grid-column: 1 \/ -1;/s);
+});
+
+test("the gallery starts with three common tasks, each a report this person can run", () => {
+	for (const key of ["sales-register", "accounts-receivable", "vat-return"]) {
+		assert.ok(source.includes(`{ key: "${key}", prompt: __(`), `missing task: ${key}`);
+	}
+	assert.match(source, /\.filter\(\(item\) => item\.report && state\.available && state\.available\.has\(item\.report\.name\)\)/);
+	assert.match(source, /start\.setAttribute\("aria-labelledby", startTitle\.id\)/);
+	assert.match(source, /arrow\.setAttribute\("aria-hidden", "true"\)/);
+	assert.match(source, /frappe\.set_route\(\.\.\.routeParts\(item\.report, null\)\)/);
+	assert.match(styles, /\.bnd-studio__start-link \{[\s\S]*?&:focus-visible \{\s+outline: 2px solid var\(--bnd-accent\);/);
+	const rows = ar.split(/\r?\n/);
+	for (const [msgid, arabic] of [
+		["Start with a common task", "ابدأ بمهمة شائعة"],
+		["Review sales", "مراجعة المبيعات"],
+		["Check customer balances", "التحقق من أرصدة العملاء"],
+		["Review VAT", "مراجعة ضريبة القيمة المضافة"],
+	]) {
+		assert.ok(rows.includes(`${msgid},${arabic},`), msgid);
+	}
+});
+
+test("a failed report or statement search explains itself in the page's language", () => {
+	assert.match(source, /const rawMessage = typeof err\?\.message === "string" \? err\.message\.trim\(\) : "";/);
+	assert.match(source, /const translated = rawMessage \? __\(rawMessage\) : "";/);
+	assert.match(source, /\? \(translated && !\/\[A-Za-z\]\{3\}\/\.test\(translated\) \? translated : fallback\)/);
+	assert.match(source, /alert\.append\(el\("strong", null, __\("Report could not load"\)\)\)/);
+	assert.doesNotMatch(source, /__\("Nothing to show"\)/);
+	assert.match(source, /retry\.addEventListener\("click", \(\) => refresh\(search\.value\.trim\(\)\)\);\s+count\.replaceChildren\(retry\);/);
+	assert.match(styles, /\.bnd-studio__picker-retry \{[\s\S]*?&:focus-visible \{\s+outline: 2px solid var\(--bnd-accent\);/);
+	const rows = ar.split(/\r?\n/);
+	assert.ok(rows.includes("Report could not load,تعذّر تحميل التقرير,"));
+	assert.ok(rows.includes("Could not load matches. Try again.,تعذّر تحميل النتائج المطابقة. حاول مرة أخرى.,"));
+});
+
+test("a contextual link hands over its company and period once, and never another company's books", () => {
+	assert.match(source, /if \(!options \|\| options\.bnd_studio_context !== 1\) return null;\s+frappe\.route_options = null;/);
+	assert.match(source, /pendingRouteContext: takeRouteContext\(\),/);
+	assert.match(source, /const context = takeRouteContext\(\) \|\| state\.pendingRouteContext;/);
+	assert.match(source, /if \(context && !state\.available\) \{[\s\S]*?state\.pendingRouteContext = context;\s+return;/);
+	assert.match(source, /if \(context\?\.company && !state\.companies\.includes\(context\.company\)\) \{\s+frappe\.set_route\(ROUTE_PAGE\);/);
+	assert.match(source, /context\.from_date <= context\.to_date\) \{\s+state\.custom = \{ from: context\.from_date, to: context\.to_date \};\s+state\.period = "custom";/);
+	assert.match(source, /if \(!contextChanged && state\.report === report &&/);
+});
+
+test("a document link opens the served record, never from a total row, and always offers the way back", () => {
+	assert.match(source, /const servedRaw = rowValue\(row, col, index\);\s+let raw = servedRaw;/);
+	assert.match(source, /const target = !totalRow && linkTarget\(row, col, servedRaw\);/);
+	assert.doesNotMatch(source, /if \(target && !td\.querySelector\("a"\)\)/, "the formatter's own anchor is re-aimed, not skipped");
+	assert.match(source, /let open = td\.querySelector\("a"\);/);
+	assert.match(source, /if \(!node\.classList \|\| !node\.classList\.contains\("bnd-studio__caret"\)\) open\.append\(node\);/);
+	assert.match(source, /open\.classList\.add\("bnd-studio__link"\);/);
+	assert.match(source, /if \(open\.hasAttribute\("data-name"\)\) open\.setAttribute\("data-name", target\.name\);/);
+	assert.match(source, /rememberReturn\(report\.title\(\)\);\s+frappe\.set_route\("Form", target\.doctype, target\.name\);/);
+});
+
+test("the VAT Return card promises a review, not proof that it can be filed", () => {
+	assert.doesNotMatch(source, /proof it can be filed/);
+	assert.match(source, /desc: \(\) => __\("VAT figures and reconciliation checks to review before filing"\)/);
+	assert.ok(
+		ar.split(/\r?\n/).some((line) => line.startsWith("VAT figures and reconciliation checks to review before filing,أرقام ضريبة القيمة المضافة")),
+		"the new description ships its Arabic"
+	);
+});

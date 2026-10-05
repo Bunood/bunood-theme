@@ -55,6 +55,11 @@ const APP = join(ROOT, "bunood_theme");
 const JS_SOURCES = [
 	join(APP, "public", "js", "bunood.js"),
 	join(APP, "public", "js", "report_studio.js"),
+	join(APP, "public", "js", "sales_bill.js"),
+	join(APP, "public", "js", "simple_forms.js"),
+	join(APP, "public", "js", "journal_workbench.js"),
+	join(APP, "public", "js", "report_landing.js"),
+	join(APP, "public", "js", "report_workbench.js"),
 	join(APP, "bunood_theme", "doctype", "theme_settings", "theme_settings.js"),
 	join(APP, "bunood_theme", "page", "bnd_inbox", "bnd_inbox.js"),
 	join(APP, "bunood_theme", "page", "bnd_report_studio", "bnd_report_studio.js"),
@@ -161,6 +166,35 @@ export function fromJs(paths = JS_SOURCES) {
 	for (const p of paths) {
 		const src = readFileSync(p, "utf8");
 		const name = p.split(/[\\/]/).pop();
+		// These literals are translated through descriptor properties at runtime.
+		// Read only the known data declarations; never execute application code.
+		const add = msg => out.push({ msg, comment: `Descriptor in ${name}` });
+		if (name === "sales_bill.js") {
+			for (const match of src.matchAll(/\btitle:\s*"([^"]+)"/g)) add(match[1]);
+			for (const constant of ["CREDIT_SALE", "MIXED_PAYMENT"]) {
+				const match = src.match(new RegExp(`const ${constant} = "([^"]+)";`));
+				if (!match) throw new Error(`Missing translated settlement constant ${constant}`);
+				add(match[1]);
+			}
+		}
+		if (name === "report_landing.js") {
+			for (const match of src.matchAll(/\b(?:label|description):\s*"([^"]+)"/g)) add(match[1]);
+		}
+		if (name === "simple_forms.js") {
+			for (const declaration of ["COMPOSITIONS", "TASK_WORKBENCHES"]) {
+				const block = src.match(new RegExp(`const ${declaration} = (\\{[\\s\\S]*?\\n\\t\\});`));
+				if (!block) throw new Error(`Missing translation descriptor ${declaration}`);
+				const data = JSON.parse(block[1].replace(/\b([A-Za-z_]+):/g, '"$1":').replace(/,\s*([}\]])/g, "$1"));
+				for (const profile of Object.values(data)) {
+					if (declaration === "COMPOSITIONS") profile.forEach(row => add(row[0]));
+					else {
+						profile.steps.forEach(add);
+						profile.panels.forEach(row => { add(row[1]); add(row[2]); });
+						profile.metrics.forEach(row => add(row[0]));
+					}
+				}
+			}
+		}
 		raw += (src.match(RAW) || []).length;
 		CALL.lastIndex = 0;
 		let m;

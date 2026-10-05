@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.49.0"
+app_version = "0.50.0"
 
 required_apps = []
 
@@ -62,6 +62,10 @@ doctype_js = {
 doctype_list_js = {
     "Quotation": "public/js/quotation_list.js",
     "Sales Invoice": "public/js/sales_invoice_list.js",
+    # Task-first columns (title, status, grand total, ID, due and posting
+    # dates) through ListView's column API, only when the user has no saved
+    # layout; ERPNext's own onload/before_render still run first.
+    "Purchase Invoice": "public/js/purchase_invoice_list.js",
 }
 
 # RULE: never declare an asset that does not exist yet. The scaffold originally
@@ -122,8 +126,8 @@ pdf_header_html = "bunood_theme.printing.pdf_direction.pdf_header_html"
 pdf_footer_html = "bunood_theme.printing.pdf_direction.pdf_footer_html"
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
-after_install = "bunood_theme.setup.after_install"
-after_migrate = "bunood_theme.setup.after_migrate"
+after_install = ["bunood_theme.setup.after_install", "bunood_theme.screen_install.install"]
+after_migrate = ["bunood_theme.setup.after_migrate", "bunood_theme.screen_install.install"]
 
 doc_events = {
     "Theme Settings": {
@@ -134,6 +138,20 @@ doc_events = {
         # The icon inference (item 23) reads each DocType's own icon into a
         # cached map; drop it when a DocType's icon could have changed.
         "on_update": "bunood_theme.api.clear_icon_cache",
+    },
+    # THE HANDLER DOCUMENTED ITS OWN REGISTRATION, AND THE REGISTRATION WAS NOT
+    # HERE. `api.clear_workspace_cache`'s docstring says "Registered on
+    # Workspace ``on_update`` and ``after_delete``" and warns that without it
+    # "an edited workspace keeps serving a stale sidebar for up to an hour" —
+    # but only Theme Settings and DocType were listed, so the handler had no
+    # caller at all. The same-fact-in-two-places trap, with the two copies
+    # disagreeing.
+    #
+    # Measured before this line existed: populate `bnd_doctype_workspace_map`,
+    # save a Workspace, and the key is still there. After: it is gone.
+    "Workspace": {
+        "on_update": "bunood_theme.api.clear_workspace_cache",
+        "after_delete": "bunood_theme.api.clear_workspace_cache",
     },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS

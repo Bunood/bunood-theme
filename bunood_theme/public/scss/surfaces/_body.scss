@@ -219,3 +219,28 @@ html[data-bnd-body-scale] .list-row-head {
 html[data-bnd-body-primary="brand"] .btn.btn-primary {
   color: var(--bnd-on-brand);
 }
+
+html[data-bnd-body-width] body:not(.full-width)[data-route^="Form/Payment Entry/"] .form-layout :is(
+  .form-dashboard,
+  .form-section,
+  .form-section:has(.frappe-control[data-fieldtype="Table"]),
+  .form-section:has(.form-grid)
+) {
+  max-inline-size: var(--bnd-content-w);
+  margin-inline: auto;
+}
+
+// A SALES INVOICE IS ALSO ONE CONTINUOUS SCANNING WORKFLOW. Its item and tax
+// tables already take the wide edge, but the surrounding customer, totals and
+// optional sections fell back to the reading edge while the generated document
+// summary had no cap at all. On a wide screen this produced three unrelated
+// card widths inside one invoice. Keep every native section and the review
+// summary on the same wide edge; simple mode is unaffected because it owns a
+// separate composer and hides the native form layout.
+html[data-bnd-body-width] body:not(.full-width)[data-route^="Form/Sales Invoice/"] .form-layout :is(
+  .form-section,
+  .bnd-form-summary
+) {
+  max-inline-size: var(--bnd-wide-w);
+  margin-inline: auto;
+}

@@ -29,8 +29,17 @@
 
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
+import { scanPrintPreview } from "../tools/axe-print-preview.mjs";
+import { boundedAudit } from "../tools/bounded-audit.mjs";
+import { benchWithPrintLogos } from "../tools/print-logo-fixture.mjs";
+import { ensureAdvancedForm } from "../tools/native-form-mode.mjs";
+import { withNumberCardDelta } from "../tools/number-card-delta-fixture.mjs";
+import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
+import { nativeVersionValueNodes } from "../tools/native-version-values.mjs";
+import { verifyItemAttachmentsAgainstStock } from "../tools/axe-native-item-attachments.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
 import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
@@ -252,6 +261,7 @@ async function test(name, fn) {
 	} catch (err) {
 		results.push({ name, ok: false, err: String(err.message || err) });
 		process.stdout.write(`  FAIL  ${name}\n        ${String(err.message || err).slice(0, 300)}\n`);
+		if (err.fatalSuite) throw err;
 	}
 }
 
@@ -822,7 +832,7 @@ const consoleErrors = [];
 /** Navigate to a desk route and wait for it to be usable. `waitSel` is the
  * readiness selector (pass null/"" to skip); `settle` is a trailing wait in ms
  * for post-render mounts (bars, rail, icons) that attach after the DOM. */
-async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500) {
+async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500, waitState = "visible") {
 	// THE SUITE IS FRAME-FREE on the settings page (item 43 C1): `?compare=0`
 	// disables the composer's frames, appended here — in ONE place — for every
 	// settings route, so no check pays for a 1440x900 desk it did not ask for.
@@ -839,8 +849,15 @@ async function goDesk(route, waitSel = ".body-sidebar-container", settle = 2500)
 		await page.waitForTimeout(4000);
 		await page.goto(`${URL_BASE}${route}`, { waitUntil: "domcontentloaded", timeout: 45000 });
 	}
-	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000 });
+	if (waitSel) await page.waitForSelector(waitSel, { timeout: 30000, state: waitState });
 	await page.waitForTimeout(settle);
+}
+
+/** Native-layout checks explicitly leave the task composer through its real switch. */
+async function goNativeForm(route, waitSel, settle = 3000) {
+	await goDesk(route, ".form-layout", settle, "attached");
+	await ensureAdvancedForm(page);
+	await page.waitForSelector(waitSel, { timeout: 30000 });
 }
 
 /**
@@ -1093,35 +1110,55 @@ async function withPersonal(user, values, fn) {
 		// the personal checks at the end cleared it (full run 2026-09-09).
 		`frappe.db.commit()\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`;
 
-	const before = JSON.parse(
-		benchPy(
-			`U = ${JSON.stringify(user)}\n` +
-				`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k, U) or "") for k in ${JSON.stringify(keys)}}))\n`
-		).split("BND")[1].trim()
-	);
-	benchPy(py(Object.entries(values)));
+	// Snapshot storage separately from effective defaults: inherited/cache values
+	// are not the user's row and must never be materialized during restoration.
+	const read = () => JSON.parse(benchPy(
+		`U = ${JSON.stringify(user)}\n` +
+		`keys = ${JSON.stringify(keys)}\n` +
+		`rows = frappe.get_all("DefaultValue", filters={"parent": U, "defkey": ["in", keys]}, fields=["defkey", "defvalue"])\n` +
+		`print("BND" + json.dumps({"stored": {k: [r.defvalue for r in rows if r.defkey == k] for k in keys}, "effective": {k: (frappe.defaults.get_user_default(k, U) or "") for k in keys}}))\n`
+	).split("BND")[1].trim());
+	const before = read();
+	if (keys.some(k => before.stored[k].length > 1)) throw new Error("Personal snapshot contains duplicate defaults; refusing to mutate");
+	let originalError;
 	try {
+		benchPy(py(Object.entries(values)));
 		return await fn();
+	} catch (error) {
+		originalError = error;
+		throw error;
 	} finally {
-		benchPy(py(Object.entries(before)));
-		// READ BACK. A restore that silently failed is worse than none, because
-		// every later check then measures a desk nobody configured.
-		const after = JSON.parse(
+		try {
+			// Restore only the explicitly named user's selected keys, including a
+			// stored empty value versus an absent row.
 			benchPy(
 				`U = ${JSON.stringify(user)}\n` +
-					`print("BND" + json.dumps({k: (frappe.defaults.get_user_default(k, U) or "") for k in ${JSON.stringify(keys)}}))\n`
-			).split("BND")[1].trim()
-		);
-		for (const k of keys) {
-			if (after[k] !== before[k]) {
-				console.error(
-					`\n!! PERSONAL RESTORE FAILED for ${user}: ${k} is ${JSON.stringify(after[k])} ` +
-						`and should be ${JSON.stringify(before[k])}. ` +
-						"Fix by hand: node tools/desk-fixture.mjs --clean\n"
-				);
+				keys.map(k => `frappe.defaults.clear_default(${JSON.stringify(k)}, parent=U)\n` +
+					(before.stored[k].length ? `frappe.defaults.set_default(${JSON.stringify(k)}, ${before.stored[k][0] === null ? "None" : JSON.stringify(before.stored[k][0])}, parent=U)\n` : "")).join("") +
+				`frappe.db.commit()\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`
+			);
+			let after = read();
+			const storageMatches = () => keys.every(k => JSON.stringify(after.stored[k]) === JSON.stringify(before.stored[k]));
+			const effectiveMatches = () => keys.every(k => after.effective[k] === before.effective[k]);
+			if (storageMatches() && !effectiveMatches()) {
+				// One bounded cache-only recovery; never retry a business write.
+				benchPy(`U = ${JSON.stringify(user)}\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`);
+				after = read();
 			}
+			if (!storageMatches() || !effectiveMatches()) throw new Error(
+				`PERSONAL RESTORE FAILED for ${user}: ${JSON.stringify({before, after})}`
+			);
+		} catch (restoreError) {
+			// Keep the original test failure while making uncertain restoration
+			// fatal: the suite's outer settings/language finally still executes.
+			const fatal = originalError || restoreError;
+			fatal.fatalSuite = true;
+			if (originalError) fatal.restoreError = restoreError;
+			console.error(restoreError.message);
+			throw fatal;
 		}
 	}
+
 }
 
 async function withPortalUser(route, waitSel, fn, opts = {}) {
@@ -1433,6 +1470,11 @@ const MUTABLE_FIELDS = [
 	// rather than a page. It belongs here for the ordinary reason — a run that
 	// dies mid-check must not leave the site sending Letter-styled mail.
 	"email_style", "email_header", "email_action", "email_theme",
+	// Shipped-look matching includes paper; snapshot these before any reset so
+	// a site's own print choices are restored after the complete suite.
+	"print_header_style", "print_table_style", "print_totals_style", "print_heading_style",
+	"print_accent", "print_letterhead", "print_title_lang", "print_qr",
+	"print_qr_place", "print_qr_size", "print_words", "print_signatures",
 	"sidebar_placement", "sidebar_material",
 	"sidebar_active_style", "sidebar_section_style", "sidebar_hue_wash",
 	"sidebar_card_depth", "sidebar_pane_state", "sidebar_rail_trigger",
@@ -1519,6 +1561,171 @@ const CHROME_DEFAULTS = {
 	bottombar_enabled: 1,
 };
 
+/**
+ * Frappe's vendor adverts in the side pane, measured as a person meets them (v0.48.5).
+ *
+ * WHAT THEY ARE. `frappe/public/js/frappe/ui/sidebar/sidebar.js:79-166` (v16.34.0) fills
+ * `.promotional-banners` at the pane's foot (`sidebar.html:43`) with "Switch to Frappe CRM"
+ * on the CRM module and "Switch to Helpdesk" on Support — an external link to frappe.io, or an
+ * internal one when an app named exactly `crm`/`helpdesk` has an apps-screen route — for a
+ * System Manager, unless System Settings' `disable_product_suggestion` is on. The probe
+ * reports all three conditions, so a desk where Frappe rendered nothing cannot pass for one
+ * where we hid something.
+ *
+ * A BOX, NOT A CLASS. The vendor's DOM stays (we never touch it), so presence proves nothing
+ * either way. Hidden means no advert has a box with area (`painted` — visible, and opaque
+ * down the ancestors — is reported beside it, but an advert at `opacity: 0` still takes its
+ * row and its clicks), and the HOLDER takes no room: an empty holder keeping Frappe's 10px
+ * margins is a gap in the foot. Found by class because vendor DOM carries no
+ * `data-bnd-part`, and scoped to the pane so nothing else on the page can answer for it.
+ *
+ * THREE FRAMES THAT AGREE. The rail's flyout transitions, and a read taken mid-transition
+ * lies in both directions (CLAUDE.md), so this polls until three consecutive frames return
+ * the same answer, capped at 240 frames.
+ *
+ * SELF-CONTAINED on purpose: `page.evaluate` serialises it, and the same source ran over the
+ * DevTools protocol on an isolated bench for the release's red-then-green evidence.
+ */
+async function vendorAdvertProbe() {
+	const frame = () => new Promise((done) => requestAnimationFrame(() => done()));
+	const round = (n) => Math.round(n * 10) / 10;
+	const read = () => {
+		const html = document.documentElement;
+		const container = document.querySelector(".body-sidebar-container");
+		const pane = container && container.querySelector(".body-sidebar");
+		const f = window.frappe;
+		const key = f && f.app && f.app.sidebar && f.app.sidebar.workspace_title;
+		const items = (f && f.boot && f.boot.workspace_sidebar_item) || {};
+		const opacity = (el) => {
+			let o = 1;
+			for (let n = el; n && n.nodeType === 1; n = n.parentElement) o *= parseFloat(getComputedStyle(n).opacity);
+			return round(o);
+		};
+		const box = (el) => {
+			const r = el.getBoundingClientRect();
+			const cs = getComputedStyle(el);
+			const b = {
+				x: round(r.x), y: round(r.y), w: round(r.width), h: round(r.height),
+				rects: el.getClientRects().length,
+				display: cs.display,
+				visibility: cs.visibility,
+				opacity: opacity(el),
+				margin: `${cs.marginBlockStart} ${cs.marginBlockEnd}`,
+				// Frappe shows and hides the holder with jQuery, which writes an INLINE display.
+				inline: el.style.display || "",
+			};
+			b.painted = b.rects > 0 && b.w > 0 && b.h > 0 && b.visibility === "visible" && b.opacity > 0;
+			return b;
+		};
+		const holders = pane ? [...pane.querySelectorAll(".promotional-banners")] : [];
+		const out = {
+			route: location.pathname,
+			module: (key && items[key] && items[key].module) || "",
+			systemManager: !!(f && f.user && f.user.has_role("System Manager")),
+			suggestionsOff: !!(f && f.defaults && f.defaults.is_enabled("disable_product_suggestion")),
+			theme: html.getAttribute("data-theme"),
+			dir: html.getAttribute("dir"),
+			lang: html.getAttribute("lang"),
+			panestate: html.getAttribute("data-bnd-sb-panestate"),
+			rail: html.hasAttribute("data-bnd-rail"),
+			expanded: !!container && container.classList.contains("expanded"),
+			railOpen: !!container && container.classList.contains("bnd-rail-open"),
+			pane: pane ? box(pane) : null,
+			holders: holders.map((h) => ({
+				...box(h),
+				adverts: [...h.querySelectorAll(".promotional-banner")].map((a) => ({
+					...box(a),
+					external: a.getAttribute("target") === "_blank",
+					href: a.getAttribute("href") || "",
+				})),
+			})),
+		};
+		const holder = out.holders.length === 1 ? out.holders[0] : null;
+		// Frappe rendered its advert here: one holder, at least one advert in it.
+		out.rendered = !!holder && holder.adverts.length > 0;
+		out.painted = holder ? holder.adverts.filter((a) => a.painted).length : 0;
+		// BOXED, NOT MERELY UNPAINTED. An advert at `opacity: 0` is invisible and still
+		// takes its row and every click; at `visibility: hidden` it still takes the row.
+		// Gone means no box with area at all.
+		out.boxed = holder ? holder.adverts.filter((a) => a.rects > 0 && a.w > 0 && a.h > 0).length : 0;
+		// Room is block space: a box of any height, or margins it still spends.
+		out.room = !!holder && holder.rects > 0 && (holder.h > 0 || holder.margin !== "0px 0px");
+		out.hidden = out.rendered && out.boxed === 0 && !out.room;
+		return out;
+	};
+	let last = "";
+	let same = 0;
+	let value = null;
+	for (let i = 0; i < 240 && same < 3; i++) {
+		await frame();
+		value = read();
+		const now = JSON.stringify(value);
+		same = now === last ? same + 1 : 1;
+		last = now;
+	}
+	return { ...value, agreeingFrames: same };
+}
+
+/**
+ * ERPNext's deprecation header in the CRM and Support workspaces, measured as a person meets it
+ * (v0.48.5).
+ *
+ * WHAT IT IS. ERPNext's v16 line (erpnext fd6683e, 2026-01-06) opens `crm.json` and
+ * `support.json` with a header block, "This module is scheduled for deprecation and will be
+ * completely removed in version 17, please use Frappe CRM instead" (Frappe Helpdesk on
+ * Support), linking to frappe.io, in English on every desk. It is ordinary workspace content:
+ * an editor.js `.ce-block` whose `.ce-header` holds the link, and nothing else marks it.
+ *
+ * A BOX, NOT A CLASS, as with the sidebar's adverts: hidden means no such block has a box with
+ * area. The premise is reported beside it (the route, the blocks rendered, and whether the
+ * header is in the DOM at all), so a workspace that never carried it cannot pass for one where
+ * we hid it. `nextBlock` is the first block after it, so the room it gave back is measured too.
+ *
+ * THREE FRAMES THAT AGREE, and SELF-CONTAINED, for the same reasons as `vendorAdvertProbe`.
+ */
+async function vendorNoticeProbe() {
+	const frame = () => new Promise((done) => requestAnimationFrame(() => done()));
+	const round = (n) => Math.round(n * 10) / 10;
+	const LINKS = ['a[href^="https://frappe.io/crm"]', 'a[href^="https://frappe.io/helpdesk"]'];
+	const read = () => {
+		const main = document.querySelector(".layout-main-section");
+		const blocks = main ? [...main.querySelectorAll(".codex-editor .ce-block")] : [];
+		const isNotice = (b) => LINKS.some((l) => b.querySelector(`:scope > .ce-block__content > .ce-header ${l}`));
+		const box = (el) => {
+			const r = el.getBoundingClientRect();
+			const cs = getComputedStyle(el);
+			return { y: round(r.y), w: round(r.width), h: round(r.height), rects: el.getClientRects().length, display: cs.display };
+		};
+		const notices = blocks.filter(isNotice);
+		const after = notices.length ? blocks[blocks.indexOf(notices[0]) + 1] : null;
+		const out = {
+			route: location.pathname,
+			theme: document.documentElement.getAttribute("data-theme"),
+			dir: document.documentElement.getAttribute("dir"),
+			lang: document.documentElement.getAttribute("lang"),
+			editMode: !!main && main.classList.contains("edit-mode"),
+			blocks: blocks.length,
+			notices: notices.map((n) => ({ ...box(n), href: (n.querySelector(LINKS.join(",")) || {}).href || "" })),
+			nextBlock: after ? box(after) : null,
+		};
+		out.rendered = notices.length > 0;
+		out.boxed = out.notices.filter((n) => n.rects > 0 && n.w > 0 && n.h > 0).length;
+		out.hidden = out.rendered && out.boxed === 0;
+		return out;
+	};
+	let last = "";
+	let same = 0;
+	let value = null;
+	for (let i = 0; i < 240 && same < 3; i++) {
+		await frame();
+		value = read();
+		const now = JSON.stringify(value);
+		same = now === last ? same + 1 : 1;
+		last = now;
+	}
+	return { ...value, agreeingFrames: same };
+}
+
 // ── The suite ───────────────────────────────────────────────────────────────
 
 /** The suite: snapshot settings, run every check sequentially against one
@@ -1588,7 +1795,8 @@ async function main() {
 		benchPy(`from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
-	browser = await chromium.launch();
+	const executablePath = process.env.BND_BROWSER_EXECUTABLE;
+	browser = await chromium.launch(executablePath ? { executablePath } : {});
 	const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 	const host = new URL(URL_BASE).hostname;
 	await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]);
@@ -2145,11 +2353,11 @@ async function main() {
 					'.bnd-palette-row[data-bnd-key="route:List/Item"]'
 				);
 				if (!row) throw new Error("no row with data-bnd-key=route:List/Item");
-				row.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true }));
+				row.click();
 			});
 			await page.waitForTimeout(2500);
 			expect(
-				await page.evaluate(() => location.pathname.replace(/\/$/, "").endsWith("/item")),
+				await page.evaluate(() => { const route = frappe.get_route(); return route[0] === "List" && route[1] === "Item"; }),
 				"routed from the Sales Invoice list to the Item list"
 			);
 			const usage = benchPy(
@@ -2834,10 +3042,10 @@ async function main() {
 			// `resolve_for_user` and the first half reads "balanced".
 			setSettings({ desk_width: "Balanced" });
 			await withPersonal("Administrator", { bnd_body_width: "Roomy" }, async () => {
-				await goDesk("/desk/item/new", ".form-section", 3000);
+				await goNativeForm("/desk/item/new", ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-body-width"), "roomy", "the reader's width, not the site's");
 			});
-			await goDesk("/desk/item/new", ".form-section", 3000);
+			await goNativeForm("/desk/item/new", ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-width"), "balanced", "cleared, the site's width is back");
 		});
 
@@ -2954,7 +3162,7 @@ async function main() {
 			// Watched failing before: inset-block-end 24px, the vendor's own.
 			setSettings({ form_foot: "Pinned Bar", status_style: "Always On" });
 			try {
-				await goDesk("/desk/item/BND-TEST-001", ".bnd-docfoot", 4000);
+				await goNativeForm("/desk/item/BND-TEST-001", ".bnd-docfoot", 4000);
 				const m = await page.evaluate(() => {
 					const panel = document.querySelector(".onb-panel");
 					if (!panel) return { panel: false };
@@ -3562,10 +3770,10 @@ async function main() {
 			// manifest), so it runs the same way payload.mjs does below: spawn,
 			// assert exit 0. Making the docstring's claim true, not softening it.
 			const res = spawnSync(process.execPath, ["tools/icons.mjs"], {
-				cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+				cwd: fileURLToPath(new URL("..", import.meta.url)),
 				encoding: "utf8",
 			});
-			expectEq(res.status, 0, `icons:check: ${(res.stdout + res.stderr).trim().slice(0, 400)}`);
+			expectEq(res.status, 0, `icons:check: ${[res.error?.message, res.stdout, res.stderr].filter(Boolean).join("\n").trim().slice(0, 400)}`);
 		});
 
 		await test("icon engine: smart mode leaves no link glyph-less", async () => {
@@ -7394,6 +7602,145 @@ print("ok")
 			expect(back.shown, "and the vendor's link renders again -- unclaimed means visible");
 		});
 
+		await test("sidebar: Frappe's product adverts are gone from the pane, no box and no room (CRM and Support; Open, Frappe's collapse and the rail; ar and en; light and dark)", async () => {
+			// v0.48.5, THE OWNER (2026-09-28): tenants must not be shown "Switch to Frappe CRM"
+			// or "Switch to Helpdesk". `vendorAdvertProbe` records where they come from and
+			// what "gone" has to mean here: no advert has a box, and their holder takes no room.
+			//
+			// Watched failing on v0.48.4 before the rule existed, with this probe run over the
+			// DevTools protocol on an isolated bench: 32 of 40 cases showed an advert. It painted
+			// in the Open pane, and in the rail and in Frappe's collapse whenever the page LOADED
+			// in that state, because the rest-state rule's `display: none` was overwritten by the
+			// inline `display: block` jQuery's `.show()` writes. The probe itself was broken on
+			// purpose too: a holder keeping its margins, and an advert at opacity 0, visibility
+			// hidden or off-screen, are each reported as not gone.
+			//
+			// The premise is asserted per case, never assumed: the route's module, and that
+			// Frappe rendered an advert into the holder at all (a System Manager, product
+			// suggestions not switched off). Without it `hidden` would be true of a desk that
+			// never offered one, and this would pass while testing nothing.
+			const before = getSettings(["sidebar_enabled", "sidebar_pane_state", "sidebar_rail_trigger"]);
+			const failures = [];
+			let cases = 0;
+			const judge = (m, module, where) => {
+				cases++;
+				if (m.module !== module) failures.push(`${where}: premise, the sidebar's module is ${JSON.stringify(m.module)}, not ${module}`);
+				else if (!m.rendered) failures.push(`${where}: premise, Frappe rendered no advert (holders ${m.holders.length}, System Manager ${m.systemManager}, suggestions off ${m.suggestionsOff})`);
+				else if (!m.hidden) failures.push(`${where}: ${m.boxed} advert(s) with a box (${m.painted} painted), holder room ${m.room} (${JSON.stringify(m.holders[0]).slice(0, 160)})`);
+			};
+			const railOpen = () => page.evaluate(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"));
+			try {
+				for (const lang of ["ar", "en"]) {
+					await withLang(lang, async () => {
+						for (const pane of ["Open", "Rail"]) {
+							setSettings({ sidebar_enabled: 1, sidebar_pane_state: pane, sidebar_rail_trigger: "Hover" });
+							for (const [route, module] of [["/app/crm", "CRM"], ["/app/support", "Support"]]) {
+								await goDesk(route, ".body-sidebar .promotional-banners", 3000, "attached");
+								await page.mouse.move(700, 450);
+								await page.waitForFunction(() => !document.querySelector(".body-sidebar-container.bnd-rail-open"), null, { timeout: 5000 });
+								const served = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+								try {
+									for (const mode of ["light", "dark"]) {
+										await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+										const where = `${lang}/${mode}/${pane} ${route}`;
+										judge(await page.evaluate(vendorAdvertProbe), module, `${where} at rest`);
+										if (pane === "Open") {
+											// Frappe's own collapse: its expand_sidebar() hides and shows the
+											// advert's title with jQuery. Put back however it ends, because the
+											// vendor keeps that state in localStorage for every later check.
+											const toggled = await page.evaluate(() => {
+												const t = document.querySelector(".body-sidebar .collapse-sidebar-link");
+												if (!t || !document.querySelector(".body-sidebar-container.expanded")) return false;
+												t.click();
+												return true;
+											});
+											if (toggled) {
+												try {
+													await page.waitForFunction(() => !document.querySelector(".body-sidebar-container.expanded"), null, { timeout: 5000 });
+													judge(await page.evaluate(vendorAdvertProbe), module, `${where} Frappe-collapsed`);
+													// And LOADED collapsed: sidebar.setup(), and with it jQuery's
+													// `.show()`, then runs under the collapse rules. That is the path
+													// on which v0.48.4's own rest-state rule lost to an inline display.
+													await goDesk(route, ".body-sidebar .promotional-banners", 3000, "attached");
+													await page.mouse.move(700, 450);
+													await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+													judge(await page.evaluate(vendorAdvertProbe), module, `${where} loaded Frappe-collapsed`);
+												} finally {
+													await sbEnsureExpanded();
+												}
+											}
+										} else {
+											await page.hover(".body-sidebar-container");
+											await page.waitForFunction(() => document.querySelector(".body-sidebar-container").classList.contains("bnd-rail-open"), null, { timeout: 5000 });
+											judge(await page.evaluate(vendorAdvertProbe), module, `${where} hovered open`);
+											await page.mouse.move(700, 450);
+											await page.waitForTimeout(700);
+											expect(!(await railOpen()), `${where}: the rail closes again before the next case`);
+										}
+									}
+								} finally {
+									await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), served);
+								}
+							}
+						}
+					});
+				}
+			} finally {
+				setSettings(before);
+			}
+			expect(cases >= 24, `the matrix ran (${cases} cases)`);
+			expect(failures.length === 0, `${failures.length} of ${cases} cases show an advert:\n  ${failures.slice(0, 8).join("\n  ")}`);
+		});
+
+		await test("workspace: ERPNext's deprecation header is gone from the CRM and Support workspaces, and back in edit mode (ar and en; light and dark)", async () => {
+			// v0.48.5, THE OWNER (2026-09-28): tenants must not be told to "use Frappe CRM
+			// instead". `vendorNoticeProbe` records what the header is and what "gone" means.
+			//
+			// Watched failing first, with this probe run over the DevTools protocol on an
+			// isolated bench serving the sidebar fix alone: the header painted in every case.
+			//
+			// EDIT MODE is asserted too, through the class Frappe sets on `.layout-main-section`
+			// while a workspace is edited: the rule stands down there, so a System Manager can
+			// still see the block to delete it. The premise is asserted per case: the workspace
+			// rendered its blocks and carries the header at all. The probe changes no setting.
+			const failures = [];
+			let cases = 0;
+			const setEditMode = (on) =>
+				page.evaluate((flag) => document.querySelector(".layout-main-section").classList.toggle("edit-mode", flag), on);
+			for (const lang of ["ar", "en"]) {
+				await withLang(lang, async () => {
+					for (const route of ["/app/crm", "/app/support"]) {
+						await goDesk(route, ".layout-main-section .codex-editor .ce-block", 3000, "attached");
+						const served = await page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+						try {
+							for (const mode of ["light", "dark"]) {
+								await page.evaluate((m) => document.documentElement.setAttribute("data-theme", m), mode);
+								const where = `${lang}/${mode} ${route}`;
+								const m = await page.evaluate(vendorNoticeProbe);
+								cases++;
+								if (!m.blocks) failures.push(`${where}: premise, the workspace rendered no blocks`);
+								else if (!m.rendered) failures.push(`${where}: premise, ERPNext's header is not in this workspace (${m.blocks} blocks)`);
+								else if (!m.hidden) failures.push(`${where}: the header has a box (${JSON.stringify(m.notices[0])})`);
+								await setEditMode(true);
+								let edit;
+								try {
+									edit = await page.evaluate(vendorNoticeProbe);
+								} finally {
+									await setEditMode(false);
+								}
+								cases++;
+								if (m.rendered && edit.boxed !== 1) failures.push(`${where} in edit mode: the header should show (boxed ${edit.boxed})`);
+							}
+						} finally {
+							await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), served);
+						}
+					}
+				});
+			}
+			expect(cases >= 16, `the matrix ran (${cases} cases)`);
+			expect(failures.length === 0, `${failures.length} of ${cases} cases fail:\n  ${failures.slice(0, 8).join("\n  ")}`);
+		});
+
 		await test("layout: each row starts the pane where its own shape needs it", async () => {
 			// ITEM 42, SLICE 9. The catalogue's third half. Containers say which strips
 			// exist and tenants say what sits in them; neither could say how much of the
@@ -7585,6 +7932,7 @@ print("ok")
 			try {
 				setSettings({ sidebar_pane_state: "Open", sidebar_enabled: 1 });
 				await goDesk("/app/selling", ".body-sidebar .bnd-sb-head", 3000);
+				await page.evaluate(() => document.documentElement.setAttribute("dir", "ltr"));
 				await page.click(".body-sidebar .bnd-sb-head");
 				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
 				const a = await rows();
@@ -7599,7 +7947,7 @@ print("ok")
 				// into it; the key toward the START closes it and comes back to the row.
 				expect(await focusRow("Selling"), "the row takes focus");
 				await page.keyboard.press("ArrowRight");
-				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu LTR keyboard: " + error.message; throw error; });
 				const f1 = await fly();
 				expect(f1, "ArrowRight opens the flyout");
 				expectEq(f1.heading, "Selling", "headed by the module's name");
@@ -7620,8 +7968,11 @@ print("ok")
 				expectEq(back, "Selling", "and focus returns to the row");
 
 				// Hover opens it too, after the intent delay.
-				await page.hover('.bnd-menu:not(.bnd-menu-fly) .bnd-menu-item:has-text("Selling")');
-				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				// The installed Bunood Selling workspace precedes Selling. A substring
+				// locator hovered that different row, unlike focusRow's exact identity.
+				await page.locator(".bnd-menu:not(.bnd-menu-fly)")
+					.getByRole("menuitem", { name: "Selling", exact: true }).hover();
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu LTR hover: " + error.message; throw error; });
 				expect((await fly()).items.includes("New Sales Invoice"), "hover opens the same flyout");
 				// A quick link goes where it says: a NEW Sales Invoice, every menu closed.
 				await page.click('.bnd-menu-fly .bnd-menu-item:has-text("New Sales Invoice")');
@@ -7646,7 +7997,7 @@ print("ok")
 				await page.waitForSelector(".bnd-menu .bnd-menu-item", { timeout: 10000 });
 				await focusRow("Selling");
 				await page.keyboard.press("ArrowLeft");
-				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 });
+				await page.waitForSelector(".bnd-menu-fly .bnd-menu-item", { timeout: 5000 }).catch(error => { error.message = "Head menu RTL keyboard: " + error.message; throw error; });
 				const f2 = await fly();
 				expect(f2.right <= f2.menuLeft + 2, `in RTL it sits at the menu's start edge, the left (flyout.right ${f2.right}, menu.left ${f2.menuLeft})`);
 				expect(f2.inView, "still inside the viewport");
@@ -8559,6 +8910,50 @@ print("ok")
 							`${material}, ${regime}: and asks the compositor for nothing (${r.filter})`);
 					}
 				}
+			} finally {
+				setSettings(before);
+			}
+		});
+
+		await test("sidepane: native show after Hidden keeps the pane aligned and native hide intact", async () => {
+			const fields = ["sidebar_enabled", "sidebar_pane_state", "sidebar_placement", "desk_layout", "topbar_enabled", "search_placement", "inbox_placement", "user_placement", "start_placement"];
+			const before = getSettings(fields);
+			try {
+				setSettings({ sidebar_enabled: 1, sidebar_pane_state: "Hidden", sidebar_placement: "Attached", desk_layout: "Top Taskbar", topbar_enabled: 1, search_placement: "Top Bar Center", inbox_placement: "Top Bar End", user_placement: "Top Bar End", start_placement: "Top Bar Start" });
+				await goDesk("/desk/item", ".page-head", 2500);
+				await page.evaluate(() => window.bunood_theme.pane_state("Hidden", { save: false }));
+				const premise = await page.evaluate(() => ({
+					state: document.documentElement.getAttribute("data-bnd-sb-panestate"),
+					owned: (document.documentElement.getAttribute("data-bnd-own") || "").split(/\s+/).includes("pane-hidden"),
+					display: getComputedStyle(document.querySelector(".body-sidebar-container")).display,
+				}));
+				expect(premise.state === "hidden" && premise.owned && premise.display === "none", "premise: reachable top-bar tenants allow real Theme Hidden (" + JSON.stringify(premise) + ")");
+				const hidden = await page.evaluate(() => {
+					frappe.app.sidebar.toggle(false);
+					const pane = document.querySelector(".body-sidebar-container");
+					return { inline: pane.style.display, display: getComputedStyle(pane).display };
+				});
+				expectEq(hidden.inline, "block", "native show while CSS-hidden reproduces its inline block");
+				expectEq(hidden.display, "none", "Theme Hidden still wins over native show");
+				await page.evaluate(() => window.bunood_theme.pane_state("Open", { save: false }));
+				await page.waitForFunction(() => document.documentElement.getAttribute("data-bnd-sb-panestate") === "open");
+				const open = await page.evaluate(async () => {
+					await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+					const pane = document.querySelector(".body-sidebar-container");
+					const child = pane.querySelector(".body-sidebar");
+					const parentRect = pane.getBoundingClientRect(), childRect = child.getBoundingClientRect();
+					return { display: getComputedStyle(pane).display, parentTop: parentRect.top, childTop: childRect.top, height: childRect.height, viewport: innerHeight };
+				});
+				expectEq(open.display, "flex", "visible native container keeps its flex layout");
+				expect(Math.abs(open.childTop - open.parentTop) <= 1, "sidebar stays aligned with container after native show");
+				expect(open.childTop >= -1 && open.childTop < open.viewport && open.height > 0, "sidebar remains in the viewport");
+				const nativeHidden = await page.evaluate(() => {
+					frappe.app.sidebar.toggle(true);
+					const pane = document.querySelector(".body-sidebar-container");
+					return { inline: pane.style.display, display: getComputedStyle(pane).display };
+				});
+				expectEq(nativeHidden.inline, "none", "native hide retains its inline none");
+				expectEq(nativeHidden.display, "none", "visible-pane correction does not override native hide");
 			} finally {
 				setSettings(before);
 			}
@@ -10676,6 +11071,8 @@ print("ok")
 			const before = getSettings(["list_style"]);
 			try {
 				await withPersonal("Administrator", { bnd_look: "Canvas" }, async () => {
+					let stageError;
+					try {
 					await goDesk("/desk/theme-settings?compose&compare=1", ".bnd-cmp .bnd-cbp-opt", 4500);
 					await page.waitForFunction(() => {
 						const f = document.querySelector(".bnd-cmp-frame");
@@ -10709,6 +11106,12 @@ print("ok")
 					const after = await page.evaluate(() => ({ len: history.length, greyed: [...document.querySelectorAll(".bnd-cmp-page[disabled]")].every((b) => b.title) }));
 					expectEq(after.len, nav.len, "the joint history did not grow on a page switch");
 					expect(after.greyed, "every absent page carries its reason");
+					} catch (error) { stageError = error; throw error; } finally {
+						// Destroy the composer and its nested desks before restoring defaults.
+						try { await page.goto("about:blank", { waitUntil: "load", timeout: 10000 }); }
+						catch (error) { const fatal = stageError || error; fatal.fatalSuite = true; if (stageError) fatal.cleanupError = error; throw fatal; }
+					}
+
 				});
 			} finally {
 				setSettings(before);
@@ -10976,6 +11379,8 @@ print("ok")
 			// its card; the Selling workspace carries no map and Frappe's own rows
 			// stay untouched.
 			const shipped = JSON.parse(benchPy('from bunood_theme.api import get_shipped_defaults\nprint(json.dumps(get_shipped_defaults()["defaults"]))\n').trim().split("\n").pop());
+			// Font is tenant identity, outside the broad reset: use its verified restore guard.
+			await withBranding({ arabic_font: shipped.arabic_font }, async () => {
 			setSettings({ ...Object.fromEntries(Object.entries(shipped).filter(([k]) => MUTABLE_FIELDS.includes(k))), sidebar_enabled: 1, sidebar_pane_state: "Open" });
 			await goDesk("/desk/theme-settings", ".bnd-sb-map .bnd-sb-map-row", 4500);
 			const g = await page.evaluate(() => {
@@ -11041,6 +11446,7 @@ print("ok")
 			await goDesk("/desk/selling", ".body-sidebar .standard-sidebar-item", 3000);
 			const away = await page.evaluate(() => ({ map: document.querySelectorAll(".bnd-sb-map").length, route: document.documentElement.getAttribute("data-bnd-route"), rows: document.querySelectorAll(".body-sidebar .standard-sidebar-item").length }));
 			expect(away.map === 0 && away.route !== "settings" && away.rows > 0, `no map away from the settings route (${JSON.stringify(away)})`);
+			});
 		});
 
 		await test("map: the rail keeps one chip that opens the map as a menu, and the hidden pane lends a Sections menu to the page head", async () => {
@@ -12665,8 +13071,9 @@ print("ok")
 			// searched too — 18 of our msgids are aria-labels, invisible to
 			// innerText, and they are exactly the accessibility strings item 7
 			// most owes a translation.
-			const collect = () =>
-				page.evaluate((ids) => {
+			const collect = async () => {
+				const nativeValues = await page.evaluateHandle(nativeVersionValueNodes);
+				try { return await page.evaluate(({ ids, nativeValues }) => {
 					const set = new Set(ids);
 					const seen = [];
 					const vis = (el) => {
@@ -12688,7 +13095,11 @@ print("ok")
 					const record = (el, text, how) => {
 						const t = (text || "").trim();
 						if (t && set.has(t)) {
-							seen.push(`${how} ${JSON.stringify(t)} in ${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0]}`);
+							const ancestry = [];
+							for (let node = el; node && ancestry.length < 5; node = node.parentElement) {
+								ancestry.push(`${node.tagName.toLowerCase()}.${String(node.className).split(/\s+/).join(".")}`);
+							}
+							seen.push(`${how} ${JSON.stringify(t)} in ${ancestry.join(" < ")}`);
 						}
 					};
 					for (const root of roots) {
@@ -12702,14 +13113,18 @@ print("ok")
 							const tagged = el.closest("[lang]");
 							if (tagged && tagged !== document.documentElement) continue;
 							if (!vis(el)) continue;
-							if (el.children.length === 0) record(el, el.textContent, "text");
+							// Exact native Version old/new values are historical record data.
+							// Attributes and all other timeline/UI text remain audited.
+							if (el.children.length === 0 && !nativeValues.has(el)) record(el, el.textContent, "text");
 							for (const attr of ["aria-label", "title", "placeholder"]) {
 								record(el, el.getAttribute(attr), attr);
 							}
 						}
 					}
 					return [...new Set(seen)];
-				}, translated);
+				}, { ids: translated, nativeValues });
+				} finally { await nativeValues.dispose(); }
+			};
 
 			await withLang("ar", async () => {
 				const offenders = [];
@@ -12952,6 +13367,10 @@ print("ok")
 			expectEq(open.controls, open.listId, "aria-controls points at the listbox");
 			// The selection moves without focus moving — activedescendant is
 			// the contract, asserted as a TRANSITION.
+			// Empty-state recents are tenant data and may contain just one row.
+			// Search real permitted Item routes to establish a multi-option transition.
+			await page.fill(".bnd-palette-input", "Item");
+			await page.waitForFunction(() => document.querySelectorAll(".bnd-palette-row").length >= 2, null, { timeout: 5000 });
 			const before = await page.evaluate(() =>
 				document.querySelector(".bnd-palette-input").getAttribute("aria-activedescendant")
 			);
@@ -12972,6 +13391,9 @@ print("ok")
 				"Tab stays inside the dialog"
 			);
 			// Two-stage Esc, then focus is back on the trigger.
+			await page.keyboard.press("Escape");
+			expectEq(await page.inputValue(".bnd-palette-input"), "", "first Escape clears the query");
+			expect(await page.locator(".bnd-palette-backdrop:not([hidden])").isVisible(), "clearing keeps the dialog open");
 			await page.keyboard.press("Escape");
 			// state:"attached", NOT the default: the default wait is for
 			// visibility, and a [hidden] element is precisely never visible.
@@ -13717,7 +14139,7 @@ print("ok")
 			const scan = async (label) => {
 				let builder = new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).disableRules(PAGE_RULES);
 				for (const root of OURS) builder = builder.include(root);
-				const res = await builder.analyze();
+				const res = await boundedAudit(() => builder.analyze(), () => browser.close());
 				const present = await page.evaluate(
 					(sels) => sels.filter((s) => document.querySelector(s)),
 					OURS
@@ -13949,8 +14371,10 @@ print("ok")
 				// run. And the frame is not our UI: it is a rendered email, a
 				// separate document, whose own markup is checked where it is
 				// generated rather than through a browser chrome scan.
-				builder = builder.exclude(".bnd-emp-frame");
-				const res = await builder.analyze();
+				// Print is equally script-forbidden. Audit the identical generated
+                // document separately below instead of waiting on a sandbox handshake.
+                builder = builder.exclude(".bnd-emp-frame").exclude(".bnd-prp-frame");
+				const res = await boundedAudit(() => builder.analyze(), () => browser.close());
 				for (const v of res.violations) {
 					bad.push(`${key}: ${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`);
 				}
@@ -13961,6 +14385,16 @@ print("ok")
 				for (const s of present) matched.add(s);
 			}
 
+            const sandbox = await page.locator(".bnd-prp-frame").getAttribute("sandbox");
+            expect(!sandbox.split(/\s+/).includes("allow-scripts"), "print preview keeps scripts forbidden");
+            const printAudit = await boundedAudit(
+                () => scanPrintPreview(AxeBuilder, page, ["wcag2a", "wcag2aa"], PAGE_RULES),
+                () => browser.close(),
+            );
+            expect(printAudit, "the exact print specimen was audited");
+            for (const violation of printAudit.violations) {
+                bad.push(`print specimen: ${violation.id} — ${violation.nodes.map(n => n.target.join(" ")).join(", ")}`);
+            }
 			expectEq(bad.join("\n"), "", "axe over the settings page");
 			const missed = OURS_SETTINGS.filter((s) => !matched.has(s));
 			expectEq(missed.join(","), "", `every settings root matched in some pane (missed: ${missed.join(", ")})`);
@@ -14102,6 +14536,7 @@ print("ok")
 			// deterministic scan.
 			setLang("en");
 			for (const [route, waitFor, opts] of AXE_ROUTES) {
+				console.log(`[axe] route scan start: ${route}`);
 				let res;
 				if (opts && opts.portal) {
 					res = await withPortalUser(
@@ -14109,7 +14544,7 @@ print("ok")
 						waitFor,
 						async (pp) => {
 							await pp.waitForTimeout(1500);
-							return scanForBaseline(AxeBuilder, pp);
+							return boundedAudit(() => scanForBaseline(AxeBuilder, pp), () => browser.close());
 						},
 						{ bust: !!opts.bust }
 					);
@@ -14119,16 +14554,32 @@ print("ok")
 						waitFor,
 						async (gp) => {
 							await gp.waitForTimeout(1500);
-							return scanForBaseline(AxeBuilder, gp);
+							return boundedAudit(() => scanForBaseline(AxeBuilder, gp), () => browser.close());
 						},
 						{ bust: !!opts.bust }
 					);
 				} else {
-					await goDesk(route, waitFor, 4000);
-					res = await scanForBaseline(AxeBuilder, page);
+					if (opts?.nativeForm) await goNativeForm(route, waitFor, 4000);
+					else await goDesk(route, waitFor, 4000);
+					res = await boundedAudit(() => scanForBaseline(AxeBuilder, page), () => browser.close());
 				}
+				console.log(`[axe] route scan complete: ${route}`);
+				// Only this data-dependent native LABEL class uses a same-record stock
+				// control. No baseline is rebanked and every other rule is unchanged.
+				const pairedLabels = ["/desk/item", "/app/item/view/image", "/desk/item/view/image"].includes(route);
+				if (pairedLabels) console.log(`[axe] label pair start: ${route}`);
+				if (pairedLabels) await verifyItemLabelsAgainstStock({ browser, page, result: res, AxeBuilder });
+				if (pairedLabels) console.log(`[axe] label pair complete: ${route}`);
+				if (route === "/desk/item/BND-TEST-001") console.log(`[axe] attachment pair start: ${route}`);
+				const pairedAttachments = route === "/desk/item/BND-TEST-001"
+					? await verifyItemAttachmentsAgainstStock({ browser, page, result: res, AxeBuilder }) : {};
+				if (route === "/desk/item/BND-TEST-001") console.log(`[axe] attachment pair complete: ${route}`);
 				const seen = {};
-				for (const v of res.violations) seen[v.id] = v.nodes.length;
+				for (const v of res.violations) {
+					if (pairedLabels && v.id === "label") continue;
+					const count = v.nodes.length - (pairedAttachments[v.id] || 0);
+					if (count) seen[v.id] = count;
+				}
 				const base = baseline[route] || {};
 				const worse = [];
 				for (const [rule, count] of Object.entries(seen)) {
@@ -14330,6 +14781,8 @@ print("ok")
 		// doc survived, and the grid needs two rows so hover exercises a real
 		// row set.
 
+		// These checks measure native sections, tabs and grids. Item now opens
+		// in its task composer; enter Advanced through the real mode switch.
 		const FORM_ROUTE = "/desk/item/BND-TEST-001";
 
 		await test("form: control height obeys density under Original", async () => {
@@ -14359,7 +14812,7 @@ print("ok")
 			// is the state it is measured in — which also pins the rule to the
 			// html[data-theme] scope, never the kit anchor.
 			setSettings({ form_style: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			const geom = await page.evaluate(() => {
 				const input = document.querySelector('.frappe-control[data-fieldtype="Data"] input.form-control');
 				const html = getComputedStyle(document.documentElement);
@@ -14381,7 +14834,7 @@ print("ok")
 					form_style: label, form_tabs: "Brand Underline",
 					form_sidebar: "Hairline Edge", form_grid_checkbox_reveal: 0,
 				});
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-form"), slug, "style attribute");
 				// One computed-pixel proof per style — an attribute alone is a
 				// green test that asserts existence, not correctness.
@@ -14428,7 +14881,7 @@ print("ok")
 
 		await test("form: Original applies nothing at all", async () => {
 			setSettings({ form_style: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			const state = await page.evaluate(() => ({
 				attrs: [...document.documentElement.attributes]
 					.filter((a) => a.name.startsWith("data-bnd-form")).map((a) => a.name),
@@ -14450,7 +14903,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form"), "cards", "boot applied cards");
 			await page.evaluate(() => window.bunood_theme.form_apply({ form_style: "Paper Sheet" }));
 			expectEq(await attr("data-bnd-form"), "sheet", "preview flipped to sheet");
@@ -14463,7 +14916,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			const pill = await page.evaluate(() => {
 				const active = document.querySelector(".form-tabs .nav-link.active");
 				const other = document.querySelector(".form-tabs .nav-link:not(.active)");
@@ -14495,7 +14948,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			// The uoms grid lives on the UOM tab — activate it first.
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
@@ -14538,7 +14991,7 @@ print("ok")
 				desk_layout: "Top Taskbar", topbar_enabled: 1, bottombar_enabled: 1,
 				status_style: "Quiet",
 			});
-			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
+			await goNativeForm(FORM_ROUTE, ".form-sidebar", 4000);
 			// Measure the PINNED state: the _layouts.scss sizing is written for
 			// the stuck column (top: 48px). At natural scroll the column sits
 			// ~45px lower (the tab bar's height above it) and tucks under the
@@ -14583,7 +15036,7 @@ print("ok")
 				form_style: "Floating Panels", form_sidebar: "Inspector Rail",
 				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1,
 			});
-			await goDesk(FORM_ROUTE, ".form-sidebar", 4000);
+			await goNativeForm(FORM_ROUTE, ".form-sidebar", 4000);
 			const g = await page.evaluate(() => {
 				const sb = document.querySelector(".form-sidebar");
 				const r = (el) => el.getBoundingClientRect();
@@ -14633,7 +15086,7 @@ print("ok")
 				form_style: "Floating Panels", form_sidebar: "Floating Pane",
 				form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1, form_activity: "Drawer",
 			});
-			await goDesk(FORM_ROUTE, ".bnd-drawer-toggle", 4000);
+			await goNativeForm(FORM_ROUTE, ".bnd-drawer-toggle", 4000);
 			const own = await page.evaluate(() => document.documentElement.getAttribute("data-bnd-own") || "");
 			expect(/(^|\s)drawer(\s|$)/.test(own), `the theme owns the drawer (${own})`);
 			// Sabotage in place: strip the token, read in a SEPARATE evaluate.
@@ -14703,7 +15156,7 @@ print("ok")
 				await page.waitForFunction(() => ((document.querySelector(".form-footer .ql-editor") || {}).textContent || "").trim() === "", undefined, { timeout: 5000 });
 				const rows = parseInt(benchPy('print(len(frappe.get_all("Comment", filters=' + commentFilter + ')))\n').trim().split("\n").pop(), 10);
 				expect(rows >= 1, `the comment landed in the database (${rows})`);
-				await goDesk(FORM_ROUTE, ".bnd-drawer-toggle", 3000);
+				await goNativeForm(FORM_ROUTE, ".bnd-drawer-toggle", 3000);
 				const after = await page.evaluate(() => ({
 					chip: document.querySelector(".bnd-drawer-toggle .bnd-drawer-count").textContent,
 					docinfo: (cur_frm.get_docinfo().comments || []).length + (cur_frm.get_docinfo().communications || []).length,
@@ -14726,7 +15179,7 @@ print("ok")
 					form_tabs: "Solid Pill", form_grid_checkbox_reveal: 1, form_activity: "Beside",
 				});
 				await page.setViewportSize({ width: 1600, height: 900 });
-				await goDesk(FORM_ROUTE, ".form-footer", 4000);
+				await goNativeForm(FORM_ROUTE, ".form-footer", 4000);
 				const wide = await page.evaluate(() => {
 					const f = document.querySelector(".form-footer").getBoundingClientRect();
 					const m = document.querySelector(".layout-main-section").getBoundingClientRect();
@@ -14737,7 +15190,7 @@ print("ok")
 				expect(wide.footerW > 200, `and has a real width (${wide.footerW})`);
 				expect(!wide.toggle, "no drawer toggle under Beside");
 				await page.setViewportSize({ width: 1200, height: 900 });
-				await goDesk(FORM_ROUTE, ".form-footer", 4000);
+				await goNativeForm(FORM_ROUTE, ".form-footer", 4000);
 				const narrow = await page.evaluate(() => {
 					const f = document.querySelector(".form-footer").getBoundingClientRect();
 					const m = document.querySelector(".layout-main-section").getBoundingClientRect();
@@ -14759,7 +15212,7 @@ print("ok")
 				// The foot (A8c) homes the toggle before the band does; this is the band's check.
 				form_foot: "Off",
 			});
-			await goDesk(FORM_ROUTE, ".bnd-dochead", 4000);
+			await goNativeForm(FORM_ROUTE, ".bnd-dochead", 4000);
 			const g = await page.evaluate(() => {
 				const frm = cur_frm;
 				const heads = document.querySelectorAll(".bnd-dochead");
@@ -14813,7 +15266,7 @@ print("ok")
 
 		await test("form: the band is absent under the page head and present for a desk user", async () => {
 			setSettings({ form_header: "Original", form_header_tone: "Brand-dark", form_activity: "Drawer" });
-			await goDesk(FORM_ROUTE, ".form-layout", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-layout", 3000);
 			const none = await page.evaluate(() => document.querySelectorAll(".bnd-dochead").length);
 			expectEq(none, 0, "no band under the page head");
 			setSettings({ form_header: "Hero Band" });
@@ -14853,7 +15306,7 @@ print("ok")
 				form_style: "Floating Panels", form_activity: "Drawer", form_header: "Hero Band",
 				form_header_tone: "Brand-dark", form_stage: "Status Path",
 			});
-			await goDesk(FORM_ROUTE, ".bnd-dochead", 3000);
+			await goNativeForm(FORM_ROUTE, ".bnd-dochead", 3000);
 			const item = await page.evaluate(() => ({
 				path: document.querySelectorAll(".bnd-stagepath").length,
 				owned: /(^|\s)stagepath(\s|$)/.test(document.documentElement.getAttribute("data-bnd-own") || ""),
@@ -15151,7 +15604,7 @@ print("ok")
 				form_style: "Floating Panels", form_tabs: "Solid Pill",
 				form_sidebar: "Floating Pane", form_grid_checkbox_reveal: 0,
 			});
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			await page.click('.form-tabs .nav-link[data-fieldname="uom_tab"]');
 			await page.waitForTimeout(800);
 			// The pencil reveals on row hover (probed: an un-hovered click
@@ -15265,7 +15718,8 @@ print("ok")
 						["report", "/app/query-report/General%20Ledger", ".page-head", ".layout-main-section", "wide"],
 						["workspace", "/desk/selling", ".layout-main", ".layout-main", "wide"],
 					]) {
-						await goDesk(route, wait, 2600);
+						if (name === "form") await goNativeForm(route, wait, 2600);
+						else await goDesk(route, wait, 2600);
 						const w = await page.evaluate((s) => {
 							const el = [...document.querySelectorAll(s)].find((n) => n.getBoundingClientRect().width > 0);
 							return el ? Math.round(el.getBoundingClientRect().width) : null;
@@ -15298,7 +15752,7 @@ print("ok")
 
 		await test("body: Full makes the card and the section body one width", async () => {
 			setSettings({ desk_width: "Full" });
-			await goDesk(BODY_ROUTE, ".form-section", 3000);
+			await goNativeForm(BODY_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-width"), "full", "width attribute");
 			const w = await bodyWidths();
 			expect(w.column > 1000, `a new Item's column is the whole main section (${w.column})`);
@@ -15306,7 +15760,7 @@ print("ok")
 		});
 		await test("body: Original leaves Frappe's 900px cap exactly where it was", async () => {
 			setSettings({ desk_width: "Original" });
-			await goDesk(BODY_ROUTE, ".form-section", 3000);
+			await goNativeForm(BODY_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-width"), null, "no width attribute");
 			const w = await bodyWidths();
 			expectEq(w.cap, "900px", "the vendor's cap");
@@ -15399,7 +15853,7 @@ print("ok")
 		for (const [label, [slug, px]] of Object.entries(BODY_SCALE)) {
 			await test(`body: ${label} leads with the section head`, async () => {
 				setSettings({ desk_scale: label });
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-body-scale"), slug, "scale attribute");
 				const t = await typeScale();
 				expectEq(t.value, px, `values render at ${px}px`);
@@ -15409,7 +15863,7 @@ print("ok")
 		}
 		await test("body: Original scale is the flat stock set — head equals label", async () => {
 			setSettings({ desk_scale: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-body-scale"), null, "no scale attribute");
 			const t = await typeScale();
 			expectEq(t.head, t.label, "stock: 14 over 14, the census's diagnosis");
@@ -15424,7 +15878,7 @@ print("ok")
 			// review's check lens; the proxy's own pair is asserted in the foot's
 			// check, which is where it belongs.
 			setSettings({ desk_primary: "Brand", form_foot: "Off" });
-			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
+			await goNativeForm(FORM_ROUTE, ".page-actions .primary-action", 3000);
 			expectEq(await attr("data-bnd-body-primary"), "brand", "primary attribute");
 			const want = await resolvePair("var(--bnd-brand-solid)", "var(--bnd-on-brand)");
 			const got = await page.evaluate(() => {
@@ -15436,7 +15890,7 @@ print("ok")
 		});
 		await test("body: Black keeps Frappe's own primary", async () => {
 			setSettings({ desk_primary: "Black", form_foot: "Off" }); // the premise; see above
-			await goDesk(FORM_ROUTE, ".page-actions .primary-action", 3000);
+			await goNativeForm(FORM_ROUTE, ".page-actions .primary-action", 3000);
 			expectEq(await attr("data-bnd-body-primary"), null, "no primary attribute");
 			const want = await resolvePair("var(--gray-900)", "var(--neutral)");
 			const got = await page.evaluate(() => getComputedStyle(document.querySelector(".page-actions .btn-primary")).backgroundColor);
@@ -15470,7 +15924,7 @@ print("ok")
 
 		await test("form: Stacked Outlined boxes the field on the theme's strong border", async () => {
 			setSettings({ form_style: "Floating Panels", form_fields: "Stacked Outlined" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "outline", "fields attribute");
 			const g = await fieldGeom();
 			expect(g.labelBottom <= g.inputTop + 1, `label above the box (${g.labelBottom} <= ${g.inputTop})`);
@@ -15479,7 +15933,7 @@ print("ok")
 		});
 		await test("form: Property Rows puts the label beside the value in a 160px column", async () => {
 			setSettings({ form_fields: "Property Rows" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "rows", "fields attribute");
 			const g = await fieldGeom();
 			expectEq(g.group, "grid", "the control is a grid");
@@ -15515,7 +15969,7 @@ print("ok")
 		});
 		await test("form: Quiet Underline keeps only the block-end edge", async () => {
 			setSettings({ form_fields: "Quiet Underline" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "underline", "fields attribute");
 			const g = await fieldGeom();
 			expectEq(g.borderW, "0px", "no inline edge");
@@ -15524,7 +15978,7 @@ print("ok")
 		});
 		await test("form: Inline Text draws no box at rest and one on hover", async () => {
 			setSettings({ form_fields: "Inline Text" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), "inline", "fields attribute");
 			const rest = await fieldGeom();
 			expectEq(rest.bg, "rgba(0, 0, 0, 0)", "no fill at rest");
@@ -15537,7 +15991,7 @@ print("ok")
 		});
 		await test("form: Original fields are the stock box — tint, no edge, label above", async () => {
 			setSettings({ form_fields: "Original" });
-			await goDesk(FORM_ROUTE, ".form-section", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 			expectEq(await attr("data-bnd-form-fields"), null, "no fields attribute");
 			const g = await fieldGeom();
 			expectEq(g.borderW, "0px", "stock has no edge");
@@ -15592,7 +16046,7 @@ print("ok")
 			// `hover()` can put the cursor under something else and paint nothing.
 			// Left to inherit, it read `rgba(0,0,0,0)` and looked like a CSS defect.
 			setSettings({ form_style: "Tinted Heads", sidebar_enabled: 1, sidebar_pane_state: "Open" });
-			await goDesk(FORM_ROUTE, ".form-layout", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-layout", 3000);
 			const sel = ".std-form-layout .section-head.collapsible .collapse-indicator";
 			const el = await page.$(sel);
 			expect(el, "a collapsible section head to hover");
@@ -15636,7 +16090,7 @@ print("ok")
 			// `margin: auto !important` — so this asserts the box, not the rule.
 			for (const [style, tinted] of [["Floating Panels", false], ["Headed Groups", false], ["Paper Sheet", false], ["Grouped Insets", false], ["Tinted Heads", true], ["Original", false]]) {
 				setSettings({ form_style: style });
-				await goDesk(FORM_ROUTE, ".form-layout", 2500);
+				await goNativeForm(FORM_ROUTE, ".form-layout", 2500);
 				const g = await sectionGeom();
 				expect(g.headTextX !== null && g.ctrlX !== null, `${style}: a head with text and a field to line up with`);
 				expect(
@@ -15672,7 +16126,7 @@ print("ok")
 		for (const [label, [slug, assertStyle]] of Object.entries(NEW_STYLES)) {
 			await test(`form: ${label}`, async () => {
 				setSettings({ form_style: label, desk_scale: "Standard 14" });
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				expectEq(await attr("data-bnd-form"), slug, "style attribute");
 				const g = await sectionGeom();
 				const raised = await resolvePair("var(--bnd-raised)", "var(--bnd-ink)");
@@ -15683,7 +16137,7 @@ print("ok")
 		await test("form: the collapse indicator is a 20px control on every style", async () => {
 			for (const label of ["Floating Panels", "Headed Groups", "Paper Sheet"]) {
 				setSettings({ form_style: label });
-				await goDesk(FORM_ROUTE, ".form-section", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-section:visible", 3000);
 				const g = await sectionGeom();
 				expect(g.indicator && g.indicator.w >= 20 && g.indicator.h >= 20, `${label}: indicator ${g.indicator && g.indicator.w}×${g.indicator && g.indicator.h}`);
 			}
@@ -15716,7 +16170,7 @@ print("ok")
 		});
 		await test("form: Ruled Sheet rules the grid, raises its head and stripes its rows", async () => {
 			setSettings({ form_style: "Floating Panels", form_grid: "Ruled Sheet" });
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			expectEq(await attr("data-bnd-form-grid"), "ruled", "grid attribute");
 			const g = await gridGeom();
 			const border = await resolvePair("var(--bnd-border)", "var(--bnd-ink)");
@@ -15742,7 +16196,7 @@ print("ok")
 			// everywhere would still satisfy "even differs from its rest colour"
 			// on nothing, and the check would be asserting its own sabotage.
 			setSettings({ form_style: "Floating Panels", form_grid: "Ruled Sheet" });
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			await page.evaluate(async () => {
 				const tab = [...document.querySelectorAll(".form-tabs .nav-link")].find((a) => /uom/i.test(a.textContent));
 				if (tab && !tab.classList.contains("active")) { tab.click(); await new Promise((r) => setTimeout(r, 600)); }
@@ -15783,7 +16237,7 @@ print("ok")
 
 		await test("form: Hairline Ledger drops the verticals and sets a small-caps head", async () => {
 			setSettings({ form_grid: "Hairline Ledger" });
-			await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+			await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 			expectEq(await attr("data-bnd-form-grid"), "ledger", "grid attribute");
 			const g = await gridGeom();
 			expectEq(g.vrule, "rgba(0, 0, 0, 0)", "no vertical rule");
@@ -15794,7 +16248,7 @@ print("ok")
 		await test("form: the grid row follows density under every grid option, Original included", async () => {
 			for (const opt of ["Original", "Ruled Sheet"]) {
 				setSettings({ form_grid: opt });
-				await goDesk(FORM_ROUTE, ".form-tabs-list", 3000);
+				await goNativeForm(FORM_ROUTE, ".form-tabs-list", 3000);
 				for (const density of ["comfortable", "compact"]) {
 					await page.evaluate((d) => document.documentElement.setAttribute("data-bnd-density", d), density);
 					await page.waitForTimeout(150);
@@ -15852,7 +16306,7 @@ print("ok")
 			await page.setViewportSize({ width: 1920, height: 900 });
 			await goDesk("/desk/selling", ".layout-main", 4000);
 			const ws = await page.evaluate(() => Math.round(document.querySelector(".layout-main").getBoundingClientRect().width));
-			await goDesk("/desk/item/new", ".form-section", 4000);
+			await goNativeForm("/desk/item/new", ".form-section:visible", 4000);
 			// The card (.form-section) is what the cap sizes on the form; its
 			// .section-body sits inside the card's padding (measured 1088 in 1120).
 			const form = await page.evaluate(() => Math.round(document.querySelector(".std-form-layout .form-section").getBoundingClientRect().width));
@@ -15987,6 +16441,7 @@ print("ok")
 		});
 
 		await test("workspace: a number card's delta clears AA in every state it can take, in both modes", async () => {
+			await withNumberCardDelta(async fixture => {
 			// THE KIT'S DELTA RULE NEVER APPLIED. Item 25 re-tokenised `.green-stat`
 			// and `.red-stat` at (0,4,1) against Frappe's own
 			// `.widget.number-widget-box .widget-body .widget-content .green-stat` at
@@ -16005,9 +16460,10 @@ print("ok")
 			// read `color(srgb 0.4 …)` as near-black — and an unparseable one THROWS.
 			// The background is the EFFECTIVE one: translucent layers composited up to
 			// the first opaque ancestor.
-			await goDesk("/desk/dashboard-view/Selling", ".widget-group-body .number-widget-box", 5000);
-			const STAT = ".number-widget-box:not([style*='background']) .card-stats";
+			await goDesk(fixture.route, ".widget-group-body .number-widget-box", 5000);
+			const STAT = `.number-widget-box[data-widget-name="${fixture.receipt.card}"]:not([style*='background']) .card-stats`;
 			expect(await q(STAT + " .percentage-stat-area"), "premise: a number card shows a delta on the dashboard");
+			expect(/100\s*%/.test(await page.locator(STAT + " .percentage-stat-area").innerText()), "native fixture rendered its proven 100% before state simulation");
 			const measure = () => {
 				const cv = document.createElement("canvas");
 				cv.width = cv.height = 1;
@@ -16059,7 +16515,9 @@ print("ok")
 								const row = document.querySelector(sel);
 								row.classList.remove("grey-stat", "green-stat", "red-stat");
 								row.classList.add(s);
-								for (const old of row.querySelectorAll(".indicator-pill-round[data-bnd-test]")) old.remove();
+								// Native fixture starts at +100% with its own arrow; each state
+								// must measure its own arrow, never the preceding one.
+								for (const old of row.querySelectorAll(".indicator-pill-round")) old.remove();
 								if (s !== "grey-stat") {
 									const hue = s === "green-stat" ? "green" : "red";
 									const icon = s === "green-stat" ? "es-line-arrow-up-right" : "arrow-down-right";
@@ -16114,6 +16572,7 @@ print("ok")
 				});
 			}
 			expectEq(failures.join("; "), "", "every delta state clears AA on its card (" + seen.join(" · ") + ")");
+			});
 		});
 
 		// ── Chart series palette (item 25) ─────────────────────────────────
@@ -16864,6 +17323,32 @@ print("ok")
 			const transparent = g.bg === "rgba(0, 0, 0, 0)" || g.bg === "transparent";
 			const noBorder = g.borderW === "0px" || g.borderC === "rgba(0, 0, 0, 0)";
 			expect(!transparent || !noBorder, `the tile has a fill or a boundary (bg ${g.bg}, border ${g.borderW} ${g.borderC})`);
+		});
+
+		await test("views: gallery metadata and missing-image initials clear AA in both modes", async () => {
+			const before = getSettings(["views_style"]);
+			let originalMode;
+			try {
+				setSettings({ views_style: "Floating Cards" });
+				await goDesk("/app/item/view/image", ".image-view-container", 6000);
+				originalMode = await page.locator("html").getAttribute("data-theme");
+				for (const selector of [".image-view-info", ".placeholder-text"]) {
+					const count = await page.locator(`.image-view-container ${selector}`).evaluateAll(els => els.filter(el => el.getClientRects().length && el.textContent.trim()).length);
+					expect(count > 0, `native gallery has visible nonempty ${selector} coverage`);
+				}
+				for (const mode of ["light", "dark"]) {
+					await page.evaluate(mode => document.documentElement.setAttribute("data-theme", mode), mode);
+					await page.waitForTimeout(500);
+					const result = await boundedAudit(() => new AxeBuilder({ page })
+						.include(".image-view-container .image-view-info")
+						.include(".image-view-container .placeholder-text")
+						.withRules(["color-contrast"]).analyze(), () => browser.close());
+					expectEq(result.violations.map(v => `${v.id}: ${v.nodes.map(n => n.target.join(" ")).join(", ")}`).join("\n"), "", `${mode}: native gallery text clears AA`);
+				}
+			} finally {
+				if (originalMode !== undefined && !page.isClosed()) await page.evaluate(mode => mode === null ? document.documentElement.removeAttribute("data-theme") : document.documentElement.setAttribute("data-theme", mode), originalMode);
+				setSettings(before);
+			}
 		});
 
 		await test("views: live preview flips the style and back", async () => {
@@ -18115,7 +18600,7 @@ print("cleared")
 			// fieldname that an Item layout reshuffle would silently orphan. Measuring
 			// a hidden node is the item-16 .checkbox-actions trap; visibility is
 			// asserted before any colour is trusted.
-			await goDesk("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
+			await goNativeForm("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
 			const g = await page.evaluate(async () => {
 				const find = () =>
 					[...document.querySelectorAll(".grid-empty")].find(
@@ -18224,7 +18709,7 @@ print("cleared")
 			expectEq(g.ring, "none", "and no boundary");
 			expectEq(g.maxInline, "none", "and stock's own width is back");
 			// The contract, on the same setting.
-			await goDesk("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
+			await goNativeForm("/desk/item/BND-TEST-001", ".form-tabs-list", 3000);
 			const ink = await page.evaluate(async () => {
 				const find = () =>
 					[...document.querySelectorAll(".grid-empty")].find(
@@ -19672,12 +20157,12 @@ print("cleared")
 				setSettings(topBar());
 				await page.setViewportSize(NARROW);
 				await goDesk("/desk/item", ".page-head", 3500);
-				const res = await new AxeBuilder({ page })
+				const res = await boundedAudit(() => new AxeBuilder({ page })
 					.include(".bnd-statusbar")
 					.withTags(["wcag2a", "wcag2aa"])
 					// Page-level rules have no meaning in a scoped include.
 					.disableRules(["region", "page-has-heading-one", "landmark-one-main", "bypass"])
-					.analyze();
+					.analyze(), () => browser.close());
 				await wideAgain();
 				const bad = res.violations.map(
 					(v) => `${v.id} — ${v.nodes.slice(0, 2).map((n) => n.target.join(" ")).join(", ")}`
@@ -23947,23 +24432,53 @@ print("cleared")
 			}
 		});
 
-		await test("print: the Bunood style is the system default — v16's Redesign vacancy, claimed once", async () => {
-			// The legacy installer's STOCK_STYLES predates v16, whose shipped
-			// default is "Redesign" — so the vacancy check NEVER fired and the
-			// Bunood style has never applied on any v16 site (measured: this site
-			// printed with Redesign since install). The v0_35_0 patch claims it
-			// once; Patch Log is the record that it was the patch, not an admin.
-			const out = benchPy(
-				"import json\n" +
-					"style = frappe.db.get_single_value('Print Settings', 'print_style')\n" +
-					"logged = frappe.db.count('Patch Log', {'patch': ['like', '%v0_35_0.claim_print_style%']})\n" +
-					"print('BND_DEF' + json.dumps({'style': style, 'logged': logged}))\n"
-			);
-			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_DEF"));
-			if (!line) throw new Error("default probe produced no JSON: " + String(out).slice(-300));
+		await test("print: one-time stock claim and later owner choice have distinct ownership", async () => {
+			// Exercise the real patch and ongoing sync without changing the site's
+			// chosen default or Patch Log. All DB writes live in one rolled-back savepoint.
+			let out;
+			try {
+				out = benchPy(`
+import json
+expected_site = ${JSON.stringify(SITE)}
+assert expected_site in {'team-rc.localhost', 'official-native-acceptance.localhost', 'rc20.localhost'}, 'isolated print test site required'
+assert frappe.local.site == expected_site, 'print test site mismatch'
+assert frappe.conf.get('allow_tests') and frappe.session.user == 'Administrator', 'authorized test context required'
+from bunood_theme.patches.v0_35_0.claim_print_style import execute
+from bunood_theme.printing.install import _sync_style
+assert frappe.db.exists('Print Style', 'Bunood'), 'Bunood style missing'
+assert frappe.db.get_value('Print Style', 'Redesign', 'standard'), 'stock control missing'
+keep = frappe.db.get_single_value('Print Settings', 'print_style')
+frappe.db.savepoint('bnd_print_ownership_probe')
+res = {}
+try:
+    settings = frappe.get_single('Print Settings')
+    settings.print_style = 'Redesign'
+    settings.save(ignore_permissions=True)
+    execute()
+    res['claimed'] = frappe.db.get_single_value('Print Settings', 'print_style')
+    settings = frappe.get_single('Print Settings')
+    settings.print_style = 'Redesign'
+    settings.save(ignore_permissions=True)
+    _sync_style()
+    res['preserved'] = frappe.db.get_single_value('Print Settings', 'print_style')
+    settings = frappe.get_single('Print Settings')
+    settings.print_style = ''
+    settings.save(ignore_permissions=True)
+    _sync_style()
+    res['vacancy'] = frappe.db.get_single_value('Print Settings', 'print_style')
+finally:
+    frappe.db.rollback(save_point='bnd_print_ownership_probe')
+    frappe.clear_document_cache('Print Settings', 'Print Settings')
+    assert frappe.db.get_single_value('Print Settings', 'print_style') == keep, 'print default restoration failed'
+print('BND_DEF' + json.dumps(res))
+`);
+			} catch (error) { error.fatalSuite = true; throw error; }
+			const line = String(out).split(/\r?\n/).find(l => l.startsWith("BND_DEF"));
+			if (!line) { const error = new Error("Print ownership probe/restoration not proven"); error.fatalSuite = true; throw error; }
 			const r = JSON.parse(line.slice("BND_DEF".length));
-			expectEq(r.style, "Bunood", "the Bunood Print Style is not the system default");
-			expect(r.logged > 0, "the claim patch never ran — the default was set some other way, or not at all");
+			expectEq(r.claimed, "Bunood", "one-time patch claims stock style");
+			expectEq(r.preserved, "Redesign", "ongoing sync preserves subsequent owner choice");
+			expectEq(r.vacancy, "Bunood", "ongoing sync claims true vacancy");
 		});
 
 		await test("print: a brand seed change re-papers the Print Style record", async () => {
@@ -24158,7 +24673,7 @@ print("cleared")
 			// at all — the tenant keeps whatever letterhead they use, proved by a
 			// sentinel surviving a resync. The other poles recompose, and the
 			// theme's own logo takes precedence over the Company's at render.
-			const out = benchPy(
+			const out = benchWithPrintLogos(
 				"import json\n" +
 					"from bunood_theme.printing.install import resync_print_brand\n" +
 					"keep = {\n" +
@@ -24191,15 +24706,15 @@ print("cleared")
 					// win, not a dead branch).
 					"    keep_clogo = frappe.db.get_value('Company', company, 'company_logo')\n" +
 					"    try:\n" +
-					"        frappe.db.set_value('Company', company, 'company_logo', '/files/company-own.png', update_modified=False)\n" +
-					"        frappe.db.set_single_value('Theme Settings', 'logo', '/files/bnd&spec.png')\n" +
+					"        frappe.db.set_value('Company', company, 'company_logo', logos['company_url'], update_modified=False)\n" +
+					"        frappe.db.set_single_value('Theme Settings', 'logo', logos['theme_url'])\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', 'Bilingual Split')\n" +
 					"        frappe.clear_cache(doctype='Theme Settings')\n" +
 					"        resync_print_brand()\n" +
 					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
 					"        rendered = frappe.render_template(html, {'doc': frappe._dict(company=company)})\n" +
-					"        res['theme_logo_precedence'] = 'src=\"/files/bnd&amp;spec.png\"' in rendered\n" +
-					"        res['company_logo_lost'] = '/files/company-own.png' not in rendered\n" +
+					"        res['theme_logo_precedence'] = ('src=\"' + logos['theme_src'] + '\"') in rendered\n" +
+					"        res['company_logo_lost'] = logos['company_src'] not in rendered\n" +
 					"        res['logo_single_escaped'] = '&amp;amp;' not in rendered\n" +
 					"        import re as _re\n" +
 					"        res['no_none_name'] = not _re.search(r'>\\s*None\\s*<', rendered)\n" +
@@ -24208,7 +24723,7 @@ print("cleared")
 					"        resync_print_brand()\n" +
 					"        html2 = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
 					"        rendered2 = frappe.render_template(html2, {'doc': frappe._dict(company=company)})\n" +
-					"        res['company_arm_live'] = '/files/company-own.png' in rendered2\n" +
+					"        res['company_arm_live'] = ('src=\"' + logos['company_src'] + '\"') in rendered2\n" +
 					"    finally:\n" +
 					"        frappe.db.set_value('Company', company, 'company_logo', keep_clogo, update_modified=False)\n" +
 					"        frappe.db.set_single_value('Theme Settings', 'logo', keep_logo)\n" +
@@ -24955,10 +25470,10 @@ print("cleared")
 			// payload-budget.json in the same commit as the growth, with the
 			// why in its message.
 			const res = spawnSync(process.execPath, ["tools/payload.mjs", "--check"], {
-				cwd: new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1"),
+				cwd: fileURLToPath(new URL("..", import.meta.url)),
 				encoding: "utf8",
 			});
-			expectEq(res.status, 0, `payload check: ${(res.stdout + res.stderr).trim().slice(0, 400)}`);
+			expectEq(res.status, 0, `payload check: ${[res.error?.message, res.stdout, res.stderr].filter(Boolean).join("\n").trim().slice(0, 400)}`);
 		});
 
 		await test("console error budget: nothing beyond the allowlist", async () => {
