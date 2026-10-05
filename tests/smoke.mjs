@@ -39,6 +39,7 @@ import { ensureAdvancedForm } from "../tools/native-form-mode.mjs";
 import { withNumberCardDelta } from "../tools/number-card-delta-fixture.mjs";
 import { verifyItemLabelsAgainstStock } from "../tools/axe-native-label-pair.mjs";
 import { nativeVersionValueNodes } from "../tools/native-version-values.mjs";
+import { verifyItemAttachmentsAgainstStock } from "../tools/axe-native-item-attachments.mjs";
 // The routes and the scan configuration are shared with the tool that BANKS
 // this baseline, so the two cannot scan different DOM. See tools/axe-routes.mjs.
 import { ROUTES as AXE_ROUTES, scanForBaseline } from "../tools/axe-routes.mjs";
@@ -14521,10 +14522,13 @@ print("ok")
 				// control. No baseline is rebanked and every other rule is unchanged.
 				const pairedLabels = route === "/desk/item";
 				if (pairedLabels) await verifyItemLabelsAgainstStock({ browser, page, result: res, AxeBuilder });
+				const pairedAttachments = route === "/desk/item/BND-TEST-001"
+					? await verifyItemAttachmentsAgainstStock({ browser, page, result: res, AxeBuilder }) : {};
 				const seen = {};
 				for (const v of res.violations) {
 					if (pairedLabels && v.id === "label") continue;
-					seen[v.id] = v.nodes.length;
+					const count = v.nodes.length - (pairedAttachments[v.id] || 0);
+					if (count) seen[v.id] = count;
 				}
 				const base = baseline[route] || {};
 				const worse = [];
