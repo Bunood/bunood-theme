@@ -14640,6 +14640,8 @@ msgstr "دفع متعدد"
 #, fuzzy
 #. src: team Home integration, Arabic proposal 2026-10-06
 #, fuzzy
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
 msgid "Bunood Home"
 msgstr "الرئيسية — بنود"
 
@@ -15622,3 +15624,8 @@ msgstr "تحويل داخلي"
 #, fuzzy
 msgid "Statement / origin"
 msgstr "البيان / المصدر"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Show field guidance"
+msgstr "إظهار إرشادات الحقول"

@@ -71,7 +71,7 @@ test('existing personal Home consumer preserves deep links and root preference',
 test('the Home Page selects its native sidebar without rewriting vendor DOM', () => {
   const calls = [];
   const frappe = {pages:{'bnd-home':{}},boot:{workspace_sidebar_item:{'bunood home':{items:[]}}},app:{sidebar:{setup:name=>calls.push(name)}}};
-  vm.runInNewContext(fs.readFileSync('bunood_theme/bunood_theme/page/bnd_home/bnd_home.js','utf8'), {frappe});
+  vm.runInNewContext(fs.readFileSync('bunood_theme/bunood_theme/page/bnd_home/bnd_home.js','utf8'), {frappe, queueMicrotask});
   assert.equal(typeof frappe.pages['bnd-home'].on_page_show, 'function');
   frappe.pages['bnd-home'].on_page_show();
   assert.deepEqual(calls, ['Bunood Home']);

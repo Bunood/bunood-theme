@@ -52,6 +52,30 @@ class BoundaryTests(unittest.TestCase):
         self.assertIsNone(self.dashboard._count('Sales Invoice',{},[]))
         self.frappe.get_list.assert_not_called()
 
+    def test_optional_zatca_observation_does_not_raise_a_native_permission_dialog(self):
+        start = ModuleType('bunood_theme.start_readiness')
+        start.derive_start_readiness = lambda facts: {'steps': []}
+        launch = ModuleType('bunood_theme.launch_readiness')
+        launch.derive_launch_readiness = lambda facts: facts
+        status = ModuleType('bunood_theme.zatca.status')
+        status.get_invoice_status = Mock(return_value={'state': 'ready', 'settings': {}})
+        fact = {'available': True, 'can_read': True, 'exists': True,
+                'can_create': True, 'can_change': True, 'route': []}
+        with patch.dict(sys.modules, {'bunood_theme.start_readiness': start,
+                                    'bunood_theme.launch_readiness': launch,
+                                    'bunood_theme.zatca.status': status}), \
+                patch.object(self.dashboard, '_record_fact', return_value=fact), \
+                patch.object(self.dashboard, '_rows', return_value=[]):
+            for denied in ('read', 'create'):
+                self.frappe.has_permission.side_effect = lambda dt, action, denied=denied: not (dt == 'Sales Invoice' and action == denied)
+                _, facts = self.dashboard._observations('A', date(2026, 10, 6), [])
+                status.get_invoice_status.assert_not_called()
+                self.assertFalse(facts['tax_zatca']['can_read'])
+                self.assertFalse(facts['tax_zatca']['exists'])
+            self.frappe.has_permission.side_effect = None
+            self.dashboard._observations('A', date(2026, 10, 6), [])
+            status.get_invoice_status.assert_called_once_with(company='A')
+
     def test_missing_app_doctype_never_queries(self):
         self.frappe.db.exists.return_value=False
         self.assertIsNone(self.dashboard._rows('Sales Invoice',{},['name'],[]))

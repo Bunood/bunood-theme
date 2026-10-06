@@ -178,7 +178,10 @@ def _observations(company, today, errors):
            "first_transaction":_combined_fact(first["invoice"],first["payment"],route=["List","Sales Invoice",sales_filter])}
     tax=fact("Sales Taxes and Charges Template",company_filter)
     zatca={"available":True,"can_read":False,"can_change":False,"exists":False,"query_error":False}
-    if company:
+    # The unsaved-invoice facade requires both permissions. A caught
+    # frappe.throw still queues a client dialog, so denied optional evidence
+    # must remain unavailable without invoking that facade in the first place.
+    if company and _can("Sales Invoice") and frappe.has_permission("Sales Invoice", "create"):
         try:
             from bunood_theme.zatca.status import get_invoice_status
             status=get_invoice_status(company=company)

@@ -695,6 +695,7 @@ html[data-bnd-body-width] body:not(.full-width) :is(.bnd-simple-form-head, .bnd-
   border-block-end: var(--bnd-line) solid var(--bnd-border);
 }
 .bnd-simple-actions[hidden] { display: none; }
+html[data-theme][data-bnd-own~="simpleform"] .bnd-generic-simple:not(:has(.bnd-simple-help:checked)) .frappe-control .help-box { display: none; }
 .bnd-simple-actions-identity { display: flex; align-items: center; gap: var(--bnd-sp-2); flex: 1 1 10rem; min-inline-size: 0; }
 .bnd-simple-actions[data-primary="create-invoice"] .bnd-simple-actions-identity { flex: 0 1 auto; }
 .bnd-simple-actions-identity strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--bnd-text-sm); }

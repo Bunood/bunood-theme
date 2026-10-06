@@ -511,6 +511,7 @@
 			this.toolsTrigger.setAttribute("role", "button");
 			this.toolsTrigger.setAttribute("aria-haspopup", "true");
 			this.menu = create("div", "bnd-simple-tools-menu", null, this.tools);
+			create("input", "bnd-simple-help", null, create("label", "", __("Show field guidance"), this.menu)).type = "checkbox";
 			this.menu.id = `bnd-simple-actions-${Math.random().toString(36).slice(2)}`;
 			this.toolsTrigger.setAttribute("aria-controls", this.menu.id);
 			this.toolsTrigger.setAttribute("aria-expanded", "false");
@@ -640,8 +641,6 @@
 			this.cancelButton.hidden = !state.showCancel;
 			if (this.printButton.parentNode !== this.primaryActions) this.primaryActions.append(this.printButton);
 			this.printButton.classList.toggle("bnd-bill-primary", state.primary === "print");
-			this.tools.hidden = ![this.draftButton, this.newButton, this.mobilePrintButton, this.duplicateButton, this.deleteButton, this.cancelButton]
-				.some(button => !button.hidden && button.parentNode === this.menu);
 		}
 		setMode(simple) {
 			const active = document.activeElement;

@@ -1083,28 +1083,10 @@
 	// ════════════════════════════════════════════════════════════════════════
 	// Ownership stamps
 	// ════════════════════════════════════════════════════════════════════════
-	//
-	// THE POLARITY OF EVERY NATIVE-HIDING RULE.
-	//
-	// The old rule was: the LAYOUT declares it will replace the sidebar's bell,
-	// so CSS hides that bell at first paint from `data-bnd-desk`. What
-	// actually mounts is decided later, in the DOM, by code that can fail —
-	// mount_topbar bails if Frappe rendered no <header>, and the Bottom Bar
-	// strip refused to mount at all when the status style was "Off". When the
-	// declaration removes the native and the replacement never arrives, the
-	// affordance is DELETED, not degraded: a desk with no notifications and no
-	// way to log out. That is the shape of every bug this area has produced.
-	//
-	// The new rule inverts it: natives stay visible until our replacement is
-	// STAMPED PRESENT. `bnd_own("bell")` is called after the node is in the
-	// DOM, and the CSS keys on `html[data-bnd-own~="bell"]`. There is no
-	// release path to write, because release is the default state — a mount
-	// that fails leaves the stock desk, which is this app's declared failure
-	// contract (see the head of chrome/_layouts.scss).
-	//
-	// The flash cost is nil: every native row this touches is built by
-	// Frappe's own JS after the splash, and a brief window showing both is
-	// strictly better than a window showing neither.
+	// Keep native affordances until their replacements are mounted and visible.
+	// Claim after mounting; CSS hides only under html[data-bnd-own~="token"].
+	// Failed mounts leave native UI intact; disown restores native control.
+	// See chrome/_layouts.scss for the failure contract.
 
 	/** Claim an affordance: our replacement for it is mounted and visible. */
 	function bnd_own(token) {
@@ -1180,6 +1162,16 @@
 		if (owned.size) html.setAttribute("data-bnd-own", [...owned].join(" "));
 		else html.removeAttribute("data-bnd-own");
 	}
+	// Native form ownership bridge. Claim only a visible replacement on the current Form.
+	const formOwners = { __proto__: null, simpleform: [".bnd-generic-simple", ".bnd-simple-actions:not([hidden])"], salesbill: [".bnd-bill-simple-active", ".bnd-bill:not([hidden])"] };
+	bunood.claim_native = token => {
+		const spec = typeof token === "string" && formOwners[token], frm = window.cur_frm, wrapper = frm?.$wrapper?.[0], route = frappe.get_route();
+		if (!spec) return;
+		if (route[0] === "Form" && route[1] === frm?.doctype && route[2] === frm?.doc?.name && wrapper?.isConnected && wrapper.matches(spec[0]) && wrapper.querySelector(spec[1])?.getClientRects().length) bnd_own(token);
+		else bnd_disown(token);
+	};
+	bunood.release_native = token => { if (typeof token === "string" && formOwners[token]) bnd_disown(token); };
+	// End native form ownership bridge.
 
 	// ════════════════════════════════════════════════════════════════════════
 	// Sidebar style kit (item 10) — attribute application
@@ -13124,6 +13116,7 @@
 			this.toolsTrigger.setAttribute("role", "button");
 			this.toolsTrigger.setAttribute("aria-haspopup", "true");
 			this.menu = create("div", "bnd-simple-tools-menu", null, this.tools);
+			create("input", "bnd-simple-help", null, create("label", "", __("Show field guidance"), this.menu)).type = "checkbox";
 			this.menu.id = `bnd-simple-actions-${Math.random().toString(36).slice(2)}`;
 			this.toolsTrigger.setAttribute("aria-controls", this.menu.id);
 			this.toolsTrigger.setAttribute("aria-expanded", "false");
@@ -13253,8 +13246,6 @@
 			this.cancelButton.hidden = !state.showCancel;
 			if (this.printButton.parentNode !== this.primaryActions) this.primaryActions.append(this.printButton);
 			this.printButton.classList.toggle("bnd-bill-primary", state.primary === "print");
-			this.tools.hidden = ![this.draftButton, this.newButton, this.mobilePrintButton, this.duplicateButton, this.deleteButton, this.cancelButton]
-				.some(button => !button.hidden && button.parentNode === this.menu);
 		}
 		setMode(simple) {
 			const active = document.activeElement;

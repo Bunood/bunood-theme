@@ -39,28 +39,74 @@ can refer to the same checkout; comparisons use immutable Git objects.
 
 Initial navigation tests failed for the missing Home, then passed; regression tests
 also caught the unregistered lazy payload ceiling and missing explicit landing
-guards. The latest source renderer/navigation/extraction checks pass19 tests and
-the site-free boot/domain checks pass12. The full combined business/Home Node
+guards. The latest source renderer/navigation/extraction and native Page routing checks pass24 tests and
+the site-free boot/domain checks pass13, including the translated-sidebar identity regression. The full combined business/Home Node
 selection passed207 tests before the final additional role-order regression.
 The focused19-test rerun verifies that subsequent change. These exercise actual renderer functions,
 null versus zero, signed currency values and unchanged backend drilldown filters.
+The expanded candidate then passed26 actual native tests on the isolated RC site:
+Home7, dashboard11 and report compatibility8. The five owner-state snapshot sections,
+including136 appearance settings, matched after migration and the native tests.
+
+The owned Arabic operational-user browser probe passed all eight restored forms:
+Stock Entry, Stock Reconciliation, Expense Claim, Company, Property, Real Estate
+Unit, Lease and POS Profile. Native field/input/DOM objects, event handlers,
+readonly/mandatory metadata and permissions survived Simple mode; Advanced
+restored original parent/order for every field. Browser errors were zero and the
+test user was deleted after the browser closed. Stock Entry mobile width was
+390/390. This proves control preservation, not posting or full visual acceptance:
+the screenshots exposed native onboarding overlays and verbose English Lease
+field guidance. The guidance disclosure subsequently passed native unchecked/checked/refresh/Advanced visibility and field-identity checks.
+Property/Unit draft saves and the full smoke were held during Docker recovery.
+Evidence is outside the repository in `home-ui-acceptance/eight-forms-results.json`;
+the initial role-incomplete probe is retained separately as a failed fixture run.
 The first runtime candidate passed6 native Home tests and preserved the136-setting,
 personal/default/language/custom-sidebar snapshot after migration. It also exposed
 the generic-default landing, Dining sidebar association and mobile navigation
 ordering issues, which are corrected in source but await the next runtime proof.
-Native Home now has7 tests and the dashboard module11; their expanded actual-site
-run is pending. Full dashboard/backend acceptance is pending; the initial candidate is not the
-completed team-parity result.
+The expanded actual-site run subsequently passed Home7, dashboard11 and report8
+tests (26 total). The Administrator Home browser probe also passed all five views,
+five periods, separate company cards, Arabic RTL/mobile390/390, the native Home
+link and reload/Back/Forward. All five role probes subsequently selected the correct
+native Home sidebar; Restricted and Property Stakeholder users had no company
+metrics. A later Sales-user period-change probe exposed a native permission modal
+before Save; the reviewed prerequisite correction below resolved that condition.
+Native root navigation also required a Page route-options association because an
+empty root route has no Page entity for Frappe's sidebar resolver. Its transient
+association preserves explicit sidebar options and cannot carry into later routes.
+Actual root/Home sidebar and explicit Sales-user Save/reload of company, period
+and view now pass. The existing site disables personal landing changes through
+`personal_comfort=0`; the attempted personal setter was refused and that owner
+policy was preserved. Positive custom-landing UI was not forced under a disabled
+preference; source/native custom-default preservation coverage remains in place.
+The current full smoke remains pending.
+
+The optional ZATCA observation now checks the unchanged native invoice read/create
+prerequisites before calling the unsaved-invoice facade. Denied evidence stays
+unavailable without queuing a native permission dialog. The focused reader tests
+pass20, and the current native rerun passes27/27 (Home7, dashboard12, report8),
+including a real Sales User period-change assertion over the native message log.
+After the Page-only correction, the focused native Home7 rerun also passes. All
+five protected owner-state sections match the original snapshot after the final
+browser cleanup, including136 appearance settings. The exact fixture user,
+defaults and session are removed. The five new Page lifecycle regressions are
+included in the existing CI Node step; global and lazy bundle hashes are unchanged.
 
 The final combined source build exits0: Home CSS `d308da6a`3542/5000 gzip bytes and
 Home JS `bc0c2fda`9096/9500. The initial navigation-only5500 JS budget was superseded
 by the independently reviewed9500 ceiling for the full required dashboard,
 scope persistence and configuration observations; Home CSS stays5000. Global
-CSS `7f7c2fbc`39266/39500 remains unchanged, while global
-JS `bbb909cc`187797/188000 includes the restored completed Simple forms. The payload
+CSS `86f97339`39303/39500 and global JS `6d33b619`187737/188000 include the
+field-guidance disclosure and validated native-form ownership bridge (gzip level9).
+The bridge accepts only its two tokens and verifies the current record plus a
+connected, active, visible replacement before claiming native UI. These supersede the runtime
+candidate's global `7f7c2fbc`/`bbb909cc` assets. Native guidance proof passes, and
+Sales/Purchase Invoice Simple-to-Advanced-to-Simple transitions preserve the
+controller, document, fields and item grid identities while native action ownership
+restores correctly. The payload
 gate passes without raising either global ceiling. Finance Close `e914a5e3` handles
 unavailable evidence without displaying null or a false negative. Latest Arabic extraction
-covers2755 strings with8 existing exemptions, including
+covers2756 strings with8 existing exemptions, including
 dynamic navigation/KPI/period/attention descriptors. New translations remain
 machine proposals marked fuzzy, with all2904 original Arabic rows retained unchanged.
 

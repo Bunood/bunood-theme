@@ -69,6 +69,18 @@ class TestHomeDashboard(IntegrationTestCase):
         with self.assertRaises(frappe.PermissionError):
             team_home.get_home_dashboard(company=company)
 
+    def test_sales_period_change_does_not_queue_denied_optional_status_dialog(self):
+        company = self._company()
+        user = self._user('Sales User')
+        frappe.set_user(user)
+        self.assertTrue(frappe.has_permission('Company', 'read', doc=company))
+        self.assertFalse(frappe.has_permission('Sales Invoice', 'read'))
+        messages = list(frappe.local.message_log or [])
+        result = team_home.get_home_dashboard(company=company, period='last_7_days', view='sales')
+        self.assertEqual(result['scope']['period'], 'last_7_days')
+        self.assertEqual(result['scope']['view'], 'sales')
+        self.assertEqual(list(frappe.local.message_log or []), messages)
+
     def test_company_user_permission_blocks_other_company(self):
         companies=frappe.get_list('Company',pluck='name',limit=2)
         self.assertGreaterEqual(len(companies),2,'Acceptance requires two isolated companies')

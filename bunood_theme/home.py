@@ -148,5 +148,7 @@ def extend_bootinfo(bootinfo):
             used.add(name)
             items.append({"type": "Link", "label": _(allowed[name].get("label") or name),
                           "link_type": "Workspace", "link_to": name, "child": 1, "icon": allowed[name].get("icon")})
-    sidebars["bunood home"] = {"label": _("Bunood Home"), "title": "Bunood Home", "items": items,
+    # Native sidebar routing uses label as its identity; the header translates
+    # it when rendering. Translating it here makes Arabic routes pick a peer.
+    sidebars["bunood home"] = {"label": "Bunood Home", "title": "Bunood Home", "items": items,
                                "header_icon": "home", "module": "Bunood Theme", "app": "bunood_theme"}

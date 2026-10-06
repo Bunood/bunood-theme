@@ -50,6 +50,19 @@ class TestHomeBoot(unittest.TestCase):
         self.home.extend_bootinfo(boot)
         self.assertEqual(boot.docs, [self.page])
 
+    def test_translated_home_retains_native_sidebar_routing_identity(self):
+        self.home._ = lambda text: "translated:" + text
+        boot = self.boot()
+        self.home.extend_bootinfo(boot)
+        # Native get_workspace_sidebars resolves by label, then compares that
+        # identity to sidebar_title; translated labels change routing identity.
+        candidates = [sidebar.get("label") or key
+                      for key, sidebar in boot.workspace_sidebar_item.items()
+                      if any(item.get("link_to") == "bnd-home" for item in sidebar["items"])]
+        self.assertIn("Bunood Home", candidates)
+        self.assertEqual(boot.workspace_sidebar_item["bunood home"]["items"][0]["label"],
+                         "translated:Bunood Home")
+
     def test_explicit_role_landing_keeps_native_root(self):
         self.fake.get_roles = lambda: ["Office User"]
         self.fake.get_cached_value = lambda dt, name, field: "/engineering" if dt == "Role" else None

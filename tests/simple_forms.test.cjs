@@ -230,6 +230,15 @@ test('the mode switch remounts beside a replaced native layout', () => {
   assert.match(source, /layout\.before\(this\.header/);
   assert.match(source, /this\.ensureMounted\(\);\s*this\.selected/);
 });
+test('native field guidance is optional only while the owned Simple surface is active', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8');
+  const css=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(source,/create\("input", "bnd-simple-help", null, create\("label", "", __\("Show field guidance"\), this\.menu\)\)\.type = "checkbox"/);
+  assert.doesNotMatch(source,/\.checked\s*=\s*true|set_value\([^)]*description/);
+  assert.match(css,/html\[data-theme\]\[data-bnd-own~="simpleform"\] \.bnd-generic-simple:not\(:has\(\.bnd-simple-help:checked\)\) \.frappe-control \.help-box\s*\{\s*display: none;\s*\}/);
+  assert.doesNotMatch(source,/this\.tools\.hidden\s*=/, 'guidance remains reachable even when all document actions are unavailable');
+  assert.match(source,/toggleClass\("bnd-generic-simple", active\)/);
+});
 test('Stock Entry has a task-focused workbench over native controls', () => {
   const source=fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8');
   assert.match(source, /class StockEntryWorkbench/);

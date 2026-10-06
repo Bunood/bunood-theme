@@ -17,8 +17,12 @@ immutable team1eaa6a9: owned native Page, lazy bundles, five scoped role dashboa
 KPIs/trends/collections/cashier evidence, canonical accounting-reader reuse and
 preserved custom landings/links. Root also restores the eight complete Simple
 form interfaces previously excluded by a duplicate allowlist. Expanded build,
-payload/i18n gates and207 business/Home Node checks pass; independent native/visual
-acceptance is pending. Initial navigation-only checks are not full dashboard
+payload/i18n gates and207 business/Home Node checks pass, followed by19 focused
+Home checks. Actual native26/26 passed with the owner snapshot unchanged. The
+eight restored forms passed owned-user native-control identity and Advanced
+restoration in the browser, with zero errors and user cleanup confirmed. Visual
+review found verbose Lease guidance; its separate disclosure correction and
+remaining role/full smoke/output proof are still pending. Initial navigation-only checks are not full dashboard
 proof. Global payload ceilings remain unchanged. Do not
 describe this as published: tenant readiness/bootstrap remain outside Theme,
 while the team's read-only business dashboard families are required and included.
