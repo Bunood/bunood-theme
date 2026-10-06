@@ -23,7 +23,7 @@ function frm(doctype, module='Stock') {
   ]}, fields_dict: {} };
 }
 test('only completed workbenches default to Simple; unfinished and framework forms stay native', () => {
-  assert.equal(candidate(frm('Stock Entry')), false);
+  assert.equal(candidate(frm('Stock Entry')), true);
   assert.equal(candidate(frm('Quotation','Selling')), true);
   assert.equal(candidate(frm('Payment Entry','Accounts')), true);
   assert.equal(candidate(frm('Custom Vertical Order', 'Custom')), false);
@@ -249,8 +249,9 @@ test('Delivery Note has its own three-step workbench and scoped active state', (
   assert.match(source, /bnd-delivery-simple-active/);
   assert.match(source, /bnd-stock-simple-active", active && this\.frm\.doctype === "Stock Entry"/);
 });
-test('official verticals and manufacturing keep their native controllers', () => {
-  for (const name of ['Property', 'Real Estate Unit', 'Lease', 'BOM']) assert.equal(candidate(frm(name)), false);
+test('completed property interfaces are reachable while unfinished verticals remain native', () => {
+  for (const name of ['Property', 'Real Estate Unit', 'Lease']) assert.equal(candidate(frm(name)), true);
+  for (const name of ['BOM', 'Work Order', 'Job Card', 'Project', 'Task', 'Timesheet']) assert.equal(candidate(frm(name)), false);
   assert.doesNotMatch(fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8'), /^  installBomCompatibility\(\);/m);
 });
 test('legacy ERPNext client permission calls use Frappe perm argument order', () => {

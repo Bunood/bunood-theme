@@ -24,6 +24,25 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.51.0] — prepared 2026-10-06 — team Home and navigation
+
+This integration minor continues the0.50.0 edition; it is not a new roadmap
+completion claim. `/desk/bnd-home` brings the team's welcome/context, grouped
+role navigation, five scoped role dashboards, KPIs, trends, collections, POS shift
+evidence and accounting work into an owned native Page. Accounting and close
+evidence reuse the existing permission-checked readers. Complete native Simple
+interfaces are restored for Stock Entry, Stock Reconciliation, Company, Property,
+Real Estate Unit, Lease, POS Profile and Expense Claim, including required extension
+controls. Custom landing
+choices and sidebar links are retained; no tenant bootstrap or ledger logic is
+imported. Dashboard presentation lives in new lazy bundles; global payload ceilings
+remain unchanged.
+
+Expanded build, payload, Arabic coverage and207 business/Home source tests pass.
+Full native-site and independent visual acceptance are pending. This heading is not
+publication evidence. The exact coverage and
+limitations are recorded in [the Home integration](docs/official-home-integration.md).
+
 ## [0.50.0] — 2026-10-04 — official simplified business screens
 
 This integration minor names the unified official edition rather than closing a

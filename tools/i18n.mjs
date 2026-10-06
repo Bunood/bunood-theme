@@ -53,6 +53,8 @@ const APP = join(ROOT, "bunood_theme");
  * every string plus churn the catalogue on every build.
  */
 const JS_SOURCES = [
+	join(APP, "public", "js", "home.js"),
+	join(APP, "bunood_theme", "page", "bnd_home", "bnd_home.js"),
 	join(APP, "public", "js", "bunood.js"),
 	join(APP, "public", "js", "report_studio.js"),
 	join(APP, "public", "js", "sales_bill.js"),
@@ -256,6 +258,30 @@ export function fromPython(paths = pythonFiles()) {
 	for (const p of paths) {
 		const src = readFileSync(p, "utf8");
 		const name = p.split(/[\\/]/).pop();
+		// Literal presentation registries are translated through descriptor values.
+		// Restrict extraction to these named declarations; never execute Python.
+		if (name === "home.py") {
+			const block = src.match(/^GROUPS = \([\s\S]*?^\)/m);
+			if (!block) throw new Error("Missing Home navigation descriptor");
+			for (const item of block[0].matchAll(/"([^"\n]+)"/g)) out.push({msg:item[1],comment:"Home navigation descriptor"});
+			for (const registry of ["DOCTYPES", "NAV_DOCTYPES"]) {
+				const declaration = src.match(new RegExp(`^${registry} = \\([\\s\\S]*?\\)\\r?$`, "m"));
+				if (!declaration) throw new Error(`Missing Home document registry ${registry}`);
+				for (const item of declaration[0].matchAll(/"([^"\n]+)"/g)) out.push({msg:item[1],comment:"Home native document label"});
+			}
+		}
+		if (name === "home_metrics.py") {
+			for (const item of src.matchAll(/"label":\s*"([^"\n]+)"/g)) out.push({msg:item[1],comment:"Home metric descriptor"});
+		}
+		if (name === "team_home.py") {
+			const block = src.match(/^PERIOD_LABELS\s*=.*$/m);
+			if (!block) throw new Error("Missing Home period descriptor");
+			for (const item of block[0].matchAll(/"([^"\n]+)"/g)) out.push({msg:item[1],comment:"Home period descriptor"});
+			for (const item of src.matchAll(/"label":\s*"([^"\n]+)"/g)) out.push({msg:item[1],comment:"Home attention descriptor"});
+			for (const item of src.matchAll(/\("(?:Sales Invoice|Purchase Invoice|Quotation|Payment Entry|Journal Entry)",\s*"[^"]+",\s*"([^"\n]+)"\)/g)) out.push({msg:item[1],comment:"Home draft queue label"});
+			for (const item of src.matchAll(/\("(?:overdue|due_soon)",\s*"([^"\n]+)"\)/g)) out.push({msg:item[1],comment:"Home collection queue label"});
+			for (const item of src.matchAll(/\("(?:Scheduled Job Log|Error Log)",\s*"[^"]+",\s*"([^"\n]+)"/g)) out.push({msg:item[1],comment:"Home administrative queue label"});
+		}
 		raw += (src.match(PY_RAW) || []).length;
 		PY_CALL.lastIndex = 0;
 		let m;

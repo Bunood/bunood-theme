@@ -43,15 +43,15 @@
 
 	function metric(label, value, detail, warning) {
 		const card = el("div", `bnd-close__metric${warning ? " is-warning" : ""}`);
-		card.append(el("span", "", label), el("strong", "", String(value)), el("small", "", detail));
+		card.append(el("span", "", label), el("strong", "", value == null ? __("Unavailable") : String(value)), el("small", "", detail));
 		return card;
 	}
 
 	function controlCard(title, value, note, active) {
 		const card = el("article", `bnd-close__control${active ? " is-present" : ""}`);
 		const head = el("div", "bnd-close__control-head");
-		head.append(el("h3", "", title), el("span", "bnd-close__status", active ? __("Observed") : __("Not observed")));
-		card.append(head, el("strong", "", value || __("None for this period")), el("p", "", note));
+		head.append(el("h3", "", title), el("span", "bnd-close__status", active == null ? __("Unavailable") : active ? __("Observed") : __("Not observed")));
+		card.append(head, el("strong", "", active == null ? __("Unavailable") : value || __("None for this period")), el("p", "", note));
 		return card;
 	}
 
@@ -59,7 +59,7 @@
 		const panel = el("section", "bnd-close__panel");
 		panel.append(el("h2", "", __("Attention now")));
 		if (!data.attention.length) {
-			panel.append(el("p", "bnd-close__empty", __("No draft or failed native records were observed in the selected boundary. This is not close approval.")));
+			panel.append(el("p", "bnd-close__empty", data.summary?.attention_count === null || data.query_errors?.length ? __("Unavailable") : __("No draft or failed native records were observed in the selected boundary. This is not close approval.")));
 			return panel;
 		}
 		const wrap = el("div", "bnd-close__table-wrap");

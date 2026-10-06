@@ -214,6 +214,8 @@
 		"INTEGRATION team 2026-10-03, fixed-asset workbench: new route bundle bnd-asset-workbench, asset_workbench_js_gzip 4900 (measured 4,643); report_landing_js measured 2,375 of 2,500 with its card."
 	],
 	"ceiling": {
+		"home_css_gzip": 5000,
+		"home_js_gzip": 9500,
 		"css_gzip": 39500,
 		"js_gzip": 188000,
 		"studio_js_gzip": 39050,

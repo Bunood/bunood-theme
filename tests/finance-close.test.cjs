@@ -17,6 +17,24 @@ const scss = read("bunood_theme/public/scss/surfaces/_finance_close.scss");
 const workspace = read("bunood_theme/bunood_theme/workspace/reports/reports.json");
 const ar = read("bunood_theme/translations/ar.csv");
 
+test("unavailable native close evidence is never rendered as null, absence or an empty clean queue", () => {
+ const vm = require("node:vm");
+ const start = js.indexOf("function metric(");
+ const end = js.indexOf("function renderPhases(", start);
+ assert.ok(start >= 0 && end > start);
+ const context = {__:x=>x,el:(tag,cls,text)=>({tag,cls,text,children:[],append(...nodes){this.children.push(...nodes);}})};
+ vm.runInNewContext(js.slice(start,end),context);
+ const text = node => [node.text,...node.children.flatMap(text)].filter(x=>x!==undefined);
+ assert.ok(text(context.metric("Draft",null,"",false)).includes("Unavailable"));
+ assert.ok(text(context.metric("Draft",0,"",false)).includes("0"));
+ assert.ok(text(context.controlCard("Control","","",null)).includes("Unavailable"));
+ assert.ok(!text(context.controlCard("Control","","",null)).includes("Not observed"));
+ assert.ok(text(context.controlCard("Control","","",false)).includes("Not observed"));
+ assert.deepEqual(text(context.renderAttention({attention:[],summary:{attention_count:null},query_errors:[]})),["Attention now","Unavailable"]);
+ assert.deepEqual(text(context.renderAttention({attention:[],summary:{attention_count:0},query_errors:["Sales Invoice"]})),["Attention now","Unavailable"]);
+ assert.ok(text(context.renderAttention({attention:[],summary:{attention_count:0},query_errors:[]})).some(value=>value.startsWith("No draft or failed")));
+});
+
 test("finance close is a lazy standard Page reachable from Reports", () => {
 	assert.match(pageJson, /"name": "bnd-finance-close"/);
 	assert.match(page, /frappe\.boot\.bnd_finance_close_js/);
@@ -28,7 +46,12 @@ test("finance close is a lazy standard Page reachable from Reports", () => {
 });
 
 test("close evidence is permission filtered and performs no accounting mutation", () => {
-	assert.match(py, /frappe\.get_list\(/);
+	assert.match(py, /from bunood_theme\.accounting_desk import read_native_rows/);
+	assert.match(py, /read_native_rows\(/);
+	const reader = fs.readFileSync("bunood_theme/accounting_desk.py", "utf8");
+	assert.match(reader, /frappe\.get_list\(/);
+	assert.match(reader, /get_permitted_fields/);
+	assert.match(reader, /NATIVE_ROW_CAP \+ 1/);
 	assert.match(py, /check_permission\("read"\)/);
 	assert.doesNotMatch(py, /get_all|db\.sql|ignore_permissions|\.save\(|\.insert\(|\.submit\(|set_value/);
 	assert.match(api, /def finance_close_cockpit/);

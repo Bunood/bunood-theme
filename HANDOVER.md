@@ -10,6 +10,19 @@
 
 ## 1. Where the work stands
 
+**2026-10-06 official Home correction in progress, prepared0.51.0.** The0.50.0
+screen import retained the original Home, which left the requested team navigation
+unfulfilled. `docs/official-home-integration.md` records the correction against
+immutable team1eaa6a9: owned native Page, lazy bundles, five scoped role dashboards,
+KPIs/trends/collections/cashier evidence, canonical accounting-reader reuse and
+preserved custom landings/links. Root also restores the eight complete Simple
+form interfaces previously excluded by a duplicate allowlist. Expanded build,
+payload/i18n gates and207 business/Home Node checks pass; independent native/visual
+acceptance is pending. Initial navigation-only checks are not full dashboard
+proof. Global payload ceilings remain unchanged. Do not
+describe this as published: tenant readiness/bootstrap remain outside Theme,
+while the team's read-only business dashboard families are required and included.
+
 **THE SETTINGS AUDIT AND ITS CONSOLIDATION ARE RELEASED AS v0.49.0 (item 47; built
 2026-09-21 → 28, merged onto v0.48.4 and released 2026-10-02).** Nineteen commits, the
 merge, and the integration's seven after it; the account is CHANGELOG `[0.49.0]`, and the audit's census, findings, decision menu and render walk are under

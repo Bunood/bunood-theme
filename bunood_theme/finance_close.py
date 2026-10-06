@@ -12,6 +12,8 @@ from frappe.utils import date_diff, getdate, now_datetime, nowdate
 
 import frappe
 
+from bunood_theme.accounting_desk import read_native_rows
+
 
 MAX_PERIOD_DAYS = 366
 QUEUE_LIMIT = 60
@@ -43,13 +45,10 @@ def _safe_list(doctype: str, *, errors: list[str], **kwargs) -> list[dict]:
     """Query through Frappe permissions and preserve unknown/error as evidence."""
 
     if not _can(doctype, "read"):
+        if doctype not in errors:
+            errors.append(doctype)
         return []
-    try:
-        return frappe.get_list(doctype, **kwargs)
-    except Exception:
-        errors.append(doctype)
-        frappe.log_error(title=f"bunood_theme: finance close {doctype} query stood down")
-        return []
+    return read_native_rows(doctype, errors, **kwargs) or []
 
 
 def _attention_queue(company: str, start, end, errors: list[str]) -> tuple[list[dict], dict]:
@@ -64,6 +63,8 @@ def _attention_queue(company: str, start, end, errors: list[str]) -> tuple[list[
     for doctype, date_field in specs:
         if not _can(doctype, "read"):
             counts[doctype] = None
+            if doctype not in errors:
+                errors.append(doctype)
             continue
         records = _safe_list(
             doctype,
@@ -77,7 +78,7 @@ def _attention_queue(company: str, start, end, errors: list[str]) -> tuple[list[
             order_by=f"{date_field} desc, modified desc",
             limit=0,
         )
-        counts[doctype] = len(records)
+        counts[doctype] = None if doctype in errors else len(records)
         for record in records[:QUEUE_LIMIT]:
             rows.append(
                 {
@@ -118,6 +119,8 @@ def get_finance_close_cockpit(company: str, from_date=None, to_date=None) -> dic
     company_doc.check_permission("read")
     start, end = _period(from_date, to_date)
     errors: list[str] = []
+    company_rows = read_native_rows("Company", errors, filters={"name": company}, fields=["name", "default_currency", "default_finance_book", "accounts_frozen_till_date"], limit=1)
+    company_evidence = company_rows[0] if company_rows else {}
 
     attention, draft_counts = _attention_queue(company, start, end, errors)
     periods = _safe_list(
@@ -167,16 +170,16 @@ def get_finance_close_cockpit(company: str, from_date=None, to_date=None) -> dic
             }
         )
 
-    frozen_date = company_doc.get("accounts_frozen_till_date")
-    frozen_through = bool(frozen_date and getdate(frozen_date) >= end)
+    frozen_date = company_evidence.get("accounts_frozen_till_date")
+    frozen_through = bool(frozen_date and getdate(frozen_date) >= end) if company_rows is not None else None
     covering_periods = [row for row in periods if _covers(row, start, end)]
     covering_vouchers = [
         row
         for row in vouchers
         if row.get("docstatus") == 1 and _pcv_covers(row, start, end)
     ]
-    protection_present = bool(frozen_through or covering_periods)
-    draft_total = sum(value for value in draft_counts.values() if value is not None)
+    protection_present = True if frozen_through or covering_periods else None if frozen_through is None or "Accounting Period" in errors else False
+    draft_total = sum(draft_counts.values()) if all(value is not None for value in draft_counts.values()) else None
 
     if errors:
         state = "incomplete-evidence"
@@ -189,8 +192,8 @@ def get_finance_close_cockpit(company: str, from_date=None, to_date=None) -> dic
 
     return {
         "company": company,
-        "currency": company_doc.get("default_currency"),
-        "finance_book": company_doc.get("default_finance_book"),
+        "currency": company_evidence.get("default_currency"),
+        "finance_book": company_evidence.get("default_finance_book"),
         "from_date": str(start),
         "to_date": str(end),
         "generated_at": str(now_datetime()),
@@ -205,16 +208,16 @@ def get_finance_close_cockpit(company: str, from_date=None, to_date=None) -> dic
         },
         "summary": {
             "draft_source_count": draft_total,
-            "attention_count": len(attention),
-            "accounting_period_count": len(covering_periods),
-            "submitted_closing_voucher_count": len(covering_vouchers),
+            "attention_count": None if errors else len(attention),
+            "accounting_period_count": None if "Accounting Period" in errors else len(covering_periods),
+            "submitted_closing_voucher_count": None if "Period Closing Voucher" in errors else len(covering_vouchers),
         },
         "draft_counts": draft_counts,
         "controls": {
             "accounts_frozen_till_date": str(frozen_date or ""),
             "frozen_through_period": frozen_through,
-            "accounting_period_covers_period": bool(covering_periods),
-            "closing_voucher_covers_period": bool(covering_vouchers),
+            "accounting_period_covers_period": None if "Accounting Period" in errors else bool(covering_periods),
+            "closing_voucher_covers_period": None if "Period Closing Voucher" in errors else bool(covering_vouchers),
             "protection_present": protection_present,
         },
         "attention": attention[:QUEUE_LIMIT],

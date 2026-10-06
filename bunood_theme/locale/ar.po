@@ -14627,3 +14627,998 @@ msgstr "آجل"
 #, fuzzy
 msgid "Mixed Payment"
 msgstr "دفع متعدد"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Bunood Home"
+msgstr "الرئيسية — بنود"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unable to load Home. Try again."
+msgstr "تعذر تحميل الصفحة الرئيسية. حاول مرة أخرى."
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Good morning"
+msgstr "صباح الخير"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Good afternoon"
+msgstr "طاب يومك"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Good evening"
+msgstr "مساء الخير"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Your business at a glance"
+msgstr "أعمالك في لمحة"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Other workspaces"
+msgstr "مساحات عمل أخرى"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Frequent actions"
+msgstr "إجراءات متكررة"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No create actions are available for your permissions."
+msgstr "لا تتوفر إجراءات إنشاء ضمن صلاحياتك."
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Today's work"
+msgstr "عمل اليوم"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Draft documents in the selected company"
+msgstr "المستندات المسودة في الشركة المحددة"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Review drafts"
+msgstr "مراجعة المسودات"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No work queues are available for your permissions."
+msgstr "لا تتوفر قوائم عمل ضمن صلاحياتك."
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unable to load work queues. Select a company to retry."
+msgstr "تعذر تحميل قوائم العمل. اختر شركة للمحاولة مجددًا."
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Continue your work"
+msgstr "تابع عملك"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Portfolio, leases, billing and collections in one place"
+msgstr "المحفظة والعقود والفوترة والتحصيل في مكان واحد"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Open point of sale"
+msgstr "فتح نقطة البيع"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unavailable"
+msgstr "غير متاح"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Real estate operations"
+msgstr "عمليات العقارات"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Work queues in the selected company"
+msgstr "قوائم العمل في الشركة المحددة"
+
+#. src: team Home integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Open list"
+msgstr "فتح القائمة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Dashboard filters"
+msgstr "مرشحات لوحة العمل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Last 7 days"
+msgstr "آخر 7 أيام"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Month to date"
+msgstr "منذ بداية الشهر"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Last 30 days"
+msgstr "آخر 30 يومًا"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "All time"
+msgstr "جميع الفترات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Collections"
+msgstr "التحصيلات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Cashier desk"
+msgstr "مساحة عمل أمين الصندوق"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "All companies"
+msgstr "جميع الشركات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales person"
+msgstr "مندوب المبيعات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "All salespeople"
+msgstr "جميع مندوبي المبيعات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Each company is shown in its own currency. Open a company for its full dashboard."
+msgstr "تُعرض بيانات كل شركة بعملتها. افتح الشركة لعرض لوحة معلوماتها الكاملة."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Balances are current and company-wide; sales filters do not change these figures."
+msgstr "الأرصدة حالية وتشمل الشركة كلها؛ مرشحات المبيعات لا تغيّر هذه الأرقام."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Today's POS overview stays current. The period changes the recent receipt list, not your shift."
+msgstr "يبقى ملخص نقطة البيع لليوم محدثًا؛ تغيير الفترة يؤثر في قائمة الإيصالات الحديثة، لا في ورديتك."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales figures use the selected period. Collections and tasks show current balances."
+msgstr "تعرض أرقام المبيعات للفترة المحددة، بينما تعرض التحصيلات والمهام الأرصدة الحالية."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Some figures could not be loaded. Unavailable values are shown separately from zero."
+msgstr "تعذر تحميل بعض المؤشرات. تظهر القيم غير المتاحة بوضوح ولا تُحسب أصفارًا."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Company overview"
+msgstr "نظرة عامة على الشركات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Invoiced value"
+msgstr "القيمة المفوترة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Overdue invoices"
+msgstr "فواتير متأخرة السداد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Draft journals"
+msgstr "قيود يومية مسودة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No companies are available for this role"
+msgstr "لا توجد شركات متاحة لهذا الدور"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Today's POS position"
+msgstr "ملخص نقطة البيع اليوم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Net POS sales in selected period"
+msgstr "صافي مبيعات نقطة البيع في الفترة المحددة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Today's POS sales"
+msgstr "مبيعات نقطة البيع اليوم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Held sales"
+msgstr "المبيعات المعلّقة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Shift open today"
+msgstr "وردية اليوم مفتوحة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Previous shift needs closing"
+msgstr "تحتاج الوردية السابقة إلى إغلاق"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No open shift"
+msgstr "لا توجد وردية مفتوحة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Current shift"
+msgstr "الوردية الحالية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No POS profile is assigned to you for this company. Ask an administrator to assign one."
+msgstr "لم يُخصّص لك ملف نقطة بيع لهذه الشركة. اطلب من المسؤول تخصيص ملف لك."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Recent POS sales"
+msgstr "أحدث مبيعات نقطة البيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No POS sales in this period"
+msgstr "لا توجد مبيعات نقطة بيع في هذه الفترة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Current balances"
+msgstr "الأرصدة الحالية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Cash and bank"
+msgstr "النقدية والبنوك"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Receivables"
+msgstr "الذمم المدينة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Payables"
+msgstr "الذمم الدائنة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "As of today"
+msgstr "حتى اليوم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "A negative payable total is a net debit. Review supplier balances before acting."
+msgstr "إجمالي الذمم الدائنة السالب يمثل رصيداً مديناً صافياً. راجع أرصدة الموردين قبل اتخاذ إجراء."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Accounting work to review"
+msgstr "أعمال محاسبية للمراجعة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Bank reconciliation evidence"
+msgstr "بيانات التسوية البنكية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unallocated bank transactions"
+msgstr "حركات بنكية غير موزعة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Period close evidence"
+msgstr "بيانات إقفال الفترة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Needs review"
+msgstr "تحتاج إلى مراجعة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Protection present"
+msgstr "الحماية مفعلة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Source documents"
+msgstr "المستندات الأصلية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Adjustments"
+msgstr "التسويات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Statements"
+msgstr "القوائم المالية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Protection"
+msgstr "الحماية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Reconcile bank"
+msgstr "مطابقة البنك"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Financial summary"
+msgstr "الملخص المالي"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Needs your attention"
+msgstr "يحتاج إلى متابعتك"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No pending work in the available queues"
+msgstr "لا توجد أعمال معلقة في القوائم المتاحة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Due soon"
+msgstr "الموعد قريب"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales trend"
+msgstr "اتجاه المبيعات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No invoice data yet"
+msgstr "لا توجد بيانات فواتير بعد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Invoice status"
+msgstr "حالة الفواتير"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Current sales invoices"
+msgstr "فواتير المبيعات الحالية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Recent activity"
+msgstr "أحدث الأنشطة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "No recent activity"
+msgstr "لا توجد أنشطة حديثة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Could not load dashboard data"
+msgstr "تعذّر تحميل بيانات لوحة التحكم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Your operating workspaces"
+msgstr "مساحات عملك التشغيلية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Open the live dashboard and its operational records"
+msgstr "افتح لوحة المؤشرات الحالية وسجلاتها التشغيلية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "POS register"
+msgstr "سجل نقطة البيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Review submitted POS receipts and returns."
+msgstr "راجع إيصالات نقطة البيع المعتمدة ومرتجعاتها."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Prepare a native sales invoice."
+msgstr "أعد فاتورة مبيعات في النظام."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Review notifications and assigned work."
+msgstr "راجع الإشعارات والأعمال المسندة إليك."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Transactions"
+msgstr "الفواتير والمعاملات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Bunood Selling"
+msgstr "مبيعات بنود"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Bunood Buying"
+msgstr "مشتريات بنود"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Stock"
+msgstr "المخزون"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Invoicing"
+msgstr "الفوترة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Operations"
+msgstr "العمليات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Real Estate"
+msgstr "العقارات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Engineering Office"
+msgstr "المكتب الهندسي"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "CRM"
+msgstr "إدارة علاقات العملاء"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Manufacturing"
+msgstr "التصنيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Projects"
+msgstr "المشاريع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Assets"
+msgstr "الأصول"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Quality"
+msgstr "الجودة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Subcontracting"
+msgstr "التعاقد من الباطن"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Human Resources"
+msgstr "الموارد البشرية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "HR"
+msgstr "الموارد البشرية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "HR Setup"
+msgstr "إعداد الموارد البشرية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Recruitment"
+msgstr "التوظيف"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Performance"
+msgstr "الأداء"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Shift & Attendance"
+msgstr "الورديات والحضور"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Leaves"
+msgstr "الإجازات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Payroll"
+msgstr "الرواتب"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Tenure"
+msgstr "إدارة العقارات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Tax & Benefits"
+msgstr "الضرائب والمزايا"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Financial Reports"
+msgstr "التقارير المالية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "ZATCA"
+msgstr "هيئة الزكاة والضريبة والجمارك"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Setup"
+msgstr "الإعداد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "ERPNext Settings"
+msgstr "إعدادات ERPNext"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Orders"
+msgstr "أوامر البيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Booked value"
+msgstr "قيمة أوامر البيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Outstanding receivables"
+msgstr "المبالغ المستحقة من العملاء"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Average order value"
+msgstr "متوسط قيمة أمر البيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Company freeze date"
+msgstr "تاريخ تجميد حسابات الشركة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Open quotations"
+msgstr "عروض أسعار مفتوحة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Payables due soon"
+msgstr "مستحقات واجبة قريبًا"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unsupported dashboard scope"
+msgstr "نطاق لوحة العمل غير مدعوم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unsupported dashboard period"
+msgstr "فترة لوحة المعلومات غير مدعومة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Dashboard view is not available for this role"
+msgstr "طريقة عرض لوحة المعلومات غير متاحة لهذا الدور"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Company is not available for this dashboard"
+msgstr "الشركة غير متاحة في لوحة المعلومات هذه"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales person is not available for this dashboard"
+msgstr "مندوب المبيعات غير متاح في لوحة المعلومات هذه"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales process"
+msgstr "دورة المبيعات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Purchasing process"
+msgstr "دورة المشتريات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Accounting process"
+msgstr "دورة المحاسبة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales drafts"
+msgstr "مسودات المبيعات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Purchase drafts"
+msgstr "مسودات المشتريات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Quotation drafts"
+msgstr "مسودات عروض الأسعار"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Payment drafts"
+msgstr "مسودات سندات القبض والدفع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Journal drafts"
+msgstr "قيود يومية مسودة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Receivables due soon"
+msgstr "مستحقات العملاء القريبة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Return to role default"
+msgstr "العودة إلى العرض الافتراضي للدور"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Save dashboard preferences"
+msgstr "حفظ تفضيلات لوحة العمل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Saved"
+msgstr "محفوظ"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Unable to save. Try again."
+msgstr "تعذر الحفظ. حاول مرة أخرى."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Quote to cash"
+msgstr "من عرض السعر إلى التحصيل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Procure to pay"
+msgstr "من الشراء إلى السداد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Stock control"
+msgstr "إدارة المخزون"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Close and VAT"
+msgstr "الإقفال والضريبة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Setup and administration"
+msgstr "الإعداد والإدارة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Failed jobs today"
+msgstr "المهام الفاشلة اليوم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Error logs today"
+msgstr "سجلات الأخطاء اليوم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Purchase Invoice"
+msgstr "فاتورة شراء"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Journal Entry"
+msgstr "قيد يومية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Quotation"
+msgstr "عرض سعر"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Sales Order"
+msgstr "أمر بيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Purchase Order"
+msgstr "أمر شراء"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Delivery Note"
+msgstr "إذن تسليم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Material Request"
+msgstr "طلب مواد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Request for Quotation"
+msgstr "طلب عرض سعر"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Supplier Quotation"
+msgstr "عرض سعر مورد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Purchase Receipt"
+msgstr "إيصال استلام مشتريات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Stock Entry"
+msgstr "قيد مخزون"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Payment Reconciliation"
+msgstr "تسوية المدفوعات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Accounts Settings"
+msgstr "إعدادات الحسابات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Stock below reorder"
+msgstr "مخزون دون حد إعادة الطلب"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "VAT and ZATCA exceptions"
+msgstr "استثناءات الضريبة والفوترة الإلكترونية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Failed scheduled jobs"
+msgstr "مهام مجدولة فاشلة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Error logs"
+msgstr "سجلات الأخطاء"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Complete"
+msgstr "مكتمل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Next step"
+msgstr "الخطوة التالية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Waiting"
+msgstr "في الانتظار"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Not assessed"
+msgstr "لم يُقيَّم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Company details"
+msgstr "بيانات الشركة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "First customer"
+msgstr "أول عميل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "First product or service"
+msgstr "أول منتج أو خدمة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "First submitted invoice"
+msgstr "أول فاتورة معتمدة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "First recorded payment"
+msgstr "أول دفعة مسجلة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Company identity and fiscal setup"
+msgstr "هوية الشركة والإعداد المالي"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Accounts and dimensions"
+msgstr "الحسابات والأبعاد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "VAT, ZATCA and legal output"
+msgstr "ضريبة القيمة المضافة والفوترة الإلكترونية والمخرجات النظامية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Warehouse, stock and valuation"
+msgstr "المستودع والمخزون والتقييم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Items, prices and commercial policy"
+msgstr "الأصناف والأسعار والسياسة التجارية"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Customers, suppliers and terms"
+msgstr "العملاء والموردون والشروط"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Cash, payments and POS"
+msgstr "النقد والمدفوعات ونقطة البيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Users, roles and approvals"
+msgstr "المستخدمون والأدوار والموافقات"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Print, numbering and language"
+msgstr "الطباعة والترقيم واللغة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Privacy, backup and support"
+msgstr "الخصوصية والنسخ الاحتياطي والدعم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Integrations and credentials"
+msgstr "التكاملات وبيانات الاعتماد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "First transaction and handoff"
+msgstr "المعاملة الأولى والتسليم"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Get ready to sell"
+msgstr "استعد للبيع"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Configuration observations"
+msgstr "ملاحظات الإعداد"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "These observations do not approve launch, accounting or compliance."
+msgstr "هذه الملاحظات لا تمثل اعتمادًا للإطلاق أو المحاسبة أو الامتثال."
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Background export requested. Download link email: {0}"
+msgstr "طُلب التصدير في الخلفية. سيصل رابط التنزيل إلى البريد: {0}"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Receipt at invoice checkout"
+msgstr "قبض عند إتمام الفاتورة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Later receipt for credit sale"
+msgstr "قبض لاحق لبيع آجل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Not allocated to an invoice"
+msgstr "غير موزع على فاتورة"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Separate receipt voucher"
+msgstr "سند قبض مستقل"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Receipt Voucher (origin not recorded)"
+msgstr "سند قبض (المصدر غير مسجل)"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Receipt Voucher"
+msgstr "سند قبض"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Disbursement Voucher"
+msgstr "سند صرف"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Internal Transfer"
+msgstr "تحويل داخلي"
+
+#. src: immutable team Home or integration, Arabic proposal 2026-10-06
+#, fuzzy
+msgid "Statement / origin"
+msgstr "البيان / المصدر"
