@@ -38,10 +38,28 @@ choices and sidebar links are retained; no tenant bootstrap or ledger logic is
 imported. Dashboard presentation lives in new lazy bundles; global payload ceilings
 remain unchanged.
 
-Expanded build, payload, Arabic coverage and207 business/Home source tests pass.
-Full native-site and independent visual acceptance are pending. This heading is not
-publication evidence. The exact coverage and
+The final isolated RC smoke completed on 2026-10-07: 564/564, exit 0, with its
+owned session removed. All 136 typed settings and raw rows, both language values,
+and all five original owner-state groups matched after cleanup. Build, payload
+and Arabic coverage gates pass. The final invoice bundle is `95a672d0`.
+Eight corrupted Arabic/VAT literals are restored from the immutable team source,
+with a Sales/Purchase VAT regression check. Cashier profile evidence now respects
+parent and child field permissions and discards partial reads on failure (29
+source permission checks). Smoke startup fails before site mutations when the
+browser cannot launch; personal-default restoration retries cache reads only.
+Final-commit CI and independent release reviews remain pending. This heading is
+not publication or production acceptance evidence. The exact coverage and
 limitations are recorded in [the Home integration](docs/official-home-integration.md).
+
+
+Final independent review identified and corrected stale Simple-form ownership on
+navigation (native Save could disappear) and private Workspace new-tab URLs. Both
+regressions failed before the fixes; the standard interface selection now passes
+80/80 and the build passes. The earlier 564/564 smoke tested the invoice/cashier
+corrections before these two additional navigation changes. Full RC run R3 was cancelled at a safe test boundary to finish cached-form
+reclaim after native render-before-change routing. Its owned session was removed,
+and136 typed/raw settings and both languages matched. Final full acceptance,
+CI and publication are pending.
 
 ## [0.50.0] — 2026-10-04 — official simplified business screens
 

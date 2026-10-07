@@ -1170,9 +1170,12 @@ async function withPersonal(user, values, fn) {
 			let after = read();
 			const storageMatches = () => keys.every(k => JSON.stringify(after.stored[k]) === JSON.stringify(before.stored[k]));
 			const effectiveMatches = () => keys.every(k => after.effective[k] === before.effective[k]);
-			if (storageMatches() && !effectiveMatches()) {
-				// One bounded cache-only recovery; never retry a business write.
-				benchPy(`U = ${JSON.stringify(user)}\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`);
+			for (let attempt = 0; attempt < 3 && storageMatches() && !effectiveMatches(); attempt++) {
+				// Native user-cache clearing already invalidates defaults. Allow a
+				// bounded settling interval for cross-process cache invalidation or
+				// late fills; never replay restoration writes or accept a mismatch.
+				await new Promise(resolve => setTimeout(resolve, 1000));
+				benchPy(`U = ${JSON.stringify(user)}\nfrom frappe.cache_manager import clear_defaults_cache\nclear_defaults_cache(U)\nfrappe.cache.hdel("bootinfo", U)\nfrappe.clear_cache(user=U)\n`);
 				after = read();
 			}
 			if (!storageMatches() || !effectiveMatches()) throw new Error(
@@ -1765,6 +1768,11 @@ async function main() {
 	if (ONLY) {
 		console.log(`FILTERED to ${ONLY} — inner loop only, never a release gate.`);
 	}
+	// Browser startup can fail before the suite's restoration finally exists.
+	// Launch before any session or site mutation so a missing executable leaves
+	// the original settings, language and sessions untouched.
+	const executablePath = process.env.BND_BROWSER_EXECUTABLE;
+	browser = await chromium.launch(executablePath ? { executablePath } : {});
 
 	// REAP STALE SESSIONS BEFORE MINTING ANOTHER.
 	//
@@ -1827,8 +1835,6 @@ async function main() {
 		benchPy(`from bunood_theme.presets import _SIDEBAR_LOOKS as SIDEBAR_PRESETS\nprint(json.dumps(SIDEBAR_PRESETS))\n`).trim().split("\n").pop()
 	);
 
-	const executablePath = process.env.BND_BROWSER_EXECUTABLE;
-	browser = await chromium.launch(executablePath ? { executablePath } : {});
 	const ctx = await browser.newContext({ viewport: { width: 1920, height: 1080 } });
 	const host = new URL(URL_BASE).hostname;
 	await ctx.addCookies([{ name: "sid", value: sid, domain: host, path: "/" }]);

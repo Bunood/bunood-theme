@@ -1171,6 +1171,15 @@
 		else bnd_disown(token);
 	};
 	bunood.release_native = token => { if (typeof token === "string" && formOwners[token]) bnd_disown(token); };
+	// Ownership is local to the visible Form, even when Frappe caches its DOM.
+	if (frappe.router?.on) frappe.router.on("change", () => {
+		for (const token of Object.keys(formOwners)) bnd_disown(token);
+		// Native cached Forms can render before this event. Re-evaluate only
+		// their current, mounted, visible replacement; Advanced stays native.
+		requestAnimationFrame(() => {
+			for (const token of Object.keys(formOwners)) bunood.claim_native(token);
+		});
+	});
 	// End native form ownership bridge.
 
 	// ════════════════════════════════════════════════════════════════════════

@@ -226,15 +226,30 @@ def _cashier(company, start, today, errors):
     profiles, shift = [], {"state": "unavailable", "name": "", "profile": ""}
     profile_state = "unavailable"
     try:
+        from frappe.model import get_permitted_fields
+        profile_meta = frappe.get_meta("POS Profile")
+        assignment_field = profile_meta.get_field("applicable_for_users")
+        if (not assignment_field or assignment_field.fieldtype != "Table"
+            or assignment_field.options != "POS Profile User"
+            or assignment_field.permlevel not in profile_meta.get_permlevel_access("read")
+            or "user" not in get_permitted_fields(assignment_field.options, parenttype="POS Profile", permission_type="read")):
+            raise frappe.PermissionError
         profile_rows = _rows("POS Profile", {"company":company,"disabled":0}, ["name"], errors)
-        for row in profile_rows or []:
-            doc=frappe.get_doc("POS Profile",row["name"])
-            doc.check_permission("read")
-            assigned=[r.user for r in doc.get("applicable_for_users",[]) if r.user]
-            if not assigned or frappe.session.user in assigned:
-                profiles.append(row)
         if profile_rows is not None:
+            candidate_profiles = []
+            for row in profile_rows:
+                doc = frappe.get_doc("POS Profile", row["name"])
+                doc.check_permission("read")
+                assigned = [r.user for r in doc.get("applicable_for_users", []) if r.user]
+                if not assigned or frappe.session.user in assigned:
+                    candidate_profiles.append(row)
+            profiles = candidate_profiles
             profile_state = "assigned" if profiles else "unassigned"
+    except Exception:
+        profiles = []
+        profile_state = "unavailable"
+        errors.append("POS Profile")
+    try:
         entries = _rows("POS Opening Entry",{"company":company,"user":frappe.session.user,"docstatus":1,"pos_closing_entry":["in",["",None]]},["name","pos_profile","period_start_date"],errors)
         if entries is not None:
             shift["state"] = "needs_opening"
@@ -242,7 +257,7 @@ def _cashier(company, start, today, errors):
                 row = max(entries,key=lambda r:str(r["period_start_date"]))
                 shift = {"state": "open" if getdate(row["period_start_date"]) == today else "stale", "name": row["name"], "profile": row["pos_profile"]}
     except Exception:
-        errors.append("POS Profile")
+        errors.append("POS Opening Entry")
     valid = available and bool(sources)
     return {"available": valid and bool(profiles), "profile_state": profile_state, "invoice_type": _invoice_type(), "from_date": start.isoformat() if start else "", "as_of": today.isoformat(),
             "sales_count": sum(r["count"] for r in sources) if valid else None,

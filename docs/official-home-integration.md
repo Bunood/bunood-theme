@@ -79,7 +79,12 @@ and view now pass. The existing site disables personal landing changes through
 `personal_comfort=0`; the attempted personal setter was refused and that owner
 policy was preserved. Positive custom-landing UI was not forced under a disabled
 preference; source/native custom-default preservation coverage remains in place.
-The current full smoke remains pending.
+The final full smoke subsequently completed on 2026-10-07: 564/564, exit0.
+Its owned session was removed, and all136 typed settings/raw rows, both language
+values and all five original owner-state groups matched after cleanup. The first
+durable attempt failed on personal-default effective cache restoration; its
+failure is retained. The successful second run includes cache-only convergence
+and browser startup before site mutations. These assertions were not weakened.
 
 The optional ZATCA observation now checks the unchanged native invoice read/create
 prerequisites before calling the unsaved-invoice facade. Denied evidence stays
@@ -93,10 +98,10 @@ defaults and session are removed. The five new Page lifecycle regressions are
 included in the existing CI Node step; global and lazy bundle hashes are unchanged.
 
 The final combined source build exits0: Home CSS `d308da6a`3542/5000 gzip bytes and
-Home JS `bc0c2fda`9096/9500. The initial navigation-only5500 JS budget was superseded
+Home JS `e4cce99f`9141/9500. The initial navigation-only5500 JS budget was superseded
 by the independently reviewed9500 ceiling for the full required dashboard,
 scope persistence and configuration observations; Home CSS stays5000. Global
-CSS `86f97339`39303/39500 and global JS `6d33b619`187737/188000 include the
+CSS `86f97339`39303/39500 and final global JS `95a672d0`187849/188000 include the
 field-guidance disclosure and validated native-form ownership bridge (gzip level9).
 The bridge accepts only its two tokens and verifies the current record plus a
 connected, active, visible replacement before claiming native UI. These supersede the runtime
@@ -113,4 +118,15 @@ machine proposals marked fuzzy, with all2904 original Arabic rows retained uncha
 No production access, deployment, tenant seeding or financial write is part of
 this change. Source checks do not establish runtime or image acceptance. The
 runtime lane captures Arabic/light/dark/mobile evidence and exact original state
-before any fixture changes; final receipts must replace this pending status.
+before any fixture changes. Final local receipts confirm the full smoke and exact
+restoration above. Final-commit CI, independent release reviews and production
+image/runtime acceptance remain separate gates.
+
+Final independent review identified and corrected stale Simple-form ownership on
+navigation (native Save could disappear) and private Workspace new-tab URLs. Both
+regressions failed before the fixes; the standard interface selection now passes
+80/80 and the build passes. The earlier 564/564 smoke tested the invoice/cashier
+corrections before these two additional navigation changes. Full RC run R3 was cancelled at a safe test boundary to finish cached-form
+reclaim after native render-before-change routing. Its owned session was removed,
+and136 typed/raw settings and both languages matched. Final full acceptance,
+CI and publication are pending.

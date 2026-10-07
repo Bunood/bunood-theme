@@ -152,5 +152,130 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(result['profile_state'],'unavailable')
 
 
+class CashierPermissionTests(unittest.TestCase):
+    def setUp(self):
+        BoundaryTests.setUp(self)
+        self.today = date(2026, 10, 7)
+        self.frappe.session = SimpleNamespace(user='cashier')
+        self.field = SimpleNamespace(fieldtype='Table', options='POS Profile User', permlevel=0)
+        self.meta = SimpleNamespace(get_field=lambda name:self.field, get_permlevel_access=lambda kind:[0], has_field=lambda name:False)
+        self.frappe.get_meta = Mock(return_value=self.meta)
+        self.model.get_permitted_fields = Mock(return_value=['user'])
+        self.doc = SimpleNamespace(check_permission=Mock(), get=Mock(return_value=[SimpleNamespace(user='cashier')]))
+        self.frappe.get_doc = Mock(return_value=self.doc)
+        self.profile_rows = [{'name':'PROFILE'}]
+
+    def tearDown(self):
+        BoundaryTests.tearDown(self)
+
+    def result(self):
+        pos = ModuleType('bunood_theme.pos')
+        pos.HELD_FIELD = 'held'
+        pos._invoice_type = lambda:'POS Invoice'
+        rows = {'POS Profile':self.profile_rows,
+                'POS Invoice':[{'name':'I','posting_date':self.today,'modified':'now','base_grand_total':10,'is_return':False}],
+                'POS Opening Entry':[{'name':'SHIFT','pos_profile':'SHIFT_PROFILE','period_start_date':self.today}]}
+        errors = []
+        with patch.dict(sys.modules, {'bunood_theme.pos':pos}), patch.object(self.dashboard, '_can', side_effect=lambda dt:dt=='POS Invoice'), patch.object(self.dashboard, '_rows', side_effect=lambda dt,*args:rows.get(dt, [])):
+            result = self.dashboard._cashier('A', None, self.today, errors)
+        self.assertEqual(result['sales_count'],1)
+        self.assertEqual(result['sales_amount'],10)
+        self.assertEqual(result['shift']['state'],'open')
+        self.assertEqual(result['profile'],'SHIFT_PROFILE')
+        return result, errors
+
+    def denied(self):
+        result, errors = self.result()
+        self.assertEqual(result['profile_state'],'unavailable')
+        self.assertFalse(result['available'])
+        self.assertIn('POS Profile',errors)
+        self.doc.get.assert_not_called()
+
+    def test_cashier_allowed_assignment(self):
+        result, errors = self.result()
+        self.assertEqual(result['profile_state'],'assigned')
+        self.assertTrue(result['available'])
+        self.assertEqual(errors,[])
+        self.model.get_permitted_fields.assert_called_once_with('POS Profile User', parenttype='POS Profile', permission_type='read')
+
+    def test_cashier_unrestricted_empty(self):
+        self.doc.get.return_value=[]
+        self.assertEqual(self.result()[0]['profile_state'],'assigned')
+
+    def test_cashier_other_user(self):
+        self.doc.get.return_value=[SimpleNamespace(user='other')]
+        self.assertEqual(self.result()[0]['profile_state'],'unassigned')
+
+    def test_cashier_denied_parent(self):
+        self.field.permlevel=1
+        self.denied()
+
+    def test_cashier_denied_child(self):
+        self.model.get_permitted_fields.return_value=[]
+        self.denied()
+
+    def test_cashier_invalid_metadata(self):
+        for attribute, value in [('fieldtype','Data'),('options','Unknown Child')]:
+            with self.subTest(attribute=attribute):
+                previous=getattr(self.field,attribute)
+                setattr(self.field,attribute,value)
+                self.denied()
+                setattr(self.field,attribute,previous)
+
+    def test_cashier_missing_metadata(self):
+        self.meta.get_field=lambda name:None
+        self.denied()
+
+    def test_cashier_discards_partial_profiles(self):
+        self.profile_rows.append({'name':'DENIED'})
+        self.frappe.get_doc.side_effect=[self.doc, PermissionError('private')]
+        result, errors=self.result()
+        self.assertEqual(result['profile_state'],'unavailable')
+        self.assertFalse(result['available'])
+        self.assertIn('POS Profile',errors)
+
+    def test_cashier_later_document_permission_failure(self):
+        self.profile_rows.append({'name':'DENIED'})
+        denied_doc=SimpleNamespace(check_permission=Mock(side_effect=PermissionError('private')),get=Mock())
+        self.frappe.get_doc.side_effect=[self.doc,denied_doc]
+        result,errors=self.result()
+        self.assertEqual(result['profile_state'],'unavailable')
+        self.assertFalse(result['available'])
+        self.assertIn('POS Profile',errors)
+        denied_doc.get.assert_not_called()
+
+    def test_cashier_unavailable_profile_query(self):
+        self.profile_rows=None
+        result,_=self.result()
+        self.assertEqual(result['profile_state'],'unavailable')
+        self.assertFalse(result['available'])
+        self.doc.get.assert_not_called()
+
+    def test_cashier_readable_empty_profile_query(self):
+        self.profile_rows=[]
+        result,_=self.result()
+        self.assertEqual(result['profile_state'],'unassigned')
+        self.assertFalse(result['available'])
+        self.doc.get.assert_not_called()
+
+    def test_cashier_permission_helper_failure(self):
+        self.model.get_permitted_fields.side_effect=RuntimeError('private')
+        self.denied()
+
+    def test_cashier_metadata_helper_failure(self):
+        self.frappe.get_meta.side_effect=RuntimeError('private')
+        with patch.object(self.dashboard, '_can', return_value=False):
+            pos=ModuleType('bunood_theme.pos')
+            pos.HELD_FIELD='held'
+            pos._invoice_type=lambda:'POS Invoice'
+            rows={'POS Opening Entry':[{'name':'SHIFT','pos_profile':'SHIFT_PROFILE','period_start_date':self.today}]}
+            errors=[]
+            with patch.dict(sys.modules,{'bunood_theme.pos':pos}),patch.object(self.dashboard,'_rows',side_effect=lambda dt,*args:rows.get(dt,[])):
+                result=self.dashboard._cashier('A',None,self.today,errors)
+        self.assertEqual(result['profile_state'],'unavailable')
+        self.assertEqual(result['shift']['state'],'open')
+        self.doc.get.assert_not_called()
+
+
 if __name__=='__main__':
     unittest.main()

@@ -29,7 +29,7 @@
         const rank = row => order.includes(row.name) ? order.indexOf(row.name) : order.length;
         return rows.filter(row => row && typeof row.name === "string").slice().sort((a, b) => rank(a) - rank(b));
     }
-    function workspaceHref(name) { return `/desk/${encodeURIComponent(name.toLowerCase().replace(/ /g, "-"))}`; }
+    function workspaceHref(name, isPublic = true) { return `/desk/${isPublic === false || isPublic === 0 ? "private/" : ""}${encodeURIComponent(name.toLowerCase().replace(/ /g, "-"))}`; }
     function displayValue(value, currency, format = {}) {
         if (typeof value !== "number" || !Number.isFinite(value)) return __("Unavailable");
         const number = new Intl.NumberFormat(document.documentElement?.lang || "en", {maximumFractionDigits:currency ? 2 : 0}).format(Number(value));
@@ -343,7 +343,7 @@
             add("h2", "bnd-home-nav-title", __(label), section);
             for (const row of members) {
                 used.add(row.name);
-                const a = link(__(row.title || row.label || row.name), workspaceHref(row.name), "bnd-home-nav-link", section);
+                const a = link(__(row.title || row.label || row.name), workspaceHref(row.name, row.public), "bnd-home-nav-link", section);
                 a.addEventListener("click", event => {
                     if (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
                     event.preventDefault(); frappe.set_route("Workspaces", row.name);

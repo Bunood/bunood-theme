@@ -3,6 +3,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const file = 'bunood_theme/public/js/home.js';
+test('private Workspace links retain the native private namespace for new tabs',()=>{
+ const home=model();
+ assert.equal(home.workspaceHref('Owner Workspace',0),'/desk/private/owner-workspace');
+ assert.equal(home.workspaceHref('Owner Workspace',false),'/desk/private/owner-workspace');
+ assert.equal(home.workspaceHref('Selling',1),'/desk/selling');
+});
 function model() {
   const context = { window: {}, document: {}, __: x => x };
   vm.runInNewContext(fs.readFileSync(file, 'utf8'), context);

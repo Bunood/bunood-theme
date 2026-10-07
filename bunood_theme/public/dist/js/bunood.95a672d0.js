@@ -1171,6 +1171,15 @@
 		else bnd_disown(token);
 	};
 	bunood.release_native = token => { if (typeof token === "string" && formOwners[token]) bnd_disown(token); };
+	// Ownership is local to the visible Form, even when Frappe caches its DOM.
+	if (frappe.router?.on) frappe.router.on("change", () => {
+		for (const token of Object.keys(formOwners)) bnd_disown(token);
+		// Native cached Forms can render before this event. Re-evaluate only
+		// their current, mounted, visible replacement; Advanced stays native.
+		requestAnimationFrame(() => {
+			for (const token of Object.keys(formOwners)) bunood.claim_native(token);
+		});
+	});
 	// End native form ownership bridge.
 
 	// ════════════════════════════════════════════════════════════════════════
@@ -10514,7 +10523,7 @@
 	}
 	function taxLabel(doc, fallback = __("Taxes and charges")) {
 		const rows = (doc?.taxes || []).filter(row => row?.account_head || row?.description || row?.rate != null);
-		const vatRows = rows.filter(row => /\bvat\b|value added|ط¶ط±ظٹط¨ط©/i.test(`${row.description || ""} ${row.account_head || ""}`));
+		const vatRows = rows.filter(row => /\bvat\b|value added|ضريبة/i.test(`${row.description || ""} ${row.account_head || ""}`));
 		if (!rows.length || vatRows.length === rows.length) {
 			const rates = [...new Set(vatRows.map(row => Number(row.rate)).filter(Number.isFinite))];
 			return rates.length === 1 ? `${__("VAT")} (${rates[0]}%)` : __("VAT");
@@ -10525,7 +10534,7 @@
 		return name === "net_total" || name === "total_taxes_and_charges" || !!doc?.[name];
 	}
 	const RATE_BASED_CHARGE_TYPES = new Set(["On Net Total", "On Previous Row Amount", "On Previous Row Total", "On Item Quantity"]);
-	const isVatRow = row => /\bvat\b|value added|ط¶ط±ظٹط¨ط©/i.test(`${row?.description || ""} ${row?.account_head || ""}`);
+	const isVatRow = row => /\bvat\b|value added|ضريبة/i.test(`${row?.description || ""} ${row?.account_head || ""}`);
 	const VAT_STANDARD = "standard";
 	const VAT_INCLUDED = "included";
 	const VAT_EXEMPT = "exempt";
@@ -11184,7 +11193,7 @@
 			this.customerTab.setAttribute("role", "tab");
 			this.previewTab = button(__("Preview"), railTabs, () => this.selectRailTab("preview"));
 			this.previewTab.setAttribute("role", "tab");
-			this.railClose = button("أ—", railHead, () => this.toggleRail(false));
+			this.railClose = button("×", railHead, () => this.toggleRail(false));
 			this.railClose.classList.add("bnd-bill-rail-close");
 			this.railClose.setAttribute("aria-label", __("Close customer and preview panel"));
 			this.customerSummary = node("section", "bnd-bill-customer-summary", null, this.rail);
@@ -11543,7 +11552,7 @@
 					});
 				}
 			}
-			control.$input?.attr("aria-label", rowField ? `${__(source.df.label)} آ· ${doc.item_code || __("New line")}` : __(source.df.label));
+			control.$input?.attr("aria-label", rowField ? `${__(source.df.label)} · ${doc.item_code || __("New line")}` : __(source.df.label));
 			if (this.invalid.has(key)) {
 				this.renderControl(control, key, true);
 			}
@@ -11934,7 +11943,7 @@
 			const operational = ["ready", "preparing", "ready_to_send", "accepted", "accepted_with_warnings", "duplicate_response", "rejected", "clearance_off"].includes(state);
 			const technical = (frappe.boot?.user?.roles || []).some(role => ["Accounts Manager", "System Manager"].includes(role));
 			this.zatcaMeta.textContent = operational ?
-				[technical && settings.server, technical && settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" آ· ") : "";
+				[technical && settings.server, technical && settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
 			let label = "";
 			if (["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"].includes(state)) label = __("ZATCA settings");
 			else if (state === "preparing") label = __("Refresh status");
@@ -12068,7 +12077,7 @@
 			this.stateBadge.textContent = __(documentState.label);
 			this.stateBadge.dataset.tone = documentState.tone;
 			this.root.dataset.documentState = documentState.tone;
-			this.documentState.textContent = [doc.__islocal ? __("New") : doc.name, doc.__islocal || frm.is_dirty() ? __("Not Saved") : ""].filter(Boolean).join(" آ· ");
+			this.documentState.textContent = [doc.__islocal ? __("New") : doc.name, doc.__islocal || frm.is_dirty() ? __("Not Saved") : ""].filter(Boolean).join(" · ");
 			if (this.invoiceNumberValue) this.invoiceNumberValue.textContent = doc.__islocal ? __("Assigned after saving") : doc.name;
 			this.context.replaceChildren();
 			for (const name of this.profile.context) {
@@ -12151,7 +12160,7 @@
 				view.info.dataset.itemReady = String(!!row.item_code);
 				view.itemName.hidden = !row.item_code;
 				view.itemName.textContent = row.item_name || row.item_code || "";
-				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" آ· ");
+				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" · ");
 				view.toggle.setAttribute("aria-label", `${__("Item")} ${position}: ${row.item_name || row.item_code || __("New line")}`);
 				amount.replaceChildren();
 				view.toggleAmount.replaceChildren();
@@ -12165,7 +12174,7 @@
 					view.remove = button(__("Remove"), view.actions, () => this.removeItem(row));
 					view.remove.classList.add("bnd-bill-line-remove");
 				}
-				view.remove.setAttribute("aria-label", `${__("Remove")} آ· ${row.item_code || __("New line")}`);
+				view.remove.setAttribute("aria-label", `${__("Remove")} · ${row.item_code || __("New line")}`);
 				view.remove.hidden = !canRemove(frm);
 			}
 			if (rows.length) this.setExpandedLine(this.mobileExpanded);
