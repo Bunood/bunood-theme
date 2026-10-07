@@ -1,0 +1,1712 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// THEME SETTINGS — the pickers' own styling.
+//
+// WHY IT LIVES HERE AND NOT IN theme_settings.js
+//   It used to be three `<style>` strings concatenated inside three render
+//   functions. That had four costs, all real:
+//
+//   1. AN INVISIBLE ORDERING DEPENDENCY. The `.bnd-cbp-*` vocabulary was
+//      defined inside the BREADCRUMBS picker's block, and the palette, inbox,
+//      search and status pickers all use those classes. Four pickers were
+//      styled by a fifth having rendered first; remove or fail the breadcrumbs
+//      picker and four others lose their appearance with nothing to explain it.
+//   2. No RTL guard. Compiled CSS is checked for physical properties at build
+//      time (build.mjs); a string inside a JS file is checked by nobody, so
+//      `margin-left` in a picker would have shipped.
+//   3. Re-parsed on every render, and re-inserted into the DOM each time a
+//      picker redraws — which the live preview does on every click.
+//   4. Unhashed and uncacheable, unlike every other stylesheet this app ships.
+//
+//   The rules below are the same rules, moved verbatim except where noted.
+//   Nothing here is scoped to a picker: this IS the shared vocabulary, and
+//   naming it as such is the point.
+//
+// SCOPING
+//   `html[data-theme]` for the same reason as every other partial — (0,2,0)
+//   beats Frappe's unlayered class rules without !important. The two
+//   `!important`s carried over are on selected-state borders, beating an
+//   inline-ish base rule; they were in the original and are left alone rather
+//   than quietly re-engineered during a move.
+// ============================================================================
+
+@use "../breakpoints" as *;
+
+// ── Desk layout picker ──────────────────────────────────────────────────────
+// Nothing of its own. It used to carry `bnd-lp-*`, a second spelling of the
+// shared card — same structure, same rules, differing only in a name one step
+// larger and a grid 10px wider, neither of which anybody chose. It composes
+// `P.cards` now like every other picker; `.bnd-lp-card` survives in the markup
+// purely as a click hook and needs no styling.
+
+// ── Shared picker vocabulary (cbp) ──────────────────────────────────────────
+// Used by breadcrumbs, palette, notifications, search and status. Defined here
+// once, so no picker depends on another having run.
+html[data-theme] {
+  .bnd-cbp {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-block: 4px;
+  }
+
+  .bnd-cbp-styles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 10px;
+  }
+
+  .bnd-cbp-style {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-cbp-on {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .bnd-cbp-thumb svg {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    color: var(--text-color);
+    background: var(--bg-color);
+    border-radius: 6px;
+  }
+
+  .bnd-cbp-name {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-cbp-blurb {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.45;
+  }
+
+  .bnd-cbp-note {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  // A card's own caveat — "not available here, and why". Muted so it reads as
+  // a footnote to the blurb above it rather than as a second blurb. Was an
+  // inline style on the element; a class so the primitive can apply it.
+  .bnd-cbp-cardnote {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  // A stack of switches inside a group. Was an inline `style` attribute on a
+  // div in the status picker; a class so every kit stacks them the same way.
+  .bnd-cbp-switches {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-block-start: 7px;
+  }
+
+  // A group's trailing action — a button plus the line explaining what it
+  // does. Two inline `style` attributes in the palette picker before this.
+  .bnd-cbp-action {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-block-start: 10px;
+  }
+
+  // Two pickers carry labels longer than the 96px default fits — "Manual
+  // only" and "5 minutes" in the status bar, the arrival modes in
+  // notifications. Each shipped its own one-rule <style> element; the widths
+  // differ because they were chosen separately, and they stay separate here
+  // rather than being averaged into a number that suits neither.
+  .bnd-stp .bnd-cbp-opt {
+    inline-size: 112px;
+  }
+
+  .bnd-ibp .bnd-cbp-opt {
+    inline-size: 118px;
+  }
+
+  // ── The shared desk diagram (rework slice 1c step 3) ──────────────────────
+  // One picture of the desk; a component overlays only the slots it can take.
+  // The frame is pure shapes with no text, which is what lets it mirror wholesale
+  // in Arabic instead of needing a second drawing.
+  .bnd-dgm {
+    position: relative;
+    inline-size: 100%;
+    max-inline-size: 420px;
+    aspect-ratio: 300 / 180;
+  }
+
+  .bnd-dgm-frame {
+    inline-size: 100%;
+    block-size: 100%;
+    display: block;
+  }
+
+  .bnd-dgm-desk {
+    fill: var(--control-bg);
+    stroke: var(--border-color);
+  }
+
+  .bnd-dgm-region {
+    fill: var(--bnd-hover);
+    stroke: none;
+  }
+
+  // The page body and title row are context, not targets — they should read as
+  // the desk this is a picture OF, not as things you can click.
+  .bnd-dgm-quiet {
+    fill: var(--bnd-page);
+  }
+
+  .bnd-dgm-slot {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px dashed var(--bnd-border-strong);
+    border-radius: 3px;
+    // Same resting-identification rule as .bnd-search-field (3B): the dashed
+    // hairline alone measured 1.5:1; the wash is the second cue.
+    background: color-mix(in srgb, var(--bnd-ink) 4%, transparent);
+    color: var(--text-muted);
+    font-size: 9px;
+    line-height: 1.1;
+    overflow: hidden;
+    cursor: pointer;
+
+    &:hover {
+      border-style: solid;
+      border-color: var(--primary);
+      background: color-mix(in srgb, var(--primary) 12%, transparent);
+      color: var(--bnd-ink);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bnd-accent);
+      outline-offset: 1px;
+    }
+  }
+
+  .bnd-dgm-on {
+    border-style: solid;
+    border-color: var(--primary);
+    background: color-mix(in srgb, var(--primary) 22%, transparent);
+    color: var(--bnd-ink);
+    font-weight: 600;
+  }
+
+  // A slot the current layout cannot honour. NOT disabled — the runtime falls
+  // back either way, and the title says which slot it will fall back to. Marked
+  // so the choice is informed rather than silently overridden.
+  .bnd-dgm-warn {
+    border-color: var(--bnd-warn);
+    border-style: dotted;
+  }
+
+  // Slot labels are the one place this picture carries text, and at 9px in a
+  // 40px-wide box most of them cannot fit. They are a hint next to a shape whose
+  // POSITION is the real message, so clipping is acceptable where wrapping would
+  // deform the slot.
+  .bnd-dgm-label {
+    padding-inline: 2px;
+    text-align: center;
+  }
+
+  // An Overview marker: a label sitting where that component lands. Not a
+  // control — it selects the control. Sized to its text rather than to a slot,
+  // because several of them share a region and a fixed box would overlap.
+  .bnd-dgm-mark {
+    position: absolute;
+    padding: 1px 5px;
+    border: 1px solid var(--primary);
+    border-radius: var(--bnd-radius-sm);
+    background: color-mix(in srgb, var(--primary) 18%, var(--control-bg));
+    color: var(--bnd-ink);
+    font-size: 9px;
+    line-height: 1.4;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 34%, var(--control-bg));
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--bnd-accent);
+      outline-offset: 1px;
+    }
+  }
+
+  // ── Bands (rework slice 1c step 2) ────────────────────────────────────────
+  // A picker splits into Placement / Style / ... / Extras only when it has more
+  // than one populated band; `bnd_bands` decides that, so nothing here needs to
+  // know which picker it is styling.
+  .bnd-cbp-zone {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  // The separator is on the JOIN, not on every band, so the first band carries
+  // no rule above it and the last none below.
+  .bnd-cbp-zone + .bnd-cbp-zone {
+    padding-block-start: 14px;
+    border-block-start: 1px solid var(--border-color);
+  }
+
+  .bnd-cbp-zone-title {
+    margin: 0;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--text-muted);
+    // Deliberately no letter-spacing and no text-transform: tracking breaks
+    // Arabic cursive JOINING, and uppercase is a no-op in Arabic — the exact
+    // pair ROADMAP item 7(a) records as a defect in _sidebar.scss.
+  }
+
+  .bnd-cbp-group {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--card-bg, var(--fg-color));
+  }
+
+  // A greyed group stays READABLE: its title and note keep AA ink — the
+  // reason it is off is the one thing the reader needs — and only the
+  // controls beneath them fade. Opacity over the whole group put the title
+  // near 4.0:1; axe caught it the day a shipped style (Crumb Pills) greyed a
+  // group on the default walk (item 43 A4).
+  .bnd-cbp-off > .bnd-cbp-title,
+  .bnd-cbp-off > .bnd-cbp-desc {
+    color: var(--bnd-ink-muted);
+  }
+  .bnd-cbp-off > :not(.bnd-cbp-title):not(.bnd-cbp-desc) {
+    opacity: 0.55;
+  }
+
+  .bnd-cbp-title {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-cbp-desc {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    margin-block-end: 7px;
+  }
+
+  .bnd-cbp-row {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+    // Cards on one line match the tallest. Without this a label that wraps to
+    // two lines — "Approvals only" at 96px wide — makes its own card taller
+    // than its neighbours and the row goes ragged. The old inline rules never
+    // showed it because they were losing a specificity fight with Frappe and
+    // the label was not being laid out as authored.
+    align-items: stretch;
+  }
+
+  .bnd-cbp-opt {
+    inline-size: 96px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: center;
+
+    // Centre the content in whatever height the row settles on, so a
+    // one-line card and a two-line card read as a set rather than as a
+    // mistake.
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-cbp-dis {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .bnd-cbp-glyph {
+    display: block;
+    font-size: 14px;
+    block-size: 22px;
+    line-height: 22px;
+    opacity: 0.8;
+  }
+
+  .bnd-cbp-oname {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    margin-block-start: 2px;
+  }
+
+  // A chip's optional second line: the value the NAME cannot carry, such as the
+  // two measures behind "Balanced". Muted and a step down, so the name still
+  // leads and the row's rhythm is unchanged for every chip that has none.
+  // Numerals are tabular because these line up in a row and drift reads as
+  // sloppiness — the same reason the grid's Currency cells are.
+  .bnd-cbp-osub {
+    display: block;
+    margin-block-start: 1px;
+    color: var(--bnd-ink-muted);
+    font-size: var(--bnd-text-xs);
+    font-weight: var(--bnd-weight-normal);
+    font-variant-numeric: var(--bnd-numeric);
+    white-space: nowrap;
+  }
+
+  // A chip carrying a second line sizes to its CONTENT. The base chip is a
+  // fixed 96px, chosen for one word, and a second line does not fit it — the
+  // first cut clipped "Reading: 1040 · Wid" mid-word. Scoped to chips that
+  // actually have a sub, so every other row keeps the fixed width that makes a
+  // chip row read as a set.
+  .bnd-cbp-opt:has(.bnd-cbp-osub) {
+    inline-size: auto;
+    min-inline-size: 96px;
+    padding-inline: var(--bnd-sp-3);
+  }
+
+  .bnd-cbp-reset {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    margin-inline-start: 6px;
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+}
+
+// ── Desk parts: every switch and every placement, on one page (item 42) ───
+//
+// A two-column grid rather than a stack of cards, because the question it
+// answers is a LIST question -- what is this desk made of -- and the diagram
+// above it already answers the spatial one. The switch rows reuse
+// `.bnd-cbp-toggle` untouched; only the placement rows are new, and they are a
+// native `<select>` on purpose: six tenants times up to fifteen slots is ninety
+// choices, and ninety chips is a wall. A select is also the one control the
+// keyboard, the screen reader and the touch device all already understand.
+html[data-theme] {
+  .bnd-parts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 8px;
+  }
+
+  .bnd-parts-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-inline-size: 0;
+
+    // A switch row brings its own box; a placement row is a label and a
+    // control, so it borrows the same one.
+    &:has(> .bnd-parts-slot) {
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--control-bg);
+    }
+  }
+
+  .bnd-parts-label {
+    flex: 0 0 auto;
+    margin: 0;
+    font-size: var(--text-sm);
+    font-weight: var(--bnd-weight-medium);
+  }
+
+  .bnd-parts-slot {
+    // `min-inline-size: 0` is what lets a long slot label ellipsize instead
+    // of pushing the row past the card -- a flex item's implicit minimum is
+    // its content, which this file has paid for once already.
+    flex: 1 1 auto;
+    min-inline-size: 0;
+    padding: 4px 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--fg-color);
+    color: var(--text-color);
+    font-size: var(--text-sm);
+  }
+
+  .bnd-parts-slot:focus-visible {
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: 1px;
+  }
+}
+
+// ── Switch row, shared by every kit ─────────────────────────────────────────
+// One rule set for both prefixes: the sidebar picker grew its own copy of an
+// identical control, and two copies of a switch is how two switches end up
+// looking different.
+html[data-theme] {
+  .bnd-cbp-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+    inline-size: 100%;
+
+    b {
+      font-size: var(--text-sm);
+    }
+  }
+
+  .bnd-cbp-knob {
+    position: relative;
+    inline-size: 30px;
+    block-size: 17px;
+    border-radius: 99px;
+    background: var(--border-color);
+    flex: none;
+    transition: background var(--bnd-dur-fast);
+
+    &::after {
+      content: "";
+      position: absolute;
+      inset-block-start: 2px;
+      inset-inline-start: 2px;
+      inline-size: 13px;
+      block-size: 13px;
+      border-radius: 50%;
+      background: #fff;
+      transition: inset-inline-start var(--bnd-dur-fast);
+    }
+  }
+
+  .bnd-cbp-knob-on {
+    background: var(--primary);
+
+    &::after {
+      inset-inline-start: 15px;
+    }
+  }
+}
+
+// ── Sidebar style picker (sbp) ──────────────────────────────────────────────
+// Its miniature-desk thumbnails are drawn with absolutely positioned parts,
+// which is why this section is longer than the others.
+html[data-theme] {
+  .bnd-sbp {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-block: 4px;
+  }
+
+  .bnd-sbp-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .bnd-sbp-search {
+    max-inline-size: 220px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px 10px;
+    background: var(--control-bg);
+    font-size: var(--text-sm);
+  }
+
+  .bnd-sbp-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .bnd-sbp-reset {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 12px;
+    margin-inline-start: 6px;
+
+    &:hover {
+      color: var(--primary);
+    }
+  }
+
+  .bnd-sbp-presets {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+  }
+
+  .bnd-sbp-preset {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 9px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-sbp-pname {
+    font-weight: 600;
+    font-size: var(--text-sm);
+  }
+
+  .bnd-sbp-pblurb {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .bnd-sbp-dots {
+    display: flex;
+    gap: 3px;
+    margin-block-start: 2px;
+  }
+
+  .bnd-sbp-dot {
+    inline-size: 9px;
+    block-size: 9px;
+    border-radius: 50%;
+    outline: 1px solid var(--border-color);
+    outline-offset: -1px;
+  }
+
+  .bnd-sbp-custom {
+    font-size: var(--text-sm);
+    color: var(--text-muted);
+  }
+
+
+
+
+  .bnd-sbp-row-wrap {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+
+  .bnd-sbp-opt {
+    position: relative;
+    inline-size: 96px;
+    padding: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--control-bg);
+    cursor: pointer;
+    text-align: start;
+
+    &:hover {
+      border-color: var(--primary);
+    }
+  }
+
+  .bnd-sbp-on {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+
+  .bnd-sbp-dis {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  .bnd-sbp-thumb {
+    position: relative;
+    display: block;
+    block-size: 42px;
+    border-radius: 6px;
+    background: var(--bg-color);
+    overflow: hidden;
+    color: var(--text-color);
+  }
+
+  .bnd-sbp-oname {
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    margin-block-start: 4px;
+  }
+
+  .bnd-sbp-reason {
+    display: block;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  // The thumbnail's parts. `margin` here is shorthand with physical sides in
+  // the original (`12px 2px 0 6px`); written long-hand and logical so the RTL
+  // guard can see it and so the chip mirrors with the rest of the desk.
+  .bnd-sbp-ic {
+    position: relative;
+    display: inline-grid;
+    place-items: center;
+    inline-size: 16px;
+    block-size: 16px;
+    border-radius: 5px;
+    font-size: 9px;
+    margin-block-start: 12px;
+    margin-inline-end: 2px;
+    margin-block-end: 0;
+    margin-inline-start: 6px;
+  }
+
+  // The Icons picker's live specimen (item 23): real sprite glyphs at the
+  // current settings. They carry Frappe's `.icon` class, so the icon bridge
+  // colours them and `_icons.scss`'s weight rule strokes them — the sheet
+  // re-renders the instant an axis changes, which is the whole point of showing
+  // glyphs a card cannot.
+  .bnd-icp-specimen {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--bnd-sp-3);
+    align-items: center;
+    padding-block: var(--bnd-sp-2);
+
+    .icon {
+      inline-size: 22px;
+      block-size: 22px;
+      flex: none;
+    }
+  }
+
+  .bnd-sbp-row {
+    position: absolute;
+    inset-inline: 8px;
+    inset-block-start: 13px;
+    block-size: 16px;
+    border-radius: 8px;
+  }
+
+  .bnd-sbp-lines {
+    position: absolute;
+    inset-inline: 8px;
+    inset-block-start: 10px;
+    block-size: 6px;
+    border-radius: 3px;
+    background: currentColor;
+    opacity: 0.15;
+    box-shadow: 0 10px 0 currentColor, 0 20px 0 currentColor;
+  }
+
+  .bnd-sbp-card {
+    position: absolute;
+    inset-inline: 7px;
+    inset-block-start: 7px;
+    block-size: 28px;
+    border-radius: 5px;
+    background: var(--control-bg);
+    border: 1px solid var(--border-color);
+  }
+
+  .bnd-sbp-wash {
+    position: absolute;
+    inset-inline: 7px;
+    inset-block-start: 6px;
+    block-size: 16px;
+    border-radius: 5px;
+  }
+
+  .bnd-sbp-glyph {
+    position: absolute;
+    inset-block-start: 12px;
+    inset-inline-start: 10px;
+    font-size: 12px;
+    opacity: 0.75;
+  }
+
+  .bnd-sbp-btnmark {
+    position: absolute;
+    inline-size: 10px;
+    block-size: 10px;
+    border-radius: 50%;
+    background: var(--control-bg);
+    border: 1px solid currentColor;
+    opacity: 0.7;
+  }
+
+  .bnd-sbp-shape {
+    position: absolute;
+    inset-block-start: 12px;
+    inset-inline-start: 38px;
+    inline-size: 16px;
+    block-size: 16px;
+    border: 1.5px solid currentColor;
+    opacity: 0.6;
+  }
+
+  .bnd-sbp-steps {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .bnd-sbp-slab {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+  }
+
+  .bnd-sbp-stop {
+    inline-size: 13px;
+    block-size: 13px;
+    border-radius: 50%;
+    border: none;
+    background: var(--border-color);
+    cursor: pointer;
+    padding: 0;
+
+    &.bnd-sbp-on {
+      background: var(--primary);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 25%, transparent);
+    }
+  }
+}
+
+
+// ── The Compose card (item 43 B2) ────────────────────────────────────────────
+// One line and one button, on the card's own row; the note beneath.
+.bnd-cmp-card {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-4);
+	flex-wrap: wrap;
+}
+.bnd-cmp-line {
+	margin: 0;
+	font-size: var(--bnd-text-md);
+	font-weight: var(--bnd-weight-medium);
+}
+// The ring every control of ours carries (the guard's own idiom); it is a
+// button, not an option chip, so it does not borrow bnd-cbp-opt.
+html[data-theme] .bnd-cmp-open:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// ── The placement board (E2) ────────────────────────────────────────────────
+//
+// One desk, drawn big enough to drop things onto. The per-component thumbnails
+// above are 300x180 and absolutely positioned because they are PICTURES; this
+// is a WORKSPACE, so it is laid out as a grid and sized in rem — a drop target
+// has to be comfortably bigger than the pointer, which a scaled thumbnail
+// never is.
+//
+// Logical properties throughout, as everywhere else here: the board mirrors in
+// RTL for free, which matters more than usual because "Start" and "End" are
+// the words on the zones.
+.bnd-bd {
+	container-type: inline-size;
+	container-name: bndboard;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+// THIS BLOCK IS ON THE THEME'S OWN TOKENS NOW, AND IT WAS THE LAST THING HERE
+// THAT WAS NOT.
+//
+// It used to read `var(--bnd-hairline, var(--border-color))`,
+// `var(--bnd-surface-2, var(--fg-color))`, `var(--bnd-surface-3,
+// var(--control-bg))` and `var(--bnd-accent-wash, ...)` -- FOUR TOKEN NAMES THAT
+// WERE DECLARED NOWHERE IN THIS REPO. Every one always took its fallback, so the
+// layout builder had been painted by FRAPPE's variables the whole time while
+// reading as though a theme token drove it. `assertTokensDeclared` forbids that
+// shape now; the phantoms were first collapsed to what they actually rendered,
+// which is why the two steps appear as separate commits.
+//
+// THE DEPTH IS THREE SURFACES AND THE MIDDLE ONE IS THE CARD:
+//   .bnd-bd-desk    --bnd-page      the recessed well the regions sit in
+//   .bnd-bd-region  --bnd-surface   a region, raised out of it
+//   .bnd-bd-zone    --bnd-page      an inset drop target, back down again
+// `--bnd-page` twice is deliberate rather than lazy: both ARE wells, they are
+// never adjacent (a region always separates them), and one token with one role
+// is the rule.
+//
+// AND IT IS `--bnd-page` BECAUSE THE HOST IS `--bnd-surface`. The first cut used
+// `--bnd-pane` -- it is the token literally named for a pane, and in LIGHT it
+// looks best of all at 14 channels. But `--bnd-pane` is fitted to sit against
+// `--bnd-page`, not against a surface, and measured against the host it actually
+// has here it collapses to SIX channels in dark against a floor of five. That is
+// item 32's "copying an expression without copying its host" in a new costume:
+// the value is fine, the RELATIONSHIP is what was borrowed wrongly. Measured on
+// the live desk, delta against `--bnd-surface`:
+//
+//     token           light   dark    worst
+//     --bnd-page        7       9       7     <- chosen
+//     --bnd-pane       14       6       6
+//     --bnd-raised      4       6       4     <- would FAIL in light
+//     --bnd-hover      12      16      12     state token, not a resting fill
+//     --bnd-active     25      17      17     state token
+//
+// The bar is `chDelta >= 5`, which is item 22's resting-identification rule as
+// the suite states it -- a channel delta, never a contrast ratio, because these
+// are surfaces rather than text. `--bnd-page` is the best-balanced token that is
+// a SURFACE rather than a STATE; `--bnd-hover` would measure better and would
+// mean "a pointer is here" on something at rest.
+//
+// NO NEW CONTRAST ROWS, WHICH IS WHY THIS WAS CHEAP. Every ink here lands on
+// `--bnd-surface` or `--bnd-pane`, and `contrast_gate.pairs()` already crosses
+// TEXT_INKS with SURFACES -- which contains both -- so all six ink/surface pairs
+// were being enforced at AA across eleven seeds and two modes before this change
+// touched them. Had a zone wanted an accent WASH for its armed state, that would
+// have been a new token in `palette.derive` and a real cost; the armed state is
+// carried by the accent border instead.
+//
+// AND THE INKS MOVED WITH THE SURFACES, not after them. Re-pointing a background
+// to a theme token while leaving Frappe's ink on it is the half-a-pair mistake
+// that put our flipping ink on Frappe's fixed grey at 1.09:1 in item 32's
+// release review. Both halves or neither.
+// The desk: a side pane column beside a stack of bars, which is the shape of
+// the thing being configured. `grid` rather than absolute positioning so the
+// bars grow with their content instead of clipping it.
+.bnd-bd-desk {
+	display: grid;
+	grid-template-columns: minmax(9rem, 1fr) minmax(0, 3fr);
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-lg);
+	background: var(--bnd-page);
+}
+
+// The side pane is a column and spans every bar row beside it, exactly as it
+// does on the desk.
+.bnd-bd-region[data-region="sidepane"] {
+	grid-column: 1;
+	grid-row: 1 / -1;
+}
+.bnd-bd-region:not([data-region="sidepane"]) {
+	grid-column: 2;
+}
+
+.bnd-bd-region {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	padding: 0.5rem;
+	border: 1px dashed var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	background: var(--bnd-surface);
+	min-block-size: 4rem;
+}
+
+// A region the current layout cannot mount. WARNS, never blocks — the runtime
+// falls back either way, and greying it out would hide where things would go
+// if the container were switched back on.
+//
+// NOT opacity (item 22): `opacity` composites the WHOLE subtree — text
+// included — against whatever sits behind the region, so it cannot be
+// confined to the border/background it was meant to fade. Frappe's own
+// --text-muted/--text-light measured borderline at full strength and failed
+// outright once faded (2.76:1, axe-caught on the settings surface scan).
+// Muted look, guaranteed legible: our own fitted ink on the region's own
+// unfaded surface, plus a quieter fill/border that needs no compositing.
+.bnd-bd-region.bnd-bd-unavailable {
+	background: var(--bnd-hover);
+}
+
+.bnd-bd-region-name {
+	margin: 0;
+	font-size: var(--text-xs, 0.75rem);
+	font-weight: 600;
+	// Tracking removed (assertCursiveSafe) — see the note at line 277, which
+	// reached this conclusion by hand for the picker headings before the build
+	// enforced it. `text-transform` stays: a no-op in Arabic, free for Latin.
+	text-transform: uppercase;
+	color: var(--bnd-ink-muted);
+}
+
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-region-name {
+	color: var(--bnd-ink-subtle);
+}
+
+.bnd-bd-warn {
+	font-weight: 400;
+	text-transform: none;
+	letter-spacing: 0;
+	color: var(--bnd-ink-subtle);
+}
+
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-warn {
+	color: var(--bnd-ink-subtle);
+}
+
+// Zones sit along the bar; in the side pane they stack down it. Same rule,
+// different axis — which is what start/end mean.
+.bnd-bd-zones {
+	display: flex;
+	gap: 0.375rem;
+	flex: 1;
+}
+.bnd-bd-region[data-region="sidepane"] .bnd-bd-zones {
+	flex-direction: column;
+}
+.bnd-bd-region:not([data-region="sidepane"]) .bnd-bd-zones > .bnd-bd-zone {
+	flex: 1;
+}
+
+// THE DROP TARGET. Sized for a pointer, not for a thumbnail: 3.25rem is about
+// twice the height of a chip, so an imprecise drop still lands.
+.bnd-bd-zone {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-block-size: 3.25rem;
+	padding: 0.375rem;
+	border: 1px solid transparent;
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-page);
+	cursor: pointer;
+	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+.bnd-bd-zone-name {
+	font-size: var(--text-xs, 0.75rem);
+	color: var(--bnd-ink-subtle);
+}
+
+// Same fix as the region name/warn above, for the zones inside an
+// unavailable region (Page Header, Dock zones when those containers are
+// off) — the same opacity-compositing failure axe caught there.
+.bnd-bd-region.bnd-bd-unavailable .bnd-bd-zone-name {
+	color: var(--bnd-ink-subtle);
+}
+
+.bnd-bd-slot-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	flex: 1;
+	align-content: flex-start;
+}
+
+// Armed state: which zones will accept what is being carried. Shown on BOTH
+// gestures — the drag and the click-to-pick-up run through the same `arm()`.
+.bnd-bd[data-armed=""] .bnd-bd-zone {
+	border-color: transparent;
+}
+.bnd-bd-zone.bnd-bd-ok {
+	border-color: var(--bnd-accent);
+	background: var(--bnd-page);
+}
+.bnd-bd-zone.bnd-bd-no {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+// The chip. A button, so it is reachable by keyboard and readable by a screen
+// reader; draggable is an enhancement layered on top.
+.bnd-bd-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
+	color: var(--bnd-ink);
+	font-size: var(--text-sm, 0.8125rem);
+	line-height: 1.4;
+	cursor: grab;
+}
+.bnd-bd-chip:active {
+	cursor: grabbing;
+}
+.bnd-bd-chip.bnd-bd-armed {
+	border-color: var(--bnd-accent);
+}
+.bnd-bd-chip.bnd-bd-dragging {
+	opacity: 0.5;
+}
+
+// THE ARMED CONTROLS (item 22): siblings of the armed chip, appearing
+// together — a chip is a <button> and buttons cannot nest. The reorder
+// arrows (design pick 1A) only render when a neighbour exists to swap
+// with; the "Move to…" trigger always does, so an armed chip always
+// offers a complete keyboard path to both facts it can change.
+.bnd-bd-nudge {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+.bnd-bd-nudge-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	inline-size: 1.5rem;
+	block-size: 1.5rem;
+	padding: 0;
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
+	color: var(--bnd-ink);
+	font-size: 0.875rem;
+	line-height: 1;
+	cursor: pointer;
+	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+.bnd-bd-nudge-btn:hover {
+	background: var(--bnd-hover);
+	border-color: var(--bnd-accent);
+}
+.bnd-bd-move-btn {
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
+	color: var(--bnd-ink);
+	font-size: var(--text-sm, 0.8125rem);
+	line-height: 1.4;
+	cursor: pointer;
+	transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+.bnd-bd-move-btn:hover {
+	background: var(--bnd-hover);
+	border-color: var(--bnd-accent);
+}
+
+.bnd-bd-dot {
+	inline-size: 0.5rem;
+	block-size: 0.5rem;
+	border-radius: 50%;
+	background: var(--bnd-accent);
+	flex: none;
+}
+
+// The Off tray is a zone like any other, which is why "off" needs no special
+// handling in the drop path — it is a place a chip can be, not a mode.
+.bnd-bd-tray {
+	border: 1px dashed var(--bnd-border);
+	background: transparent;
+}
+
+// Narrow panes: the desk stops pretending to be a desk and stacks, rather than
+// squeezing five regions into a column too thin to drop onto. The board is
+// its own container now (item 43 B1 retired the shell viewport it used to
+// query): the root declares `bndboard` and the rule targets its descendants,
+// which is the one arrangement a @container rule allows. Same value (`board`
+// = 544px = the old 34rem).
+@include bnd-container-until(bndboard, board) {
+	.bnd-bd-desk {
+		grid-template-columns: 1fr;
+	}
+	.bnd-bd-region[data-region="sidepane"] {
+		grid-row: auto;
+	}
+	.bnd-bd-region:not([data-region="sidepane"]) {
+		grid-column: 1;
+	}
+}
+
+// ── The Translations surface (item 7, part 2) ───────────────────────────────
+// Text-and-buttons chrome; the heavy lifting is server-side. Logical
+// properties throughout, no tracking (assertCursiveSafe), tokens only.
+.bnd-tc {
+	container-type: inline-size;
+	container-name: bndtc;
+	display: grid;
+	gap: var(--bnd-sp-3);
+}
+
+.bnd-tc-table {
+	inline-size: 100%;
+	border-collapse: collapse;
+	font-size: var(--bnd-text-sm);
+
+	th,
+	td {
+		text-align: start;
+		padding-block: var(--bnd-sp-1);
+		padding-inline-end: var(--bnd-sp-3);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+	}
+
+	th {
+		color: var(--bnd-ink-muted);
+		font-weight: var(--bnd-weight-medium);
+	}
+}
+
+.bnd-tc-actions,
+.bnd-tc-manual {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--bnd-sp-2);
+	align-items: center;
+}
+
+.bnd-tc-manual .form-control {
+	// Two inputs sharing a row; auto direction on the target field lets an
+	// Arabic value align itself without the pane taking a side.
+	flex: 1 1 14rem;
+	min-inline-size: 10rem;
+}
+
+.bnd-tc-prow {
+	display: grid;
+	grid-template-columns: 1fr 1fr auto auto auto;
+	gap: var(--bnd-sp-2);
+	align-items: center;
+	padding-block: var(--bnd-sp-1);
+	border-block-end: var(--bnd-line) solid var(--bnd-border);
+	font-size: var(--bnd-text-sm);
+}
+
+// Narrow: five columns (source, translation, three action controls) cannot fit
+// a phone-width card, and there is no horizontal scroll wrapper — so the row
+// stacks, each cell taking the full width (item 24). The console is its own
+// container since item 43 B1 retired the shell viewport it used to query; the
+// threshold keeps the shell's old value under the console's name.
+@include bnd-container-until(bndtc, tc) {
+	.bnd-tc-prow {
+		grid-template-columns: 1fr;
+	}
+}
+
+.bnd-tc-psrc {
+	color: var(--bnd-ink-muted);
+	overflow-wrap: anywhere;
+}
+
+.bnd-tc-pdst {
+	overflow-wrap: anywhere;
+}
+
+.bnd-tc-papp {
+	color: var(--bnd-ink-subtle);
+	font-size: var(--bnd-text-xs);
+}
+
+// ── The email preview (item 34) ───────────────────────────────────────────
+//
+// THE FIRST PICKER IN THIS PROJECT THAT SHOWS THE REAL THING. Nine kits preview
+// by applying to the live desk; the sign-in and website kits ship no preview at
+// all, each for a reason that does not hold here. An email is composed on the
+// server and contains no other user's data, so `api.email_preview` can return the
+// genuine output of `get_formatted_html` and this frame can show it.
+//
+// A FIXED HEIGHT AND NOT `auto`. The frame is sandboxed and cross-document, so
+// its content height is unreadable from here without a script inside it — and a
+// rendered email must never run one. 320px shows the masthead, the heading, the
+// prose and the CTA at the widths that matter, which is the whole thing a pole
+// changes.
+.bnd-emp-preview:not(:empty) {
+	margin-block-start: var(--bnd-sp-4);
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	overflow: hidden;
+	// The email paints its own ground; this is what shows through while the
+	// srcdoc parses, so it must not flash white on a dark desk.
+	background: var(--bnd-pane);
+}
+
+.bnd-emp-frame {
+	display: block;
+	inline-size: 100%;
+	block-size: 320px;
+	border: 0;
+}
+
+// ── The print preview (item 35) — the email preview's frame, paper-sized ────
+// A4 is portrait, so the frame is taller than email's; same fixed-height
+// argument (sandboxed cross-document content height is unreadable, and a
+// rendered page must never run a script to report it).
+.bnd-prp-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--bnd-sp-2);
+	margin-block-start: var(--bnd-sp-3);
+	align-items: center;
+}
+.bnd-prp-chipgap {
+	inline-size: var(--bnd-sp-3);
+}
+.bnd-prp-preview:not(:empty) {
+	margin-block-start: var(--bnd-sp-2);
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	overflow: hidden;
+	background: var(--bnd-pane);
+}
+.bnd-prp-frame {
+	display: block;
+	inline-size: 100%;
+	block-size: 460px;
+	border: 0;
+}
+
+// ── The identity pane (item 36) — the specimen strip and the seed console ────
+// The one pane whose subject is the tenant's own identity. The strip's cells
+// and the role swatches carry DYNAMIC colours (the seed, the derived lattice)
+// as inline styles — those cannot live in this sheet; everything here is
+// layout and neutral chrome, tokens only.
+.bnd-idp-strip {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--bnd-sp-2);
+	margin-block: var(--bnd-sp-3);
+}
+.bnd-idp-cell {
+	flex: 1 1 120px;
+	min-inline-size: 118px;
+	max-inline-size: 190px;
+}
+.bnd-idp-frame {
+	block-size: 74px;
+	border: 1px solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	background: var(--bnd-surface);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	position: relative;
+	padding: var(--bnd-sp-2);
+}
+.bnd-idp-cap {
+	margin-block-start: var(--bnd-sp-1);
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-subtle);
+	line-height: 1.35;
+}
+.bnd-idp-row {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+	inline-size: 100%;
+}
+.bnd-idp-center {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--bnd-sp-1);
+	text-align: center;
+}
+.bnd-idp-mark {
+	inline-size: 26px;
+	block-size: 26px;
+	border-radius: var(--bnd-radius-sm);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	// NO INK HERE. It arrives inline, paired with the fill from the same
+	// `palette.derive` dict — a `color: #fff` literal discarded the `on_fill`
+	// the server derives and drew white on a pale seed's near-white chip.
+	font-weight: 700;
+	flex: 0 0 auto;
+}
+.bnd-idp-img {
+	max-inline-size: 32px;
+	max-block-size: 26px;
+	object-fit: contain;
+}
+.bnd-idp-fav {
+	inline-size: 14px;
+	block-size: 14px;
+	object-fit: contain;
+	flex: 0 0 auto;
+}
+.bnd-idp-tab {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-1);
+	font-size: var(--bnd-text-xs);
+	inline-size: 100%;
+	padding-inline: var(--bnd-sp-1);
+
+	span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+}
+.bnd-idp-paper {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-1);
+	inline-size: 100%;
+	font-size: 10px;
+	background: #fff;
+	color: #1d251f;
+	border-radius: var(--bnd-radius-sm);
+	padding: var(--bnd-sp-1) var(--bnd-sp-2);
+}
+.bnd-idp-tagline {
+	font-size: 9px;
+	color: var(--bnd-ink-subtle);
+}
+.bnd-idp-badge {
+	font-size: 9px;
+	font-weight: 600;
+	border-radius: var(--bnd-radius-sm);
+	padding: 0 var(--bnd-sp-1);
+	background: var(--bnd-hover);
+	color: var(--bnd-ink-muted);
+}
+.bnd-idp-roles {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+	margin-block: var(--bnd-sp-1);
+	flex-wrap: wrap;
+}
+.bnd-idp-rlabel {
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-subtle);
+	inline-size: 40px;
+}
+.bnd-idp-role {
+	min-inline-size: 46px;
+	block-size: 24px;
+	border-radius: var(--bnd-radius-sm);
+	border: 1px solid var(--bnd-border);
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	font-size: var(--bnd-text-xs);
+	font-weight: 600;
+}
+.bnd-idp-report {
+	margin-block: var(--bnd-sp-2);
+	padding: var(--bnd-sp-2) var(--bnd-sp-3);
+	// ACCENT, NOT WARN. These sentences say the derivation did its job — the
+	// same non-blocking report the save ships with `indicator="blue"`. An amber
+	// caution stripe told a tenant whose seed was nudged one shade that
+	// something was wrong.
+	border-inline-start: 3px solid var(--bnd-accent);
+	background: var(--bnd-surface);
+	border-radius: var(--bnd-radius-sm);
+	font-size: var(--bnd-text-xs);
+	line-height: 1.5;
+	color: var(--bnd-ink-muted);
+
+	> div + div {
+		margin-block-start: var(--bnd-sp-1);
+	}
+}
+
+// ── Where the map lands (item 43 B3) ────────────────────────────────────────
+// scrollIntoView puts a section's edge at the SCROLLER's edge, and the sticky
+// page head is painted over the first --page-head-height of that — so a card
+// the map scrolled to opened on its description line, its heading under the
+// head (read off a screenshot; the check now asserts the card clears the head).
+// scroll-margin is the CSS answer to an anchor under a sticky bar: it moves
+// nothing at rest, and every scroll-to on this page — the map, the page-head
+// menu, the Overview's goto — inherits it. Frappe's variable, read the way
+// _layouts.scss reads it; scoped to this route because it is this route's
+// gesture.
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .form-layout .form-section {
+	scroll-margin-block-start: calc(var(--page-head-height) + var(--bnd-sp-2));
+}
+
+// ── The composer (item 43 C1+C2) ─────────────────────────────────────────────
+// A MODE of the settings form (`?compose`): the Compose card hosts a rail of
+// decisions beside a stage, and every other card stands down. The class is
+// stamped by the form script on the page container at refresh — read once
+// from the address, like the retired ?shell — so the plain page is untouched.
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .form-layout .form-section:not([data-fieldname="section_compose"]) {
+	display: none;
+}
+// The stage wants the width, and Frappe's 900px cap on the section body would
+// fold it: lifted for the composing page only (Full Bleed makes it moot on the
+// shipped desk; Original width still carries the cap everywhere else).
+html[data-bnd-desk] body[data-route^="Form/Theme Settings"] .bnd-composing .std-form-layout .section-body {
+	max-inline-size: none;
+}
+.bnd-cmp-wrap {
+	container-type: inline-size;
+	container-name: bndcmp;
+}
+.bnd-cmp {
+	display: grid;
+	grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+	gap: var(--bnd-sp-5);
+	// The row is as tall as the rail; the stage sticks inside that height.
+}
+@include bnd-container-until(bndcmp, cmp) {
+	.bnd-cmp {
+		grid-template-columns: minmax(0, 1fr);
+	}
+	// One column: the preview first, the rail of decisions under it. The rail
+	// is the taller of the two, and led with, it put the preview under the fold
+	// on every narrow screen.
+	.bnd-cmp-rail {
+		order: 2;
+	}
+}
+.bnd-cmp-head {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-4);
+	flex-wrap: wrap;
+}
+.bnd-cmp-rail {
+	display: grid;
+	gap: var(--bnd-sp-3);
+}
+// The value named beside a row's title; a hover previews the option there.
+.bnd-cmp-cur {
+	margin-inline-start: var(--bnd-sp-2);
+	font-weight: var(--bnd-weight-normal);
+	color: var(--bnd-ink-muted);
+}
+.bnd-cmp-linebox {
+	display: flex;
+	align-items: center;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-linetext {
+	flex: 1 1 auto;
+	min-inline-size: 0;
+	padding: 0;
+	background: transparent;
+	font-size: var(--bnd-text-xs);
+	color: var(--bnd-ink-muted);
+	overflow-wrap: anywhere;
+}
+// Rings for the two controls of ours that are not option chips (the guard's own idiom).
+html[data-theme] .bnd-cmp-back:focus-visible,
+html[data-theme] .bnd-cmp-copy:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// ── The stage (item 43 C3) ───────────────────────────────────────────────────
+// A real desk page in a same-origin frame, kept at 1440×900 CSS px and drawn
+// at --bnd-cmp-scale: the clip's width over 1440, set inline by a
+// ResizeObserver on the clip (declared here so the token is never phantom;
+// the runtime's value wins on the element where the frame reads it).
+// STICKY BESIDE THE RAIL: the rail is long (eighteen rows), and a stage that
+// scrolled away with it left the composer showing options with nothing beside
+// them (read off a screenshot). Its own start alignment keeps it content-tall
+// inside the row-tall grid area, which is what gives sticky its room; the
+// offset clears the sticky page head. Under the one-column fold it is plain
+// flow again — the stage above the rail, nothing to stick beside.
+.bnd-cmp-stage {
+	display: grid;
+	gap: var(--bnd-sp-3);
+	align-content: start;
+	align-self: start;
+	min-inline-size: 0;
+	position: sticky;
+	inset-block-start: calc(var(--page-head-height) + var(--bnd-sp-3));
+	// NEVER TALLER THAN THE VIEWPORT: a sticky box taller than the window only
+	// shows its bottom once the row it sits in runs out — with a strip up, a
+	// cell's "Use this" was unreachable from the top of the rail (read off a
+	// screenshot). Bounded to the window under the head and above the bottom
+	// chrome, the stage scrolls on its own instead.
+	max-block-size: calc(100vh - var(--page-head-height) - var(--bnd-sp-3) * 2 - var(--bnd-bottom-reserve));
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+@include bnd-container-until(bndcmp, cmp) {
+	.bnd-cmp-stage {
+		position: static;
+	}
+}
+.bnd-cmp-pages {
+	display: grid;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-open-page {
+	font-size: var(--bnd-text-xs);
+	justify-self: start;
+}
+.bnd-cmp-clip {
+	--bnd-cmp-scale: 0.6;
+	position: relative;
+	inline-size: 100%;
+	block-size: calc(900px * var(--bnd-cmp-scale));
+	overflow: hidden;
+	border: var(--bnd-line) solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	background: var(--bnd-surface);
+}
+// The frame anchors at the clip's inline START and must scale from THAT
+// corner: `transform-origin` knows no logical keywords, so RTL flips it below
+// (0 0 under RTL put the scaled desk 700px to the left of its clip — read off
+// the Arabic screenshot). The desk inside mirrors on its own.
+.bnd-cmp-frame {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: 1440px;
+	block-size: 900px;
+	border: 0;
+	transform: scale(var(--bnd-cmp-scale));
+	transform-origin: 0 0;
+}
+html[data-theme] .bnd-cmp-open-page:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// ── The compare strip (item 43 C4) ──────────────────────────────────────────
+// Under the stage frame, inside the sticky stage: a horizontal strip of cells
+// at the stage's own scale, one per value of the decision last touched. While
+// a strip is up the main frame's clip shows the page's first 600px instead of
+// 900, so pages + frame + strip still fit the sticky height at 900 tall.
+.bnd-cmp-stage[data-bnd-comparing] .bnd-cmp-clip {
+	block-size: calc(600px * var(--bnd-cmp-scale));
+}
+.bnd-cmp-strip {
+	display: grid;
+	gap: var(--bnd-sp-2);
+	min-inline-size: 0;
+}
+.bnd-cmp-striphead {
+	font-size: var(--bnd-text-sm);
+	font-weight: var(--bnd-weight-medium);
+}
+.bnd-cmp-cells {
+	display: flex;
+	gap: var(--bnd-sp-3);
+	overflow-x: auto;
+	scroll-snap-type: inline mandatory;
+	padding-block-end: var(--bnd-sp-2);
+}
+.bnd-cmp-cell {
+	flex: 0 0 auto;
+	inline-size: 100%;
+	scroll-snap-align: start;
+	display: grid;
+	gap: var(--bnd-sp-2);
+	border: var(--bnd-line) solid var(--bnd-border);
+	border-radius: var(--bnd-radius-md);
+	padding: var(--bnd-sp-2);
+	background: var(--bnd-surface);
+}
+.bnd-cmp-cell-on {
+	border-color: var(--bnd-accent);
+}
+// A spare cell is parked with the `hidden` attribute; the grid above would
+// otherwise win over the UA's `[hidden]` and keep drawing an empty card.
+.bnd-cmp-cell[hidden] {
+	display: none;
+}
+// The clip inherits the stage's scale from the clip above it (one ResizeObserver,
+// one token) — declared again here only as the fallback the guard reads.
+.bnd-cmp-cellclip {
+	--bnd-cmp-scale: 0.5;
+	position: relative;
+	inline-size: 100%;
+	block-size: calc(600px * var(--bnd-cmp-scale));
+	overflow: hidden;
+	border-radius: var(--bnd-radius-sm);
+	background: var(--bnd-surface);
+}
+.bnd-cmp-cellframe {
+	position: absolute;
+	inset-block-start: 0;
+	inset-inline-start: 0;
+	inline-size: 1440px;
+	block-size: 900px;
+	border: 0;
+	transform: scale(var(--bnd-cmp-scale));
+	transform-origin: 0 0;
+}
+// Under RTL the inline start is the right edge: the origin follows it, so the
+// scaled box is exactly the clip in both directions (measured: 47px of the
+// stage inside its clip before this).
+html[dir="rtl"] .bnd-cmp-frame,
+html[dir="rtl"] .bnd-cmp-cellframe {
+	transform-origin: 100% 0;
+}
+.bnd-cmp-cellbar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--bnd-sp-2);
+}
+.bnd-cmp-cellname {
+	font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-cmp-compare:focus-visible {
+	outline: 2px solid var(--bnd-accent);
+	outline-offset: 1px;
+}
+
+// The reader's own width, overriding the site's (item 45.1). It appears only
+// while an override is in force, so it is a NOTICE and not furniture: a tinted
+// row under the width chips carrying the fact and the way out.
+.bnd-dkp-mine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  margin-block-start: var(--bnd-sp-2);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 1px solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-pane);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+
+  // An ACTION, not an option chip — so it carries its own styling and its own
+  // ring rather than borrowing `.bnd-cbp-opt`, whose contract includes an
+  // `aria-pressed` state this button does not have.
+  .bnd-dkp-mine-clear {
+    flex: none;
+    margin-inline-start: auto;
+    padding: var(--bnd-sp-1) var(--bnd-sp-3);
+    border: 1px solid var(--bnd-border);
+    border-radius: var(--bnd-radius-sm);
+    background: var(--bnd-surface);
+    color: var(--text-color);
+    font-size: var(--text-xs);
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--bnd-border-strong);
+    }
+  }
+}
+
+// The override note's action gets the same ring every control this file builds
+// gets. Its own class, because it is not an option chip — see the docblock in
+// theme_settings.js for why borrowing `.bnd-cbp-opt` was wrong.
+html[data-theme] .bnd-dkp-mine-clear:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}

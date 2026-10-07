@@ -1,0 +1,530 @@
+// ============================================================================
+// THE WEBSITE AND PORTAL — checklist item 33. Every page rendered through
+// `templates/base.html` that is not the desk, not the auth templates and not
+// printview: the twelve erpnext portal lists, `/me`, `/404`, `/message`, the
+// error page, every Web Form, and every public page an installed app ships.
+//
+// THE SCOPE IS `body.bnd-web`, SERVER-RENDERED, and it is the whole delivery
+// mechanism — see `context.py::_is_web_template` for why the guard is a denylist
+// over `context.template` and why nothing here may key on the route. GUIDELINES
+// §1.3's amendment covers this file as much as `_login.scss`: a website page has
+// no `data-theme` to hang a mode on, so Frappe-variable overrides are scoped to a
+// body class instead, which is NARROWER than `[data-theme]` rather than wider.
+//
+// NOTHING HERE MAY CARRY USER STATE. Frappe caches website HTML under a key of
+// `(path, lang)` and nothing else — not the user, not their roles — so a class
+// this file styles is shared by every later visitor for the TTL. Measured
+// 2026-08-22: a guest received the Administrator's rendered `/attribution`, and
+// `/404` fetched with a valid session returned the logged-out render.
+// `docs/upstream/frappe-website.md` §2 carries the reproduction, and it is why
+// `body[frappe-session-status]` is refused as a discriminator despite being
+// rendered for free.
+//
+// SLICE 2b IS THE WHOLE OF THIS FILE SO FAR: the mode, and nothing else. The
+// contracts (focus, contrast, resting identification) and the anchor's three
+// poles are later slices, and each lands with its own measurements.
+// ============================================================================
+
+@use "../tokens";
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE MODE — the bundle's own dark route for this scope
+// ══════════════════════════════════════════════════════════════════════════
+//
+// WHY THIS BLOCK IS NOT REDUNDANT WITH `brand.py`. The per-site sheet now emits
+// the customer's dark values under `body.bnd-web` too (slice 2b extended its
+// selector list, derived from `WEB_BODY_CLASS` rather than restated). But the
+// per-site sheet is allowed not to exist: a fresh install has none until the
+// first save, `_brand_css_url()` returns None when its file has been reaped, and
+// `tools/contrast_gate.py` gates a "no-brand-sheet fallback" configuration
+// precisely because the compiled bundle has to render alone. This block is that
+// fallback for the website scope.
+//
+// MEASURED BEFORE IT EXISTED: `--bnd-page` on `/orders` under a dark OS resolved
+// to the LIGHT `color-mix()`. Not a wrong dark palette — no dark palette at all.
+// A rule scan over the whole page found exactly two `prefers-color-scheme` rules,
+// both ours, both dead there (`html[data-theme="automatic"]`, which a website
+// page can never match, and `body.bnd-auth`, which these pages do not carry), and
+// zero from `website.bundle` or `erpnext-web.bundle`. Frappe ships no dark mode
+// for its website at all.
+//
+// THE `:not()` PAIR ARRIVED IN SLICE 6, WITH THE AXIS THAT MAKES IT MEAN
+// SOMETHING. Slice 2b deliberately shipped this block bare: `web_theme`'s classes
+// did not exist then, so writing the guards would have been a selector nothing
+// could satisfy and no check could exercise — volunteering the untested-branch
+// trap rather than inheriting it. They land here, in the commit where both halves
+// can be measured together.
+//
+// `Follow OS` is the ABSENCE of a theme class, so the media query has to EXCLUDE
+// the two explicit ones — otherwise an Always-Light site still flips on a dark OS,
+// which is the whole defect the axis exists to prevent. The `:not()` pair is
+// (0,3,1) against the explicit block's (0,1,1); they never both match, so the
+// difference is bookkeeping rather than a contest.
+// AND BOTH ARMS REQUIRE A POLE, which is the correction the v0.33.0 release
+// review forced and the single rule the whole surface now rests on: OUR TOKEN
+// MODE FOLLOWS OUR GROUND, AND WE ONLY OWN A GROUND UNDER A POLE. `Original`
+// paints nothing — the ground fill and the Frappe-variable bridge are both
+// pole-scoped — so on `Original` the page is Frappe's white in every mode, and
+// Frappe ships no dark rules for the website at all (measured above: zero).
+// Flipping our tokens dark there could therefore never darken the page; it could
+// only put dark-mode ink on a white one, which is exactly what it did:
+// `Original` + `Always Dark` measured 1.87:1 through the sanctioned
+// `!important`, replacing stock's 4.17:1.
+//
+// The honest consequence, stated rather than hidden: `web_theme` has no visible
+// effect under `Original`. It cannot have one. A dark page needs a ground we
+// painted, and choosing `Original` is choosing not to have one — see the
+// picker's copy, which now says so.
+@media (prefers-color-scheme: dark) {
+  body.bnd-web:is(.bnd-web-panel, .bnd-web-plate):not(.bnd-web-theme-light):not(.bnd-web-theme-dark) {
+    @include tokens.dark;
+  }
+}
+
+// `Always Dark` — outside the media query, because the point of the axis is that
+// the device does not get a vote. Still pole-gated, for the reason above.
+body.bnd-web-theme-dark:is(.bnd-web-panel, .bnd-web-plate) {
+  @include tokens.dark;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — `web_style`, three poles, one set of rules
+// ══════════════════════════════════════════════════════════════════════════
+//
+// A WORKING SET, NOT A RULE PER POLE. `Panel` and `Plate` differ only in what
+// the ground is filled with; writing the card twice would be two copies of one
+// layout, which is how item 32's `Split` inherited `flex-direction: column` from
+// the rule it shared with `Panel` and stacked its brand panel below the form for
+// three slices while both its checks stayed green. So each pole sets VALUES and
+// one rule set applies them — `_login.scss`'s own pattern, and `_filters.scss`'s
+// before it.
+//
+// THE PAINTING RULES ARE SCOPED TO THE POLES, NOT TO `body.bnd-web`, and that is
+// load-bearing. Declaring the working set on the contract scope is free — a
+// custom property paints nothing — but painting there would break `Original`'s
+// total stand-down. Concretely: `www/me.html` ships an inline
+// `body { background-color: var(--subtle-fg) }`, and `body.bnd-web` at (0,1,1)
+// beats it at (0,0,1) whatever the source order, so a background on the contract
+// scope would repaint /me even under `Original`.
+body.bnd-web {
+  // ORIGINAL'S VALUES. The contract scope declares the host so that anything
+  // needing a DELTA from it has something to read, which is `_login.scss:148`'s
+  // argument restated: "the contract declares the host at Original's value and
+  // the poles re-point it". Nothing is painted from these here.
+  --bnd-web-ground: transparent;
+  --bnd-web-card: transparent;
+  --bnd-web-ring: none;
+  --bnd-web-shadow: none;
+  --bnd-web-radius: 0;
+}
+
+body.bnd-web-panel {
+  --bnd-web-ground: var(--bnd-page);
+  --bnd-web-card: var(--bnd-surface);
+  --bnd-web-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-web-shadow: var(--bnd-shadow-sm);
+  --bnd-web-radius: var(--bnd-radius-lg);
+}
+
+body.bnd-web-plate {
+  // The one value that separates the two poles: a brand wash rather than the
+  // neutral tint. `--bnd-pane` is `color-mix(--bnd-brand 8%, surface)`, so a
+  // customer's own hue carries the page and the card floats on it.
+  --bnd-web-ground: var(--bnd-pane);
+  --bnd-web-card: var(--bnd-surface);
+  --bnd-web-ring: 0 0 0 var(--bnd-line) var(--bnd-border);
+  --bnd-web-shadow: var(--bnd-shadow-md);
+  --bnd-web-radius: var(--bnd-radius-lg);
+}
+
+// ── THE BRIDGE. Frappe's own variables, re-pointed so the vendor's rules follow
+//    our ground instead of a light page that is no longer there.
+//
+//    THIS IS NOT OPTIONAL DECORATION, IT IS WHAT MAKES A POLE SHIPPABLE. Measured
+//    with the ground painted and this block absent, /orders in dark rendered: a
+//    BLAZING WHITE navbar (`.navbar-light { background: white }`), sidebar links
+//    at rgb(56,56,56) on a near-black ground, a heading that had all but vanished,
+//    and `.website-list` as a WHITE SLAB inside our dark card
+//    (`.website-list { background: var(--fg-color) }`). Painting the ground while
+//    the vendor keeps light-mode values is worse than not painting at all — which
+//    is exactly why contracts W1 and W2 were held back from touching the ground,
+//    and why the bridge belongs to the ANCHOR: `Original` must stay stock, and
+//    under a pole WE own the ground so the vendor's variables have to follow it.
+//
+//    GUIDELINES §1.3's amendment is what permits this at all: a website page has
+//    no `data-theme`, so Frappe-variable overrides are scoped to a body class,
+//    which is NARROWER than `[data-theme]` rather than wider.
+//
+//    `--control-bg` IS RE-POINTED BECAUSE `--text-color` IS, and that pairing is
+//    not a preference. `website.bundle` ships
+//        .btn:active { color: var(--text-color) !important;
+//                      background-color: var(--control-bg) !important }
+//    unlayered, so no specificity of ours can beat it — only the values it reads.
+//    Item 32 re-pointed the ink and not the fill and put our flipping ink on
+//    Frappe's fixed #f3f3f3: 1.09:1 on a held button in dark, where untouched
+//    stock managed 10.57:1. A repair that moves half a pair is a regression.
+body:is(.bnd-web-panel, .bnd-web-plate) {
+  --bg-color: var(--bnd-web-ground);
+  --fg-color: var(--bnd-web-card);
+  --text-color: var(--bnd-ink);
+  --control-bg: var(--bnd-pane);
+  --border-color: var(--bnd-border);
+  --text-muted: var(--bnd-ink-muted);
+  --text-light: var(--bnd-ink-subtle);
+  --avatar-frame-color: var(--bnd-ink-subtle);
+}
+
+// THE VENDOR'S LIGHT-MODE LITERALS. Every one of these was found by an
+// exhaustive contrast scan under the pole in DARK — not by reading the source and
+// guessing which variables mattered, which is how the first cut of this bridge
+// left five elements at 1.02:1 to 1.31:1 after "re-pointing everything". A
+// literal is unreachable by any re-point; only a rule that out-specifies it will
+// do, and (0,2,1) is enough for all of them.
+body:is(.bnd-web-panel, .bnd-web-plate) {
+  // `.navbar-light { background: white }` — a blazing white strip on a dark page.
+  .navbar-light {
+    background-color: var(--bnd-web-card);
+  }
+
+  // THE SAME TREATMENT FOR EVERY OTHER WHITE ISLAND, because the rule below
+  // re-inks text INSIDE them and an ink without its fill is a regression — the
+  // lesson slice 4a-ii already recorded once, arriving here in the one place no
+  // check could look.
+  //
+  // The avatar menu is the case the v0.33.0 release review measured: at the
+  // SHIPPED defaults on a dark OS, `.dropdown-item` took `--bnd-ink` (#e8eaec)
+  // while `.dropdown-menu` kept `background-color: #fff` — a LITERAL, so no
+  // re-point can reach it — and "My Account" / "Logout" rendered at 1.21:1 where
+  // stock manages 15.9:1. Nothing saw it because the menu is `display: none`
+  // until it is clicked, so both the axe scan and the text-node walk skip it.
+  //
+  // ENUMERATED FROM THE SERVED BUNDLE, not from memory: 23 rules in
+  // `website.bundle` carry a white background literal, and these are the ones
+  // that hold text this pole re-inks. `body:is(…) .x` is (0,2,1), which clears
+  // every one of them; `.page-item.disabled .page-link` at (0,3,0) is the single
+  // exception and is left alone deliberately — a disabled pagination link is
+  // stock-coloured on stock white, which is the honest stand-down.
+  :is(.dropdown-menu, .card, .list-group-item, .modal-content, .popover, .page-link, .table td, .table th) {
+    background-color: var(--bnd-web-card);
+  }
+
+  // `a { color: rgb(23,23,23) }` and `h3 { color: rgb(23,23,23) }` — both bare
+  // ELEMENT rules at (0,0,1), carrying 1.12:1 on our dark card. Frappe styles
+  // links as body text rather than as links here; `--bnd-ink` keeps that
+  // decision and only makes it follow the mode.
+  :is(a, h1, h2, h3, h4, h5, h6) {
+    color: var(--bnd-ink);
+  }
+
+  // A SECOND RULE FOR THE SAME COLOUR, AND THE ARITHMETIC IS WHY. The block above
+  // is (0,1,2): `body` and the element are ELEMENTS, and `:is()` contributes ONE
+  // class — not two, and not the (0,2,1) the first cut of this file assumed. So
+  // it loses to Bootstrap's `.navbar-light .navbar-brand` at (0,2,0), and the
+  // brand kept `rgba(0,0,0,0.9)` while everything around it flipped. It was found
+  // as a `<span>` with NO matching colour rule at all — inheriting from a parent
+  // whose rule had quietly won.
+  //
+  // Naming the class puts these at (0,2,1)+, which beats (0,2,0) on the element
+  // count. `.ellipsis` and `.my-account-header` join for the same reason, and
+  // `.sidebar-item a.active` because the active item was INVISIBLE in dark —
+  // /orders showed a GAP in its own rail where the current page should be.
+  :is(.navbar-brand, .hero-title, .my-account-header, .ellipsis, .sidebar-item a.active) {
+    color: var(--bnd-ink);
+  }
+
+  // A THIRD RULE, ONE STEP DEEPER, AND IT IS THE SAME LESSON A THIRD TIME. The
+  // navbar's own links are `.navbar-light .navbar-nav .nav-link` at (0,3,0) —
+  // deeper than the brand's (0,2,0) — so the block above at (0,2,1) lost to it
+  // and the guest "Login" link sat at 2.05:1 in dark. Matching `.navbar-nav`
+  // puts this at (0,3,1). Sized against the rule that actually wins, found by
+  // the scan rather than assumed from the one next to it.
+  .navbar-nav .nav-link {
+    color: var(--bnd-ink);
+  }
+
+  // A REGRESSION THIS BRIDGE INTRODUCED, caught by the same scan. Re-pointing
+  // `--avatar-frame-color` gave /me's avatar initial our DARK ink — on a circle
+  // whose own fill is Frappe's `#f3f3f3` literal, which follows no mode. 2.62:1,
+  // worse than the 2.57:1 it replaced. Re-point the fill too, or not the ink:
+  // moving half a pair is the same mistake in a new place.
+  .avatar-frame {
+    background-color: var(--bnd-pane);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS `web_header` — Neutral · Branded. The site header (the navbar).
+// ══════════════════════════════════════════════════════════════════════════
+//
+// COMPOSES WITH THE ANCHOR, not riding its stand-down. `body.bnd-web-header-branded`
+// carries no pole class in its selector, so it paints under Original as readily as
+// under a pole — a branded header on stock geometry, which is the Shopify/Stripe
+// minimal-portal look and the whole reason this is an axis and not a fourth pole.
+// It differs from `login_action` deliberately: the login CTA sits INSIDE the card
+// Original leaves stock, so branding it there is incoherent; the navbar is chrome
+// present identically under every pole.
+//
+// PLACED AFTER THE BRIDGE, and that placement is load-bearing. Under a pole the
+// bridge already paints `.navbar-light` at `--bnd-web-card` with specificity
+// (0,2,1); this rule is (0,2,1) too — `body`(el) + two classes — so it wins ONLY
+// because it comes later. Under Original there is no bridge and stock's
+// `.navbar-light` is (0,1,0), which this beats outright.
+//
+// NO NEW CONTRAST PAIR. `--bnd-brand-solid` is gated 3:1 against every surface
+// (1.4.11, the header against the page) and `--bnd-on-brand` is gated 4.5:1 on it
+// (1.4.3, the brand and links on the header) — the dock-chip pair, one surface over.
+// EVERYTHING NESTS UNDER `.navbar-light`, and that is the specificity fix rather
+// than tidiness. The first cut wrote the ink as
+// `body.bnd-web-header-branded :is(.navbar-brand, …)` at (0,3,1) — and the brand
+// mark stayed `--bnd-ink` at 3.90:1, because the BRIDGE's ink `:is()` groups
+// `.navbar-brand` with `.sidebar-item a.active`, and `:is()` takes its HEAVIEST
+// arm, inflating that whole group to (0,3,2). Measured, not guessed — the fourth
+// time this item that a rule lost to a `:is()` arm it did not appear to contain.
+// Nesting under `.navbar-light` puts the ink at (0,4,1), which clears it; the
+// fill at (0,2,1) ties the bridge's `.navbar-light` and wins on source order,
+// which is why this block sits AFTER the bridge.
+body.bnd-web-header-branded .navbar-light {
+  background-color: var(--bnd-brand-solid);
+  border-color: color-mix(in srgb, var(--bnd-on-brand) 18%, transparent);
+
+  :is(.navbar-brand, .navbar-nav .nav-link, .navbar-toggler) {
+    color: var(--bnd-on-brand);
+  }
+
+  // The mobile toggler's border is a transparent literal in stock; give it the
+  // on-brand ink at low alpha so the hamburger reads on the fill.
+  .navbar-toggler {
+    border-color: color-mix(in srgb, var(--bnd-on-brand) 40%, transparent);
+  }
+}
+
+// ── The ground. UNIVERSAL, because `<body>` is the only element every template
+//    in this surface has. Measured: /support extends `templates/web.html` and
+//    then overrides `{% block content %}` outright, so it has neither
+//    `.page-content-wrapper` nor `main` — and any page may do the same. A pole
+//    that spent itself on the content wrapper would render as nothing there.
+body:is(.bnd-web-panel, .bnd-web-plate) {
+  background-color: var(--bnd-web-ground);
+  // THE INK IS A LITERAL, NOT `--text-color`, which is why re-pointing that
+  // variable left the heading and every list row at rgb(82,82,82) on a dark
+  // ground. `body { color: #525252 }` ships TWICE — once in Bootstrap's reboot
+  // and once in Frappe's own body rule — at (0,0,1) each, so everything without
+  // a colour of its own inherits a light-mode ink no variable can reach.
+  // (0,1,1) beats it with no `!important`. Found by scanning for the winning
+  // declaration rather than by assuming the variable was the whole story, which
+  // is the same method contract W2 needed for `.text-muted`.
+  color: var(--bnd-ink);
+}
+
+// ── The content region as an object, WHERE THERE IS ONE. `.page-content-wrapper
+//    > main` is `templates/web.html`'s own wrapper, present on the portal, the
+//    error pages and every Web Form. Where a template replaced it, the ground
+//    above still applies and this simply does not match — a graceful degradation
+//    rather than a broken pole, and the suite asserts BOTH halves so "renders as
+//    nothing" cannot pass as "renders".
+//
+//    `:not(:has(.portal-container))` EXCLUDES /me, WHICH IS ALREADY A CARD.
+//    Measured: /me's `main` is the full-width tinted ground and
+//    `.portal-container` is the 540px white card floating on it — the one
+//    template that already ships Panel's own composition. Carding `main` there
+//    would put a card inside a card. The next rule re-skins the real one.
+body:is(.bnd-web-panel, .bnd-web-plate) .page-content-wrapper > main:not(:has(.portal-container)) {
+  background-color: var(--bnd-web-card);
+  box-shadow: var(--bnd-web-ring), var(--bnd-web-shadow);
+  border-radius: var(--bnd-web-radius);
+  padding-block: var(--bnd-sp-5);
+  margin-block: var(--bnd-sp-5);
+}
+
+// ── The inverse half of that `:has()` split, and it is a repair rather than
+//    symmetry. /me's `main` is Frappe's OWN tinted ground, painted `#f3f3f3` by
+//    the colocated `www/me.css` — and it does not follow a mode, because Frappe
+//    ships no dark mode for its website at all. Measured with the card rule in
+//    place and this one absent: /me in dark rendered our dark page, then a LIGHT
+//    GREY SLAB, then our dark card. Under a pole the body is the ground, so this
+//    steps aside and lets it show through. Under `Original` it is untouched.
+body:is(.bnd-web-panel, .bnd-web-plate) .page-content-wrapper > main:has(.portal-container) {
+  background-color: transparent;
+}
+
+// ── /me's existing card, re-skinned rather than re-created. Frappe draws it with
+//    its own `--bg-color` and `--shadow-lg`; this hands it the same working set
+//    every other route's card reads, so one pole means one thing across the
+//    surface. Its `border` is commented out in Frappe's own source, which is why
+//    the ring arrives as a box-shadow here exactly as it does above.
+body:is(.bnd-web-panel, .bnd-web-plate) .portal-container {
+  background-color: var(--bnd-web-card);
+  box-shadow: var(--bnd-web-ring), var(--bnd-web-shadow);
+  border-radius: var(--bnd-web-radius);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE CONTRACTS — scoped bare `body.bnd-web`, outside any anchor, so every one
+// of them survives "Original". Each is a MEASURED WCAG failure, which is the
+// bar item 28 set and item 32 held: a preference is not a contract, and the
+// split only means something if the set stays honest.
+// ══════════════════════════════════════════════════════════════════════════
+
+// ── Contract W2: muted text clears AA ───────────────────────────────────────
+//
+// An exhaustive walk of every text-bearing node across five routes — not a list
+// of selectors somebody thought to check — found NINETEEN nodes under AA, on
+// pages a customer's users land on: /404's ONLY link at 3.93:1, /me's three
+// primary actions at 3.76:1 and its avatar initial at 2.57:1, /support's hero
+// subtitle and every footer's "Powered by" at 4.17:1, and — once the fixtures
+// gave the portal data to render — every order row's date and item summary.
+//
+// FOUR CAUSES, AND ONLY ONE OF THEM NEEDS `!important`. The first cut re-pointed
+// `--text-muted` and changed NOTHING: measured, the variable resolved to our
+// value on `<body>` while every failing node still rendered #7c7c7c. A rule scan
+// that reports the winning declaration per element is what separated them:
+//
+//   var(--text-light)          .portal-section .item-link-text, .portal-footer a
+//   var(--avatar-frame-color)  .standard-image
+//   a plain literal            .hero-subtitle (a second rule overrides its own
+//                              var), .footer-col-right
+//   A LITERAL WITH !important  .text-muted { color: #7c7c7c !important }
+//
+// So two re-points and one ordinary rule carry eighteen of the nineteen, and the
+// `!important` below is the only one on this surface.
+//
+// WHY AN `!important` IS SANCTIONED HERE AT ALL. GUIDELINES §1.3 allows two
+// places and says everything else "escalates through the `.bunood` class on
+// `<html>`". THAT ESCAPE DOES NOT EXIST ON A WEBSITE PAGE: `<html>` is hardcoded
+// in `templates/base.html`, there is no hook to add a class to it, and a JS stamp
+// would land after first paint — `_login.scss`'s header records the same dead
+// end. Item 32 met `!important` twice and beat it both times by re-pointing the
+// VARIABLES those rules read; `.text-muted` reads a literal, so that door is
+// shut too. The amendment is recorded in GUIDELINES §1.3 and CLAUDE.md, and it is
+// deliberately the narrowest form: inside `body.bnd-web`, only to beat a vendor
+// `!important` LITERAL, only where a measured WCAG failure is the alternative.
+//
+// LIGHT ONLY, AND THAT IS MEASURED RATHER THAN LAZY. The ground on a website page
+// is still Frappe's `rgb(255,255,255)` in BOTH modes, because nothing here
+// re-points `--bg-color` yet — that is the anchor's job (slice 4), where it is a
+// visible design change and not a repair. Handing Frappe's ink variables our
+// MODE-FLIPPING tokens would put dark-mode ink on a white page. On white:
+//
+//     --bnd-ink-muted   light #4a4e58  8.33:1     dark #b9bec5  1.87:1
+//     --bnd-ink-subtle  light #676b72  5.35:1     dark #9298a2  2.90:1
+//
+// An unconditional re-point would repair 4.17:1 in light and replace it with
+// 1.87:1 in dark — a repair that moves half a pair, which is the shape of the
+// regression item 32 shipped by re-pointing `--text-color` and not `--control-bg`.
+// Dark keeps stock until slice 4 paints the ground, and the standing check
+// asserts light only rather than asserting a promise.
+//
+// `not all and (…dark)` rather than `(…light)`: the negated form also covers the
+// no-preference case, which is what a browser reports when the OS has no setting.
+//
+// NO NEW CONTRAST PAIR. In light `--bnd-surface` IS `#ffffff`, so "ink-muted on
+// surface" and "ink-subtle on surface" — already gated across 11 seeds and both
+// modes — are exactly the pairs these create.
+// A MIXIN BECAUSE IT HAS TWO CALLERS, and the second one is the reason. The
+// repair applies wherever the GROUND IS KNOWN: in light, always (Original's
+// ground is Frappe's white); in dark, only under a pole, because that is the
+// only case where we painted the ground ourselves. Two `@include`s, one copy.
+@mixin muted-ink {
+  --text-light: var(--bnd-ink-subtle);
+  --avatar-frame-color: var(--bnd-ink-subtle);
+
+  // Vendor literals without `!important`: (0,2,1) beats their (0,1,0), and our
+  // sheet is source-last on every non-auth page, so no escalation is needed.
+  :is(.hero-subtitle, .footer-col-right) {
+    color: var(--bnd-ink-muted);
+  }
+
+  // THE ONE `!important` ON THIS SURFACE. See the argument above before adding a
+  // second: the test is a vendor `!important` LITERAL plus a measured failure,
+  // not merely a rule that is inconvenient to beat.
+  .text-muted {
+    color: var(--bnd-ink-muted) !important;
+  }
+}
+
+// UNCONDITIONAL, AND THAT IS THE POINT. This contract used to carry two media
+// arms keyed on `prefers-color-scheme` while the tokens it paints with were
+// keyed on the resolved mode — one fact, two spellings, this repo's first-named
+// trap wearing a media query. It shipped a live 1.87:1.
+//
+// Both spellings are gone. Now that `tokens.dark` requires a pole, the token set
+// ALWAYS matches whatever is actually behind the ink: no pole means Frappe's
+// white ground and light tokens; a pole means our ground and our tokens, in
+// whichever mode resolved. So the repair needs no gate at all — every state it
+// can run in is a state where light ink sits on light ground or dark on dark.
+//
+// Measured across all six reachable combinations of pole x resolved mode, this
+// is the rule that makes `Original` honest: it was repaired in light and left at
+// stock's 4.17:1 in dark-resolved, on an identical white ground, which was
+// arbitrary. It is repaired in both now.
+body.bnd-web {
+  @include muted-ink;
+}
+
+// ── Contract W1: keyboard focus is visible ──────────────────────────────────
+//
+// THE HEADLINE DEFECT, and it is NOT quite the one the planning round wrote
+// down. A state scan — each selector tested against the element in each state,
+// because a scan at rest cannot see a grouped state selector — splits it in two:
+//
+//   FIELDS have no indicator at all.
+//     (0,2,0)  .form-control:focus { outline-width: 0px; box-shadow: none }
+//   BUTTONS have one, and a PALER rule overrides it at equal specificity:
+//     (0,2,0)  .btn:focus         { box-shadow: rgba(23,23,23,.25) 0 0 0 .2rem }
+//     (0,2,0)  .btn-default:focus { box-shadow: rgba(210,210,210,.5) 0 0 0 .2rem }
+//
+// So the failure is 2.4.7 on fields and 1.4.11 on buttons — a 50%-alpha #d2d2d2
+// halo on white is present and unreadable. The plan said "no control shows
+// focus"; half of that was wrong, and a repair written from it would have
+// asserted `box-shadow: none` and passed against stock.
+//
+// LINKS ARE IN THE SET FOR A REASON THAT ONLY MEASUREMENT GIVES. A bare `<a>`
+// keeps the UA ring — but Chrome computes it as `auto 3px` on `/orders` and
+// `auto 1px` on the Web Form's `.navbar-brand`, in the UA's own near-black, so
+// "the browser draws something" is neither consistent nor ours. Covering links
+// makes one ring across the surface; it is also what lets the check assert
+// `outline-style: solid`, which the UA never emits and our rule always does.
+//
+// AN `outline`, NEVER A BOX-SHADOW. That channel is contested by three separate
+// vendor rules here, and item 31's critical defect was a box-shadow written into
+// a channel already carrying focus. The vendor only ever ZEROES `outline`, so a
+// rule that out-specifies it owns the channel outright.
+//
+// SPECIFICITY: `body.bnd-web` is (0,1,1), `:is(.btn, …)` takes its heaviest arm
+// at (0,1,0) and `:focus-visible` adds (0,1,0) — (0,3,1) against the killers'
+// (0,2,0). Sized against the rules that exist in the STATE, not against the base.
+//
+// The colour is `--bnd-accent`, which `contrast_gate.py` already holds at
+// 1.4.11's 3:1 against every surface as a cross product — an outline's neighbour
+// is the CONTAINER's colour, not the control's. No new pair, same as item 32.
+// THE SET IS WIDER THAN `_login.scss`'s, AND MEASUREMENT IS WHY. That one covers
+// `:is(.btn, .form-control, a, [tabindex])`, which is complete on a page where
+// every button carries `.btn`. The website is not that page: `button.navbar-toggler`
+// — the control a phone user needs to reach the menu at all — carries none of those
+// four, and it was the single stop still failing after the rule first landed. So
+// the set is the NATIVE focusable elements plus the two class hooks, which is what
+// "every control" has to mean on a surface whose markup we do not own.
+//
+// It costs no specificity: `:is()` takes its heaviest arm, still `.btn` at (0,1,0),
+// so `button` and friends ride along at no charge.
+body.bnd-web
+  :is(.btn, .form-control, a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  // A 2px literal, not a token: this theme has no line-weight token, and item
+  // 32's first cut wrote `var(--bnd-line-thick, 2px)` — a fallback dressed as a
+  // token, for a property nothing declares, invisible to the no-raw-px guard
+  // because it sat inside a var(). `build.mjs` refuses that shape now.
+  //
+  // AND NO FALLBACK ON `--bnd-accent` EITHER, which is the opposite of what the
+  // twin rule in `_login.scss` still describes in prose. Its comment argues a
+  // fallback is load-bearing here; v0.32.1 removed it and added
+  // `assertTokensDeclared` to forbid it, on the grounds that a base token from
+  // `_tokens.scss`'s `:root` can never be missing, so the fallback is dead code
+  // carrying a second copy of its value — six had already drifted. The stale
+  // comment is what put a fallback back into this file, and the guard is what
+  // caught it; both are corrected in the same commit.
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+  // Frappe's grey `.btn:focus` glow reads as noise beside a real ring, and on
+  // `.btn-default` it is the 1.4.11 failure above. Cleared rather than layered.
+  box-shadow: none;
+}

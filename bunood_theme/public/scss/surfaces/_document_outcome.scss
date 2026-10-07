@@ -1,0 +1,30 @@
+// Accounting totals are evidence, not an action or a decorative highlight.
+// Scope to our summary only: native validation and document controls stay intact.
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-outcome {
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  border: var(--bnd-line) solid var(--bnd-border);
+  box-shadow: none;
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-outcome h3 {
+  color: var(--bnd-brand-ink);
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-outcome dl > div {
+  border-inline-start: var(--bnd-line) solid var(--bnd-border);
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-outcome dl > div:first-child {
+  border-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-outcome dt {
+  color: var(--bnd-ink-muted);
+  opacity: 1;
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-outcome dd {
+  color: var(--bnd-ink);
+}

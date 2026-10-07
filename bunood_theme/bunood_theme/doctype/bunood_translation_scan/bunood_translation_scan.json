@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-08-10 16:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "language",
+  "status",
+  "column_break_head",
+  "started_at",
+  "finished_at",
+  "section_totals",
+  "total_strings",
+  "missing_total",
+  "new_since_previous",
+  "section_payload",
+  "apps_json",
+  "missing_json",
+  "error"
+ ],
+ "fields": [
+  {
+   "fieldname": "language",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Language",
+   "reqd": 1
+  },
+  {
+   "default": "Queued",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Queued\nRunning\nCompleted\nFailed"
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "started_at",
+   "fieldtype": "Datetime",
+   "label": "Started At"
+  },
+  {
+   "fieldname": "finished_at",
+   "fieldtype": "Datetime",
+   "label": "Finished At"
+  },
+  {
+   "fieldname": "section_totals",
+   "fieldtype": "Section Break",
+   "label": "Totals"
+  },
+  {
+   "fieldname": "total_strings",
+   "fieldtype": "Int",
+   "label": "Total Strings"
+  },
+  {
+   "fieldname": "missing_total",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Missing Total"
+  },
+  {
+   "description": "Msgids missing now that were not missing in the previous completed scan of this language — how a newly installed module announces itself.",
+   "fieldname": "new_since_previous",
+   "fieldtype": "Int",
+   "label": "New Since Previous"
+  },
+  {
+   "fieldname": "section_payload",
+   "fieldtype": "Section Break",
+   "label": "Payload"
+  },
+  {
+   "description": "Per-app totals, as JSON: {app: {total, missing}}.",
+   "fieldname": "apps_json",
+   "fieldtype": "Code",
+   "label": "Apps JSON",
+   "options": "JSON"
+  },
+  {
+   "description": "The untranslated msgids per app, as JSON: {app: [msgid, ...]}. The export, the providers and the delta all read THIS scan rather than re-scanning.",
+   "fieldname": "missing_json",
+   "fieldtype": "Code",
+   "label": "Missing JSON",
+   "options": "JSON"
+  },
+  {
+   "fieldname": "error",
+   "fieldtype": "Small Text",
+   "label": "Error"
+  }
+ ],
+ "links": [],
+ "modified": "2026-08-10 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Translation Scan",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

@@ -1,0 +1,2778 @@
+// Content-first visual pilot. This sheet changes only Bunood-owned surfaces;
+// the separate pilot worktree and server remain independent of the original.
+@use "../breakpoints" as bp;
+
+@font-face {
+  font-family: "Bunood Plex Arabic";
+  src: url("/assets/bunood_theme/fonts/plex-arabic-400.woff2") format("woff2");
+  font-weight: 400 599;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Bunood Plex Arabic";
+  src: url("/assets/bunood_theme/fonts/plex-arabic-700.woff2") format("woff2");
+  font-weight: 600 900;
+  font-display: swap;
+}
+
+html[data-theme] {
+  --pilot-paper: #fff;
+  --pilot-canvas: #f8faf8;
+  --pilot-line: #dce4de;
+  --pilot-ink: #172821;
+  --pilot-muted: #65766c;
+  --pilot-brand: #286d4b;
+  --pilot-deep: #153c31;
+  --pilot-deep-ink: #153c31;
+  --pilot-leaf: #e9f2ec;
+  --pilot-brass: #b18445;
+}
+
+html[data-theme="dark"] {
+  --pilot-paper: #1d3027;
+  --pilot-canvas: #17221d;
+  --pilot-line: #3b5545;
+  --pilot-ink: #e7f0e9;
+  --pilot-muted: #b3c4b8;
+  --pilot-brand: #91c8a5;
+  --pilot-deep: #294e3c;
+  --pilot-deep-ink: #e7f0e9;
+  --pilot-leaf: #294536;
+  --pilot-brass: #d9ad70;
+}
+
+html[data-theme] body,
+html[data-theme] body :is(button, input, select, textarea) {
+  font-family: "Bunood Plex Arabic", "Cairo", sans-serif;
+}
+
+html[data-theme] .main-section,
+html[data-theme] .page-container {
+  background: var(--pilot-canvas);
+}
+
+// The frame stays quiet. The user came to work on records, not look at chrome.
+html[data-theme] .bnd-topbar {
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-topbar :is(.bnd-sidebar-toggle, .bnd-topbar-sidebar-toggle, .bnd-topbar-brand) {
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-topbar .bnd-search-field {
+  background: var(--pilot-canvas);
+  border-color: var(--pilot-line);
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-topbar .bnd-search-field kbd {
+  color: var(--pilot-muted);
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-topbar .bnd-topbar-back {
+  display: inline-grid;
+  place-items: center;
+  inline-size: var(--bnd-control-h);
+  block-size: var(--bnd-control-h);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-topbar .bnd-topbar-back:is(:hover, :focus-visible) {
+  background: var(--pilot-leaf);
+  outline-color: var(--pilot-brand);
+}
+
+// Home: action strip, work queue, figures, activity, then optional guidance.
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bnd-sp-4);
+  padding: var(--bnd-sp-4) clamp(var(--bnd-sp-4), 3vw, var(--bnd-sp-7));
+  background: var(--pilot-canvas);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > * {
+  min-inline-size: 0;
+  margin: 0;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-intro {
+  padding-block-end: var(--bnd-sp-2);
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-title {
+  color: var(--pilot-ink);
+  font-size: clamp(1.65rem, 2.4vw, 2.2rem);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-eyebrow {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-xs);
+}
+
+// The workbench controls belong to the content, not a second application bar.
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-scope {
+  display: grid;
+  gap: 12px;
+  padding: 0 0 14px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-view-switch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-view {
+  min-block-size: 40px;
+  padding: 8px 16px;
+  border: 0;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--pilot-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-view.is-current {
+  border-block-end-color: var(--pilot-brand);
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-view:hover,
+html[data-theme] .bnd-home-view:focus-visible {
+  color: var(--pilot-brand);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-scope-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+html[data-theme] .bnd-home-scope-field {
+  display: grid;
+  gap: 4px;
+  min-inline-size: 150px;
+  max-inline-size: 260px;
+  flex: 1 1 160px;
+}
+
+html[data-theme] .bnd-home-scope-label,
+html[data-theme] .bnd-home-scope-note {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-xs);
+}
+
+html[data-theme] .bnd-home-scope-select {
+  inline-size: 100%;
+  block-size: 38px;
+  padding-inline: 12px 28px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-scope :is(button, select):focus-visible {
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: 2px;
+}
+
+html[data-theme] .bnd-home-scope-note { margin: 0; }
+html[data-theme] .bnd-home-scope[aria-busy="true"] { opacity: .65; }
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-subtitle,
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-actions-panel .bnd-home-panel-subtitle {
+  display: none;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-actions-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-2) 0;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-actions-panel .bnd-home-panel-head {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-actions-panel .bnd-home-panel-title {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-intro-actions {
+  padding: 0;
+  gap: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-action {
+  min-block-size: 40px;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  box-shadow: none;
+  font-weight: 600;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-action.is-primary {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-action:hover {
+  transform: none;
+  border-color: var(--pilot-brand);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-action-icon {
+  inline-size: 1.15rem;
+  block-size: 1.15rem;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-attn-panel {
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-head {
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-title {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-lg);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-subtitle {
+  margin: 0;
+  font-size: var(--bnd-text-xs);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-list {
+  padding: 0;
+  gap: 0;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-row {
+  min-block-size: 54px;
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-row:last-child {
+  border-block-end: 0;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-copy {
+  flex: 1;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-note {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-md);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+// Collections is a compact follow-up register: customer, timing and amount
+// stay aligned across the rows; the action remains visible without a hover.
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-collections-panel {
+  border: 1px solid var(--pilot-line);
+  border-radius: 5px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+  overflow: hidden;
+}
+
+html[data-theme] .bnd-home-collections-panel .bnd-home-panel-head {
+  padding: 14px 18px 10px;
+}
+
+html[data-theme] .bnd-home-collections-panel .bnd-home-panel-title {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-lg);
+}
+
+html[data-theme] .bnd-home-collections-tabs {
+  display: flex;
+  gap: 20px;
+  padding-inline: 18px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-collections-tab {
+  padding: 9px 0;
+  border: 0;
+  border-block-end: 2px solid transparent;
+  background: transparent;
+  color: var(--pilot-muted);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-collections-tab.is-current {
+  border-block-end-color: var(--pilot-brand);
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-collections-list { display: grid; }
+
+html[data-theme] .bnd-home-collection-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 2fr) minmax(120px, 1fr) minmax(100px, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  inline-size: 100%;
+  min-block-size: 56px;
+  padding: 8px 18px;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  background: transparent;
+  color: var(--pilot-ink);
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-collection-row:hover,
+html[data-theme] .bnd-home-collection-row:focus-visible {
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-collection-party { display: grid; gap: 2px; min-inline-size: 0; }
+html[data-theme] .bnd-home-collection-party strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html[data-theme] .bnd-home-collection-party small,
+html[data-theme] .bnd-home-collection-due { color: var(--pilot-muted); }
+html[data-theme] .bnd-home-collection-amount { font-variant-numeric: tabular-nums; white-space: nowrap; }
+html[data-theme] .bnd-home-collection-action { color: var(--pilot-brand); font-weight: 700; white-space: nowrap; }
+html[data-theme] .bnd-home-collections-list > .bnd-home-empty { padding: 20px 18px; margin: 0; }
+
+html[data-theme] .bnd-home-collections-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  color: var(--pilot-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-collections-all {
+  padding: 5px 0;
+  border: 0;
+  background: transparent;
+  color: var(--pilot-brand);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+html[data-theme] :is(.bnd-home-collections-tab, .bnd-home-collections-all):focus-visible {
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: 2px;
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-home-collection-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 10px;
+  }
+  html[data-theme] .bnd-home-collection-due { grid-column: 1; }
+  html[data-theme] .bnd-home-collection-amount { grid-column: 2; grid-row: 1; }
+  html[data-theme] .bnd-home-collection-action { grid-column: 2; grid-row: 2; }
+}
+
+@include bp.bnd-until(sm) {
+  html[data-theme] .bnd-home-scope-field {
+    flex-basis: 100%;
+    max-inline-size: none;
+  }
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  border: 1px solid var(--pilot-line);
+  border-block-start: 2px solid var(--pilot-brand);
+  border-radius: 6px;
+  background: var(--pilot-line);
+  overflow: hidden;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric {
+  min-block-size: 164px;
+  justify-content: flex-start;
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 0;
+  border-radius: 0;
+  background: var(--pilot-paper);
+  box-shadow: none;
+  transform: none;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric:is(:hover, :focus-visible) {
+  transform: none;
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-top {
+  min-block-size: 34px;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-icon {
+  display: grid;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 7px;
+  color: var(--pilot-brand);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-icon > svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-label {
+  min-inline-size: 0;
+  color: var(--pilot-ink);
+  font-size: .88rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-value {
+  inline-size: 100%;
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--pilot-ink);
+  direction: ltr;
+  text-align: end;
+  unicode-bidi: isolate;
+  font-size: clamp(1.45rem, 1.5vw, 1.8rem);
+  font-weight: 750;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-context {
+  display: block;
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-xs);
+  line-height: 1.35;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-foot {
+  display: flex;
+  inline-size: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2);
+  margin-block-start: auto;
+  padding-block-start: var(--bnd-sp-2);
+  border-block-start: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-period {
+  margin-block-start: 0;
+  padding-block-start: 0;
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-xs);
+  text-align: start;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-destination {
+  color: var(--pilot-brand);
+  font-size: var(--bnd-text-xs);
+  font-weight: 700;
+  white-space: normal;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-destination::after {
+  content: "→";
+  margin-inline-start: var(--bnd-sp-1);
+}
+
+html[dir="rtl"][data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric-destination::after {
+  content: "←";
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric:is(:hover, :focus-visible) .bnd-home-metric-destination {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > :is(.bnd-home-recent-panel, .bnd-home-reports-panel, .bnd-home-process-panel, .bnd-start-guide, .bnd-launch-review) {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+// Invoice: the item sheet is the working canvas; identity and party fields
+// occupy only the space they need. No data field or action is removed.
+html[data-theme] .bnd-bill {
+  padding: var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-bill-seal { display: none; }
+
+html[data-theme] .bnd-bill-intro {
+  min-block-size: 58px;
+  margin: calc(var(--bnd-sp-3) * -1) calc(var(--bnd-sp-3) * -1) var(--bnd-sp-2);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border-block-end: 1px solid #153c31;
+  border-radius: 4px 4px 0 0;
+  background: #153c31;
+  color: #fff;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--pilot-ink) 4%, transparent);
+}
+
+html[data-theme] .bnd-bill-intro h2 {
+  margin: 0;
+  color: #fff;
+  font-size: var(--bnd-text-lg);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-bill-brand,
+html[data-theme] .bnd-bill-document-state {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-xs);
+}
+
+html[data-theme] .bnd-document-state,
+html[data-theme][data-bnd-crumbs] body[data-route^="Form"] .page-head .title-area > :is(.page-indicator-pill, .indicator-pill),
+html[data-theme] .bnd-dochead-status {
+  min-block-size: 0;
+  padding: 0 var(--bnd-sp-2);
+  border: 0;
+  border-inline-start: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--bnd-state-color, var(--pilot-muted));
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action:not(.bnd-bill-action-save) {
+  border-color: #b5d8bf;
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action-save {
+  border-radius: 10px;
+  background: #2d8055;
+  border-color: #8ccaa4;
+  color: #fff;
+  box-shadow: 0 2px 0 #0b2d22;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action-save:hover {
+  background: #276e49;
+  border-color: #d9eddf;
+  color: #fff;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action.bnd-bill-action-submit-print {
+  border-color: #edf5ed;
+  background: #edf5ed;
+  color: #153c31;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action.bnd-bill-action-submit-print:hover {
+  border-color: #fff;
+  background: #fff;
+  color: #153c31;
+}
+
+html[data-theme] .bnd-bill-party {
+  min-inline-size: 0;
+  padding: var(--bnd-sp-2);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-canvas);
+}
+
+html[data-theme] .bnd-bill-party h3,
+html[data-theme] .bnd-bill-items > h3 {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-md);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-bill-party > .bnd-bill-essentials {
+  grid-template-columns: minmax(0, 2fr) minmax(9rem, 1fr);
+}
+
+html[data-theme] .bnd-bill-party > .bnd-bill-essentials > .frappe-control:first-child {
+  grid-column: auto;
+}
+
+html[data-theme] .bnd-bill-more-fields > .bnd-bill-essentials {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-block-start: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-bill-more-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: var(--bnd-control-h);
+  gap: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-deep-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-bill-more-toggle::after {
+  content: "";
+  display: block;
+  flex: none;
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+html[dir="rtl"][data-theme] .bnd-bill-more-toggle::after {
+  border-inline-end: 0;
+  border-inline-start: 2px solid currentColor;
+}
+
+html[data-theme] .bnd-bill-party.is-open .bnd-bill-more-toggle::after {
+  transform: translateY(2px) rotate(225deg);
+}
+
+html[data-theme] .bnd-bill-party:not(.is-open) .bnd-bill-more-fields { display: none; }
+
+html[data-theme] .bnd-bill-items {
+  min-inline-size: 0;
+  padding-block: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-bill-stock-settings,
+html[data-theme] .bnd-bill-stock-settings[data-enabled="false"] {
+  grid-template-columns: max-content minmax(10rem, 15rem) minmax(0, 1fr);
+  gap: var(--bnd-sp-2);
+  min-block-size: 52px;
+  margin-block: var(--bnd-sp-2);
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-canvas);
+}
+
+html[data-theme] .bnd-bill-stock-note {
+  font-size: var(--bnd-text-xs);
+  line-height: 1.4;
+}
+
+html[data-theme] .bnd-bill-lines {
+  margin-block-start: var(--bnd-sp-2);
+  border: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-bill-line-head {
+  background: var(--pilot-canvas);
+  color: var(--pilot-muted);
+}
+
+html[data-theme] .bnd-bill-search { margin-block-start: var(--bnd-sp-2); }
+html[data-theme] .bnd-bill-items > .bnd-bill-hint { margin-block-start: var(--bnd-sp-1); }
+
+html[data-theme] .bnd-bill-amount-summary {
+  margin-block-start: var(--bnd-sp-3);
+  border-color: var(--pilot-line);
+  border-radius: 4px;
+}
+
+html[data-theme] .bnd-bill-amount-summary-head { padding: var(--bnd-sp-2) var(--bnd-sp-3); }
+html[data-theme] .bnd-bill-amount-grand { background: var(--pilot-brand); }
+
+html[data-theme] .frappe-list {
+  border: 1px solid var(--pilot-line);
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .frappe-list .list-row-head { background: var(--pilot-canvas); }
+
+@container (width >= #{bp.bnd-cq(bill-rail)}) {
+  html[data-theme] .bnd-bill-main {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--bnd-sp-2);
+    align-items: start;
+  }
+
+  html[data-theme] .bnd-bill-party {
+    display: grid;
+    grid-template-columns: minmax(11rem, auto) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: var(--bnd-sp-2);
+    padding: var(--bnd-sp-2);
+  }
+
+  html[data-theme] .bnd-bill-party .bnd-bill-essentials {
+    grid-template-columns: minmax(0, 2fr) minmax(10rem, .7fr);
+    gap: var(--bnd-sp-2);
+  }
+
+  html[data-theme] .bnd-bill-party .bnd-bill-section-head,
+  html[data-theme] .bnd-bill-party .bnd-bill-more-toggle {
+    align-self: end;
+  }
+
+  html[data-theme] .bnd-bill-essentials > .frappe-control:first-child { grid-column: auto; }
+  html[data-theme] .bnd-bill-party .bnd-bill-more-fields {
+    grid-column: 1 / -1;
+    padding-block-start: var(--bnd-sp-3);
+    border-block-start: 1px solid var(--pilot-line);
+  }
+  html[data-theme] .bnd-bill-party .bnd-bill-more-fields > .bnd-bill-essentials {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  html[data-theme] .bnd-bill-party .bnd-bill-context {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--bnd-sp-2);
+    padding-block-start: var(--bnd-sp-1);
+    border-block-start: 1px solid var(--pilot-line);
+  }
+
+  html[data-theme] .bnd-bill-invoice-number .bnd-bill-hint { font-size: var(--bnd-text-xs); }
+}
+
+@include bp.bnd-until(xl) {
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-summary {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric { grid-column: span 2; }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric:nth-child(n+4) { grid-column: span 3; }
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-bill-identity {
+    padding: var(--bnd-sp-2) 0;
+    background: var(--pilot-paper);
+    color: var(--pilot-ink);
+  }
+
+  html[data-theme] .bnd-bill-toolbar {
+    border: 1px solid #153c31;
+    border-radius: 4px;
+    background: #153c31;
+    color: #fff;
+  }
+
+  html[data-theme] .bnd-bill-party > .bnd-bill-essentials {
+    grid-template-columns: minmax(0, 1fr) minmax(8rem, .55fr);
+  }
+
+  html[data-theme] .bnd-bill-more-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-block-size: 38px;
+    margin-block-start: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-2);
+    border: 0;
+    border-block-end: 1px solid var(--pilot-line);
+    background: transparent;
+    color: var(--pilot-brand);
+    font-size: var(--bnd-text-sm);
+    font-weight: 700;
+  }
+
+  html[data-theme] .bnd-bill-more-toggle::after {
+    margin-inline-start: 0;
+  }
+
+  html[data-theme] .bnd-bill-party:not(.is-open) .bnd-bill-more-fields { display: none; }
+
+  html[data-theme] .bnd-bill-mobile-total,
+  html[data-theme] .bnd-bill-mobile-total strong { color: var(--pilot-ink); }
+
+  html[data-theme] .bnd-bill-stock-settings,
+  html[data-theme] .bnd-bill-stock-settings[data-enabled="false"] {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  html[data-theme] .bnd-bill-stock-note { grid-column: 1 / -1; }
+}
+
+@include bp.bnd-until(sm) {
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) { padding: var(--bnd-sp-3); }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-copy { flex-direction: column; align-items: flex-start; }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric { grid-column: auto; }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric:nth-child(n+4) { grid-column: auto; }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-metric:last-child { grid-column: 1 / -1; }
+}
+
+// Invoice workbench: one quiet document surface, with hierarchy supplied by
+// type, alignment and generous controls. The table remains full width.
+html[data-theme] .bnd-bill {
+  padding: var(--bnd-sp-4);
+  border-radius: 10px;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-bill-intro {
+  display: flex;
+  min-block-size: 0;
+  margin: calc(var(--bnd-sp-4) * -1) calc(var(--bnd-sp-4) * -1) var(--bnd-sp-1);
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 10px 10px 0 0;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-bill-identity {
+  min-inline-size: 0;
+  gap: var(--bnd-sp-3);
+  color: #fff;
+}
+
+html[data-theme] .bnd-bill-intro h2 {
+  color: #fff;
+  font-size: clamp(1.4rem, 2vw, 1.85rem);
+  line-height: 1.25;
+}
+
+// The application header already carries Bunood. Removing its repeat here
+// makes the document title and state a compact two-line identity.
+html[data-theme] .bnd-bill-brand { display: none; }
+
+html[data-theme] .bnd-bill-document-state { color: #d7e8dd; }
+
+html[data-theme] .bnd-bill-toolbar {
+  min-inline-size: 0;
+  padding: 0;
+  gap: var(--bnd-sp-2);
+  background: transparent;
+}
+
+html[data-theme] .bnd-bill-intro .bnd-document-state {
+  color: #fff;
+  border-inline-start-color: #a9d2b7;
+}
+
+// Each action has a readable surface against the dark invoice rail. The
+// centered label sits between equal-width icon and trailing tracks in RTL/LTR.
+html[data-theme] .bnd-bill-toolbar > .bnd-bill-action.bnd-bill-rail-toggle {
+  color: #153c31;
+  border-color: #c9dfcf;
+  background: #e3efe6;
+}
+
+html[data-theme] .bnd-bill-toolbar > .bnd-bill-action.bnd-bill-rail-toggle:hover {
+  color: #0e3126;
+  border-color: #fff;
+  background: #f2f8f3;
+}
+
+html[data-theme] .bnd-bill-action-group-commit > .bnd-bill-action.bnd-bill-action-print,
+html[data-theme] .bnd-bill-tools > summary {
+  color: #fff;
+  border-color: #9fc9ab;
+  background: #214c3b;
+}
+
+html[data-theme] .bnd-bill-action-group-commit > .bnd-bill-action.bnd-bill-action-print:hover,
+html[data-theme] .bnd-bill-tools > summary:hover {
+  color: #fff;
+  background: #2c6048;
+  border-color: #d9eddf;
+}
+
+html[data-theme] .bnd-bill-toolbar :is(.bnd-bill-action, summary):focus-visible {
+  outline: 2px solid #d7e8dd;
+  outline-offset: 2px;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action,
+html[data-theme] .bnd-bill-tools > summary {
+  display: inline-grid;
+  grid-template-columns: 1.125rem max-content 1.125rem;
+  align-items: center;
+  justify-content: center;
+  column-gap: .375rem;
+  min-block-size: 44px;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border-radius: 10px;
+  font-size: .95rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+
+html[data-theme] .bnd-bill-toolbar :is(.bnd-bill-action, summary) .bnd-bill-action-icon {
+  grid-column: 1;
+  justify-self: center;
+}
+
+html[data-theme] .bnd-bill-toolbar :is(.bnd-bill-action, summary) .bnd-bill-action-label {
+  grid-column: 2;
+  justify-self: center;
+  align-self: center;
+  text-align: center;
+}
+
+html[data-theme] .bnd-bill-tools > summary::after {
+  content: "";
+  grid-column: 3;
+  place-self: center;
+  inline-size: .5rem;
+  block-size: .5rem;
+  border-inline-end: 2px solid currentColor;
+  border-block-end: 2px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+}
+
+html[data-theme] .bnd-bill-tools[open] > summary::after {
+  transform: translateY(2px) rotate(225deg);
+}
+
+html[dir="rtl"][data-theme] .bnd-bill-tools > summary::after {
+  border-inline-end: 0;
+  border-inline-start: 2px solid currentColor;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action-save {
+  min-block-size: 44px;
+}
+
+// The dropdown is a white document surface, not part of the dark action rail.
+// Give its actions their own ink and compact rows so labels never disappear.
+html[data-theme] .bnd-bill-tools-body {
+  inline-size: min(19rem, calc(100vw - 2rem));
+  padding: .375rem;
+  border-radius: 12px;
+  background: var(--pilot-paper);
+  color: var(--pilot-deep-ink);
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-tools-body .bnd-bill-action {
+  display: flex;
+  inline-size: 100%;
+  min-block-size: 40px;
+  justify-content: flex-start;
+  gap: var(--bnd-sp-2);
+  padding: .5rem .625rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  box-shadow: none;
+  background: transparent;
+  color: var(--pilot-deep-ink);
+  font-size: .875rem;
+  text-align: start;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-tools-body .bnd-bill-action:hover,
+html[data-theme] .bnd-bill-toolbar .bnd-bill-tools-body .bnd-bill-action:focus-visible {
+  border-color: var(--pilot-line);
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-tools-body .bnd-bill-action .bnd-bill-action-label {
+  min-inline-size: 0;
+  justify-self: auto;
+  text-align: start;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-tools-body .bnd-bill-action-icon {
+  color: inherit;
+}
+
+html[data-theme] .bnd-bill-tools-body .bnd-bill-action kbd {
+  margin-inline-start: auto;
+  color: inherit;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action-save:disabled {
+  color: #d5e2d9;
+  border-color: #658775;
+  background: #315446;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-bill-toolbar .bnd-bill-action-save:disabled .bnd-bill-action-icon {
+  color: inherit;
+}
+
+html[data-theme] .bnd-bill-main { gap: var(--bnd-sp-2); }
+
+html[data-theme] .bnd-bill-party {
+  padding: 0 0 var(--bnd-sp-1);
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-bill-party h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+html[data-theme] .bnd-bill-party .control-label,
+html[data-theme] .bnd-bill-context dt {
+  color: var(--pilot-muted);
+  font-size: .81rem;
+}
+
+html[data-theme] .bnd-bill-party .frappe-control :is(input, select, .control-value) {
+  min-block-size: 40px;
+  font-size: .95rem;
+}
+
+html[data-theme] .bnd-bill-context {
+  margin: 0;
+  padding-block-start: var(--bnd-sp-1);
+  border-block-start: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-bill-context dd {
+  color: var(--pilot-ink);
+  font-size: .95rem;
+  font-weight: 650;
+}
+
+html[data-theme] .bnd-bill-context .bnd-bill-hint {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+html[data-theme] .bnd-bill-more-toggle { min-block-size: 40px; }
+
+html[data-theme] .bnd-bill-items > h3 {
+  margin-block: 2px var(--bnd-sp-1);
+  padding: 0;
+  border: 0;
+  color: var(--pilot-ink);
+  font-size: clamp(1.25rem, 1.7vw, 1.55rem);
+  line-height: 1.25;
+}
+
+html[data-theme] .bnd-bill-items { padding-block: var(--bnd-sp-1); }
+
+html[data-theme] .bnd-bill-stock-settings,
+html[data-theme] .bnd-bill-stock-settings[data-enabled="false"] {
+  min-block-size: 0;
+  margin-block: var(--bnd-sp-1);
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border: 1px solid var(--pilot-line);
+  border-radius: 6px;
+  background: var(--pilot-canvas);
+}
+
+html[data-theme] .bnd-bill-stock-note { font-size: .82rem; }
+
+html[data-theme] .bnd-bill-lines {
+  margin-block-start: var(--bnd-sp-1);
+  border: 1px solid var(--pilot-line);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+html[data-theme] .bnd-bill-line-head {
+  min-block-size: 40px;
+  background: var(--pilot-canvas);
+  color: var(--pilot-ink);
+  font-weight: 650;
+}
+
+html[data-theme] .bnd-bill-line-head > span { font-size: .82rem; }
+
+@container (width >= #{bp.bnd-cq(bill-rail)}) {
+  html[data-theme] .bnd-bill-main { gap: var(--bnd-sp-1); }
+  html[data-theme] .bnd-bill-line-body > div { padding: var(--bnd-sp-1); }
+}
+
+html[data-theme] .bnd-bill-line .frappe-control :is(input:not([type=checkbox]), select, .control-value) {
+  min-block-size: 40px;
+  font-size: .94rem;
+}
+
+html[data-theme] .bnd-bill-line:focus-within {
+  --bnd-bill-row-bg: color-mix(in srgb, var(--pilot-leaf) 35%, var(--pilot-paper));
+  box-shadow: inset 2px 0 0 var(--pilot-brand);
+}
+
+html[data-theme] .bnd-bill-search .bnd-bill-button { min-block-size: 40px; font-size: .88rem; }
+html[data-theme] .bnd-bill-search { margin-block-start: var(--bnd-sp-1); }
+html[data-theme] .bnd-bill-search .bnd-bill-button:first-child {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+html[data-theme] .bnd-bill-amount-summary {
+  overflow: hidden;
+  margin-block-start: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-bill-amount-summary-head { background: var(--pilot-paper); }
+html[data-theme] .bnd-bill-amount-breakdown > div { padding: var(--bnd-sp-2) var(--bnd-sp-3); }
+html[data-theme] .bnd-bill-amount-breakdown dd { margin-block-start: var(--bnd-sp-1); }
+html[data-theme] .bnd-bill-amount-grand {
+  min-block-size: 68px;
+  align-items: center;
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  border: 0;
+  border-block-start: 1px solid var(--pilot-line);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-bill-amount-grand > span {
+  color: var(--pilot-ink);
+  font-size: 1rem;
+}
+
+html[data-theme] .bnd-bill-amount-grand > strong {
+  color: var(--pilot-deep-ink);
+  font-size: clamp(1.65rem, 3cqi, 2.2rem);
+  font-variant-numeric: tabular-nums;
+}
+
+// The Home greeting is already distinct through its dark surface and type;
+// keep the edge clean instead of adding a decorative brass stripe.
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-title {
+  font-size: clamp(2rem, 2.9vw, 2.7rem);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-attn-panel {
+  display: grid;
+  grid-template-columns: minmax(12rem, .27fr) minmax(0, 1fr);
+  overflow: hidden;
+  border-color: var(--pilot-deep);
+  border-radius: 7px;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-head {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--bnd-sp-2);
+  padding: var(--bnd-sp-4);
+  border: 0;
+  border-inline-end: 0;
+  background: var(--pilot-deep);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-title {
+  color: #fff;
+  font-size: clamp(1.2rem, 1.7vw, 1.5rem);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-subtitle {
+  color: #c8dccd;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-mark {
+  inline-size: var(--bnd-sp-5);
+  block-size: var(--bnd-sp-5);
+  margin-block-start: var(--bnd-sp-2);
+  color: #e1f0e4;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-row {
+  min-block-size: 62px;
+  transition: background-color var(--bnd-dur-fast) var(--bnd-ease), box-shadow var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-row:is(:hover, :focus-visible) {
+  background: var(--pilot-leaf);
+  box-shadow: inset 3px 0 0 var(--pilot-brand);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-note {
+  color: var(--pilot-deep-ink);
+  font-size: clamp(1rem, 1.5vw, 1.25rem);
+}
+
+// A workflow is a route through actual documents, not another alert-card
+// gallery. The complete sequence stays individually clickable and scannable.
+html[data-theme] .bnd-home-process-panel {
+  overflow: hidden;
+  border: 1px solid var(--pilot-line);
+  border-block-start: 3px solid var(--pilot-deep);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-process-panel > .bnd-home-panel-head {
+  min-block-size: 68px;
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-process-panel .bnd-home-panel-title {
+  color: var(--pilot-deep-ink);
+  font-size: clamp(1.2rem, 1.7vw, 1.5rem);
+}
+
+html[data-theme] .bnd-home-process-panel .bnd-home-panel-mark { color: var(--pilot-brand); }
+
+html[data-theme] .bnd-home-lanes {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr;
+  grid-template-areas: "title" "next" "steps";
+  align-content: start;
+  gap: var(--bnd-sp-2);
+  min-block-size: 294px;
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 0;
+  border-inline-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-lane:last-child { border-inline-end: 0; }
+html[data-theme] .bnd-home-lane:is(:hover, :focus-within) {
+  border-color: var(--pilot-line);
+  background: var(--pilot-leaf);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-lane-title {
+  grid-area: title;
+  margin: 0;
+  color: var(--pilot-ink);
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-home-lane-steps {
+  grid-area: steps;
+  flex-direction: column;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+  padding-inline-start: var(--bnd-sp-2);
+  border-inline-start: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-lane-step {
+  justify-content: flex-start;
+  min-block-size: 33px;
+  inline-size: 100%;
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+  text-align: start;
+}
+
+html[data-theme] .bnd-home-lane-step:is(:hover, :focus-visible) {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-paper);
+  color: var(--pilot-deep-ink);
+}
+
+html[data-theme] .bnd-home-lane-step .bnd-home-action-icon {
+  inline-size: 1rem;
+  block-size: 1rem;
+}
+
+html[data-theme] .bnd-home-lane-next {
+  grid-area: next;
+  justify-content: center;
+  min-block-size: 44px;
+  min-inline-size: 0;
+  margin: var(--bnd-sp-1) 0;
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border: 1px solid var(--pilot-brand);
+  border-radius: 4px;
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+  font-size: var(--bnd-text-sm);
+  text-align: center;
+}
+
+html[data-theme] .bnd-home-lane-next:hover {
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-recent-panel {
+  border-block-start: 3px solid var(--pilot-deep);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-reports-panel {
+  border: 1px solid var(--pilot-line);
+  border-block-start: 3px solid var(--pilot-deep);
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-reports-panel > .bnd-home-panel-head {
+  background: var(--pilot-leaf);
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-reports-panel .bnd-home-panel-title {
+  color: var(--pilot-deep-ink);
+  font-size: var(--bnd-text-lg);
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-reports-panel .bnd-home-trend,
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-reports-panel .bnd-home-status {
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-recent-value {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--bnd-text-md);
+}
+
+// Quote, payment, and other composed forms share a document rhythm without
+// applying a global restyle to native Frappe pages.
+html[data-theme] .bnd-simple-form-head {
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: var(--pilot-deep);
+  overflow: hidden;
+}
+
+html[data-theme] .bnd-simple-heading {
+  min-block-size: 104px;
+  padding: var(--bnd-sp-4) var(--bnd-sp-5);
+  color: #fff;
+}
+
+html[data-theme] .bnd-simple-form-head h2 {
+  color: #fff;
+  font-size: clamp(1.45rem, 2.3vw, 2rem);
+}
+
+html[data-theme] .bnd-simple-form-head .bnd-simple-copy { color: #d3e4d7; }
+html[data-theme] .bnd-simple-form-head .bnd-document-state { color: #f4dfb3; border-color: var(--pilot-brass); }
+html[data-theme] .bnd-simple-form-head .bnd-simple-switch { margin-inline-end: var(--bnd-sp-4); }
+html[data-theme] .bnd-simple-actions {
+  border-block-end: 2px solid var(--pilot-deep);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--pilot-deep) 6%, transparent);
+}
+
+html[data-theme] .bnd-task-stages {
+  border-radius: 0 0 6px 6px;
+  overflow: hidden;
+}
+
+html[data-theme] .bnd-task-stages li:first-child {
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+}
+
+html[data-theme] .bnd-task-panel-lead {
+  border-block-start: 0;
+  border-inline-start: var(--bnd-line) solid var(--bnd-border);
+  border-radius: 6px;
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-task-panel-head h3,
+html[data-theme] .bnd-simple-group h3 {
+  color: var(--pilot-deep-ink);
+  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+}
+
+html[data-theme] .bnd-task-panel-sheet,
+html[data-theme] .bnd-task-panel-aside,
+html[data-theme] .bnd-task-panel-party,
+html[data-theme] .bnd-task-panel-flow,
+html[data-theme] .bnd-task-panel-amount,
+html[data-theme] .bnd-task-outcome,
+html[data-theme] .bnd-simple-group {
+  border-radius: 6px;
+}
+
+html[data-theme] .bnd-task-panel-sheet,
+html[data-theme] .bnd-task-panel-amount,
+html[data-theme] .bnd-simple-group:first-child {
+  border-block-start: 3px solid var(--pilot-deep);
+}
+
+html[data-theme] .bnd-task-outcome {
+  border-inline-start: var(--bnd-line) solid var(--bnd-border);
+  background: var(--pilot-leaf);
+}
+
+// Advanced/native documents keep every Frappe field; only their existing
+// document heading receives the same visual signpost as the composed forms.
+html[data-theme][data-bnd-form][data-bnd-form-header] .bnd-dochead {
+  --bnd-form-band-muted: var(--pilot-muted);
+  --bnd-form-tile-bg: var(--pilot-paper);
+  --bnd-form-tile-border: var(--pilot-line);
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border-inline-start: 0;
+  border-radius: 4px;
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+}
+
+html[data-theme][data-bnd-form][data-bnd-form-header] .bnd-dochead-title {
+  font-size: clamp(1.35rem, 1.8vw, 1.8rem);
+}
+
+// The invoice workbench already shows the document title and status. On saved
+// invoices, keep only the native Activity action from the otherwise duplicate
+// heading, so the item sheet does not start below a second summary panel.
+html[data-theme] body:is([data-route^="Form/Sales Invoice/"], [data-route^="Form/Purchase Invoice/"])
+  .page-container.bnd-bill-simple-active .layout-main-section > .bnd-dochead {
+  display: flex;
+  justify-content: flex-end;
+  margin-block: 0 var(--bnd-sp-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+html[data-theme] .page-container.bnd-bill-simple-active .bnd-dochead > :is(
+  .bnd-dochead-title, .bnd-dochead-meta, .bnd-dochead-tiles, .bnd-stagepath
+) { display: none; }
+html[data-theme] .page-container.bnd-bill-simple-active .bnd-dochead:has(.bnd-dochead-actions:empty) { display: none; }
+
+html[data-theme] .frappe-list .list-row-head {
+  border-block-start: 3px solid var(--pilot-deep);
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+}
+
+@include bp.bnd-until(xl) {
+  html[data-theme] .bnd-home-lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-theme] .bnd-home-lane:nth-child(even) { border-inline-end: 0; }
+  html[data-theme] .bnd-home-lane:nth-child(-n+2) { border-block-end: 1px solid var(--pilot-line); }
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-bill-intro { display: contents; }
+  html[data-theme] .bnd-bill-party .frappe-control :is(input, select, .control-value),
+  html[data-theme] .bnd-bill-line .frappe-control :is(input:not([type=checkbox]), select, .control-value) {
+    min-block-size: 44px;
+  }
+  html[data-theme] .bnd-bill-identity {
+    min-block-size: 0;
+    margin: 0;
+    padding: var(--bnd-sp-2) 0;
+    background: var(--pilot-paper);
+    border-radius: 0;
+  }
+  html[data-theme] .bnd-bill-intro h2,
+  html[data-theme] .bnd-bill-intro .bnd-bill-identity { color: var(--pilot-ink); }
+  html[data-theme] .bnd-bill-intro .bnd-bill-document-state { color: var(--pilot-muted); }
+  html[data-theme] .bnd-bill-intro .bnd-document-state {
+    color: var(--bnd-state-color, var(--pilot-muted));
+    border-inline-start-color: currentColor;
+  }
+  html[data-theme] .bnd-bill-toolbar {
+    padding: var(--bnd-sp-2);
+    background: #153c31;
+  }
+  html[data-theme] .bnd-bill-mobile-total { margin-inline: var(--bnd-sp-2); }
+  html[data-theme] .bnd-bill-mobile-total,
+  html[data-theme] .bnd-bill-mobile-total strong { color: #fff; }
+  html[data-theme] .bnd-bill-context {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bnd-sp-2);
+  }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) > .bnd-home-attn-panel { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-head {
+    border-inline-end: 0;
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+  html[data-theme] .bnd-simple-heading { min-block-size: 0; padding: var(--bnd-sp-3); }
+  html[data-theme] .bnd-home-lanes { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-lane { min-block-size: 0; border-inline-end: 0; border-block-end: 1px solid var(--pilot-line); }
+  html[data-theme] .bnd-home-lane:last-child { border-block-end: 0; }
+}
+
+@include bp.bnd-until(sm) {
+  // Arabic action names and the running total need their own row; never clip
+  // the preview/tools controls off the phone's inline edge.
+  html[data-theme] .bnd-bill-toolbar { flex-wrap: wrap; }
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-action-group-commit {
+    flex: 1 1 100%;
+    min-inline-size: 0;
+  }
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-action-print .bnd-bill-action-label { display: none; }
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-rail-toggle,
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-action-submit-print,
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-tools > summary {
+    grid-template-columns: 1.25rem;
+    min-inline-size: 48px;
+    padding-inline: var(--bnd-sp-2);
+  }
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-rail-toggle .bnd-bill-action-icon,
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-action-submit-print .bnd-bill-action-icon,
+  html[data-theme] .bnd-bill-toolbar .bnd-bill-tools > summary .bnd-bill-action-icon { grid-column: 1; }
+  html[data-theme] .bnd-bill-tools > summary::after { display: none; }
+  html[data-theme] .bnd-home-lanes { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-lane { border-inline-end: 0; border-block-end: 1px solid var(--pilot-line); }
+  html[data-theme] .bnd-home-lane:last-child { border-block-end: 0; }
+  html[data-theme] .bnd-task-panel-lead { padding: var(--bnd-sp-3); }
+  html[data-theme] .bnd-task-workbench[data-doctype="Quotation"] .bnd-task-panel-lead .bnd-task-panel-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--bnd-sp-2);
+  }
+  html[data-theme] .bnd-task-workbench[data-doctype="Quotation"] .bnd-task-panel-lead .bnd-task-panel-fields > :nth-child(-n+3) { grid-column: 1 / -1; }
+}
+
+// Real Estate is an operations desk, not a collection of ornamental KPI cards.
+// Start with actions and work to resolve, then let the portfolio figures and
+// property lifecycle read as a compact, full-width working sheet.
+html[data-theme] .bnd-home-dashboard.is-real-estate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-4) clamp(var(--bnd-sp-3), 2.5vw, var(--bnd-sp-6));
+  background: var(--pilot-canvas);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > * {
+  min-inline-size: 0;
+  margin: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-intro {
+  padding-block: 0 var(--bnd-sp-2);
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-title {
+  font-size: clamp(1.6rem, 2.3vw, 2rem);
+  line-height: 1.25;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-subtitle {
+  font-size: .9rem;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-actions-panel {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  padding: 0 0 var(--bnd-sp-3);
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-actions-panel .bnd-home-panel-head {
+  padding: 0;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-actions-panel .bnd-home-panel-title {
+  font-size: .9rem;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-actions-panel .bnd-home-panel-subtitle { display: none; }
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-intro-actions { padding: 0; }
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-action {
+  min-block-size: 42px;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border-width: 1px;
+  border-radius: 4px;
+  box-shadow: none;
+  font-size: .86rem;
+  transition: background var(--bnd-dur-fast) var(--bnd-ease), border-color var(--bnd-dur-fast) var(--bnd-ease);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-action:hover { transform: none; }
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-panel {
+  border-color: var(--pilot-line);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-panel > .bnd-home-panel-head {
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-panel > .bnd-home-panel-head .bnd-home-panel-title {
+  font-size: 1.1rem;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-attn-panel {
+  display: grid;
+  grid-template-columns: minmax(12rem, .3fr) minmax(0, 1fr);
+  grid-column: auto;
+  align-items: stretch;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-attn-panel .bnd-home-panel-head {
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 0;
+  border-inline-end: 1px solid var(--pilot-line);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-attn-panel .bnd-home-panel-title {
+  font-size: .95rem;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-attn-list {
+  flex-flow: row wrap;
+  align-items: center;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  gap: var(--bnd-sp-2);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-attn-row {
+  inline-size: auto;
+  min-block-size: 42px;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-empty {
+  min-block-size: 0;
+  margin: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-summary {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-metric {
+  min-block-size: 126px;
+  padding: var(--bnd-sp-3);
+  border: 0;
+  border-inline-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: var(--pilot-paper);
+  box-shadow: none;
+  transform: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-metric:last-child { border-inline-end: 0; }
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-metric-top { gap: var(--bnd-sp-2); }
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-icon {
+  inline-size: 27px;
+  block-size: 27px;
+  background: transparent;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-icon > svg {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-metric-value {
+  margin-block-start: var(--bnd-sp-2);
+  font-size: clamp(1.3rem, 2vw, 1.8rem);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-metric-period { margin-block-start: var(--bnd-sp-1); }
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-data-warning {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  border: 1px solid var(--pilot-line);
+  border-inline-start: 3px solid var(--pilot-ink);
+  border-radius: 4px;
+  background: var(--pilot-leaf);
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-data-warning .bnd-home-action {
+  min-block-size: 36px;
+  flex: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-metric:disabled {
+  cursor: default;
+  opacity: .65;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding {
+  overflow: hidden;
+  border-color: var(--pilot-line);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding > .bnd-home-panel-head {
+  padding: var(--bnd-sp-4);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--bnd-sp-3);
+  row-gap: var(--bnd-sp-2);
+  min-inline-size: 0;
+  padding: var(--bnd-sp-4);
+  border-block-start: 1px solid var(--pilot-line);
+  border-inline-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-number {
+  display: grid;
+  place-items: center;
+  inline-size: 2rem;
+  block-size: 2rem;
+  border: 1px solid var(--pilot-line);
+  border-radius: 50%;
+  color: var(--pilot-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-title {
+  margin: 0;
+  color: var(--pilot-ink);
+  font-size: 1rem;
+  font-weight: 650;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-detail {
+  margin: var(--bnd-sp-1) 0 0;
+  color: var(--pilot-muted);
+  line-height: 1.5;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-step > .bnd-home-action {
+  grid-column: 2;
+  justify-self: start;
+  min-block-size: 38px;
+  margin-block-start: var(--bnd-sp-1);
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lanes {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lane {
+  min-block-size: 0;
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 0;
+  border-inline-end: 1px solid var(--pilot-line);
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lane-title {
+  margin-block-end: var(--bnd-sp-2);
+  color: var(--pilot-ink);
+  font-size: .97rem;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lane-step {
+  min-block-size: 32px;
+  padding: var(--bnd-sp-1) var(--bnd-sp-2);
+  border-color: var(--pilot-line);
+  border-radius: 3px;
+  font-size: .82rem;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lane-next {
+  min-block-size: 36px;
+  margin-block-start: var(--bnd-sp-2);
+  border-radius: 3px;
+}
+
+@include bp.bnd-until(xl) {
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-summary { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-onboarding-steps { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-data-warning { align-items: start; flex-direction: column; }
+  html[data-theme] .bnd-home-dashboard.is-real-estate > .bnd-home-actions-panel { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-attn-panel { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-attn-panel .bnd-home-panel-head {
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--pilot-line);
+  }
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-re-portfolio .bnd-home-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-theme] .bnd-home-dashboard.is-real-estate .bnd-home-lanes { grid-template-columns: minmax(0, 1fr); }
+}
+
+// The Real Estate desk uses a parcel plan rather than the Engineering Office's
+// building elevation. The illustration is decorative; source records live in
+// the metric and queue buttons.
+html[data-theme] .bnd-home-dashboard.is-real-estate.bnd-re-command-desk {
+  --re-forest: #143a30;
+  --re-forest-deep: #0d2c25;
+  --re-gold: #d4b36c;
+  --re-ink: #17382e;
+  --re-muted: #62766e;
+  --re-line: #dbe4de;
+  display: grid;
+  gap: 16px;
+  padding: clamp(16px, 1.8vw, 26px);
+  background: #f3f7f4;
+  color: var(--re-ink);
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-hero {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(270px, .62fr);
+  min-block-size: 204px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: var(--re-forest);
+  color: #fff;
+  isolation: isolate;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  min-inline-size: 0;
+  padding: 23px clamp(24px, 3vw, 44px) 35px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-context {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding-block-end: 0;
+  color: #d9e9df;
+  font-size: .83rem;
+  font-weight: 650;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-context-icon,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-context-icon svg {
+  inline-size: 19px;
+  block-size: 19px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-title {
+  margin: 10px 0 4px;
+  color: #fff;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 750;
+  line-height: 1.17;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-lead {
+  max-inline-size: 43ch;
+  margin: 0;
+  color: #d5e4d9;
+  font-size: clamp(.95rem, 1.25vw, 1.12rem);
+  line-height: 1.55;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-block-start: 10px;
+  color: #d5e4d9;
+  font-size: .8rem;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-status::before {
+  inline-size: 7px;
+  block-size: 7px;
+  border-radius: 50%;
+  background: var(--re-gold);
+  content: "";
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-art {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+  padding: 15px 26px 15px 0;
+  color: #b7d1c2;
+  opacity: .86;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-art svg {
+  inline-size: 100%;
+  max-block-size: 174px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-real-estate.bnd-re-command-desk > .bnd-re-command-metrics {
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  margin: -26px 18px 0;
+  overflow: hidden;
+  border: 1px solid var(--re-line);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(14, 49, 35, .08);
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-inline-size: 0;
+  min-block-size: 110px;
+  padding: 15px 18px;
+  border: 0;
+  border-inline-end: 1px solid var(--re-line);
+  border-radius: 0;
+  background: #fff;
+  color: var(--re-ink);
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:first-child {
+  grid-column: span 2;
+  background: #eaf1eb;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:last-child { border-inline-end: 0; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:not(:disabled):hover,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:not(:disabled):focus-visible { background: #f5f8f4; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:disabled { cursor: default; }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric-label {
+  color: #496a59;
+  font-size: .85rem;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric-value {
+  margin-block-start: 5px;
+  color: var(--re-forest-deep);
+  font-size: clamp(1.45rem, 2.2vw, 2.05rem);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:first-child .bnd-re-command-metric-value { font-size: clamp(2rem, 3.1vw, 2.8rem); }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-metric-period {
+  margin-block-start: auto;
+  color: var(--re-muted);
+  font-size: .72rem;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-board,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-side > .bnd-home-panel,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-lower > .bnd-home-panel,
+html[data-theme] .bnd-re-command-desk > .bnd-home-panel {
+  overflow: hidden;
+  border: 1px solid var(--re-line);
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-section-head {
+  padding: 17px 20px 15px;
+  border-block-end: 1px solid var(--re-line);
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-section-head h2,
+html[data-theme] .bnd-re-command-desk .bnd-home-panel-title {
+  margin: 0;
+  color: var(--re-ink);
+  font-size: 1.14rem;
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-section-head p,
+html[data-theme] .bnd-re-command-desk .bnd-home-panel-subtitle {
+  margin: 6px 0 0;
+  color: var(--re-muted);
+  font-size: .84rem;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-board-body { padding: 4px 20px 12px; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-group { padding-block: 8px; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-group + .bnd-re-command-queue-group { border-block-start: 1px solid var(--re-line); }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-heading {
+  margin: 0 0 7px;
+  color: #668074;
+  font-size: .76rem;
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content 2.5rem 1.2rem;
+  align-items: center;
+  inline-size: 100%;
+  min-block-size: 40px;
+  gap: 12px;
+  padding: 7px 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--re-ink);
+  text-align: start;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue + .bnd-re-command-queue { border-block-start: 1px solid #edf1ed; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue:hover,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue:focus-visible { color: #176b46; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-name { font-size: .91rem; font-weight: 650; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-detail { color: var(--re-muted); font-size: .79rem; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-count { color: #925b2a; font-size: 1.1rem; text-align: center; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-arrow,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-arrow svg { inline-size: 17px; block-size: 17px; }
+html[dir="rtl"][data-theme] .bnd-re-command-desk .bnd-re-command-queue-arrow { transform: scaleX(-1); }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-clear {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 0 12px;
+  min-block-size: 68px;
+  padding: 10px 4px;
+  text-align: start;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-clear-icon {
+  display: grid;
+  place-items: center;
+  grid-row: span 2;
+  inline-size: 38px;
+  block-size: 38px;
+  margin: 0;
+  border: 1px solid #c9dcd0;
+  border-radius: 50%;
+  background: #ecf4ee;
+  color: #28734e;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-clear-icon svg { inline-size: 20px; block-size: 20px; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-clear-icon { font-size: 1.3rem; font-weight: 700; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-clear strong { font-size: .94rem; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-clear p { margin: 2px 0 0; color: var(--re-muted); font-size: .78rem; line-height: 1.4; }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-side { min-inline-size: 0; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-side .bnd-home-panel-head,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-lower .bnd-home-panel-head,
+html[data-theme] .bnd-re-command-desk > .bnd-home-panel > .bnd-home-panel-head { padding: 20px 24px; border-block-end: 1px solid var(--re-line); }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-actions .bnd-home-panel-head { padding: 12px 18px; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-actions .bnd-home-panel-subtitle { display: none; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-action-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  padding: 10px 16px 15px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-action-list .bnd-home-action {
+  justify-content: flex-start;
+  inline-size: 100%;
+  min-block-size: 46px;
+  padding: 8px 12px;
+  border: 1px solid var(--re-line);
+  border-radius: 6px;
+  background: #f7faf8;
+  color: var(--re-ink);
+  font-weight: 600;
+  text-align: start;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-action-list .bnd-home-action:hover,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-action-list .bnd-home-action:focus-visible { background: #f1f6f1; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-action-list .bnd-home-action.is-primary { color: #176b46; }
+
+html[data-theme] .bnd-re-command-desk > .bnd-re-onboarding .bnd-re-onboarding-steps {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+html[data-theme] .bnd-re-command-desk > .bnd-re-onboarding .bnd-re-onboarding-step {
+  grid-template-columns: 1.8rem minmax(0, 1fr);
+  padding: 14px 16px;
+  border-block-start: 0;
+}
+html[data-theme] .bnd-re-command-desk > .bnd-re-onboarding .bnd-re-onboarding-step > .bnd-home-action {
+  min-block-size: 34px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stages {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage {
+  position: relative;
+  min-inline-size: 0;
+  padding: 23px 24px 25px;
+  border-inline-end: 1px solid var(--re-line);
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage:last-child { border-inline-end: 0; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage::before {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 24px;
+  inline-size: 52px;
+  block-size: 3px;
+  background: var(--re-gold);
+  content: "";
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-number {
+  display: block;
+  color: #a17c3f;
+  font-size: 1.45rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  line-height: 1;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-title {
+  margin: 11px 0 17px;
+  color: var(--re-ink);
+  font-size: 1rem;
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-links { display: grid; gap: 4px; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  inline-size: 100%;
+  min-block-size: 34px;
+  padding: 5px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #416254;
+  font-size: .83rem;
+  text-align: start;
+}
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link-icon,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link-icon svg {
+  flex: none;
+  inline-size: 17px;
+  block-size: 17px;
+}
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link-label { min-inline-size: 0; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link:hover,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link:focus-visible { background: #edf5ef; color: #176b46; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-stage-link:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-lower {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-reports .bnd-home-link-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 14px;
+  padding: 9px 22px 19px;
+}
+html[data-theme] .bnd-re-command-desk .bnd-re-command-reports .bnd-home-link-actions .bnd-home-action {
+  justify-content: flex-start;
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: 8px 0;
+  border: 0;
+  border-block-end: 1px solid var(--re-line);
+  border-radius: 0;
+  background: #fff;
+  color: var(--re-ink);
+  font-weight: 600;
+}
+html[data-theme] .bnd-re-command-desk .bnd-re-command-reports .bnd-home-link-actions .bnd-home-action:hover { background: #f5f8f4; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-recent-list { padding: 10px 22px 20px; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-recent-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) max-content;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  min-block-size: 44px;
+  border: 0;
+  border-block-end: 1px solid var(--re-line);
+  background: transparent;
+  color: var(--re-ink);
+  text-align: start;
+}
+html[data-theme] .bnd-re-command-desk .bnd-re-command-recent-row:hover { color: #176b46; }
+html[data-theme] .bnd-re-command-desk :is(.bnd-re-command-metric, .bnd-re-command-queue, .bnd-re-command-recent-row):focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+html[data-theme] .bnd-re-command-desk .bnd-re-command-recent-type,
+html[data-theme] .bnd-re-command-desk .bnd-re-command-recent-row > span:last-child { color: var(--re-muted); font-size: .78rem; }
+html[data-theme] .bnd-re-command-desk .bnd-re-command-recent-empty { margin: 12px 0; color: var(--re-muted); }
+
+html[data-theme] .bnd-re-command-desk .bnd-re-command-setup .bnd-home-link-actions { padding: 16px 22px 22px; }
+
+@include bp.bnd-until(xl) {
+  html[data-theme] .bnd-re-command-desk > .bnd-re-onboarding .bnd-re-onboarding-steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-stages { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-stage:nth-child(2) { border-inline-end: 0; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-stage:nth-child(n+3) { border-block-start: 1px solid var(--re-line); }
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-hero { grid-template-columns: minmax(0, 1fr); min-block-size: 204px; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-copy { padding: 22px 25px 31px; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-art { position: absolute; inset-block-end: 0; inset-inline-end: -30px; inline-size: 52%; opacity: .28; }
+  html[data-theme] .bnd-home-dashboard.is-real-estate.bnd-re-command-desk > .bnd-re-command-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-inline: 0; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-metric:first-child { grid-column: 1 / -1; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-metric { min-block-size: 108px; padding: 15px 17px; border-block-end: 1px solid var(--re-line); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-work,
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-lower { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-re-command-desk > .bnd-re-onboarding .bnd-re-onboarding-steps { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-re-command-desk > .bnd-re-onboarding .bnd-re-onboarding-step { border-inline-end: 0; border-block-start: 1px solid var(--re-line); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-stages { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-stage { border-inline-end: 0; border-block-start: 1px solid var(--re-line); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-stage:first-child { border-block-start: 0; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-reports .bnd-home-link-actions { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-board-body { padding-inline: 17px; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-queue { grid-template-columns: minmax(0, 1fr) 2.5rem 1rem; }
+  html[data-theme] .bnd-re-command-desk .bnd-re-command-queue-detail { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme] .bnd-re-command-desk * { scroll-behavior: auto; }
+}
+
+// The nine-step lease journey is long. Keep its actual next/save controls in
+// view while the operator works through a step, without duplicating actions.
+html[data-theme] .bnd-re-lease-wizard .bnd-re-lease-wizard-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 4;
+  min-block-size: 64px;
+  padding: var(--bnd-sp-3) var(--bnd-sp-2);
+  border-block-start: 1px solid var(--pilot-line);
+  background: var(--pilot-paper);
+  box-shadow: 0 -8px 20px rgb(20 51 40 / 5%);
+}
+
+html[data-theme] .bnd-re-lease-wizard .bnd-re-lease-wizard-actions [data-w="actions"] {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+html[data-theme] .bnd-re-lease-wizard .bnd-re-lease-wizard-actions .btn {
+  min-block-size: 38px;
+  padding-inline: var(--bnd-sp-3);
+}
+
+html[data-theme] .bnd-re-generated-note {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bnd-sp-3);
+  margin-block-end: var(--bnd-sp-3);
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 1px solid var(--pilot-line);
+  border-inline-start: 3px solid var(--pilot-sage, #629575);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  line-height: 1.5;
+}
+
+html[data-theme] .bnd-re-generated-note .btn {
+  flex: none;
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-re-generated-note {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  html[data-theme] .bnd-re-lease-wizard .bnd-re-lease-wizard-actions {
+    align-items: stretch !important;
+    flex-direction: column;
+  }
+  html[data-theme] .bnd-re-lease-wizard .bnd-re-lease-wizard-actions [data-w="actions"] {
+    justify-content: stretch;
+  }
+  html[data-theme] .bnd-re-lease-wizard .bnd-re-lease-wizard-actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
+// The ERP Home is a daily dispatch: one clear start point, then the live
+// worklist and connected document paths. The paper/ink contrast borrows from
+// an operations docket rather than repeating the Real Estate elevation.
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] {
+  gap: 15px;
+  padding-block: 14px 30px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-command {
+  min-inline-size: 0;
+  overflow: hidden;
+  border: 1px solid #244c3e;
+  border-radius: 10px;
+  background: var(--pilot-paper);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--pilot-deep) 8%, transparent);
+}
+
+html[data-theme] .bnd-home-command .bnd-home-intro {
+  position: relative;
+  display: flex;
+  min-block-size: 118px;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  margin: 0;
+  padding: 15px clamp(18px, 2.2vw, 28px);
+  border: 0;
+  background-color: #153c31;
+  background-image: linear-gradient(90deg, transparent 0, transparent 24.9%, #ffffff0b 25%, transparent 25.1%, transparent 49.9%, #ffffff0b 50%, transparent 50.1%, transparent 74.9%, #ffffff0b 75%, transparent 75.1%);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-command .bnd-home-intro-copy {
+  min-inline-size: 0;
+  max-inline-size: 42rem;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-eyebrow {
+  margin-block-end: 4px;
+  color: #b7d7c5;
+  font-size: .72rem;
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-title {
+  color: #fff;
+  font-size: clamp(1.85rem, 2.7vw, 2.45rem);
+  line-height: 1.12;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-subtitle {
+  display: block;
+  margin-block-start: 5px;
+  color: #d7e6dc;
+  font-size: .88rem;
+}
+
+html[data-theme] .bnd-home-command-date {
+  display: block;
+  margin-block-start: 7px;
+  color: #b7d7c5;
+  font-size: .73rem;
+}
+
+html[data-theme] .bnd-home-command-signal {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 1px 10px;
+  flex: 0 0 155px;
+  min-block-size: 66px;
+  padding: 9px 12px;
+  border: 1px solid #d7e9dc;
+  border-radius: 6px;
+  background: #e7f2e9;
+  color: #153c31;
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-command-signal:hover { background: #fff; }
+html[data-theme] .bnd-home-command-signal:focus-visible {
+  outline: 2px solid #dbbe82;
+  outline-offset: 3px;
+}
+
+html[data-theme] .bnd-home-command-signal-value {
+  grid-row: span 2;
+  font-size: 2rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-command-signal-label {
+  color: #24503d;
+  font-size: .75rem;
+  line-height: 1.3;
+}
+
+html[data-theme] .bnd-home-command-signal-arrow { color: #216b49; }
+html[data-theme] .bnd-home-command-signal-arrow > svg {
+  inline-size: 16px;
+  block-size: 16px;
+  stroke: currentColor;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command > .bnd-home-actions-panel {
+  display: grid;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-home-command .bnd-home-actions-panel .bnd-home-panel-head {
+  min-block-size: 0;
+  padding: 8px 20px 4px;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-command .bnd-home-actions-panel .bnd-home-panel-title {
+  color: var(--pilot-ink);
+  font-size: .98rem;
+}
+
+html[data-theme] .bnd-home-command .bnd-home-actions-panel .bnd-home-panel-subtitle { display: none; }
+
+html[data-theme] .bnd-home-command .bnd-home-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  max-inline-size: none;
+  padding: 0 20px 12px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-action {
+  display: inline-flex;
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  min-block-size: 46px;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 15px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font-size: .9rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: start;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-action:not(.is-primary) {
+  border-color: var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-action.is-primary {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-command .bnd-home-action:hover { border-color: var(--pilot-brand); }
+html[data-theme] .bnd-home-command .bnd-home-action:focus-visible {
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: 2px;
+}
+
+html[data-theme] .bnd-home-command .bnd-home-action-icon {
+  flex: none;
+  inline-size: 19px;
+  block-size: 19px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-scope {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px 22px;
+  min-block-size: 82px;
+  padding: 10px 16px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 7px;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-view-switch {
+  gap: 3px;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-view {
+  min-block-size: 36px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: .78rem;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-view.is-current {
+  border-color: #cce0d2;
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-filters {
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-field {
+  flex: 0 1 210px;
+  min-inline-size: 125px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-note {
+  grid-column: 1 / -1;
+  padding-block-start: 2px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-attn-panel {
+  display: block;
+  scroll-margin-block-start: 66px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 8px;
+  background: var(--pilot-paper);
+  overflow: hidden;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-panel .bnd-home-panel-head {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  min-block-size: 64px;
+  padding: 13px 20px;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-panel .bnd-home-panel-title {
+  color: var(--pilot-ink);
+  font-size: 1.2rem;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-panel .bnd-home-panel-subtitle { display: block; color: var(--pilot-muted); }
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-panel .bnd-home-panel-mark { margin: 0; color: var(--pilot-brand); }
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-row {
+  min-inline-size: 0;
+  min-block-size: 63px;
+  padding: 10px 20px;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-inline-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-row:nth-child(even) { border-inline-end: 0; }
+// A lone alert is one full-width task, not half of an empty two-column grid.
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-row:only-child {
+  grid-column: 1 / -1;
+  border-inline-end: 0;
+}
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-row:is(:hover, :focus-visible) { background: var(--pilot-leaf); }
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-copy {
+  min-inline-size: 0;
+  gap: 10px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-label { font-size: .85rem; }
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-process-panel {
+  border-block-start: 1px solid var(--pilot-line);
+  border-radius: 8px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-process-panel > .bnd-home-panel-head {
+  min-block-size: 64px;
+  background: #eef3ef;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lanes { counter-reset: bnd-stage; }
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane {
+  counter-increment: bnd-stage;
+  min-block-size: 270px;
+  padding: 17px;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane-title {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 1rem;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane-title::before {
+  content: counter(bnd-stage, decimal-leading-zero);
+  color: var(--pilot-brand);
+  font-size: .7rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane-next {
+  justify-content: space-between;
+  min-block-size: 40px;
+  background: var(--pilot-leaf);
+  font-weight: 700;
+  text-align: start;
+}
+
+html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane-next::after {
+  content: "↗";
+  margin-inline-start: 6px;
+  font-size: 1.05rem;
+}
+
+html[dir="rtl"][data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-lane-next::after { content: "↖"; }
+
+@include bp.bnd-until(xl) {
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] > .bnd-home-scope { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-filters { justify-content: stretch; }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope-field { flex: 1 1 180px; }
+  html[data-theme] .bnd-home-command .bnd-home-intro-actions { gap: 8px; }
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-home-command .bnd-home-intro { min-block-size: 0; flex-wrap: wrap; }
+  html[data-theme] .bnd-home-command .bnd-home-command-signal { flex-basis: 100%; min-block-size: 56px; }
+  html[data-theme] .bnd-home-command .bnd-home-intro-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
+  html[data-theme] .bnd-home-command .bnd-home-intro-actions .bnd-home-action { inline-size: 100%; }
+  html[data-theme] .bnd-home-command .bnd-home-intro-actions .bnd-home-action:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-list { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-attn-row { border-inline-end: 0; }
+}
+
+@include bp.bnd-until(sm) {
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] { gap: 12px; padding: 12px; }
+  html[data-theme] .bnd-home-command .bnd-home-intro { gap: 10px; padding: 16px; }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-title { font-size: 1.9rem; }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-command .bnd-home-action { min-block-size: 54px; margin: 0; font-size: .84rem; }
+  html[data-theme] .bnd-home-dashboard[data-bnd-home-profile="erp"] .bnd-home-scope { padding: 12px; }
+}

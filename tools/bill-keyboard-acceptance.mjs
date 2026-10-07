@@ -1,0 +1,548 @@
+/**
+ * Self-cleaning keyboard-only acceptance for three-line Sales/Purchase bills.
+ *
+ * Uses an operational non-System-Manager account, native Link autocomplete,
+ * F3/Alt+I/F2 shortcuts, Enter-to-next-cell, Tab navigation and native submit.
+ */
+import { createRequire } from "node:module";
+import { benchJson, benchPy, mintSid, URL_BASE } from "./session.mjs";
+import { browserLaunchOptions } from "./browser.mjs";
+
+const require = createRequire(import.meta.url);
+const { chromium } = require("playwright");
+const USER = "bunood-keyboard-qa@example.com";
+
+function assert(condition, message) {
+	if (!condition) throw new Error(message);
+}
+
+function cleanup() {
+	return benchPy([
+		"for dt in ('Sales Invoice', 'Purchase Invoice'):",
+		"    for name in frappe.get_all(dt, filters={'owner': " + JSON.stringify(USER) + "}, pluck='name'):",
+		"        doc = frappe.get_doc(dt, name)",
+		"        if doc.docstatus == 1:",
+		"            doc.cancel()",
+		"        frappe.delete_doc(dt, name, force=True, ignore_permissions=True)",
+		"if frappe.db.exists('User', " + JSON.stringify(USER) + "):",
+		"    frappe.delete_doc('User', " + JSON.stringify(USER) + ", force=True, ignore_permissions=True)",
+		"frappe.db.commit()",
+		"frappe.clear_cache()",
+		"print('clean')",
+	].join("\n") + "\n");
+}
+
+function setup() {
+	cleanup();
+	return benchJson([
+		"roles = [r for r in ('Sales User', 'Purchase User', 'Accounts User') if frappe.db.exists('Role', r)]",
+		"if len(roles) != 3:",
+		"    raise AssertionError('required operational roles are missing: %s' % roles)",
+		"user = frappe.get_doc({'doctype': 'User', 'email': " + JSON.stringify(USER) + ", 'first_name': 'Bunood Keyboard QA', 'enabled': 1, 'send_welcome_email': 0, 'user_type': 'System User'})",
+		"for role in roles:",
+		"    user.append('roles', {'role': role})",
+		"user.insert(ignore_permissions=True)",
+		"company = frappe.defaults.get_global_default('company') or frappe.get_all('Company', pluck='name', limit=1)[0]",
+		"customer = frappe.get_all('Customer', pluck='name', order_by='creation asc', limit=1)[0]",
+		"supplier = frappe.get_all('Supplier', pluck='name', order_by='creation asc', limit=1)[0]",
+		"items = frappe.get_all('Item', filters={'disabled': 0, 'is_sales_item': 1, 'is_purchase_item': 1}, pluck='name', order_by='name asc', limit=3)",
+		"if len(items) != 3:",
+		"    raise AssertionError('three shared sales/purchase item fixtures are required: %s' % items)",
+		"frappe.defaults.set_user_default('Company', company, " + JSON.stringify(USER) + ")",
+		"frappe.db.commit()",
+		"frappe.clear_cache(user=" + JSON.stringify(USER) + ")",
+		"print(json.dumps({'company': company, 'customer': customer, 'supplier': supplier, 'items': items}))",
+	].join("\n") + "\n");
+}
+
+async function openBill(page, doctype) {
+	await page.evaluate(async dt => {
+		if (window.cur_frm?.doc?.__islocal) cur_frm.doc.__unsaved = 0;
+		await frappe.new_doc(dt);
+	}, doctype);
+	await page.waitForFunction(
+		dt => window.cur_frm?.doctype === dt && cur_frm.doc.__islocal &&
+			!!document.querySelector(".bnd-bill:not([hidden])"),
+		doctype,
+		{ timeout: 30000 },
+	);
+}
+
+async function chooseActiveLink(page, shortcut, fieldname, value) {
+	await page.keyboard.press(shortcut);
+	await page.waitForFunction(
+		field => document.activeElement?.closest(".frappe-control")?.dataset.fieldname === field,
+		fieldname,
+		{ timeout: 8000 },
+	).catch(async error => {
+		const state = await page.evaluate(() => ({
+			active: document.activeElement?.closest(".frappe-control")?.dataset.fieldname || document.activeElement?.tagName,
+			doctype: window.cur_frm?.doctype,
+			simple: !!document.querySelector(".bnd-bill:not([hidden])"),
+			rows: document.querySelectorAll(".bnd-bill-line").length,
+			picker: document.querySelector('.bnd-bill-picker input')?.value || "",
+			busy: document.querySelector(".bnd-bill")?.getAttribute("aria-busy"),
+		}));
+		throw new Error(shortcut + " did not focus " + fieldname + ": " + JSON.stringify(state) + " (" + error.message + ")");
+	});
+	await page.keyboard.press("Control+A");
+	await page.keyboard.type(value, { delay: 50 });
+	const choices = page.locator('[role="listbox"]:visible').last();
+	await choices.waitFor({ state: "visible", timeout: 10000 }).catch(async error => {
+		const state = await page.evaluate(() => ({
+			active: document.activeElement?.closest(".frappe-control")?.dataset.fieldname || document.activeElement?.tagName,
+			value: document.activeElement?.value,
+			disabled: document.activeElement?.disabled,
+			expanded: document.activeElement?.getAttribute?.("aria-expanded"),
+			lists: [...document.querySelectorAll('[role="listbox"], .awesomplete > ul')].map(list => ({
+				hidden: list.hidden,
+				display: getComputedStyle(list).display,
+				text: list.textContent?.trim(),
+			})),
+			status: document.querySelector(".bnd-bill-status")?.textContent?.trim() || "",
+		}));
+		throw new Error("Link choices did not open for " + value + ": " + JSON.stringify(state) + " (" + error.message + ")");
+	});
+	const match = await page.waitForFunction(expected => {
+		const visible = [...document.querySelectorAll('[role="listbox"], .awesomplete > ul')]
+			.filter(list => list.getClientRects().length);
+		const items = [...(visible.at(-1)?.querySelectorAll('[role="option"], li') || [])]
+			.filter(item => item.getClientRects().length && item.getAttribute("aria-disabled") !== "true");
+		const index = items.findIndex(item => (item.textContent || "").includes(expected));
+		const selected = items.findIndex(item =>
+			item.getAttribute("aria-selected") === "true" || item.classList.contains("active"));
+		return index >= 0 ? {
+			index, selected, count: items.length,
+			options: items.map(item => item.textContent?.trim()),
+		} : false;
+	}, value, { timeout: 10000 }).then(handle => handle.jsonValue()).catch(async error => {
+		const diagnostic = await page.evaluate(async ({ fieldname, value }) => {
+			const doctype = { customer: "Customer", supplier: "Supplier", item_code: "Item" }[fieldname];
+			let search = [];
+			let searchError = "";
+			try {
+				search = await frappe.xcall("frappe.desk.search.search_link", {
+					doctype, txt: value, page_length: 20,
+				});
+			} catch (failure) {
+				searchError = failure?.message || String(failure);
+			}
+			return {
+				lists: [...document.querySelectorAll('[role="listbox"], .awesomplete > ul')]
+					.map(list => ({ visible: Boolean(list.getClientRects().length), html: list.outerHTML.slice(0, 1200) })),
+				search,
+				searchError,
+			};
+		}, { fieldname, value });
+		throw new Error("Permitted link option did not appear for " + value + ": " +
+			JSON.stringify(diagnostic) + " (" + error.message + ")");
+	});
+	const steps = match.selected >= 0
+		? (match.index - match.selected + match.count) % match.count
+		: match.index + 1;
+	for (let index = 0; index < steps; index++) await page.keyboard.press("ArrowDown");
+	await page.keyboard.press("Enter");
+}
+
+async function focusByTab(page, fieldname, limit = 120) {
+	for (let tabs = 0; tabs <= limit; tabs++) {
+		const active = await page.evaluate(() =>
+			document.activeElement?.closest(".frappe-control")?.dataset.fieldname || "");
+		if (active === fieldname) return tabs;
+		await page.keyboard.press("Tab");
+	}
+	throw new Error("Tab did not reach " + fieldname);
+}
+
+async function configurePurchaseReference(page, stamp) {
+	const reference = "BND-KBD-" + stamp;
+	await focusByTab(page, "bill_no");
+	await page.keyboard.press("Control+A");
+	await page.keyboard.type(reference);
+	const postingDate = await page.locator('.bnd-bill-party [data-fieldname="posting_date"] input').inputValue();
+	const modelDate = await page.evaluate(() => cur_frm.doc.posting_date);
+	await focusByTab(page, "bill_date");
+	await page.keyboard.press("Control+A");
+	await page.keyboard.type(postingDate);
+	await page.keyboard.press("Tab");
+	await page.waitForFunction(
+		expected => cur_frm.doc.bill_no === expected.reference &&
+			cur_frm.doc.bill_date === expected.modelDate,
+		{ reference, modelDate },
+		{ timeout: 20000 },
+	);
+	await page.waitForFunction(() =>
+		cur_frm.$wrapper[0].querySelector(".bnd-bill")?.getAttribute("aria-busy") === "false",
+	null, { timeout: 20000 });
+}
+
+async function addThreeLines(page, items) {
+	const quantities = [2, 3, 4];
+	for (let index = 0; index < quantities.length; index++) {
+		console.log("keyboard line", index + 1);
+		await chooseActiveLink(page, "Alt+i", "item_code", items[index]);
+		await page.waitForFunction(
+			count => cur_frm.doc.items.filter(row => row.item_code).length === count &&
+				cur_frm.$wrapper[0].querySelector(".bnd-bill")?.getAttribute("aria-busy") === "false",
+			index + 1,
+			{ timeout: 20000 },
+		).catch(async error => {
+			const state = await page.evaluate(() => ({
+				active: document.activeElement?.closest(".frappe-control")?.dataset.fieldname || document.activeElement?.tagName,
+				picker: document.querySelector(".bnd-bill-picker input")?.value || "",
+				status: document.querySelector(".bnd-bill-status")?.textContent?.trim() || "",
+				busy: document.querySelector(".bnd-bill")?.getAttribute("aria-busy"),
+				addDisabled: document.querySelector(".bnd-bill-search button")?.disabled,
+				docstatus: cur_frm?.doc?.docstatus,
+				dirty: cur_frm?.is_dirty?.(),
+				items: (cur_frm?.doc?.items || []).map(row => ({ item_code: row.item_code, qty: row.qty })),
+			}));
+			throw new Error("line " + (index + 1) + " was not added: " + JSON.stringify(state) + " (" + error.message + ")");
+		});
+		const active = await page.evaluate(() =>
+			document.activeElement?.closest(".frappe-control")?.dataset.fieldname || "");
+		assert(active === "qty", "selected line " + (index + 1) + " did not focus Quantity; active=" + active);
+		await page.keyboard.press("Control+A");
+		await page.keyboard.type(String(quantities[index]));
+		await page.keyboard.press("Enter");
+		await page.waitForFunction(
+			({ row, qty }) => Number(cur_frm.doc.items.filter(item => item.item_code)[row].qty) === qty,
+			{ row: index, qty: quantities[index] },
+			{ timeout: 20000 },
+		);
+	}
+	return quantities;
+}
+
+async function totalsSnapshot(page) {
+	await page.waitForFunction(() =>
+		cur_frm?.$wrapper?.[0]?.querySelector(".bnd-bill")?.getAttribute("aria-busy") === "false");
+	const snapshot = await page.evaluate(() => {
+		const frm = cur_frm;
+		const doc = frm.doc;
+		const api = window.bunood_theme.sales_bill;
+		const root = frm.$wrapper[0].querySelector(".bnd-bill:not([hidden])");
+		const names = ["net_total", "discount_amount", "total_taxes_and_charges", "rounding_adjustment"]
+			.filter(name => {
+				const field = frm.fields_dict[name];
+				return field && field.get_status() !== "None" && api.showSummary(name, doc);
+			});
+		const totalName = api.totalField(frm);
+		if (frm.fields_dict[totalName]?.get_status() !== "None") names.push(totalName);
+		for (const name of ["paid_amount", "outstanding_amount"]) {
+			const field = frm.fields_dict[name];
+			if (field && field.get_status() !== "None" && (doc[name] || Number(doc.docstatus) !== 0)) names.push(name);
+		}
+		const format = name => {
+			const field = frm.fields_dict[name];
+			return window.format_number(
+				doc[name] || 0,
+				window.get_number_format(doc.currency),
+				frappe.meta.get_field_precision(field.df, doc),
+			);
+		};
+		return {
+			names,
+			expected: names.map(format),
+			rendered: [...root.querySelectorAll(".bnd-bill-totals > div")]
+				.map(pair => pair.querySelector("bdi")?.textContent?.trim() || ""),
+			mobile: root.querySelector(".bnd-bill-mobile-total bdi")?.textContent?.trim() || "",
+			docstatus: Number(doc.docstatus),
+		};
+	});
+	assert(snapshot.rendered.length === snapshot.expected.length,
+		"totals rail field count differs from the native document: " + JSON.stringify(snapshot));
+	assert(snapshot.rendered.every((value, index) => value === snapshot.expected[index]),
+		"totals rail differs from the native document: " + JSON.stringify(snapshot));
+	assert(snapshot.mobile === snapshot.expected.at(-1),
+		"mobile total differs from the native document: " + JSON.stringify(snapshot));
+	return snapshot;
+}
+
+async function focusSubmitByTab(page, limit = 240) {
+	const visited = [];
+	for (let tabs = 0; tabs <= limit; tabs++) {
+		const state = await page.evaluate(() => ({
+			submit: document.activeElement?.closest('[data-bnd-action="submit"]')?.dataset.bndAction === "submit",
+			active: document.activeElement?.outerHTML?.slice(0, 220) || "",
+		}));
+		if (tabs < 12 || tabs % 25 === 0) visited.push(state.active);
+		const submit = state.submit;
+		if (submit) return tabs;
+		await page.keyboard.press("Tab");
+	}
+	const diagnostic = await page.evaluate(() => {
+		const submit = document.querySelector('[data-bnd-action="submit"]');
+		return {
+			doctype: cur_frm?.doctype,
+			name: cur_frm?.doc?.name,
+			dirty: cur_frm?.is_dirty?.(),
+			docstatus: cur_frm?.doc?.docstatus,
+			submit: submit && {
+				hidden: submit.hidden,
+				disabled: submit.disabled,
+				tabIndex: submit.tabIndex,
+				visible: Boolean(submit.getClientRects().length),
+				text: submit.textContent.trim(),
+			},
+			modal: [...document.querySelectorAll(".modal.show")].map(node => ({ visible: Boolean(node.getClientRects().length), text: node.textContent.trim().slice(0, 120) })),
+			active: document.activeElement?.outerHTML?.slice(0, 300) || "",
+		};
+	});
+	throw new Error("Tab did not reach Submit document: " + JSON.stringify({ diagnostic, visited }));
+}
+
+async function dismissKnownSaveNotice(page) {
+	const notices = [];
+	for (let index = 0; index < 8; index++) {
+		const modal = page.locator(".modal.show").last();
+		if (!await modal.count()) return notices;
+		const notice = await modal.evaluate(node => ({
+			title: node.querySelector(".modal-title")?.textContent?.trim() || "",
+			body: node.querySelector(".modal-body")?.textContent?.trim().replace(/\s+/g, " ").slice(0, 240) || "",
+			confirm: !!window.cur_dialog?.confirm_dialog,
+		}));
+		if (notice.confirm || !/Expense Head Changed/i.test(notice.title + " " + notice.body)) {
+			throw new Error("unexpected dialog after draft save: " + JSON.stringify(notice));
+		}
+		await modal.locator(".btn-modal-close").press("Enter");
+		notices.push(notice.title || "Expense Head Changed");
+		await page.waitForTimeout(350);
+	}
+	throw new Error("more than eight Expense Head Changed notices followed one draft save");
+}
+
+async function submitWithKeyboard(page) {
+	const tabs = await focusSubmitByTab(page);
+	await page.evaluate(() => {
+		window.__bndSubmitKeyClicks = 0;
+		window.__bndSubmitRequests = [];
+		window.jQuery?.(document)
+			.off(".bndSubmitProbe")
+			.on("ajaxSend.bndSubmitProbe", (_event, _xhr, settings) => {
+				window.__bndSubmitRequests.push({ url: settings.url, state: "sent" });
+			})
+			.on("ajaxComplete.bndSubmitProbe", (_event, xhr, settings) => {
+				window.__bndSubmitRequests.push({
+					url: settings.url,
+					state: "complete",
+					status: xhr.status,
+					body: xhr.status >= 400 ? xhr.responseText?.slice(0, 2000) : "",
+				});
+			});
+		document.querySelector('[data-bnd-action="submit"]')?.addEventListener(
+			"click",
+			() => { window.__bndSubmitKeyClicks += 1; },
+			{ capture: true },
+		);
+	});
+	await page.keyboard.press("Enter");
+	await page.waitForFunction(
+		() => Number(cur_frm?.doc?.docstatus) === 1 || !!window.cur_dialog?.confirm_dialog,
+		null,
+		{ timeout: 20000 },
+	);
+	if (await page.evaluate(() => !!window.cur_dialog?.confirm_dialog)) {
+		await page.keyboard.press("Enter");
+	}
+	await page.waitForFunction(
+		() => Number(cur_frm?.doc?.docstatus) === 1,
+		null,
+		{ timeout: 30000 },
+	).catch(async error => {
+		const state = await page.evaluate(() => ({
+			status: document.querySelector(".bnd-bill-status")?.textContent?.trim() || "",
+			dialog: document.querySelector(".modal.show")?.textContent?.trim() || "",
+			docstatus: cur_frm?.doc?.docstatus,
+			dirty: cur_frm?.is_dirty?.(),
+			busy: document.querySelector(".bnd-bill:not([hidden])")?.getAttribute("aria-busy"),
+			clicks: window.__bndSubmitKeyClicks,
+			ajaxCount: frappe.request?.ajax_count,
+			requests: window.__bndSubmitRequests,
+			active: document.activeElement?.outerHTML?.slice(0, 300) || "",
+			submit: (() => {
+				const button = document.querySelector('[data-bnd-action="submit"]');
+				return button && {
+					hidden: button.hidden,
+					disabled: button.disabled,
+					visible: Boolean(button.getClientRects().length),
+				};
+			})(),
+		}));
+		throw new Error("keyboard submit failed: " + JSON.stringify(state) + " (" + error.message + ")");
+	});
+	return tabs;
+}
+
+async function runBill(page, fixture, spec) {
+	await openBill(page, spec.doctype);
+	await chooseActiveLink(page, "F3", spec.partyField, fixture[spec.fixtureField]);
+	await page.waitForFunction(
+		({ field, value }) => cur_frm.doc[field] === value,
+		{ field: spec.partyField, value: fixture[spec.fixtureField] },
+		{ timeout: 20000 },
+	).catch(async error => {
+		const state = await page.evaluate(field => ({
+			doctype: cur_frm?.doctype,
+			model: cur_frm?.doc?.[field],
+			activeField: document.activeElement?.closest(".frappe-control")?.dataset.fieldname || "",
+			activeValue: document.activeElement?.value || "",
+			status: document.querySelector(".bnd-bill-status")?.textContent?.trim() || "",
+			choices: [...document.querySelectorAll('[role="listbox"] li, .awesomplete > ul > li')]
+				.filter(node => node.getClientRects().length)
+				.map(node => node.textContent?.trim()).slice(0, 8),
+		}), spec.partyField);
+		throw new Error(`${spec.doctype} party selection did not reach the model: ` +
+			JSON.stringify(state) + ` (${error.message})`);
+	});
+	if (spec.doctype === "Purchase Invoice") {
+		await configurePurchaseReference(page, Date.now().toString(36).toUpperCase());
+	}
+	const quantities = await addThreeLines(page, fixture.items);
+	const draftTotals = await totalsSnapshot(page);
+	let saveNotice = [];
+	if (!spec.oneStepSubmit) {
+		await page.keyboard.press("F2");
+		await page.waitForFunction(
+			() => !cur_frm.doc.__islocal && !cur_frm.is_dirty(),
+			null,
+			{ timeout: 30000 },
+		);
+		// ERPNext queues the Purchase Invoice expense-head notice after the draft
+		// model becomes clean. Let native callbacks mount it before dismissal.
+		await page.evaluate(() => frappe.after_ajax());
+		await page.waitForTimeout(500);
+		saveNotice = await dismissKnownSaveNotice(page);
+	}
+	const tabsToSubmit = await submitWithKeyboard(page);
+	const name = await page.evaluate(() => cur_frm.doc.name);
+	const submittedTotals = await totalsSnapshot(page);
+	const saved = await page.evaluate(async ({ doctype, name }) => {
+		const doc = await frappe.xcall("frappe.client.get", { doctype, name });
+		return {
+			name: doc.name,
+			docstatus: doc.docstatus,
+			items: doc.items.filter(row => row.item_code).map(row => ({
+				item_code: row.item_code,
+				qty: Number(row.qty),
+				amount: Number(row.amount),
+			})),
+			grand_total: Number(doc.grand_total),
+			total_taxes_and_charges: Number(doc.total_taxes_and_charges),
+		};
+	}, { doctype: spec.doctype, name });
+	assert(saved.docstatus === 1, spec.doctype + " did not submit");
+	assert(saved.items.length === 3, spec.doctype + " did not retain three lines");
+	assert(saved.items.every((row, index) =>
+		row.item_code === fixture.items[index] && row.qty === quantities[index]),
+	spec.doctype + " line data changed after submit");
+	return {
+		...saved,
+		submissionPath: spec.oneStepSubmit ? "new-document Save and Submit" : "saved-draft Submit",
+		tabsToSubmit,
+		saveNotice,
+		draftTotals,
+		submittedTotals,
+	};
+}
+
+async function zatcaAcceptance(page, invoiceName) {
+	await page.goto(URL_BASE + "/desk/sales-invoice/" + encodeURIComponent(invoiceName),
+		{ waitUntil: "domcontentloaded", timeout: 60000 });
+	await page.waitForFunction(() =>
+		cur_frm?.doctype === "Sales Invoice" && cur_frm.doc?.docstatus === 1 &&
+		!!cur_frm.$wrapper?.[0]?.querySelector('[data-bnd-part="zatca-status"]'),
+	null, { timeout: 30000 });
+	await page.waitForFunction(() => {
+		const text = cur_frm.$wrapper[0].querySelector('[data-bnd-part="zatca-status"] p')?.textContent || "";
+		return text && !text.includes("Checking");
+	}, null, { timeout: 30000 });
+	const result = await page.evaluate(async name => {
+		const statusResponse = await fetch(
+			"/api/method/bunood_theme.zatca.status.get_status?invoice_name=" + encodeURIComponent(name));
+		const statusBody = await statusResponse.text();
+		let status = {};
+		try { status = JSON.parse(statusBody).message || {}; } catch (_) { /* asserted below */ }
+		const keys = [];
+		const collect = value => {
+			if (!value || typeof value !== "object") return;
+			for (const [key, child] of Object.entries(value)) { keys.push(key); collect(child); }
+		};
+		collect(status);
+		const root = cur_frm.$wrapper[0].querySelector(".bnd-bill:not([hidden])");
+		return {
+			state: status.state,
+			statusStatus: statusResponse.status,
+			statusBody: statusResponse.ok ? "" : statusBody.slice(0, 1000),
+			keys,
+			zatcaMeta: root.querySelector('[data-bnd-part="zatca-status"] .bnd-bill-hint + .bnd-bill-hint')?.textContent?.trim() || "",
+		};
+	}, invoiceName);
+	const csrf = await page.evaluate(() => frappe.csrf_token);
+	const denial = await page.context().request.post(
+		URL_BASE + "/api/method/bunood_theme.zatca.status.queue_invoice", {
+			headers: { "X-Frappe-CSRF-Token": csrf },
+			data: { invoice_name: invoiceName },
+		});
+	result.queueStatus = denial.status();
+	result.queueBody = await denial.text();
+	assert(result.statusStatus === 200 && result.state,
+		"ordinary user could not read credential-free ZATCA status: " + JSON.stringify(result));
+	for (const forbidden of ["secret", "security_token", "production_secret", "production_security_token"]) {
+		assert(!result.keys.includes(forbidden), "ZATCA status exposed credential key " + forbidden);
+	}
+	assert(!/Sandbox|Production|Live/i.test(result.zatcaMeta),
+		"ordinary user saw technical ZATCA environment metadata: " + result.zatcaMeta);
+	assert(result.queueStatus >= 400 && /Only an Accounts Manager or System Manager/.test(result.queueBody),
+		"ordinary user was not denied ZATCA send: " + JSON.stringify(result));
+	delete result.queueBody;
+	return result;
+}
+
+let browser;
+const errors = [];
+try {
+	const fixture = setup();
+	console.log("fixture", JSON.stringify(fixture));
+	browser = await chromium.launch(browserLaunchOptions());
+	const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+	await context.addCookies([
+		{ name: "sid", value: mintSid(USER), domain: new URL(URL_BASE).hostname, path: "/" },
+	]);
+	const page = await context.newPage();
+	page.on("console", message => {
+		if (message.type() === "error" && !/socket\.io|Invalid origin/i.test(message.text())) {
+			errors.push(message.text());
+		}
+	});
+	page.on("pageerror", error => errors.push(error.message));
+	await page.goto(URL_BASE + "/desk/home", { waitUntil: "domcontentloaded", timeout: 60000 });
+	await page.waitForFunction(() => window.frappe?.boot, null, { timeout: 30000 });
+	assert(!(await page.evaluate(() => frappe.boot.user.roles.includes("System Manager"))),
+		"acceptance user must not be a System Manager");
+
+	const sales = await runBill(page, fixture, {
+		doctype: "Sales Invoice",
+		partyField: "customer",
+		fixtureField: "customer",
+		oneStepSubmit: true,
+	});
+	const purchase = await runBill(page, fixture, {
+		doctype: "Purchase Invoice",
+		partyField: "supplier",
+		fixtureField: "supplier",
+	});
+	const zatca = await zatcaAcceptance(page, sales.name);
+	assert(errors.length === 0, "browser errors: " + errors.join(" | "));
+	console.log(JSON.stringify({
+		user: USER,
+		roles: ["Sales User", "Purchase User", "Accounts User"],
+		sales,
+		purchase,
+		zatca,
+		errors,
+	}, null, 2));
+} finally {
+	if (browser) await browser.close();
+	cleanup();
+}

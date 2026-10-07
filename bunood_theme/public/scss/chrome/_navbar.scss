@@ -1,0 +1,344 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// TOP BAR — the desk's global strip (checklist item 9).
+//
+// WHAT
+//   Appearance of `.bnd-topbar`, which bunood.js mounts into the native
+//   <header> inside .main-section when `topbar_enabled` says so. Holds the
+//   always-visible search field and the global cluster (bell, avatar).
+//
+//   It used to be the "Top Bar" LAYOUT's strip, mounted on the one branch of
+//   a ladder that read `desk_layout`. Since slice 2c it is a container with
+//   its own setting, which a layout preset writes — so it can be present on a
+//   Classic desk and absent from a Top Bar one, and this file describes a bar
+//   rather than a layout.
+//
+// WHY ONLY APPEARANCE LIVES HERE
+//   Position, stickiness and z-index are layout concerns and live in
+//   _layouts.scss with the rest of the matrix; this file must stay meaningful
+//   even if the bar is one day mounted somewhere else.
+//
+// EVERY VALUE IS A TOKEN — heights, colours, radii and durations all come from
+// _tokens.scss, so brand.py's per-site overrides reach the bar with no rules
+// here changing. Logical properties only (RTL guard in build.mjs).
+// ============================================================================
+
+html[data-theme] .bnd-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-3);
+  block-size: var(--bnd-topbar-h);
+  padding-inline: var(--bnd-sp-4);
+  background: var(--bnd-surface);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+
+// One desktop-style sidebar toggle, deliberately hosted by the top bar rather
+// than bolted onto the pane. At rest it is only an icon; hover supplies a quiet
+// tonal target, matching the application-menu affordance in the reference.
+html[data-theme] .bnd-topbar .bnd-sidebar-toggle {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 36px;
+  block-size: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  cursor: pointer;
+  transition: color var(--bnd-dur-fast) var(--bnd-ease),
+    background var(--bnd-dur-fast) var(--bnd-ease);
+
+  svg {
+    display: block;
+    inline-size: 20px;
+    block-size: 20px;
+  }
+
+  &:hover {
+    color: var(--bnd-ink);
+    background: var(--bnd-hover);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--bnd-accent);
+    outline-offset: 2px;
+  }
+}
+
+// The double-chevron SVGs express logical start/end states. Their paths are
+// physically drawn for LTR, so mirror the permanent top-bar control in RTL.
+// Expanded then points toward the right-hand pane to close it, while hidden
+// points left into the page to open it — the two states remain opposites.
+html[dir="rtl"][data-theme] .bnd-topbar .bnd-topbar-sidebar-toggle svg {
+  transform: scaleX(-1);
+}
+
+// The search "field" is a button dressed as an input: it proxy-clicks the
+// hidden native trigger, which opens Frappe's own search modal. A real input
+// would need us to own query state for no benefit.
+html[data-theme] .bnd-search-field {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  inline-size: min(340px, 40vw);
+  block-size: calc(var(--bnd-topbar-h) - 14px);
+  padding-inline: var(--bnd-sp-3);
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  // THE RESTING-IDENTIFICATION RULE (34a, design pick 3B): a control is
+  // identifiable at rest by a border with >=3:1 contrast OR by a visible
+  // fill delta against its host. This one keeps the hairline and takes the
+  // delta — var(--bnd-page) alone measured near-identical to the bar
+  // (item 32's 1.22:1 finding), so a 5% ink wash makes the difference
+  // perceptible on every seed in both modes without heavier chrome.
+  background: color-mix(in srgb, var(--bnd-ink) 5%, var(--bnd-page));
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  cursor: pointer;
+  transition: border-color var(--bnd-dur-fast) var(--bnd-ease),
+    background var(--bnd-dur-fast) var(--bnd-ease);
+
+  &:hover {
+    background: var(--bnd-hover);
+    border-color: var(--bnd-border-strong);
+  }
+
+  .bnd-search-label {
+    flex: 1;
+    text-align: start;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-block-size: 1.5rem;
+    line-height: 1;
+    font-family: inherit;
+    font-size: var(--bnd-text-xs);
+    color: var(--bnd-ink-subtle);
+    background: var(--bnd-surface);
+    border: var(--bnd-line) solid var(--bnd-border);
+    border-radius: var(--bnd-radius-sm);
+    padding-block: 1px;
+    padding-inline: var(--bnd-sp-1);
+  }
+
+  svg {
+    inline-size: 16px;
+    block-size: 16px;
+    flex: none;
+  }
+}
+
+// Frappe's compact shortcut hint appears inside form actions. Its upstream
+// muted-on-transparent pair falls below AA once Bunood changes the surrounding
+// surface, so give the keycap a complete theme-owned colour pair.
+html[data-theme] .keyboard-shortcut {
+  color: var(--bnd-ink);
+  background: var(--bnd-raised);
+  border-color: var(--bnd-border-strong);
+}
+
+// Pushes the cluster to the bar's end regardless of what sits between.
+html[data-theme] .bnd-topbar .bnd-cluster {
+  margin-inline-start: auto;
+}
+
+// Permanent global navigation. These controls used to be split between the
+// page head and sidebar edge, which made them move or disappear by route.
+html[data-theme] .bnd-topbar .bnd-topbar-route-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  flex: none;
+  min-inline-size: 0;
+}
+
+html[data-theme] .bnd-topbar .bnd-topbar-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-2);
+  min-inline-size: 0;
+  block-size: var(--bnd-control-h);
+  padding-inline: var(--bnd-sp-1);
+  border: 0;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-base);
+  font-weight: var(--bnd-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover { background: var(--bnd-hover); }
+  &:focus-visible { outline: 2px solid var(--bnd-accent); outline-offset: 2px; }
+
+  .bnd-sb-brand-mark {
+    display: grid;
+    place-items: center;
+    inline-size: 36px;
+    block-size: 36px;
+    border-radius: var(--bnd-radius-md);
+    overflow: hidden;
+    flex: none;
+  }
+
+  .bnd-sb-brand-logo {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+  }
+
+  .bnd-sb-brand-initial {
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
+    font-size: var(--bnd-text-base);
+    line-height: 1;
+  }
+
+  .bnd-sb-brand-name {
+    max-inline-size: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// Home dashboards own their page title in the permanent bar. Hiding the empty
+// duplicate also releases its full sticky height from the scroll viewport.
+html[data-theme][data-bnd-role-home] .page-head {
+  display: none;
+}
+
+// Phone captions belong to the four-cell bottom navigation, never to the
+// desktop-style top bar. The same tenant nodes survive a breakpoint change,
+// so a narrow viewport can briefly host them here while placement settles;
+// without this component boundary their Arabic labels escape the fixed icon
+// buttons and overlap the page. The labelled All Apps return is intentional.
+html[data-theme] .bnd-topbar
+  .bnd-mobile-nav-label:not(.bnd-dashboard-return-label) {
+  display: none;
+}
+
+// Sidebar utilities carry bottom spacing when they live in the pane. In a
+// horizontal bar that margin shifts the whole icon pair above the bar centre.
+html[data-theme] .bnd-topbar .bnd-sb-utils-bar {
+  margin-block: 0;
+}
+
+// Compact account/navigation shortcuts. Shared icon-button focus treatment
+// remains in _cluster.scss; colours follow the site's accessible brand tokens.
+html.bunood[data-theme] .bnd-topbar [data-bnd-part="home"],
+html.bunood[data-theme] .bnd-topbar [data-bnd-part="apps"],
+html.bunood[data-theme] .bnd-topbar .bnd-language-btn {
+  display: inline-grid;
+  place-items: center;
+  align-self: center;
+  padding: 0;
+  line-height: 1;
+  block-size: var(--bnd-control-h);
+  min-inline-size: var(--bnd-control-h);
+  color: var(--bnd-brand-ink);
+  background: var(--bnd-surface);
+  border: var(--bnd-line) solid var(--bnd-border-strong);
+
+  &:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-brand-ink);
+  }
+
+  &:focus-visible { outline-color: var(--bnd-brand-ink); }
+
+  svg { display: block; margin: 0; --icon-stroke: var(--bnd-brand-ink); }
+}
+
+// Outrank the later shared .bnd-icon-btn square sizing: the autonym needs
+// its natural text width in both languages, including while focused.
+html.bunood[data-theme] .bnd-topbar .bnd-language-btn {
+  flex: none;
+  inline-size: auto;
+  padding-inline: var(--bnd-sp-2);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  white-space: nowrap;
+
+  &:disabled { cursor: wait; }
+}
+
+// ALL APPS NEEDS AN EXIT, NOT A MYSTERY ICON. The module grid has no side
+// pane, so its Home shortcut becomes one quiet, labelled destination in the
+// global bar. It stays deliberately lighter than a primary form action: this
+// is persistent navigation, identified by the brand wash and visible name.
+html.bunood[data-theme] .bnd-topbar .bnd-dashboard-return {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-2);
+  flex: none;
+  inline-size: auto;
+  min-inline-size: 0;
+  padding-inline: var(--bnd-sp-3);
+  border-color: color-mix(in srgb, var(--bnd-brand-ink) 32%, transparent);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-medium);
+  white-space: nowrap;
+
+  .bnd-dashboard-return-label {
+    display: block;
+    // A unit line box clips the lower bowls and dots of Arabic glyphs.
+    line-height: var(--bnd-leading-base);
+  }
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--bnd-brand-ink) 48%, transparent);
+    background: var(--bnd-hover);
+  }
+}
+
+// The text button enlarges the end cluster. Leave clearance around centred
+// search at tablet widths; its existing maximum still applies on wide bars.
+html[data-theme] .bnd-topbar .bnd-search-center {
+  max-inline-size: 40%;
+}
+
+// The All Apps page ships a private Frappe navbar. Hide it only after JS has
+// measured a Bunood shell with a real search affordance and stamped ownership.
+// This covers Top Bar, Bottom Bar, Dock and the narrow phone nav; if none of
+// them mounts, the attribute never appears and Frappe remains the fallback.
+html[data-bnd-desktop-shell] .desktop-wrapper .desktop-navbar {
+  display: none !important;
+}
+
+/* 3. Fix clipping and centering for single-letter avatars */
+.avatar-frame,
+.bnd-sb-letter,
+.bnd-sb-brand-chip,
+.bnd-inbox-avatar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  padding-bottom: 3px !important; /* Lifts the letter to counteract the Arabic baseline shift */
+}
+
+// _statusbar.scss owns the shared centre slot for both bars. Its logical
+// insets and auto margins centre in LTR and RTL; an additional translation
+// here shifts the field by half its own width.
+
+// Search placed at the TOP BAR'S centre is the wide form: the strip is tall
+// enough for a real field and this is the placement modern desks converged on.
+// Stated here rather than in _cluster.scss because the bottom bar wants its own
+// narrower number and the two rules would otherwise be decided by import order
+// (item 42, slice 1b). The zone above it caps the pair at 46% of the bar.
+html[data-theme] .bnd-topbar .bnd-zone[data-zone="center"] .bnd-search-field {
+  inline-size: min(420px, 100%);
+}

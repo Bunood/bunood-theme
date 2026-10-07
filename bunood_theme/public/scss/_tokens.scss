@@ -1,0 +1,755 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// TOKENS — the theme's own design vocabulary.
+//
+// WHAT
+//   Every value the theme reasons about, declared once as a `--bnd-*` custom
+//   property. Nothing else in the codebase may hardcode a colour, spacing,
+//   radius, duration or font size.
+//
+// WHY THE `--bnd-` PREFIX IS NON-NEGOTIABLE
+//   Frappe implements dark mode by REMAPPING ITS OWN variable names under
+//   `[data-theme="dark"]` (`scss/desk/dark.scss:2`), while light lives at
+//   `:root, [data-theme="light"]` (`scss/desk/css_variables.scss:4`). Both
+//   selectors have specificity (0,1,0), so a later sheet that sets a Frappe
+//   name at `:root` wins in BOTH modes — and dark mode silently dies for that
+//   variable.
+//
+//   So: we never write Frappe's names here. We declare ours, and `_bridge.scss`
+//   maps ours onto Frappe's inside correctly scoped blocks. The per-site brand
+//   stylesheet (`brand.py`) also only ever sets `--bnd-*`, which means no
+//   customer colour choice can ever break dark mode.
+//
+// WHAT LIVES HERE vs IN brand.py
+//   Here: everything identical across tenants — scales, motion, elevation, and
+//   the DEFAULT colour seeds. `brand.py` overrides only the seeds and their
+//   derived surfaces per site. This file must therefore declare the COMPLETE
+//   token set, because if the brand sheet 404s the theme still has to render.
+//
+// See ARCHITECTURE.md section 1.
+// ============================================================================
+
+:root {
+  // ── Colour seeds ──────────────────────────────────────────────────────────
+  // Overridden per site by brand.py. Named "seed" because every surface below
+  // is derived from them with color-mix() rather than authored — one seed has
+  // to produce a coherent scale for whatever colour a customer picks.
+  --bnd-brand: #3d8150;
+  --bnd-accent: #0088f2;
+
+  // ── The brand's three roles (checklist item 32) ───────────────────────────
+  // THE SEED IS NOT A COLOUR YOU CAN PAINT WITH. It is a hue the tenant chose,
+  // and the same hue cannot serve as a wash, a fill and a text colour: each has
+  // a different contrast requirement, and at the shipped seed the raw value
+  // fails two of the three (white-on-brand 4.27:1, brand-as-text 4.27:1).
+  //
+  //   --bnd-brand        the seed, untouched. Alpha washes and hue tints only —
+  //                      nothing is read on it, so nothing constrains it, and a
+  //                      tenant inspecting the CSS finds the hex they pasted in.
+  //   --bnd-brand-solid  opaque fills: the dock chip, the sidebar's active item,
+  //                      the inbox unread dot. Guaranteed 3:1 against every
+  //                      surface AND 4.5:1 under --bnd-on-brand.
+  //   --bnd-on-brand     what to write on --bnd-brand-solid. NOT always white:
+  //                      a yellow seed keeps its yellow and takes dark ink.
+  //   --bnd-brand-deep   the document band's fill (item 43 A8a): the seed pulled
+  //                      toward the dark base and fitted as a fill; --bnd-on-deep
+  //                      is its ink and --bnd-brand-deep-tile the wash its tiles
+  //                      sit on, moved AWAY from the ink. palette.derive() emits
+  //                      all three; the gate measures both pairs.
+  //   --bnd-brand-ink    the brand written as text. 4.5:1 against every surface,
+  //                      which is a stricter bar than a fill has to clear.
+  //
+  // These are FITTED values, not formulas — the output of a search in
+  // `palette.py`, restated here because this file must render with no per-site
+  // stylesheet. `tools/contrast_gate.py` fails if the two ever disagree.
+  --bnd-brand-solid: #3d8150;
+  --bnd-on-brand: #ffffff;
+  --bnd-brand-ink: #387649;
+  --bnd-brand-deep: #295036;
+  --bnd-on-deep: #ffffff;
+  --bnd-brand-deep-tile: #264732;
+
+  // Desktop icon plates use the brand color with white outlines in both modes.
+  // Fit the plate against white independently of the surrounding chrome.
+  --bnd-desktop-icon-bg: #3d8150;
+  --bnd-desktop-icon-ink: #ffffff;
+
+  // ── Surfaces (light defaults; brand.py re-derives per mode) ───────────────
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 4%, #ffffff);
+  --bnd-surface: #ffffff;
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 2%, #ffffff);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 8%, #ffffff);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 7%, #ffffff);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 14%, #ffffff);
+  // The skeleton bone (item 30). FITTED AGAINST THE FAMILY, not picked: a
+  // skeleton's whole job is to be legible as NOT-content, and stock fails
+  // exactly there — frappe's --skeleton-bg resolves to the same #232323 as its
+  // --control-bg and --subtle-accent in dark, so a loading bar is indis-
+  // tinguishable from a card. Measured here: this sits ~25 units off --bnd-hover
+  // and ~37 off --bnd-surface in light, which reads as a bar rather than a
+  // wash. Decorative by construction — no text, no state — so the contrast gate
+  // measures it and enforces nothing (tools/contrast_gate.py's exempt shape).
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 12%, #eef1ee);
+
+  // ── Ink ───────────────────────────────────────────────────────────────────
+  // Three levels, all three LEGIBLE. `--bnd-ink-subtle` used to be #9aa1ab and
+  // measured 2.61:1 on white — a text token that never passed as text, on 14
+  // real text rules across the palette, breadcrumbs, inbox, navbar, status bar
+  // and cluster. It is now fitted to 4.5:1 and `--bnd-ink-muted` to 7:1, which
+  // keeps the ramp reading as primary / secondary / tertiary rather than
+  // collapsing the two lower steps together. See palette.py's INK_MUTED_TARGET.
+  //
+  // The values are fitted against the DARKEST surface each is placed on, which
+  // is seed-dependent — so brand.py re-derives them per tenant and these are the
+  // shipped-seed answers.
+  --bnd-ink: #16181d;
+  --bnd-ink-muted: #494d57;
+  --bnd-ink-subtle: #666a71;
+  // Plain white, for ink on a known-dark surface. It is NO LONGER the answer to
+  // "what goes on a brand fill" — that is --bnd-on-brand, which is derived and
+  // is not always white. Every former consumer here moved on 2026-08-06 (item
+  // 32) and this now has zero in-repo callers, verified by grep; it is kept
+  // because token names are a contract Layer 3/4 may consume, and removing one
+  // is a breaking change (GUIDELINES 1.4). Do not reach for it for a brand fill.
+  --bnd-ink-inverse: #ffffff;
+
+  // ── Lines ─────────────────────────────────────────────────────────────────
+  // 0.5px reads as a true hairline on retina and rounds up on 1x, which is the
+  // behaviour we want in both cases.
+  --bnd-line: 0.5px;
+  // A DEFINITE edge, for controls that must read as controls at rest.
+  // `--bnd-line` is a separator: correct between rows of a table, too faint
+  // for a button whose whole boundary is the affordance. Measured on the home
+  // task row at 1440px: 0.57px of rgba(0,0,0,.09) against white is invisible
+  // at arm's length, and the row reads as floating text rather than as five
+  // buttons. Width only — a line weight is the same in light and dark, which
+  // is why this sits with `--bnd-icon-w-*` and not in the mode blocks.
+  //
+  // This does NOT raise `--bnd-border`/`--bnd-border-strong`: item 22 refused
+  // that because it repaints every stock control on the desk, and
+  // `contrast_gate.py` exempts both on that evidence. Opt in per component.
+  --bnd-line-strong: 1px;
+  --bnd-line-2: 2px; // Visible keyboard focus boundary for owned navigation controls.
+  --bnd-focus-offset: 2px; // Keeps focus rings clear of the control boundary.
+  // Usable form width before a split login composition adds its padding.
+  --bnd-auth-form-min: 320px;
+  --bnd-border: rgba(0, 0, 0, 0.09);
+  --bnd-border-strong: rgba(0, 0, 0, 0.16);
+
+  // ── Icon stroke weight (item 23) ────────────────────────────────────────────
+  // The four choices the Icons axis offers, as real px so `stroke-width` reads a
+  // token, not a literal. Mode-independent — a stroke weight is the same in
+  // light and dark. Frappe declares 1.5px once in `.icon`; these make it a
+  // control, and make it TRUE across the sprite grids (a symbol's viewBox scales
+  // the declared width, which is why the same 1.5 rendered 1.25–2.5 before item
+  // 23 normalised the base set).
+  --bnd-icon-w-hairline: 1.25px;
+  --bnd-icon-w-regular: 1.5px;
+  --bnd-icon-w-medium: 1.75px;
+  --bnd-icon-w-bold: 2px;
+
+  // ── Spacing (4px base) ────────────────────────────────────────────────────
+  --bnd-sp-1: 0.25rem;
+  --bnd-sp-2: 0.5rem;
+  --bnd-sp-3: 0.75rem;
+  --bnd-sp-4: 1rem;
+  --bnd-sp-5: 1.5rem;
+  --bnd-sp-6: 2rem;
+  --bnd-sp-7: 3rem;
+
+  // ── Type ──────────────────────────────────────────────────────────────────
+  // rem-based so the user's font-size preference scales the whole desk from a
+  // single root font-size, rather than needing a parallel set of px values.
+  --bnd-text-xs: 0.6875rem;
+  --bnd-text-sm: 0.8125rem;
+  --bnd-text-base: 0.875rem;
+  --bnd-text-md: 1rem;
+  --bnd-text-lg: 1.125rem;
+  --bnd-text-xl: 1.375rem;
+  --bnd-text-2xl: 1.75rem;
+  --bnd-weight-normal: 400;
+  --bnd-weight-medium: 500;
+  // Item 43: what lets a section head LEAD its labels at one point's difference
+  // — the census measured head and label both at 14px, the head only medium.
+  --bnd-weight-semibold: 600;
+  --bnd-leading-tight: 1.25;
+  --bnd-leading-base: 1.5;
+
+  // Tabular figures. ERP screens are columns of money; proportional digits make
+  // decimal points drift and are the single most common numeric-legibility bug.
+  --bnd-numeric: tabular-nums;
+
+  // ── Measure (item 43) ─────────────────────────────────────────────────────
+  // The body's column. Frappe caps `.section-body`, `.form-footer` and the
+  // workspace `.layout-main` at ITS variable `--page-max-width` (900px) and
+  // centres them; `_bridge.scss` feeds that variable from these under
+  // `data-bnd-body-width` — never a second width on our card, which is how
+  // item 43's census found a 1126px card around a 900px body.
+  //
+  // TWO EDGES, NOT ONE (item 45). One measure cannot serve a form and a table:
+  // a form is READ and wants a reading column, a table is SCANNED and wants
+  // room. Item 43 shipped one number reaching two of seven surface families,
+  // and the measurement that settled it is worth keeping — at 1920 the spread
+  // between the widest and narrowest surface was 305px with the setting OFF
+  // and 513px with it ON, because it pulled two surfaces in and left five
+  // alone. A setting that makes the desk less consistent when used is a defect
+  // in the WIRING, not in the number.
+  //
+  // So every value of `desk_width` carries a pair, declared together in
+  // surfaces/_body.scss: `--bnd-content-w` for what you read, `--bnd-wide-w`
+  // for what you scan. Every surface is assigned to one and none to neither —
+  // asserted by `body: every surface lands on one of the two edges`. The values
+  // here are Balanced, the shipped default. The attribute blocks restate all
+  // four pairs rather than deriving three from one, because a ratio would tie
+  // the reading column to the monitor and the reading column is a constant of
+  // human vision: WordPress has held its content measure between 620 and 650
+  // for five years while its wide measure grew 34%.
+  --bnd-content-w: 1040px;
+  --bnd-wide-w: 1400px;
+  // Property Rows' label column (item 43 A2): wide enough for the longest
+  // shipped ERPNext label at the 14 set in English and Arabic, measured in A2.
+  --bnd-label-w: 160px;
+  // A section head's collapse indicator (item 43 A3): a control, so a hit box —
+  // 20px is the floor the accessibility item set for a secondary control.
+  --bnd-form-indicator: 20px;
+  // BOOTSTRAP'S COLUMN PADDING, WHICH THE HEAD HAS TO MATCH. Every field sits
+  // inside `.form-column` at 15px from the section's content box, and Frappe's
+  // own `.section-head` carries the same 15px so the title lines up with the
+  // labels beneath it. A3's head rule replaced that padding with a bleed token
+  // that only Tinted Heads sets, so on the other six styles it resolved to 0
+  // and every section title hung 15px to the inline start of its own fields —
+  // measured on the shipped default, head text 308 against a field at 323.
+  // A token rather than the literal, because the head reads it in a calc with
+  // the bleed and both consumers must move together if the vendor's does.
+  --bnd-form-col-pad: 15px;
+  // The inspector rail's record thumb (item 43 A5): the form sidebar's 80px image
+  // well brought down onto the name's row — 40px reads as an avatar, not a photo.
+  --bnd-form-thumb: 40px;
+  // The activity column and drawer (item 43 A6): Beside lays the timeline in a
+  // column of this width at 2xl; Drawer slides it in as a panel of this width.
+  --bnd-activity-w: 340px;
+  --bnd-drawer-w: 420px;
+  // The document header's title (item 43 A8a): a size above the section
+  // title, restated per type scale below. Declared here so the band has a
+  // size under the vendor's own scale too.
+  --bnd-form-hero: 1.5rem;
+  // The stage path's chevron notch (item 43 A8b): the point each step cuts
+  // into the next; drawn with clip-path, so it is stated once here.
+  --bnd-stage-notch: 10px;
+  // The pinned foot's height (item 43 A8c): fixed by the sheet, so the
+  // measured reserve and the bar agree by construction.
+  --bnd-foot-h: 56px;
+
+  // ── Radii ─────────────────────────────────────────────────────────────────
+  --bnd-radius-sm: 4px;
+  --bnd-radius-md: 6px;
+  --bnd-radius-lg: 10px;
+  --bnd-radius-xl: 14px;
+  // Legacy component name, restrained house shape. Controls and statuses are
+  // quiet rectangles; genuinely circular marks declare 50% at their source.
+  --bnd-radius-pill: var(--bnd-radius-sm);
+
+  // ── Elevation ─────────────────────────────────────────────────────────────
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.03);
+  --bnd-shadow-md: 0 1px 2px rgba(0, 0, 0, 0.05), 0 4px 8px -2px rgba(0, 0, 0, 0.06),
+    0 12px 24px -6px rgba(0, 0, 0, 0.06);
+  --bnd-shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.05), 0 12px 24px -6px rgba(0, 0, 0, 0.1),
+    0 32px 64px -12px rgba(0, 0, 0, 0.14);
+
+  // ── Motion ────────────────────────────────────────────────────────────────
+  --bnd-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --bnd-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --bnd-dur-fast: 120ms;
+  --bnd-dur-base: 180ms;
+  --bnd-dur-slow: 280ms;
+  // A LOOP, not a transition (item 30). The three above are one-shot response
+  // times and the longest is 280ms — far too fast to read as a shimmer, which
+  // every reference product runs between 1.25s and 2s. Zeroed below like the
+  // rest, so the sentence there stays literally true.
+  --bnd-dur-loop: 1600ms;
+
+  // ── Density ───────────────────────────────────────────────────────────────
+  // Authored as VALUES, not as `[data-density="compact"] .foo {}` selector
+  // variants. That means the site default costs nothing (brand.py can emit
+  // different numbers) and a per-user toggle is one attribute flip, instead of a
+  // parallel set of rules for every component.
+  //
+  // THE RULE (decision "G with C", 2026-07-30): compact shortens rows, padding
+  // and controls — NEVER type. ERP text is invoice numbers and amounts;
+  // shrinking it to gain two rows is a bad trade. No font token appears in any
+  // density block, and that is enforceable by grep.
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+
+  // ── Chrome geometry (checklist item 9) ────────────────────────────────────
+  // The desk-layout system's fixed dimensions. Every bar and the dock size
+  // themselves from these.
+  //
+  // THE LAST TWO ARE MEASURED, NOT DECLARED. bunood.js keeps them equal to
+  // what actually rendered, because neither is knowable from a token:
+  //   --bnd-sidebar-live-w  the sidebar's end edge — it is user-resizable and
+  //                         collapsible, so fixed bars can start exactly where
+  //                         it ends without hardcoding 220px anywhere.
+  //   --bnd-bottom-reserve  how much of the viewport's bottom edge the fixed
+  //                         chrome covers, which chrome/_layouts.scss takes off
+  //                         .main-section's height. It depends on WHICH bars a
+  //                         layout mounts (Dock mounts two), on whether the
+  //                         status bar carries search, and on a floating pill
+  //                         whose rendered height no token states.
+  // Both default to a value that is safe if the script never runs: the sidebar
+  // width Frappe itself uses, and a reserve of zero (= stock geometry).
+  --bnd-topbar-h: 44px;
+  --bnd-statusbar-h: 26px;
+  --bnd-bottombar-h: 40px;
+  --bnd-dock-h: 56px;
+  --bnd-sidebar-live-w: 220px;
+  --bnd-bottom-reserve: 0px;
+  // Toast geometry (item 28). Frappe pins #alert-container at a physical
+  // `right: 20px; bottom: 0` on <body>, OUTSIDE the box --bnd-bottom-reserve
+  // shrinks — measured overlapping our status bar by 11px at 1440x900 and 36px
+  // full-bleed at 375x812. `_overlays.scss` re-writes that inset logically and
+  // adds the reserve; these are the two distances it uses. The inset keeps
+  // Frappe's own 20px feel on desktop; the gap is the smaller clearance the
+  // full-bleed mobile strip needs above the bar.
+  --bnd-toast-inset: 20px;
+  --bnd-toast-gap: 8px;
+  // The dialog scrim (item 28). A LITERAL rgba rather than a derived mix, for
+  // the same reason --bnd-shadow-* is: it is a wash over unknown content, not a
+  // surface anything is read on, so no contrast pair constrains it and deriving
+  // it from the seed would make one tenant's dialogs dimmer than another's.
+  // Tinted toward the page's own near-black rather than pure black — Directus's
+  // choice (rgb(38 50 56 / .8)) and the one that stops the scrim greying the
+  // brand out of the page.
+  //
+  // THE ALPHA IS TUNED FOR THE STACKED CASE, NOT THE SINGLE ONE. Measured: two
+  // open dialogs paint TWO .modal-backdrop nodes, both at z 1040 (Bootstrap
+  // 4.6.2 does no z-bumping), so scrims COMPOUND — 0.62 twice reads as 0.86,
+  // which is the value that actually has to work. Stock's 0.8 would compound to
+  // 0.96, i.e. nearly opaque.
+  --bnd-scrim: rgba(16, 26, 22, 0.62);
+  // Blurred trades opacity for the blur, so it carries less alpha; the blur
+  // itself is applied only inside an @supports guard (see _overlays.scss).
+  --bnd-scrim-blur: rgba(16, 26, 22, 0.42);
+  // Touch target floor (item 24). WCAG 2.2 AA 2.5.8 requires 24x24; this is the
+  // "design to 44" decision — every control the mobile nav builds is at least
+  // this, comfortably clear of the 24 the a11y gate enforces.
+  --bnd-tap: 44px;
+
+  // ── Sidebar style kit (checklist item 10) ─────────────────────────────────
+  // Consumed ONLY by chrome/_sidebar.scss. The kit's color-mode blocks set
+  // the --bnd-sb-* working set (bg, ink, chip, card); these are the shared
+  // geometry/stop values every mode agrees on.
+  --bnd-sb-w: 220px;
+  // The account band (item 40, 8c): cell box and the band's OWN inline
+  // padding. The band escapes the vendor's pane padding and re-applies
+  // this, so its usable width is W minus 2*pad by OUR numbers - a fact
+  // Frappe cannot move under us. --bnd-sb-pane-pad mirrors the vendor's
+  // 8px pane padding for exactly that escape; if their number moves, the
+  // band check fails NAMING it rather than the desk quietly shifting.
+  --bnd-sb-cell: 36px;
+  --bnd-sb-band-pad: 6px;
+  // The gap between the foot card's cells. 6px, not the 8px of --bnd-sp-2, and
+  // the arithmetic is why: at the 200px stop the card is inset by the pane's own
+  // 8px padding on each side, so its usable width is 200 - 16 - 12 - 1 = 171px,
+  // and the four cells (the 40px account tile plus three 36px cells) need 148 +
+  // 3*gap. At 8 that is 172 and the bell overflowed the card it sits in -- by one
+  // pixel, on the narrowest pane, which is exactly the width nobody looks at. At
+  // 6 it is 166, and compact density (36 + 3*32) is 150.
+  --bnd-sb-band-gap: 6px;
+  --bnd-sb-pane-pad: 8px;
+  // The TILE (item 42): the brand row's mark and the foot's avatar cell,
+  // one size so the pane's two ends rhyme. Steps down with density like
+  // the cell does, and the foot check reads it off the element.
+  --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;   // the brand tile in the page head (Hidden) — a crumb's height
+  --bnd-sb-head-ico: 22px;  // the module's icon before its name in the place row
+  --bnd-menu-ico: 20px;     // the icon cell of every menu row — sprite or desktop-icon tile
+  --bnd-sb-search-h: 32px;  // the pane's search bar; an input, so an input's height
+  // The account panel's fixed inline size (8c): identity text CLAMPS to
+  // it rather than stretching it - the check pins the panel at this width
+  // with a 40-char Arabic name and a 45-char address.
+  --bnd-acct-w: 280px;
+  --bnd-sb-rail-w: 96px; // Icon + readable bilingual label; shared column/pane width.
+  --bnd-sb-radius: 14px;
+  // ── Z-index ladder ────────────────────────────────────────────────────────
+  // Bars sit above sticky page chrome but BELOW Frappe's modals (1050) and
+  // alerts, so a dialog always covers our chrome. Panels (our menus, the
+  // relocated notifications dropdown) sit above bars but still below modals.
+  --bnd-z-bar: 990;
+  // Flyouts (the expanding menu rail) sit ABOVE bars — the rail overlay must
+  // cover the topbar/statusbar edges it slides across — but below panels.
+  --bnd-z-flyout: 1030;
+  --bnd-z-panel: 1040;
+  // The command palette sits above every panel but still below Frappe's
+  // modals (1050): executing a palette row can open a Frappe dialog, and
+  // that dialog must cover what launched it.
+  --bnd-z-palette: 1045;
+
+  // ── Categorical hues ──────────────────────────────────────────────────────
+  // Fixed order, validated for colour-vision separation. ASSIGN ONCE PER ENTITY
+  // AND NEVER RE-ASSIGN: a module keeps its hue regardless of sort order or how
+  // many are shown. Never cycle these by index — that repaints survivors when a
+  // filter changes, which is the one thing a categorical palette must not do.
+  --bnd-cat-1: #2a78d6;
+  --bnd-cat-2: #eb6834;
+  --bnd-cat-3: #1baf7a;
+  --bnd-cat-4: #eda100;
+  --bnd-cat-5: #e87ba4;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #4a3aa7;
+  --bnd-cat-0: var(--bnd-ink-subtle); // the "other" bucket
+
+  // ── Indicator status dots (item 28) ───────────────────────────────────────
+  // Frappe's twelve indicator names, re-toned so a status MARK stays
+  // identifiable. `desk/dark.scss:264` points every --indicator-dot-* at the
+  // matching --bg-* — the dark wash a PILL is filled with, not an ink — and ten
+  // of the twelve then fail the 3:1 non-text floor, eight invisibly.
+  //
+  // FITTED, NOT BORROWED. Item 28 first repaired this by pointing the dot back
+  // at --text-on-*, which cleared the floor everywhere (worst 5.59) but left
+  // four hues as near-whites: worst pairwise CIEDE2000 across the set was 0.83,
+  // i.e. BELOW the just-noticeable difference — legible, and no longer telling
+  // the reader which status it is. Fitting each hue for 3:1 instead takes that
+  // to 3.58 while keeping cyan cyan and purple purple.
+  //
+  // Brand-independent, exactly like the chart series ramp, which is what lets
+  // one static block satisfy check_defaults_agree for all eleven gate seeds.
+  // Derived by palette.status_ramp(); regenerate with
+  // `python tools/contrast_gate.py --emit-defaults`.
+  --bnd-status-green: #16794c;
+  --bnd-status-cyan: #267a94;
+  --bnd-status-blue: #0070cc;
+  --bnd-status-orange: #bd3e0c;
+  --bnd-status-yellow: #ab6e05;
+  --bnd-status-gray: #525252;
+  --bnd-status-grey: #525252;
+  --bnd-status-red: #b52a2a;
+  --bnd-status-pink: #9c2671;
+  --bnd-status-darkgrey: #383838;
+  --bnd-status-purple: #6e399d;
+  --bnd-status-light-blue: #007be0;
+
+  --bnd-cat-tint: 14%;
+  --bnd-cat-wash: 7%;
+
+  // ── Chart series (item 25) ────────────────────────────────────────────────
+  // A DIFFERENT family from --bnd-cat-* on purpose: a chart series index is an
+  // index cycle, which the categorical hues forbid. Paul Tol's "muted" scheme,
+  // colour-vision-safe, lightness-fitted here to clear 3:1 on a white chart card.
+  // DERIVED by palette.series_ramp — literal hex so frappe-charts accepts them
+  // (it rejects var()/color-mix strings); check_defaults_agree holds this block
+  // to the derivation. Fed to charts from JS by getComputedStyle, so they are
+  // authored as plain 6-digit hex and nothing else.
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #332288;
+  --bnd-series-3: #9a8e53;
+  --bnd-series-4: #117733;
+  --bnd-series-5: #6394ad;
+  --bnd-series-6: #882255;
+  --bnd-series-7: #3f9d8d;
+  --bnd-series-other: #808080; // the overflow "Rest" slice — a quiet neutral
+
+  // ── Status — RESERVED ─────────────────────────────────────────────────────
+  // Never reused as a categorical slot, and never the only signal: always ship
+  // an icon and a label alongside, so state survives colour-blindness and
+  // greyscale printing.
+  // --bnd-warn was #b06f00 and measured 4.01:1 as text on --bnd-raised. Fitted.
+  --bnd-good: #197942;
+  --bnd-warn: #965e00;
+  --bnd-serious: #c2410c;
+  --bnd-critical: #b42318;
+  // Foreground for anything filled with --bnd-critical (the unread badge).
+  // Mode-aware because the fill flips lightness: white on the dark light-mode
+  // red, near-black on the light dark-mode red — measured 2.1:1 when the
+  // badge kept white ink in dark mode.
+  --bnd-on-critical: #ffffff;
+}
+
+// ── Dark ────────────────────────────────────────────────────────────────────
+// SELECTED, not flipped. Each value is chosen for a dark surface rather than
+// derived by lightening its light counterpart — inverted lightness produces
+// muddy mid-tones and inverts the perceived elevation order.
+//
+// WHY THIS IS A MIXIN (item 32). The dark set has to be EMITTED under more
+// than one selector, and every extra emission point is another copy of the
+// same fact — the defect class this repo names first. It already had two:
+// `html[data-theme="dark"]` and the `automatic` block below, whose own comment
+// records that nothing enforces membership between them. Item 32 needs a
+// THIRD, because a website page carries no `data-theme` at all and the login
+// sheet has to reach dark through `prefers-color-scheme` (see
+// `web/_login.scss`). Three hand-kept copies is not a thing to ship, so the
+// values live here once and the selectors include them.
+//
+// NOT YET INCLUDED BY THE `automatic` BLOCK BELOW, deliberately: that block is
+// a 25-of-55 SUBSET and completing it is a real (good) behaviour change to the
+// desk, which is item 30’s open hole and not item 32’s to spend. Doing it is
+// now one line — `@include dark;` — and the 30 missing tokens are listed in
+// HANDOVER. This commit is provably inert: the compiled sheet is byte-identical.
+@mixin dark {
+  --bnd-page: color-mix(in srgb, var(--bnd-brand) 6%, #101317);
+  --bnd-surface: color-mix(in srgb, var(--bnd-brand) 8%, #171a20);
+  --bnd-raised: color-mix(in srgb, var(--bnd-brand) 10%, #1b1f25);
+  --bnd-pane: color-mix(in srgb, var(--bnd-brand) 16%, #14171b);
+  --bnd-hover: color-mix(in srgb, var(--bnd-brand) 14%, #21252b);
+  --bnd-active: color-mix(in srgb, var(--bnd-brand) 22%, #181c21);
+  // LIGHTER than --bnd-hover here, not darker: in dark a bone reads by lifting
+  // off the surface, and --bnd-active (22%, #181c21) would land within ~4 units
+  // of --bnd-hover — the stock collapse, re-created in our own vocabulary.
+  --bnd-bone: color-mix(in srgb, var(--bnd-brand) 16%, #2b3037);
+
+  --bnd-ink: #e8eaec;
+  --bnd-ink-muted: #b8bdc4;
+  --bnd-ink-subtle: #9197a1;
+
+  // Dark mode takes the OTHER branch of the fill derivation: darkening the seed
+  // so white text clears 4.5:1 would push it toward the dark surfaces and cost
+  // the 3:1 it needs to be seen at all (measured 2.98:1 against --bnd-hover). So
+  // the fill is LIGHTENED and takes dark ink instead. Both constraints are
+  // solved together for exactly this reason — see contrast.fill_pair.
+  --bnd-brand-solid: #60a471;
+  --bnd-on-brand: #16181d;
+  --bnd-brand-ink: #6fa27d;
+  --bnd-brand-deep: #6e8876;
+  --bnd-on-deep: #16181d;
+  --bnd-brand-deep-tile: #829989;
+
+  // The focus ring has to clear 3:1 on every dark surface; #4463f0 does not.
+  --bnd-accent: #0090ff;
+
+  --bnd-border: rgba(255, 255, 255, 0.1);
+  --bnd-border-strong: rgba(255, 255, 255, 0.18);
+
+  --bnd-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --bnd-shadow-md: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 12px rgba(0, 0, 0, 0.5);
+  --bnd-shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 16px 48px rgba(0, 0, 0, 0.65);
+
+  // The scrim goes DEEPER in dark, not lighter (item 28). The page beneath is
+  // already near-black, so the same alpha that reads as "the page is behind
+  // glass" on white reads as "nothing happened" here — which is why Directus
+  // climbs 0.8 -> 0.9 and frappe-ui 0.271 -> 0.722 across the same boundary.
+  // Still tuned for the stacked case: 0.72 twice reads as 0.92.
+  --bnd-scrim: rgba(4, 8, 7, 0.72);
+  --bnd-scrim-blur: rgba(4, 8, 7, 0.52);
+
+  // The status ramp, re-fitted for the dark ground (item 28). See :root.
+  --bnd-status-green: #67a88a;
+  --bnd-status-cyan: #6aa4b5;
+  --bnd-status-blue: #56a1dd;
+  --bnd-status-orange: #d68869;
+  --bnd-status-yellow: #c19446;
+  --bnd-status-gray: #9b9b9b;
+  --bnd-status-grey: #9b9b9b;
+  --bnd-status-red: #d58686;
+  --bnd-status-pink: #c887b0;
+  --bnd-status-darkgrey: #ebebeb;
+  --bnd-status-purple: #ad8fc8;
+  --bnd-status-light-blue: #ddedfb;
+
+  // Re-stepped for the dark surface, not lightened from the light values.
+  --bnd-cat-1: #3987e5;
+  --bnd-cat-2: #d95926;
+  --bnd-cat-3: #199e70;
+  --bnd-cat-4: #c98500;
+  --bnd-cat-5: #d55181;
+  --bnd-cat-6: #008300;
+  --bnd-cat-7: #9085e9;
+  --bnd-cat-tint: 20%;
+  --bnd-cat-wash: 11%;
+
+  // Chart series (item 25) — Tol muted re-stepped LIGHTER for the dark card,
+  // same hue identities as light. Fitted to clear 3:1 on the lightest dark tile.
+  --bnd-series-1: #cc6677;
+  --bnd-series-2: #8075b5;
+  --bnd-series-3: #ddcc77;
+  --bnd-series-4: #388e55;
+  --bnd-series-5: #88ccee;
+  --bnd-series-6: #ad688b;
+  --bnd-series-7: #44aa99;
+  --bnd-series-other: #808080;
+
+  --bnd-good: #4ac07d;
+  --bnd-warn: #e0a33a;
+  --bnd-serious: #f08a5d;
+  --bnd-critical: #f2736a;
+  // Was #2b0f0c — a warm near-black tuned by eye to sit on the red. It passed,
+  // but it was the one ink chosen by hand rather than derived, and keeping a
+  // special case alive costs more than the half-shade it bought.
+  --bnd-on-critical: #16181d;
+}
+
+// ── The next four blocks are DEAD WEIGHT IN THE WEB SHEET, AND THEY STAY ────
+// `web/_login.scss` does `@use "../tokens"` for the light `:root` set it genuinely
+// needs, and Sass emits every top-level rule in a used file — so this block, the
+// `automatic` media block below it, and the two density blocks all land in
+// `bunood-web.<hash>.css`, where NONE of them can ever match. A website page
+// carries no `data-theme` (`templates/base.html` renders `<html lang dir>` and
+// nothing else) and `bunood.js` never runs there to stamp `data-bnd-density`.
+//
+// Item 33 planned a slice to split them out and MEASURED THE PAYOFF FIRST:
+// 3,335 raw bytes, and **59 gzip bytes** — 3,206 → 3,147 against a 4,000 ceiling,
+// so 794 bytes of headroom becomes 853. They compress to nearly nothing because
+// they are near-duplicates of the `body.bnd-auth` dark block that IS live there.
+//
+// The cost of collecting those 59 bytes is the reason they stay. Sass will not
+// let a used file withhold its top-level rules, so the only split that works
+// moves `:root` and/or this block into another file — and
+// `tools/contrast_gate.py::read_blocks` anchors on BOTH of them at column zero
+// *in this file*, `SystemExit`ing if either is missing. Repointing it means
+// editing the tool that produced 150 phantom failures across every seed the last
+// time it was touched, from a stylesheet that was perfectly correct, because it
+// parses this file as TEXT and only one of its two readers is Sass.
+//
+// 59 bytes is not that trade. Recorded here rather than in a commit nobody will
+// find, because the blocks look obviously removable and the next person to think
+// so should get the number instead of repeating the experiment.
+html[data-theme="dark"] {
+  @include dark;
+}
+
+// ── "Automatic" — compensating for a Frappe bug ─────────────────────────────
+// `User.desk_theme` accepts "Automatic" and Frappe renders it verbatim into
+// `data-theme`, but ships NO `prefers-color-scheme` rules anywhere in its SCSS.
+// So `automatic` matches neither its light nor its dark block, and an Automatic
+// user on a dark OS gets a fully light splash screen until JS resolves it.
+// This block is the fix, and it must stay in CSS: JS runs after first paint.
+@media (prefers-color-scheme: dark) {
+  html[data-theme="automatic"] {
+    // ITEM 40: this block was a CURATED SUBSET — 25 of the dark set's 55 — and
+    // its own comment recorded that nothing enforced membership. Measured
+    // 2026-08-29 against the compiled sheet: 30 tokens resolved LIGHT here on a
+    // dark OS, including all seven category hues, all twelve status colours,
+    // critical/good/serious/warn, both scrims and all three shadows. A skeleton
+    // paints before the theme resolves, which is exactly when that showed.
+    //
+    // The subset is now the whole set, which is what the previous comment said
+    // the fix was. Verified a PURE SUPERSET before making it: of the 25 tokens
+    // both blocks declared, ZERO had differing values, so nothing that already
+    // worked changes — this only stops 30 tokens falling through to light.
+    //
+    // The series tokens are no longer listed separately; `dark` carries them,
+    // and assertAutomaticParity still guards that they match, now by construction
+    // rather than by a second hand-kept copy.
+    @include dark;
+  }
+}
+
+// ── Density: per-user override (decision G) ─────────────────────────────────
+// Three-layer precedence, weakest to strongest:
+//   1. the :root defaults above            (theme's Comfortable)
+//   2. the per-site brand sheet's :root    (admin's site default, brand.py)
+//   3. these attribute blocks              (the user's own choice)
+// Layer 3 wins because html[data-bnd-density] is (0,1,1) vs :root's (0,1,0) —
+// no ordering dependency, so it beats the brand sheet even though that sheet
+// loads after the bundle.
+//
+// The attribute is set by bunood.js from boot BEFORE Frappe renders any desk
+// content (classic scripts finish before DOMContentLoaded, and the splash is
+// the only thing painted earlier), so a user override causes no visible jump.
+// No attribute = "use the site default" — deliberately, so admins can change
+// the default and undecided users follow.
+//
+// Both blocks restate values explicitly: a compact-default site needs the
+// "comfortable" block to actually restore the comfortable numbers.
+// ── The body's type set (item 43 A1) ─────────────────────────────────────
+// SEVEN SIZES THAT MOVE TOGETHER, chosen by `desk_scale`. The census
+// (docs/upstream/frappe-form-body.md) measured the stock body flat: a section
+// head at 14px/500 over labels at 14px, values at 14, help at 13 — nothing
+// leads. Each set gives the head a point and a weight over the value and the
+// label a point and a half under it. Density is ABSENT from these blocks on
+// purpose, in both directions: density never touches type, and type never
+// touches density — Touch 16 does not widen a row. No attribute = the vendor's
+// own sizes; the consumers (surfaces/_body.scss) are keyed on the attribute, so
+// nothing here reaches a desk under Original.
+html[data-bnd-body-scale="13"] {
+  --bnd-body-value: 0.8125rem;        // 13
+  --bnd-body-label: 0.75rem;          // 12
+  --bnd-body-help: 0.71875rem;        // 11.5
+  --bnd-body-head: 0.875rem;          // 14
+  --bnd-body-title: 1.125rem;         // 18
+  --bnd-body-table: 0.78125rem;       // 12.5
+  --bnd-body-table-head: 0.6875rem;   // 11
+  --bnd-form-hero: 1.375rem;          // 22
+}
+html[data-bnd-body-scale="14"] {
+  --bnd-body-value: 0.875rem;         // 14
+  --bnd-body-label: 0.78125rem;       // 12.5
+  --bnd-body-help: 0.75rem;           // 12
+  --bnd-body-head: 0.9375rem;         // 15
+  --bnd-body-title: 1.25rem;          // 20
+  --bnd-form-hero: 1.5rem;            // 24
+  --bnd-body-table: 0.8125rem;        // 13
+  --bnd-body-table-head: 0.71875rem;  // 11.5
+}
+html[data-bnd-body-scale="16"] {
+  --bnd-body-value: 1rem;             // 16
+  --bnd-body-label: 0.875rem;         // 14
+  --bnd-body-help: 0.8125rem;         // 13
+  --bnd-body-head: 1.0625rem;         // 17
+  --bnd-body-title: 1.375rem;         // 22
+  --bnd-form-hero: 1.75rem;           // 28
+  --bnd-body-table: 0.9375rem;        // 15
+  --bnd-body-table-head: 0.8125rem;   // 13
+}
+
+html[data-bnd-density="comfortable"] {
+  --bnd-row-h: 32px;
+  --bnd-control-h: 30px;
+  --bnd-pad-y: 6px;
+  --bnd-sb-cell: 36px;
+  // The tile restores with the cell, for the reason stated above it: a site
+  // whose default density is Compact stamps that on <html>, and a person who
+  // picks Comfortable gets THIS block -- so anything the compact block lowers
+  // and this one omits stays lowered for them. --bnd-sb-cell is here for
+  // exactly that; the tile arrived later and has to join it.
+  --bnd-sb-tile: 40px;
+  --bnd-sb-ph-tile: 26px;   // the brand tile in the page head (Hidden) — a crumb's height
+  --bnd-sb-head-ico: 22px;  // the module's icon before its name in the place row
+  --bnd-menu-ico: 20px;     // the icon cell of every menu row — sprite or desktop-icon tile
+  --bnd-sb-search-h: 32px;  // the pane's search bar; an input, so an input's height
+}
+html[data-bnd-density="compact"] {
+  --bnd-row-h: 24px;
+  --bnd-control-h: 26px;
+  --bnd-pad-y: 3px;
+  // 32px, NOT below it: the band's count badge degrades to a dot only
+  // under 32, so both shipped densities keep the count. The degradation
+  // rule itself is deliberately unbuilt - no shipped preset can trigger
+  // it, and a branch whose guard is false on every desk is untested code
+  // pretending to be a safety net (the ledger records this call).
+  --bnd-sb-cell: 32px;
+  --bnd-sb-tile: 36px;
+}
+
+// ── Reduced motion ──────────────────────────────────────────────────────────
+// Zeroing the duration tokens disables every transition in the theme at once,
+// because nothing hardcodes a duration.
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --bnd-dur-fast: 0ms;
+    --bnd-dur-base: 0ms;
+    --bnd-dur-slow: 0ms;
+    --bnd-dur-loop: 0ms;
+  }
+}
+
+// The same zeroing, asked for by the PERSON rather than by their machine
+// (item 38). Until now motion was governed only by the query above, so somebody
+// on a shared or locked-down desktop who cannot change that setting had no way
+// to calm the interface.
+//
+// ADDITIVE, NOT AN OVERRIDE, and that is the whole design: there is no pole that
+// turns motion back ON. Either signal zeroes the tokens and neither can undo the
+// other, so this can never become a control for overriding an operating-system
+// accessibility request. It is also why the selector is separate rather than
+// folded into the block above — a person's Reduced must apply on a machine that
+// asks for no-preference.
+//
+// (0,1,1) beats the (0,1,0) of `:root`, the same specificity argument density
+// already relies on one block up.
+html[data-bnd-motion="reduce"] {
+  --bnd-dur-fast: 0ms;
+  --bnd-dur-base: 0ms;
+  --bnd-dur-slow: 0ms;
+  --bnd-dur-loop: 0ms;
+}

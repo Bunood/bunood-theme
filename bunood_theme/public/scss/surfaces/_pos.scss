@@ -1,0 +1,145 @@
+// POINT OF SALE — readable catalogue cards and honest image fallbacks.
+//
+// Frappe's stock gallery fixes the catalogue at four columns, even when the
+// item selector is only half the viewport. It then forces the item name onto
+// one clipped line. The result is neither a compact card nor a readable one:
+// names, UOMs and prices collide while each card still spends eight rem on an
+// image. This surface lets the available inline size choose the column count
+// and lets textual content determine the card height.
+//
+// Some imported/fixture items carry a one-pixel colour swatch as their image.
+// bunood.js recognises that unusable asset and changes the existing
+// `.item-display` into `.bnd-pos-thumbnail-fallback`. The CSS here only paints
+// that explicit state; it never hides a valid product image.
+
+@use "../breakpoints" as *;
+
+html[data-theme] .point-of-sale-app > .items-selector {
+	container-type: inline-size;
+	container-name: bndpos;
+
+	> .filter-section {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+    align-items: end;
+    gap: var(--bnd-sp-3);
+    padding: var(--bnd-sp-4);
+
+		> :is(.label, .search-field, .item-group-field) {
+			grid-column: 1;
+			min-inline-size: 0;
+		}
+
+		> .label {
+			overflow: visible;
+			white-space: normal;
+    }
+
+    > :is(.search-field, .item-group-field),
+    .frappe-control,
+    .form-group,
+    .control-input-wrapper,
+    .control-input,
+    .link-field,
+    .awesomplete,
+    input {
+      inline-size: 100%;
+      min-inline-size: 0;
+      max-inline-size: none;
+    }
+  }
+
+	> .items-container.show-item-image {
+		grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+		align-items: stretch;
+		align-content: start;
+		gap: var(--bnd-sp-3);
+    padding: var(--bnd-sp-3);
+
+		> .item-wrapper {
+			display: flex;
+			min-inline-size: 0;
+			block-size: auto;
+			flex-direction: column;
+			overflow: visible;
+      border: var(--bnd-line) solid var(--bnd-border);
+      background: var(--bnd-surface);
+
+      > .item-display {
+        display: grid;
+        inline-size: 100%;
+        min-block-size: 8rem;
+        block-size: 8rem;
+        place-items: center;
+        overflow: hidden;
+        background: var(--bnd-raised);
+        color: var(--bnd-ink-muted);
+      }
+
+      > .item-display > :is(img, .item-img) {
+        inline-size: 100%;
+        block-size: 100%;
+        object-fit: cover;
+      }
+
+      > .item-display.bnd-pos-thumbnail-fallback {
+        background: var(--bnd-raised);
+      }
+
+      .bnd-pos-thumb-initial {
+        color: var(--bnd-ink-muted);
+        font-size: clamp(1.75rem, 12cqi, 3rem);
+        font-weight: var(--bnd-weight-medium);
+        letter-spacing: normal;
+        line-height: 1;
+      }
+
+      > .item-detail {
+        display: flex;
+        min-inline-size: 0;
+        min-block-size: 5rem;
+        block-size: auto;
+        flex: 1 1 auto;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        gap: var(--bnd-sp-1);
+        padding: var(--bnd-sp-3);
+      }
+
+      > .item-detail > :is(.item-name, .item-rate) {
+        display: block;
+        inline-size: 100%;
+        min-inline-size: 0;
+        overflow: visible;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        text-overflow: clip;
+        line-height: 1.4;
+      }
+
+      > .item-detail > .item-name {
+        color: var(--bnd-ink);
+        font-weight: var(--bnd-weight-semibold);
+      }
+
+      > .item-detail > .bnd-pos-item-code {
+        color: var(--bnd-ink-muted);
+        font-size: var(--bnd-text-sm);
+        font-weight: var(--bnd-weight-normal);
+        line-height: 1.4;
+        overflow-wrap: anywhere;
+      }
+
+      > .item-detail > .item-rate {
+        color: var(--bnd-ink-muted);
+      }
+    }
+  }
+}
+
+@include bnd-container-until(bndpos, pos-cards) {
+  html[data-theme] .point-of-sale-app > .items-selector > .items-container.show-item-image {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

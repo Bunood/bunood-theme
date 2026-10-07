@@ -1,0 +1,39 @@
+// Shared edge policy. Page bundles load after the theme, so scope to Bunood
+// explicitly. Keep ordinary dividers, status text/icons and native focus rings.
+html.bunood[data-theme] {
+  .bnd-studio :is(.bnd-studio__hero, .bnd-studio__viewhead),
+  .bnd-report-landing__head,
+  &[data-bnd-form][data-bnd-form-header] .bnd-dochead,
+  .bnd-close :is(.bnd-close__state, .bnd-close__failure),
+  .bnd-close .bnd-close__phase.is-attention-needed,
+  .bnd-launch-check:is(.is-review, .is-not-assessed),
+  .bnd-launch-next,
+  :is(.bnd-document-state, .bnd-dochead-status),
+  &[data-bnd-crumbs] body[data-route^="Form"] .page-head .title-area > :is(.page-indicator-pill, .indicator-pill),
+  .bnd-zatca-workspace .bnd-zatca__boundary {
+    border-inline-start: 0;
+  }
+
+  // These two warning surfaces are supplied by the Engineering/Setup apps.
+  :is(.bnd-eng-studio-note, .bnd-sum__cell[data-tone="attention"]) {
+    border-inline-start: var(--bnd-line) solid var(--bnd-border);
+  }
+
+  // Some lead/outcome panels predate the workbench wrapper.
+  :is(.bnd-task-panel-lead, .bnd-task-outcome) {
+    border-inline-start: var(--bnd-line) solid var(--bnd-border);
+  }
+
+  .bnd-home-dashboard:not(.is-real-estate) .bnd-home-attn-panel .bnd-home-panel-head {
+    border-inline-end: 0;
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+
+  // The same accent was rotated to the top on these surfaces. Use a normal
+  // divider so it cannot return as a stripe at a different breakpoint.
+  .bnd-studio .bnd-studio__kpis,
+  body:is([data-route^="Form/Engineering"], [data-route^="Form/Government Transaction"]) .bnd-dochead,
+  body:is([data-route^="List/Engineering"], [data-route^="List/Government Transaction"]) .no-result .msg-box.no-border {
+    border-block-start: var(--bnd-line) solid var(--bnd-border);
+  }
+}

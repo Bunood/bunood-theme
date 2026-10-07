@@ -1,0 +1,18 @@
+// Number-card deltas use text-safe semantic inks on theme-owned backgrounds.
+// Frappe's full widget path has five classes: our path and scope outweigh it.
+// The arrow inherits the native pill's matched ink, including in dark mode.
+html[data-bnd-ws] .widget.number-widget-box:not([style*="background"]) .widget-body .widget-content {
+  .grey-stat {
+    color: var(--bnd-ink-muted);
+  }
+  .green-stat {
+    color: var(--bnd-good);
+  }
+  .red-stat {
+    color: var(--bnd-critical);
+  }
+  .green-stat use,
+  .red-stat use {
+    stroke: currentColor;
+  }
+}

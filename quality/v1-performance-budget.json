@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "authority": "docs/BUNOOD-V1-PERFORMANCE-RELIABILITY-SLO-2026-09-20.md",
+  "disclaimer": "Target budget only. This is not a benchmark receipt and makes no performance pass claim.",
+  "required_profiles": ["starter", "standard"],
+  "profiles": {
+    "starter": {
+      "active_sessions": 20,
+      "companies": 1,
+      "items": 2000,
+      "parties": 2000,
+      "submitted_invoices": 10000,
+      "gl_entries": 250000,
+      "stock_ledger_entries": 100000
+    },
+    "standard": {
+      "active_sessions": 100,
+      "companies": 3,
+      "items": 25000,
+      "parties": 25000,
+      "submitted_invoices": 100000,
+      "gl_entries": 2000000,
+      "stock_ledger_entries": 1000000
+    },
+    "high-volume": {
+      "active_sessions": 300,
+      "companies": 10,
+      "items": 100000,
+      "parties": 100000,
+      "submitted_invoices": 1000000,
+      "gl_entries": 10000000,
+      "stock_ledger_entries": 5000000
+    }
+  },
+  "dimensions": {
+    "locales": ["en", "ar"],
+    "device_classes": ["desktop", "mobile"],
+    "cache_states": ["cold", "warm"]
+  },
+  "minimum_load_shape": {
+    "steady_minutes": 60,
+    "peak_minutes": 15,
+    "peak_session_multiplier": 1.5,
+    "recovery_observed": true
+  },
+  "web_vitals": {
+    "lcp_ms": {"percentile": "p75", "maximum": 2500, "minimum_samples": 30},
+    "inp_ms": {"percentile": "p75", "maximum": 200, "minimum_samples": 30},
+    "cls": {"percentile": "p75", "maximum": 0.1, "minimum_samples": 30}
+  },
+  "operations": {
+    "route-ready-warm": {"cache_states": ["warm"], "p50_ms": 1000, "p95_ms": 2000, "p99_ms": 3500, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "route-ready-cold": {"cache_states": ["cold"], "p95_ms": 3000, "p99_ms": 5000, "maximum_error_rate_pct": 0.1, "minimum_samples": 30},
+    "common-read-api-warm": {"cache_states": ["warm"], "p50_ms": 250, "p95_ms": 750, "p99_ms": 1500, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "first-page-list-filter": {"cache_states": ["warm"], "p50_ms": 600, "p95_ms": 1500, "p99_ms": 2500, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "global-search-result": {"cache_states": ["warm"], "p50_ms": 500, "p95_ms": 1200, "p99_ms": 2000, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "pos-item-search-result": {"cache_states": ["warm"], "p50_ms": 150, "p95_ms": 300, "p99_ms": 600, "maximum_error_rate_pct": 0.1, "minimum_samples": 200},
+    "pos-add-edit-cart-line": {"cache_states": ["warm"], "p50_ms": 100, "p95_ms": 300, "p99_ms": 600, "maximum_error_rate_pct": 0.1, "minimum_samples": 200},
+    "save-draft": {"cache_states": ["warm"], "p50_ms": 700, "p95_ms": 2000, "p99_ms": 4000, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "submit-native-transaction": {"cache_states": ["warm"], "p50_ms": 1200, "p95_ms": 3000, "p99_ms": 6000, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "complete-local-pos-sale": {"cache_states": ["warm"], "p50_ms": 2000, "p95_ms": 4000, "p99_ms": 7000, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "role-dashboard-ready": {"cache_states": ["warm"], "p50_ms": 800, "p95_ms": 2000, "p99_ms": 4000, "maximum_error_rate_pct": 0.1, "minimum_samples": 100},
+    "standard-interactive-report": {"cache_states": ["warm"], "p50_ms": 2000, "p95_ms": 5000, "p99_ms": 10000, "maximum_error_rate_pct": 0.1, "minimum_samples": 50},
+    "print-preview": {"cache_states": ["warm"], "p50_ms": 1500, "p95_ms": 3000, "p99_ms": 6000, "maximum_error_rate_pct": 0.1, "minimum_samples": 50},
+    "pdf-generation": {"cache_states": ["warm"], "p50_ms": 4000, "p95_ms": 10000, "p99_ms": 20000, "maximum_error_rate_pct": 0.1, "minimum_samples": 30}
+  },
+  "queues": {
+    "user-blocking-short": {"ack_p95_ms": 500, "start_age_p95_ms": 5000, "start_age_p99_ms": 15000, "minimum_samples": 30},
+    "normal-default": {"ack_p95_ms": 500, "start_age_p95_ms": 30000, "start_age_p99_ms": 120000, "minimum_samples": 30},
+    "bulk-long": {"ack_p95_ms": 500, "start_age_p95_ms": 300000, "start_age_p99_ms": 900000, "minimum_samples": 10}
+  },
+  "correctness": {
+    "maximum_financial_integrity_errors": 0,
+    "maximum_stock_integrity_errors": 0,
+    "maximum_tax_integrity_errors": 0,
+    "maximum_permission_leaks": 0,
+    "maximum_duplicate_results": 0,
+    "maximum_false_success_events": 0
+  },
+  "reliability": {
+    "minimum_measurement_window_days": 30,
+    "minimum_availability_pct": 99.9,
+    "maximum_unexpected_5xx_5min_pct": 0.1,
+    "maximum_unexpected_5xx_monthly_pct": 0.05,
+    "maximum_unacknowledged_critical_alerts": 0,
+    "minimum_backup_success_pct": 100,
+    "maximum_rpo_minutes": 15,
+    "maximum_rto_minutes": 240,
+    "maximum_restore_drill_age_days": 90
+  },
+  "regression": {
+    "maximum_p95_increase_pct": 10,
+    "bundle_budget": "payload-budget.json"
+  },
+  "required_evidence_groups": [
+    "raw_metrics",
+    "fixture_and_reconciliation",
+    "load_and_soak",
+    "queue_and_worker",
+    "alerts",
+    "backup_and_restore",
+    "candidate_identity"
+  ]
+}

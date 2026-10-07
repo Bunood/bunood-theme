@@ -1,0 +1,27 @@
+// Data-entry panels are quiet working surfaces, not tinted status banners.
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-panel-lead {
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  border: var(--bnd-line) solid var(--bnd-border);
+  box-shadow: none;
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-panel-lead .bnd-task-panel-head h3 {
+  color: var(--bnd-brand-ink);
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-panel-lead .bnd-task-panel-head p {
+  color: var(--bnd-ink-muted);
+}
+
+// Native controls consume this token; keep their editable area distinguishable
+// from the white panel without touching their validation or focus rules.
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-panel-lead .bnd-task-panel-fields {
+  --bnd-surface: var(--bnd-page);
+}
+
+html.bunood[data-theme] .bnd-task-workbench .bnd-task-stages li:first-child {
+  background: var(--bnd-surface);
+  color: var(--bnd-brand-ink);
+  box-shadow: none;
+}

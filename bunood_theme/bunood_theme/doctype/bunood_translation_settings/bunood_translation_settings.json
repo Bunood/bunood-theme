@@ -1,0 +1,119 @@
+{
+ "actions": [],
+ "creation": "2026-08-10 16:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_provider",
+  "provider",
+  "claude_model",
+  "column_break_provider",
+  "batch_size",
+  "spend_cap_usd",
+  "section_keys",
+  "claude_api_key",
+  "deepl_api_key",
+  "column_break_keys",
+  "google_api_key",
+  "microsoft_api_key",
+  "microsoft_region"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_provider",
+   "fieldtype": "Section Break",
+   "label": "Machine Translation"
+  },
+  {
+   "default": "Claude",
+   "description": "Who fills the gaps when you run a provider. Every run produces proposals to review — nothing is applied on its own.",
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "label": "Provider",
+   "options": "Claude\nDeepL\nGoogle Translate\nMicrosoft Translator"
+  },
+  {
+   "default": "claude-sonnet-5",
+   "depends_on": "eval:doc.provider == 'Claude'",
+   "fieldname": "claude_model",
+   "fieldtype": "Data",
+   "label": "Claude Model"
+  },
+  {
+   "fieldname": "column_break_provider",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "40",
+   "description": "Strings per request. Smaller batches survive flaky networks; larger ones are cheaper per call.",
+   "fieldname": "batch_size",
+   "fieldtype": "Int",
+   "label": "Batch Size"
+  },
+  {
+   "default": "5",
+   "description": "A run stops before its estimate crosses this. Raise it deliberately, per run, not permanently.",
+   "fieldname": "spend_cap_usd",
+   "fieldtype": "Float",
+   "label": "Spend Cap (USD)"
+  },
+  {
+   "description": "Keys stay on the server: every provider call is made from Python, and a Password field is encrypted at rest and never enters the boot payload.",
+   "fieldname": "section_keys",
+   "fieldtype": "Section Break",
+   "label": "API Keys"
+  },
+  {
+   "fieldname": "claude_api_key",
+   "fieldtype": "Password",
+   "label": "Claude API Key"
+  },
+  {
+   "fieldname": "deepl_api_key",
+   "fieldtype": "Password",
+   "label": "DeepL API Key"
+  },
+  {
+   "fieldname": "column_break_keys",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "google_api_key",
+   "fieldtype": "Password",
+   "label": "Google Translate API Key"
+  },
+  {
+   "fieldname": "microsoft_api_key",
+   "fieldtype": "Password",
+   "label": "Microsoft Translator API Key"
+  },
+  {
+   "depends_on": "eval:doc.microsoft_api_key",
+   "fieldname": "microsoft_region",
+   "fieldtype": "Data",
+   "label": "Microsoft Region"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-10 16:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Bunood Translation Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

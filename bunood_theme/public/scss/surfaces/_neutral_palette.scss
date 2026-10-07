@@ -1,0 +1,76 @@
+// Neutral working surfaces, with the tenant's fitted brand reserved for actions.
+// Ground Color owns the neutral ramp; aliases keep older pilot components in sync.
+// No geometry, native controls, semantic status colors or brand seeds are changed.
+@media screen {
+  html.bunood[data-theme] {
+    --pilot-paper: var(--bnd-surface);
+    --pilot-canvas: var(--bnd-page);
+    --pilot-line: var(--bnd-border);
+    --pilot-ink: var(--bnd-ink);
+    --pilot-muted: var(--bnd-ink-muted);
+    --pilot-brand: var(--bnd-brand-ink);
+    --pilot-deep-ink: var(--bnd-brand-ink);
+    --pilot-leaf: var(--bnd-pane);
+  }
+
+  // ZATCA predates the shared surface vocabulary and ships a route-local sheet.
+  html.bunood[data-theme] .bnd-zatca-workspace {
+    --bnd-zatca-ink: var(--bnd-ink);
+    --bnd-zatca-muted: var(--bnd-ink-muted);
+    --bnd-zatca-line: var(--bnd-border);
+    --bnd-zatca-soft: var(--bnd-pane);
+    background: var(--bnd-page);
+    color: var(--bnd-ink);
+  }
+
+  html.bunood[data-theme] .bnd-zatca-workspace .btn-default {
+    background: var(--bnd-surface);
+    color: var(--bnd-brand-ink);
+    border-color: var(--bnd-border-strong);
+  }
+
+  html.bunood[data-theme] .bnd-zatca-workspace .btn-default:hover {
+    background: var(--bnd-hover);
+    color: var(--bnd-brand-ink);
+    border-color: var(--bnd-brand-ink);
+  }
+
+  html.bunood[data-theme] .bnd-zatca-workspace :is(.bnd-zatca__next, .bnd-zatca__path, .bnd-zatca__evidence, .bnd-zatca__dialog, .bnd-zatca__empty, .bnd-zatca__loading, .form-control) {
+    background: var(--bnd-surface);
+  }
+  html.bunood[data-theme] .bnd-zatca-workspace :is(.bnd-zatca__table th, .bnd-zatca__detail-note) {
+    background: var(--bnd-pane);
+  }
+  html.bunood[data-theme] .bnd-zatca-workspace .bnd-zatca__next h3 {
+    color: var(--bnd-brand-ink);
+  }
+  html.bunood[data-theme] .bnd-zatca-workspace .bnd-zatca__path .is-pending {
+    color: var(--bnd-ink-muted);
+  }
+  html.bunood[data-theme] .bnd-zatca-workspace .btn-primary {
+    background: var(--bnd-brand-solid);
+    border-color: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
+  }
+  html.bunood[data-theme] .bnd-zatca-workspace :is(.bnd-zatca__path li, .bnd-zatca__table th, .bnd-zatca__table td) {
+    border-block-end-color: var(--bnd-border);
+  }
+
+  // Quiet selection fills; the fitted text/boundary still communicates selection.
+  html.bunood[data-theme] .bnd-home-view.is-current {
+    border-color: var(--bnd-brand-ink);
+  }
+  html.bunood[data-theme] .bnd-studio .bnd-studio__pick.is-chosen {
+    background: var(--bnd-active);
+  }
+  html.bunood[data-theme] :is(.bnd-accountant-queue-filter, .bnd-accountant-close-open, .bnd-accountant-measure-value, .bnd-accountant-title, .bnd-accountant-close-state) {
+    color: var(--bnd-ink);
+  }
+  html.bunood[data-theme][data-bnd-sb-color] :is(.body-sidebar-container, .body-sidebar) {
+    background: var(--bnd-pane);
+  }
+  html.bunood[data-theme][data-bnd-sb-active="softpill"] .body-sidebar .sidebar-item-container .standard-sidebar-item.active-sidebar {
+    background: var(--bnd-active);
+    color: var(--bnd-ink);
+  }
+}

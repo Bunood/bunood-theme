@@ -1,0 +1,51 @@
+// Field affordance is shared across native forms and composed Bunood pages.
+// Do not remap the global separator token: cards should remain quiet.
+@media screen {
+  html.bunood[data-theme] body :is(
+    input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="file"]):not([type="range"]):not([type="color"]),
+    select,
+    textarea
+  ):not(:disabled):not([readonly]) {
+    border: var(--bnd-line-strong) solid var(--bnd-field-edge, var(--bnd-ink-subtle));
+    background: var(--bnd-surface);
+    color: var(--bnd-ink);
+
+    &::placeholder { color: var(--bnd-ink-muted); opacity: 1; }
+    &:focus-visible {
+      outline: var(--bnd-line-2) solid var(--bnd-accent);
+      outline-offset: var(--bnd-focus-offset);
+      box-shadow: 0 0 0 calc(var(--bnd-line-2) * 2) var(--bnd-on-brand);
+    }
+  }
+
+  html.bunood[data-theme] :is(.has-error, .bnd-bill-invalid, [aria-invalid="true"], .validated-form .grid-static-col.error) {
+    --bnd-field-edge: var(--bnd-critical);
+  }
+
+  html.bunood[data-theme] .frappe-control .ql-container:has(.ql-editor[contenteditable="true"]) {
+    border: var(--bnd-line-strong) solid var(--bnd-field-edge, var(--bnd-ink-subtle));
+    background: var(--bnd-surface);
+    color: var(--bnd-ink);
+    &:focus-within {
+      outline: var(--bnd-line-2) solid var(--bnd-accent);
+      outline-offset: var(--bnd-focus-offset);
+    }
+  }
+
+  html.bunood[data-theme] .bnd-home-period-preset:not(.is-current):not(:disabled) {
+    border-color: var(--bnd-ink-subtle);
+  }
+
+  // Static grid cells are native display/edit entry points, not input boxes.
+  // Strengthen their existing rules without changing row geometry or editability.
+  html.bunood[data-theme] .form-grid {
+    --table-border-color: var(--bnd-ink-subtle);
+    --bnd-form-grid-vrule: var(--bnd-ink-subtle);
+    border: var(--bnd-line-strong) solid var(--bnd-field-edge, var(--bnd-ink-subtle));
+  }
+
+  html.bunood[data-theme][data-bnd-form][data-bnd-form-grid] .frappe-control .grid-buttons .grid-add-row {
+    border-width: var(--bnd-line-strong);
+    border-color: var(--bnd-ink-subtle);
+  }
+}

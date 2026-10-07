@@ -1,0 +1,1842 @@
+{
+ "actions": [],
+ "creation": "2026-07-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_compose",
+  "desk_compose",
+  "section_theme",
+  "theme_picker",
+  "section_colors",
+  "brand_color",
+  "accent_color",
+  "column_break_colors",
+  "brand_color_dark",
+  "accent_color_dark",
+  "ground_color",
+  "section_branding",
+  "identity_picker",
+  "company_name",
+  "logo",
+  "column_break_branding",
+  "favicon",
+  "tagline",
+  "section_icons",
+  "icons_picker",
+  "icon_style",
+  "icon_weight",
+  "icon_source",
+  "icon_rail_button",
+  "icon_crumbs",
+  "section_language",
+  "arabic_font",
+  "language_translations",
+  "section_density",
+  "density_default",
+  "section_personal",
+  "personal_look",
+  "personal_shape",
+  "personal_comfort",
+  "section_body",
+  "desk_picker",
+  "desk_width",
+  "desk_scale",
+  "desk_primary",
+  "section_form",
+  "form_picker",
+  "form_style",
+  "form_fields",
+  "form_grid",
+  "form_tabs",
+  "form_sidebar",
+  "form_activity",
+  "form_header",
+  "form_header_tone",
+  "form_stage",
+  "form_foot",
+  "form_grid_checkbox_reveal",
+  "section_list",
+  "list_picker",
+  "list_style",
+  "list_hover",
+  "list_selection",
+  "list_checkbox_reveal",
+  "section_workspace",
+  "workspace_picker",
+  "workspace_style",
+  "workspace_metric",
+  "workspace_rows",
+  "workspace_menu_reveal",
+  "section_report",
+  "report_picker",
+  "report_style",
+  "report_grain",
+  "report_rows",
+  "report_checkbox_reveal",
+  "section_views",
+  "views_picker",
+  "views_style",
+  "views_band",
+  "views_mark",
+  "views_media",
+  "views_reveal",
+  "section_chart",
+  "chart_picker",
+  "chart_grid",
+  "section_filters",
+  "filters_picker",
+  "filters_style",
+  "filters_applied",
+  "filters_saved",
+  "section_overlay",
+  "overlay_picker",
+  "overlay_style",
+  "overlay_scrim",
+  "overlay_menu",
+  "section_empty",
+  "empty_picker",
+  "empty_style",
+  "empty_media",
+  "empty_action",
+  "section_skeleton",
+  "skeleton_picker",
+  "skeleton_style",
+  "section_layout",
+  "layout_picker",
+  "section_sidebar",
+  "sidebar_enabled",
+  "sidebar_picker",
+  "sidebar_placement",
+  "sidebar_material",
+  "sidebar_color",
+  "sidebar_active_style",
+  "sidebar_section_style",
+  "sidebar_hue_wash",
+  "sidebar_card_depth",
+  "sidebar_pane_state",
+  "sidebar_rail_trigger",
+  "sidebar_rail_button",
+  "sidebar_pane_width",
+  "sidebar_badges",
+  "sidebar_filter",
+  "panehead_quick_links",
+  "section_topbar",
+  "topbar_enabled",
+  "section_pagehead",
+  "pagehead_enabled",
+  "section_dock",
+  "dock_enabled",
+  "section_status",
+  "bottombar_enabled",
+  "status_style",
+  "status_picker",
+  "status_clock",
+  "status_interval",
+  "status_segments_jobs",
+  "status_segments_errors",
+  "status_segments_scheduler",
+  "status_segments_connection",
+  "status_segments_density",
+  "status_segments_width",
+  "status_freshness",
+  "status_escalate",
+  "section_mobile",
+  "mobile_inbox",
+  "mobile_user",
+  "mobile_apps",
+  "section_placement",
+  "desk_overview",
+  "placement_board",
+  "desk_order",
+  "start_placement",
+  "section_search",
+  "search_placement",
+  "search_picker",
+  "section_user",
+  "user_picker",
+  "user_placement",
+  "section_links",
+  "links_picker",
+  "home_placement",
+  "apps_placement",
+  "section_language_switch",
+  "language_picker",
+  "language_choices",
+  "language_placement",
+  "language_style",
+  "appearance_placement",
+  "section_crumbs",
+  "crumb_style",
+  "crumbs_picker",
+  "crumb_separator",
+  "crumb_hover",
+  "crumb_copy_link",
+  "crumb_status_pill",
+  "crumb_narrow_collapse",
+  "section_palette",
+  "palette_style",
+  "palette_picker",
+  "palette_frecency",
+  "palette_footer",
+  "palette_newtab",
+  "palette_fallbacks",
+  "palette_suggest",
+  "palette_sigils",
+  "palette_enabled",
+  "section_inbox",
+  "inbox_style",
+  "inbox_placement",
+  "inbox_picker",
+  "inbox_badge",
+  "inbox_arrival",
+  "inbox_group",
+  "inbox_chips",
+  "inbox_row_actions",
+  "inbox_keyboard",
+  "section_login",
+  "login_picker",
+  "login_style",
+  "login_action",
+  "login_theme",
+  "section_web",
+  "web_picker",
+  "web_style",
+  "web_header",
+  "web_theme",
+  "section_email",
+  "email_picker",
+  "email_style",
+  "email_header",
+  "email_action",
+  "email_theme",
+  "section_print",
+  "print_picker",
+  "print_header_style",
+  "print_table_style",
+  "print_totals_style",
+  "print_heading_style",
+  "print_accent",
+  "print_letterhead",
+  "print_title_lang",
+  "print_qr",
+  "print_qr_place",
+  "print_qr_size",
+  "print_words",
+  "print_signatures",
+  "section_generated",
+  "brand_css_url"
+ ],
+ "fields": [
+  {
+   "fieldname": "icons_picker",
+   "fieldtype": "HTML",
+   "label": "Icons"
+  },
+  {
+   "fieldname": "icon_weight",
+   "fieldtype": "Select",
+   "label": "Icon Weight",
+   "options": "1.25\n1.5\n1.75\n2",
+   "default": "1.5",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_icons",
+   "fieldtype": "Section Break",
+   "label": "Icons",
+   "description": "The icon set, its weight, and where the desk draws it."
+  },
+  {
+   "fieldname": "section_branding",
+   "fieldtype": "Section Break",
+   "label": "Identity",
+   "description": "The company's name, logo, favicon and tagline as the desk shows them."
+  },
+  {
+   "fieldname": "identity_picker",
+   "fieldtype": "HTML"
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name",
+   "description": "Shown in the sidebar, the browser tab, the sign-in page, the website navbar and email headers. Printed documents use the Company record's name instead."
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Logo",
+   "description": "Desk, sign-in and website. Email and printed documents accept a raster image (PNG/JPG) only — an SVG here shows the wordmark on those instead."
+  },
+  {
+   "fieldname": "column_break_branding",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "favicon",
+   "fieldtype": "Attach Image",
+   "label": "Favicon",
+   "description": "The browser-tab icon. Empty — follows Website Settings, then the Bunood mark."
+  },
+  {
+   "fieldname": "tagline",
+   "fieldtype": "Data",
+   "label": "Tagline",
+   "description": "Shown on the login page."
+  },
+  {
+   "fieldname": "section_colors",
+   "fieldtype": "Section Break",
+   "label": "Colors",
+   "description": "The brand and accent seeds, their dark-mode counterparts, and the ground the surfaces are mixed from."
+  },
+  {
+   "fieldname": "brand_color",
+   "fieldtype": "Color",
+   "label": "Brand Color",
+   "default": "#3d8150",
+   "description": "The single seed. Every surface, hover and border is derived from it with color-mix()."
+  },
+  {
+   "fieldname": "accent_color",
+   "fieldtype": "Color",
+   "label": "Accent Color",
+   "default": "#0090ff",
+   "description": "Interactive elements: links, focus rings, primary actions."
+  },
+  {
+   "fieldname": "column_break_colors",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "brand_color_dark",
+   "fieldtype": "Color",
+   "label": "Brand Color (Dark Mode)",
+   "description": "Optional. Dark mode is selected, not inverted; leave empty to reuse the light value."
+  },
+  {
+   "fieldname": "accent_color_dark",
+   "fieldtype": "Color",
+   "label": "Accent Color (Dark Mode)",
+   "description": "Optional."
+  },
+  {
+   "fieldname": "ground_color",
+   "fieldtype": "Color",
+   "label": "Ground Color",
+   "description": "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand."
+  },
+  {
+   "fieldname": "section_language",
+   "fieldtype": "Section Break",
+   "label": "Language & Fonts",
+   "description": "The Arabic typeface, and the translation console."
+  },
+  {
+   "fieldname": "arabic_font",
+   "fieldtype": "Select",
+   "label": "Arabic Font",
+   "options": "System\nIBM Plex Sans Arabic\nNoto Sans Arabic\nAlmarai\nCairo",
+   "default": "Noto Sans Arabic",
+   "description": "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform."
+  },
+  {
+   "fieldname": "language_translations",
+   "fieldtype": "HTML",
+   "label": "Translations"
+  },
+  {
+   "fieldname": "section_compose",
+   "fieldtype": "Section Break",
+   "label": "Compose",
+   "description": "The whole look in one place: what the desk is now, and the composer that changes it one decision at a time."
+  },
+  {
+   "fieldname": "desk_compose",
+   "fieldtype": "HTML",
+   "label": "Compose"
+  },
+  {
+   "fieldname": "section_theme",
+   "fieldtype": "Section Break",
+   "label": "Theme",
+   "description": "A named look for the whole desk — one card writes every kit below."
+  },
+  {
+   "fieldname": "theme_picker",
+   "fieldtype": "HTML",
+   "label": "Theme Picker"
+  },
+  {
+   "fieldname": "section_layout",
+   "fieldtype": "Section Break",
+   "label": "Desk Layout",
+   "description": "A preset for the five containers below — where the chrome lives."
+  },
+  {
+   "fieldname": "layout_picker",
+   "fieldtype": "HTML",
+   "label": "Layout Picker"
+  },
+  {
+   "fieldname": "section_topbar",
+   "fieldtype": "Section Break",
+   "label": "Top Bar",
+   "description": "A bar along the top edge."
+  },
+  {
+   "fieldname": "topbar_enabled",
+   "fieldtype": "Check",
+   "label": "Show the top bar",
+   "default": "0",
+   "description": "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
+   "fieldname": "section_pagehead",
+   "fieldtype": "Section Break",
+   "label": "Page Header",
+   "description": "The page's own title row."
+  },
+  {
+   "fieldname": "pagehead_enabled",
+   "fieldtype": "Check",
+   "label": "Put controls in the page title row",
+   "default": "0",
+   "description": "Merges the global controls into each page's own title row instead of giving them a strip of their own. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
+   "fieldname": "section_dock",
+   "fieldtype": "Section Break",
+   "label": "Dock",
+   "description": "A floating dock along the bottom edge."
+  },
+  {
+   "fieldname": "dock_enabled",
+   "fieldtype": "Check",
+   "label": "Show the dock",
+   "default": "0",
+   "description": "A floating pill of workspace icons. It replaces the side pane rather than joining it: while the dock is shown the side pane is hidden, and switching the dock off gives the side pane straight back. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
+   "fieldname": "section_sidebar",
+   "fieldtype": "Section Break",
+   "label": "Sidebar Style",
+   "description": "The side pane: placement, material, colour, its rail and its width."
+  },
+  {
+   "fieldname": "sidebar_enabled",
+   "fieldtype": "Check",
+   "label": "Show the side pane",
+   "default": "1",
+   "description": "Frappe's own left pane, and the home of its search row, notifications and user button. Independent of every other container: a dock and a side pane can both be shown. Switching it off is refused while nothing else can reach search, notifications or Log Out. Applies site-wide on the next page load."
+  },
+  {
+   "fieldname": "sidebar_picker",
+   "fieldtype": "HTML",
+   "label": "Sidebar Style Picker"
+  },
+  {
+   "fieldname": "sidebar_placement",
+   "fieldtype": "Select",
+   "label": "Pane Placement",
+   "options": "Attached\nFloating",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_material",
+   "fieldtype": "Select",
+   "label": "Pane Material",
+   "options": "Solid\nBordered\nElevated\nTextured\nTinted\nGradient",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_color",
+   "fieldtype": "Select",
+   "label": "Pane Color",
+   "options": "Match Theme\nMinimal\nDark Contrast\nBrand",
+   "hidden": 1
+  },
+  {
+   "fieldname": "icon_style",
+   "fieldtype": "Select",
+   "label": "Icon Style",
+   "options": "Filled Color\nFill on Active\nSolid Tile\nCircle Badge",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_active_style",
+   "fieldtype": "Select",
+   "label": "Active Link Style",
+   "options": "Solid Pill\nSoft Pill\nAccent Rail\nOutline\nFolder Tab",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_section_style",
+   "fieldtype": "Select",
+   "label": "Section Layout",
+   "options": "Plain\nDivided\nCards",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_hue_wash",
+   "fieldtype": "Select",
+   "label": "Hue Wash",
+   "options": "Off\nSubtle\nRich",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_card_depth",
+   "fieldtype": "Select",
+   "label": "Surface Intensity",
+   "options": "1\n2\n3\n4\n5",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_pane_state",
+   "fieldtype": "Select",
+   "label": "Side Pane State",
+   "options": "Open\nHidden",
+   "default": "Open",
+   "hidden": 1,
+   "description": "Open shows the same full navigation on every route; Hidden removes it while keeping a button in the page head to bring it back."
+  },
+  {
+   "fieldname": "sidebar_rail_trigger",
+   "fieldtype": "Select",
+   "label": "Rail Expand Trigger",
+   "options": "Hover\nClick\nHover + Pin",
+   "hidden": 1
+  },
+  {
+   "fieldname": "sidebar_rail_button",
+   "fieldtype": "Select",
+   "label": "Rail Expand Button",
+   "options": "None\nEdge\nHeader",
+   "hidden": 1
+  },
+  {
+   "fieldname": "icon_rail_button",
+   "fieldtype": "Select",
+   "label": "Rail Button Icon",
+   "options": "Chevron\nMenu\nArrows",
+   "hidden": 1
+  },
+  {
+   "fieldname": "icon_source",
+   "fieldtype": "Select",
+   "label": "Icon Source",
+   "options": "Smart\nOriginal\nLetters",
+   "hidden": 1,
+   "description": "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched."
+  },
+  {
+   "fieldname": "sidebar_pane_width",
+   "fieldtype": "Select",
+   "label": "Pane Width",
+   "options": "1\n2\n3\n4\n5",
+   "hidden": 1,
+   "description": "Five stops from 200px to 280px; stop 2 is the original 220px."
+  },
+  {
+   "fieldname": "sidebar_badges",
+   "fieldtype": "Select",
+   "label": "Count Badges",
+   "options": "Off\nDots\nCounts",
+   "hidden": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "sidebar_filter",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Workspace Filter"
+  },
+  {
+   "default": "Standard",
+   "description": "Quick links in the pane head's menu: each module row opens a flyout of New \u2026 rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone.",
+   "fieldname": "panehead_quick_links",
+   "fieldtype": "Select",
+   "label": "Quick Links",
+   "options": "Off\nBrief\nStandard\nFull"
+  },
+  {
+   "fieldname": "palette_enabled",
+   "fieldtype": "Check",
+   "label": "Enable Command Palette",
+   "default": "1",
+   "hidden": 1,
+   "description": "Master gate for the palette kit: unchecked forces the stock Ctrl+K modal (Original) whatever the picker says."
+  },
+  {
+   "fieldname": "section_overlay",
+   "fieldtype": "Section Break",
+   "label": "Overlays",
+   "description": "Dialogs, scrims and menus."
+  },
+  {
+   "fieldname": "overlay_picker",
+   "fieldtype": "HTML",
+   "label": "Overlay Picker"
+  },
+  {
+   "default": "Floating",
+   "description": "Set by the picker above. How a floating thing separates itself from the page beneath — a dialog, a menu, a toast, a popover.",
+   "fieldname": "overlay_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Overlay Style",
+   "options": "Original\nHairline\nSoft\nFloating\nSolid"
+  },
+  {
+   "default": "Tinted",
+   "description": "Set by the picker above. What the page behind a dialog looks like.",
+   "fieldname": "overlay_scrim",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Dialog Scrim",
+   "options": "Dim\nTinted\nBlurred"
+  },
+  {
+   "default": "Inset",
+   "description": "Set by the picker above. How a menu row shows it is under the pointer.",
+   "fieldname": "overlay_menu",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Menu Row",
+   "options": "Plain\nInset"
+  },
+  {
+   "fieldname": "section_empty",
+   "fieldtype": "Section Break",
+   "label": "Empty states",
+   "description": "What an empty list or board shows."
+  },
+  {
+   "fieldname": "empty_picker",
+   "fieldtype": "HTML",
+   "label": "Empty Picker"
+  },
+  {
+   "default": "Open",
+   "description": "Set by the picker above. How a \"nothing here yet\" block separates itself from the surface around it.",
+   "fieldname": "empty_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Empty Style",
+   "options": "Original\nQuiet\nOpen\nFramed\nFilled"
+  },
+  {
+   "default": "Marked",
+   "description": "Set by the picker above. The mark above the message.",
+   "fieldname": "empty_media",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Empty Media",
+   "options": "Glyph\nMarked\nNone"
+  },
+  {
+   "default": "Primary",
+   "description": "Set by the picker above. How much the button on an empty screen asks to be pressed.",
+   "fieldname": "empty_action",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Empty Action",
+   "options": "Plain\nPrimary"
+  },
+  {
+   "fieldname": "section_skeleton",
+   "fieldtype": "Section Break",
+   "label": "Loading",
+   "description": "What a page shows while it loads."
+  },
+  {
+   "fieldname": "skeleton_picker",
+   "fieldtype": "HTML",
+   "label": "Loading Picker"
+  },
+  {
+   "default": "Sweep",
+   "description": "Set by the picker above. How a loading state moves while it waits.",
+   "fieldname": "skeleton_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Loading Style",
+   "options": "Original\nStill\nPulse\nSweep"
+  },
+  {
+   "fieldname": "section_filters",
+   "fieldtype": "Section Break",
+   "label": "Filters",
+   "description": "The filter bar, applied filters and saved views."
+  },
+  {
+   "fieldname": "filters_picker",
+   "fieldtype": "HTML",
+   "label": "Filters Picker"
+  },
+  {
+   "default": "Outlined",
+   "description": "Set by the picker above. How a filter control is bounded — in the bar, in the filter editor and in the saved-filter menu.",
+   "fieldname": "filters_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Filter Style",
+   "options": "Original\nOutlined\nTrough\nPill\nRuled"
+  },
+  {
+   "default": "Accented",
+   "description": "Set by the picker above. How loudly a filtered list says so.",
+   "fieldname": "filters_applied",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Applied Filters",
+   "options": "Quiet\nCounted\nAccented"
+  },
+  {
+   "default": "Listed",
+   "description": "Set by the picker above. Whether saved filters get row spacing, a hover state and a separated Save row.",
+   "fieldname": "filters_saved",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Saved Filters",
+   "options": "Plain\nListed"
+  },
+  {
+   "fieldname": "section_login",
+   "fieldtype": "Section Break",
+   "label": "Sign In",
+   "description": "The sign-in page's style, action and theme."
+  },
+  {
+   "fieldname": "login_picker",
+   "fieldtype": "HTML",
+   "label": "Sign In Picker"
+  },
+  {
+   "default": "Split",
+   "description": "Set by the picker above. How the sign-in, sign-up and forgot-password screens are composed. Applies to /login and /update-password.",
+   "fieldname": "login_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Sign-In Style",
+   "options": "Original\nPanel\nSplit\nPlate"
+  },
+  {
+   "default": "Branded",
+   "description": "Set by the picker above. Whether the primary button carries your brand colour.",
+   "fieldname": "login_action",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Primary Action",
+   "options": "Neutral\nBranded"
+  },
+  {
+   "default": "Follow OS",
+   "description": "Set by the picker above. A signed-out visitor has no stored preference, so the default follows their device.",
+   "fieldname": "login_theme",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Sign-In Theme",
+   "options": "Follow OS\nAlways Light\nAlways Dark"
+  },
+  {
+   "fieldname": "section_web",
+   "fieldtype": "Section Break",
+   "label": "Website & Portal",
+   "description": "The public website and the portal: style, header, theme."
+  },
+  {
+   "fieldname": "web_picker",
+   "fieldtype": "HTML",
+   "label": "Website Picker"
+  },
+  {
+   "default": "Panel",
+   "description": "Set by the picker above. How every website and customer-portal page is composed. Applies to the portal, web forms, error pages and any public page — not to the desk or the sign-in screens.",
+   "fieldname": "web_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Website Style",
+   "options": "Original\nPanel\nPlate"
+  },
+  {
+   "default": "Branded",
+   "description": "Set by the picker above. Whether the site header carries your brand colour. Composes with any style, including Original.",
+   "fieldname": "web_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Header",
+   "options": "Neutral\nBranded"
+  },
+  {
+   "default": "Follow OS",
+   "description": "Set by the picker above. A website visitor has no stored preference, so the default follows their device.",
+   "fieldname": "web_theme",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Website Theme",
+   "options": "Follow OS\nAlways Light\nAlways Dark"
+  },
+  {
+   "fieldname": "section_email",
+   "fieldtype": "Section Break",
+   "label": "Email",
+   "description": "Outgoing email: style, header, action, theme."
+  },
+  {
+   "fieldname": "email_picker",
+   "fieldtype": "HTML",
+   "label": "Email Picker"
+  },
+  {
+   "default": "Card",
+   "description": "Set by the picker above. How every email your site sends is composed — notifications, invitations, password resets and anything an app mails out. Original leaves the message as Frappe draws it; the legibility repairs apply either way.",
+   "fieldname": "email_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Email Style",
+   "options": "Original\nCard\nLetter\nMasthead"
+  },
+  {
+   "default": "Logo + wordmark",
+   "description": "Set by the picker above. How your identity reads at the top of a message. Mail clients do not render SVG logos, so a form that asks for a mark falls back to your name where no raster logo is set.",
+   "fieldname": "email_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Email Header",
+   "options": "Logo + wordmark\nWordmark\nLogo\nNone"
+  },
+  {
+   "default": "Brand fill",
+   "description": "Set by the picker above. How the button in an email reads. Stock is near-black and carries no brand at all.",
+   "fieldname": "email_action",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Email Action",
+   "options": "Brand fill\nOutline\nLink"
+  },
+  {
+   "default": "Follow the client",
+   "description": "Set by the picker above. One message is read by many people on many devices, so following each reader’s own setting is the only thing that can answer per reader. Support varies by mail client.",
+   "fieldname": "email_theme",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Email Theme",
+   "options": "Follow the client\nAlways Light\nAlways Dark"
+  },
+  {
+   "fieldname": "section_print",
+   "fieldtype": "Section Break",
+   "label": "Print",
+   "description": "Print formats: header, tables, totals, headings, QR, signatures."
+  },
+  {
+   "fieldname": "print_picker",
+   "fieldtype": "HTML",
+   "label": "Print Picker"
+  },
+  {
+   "default": "Wash Card",
+   "description": "Set by the picker above. The letterhead band's treatment on every printed document and PDF. Original keeps the stock header; the named styles above write this together with the other three sections.",
+   "fieldname": "print_header_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Header Style",
+   "options": "Original\nRule\nBand\nWash Card\nFrame\nHairline\nRail"
+  },
+  {
+   "default": "Washed",
+   "description": "Set by the picker above. The item table's treatment - rules, boxes, zebra rows or washed panels - on every print format, including ERPNext's.",
+   "fieldname": "print_table_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Table Style",
+   "options": "Original\nOpen\nRuled\nBoxed\nZebra\nWashed"
+  },
+  {
+   "default": "Washed Panel",
+   "description": "Set by the picker above. The totals block's treatment - how the grand total is set off from the rows above it.",
+   "fieldname": "print_totals_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Totals Style",
+   "options": "Original\nOpen\nBoxed\nInverse\nWashed Panel"
+  },
+  {
+   "default": "Original",
+   "description": "Set by the picker above. The document title and section headings - ink, small caps, serif or poster weight.",
+   "fieldname": "print_heading_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Heading Style",
+   "options": "Original\nBrand Ink\nSmall Caps\nSerif\nPoster"
+  },
+  {
+   "default": "Brand panels",
+   "description": "Set by the picker above. How much of your brand colour reaches paper. Ink only saves toner; Brand panels fills the table heads. Thermal receipts always print pure black regardless.",
+   "fieldname": "print_accent",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Accent",
+   "options": "Brand headings\nInk only\nBrand panels"
+  },
+  {
+   "default": "Bilingual Split",
+   "description": "Set by the picker above. How the synced Letter Head is composed from your identity - logo, Arabic and English names. Frappe's own leaves whatever Letter Head the site already uses untouched.",
+   "fieldname": "print_letterhead",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Letterhead",
+   "options": "Frappe's own\nBilingual Split\nCentered Mark\nHairline Minimal"
+  },
+  {
+   "default": "Follow print language",
+   "description": "Set by the picker above. Follow Print Language keeps Arabic output RTL and English output LTR; explicit overrides remain available when required.",
+   "fieldname": "print_title_lang",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Title Language",
+   "options": "Follow print language\nBoth\nArabic only\nEnglish only"
+  },
+  {
+   "default": "Show",
+   "description": "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
+   "fieldname": "print_qr",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print QR",
+   "options": "Show\nHide"
+  },
+  {
+   "default": "Head end",
+   "description": "Set by the picker above. Where the QR sits - beside the invoice meta at either end of the head row, or down beside the totals.",
+   "fieldname": "print_qr_place",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print QR Placement",
+   "options": "Head end\nHead start\nBeside totals"
+  },
+  {
+   "default": "Medium",
+   "description": "Set by the picker above. The QR's printed size.",
+   "fieldname": "print_qr_size",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print QR Size",
+   "options": "Medium\nSmall\nLarge"
+  },
+  {
+   "default": "Show",
+   "description": "Set by the picker above. The amount-in-words strip under the totals.",
+   "fieldname": "print_words",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Amount in Words",
+   "options": "Show\nHide"
+  },
+  {
+   "default": "Three lines",
+   "description": "Set by the picker above. The signature row on vouchers and invoices. A format that passes its own labels keeps them.",
+   "fieldname": "print_signatures",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Print Signatures",
+   "options": "Three lines\nTwo lines\nNone"
+  },
+  {
+   "fieldname": "section_generated",
+   "fieldtype": "Section Break",
+   "label": "Generated",
+   "collapsible": 1,
+   "description": "What the theme wrote for this site: the brand stylesheet's address."
+  },
+  {
+   "fieldname": "brand_css_url",
+   "fieldtype": "Data",
+   "label": "Brand Stylesheet URL",
+   "read_only": 1,
+   "description": "Written by bunood_theme.brand on every save. Content-hashed, so the URL is immutable and needs no cache-busting query string."
+  },
+  {
+   "fieldname": "density_default",
+   "fieldtype": "Select",
+   "label": "Default Density",
+   "options": "Comfortable\nCompact",
+   "default": "Comfortable",
+   "description": "Site-wide default row and control height. Each user can override it from the settings menu; Compact shortens rows and padding but never the text size."
+  },
+  {
+   "fieldname": "section_crumbs",
+   "fieldtype": "Section Break",
+   "label": "Breadcrumbs",
+   "description": "The trail above a record: style, separator, hover, status."
+  },
+  {
+   "fieldname": "crumb_style",
+   "fieldtype": "Select",
+   "label": "Breadcrumb Style",
+   "options": "Original\nQuiet Trail\nTitle Fusion\nEyebrow Title\nCrumb Pills",
+   "default": "Crumb Pills",
+   "hidden": 1,
+   "description": "Set by the picker below. Original leaves ERPNext's stock trail untouched."
+  },
+  {
+   "fieldname": "crumbs_picker",
+   "fieldtype": "HTML",
+   "label": "Breadcrumb Picker"
+  },
+  {
+   "fieldname": "crumb_separator",
+   "fieldtype": "Select",
+   "label": "Crumb Separator",
+   "options": "Slash\nChevron\nDot\nArrow",
+   "default": "Chevron",
+   "hidden": 1
+  },
+  {
+   "fieldname": "icon_crumbs",
+   "fieldtype": "Select",
+   "label": "Crumb Module Icons",
+   "options": "Off\nFirst Crumb\nEvery Crumb",
+   "default": "First Crumb",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_hover",
+   "fieldtype": "Select",
+   "label": "Crumb Hover",
+   "options": "Soft Pill\nUnderline\nDarken",
+   "default": "Soft Pill",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_copy_link",
+   "fieldtype": "Check",
+   "label": "Copy Link on Last Crumb",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_status_pill",
+   "fieldtype": "Check",
+   "label": "Status Pill in Trail Row",
+   "hidden": 1
+  },
+  {
+   "fieldname": "crumb_narrow_collapse",
+   "fieldtype": "Check",
+   "label": "Collapse to Back Crumb on Narrow Screens",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_palette",
+   "fieldtype": "Section Break",
+   "label": "Command Palette",
+   "description": "Ctrl+K: style, ranking, footer and fallbacks."
+  },
+  {
+   "fieldname": "palette_style",
+   "fieldtype": "Select",
+   "label": "Palette Style",
+   "options": "Original\nRefined\nBunood Palette\nPalette Pro",
+   "default": "Bunood Palette",
+   "hidden": 1,
+   "description": "Set by the picker below. Original leaves ERPNext's stock Ctrl+K modal untouched."
+  },
+  {
+   "fieldname": "palette_picker",
+   "fieldtype": "HTML",
+   "label": "Palette Picker"
+  },
+  {
+   "fieldname": "palette_frecency",
+   "fieldtype": "Check",
+   "label": "Frecency Ranking",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_footer",
+   "fieldtype": "Check",
+   "label": "Footer Hint Bar",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_newtab",
+   "fieldtype": "Check",
+   "label": "Ctrl+Enter Opens a New Tab",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_fallbacks",
+   "fieldtype": "Check",
+   "label": "Fallback Rows",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_suggest",
+   "fieldtype": "Check",
+   "label": "Empty-State Suggestions",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "palette_sigils",
+   "fieldtype": "Check",
+   "label": "Mode Sigils (Pro)",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_inbox",
+   "fieldtype": "Section Break",
+   "label": "Notifications",
+   "description": "The bell: style, placement, badge, grouping, row actions."
+  },
+  {
+   "fieldname": "inbox_style",
+   "fieldtype": "Select",
+   "label": "Notification Style",
+   "options": "Original\nRefined\nBunood Inbox\nInbox + Page",
+   "default": "Inbox + Page",
+   "hidden": 1,
+   "description": "Set by the picker below. Original leaves ERPNext's stock notification panel untouched."
+  },
+  {
+   "fieldname": "inbox_placement",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Notifications Placement",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
+   "description": "Where the notifications bell lives. Off removes it and leaves ERPNext's own."
+  },
+  {
+   "fieldname": "user_placement",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "User Menu Placement",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
+   "description": "Where the profile avatar and its menu live. Carries Log Out, so it is never left unreachable."
+  },
+  {
+   "fieldname": "inbox_picker",
+   "fieldtype": "HTML",
+   "label": "Notification Picker"
+  },
+  {
+   "fieldname": "inbox_badge",
+   "fieldtype": "Select",
+   "label": "Bell Badge",
+   "options": "Count\nAction Count\nDot\nOff",
+   "default": "Count",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_arrival",
+   "fieldtype": "Select",
+   "label": "Arrival Behaviour",
+   "options": "Badge Only\nApprovals Only\nAll Toasts",
+   "default": "Approvals Only",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_group",
+   "fieldtype": "Check",
+   "label": "Group by Document",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_chips",
+   "fieldtype": "Check",
+   "label": "Reason Chips",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_row_actions",
+   "fieldtype": "Check",
+   "label": "Hover Row Actions",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "inbox_keyboard",
+   "fieldtype": "Check",
+   "label": "Keyboard Triage",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status Bar",
+   "description": "The bottom bar: clock, connection, jobs, errors."
+  },
+  {
+   "fieldname": "search_placement",
+   "fieldtype": "Select",
+   "label": "Search Placement",
+   "options": "Top Bar Start\nTop Bar Center\nBottom Bar Start\nBottom Bar Center\nSide Pane Start\nSide Pane End",
+   "default": "Side Pane Start",
+   "hidden": 1,
+   "description": "Where the search field sits. Slots a layout does not have fall back to the nearest available one."
+  },
+  {
+   "fieldname": "bottombar_enabled",
+   "fieldtype": "Check",
+   "label": "Show the bottom bar",
+   "default": "1",
+   "description": "The fixed strip along the foot of the desk. Whether it EXISTS is this setting; what it shows is \"Status Bar\" below. Independent of the desk layout: a layout preset writes this, it no longer decides it. Applies site-wide on the next page load."
+  },
+  {
+   "fieldname": "status_style",
+   "fieldtype": "Select",
+   "label": "Status Bar",
+   "options": "Minimal\nQuiet\nAlways On",
+   "default": "Quiet",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_picker",
+   "fieldtype": "HTML",
+   "label": "Search & Status Picker"
+  },
+  {
+   "fieldname": "status_clock",
+   "fieldtype": "Select",
+   "label": "Clock",
+   "options": "Off\n12 Hour\n24 Hour",
+   "default": "Off",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_interval",
+   "fieldtype": "Select",
+   "label": "Refresh Interval",
+   "options": "30s\n60s\n5min\nManual",
+   "default": "60s",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_jobs",
+   "fieldtype": "Check",
+   "label": "Jobs Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_errors",
+   "fieldtype": "Check",
+   "label": "Errors Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_scheduler",
+   "fieldtype": "Check",
+   "label": "Scheduler Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_connection",
+   "fieldtype": "Check",
+   "label": "Connection Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_density",
+   "fieldtype": "Check",
+   "label": "Density Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_segments_width",
+   "fieldtype": "Check",
+   "label": "Width Segment",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_freshness",
+   "fieldtype": "Check",
+   "label": "Freshness Stamp",
+   "default": "1",
+   "hidden": 1
+  },
+  {
+   "fieldname": "status_escalate",
+   "fieldtype": "Check",
+   "label": "Recolour the Bar on Failure",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_placement",
+   "fieldtype": "Section Break",
+   "label": "Placement",
+   "description": "Where every component lives, on one board — and the overview of the desk."
+  },
+  {
+   "fieldname": "desk_overview",
+   "fieldtype": "HTML",
+   "label": "Overview"
+  },
+  {
+   "fieldname": "placement_board",
+   "fieldtype": "HTML",
+   "label": "Placement Board"
+  },
+  {
+   "default": "search,inbox,user,home,start,apps,language,appearance",
+   "description": "Tenant keys in desk order. Written by the placement board; two tenants sharing a zone sort by their position here.",
+   "fieldname": "desk_order",
+   "fieldtype": "Data",
+   "hidden": 1,
+   "label": "Desk Order"
+  },
+  {
+   "fieldname": "section_search",
+   "fieldtype": "Section Break",
+   "label": "Search",
+   "description": "Where the search field sits."
+  },
+  {
+   "fieldname": "search_picker",
+   "fieldtype": "HTML",
+   "label": "Search Picker"
+  },
+  {
+   "fieldname": "section_mobile",
+   "fieldtype": "Section Break",
+   "label": "Mobile Bar",
+   "description": "What the bottom bar carries on a phone."
+  },
+  {
+   "fieldname": "mobile_inbox",
+   "fieldtype": "Check",
+   "label": "Alerts on the phone bar",
+   "default": "1",
+   "description": "Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load."
+  },
+  {
+   "fieldname": "mobile_user",
+   "fieldtype": "Check",
+   "label": "You on the phone bar",
+   "default": "1",
+   "description": "Show your profile menu in the bottom bar below 768px."
+  },
+  {
+   "fieldname": "mobile_apps",
+   "fieldtype": "Check",
+   "label": "Apps on the phone bar",
+   "default": "1",
+   "description": "Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way."
+  },
+  {
+   "fieldname": "section_density",
+   "fieldtype": "Section Break",
+   "label": "Density",
+   "description": "How tightly rows and controls pack, as the site's default."
+  },
+  {
+   "fieldname": "section_list",
+   "fieldtype": "Section Break",
+   "label": "List View",
+   "description": "Rows, hover, selection, and the checkbox reveal."
+  },
+  {
+   "fieldname": "list_picker",
+   "fieldtype": "HTML",
+   "label": "List Picker"
+  },
+  {
+   "default": "Zebra Stripes",
+   "description": "Set by the picker above. How rows draw their boundaries.",
+   "fieldname": "list_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "List Style",
+   "options": "Original\nHairline Rows\nOpen Rows\nZebra Stripes\nFloating Cards\nDense Table"
+  },
+  {
+   "default": "Edge Rail",
+   "description": "Set by the picker above. How a row answers the pointer.",
+   "fieldname": "list_hover",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "List Hover",
+   "options": "Soft Wash\nEdge Rail"
+  },
+  {
+   "default": "Bold Bar",
+   "description": "Set by the picker above. Checked rows and the bulk header, as one treatment.",
+   "fieldname": "list_selection",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "List Selection",
+   "options": "Soft Tint\nAccent Rail\nBold Bar"
+  },
+  {
+   "default": "1",
+   "description": "Checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",
+   "fieldname": "list_checkbox_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Checkboxes on Hover"
+  },
+  {
+   "fieldname": "section_body",
+   "fieldtype": "Section Break",
+   "label": "Desk Body",
+   "description": "The page's width, the type scale, and the primary button's colour."
+  },
+  {
+   "fieldname": "desk_picker",
+   "fieldtype": "HTML",
+   "label": "Desk Body Picker"
+  },
+  {
+   "default": "Balanced",
+   "description": "How wide the body is allowed to be. Every value carries two measures: a reading edge for forms and settings, and a wide edge for lists, reports, dashboards and any section holding a child table. Compact 900/1200 · Balanced 1040/1400 · Roomy 1120/1600 · Full lifts both. Original leaves Frappe's own 900px cap.",
+   "fieldname": "desk_width",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Desk Width",
+   "options": "Original\nCompact\nBalanced\nRoomy\nFull"
+  },
+  {
+   "default": "Standard 14",
+   "description": "Set by the picker above. The body's type set: values, labels, section heads and titles move together.",
+   "fieldname": "desk_scale",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Desk Scale",
+   "options": "Original\nCompact 13\nStandard 14\nTouch 16"
+  },
+  {
+   "default": "Brand",
+   "description": "Set by the picker above. Whether the primary button is Frappe's black or the brand fill.",
+   "fieldname": "desk_primary",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Primary Button",
+   "options": "Black\nBrand"
+  },
+  {
+   "fieldname": "section_form",
+   "fieldtype": "Section Break",
+   "label": "Form View",
+   "description": "A record's anatomy: sections, fields, line items, tabs, sidebar, activity, header, stage path, pinned foot."
+  },
+  {
+   "fieldname": "form_picker",
+   "fieldtype": "HTML",
+   "label": "Form Picker"
+  },
+  {
+   "default": "Floating Panels",
+   "description": "Set by the picker above. How the form's containers sit on the page.",
+   "fieldname": "form_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Style",
+   "options": "Original\nHairline Panels\nOpen Canvas\nFloating Panels\nPaper Sheet\nHeaded Groups\nGrouped Insets\nTinted Heads"
+  },
+  {
+   "default": "Stacked Outlined",
+   "description": "Set by the picker above. What one field looks like: where its label sits and what its box is.",
+   "fieldname": "form_fields",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Fields",
+   "options": "Original\nStacked Outlined\nProperty Rows\nQuiet Underline\nInline Text"
+  },
+  {
+   "default": "Ruled Sheet",
+   "description": "Set by the picker above. How rows of items, taxes and payments read: the stock grid, a hairline ledger, or a ruled sheet.",
+   "fieldname": "form_grid",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Grid",
+   "options": "Original\nHairline Ledger\nRuled Sheet"
+  },
+  {
+   "default": "Solid Pill",
+   "description": "Set by the picker above. How the active tab announces itself.",
+   "fieldname": "form_tabs",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Tabs",
+   "options": "Brand Underline\nSegment Pills\nSolid Pill"
+  },
+  {
+   "default": "Inspector Rail",
+   "description": "Set by the picker above. How the record's sidebar separates from the document — or, as an inspector rail, sits beside it with no card at all.",
+   "fieldname": "form_sidebar",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Sidebar",
+   "options": "Hairline Edge\nQuiet Pane\nFloating Pane\nInspector Rail"
+  },
+  {
+   "default": "Drawer",
+   "description": "Set by the picker above. Where the comments and the timeline live: below the form, beside it on a wide screen, or in a drawer opened from the page's actions.",
+   "fieldname": "form_activity",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Activity",
+   "options": "Original\nBeside\nDrawer"
+  },
+  {
+   "default": "Hero Band",
+   "description": "Set by the picker above. What names the record above its form: the page head alone, a title block, a highlights band of its key facts, or a hero band.",
+   "fieldname": "form_header",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Header",
+   "options": "Original\nTitle Block\nHighlights Band\nHero Band"
+  },
+  {
+   "default": "Brand-dark",
+   "description": "Set by the picker above. The hero band's paint: a tint of the brand, or the brand deepened to a dark block.",
+   "fieldname": "form_header_tone",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Header Tone",
+   "options": "Tinted\nBrand-dark"
+  },
+  {
+   "default": "Status Path",
+   "description": "Set by the picker above. A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document.",
+   "fieldname": "form_stage",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Stage",
+   "options": "Off\nStatus Path"
+  },
+  {
+   "default": "Pinned Bar",
+   "description": "Set by the picker above. A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled.",
+   "fieldname": "form_foot",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Form Foot",
+   "options": "Off\nPinned Bar"
+  },
+  {
+   "default": "1",
+   "description": "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",
+   "fieldname": "form_grid_checkbox_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Grid Checkboxes on Hover"
+  },
+  {
+   "fieldname": "section_workspace",
+   "fieldtype": "Section Break",
+   "label": "Workspace",
+   "description": "The landing page's tiles, metrics and rows."
+  },
+  {
+   "fieldname": "workspace_picker",
+   "fieldtype": "HTML",
+   "label": "Workspace Picker"
+  },
+  {
+   "default": "Soft Tiles",
+   "description": "Set by the picker above. How the tiles on a workspace sit together.",
+   "fieldname": "workspace_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Workspace Style",
+   "options": "Original\nOpen Board\nHairline Grid\nSoft Tiles\nHeaded Panel\nFloating Cards\nMixed Weights"
+  },
+  {
+   "default": "Display",
+   "description": "Set by the picker above. How a number card presents its figure.",
+   "fieldname": "workspace_metric",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Number Card Metric",
+   "options": "Quiet\nDisplay\nHeadline\nCentred\nInline"
+  },
+  {
+   "default": "Edge Rail",
+   "description": "Set by the picker above. How the links inside a card behave on hover.",
+   "fieldname": "workspace_rows",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Workspace Rows",
+   "options": "Plain\nDivided\nEdge Rail"
+  },
+  {
+   "default": "1",
+   "description": "A card's menu rests hidden and appears on hover or keyboard focus. Always visible on touch screens.",
+   "fieldname": "workspace_menu_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Card Menus on Hover"
+  },
+  {
+   "fieldname": "section_chart",
+   "fieldtype": "Section Break",
+   "label": "Charts",
+   "description": "The chart surface's grid."
+  },
+  {
+   "fieldname": "chart_picker",
+   "fieldtype": "HTML",
+   "label": "Chart Picker"
+  },
+  {
+   "default": "Filled Area",
+   "description": "Set by the picker above. Where a chart carries its visual weight.",
+   "fieldname": "chart_grid",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Chart Grid",
+   "options": "Hairline Axes\nRuled Baseline\nDashed Guides\nBold Data\nFilled Area"
+  },
+  {
+   "fieldname": "section_report",
+   "fieldtype": "Section Break",
+   "label": "Data tables",
+   "description": "The report view's grid, grain and rows."
+  },
+  {
+   "fieldname": "report_picker",
+   "fieldtype": "HTML",
+   "label": "Report Picker"
+  },
+  {
+   "default": "Pinned Slab",
+   "description": "Set by the picker above. How a table's rows and header sit together. Reaches every data table on the desk.",
+   "fieldname": "report_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Table Style",
+   "options": "Original\nRuled Grid\nLedger Rows\nOpen Sheet\nPinned Slab"
+  },
+  {
+   "default": "Row Stripes",
+   "description": "Set by the picker above. The table's background grain.",
+   "fieldname": "report_grain",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Table Grain",
+   "options": "Plain\nRow Stripes"
+  },
+  {
+   "default": "Edge Rail",
+   "description": "Set by the picker above. How a row responds to hover and selection.",
+   "fieldname": "report_rows",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Row Feedback",
+   "options": "Soft Wash\nEdge Rail\nBold Bar"
+  },
+  {
+   "default": "1",
+   "description": "A row's checkbox rests hidden and appears on hover or keyboard focus. Always visible on touch screens, and never hidden in a selection dialog.",
+   "fieldname": "report_checkbox_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Row Checkboxes on Hover"
+  },
+  {
+   "fieldname": "section_views",
+   "fieldtype": "Section Break",
+   "label": "Alternate views",
+   "description": "Kanban, calendar, gantt and image views."
+  },
+  {
+   "fieldname": "views_picker",
+   "fieldtype": "HTML",
+   "label": "Views Picker"
+  },
+  {
+   "default": "Floating Cards",
+   "description": "Set by the picker above. How a record is drawn across the alternate views — a kanban card, a gallery tile, a calendar chip, a gantt bar.",
+   "fieldname": "views_style",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "View Style",
+   "options": "Original\nHairline\nSoft Tiles\nFloating Cards\nSolid Panels"
+  },
+  {
+   "default": "Tinted",
+   "description": "Set by the picker above. Whether a kanban column carries its status colour.",
+   "fieldname": "views_band",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Kanban Column",
+   "options": "Plain\nTinted"
+  },
+  {
+   "default": "Chip",
+   "description": "Set by the picker above. The shape of a calendar event.",
+   "fieldname": "views_mark",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Calendar Event",
+   "options": "Dot\nChip\nOutlined"
+  },
+  {
+   "default": "Cover",
+   "description": "Set by the picker above. How a gallery image fills its tile.",
+   "fieldname": "views_media",
+   "fieldtype": "Select",
+   "hidden": 1,
+   "label": "Image Fit",
+   "options": "Cover\nContain"
+  },
+  {
+   "default": "1",
+   "description": "A gallery tile's controls rest hidden and appear on hover or keyboard focus. Always visible on touch screens.",
+   "fieldname": "views_reveal",
+   "fieldtype": "Check",
+   "hidden": 1,
+   "label": "Reveal Controls on Hover"
+  },
+  {
+   "fieldname": "section_user",
+   "fieldtype": "Section Break",
+   "label": "User Menu",
+   "description": "Where the profile menu sits."
+  },
+  {
+   "fieldname": "user_picker",
+   "fieldtype": "HTML",
+   "label": "User Menu Picker"
+  },
+  {
+   "fieldname": "section_links",
+   "fieldtype": "Section Break",
+   "label": "Home & All Apps",
+   "description": "Where the Home and All Apps links sit."
+  },
+  {
+   "fieldname": "links_picker",
+   "fieldtype": "HTML",
+   "label": "Quick Links Picker"
+  },
+  {
+   "fieldname": "home_placement",
+   "fieldtype": "Select",
+   "label": "Home Link Placement",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
+   "hidden": 1
+  },
+  {
+   "fieldname": "apps_placement",
+   "fieldtype": "Select",
+   "label": "All Apps Link Placement",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nSide Pane Start\nSide Pane End\nDock Start",
+   "hidden": 1
+  },
+  {
+   "fieldname": "section_language_switch",
+   "fieldtype": "Section Break",
+   "label": "Language & Appearance",
+   "description": "The language switch and the appearance button: enabled languages, placement, style."
+  },
+  {
+   "fieldname": "language_picker",
+   "fieldtype": "HTML",
+   "label": "Languages Picker"
+  },
+  {
+   "fieldname": "language_choices",
+   "fieldtype": "Data",
+   "label": "Languages Offered",
+   "hidden": 1,
+   "description": "Set by the picker above: the languages the switch offers, in order, as Language codes. Empty means the shipped pair, Arabic and English."
+  },
+  {
+   "fieldname": "language_placement",
+   "fieldtype": "Select",
+   "label": "Language Switch Placement",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
+   "description": "Where the language switch lives. It offers the languages enabled in the Language list; Off removes it, and the avatar menu keeps a Language entry."
+  },
+  {
+   "fieldname": "language_style",
+   "fieldtype": "Select",
+   "label": "Language Switch Style",
+   "options": "Globe\nCode\nName\nGlobe + Code\nGlobe + Name",
+   "description": "How the switch draws itself: a globe, the other language's two-letter code, its name in its own script, or the globe with either. In the side pane's foot band and the rail a name shrinks to its code."
+  },
+  {
+   "fieldname": "appearance_placement",
+   "fieldtype": "Select",
+   "label": "Appearance Button Placement",
+   "options": "Off\nTop Bar Start\nTop Bar Center\nTop Bar End\nBottom Bar Start\nBottom Bar Center\nBottom Bar End\nPage Header Start\nPage Header Center\nPage Header End\nSide Pane Start\nSide Pane End\nDock Start\nDock Center\nDock End",
+   "description": "Where the Appearance button lives. It opens the dialog the avatar menu's Appearance entry opens; Off removes the button."
+  },
+  {
+   "fieldname": "start_placement",
+   "fieldtype": "Select",
+   "label": "Start Button Placement",
+   "options": "Off\nTop Bar Start\nBottom Bar Start\nDock Start",
+   "default": "Off",
+   "hidden": 1,
+   "description": "The brand pill at the bar's start \u2014 the tile and the company's name, as the pane's head draws them; a click goes home. Off on the shipped desk, where the pane's head already carries the brand."
+  },
+  {
+   "fieldname": "section_personal",
+   "fieldtype": "Section Break",
+   "label": "Personalization",
+   "description": "What each user may change for themselves: look, shape, comfort."
+  },
+  {
+   "fieldname": "personal_look",
+   "fieldtype": "Check",
+   "label": "People may choose their own look",
+   "default": "1",
+   "description": "Each person can pick one of the shipped looks for themselves, from the Appearance window. Colours always follow the site."
+  },
+  {
+   "fieldname": "personal_shape",
+   "fieldtype": "Check",
+   "label": "People may choose their own desk shape",
+   "default": "0",
+   "description": "Each person can pick their own desk layout: which bars exist, and where search, notifications and the profile sit. Off by default, because training material and support calls describe one desk."
+  },
+  {
+   "fieldname": "personal_comfort",
+   "fieldtype": "Check",
+   "label": "People may set their own comfort",
+   "default": "1",
+   "description": "Each person can set light or dark and their row density. Reduced motion is always available to everyone and this setting does not affect it."
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-08 19:56:01.000000",
+ "modified_by": "Administrator",
+ "module": "Bunood Theme",
+ "name": "Theme Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

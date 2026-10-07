@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "authority": "docs/BUNOOD-V1-MEGA-PLAN-2026-09-20.md",
+  "execution_ledger": "docs/BUNOOD-V1-EXECUTION-LEDGER-2026-09-20.md",
+  "status_registry": "quality/v1-work-order-status.json",
+  "disclaimer": "Planning authority map only. It resolves precedence and ownership; it is not implementation evidence, an acceptance receipt, or a release decision.",
+  "authority_groups": [
+    {
+      "id": "production-release-and-reliability",
+      "work_orders": ["WO-00", "WO-01", "FND-05"],
+      "authority_docs": [
+        "docs/BUNOOD-V1-PRODUCTION-OPERATIONS-AND-SUPPORT-CONTRACT-2026-09-20.md",
+        "docs/BUNOOD-V1-PERFORMANCE-RELIABILITY-SLO-2026-09-20.md"
+      ],
+      "machine_targets": [
+        "quality/v1-production-operations-control-register.json",
+        "quality/v1-performance-budget.json"
+      ],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "universal-experience-foundation",
+      "work_orders": ["FND-01", "FND-02", "FND-03", "FND-04"],
+      "authority_docs": [
+        "docs/BUNOOD-V1-UNIVERSAL-PRODUCT-GRAMMAR-2026-09-20.md",
+        "docs/BUNOOD-V1-ROLE-ACCEPTANCE-MATRIX-2026-09-20.md",
+        "docs/BUNOOD-V1-BILINGUAL-TERMINOLOGY-GOVERNANCE-2026-09-20.md",
+        "docs/BUNOOD-V1-USER-RESEARCH-AND-USABILITY-PROTOCOL-2026-09-20.md"
+      ],
+      "machine_targets": [
+        "quality/v1-acceptance-manifest.json",
+        "quality/v1-work-order-status.json"
+      ],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "guided-onboarding-and-migration",
+      "work_orders": ["WO-10", "WO-11"],
+      "authority_docs": ["docs/BUNOOD-V1-GUIDED-ONBOARDING-AND-MIGRATION-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-onboarding-migration-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "daily-receivables-and-payments",
+      "work_orders": ["WO-12", "WO-13"],
+      "authority_docs": [
+        "docs/BUNOOD-V1-ORDER-TO-CASH-AND-CUSTOMER-OPERATIONS-CONTRACT-2026-09-20.md",
+        "docs/BUNOOD-V1-CASH-BANK-PAYMENT-RECONCILIATION-CONTRACT-2026-09-20.md"
+      ],
+      "machine_targets": [
+        "quality/v1-order-to-cash-control-register.json",
+        "quality/v1-cash-bank-payment-control-register.json"
+      ],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "bank-reconciliation",
+      "work_orders": ["WO-14"],
+      "authority_docs": ["docs/BUNOOD-V1-CASH-BANK-PAYMENT-RECONCILIATION-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-cash-bank-payment-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "owner-dashboard",
+      "work_orders": ["WO-15"],
+      "authority_docs": ["docs/BUNOOD-V1-REPORTING-AND-DECISION-SUPPORT-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-decision-support-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "procurement-and-inventory",
+      "work_orders": ["WO-20", "WO-21", "WO-22"],
+      "authority_docs": ["docs/BUNOOD-V1-PROCUREMENT-INVENTORY-OPERATIONS-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-procurement-inventory-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "point-of-sale",
+      "work_orders": ["WO-23"],
+      "authority_docs": ["docs/BUNOOD-V1-POS-RETAIL-OPERATIONS-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-pos-retail-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "integrations-and-connectors",
+      "work_orders": ["WO-30", "WO-31"],
+      "authority_docs": ["docs/BUNOOD-V1-INTEGRATION-AND-CONNECTOR-OPERATIONS-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-integration-connector-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "order-to-cash",
+      "work_orders": ["OTC-01", "OTC-02", "OTC-03", "OTC-04", "OTC-05"],
+      "authority_docs": ["docs/BUNOOD-V1-ORDER-TO-CASH-AND-CUSTOMER-OPERATIONS-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-order-to-cash-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "expert-finance-and-close",
+      "work_orders": ["FIN-01", "FIN-02", "FIN-03", "FIN-04", "FIN-05", "FIN-06", "FIN-07", "FIN-08", "FIN-09", "FIN-10"],
+      "authority_docs": ["docs/BUNOOD-V1-EXPERT-FINANCE-AND-CLOSE-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-finance-close-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "saudi-vat-and-zatca",
+      "work_orders": ["KSA-01", "KSA-02", "KSA-03", "KSA-04", "KSA-05"],
+      "authority_docs": ["docs/BUNOOD-V1-SAUDI-ZATCA-OPERATIONS-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-zatca-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "saudi-privacy-and-compliance-evidence",
+      "work_orders": ["KSA-06", "KSA-07"],
+      "authority_docs": ["docs/BUNOOD-V1-SAUDI-PDPL-OPERATIONS-CONTRACT-2026-09-20.md"],
+      "machine_targets": [
+        "quality/v1-pdpl-control-register.json",
+        "quality/v1-work-order-status.json"
+      ],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "reporting-and-decision-support",
+      "work_orders": ["BI-01", "BI-02", "BI-03", "BI-04", "BI-05"],
+      "authority_docs": ["docs/BUNOOD-V1-REPORTING-AND-DECISION-SUPPORT-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-decision-support-control-register.json"],
+      "state": "planning-authority-only"
+    },
+    {
+      "id": "saudi-people-and-payroll",
+      "work_orders": ["HR-01", "HR-02", "HR-03", "HR-04", "HR-05"],
+      "authority_docs": ["docs/BUNOOD-V1-SAUDI-PEOPLE-PAYROLL-CONTRACT-2026-09-20.md"],
+      "machine_targets": ["quality/v1-saudi-payroll-control-register.json"],
+      "state": "planning-authority-only"
+    }
+  ]
+}

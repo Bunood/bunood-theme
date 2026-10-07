@@ -1,0 +1,246 @@
+// ── A dead chart keeps redrawing (item 42) ────────────────────────────────
+//
+// frappe-charts binds ONE window `resize` listener per instance —
+// `window.addEventListener("resize", this.boundDrawFn)` — and nothing removes
+// it when Frappe re-renders the widget the chart lived in. The object survives
+// with a `container` that is no longer in the document, and the next resize
+// calls `makeChartArea`, whose first act is
+// `this.container.removeChild(this.svg)`. That throws: the svg is not a child of
+// that container any more. Three full-run gates recorded it as an unexplained
+// pageerror in `desk.bundle.js`, and no isolated reproduction found it —
+// repeated resizes on one page, an SPA round trip, the same viewport churn with
+// our chrome on AND off. It needs a chart to have DIED first, which is a state
+// a whole run accumulates and a probe does not.
+//
+// We already track live charts, because a theme flip has to repaint them, and we
+// already prune the ones whose container has gone. Pruning only stopped US from
+// redrawing them; the vendor's own listener kept going. `retire()` unbinds it,
+// so a chart that is off the page stops redrawing for everyone — the error goes
+// with it, and so does the wasted work behind it.
+//
+// SWEPT AT TWO MOMENTS, and one of them is not enough. Retiring at the next
+// CONSTRUCTION covers the common case — a re-render replaces the chart — and
+// misses the one where nothing replaces it: navigate away from a dashboard,
+// resize, and the dead chart is still bound to the window. A route change is the
+// moment both cases pass through, so the sweep hangs off that too.
+//
+// NOT A PATCH OF THE VENDOR: we unbind a listener for an object we are already
+// holding, at the moment we already decided it is dead. Guarded, because a
+// version that stops exposing `boundDrawFn` must degrade to today's behaviour
+// rather than take the desk down.
+// AND IT CAME BACK (v0.42.1) -- twice, in runs of 26 checks -- so the account
+// above is half right. Read from THIS bench fork of frappe-charts:
+//
+// (1) `configure()` also observes the PARENT with a ResizeObserver, and the first
+//     `retire()` removed only the window listener, so a dead chart kept redrawing
+//     on every parent resize. The vendor ships `destroy()` for exactly this --
+//     both window listeners and the observer -- and `retire()` now calls it.
+// (2) The throw needs no dead chart at all. `runSMILAnimation` takes the REAL
+//     svg out of the container for 250ms and parks an animated clone in its
+//     place; a `draw(true)` inside that window -- the ResizeObserver firing
+//     because our chrome just mounted and moved the page width -- reaches
+//     `this.container.removeChild(this.svg)` with the svg not a child. That is
+//     why no probe ever reproduced it: it is a race between a chart animating in
+//     and the desk changing shape around it, which a full run does constantly.
+//     `makeChartArea` is wrapped on the prototype: if the svg is out of its
+//     container, the clone is removed and the svg put back before the vendor
+//     body runs, and the swap pending timeout finds the clone gone and skips.
+//     A patch of a vendor method, confined to the one state the vendor own code
+//     creates and does not handle. Guarded by a marker so it is applied once.
+// (3) AND IT WAS NEVER INSTALLED. Recorded 2026-09-10, after the race failed a
+//     fifth full run and this time was REPRODUCED — the thing four earlier
+//     investigations could not do. Two arms, both on a dashboard: viewport churn
+//     on `/desk/dashboard-view/*` throws once, and the composer's compare strip
+//     drawing four scaled desks over a dashboard throws eight times.
+//     The stack names its caller now that the console budget prints its frames:
+//     `ResizeObserver.boundDrawFn -> draw -> makeChartArea`, exactly the race
+//     described above. So the wrap should have caught it, and did not — because
+//     `frappe.Chart` is a FACTORY. `makeChartArea` lives on the concrete chart
+//     class the factory returns, not on `frappe.Chart.prototype`, so
+//     `const native_area = NativeChart.prototype.makeChartArea` read `undefined`,
+//     the `typeof === "function"` guard around it declined, and the patch
+//     installed NOTHING. Measured on a live dashboard: `frappe.Chart` was ours
+//     (`frappeChartIsBnd: true`) and `frappe.Chart.prototype.makeChartArea._bnd`
+//     was false.
+//     THE LESSON IS THE REPO'S OWN, one level up: a guard whose branch is false
+//     is UNTESTED, not working — and this one dressed its own absence as a
+//     defensive check. `guard_chart_area` now walks the prototype chain of a
+//     real INSTANCE, in `BndChart` where one has just been constructed, and
+//     patches whichever object actually owns the method.
+// ─────────────────────────────────────────────────────────────────────────────
+// Charts — the chart surface (item 25)
+//
+// WHAT
+//   frappe-charts draws every desk chart, and it exposes its CHROME (axis labels,
+//   gridlines, the tooltip, dataset weight) through a set of --charts-* custom
+//   properties. This file takes those over so the chart frame is themed and
+//   mode-correct, and adds one axis — chart_grid — that chooses where the visual
+//   weight sits. Series COLOUR is a separate concern, derived in palette.py and
+//   fed from JS (see bunood.js "Chart series palette"); this file never touches it.
+//
+// THE ATTRIBUTE CONTRACT (set by bunood.js, values are slugs)
+//   data-bnd-chart-grid  the weight of the chart frame, ANCHOR of this file:
+//     "axes"    Hairline Axes  — both gridlines, solid hairline
+//     "ruled"   Ruled Baseline — horizontal gridlines only
+//     "dashed"  Dashed Guides  — dashed gridlines, no axis line
+//     "bold"    Bold Data      — chrome to a wash, weight on the series
+//     "filled"  Filled Area    — the area under a line carries it (DEFAULT)
+//   There is no "Original": the base --charts-* mapping is always on, because raw
+//   vendor hex in light and Frappe's greys in dark are strictly worse than a
+//   themed frame, never a style a user would choose.
+//
+// THE FACTS THIS FILE IS BUILT ON (measured live, 2026-08-16, Frappe 16.27,
+// frappe-charts 2.0.0-rc27, /desk with an injected chart)
+//   * The --charts-* variables are live and consumed. Frappe overrides them only
+//     under `[data-theme="dark"] .chart-container` (0,2,1) — including
+//     --charts-stroke-width: 5px, against the vendor's 2px in light, an unexplained
+//     discontinuity this file removes. Light has no Frappe override; the vendor
+//     :root defaults (raw hex) apply. `html[data-theme] .chart-container` is also
+//     (0,2,1) and loads later, so it wins both.
+//   * Gridlines render as `.line-horizontal` / `.line-vertical`, stroked with
+//     --charts-axis-line-color; the x/y axis labels are separate text, so hiding a
+//     gridline never hides a label.
+//   * A line chart has NO region-fill unless lineOptions.regionFill is set — so the
+//     JS wrap sets it for every line chart and this file controls its OPACITY per
+//     style, which keeps chart_grid a pure-CSS choice with instant live preview.
+//     The fill is a gradient generated from OUR series colour, fading to nothing.
+//
+// DESIGN RECORD (item 25 wireframe round, 2026-08-16; artifact recorded in the
+// plan). Axis 3, picked: Filled Area — grounded in shadcn's chart-area and the
+// three-product agreement (frappe-ui / shadcn / Discourse) that a value scale
+// reads best with horizontal rules and no vertical clutter.
+//
+// Scoped html[data-theme] / html[data-bnd-chart-grid] throughout; fails open (no
+// attribute → the base themed frame). Logical properties only. No !important.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Base: theme frappe-charts' own chrome ────────────────────────────────────
+// Mapped to --bnd-* (mode-aware) so ONE block serves light and dark — the tokens
+// carry the mode, not this selector. Wins Frappe's [data-theme="dark"]
+// .chart-container by equal specificity and later source order.
+html[data-theme] .chart-container {
+  --charts-label-color: var(--bnd-ink-muted);
+  --charts-axis-line-color: var(--bnd-border);
+  --charts-stroke-width: 2px; // removes Frappe's 5px-in-dark discontinuity
+
+  --charts-dataset-circle-stroke: var(--bnd-surface); // the point's halo
+  --charts-dataset-circle-stroke-width: 2px;
+
+  --charts-tooltip-bg: var(--bnd-raised);
+  --charts-tooltip-title: var(--bnd-ink-muted);
+  --charts-tooltip-label: var(--bnd-ink-muted);
+  --charts-tooltip-value: var(--bnd-ink);
+
+  --charts-legend-label: var(--bnd-ink-muted);
+  --charts-legend-value: var(--bnd-ink);
+
+  // The tooltip is built INSIDE the chart container — frappe-charts constructs
+  // it `new SvgTip({parent: this.container})` — which is what lets this rule
+  // reach it as a descendant at all. (It said "body-appended" until item 28's
+  // release review: a body-appended node could neither inherit the custom
+  // properties set on .chart-container nor be matched by a descendant selector,
+  // so the comment and the rule could not both be true. The rule was right.)
+  // Its own box wants the theme's surface, radius and shadow rather than the
+  // vendor's hard black. `.graph-svg-tip` is the vendor's class.
+  .graph-svg-tip {
+    border-radius: var(--bnd-radius-sm);
+    box-shadow: var(--bnd-shadow-md);
+  }
+
+  // The region-fill exists on every line chart (the JS wrap turns it on); it is
+  // OFF here and switched on only by the Filled Area style, so every other style
+  // gets a clean line. One statement, so no style has to remember to hide it.
+  .region-fill {
+    opacity: 0;
+  }
+}
+
+// ── The working set, per chart_grid style ────────────────────────────────────
+// Each style is a complete look. The anchor attribute is on <html>, so the
+// tooltip (body-appended, outside the chart) still follows the base rules above.
+
+// Hairline Axes — both gridlines, the base frame stated explicitly.
+html[data-bnd-chart-grid="axes"] .chart-container {
+  // The base mapping is exactly this look; nothing more to say. Present so the
+  // option is real and the picker is honest.
+}
+
+// Ruled Baseline — horizontal gridlines only. The vertical gridlines go; the
+// x-axis labels are separate text and stay.
+html[data-bnd-chart-grid="ruled"] .chart-container {
+  .line-vertical {
+    stroke: transparent;
+  }
+}
+
+// Dashed Guides — gridlines become guides; the solid axis line stands down.
+html[data-bnd-chart-grid="dashed"] .chart-container {
+  .line-horizontal,
+  .line-vertical {
+    stroke-dasharray: 4 3;
+  }
+}
+
+// Bold Data — the chrome drops to a wash and the data takes the weight: a thicker
+// stroke and a larger haloed point. The gridline colour is mixed further toward
+// the surface so it recedes behind the line.
+html[data-bnd-chart-grid="bold"] .chart-container {
+  --charts-stroke-width: 3px;
+  --charts-axis-line-color: color-mix(in srgb, var(--bnd-border) 55%, var(--bnd-surface));
+  --charts-dataset-circle-stroke-width: 3px;
+}
+
+// Filled Area (DEFAULT) — the area under a line carries the chart. The gradient
+// fill (generated by frappe-charts from our series colour) is revealed; the
+// gridlines recede to a wash so the fill reads.
+html[data-bnd-chart-grid="filled"] .chart-container {
+  --charts-axis-line-color: color-mix(in srgb, var(--bnd-border) 60%, var(--bnd-surface));
+
+  .region-fill {
+    opacity: 1; // the gradient fades to transparent on its own
+  }
+}
+
+// A failed Bank Balance configuration should be a compact recovery state, not
+// raw red HTML stretched across the full chart canvas.
+html[data-theme] .bnd-chart-recovery {
+  display: grid;
+  justify-items: center;
+  gap: var(--bnd-sp-3);
+  min-block-size: 0;
+  padding: var(--bnd-sp-5);
+  color: var(--bnd-ink-muted);
+  text-align: center;
+
+  p { margin: 0; }
+}
+
+html[data-theme] .bnd-chart-fallback {
+  display: grid;
+  place-items: center;
+  min-block-size: 12rem;
+  color: var(--bnd-ink-muted);
+  border: var(--bnd-line) dashed var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-active);
+
+  ul {
+    display: grid;
+    inline-size: min(100%, 42rem);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  li {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--bnd-sp-3);
+    padding-block: var(--bnd-sp-2);
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+
+  li:last-child { border-block-end: 0; }
+
+  bdi { color: var(--bnd-ink); font-weight: var(--bnd-weight-medium); }
+}

@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "disclaimer": "Empty template only. This is not a benchmark receipt and makes no performance pass claim.",
+  "candidate": {
+    "commit": "",
+    "release_hash": "",
+    "measured_at": "",
+    "environment": "",
+    "topology": "",
+    "fixture_hash": ""
+  },
+  "profile_results": [],
+  "reliability": {
+    "measurement_window_days": null,
+    "availability_pct": null,
+    "unexpected_5xx_5min_pct": null,
+    "unexpected_5xx_monthly_pct": null,
+    "unacknowledged_critical_alerts": null,
+    "backup_success_pct": null,
+    "rpo_minutes": null,
+    "rto_minutes": null,
+    "restore_drill_age_days": null
+  },
+  "evidence": {
+    "raw_metrics": [],
+    "fixture_and_reconciliation": [],
+    "load_and_soak": [],
+    "queue_and_worker": [],
+    "alerts": [],
+    "backup_and_restore": [],
+    "candidate_identity": []
+  }
+}

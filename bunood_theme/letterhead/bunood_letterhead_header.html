@@ -1,0 +1,135 @@
+{#- ============================================================================
+    Bunood Letter Head — HEADER, three compositions (item 35, MERGED with the
+    parallel session's owner-spec redesign, 2026-08-26).
+    ----------------------------------------------------------------------------
+    ONE FILE, MARKED BLOCKS. `printing/install.py::_sync_letterhead` reads
+    `Theme Settings.print_letterhead`, keeps exactly the active
+    `<!--BND lh=slug--> ... <!--BND-END-->` block, and writes the result into
+    the Letter Head record — sync-time selection, the print sheet's pole
+    mechanism on HTML. Each composition's wrapper carries a `bnd-lh-<slug>`
+    class as the greppable breadcrumb. Under `Frappe's own` the sync never
+    touches the record at all.
+
+    THE DEFAULT COMPOSITION IS THE OWNER'S SPEC (merged from the parallel
+    session): company name + VAT number + commercial registration as one
+    identity block (right, in RTL), the logo opposite. WHY THE NUMBERS BELONG
+    HERE AND NOT IN EACH FORMAT: a KSA tax invoice must carry the seller's
+    VAT, and the letter head is the one place that reaches every print format
+    — including formats other apps ship and any format an admin duplicates.
+    All three compositions carry the numbers for the same reason.
+
+    FIELDS — read from Company, measured on a v16 bench, not guessed:
+      tax_id                        stock ERPNext field, "Tax ID"    -> VAT
+      bnd_commercial_registration   custom field this app installs   -> CR
+      registration_details          stock Code field, free text      -> CR fallback
+    There is no stock CR field; printing/install.py adds the dedicated one,
+    and the fallback keeps a site that already typed its CR into
+    registration_details printing something rather than a blank line.
+
+    SELF-CONTAINED: styles are inline because a PDF header renders in
+    isolation (parent/theme CSS never reaches it). Colours are --bnd-* tokens
+    (written as CSS custom-property references), SUBSTITUTED per site through
+    palette.derive() at sync — the record carries concrete hexes, and a
+    changed brand seed rewrites them on the next Theme Settings save.
+
+    THE LOGO CHAIN: the THEME'S own logo wins, the Company's is the fallback —
+    one upload in Theme Settings reaches paper, the email `brand()` precedent.
+    `__BND_THEME_LOGO__` is replaced at sync with the raster logo from Theme
+    Settings, or with nothing (SVG never rides — the PDF engines are not
+    trustworthy with it).
+
+    The trailing `or ""` on the name sets is LOAD-BEARING: on a Company
+    without the KSA custom fields .get() returns None, `None or None` is
+    None, and Jinja renders an unguarded None as the literal text "None" —
+    which the release review caught printing as the Arabic company name.
+    Numbers and the Latin name are wrapped `dir="ltr"` so bidi never reorders
+    a digit string or a Latin run sitting inside Arabic text.
+    ============================================================================ -#}
+{#- exists-guarded: get_doc THROWS on a company that does not resolve (a
+    deleted record, a specimen doc, any doctype whose company field is free
+    text) and a crashed print is worse than an empty identity — found by the
+    print suite's dangling-company specimen after the merge. -#}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc and doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
+{%- set name_ar = ((_c.get("company_name_in_arabic") if _c else "") or (_c.get("custom_company_name_ar") if _c else "") or "") -%}
+{%- set name_en = ((_c.company_name if _c else "") or "") -%}
+{%- set theme_logo = "__BND_THEME_LOGO__" -%}
+{%- set logo = theme_logo or (_c.get("company_logo") if _c else "") or (_c.get("brand_logo") if _c else "") -%}
+{%- set logo_src = bunood_print_image_src(logo) if logo and bunood_print_image_src is defined else logo -%}
+{%- set vat = ((_c.get("tax_id") if _c else "") or "") -%}
+{%- set cr = ((_c.get("bnd_commercial_registration") if _c else "") or (_c.get("registration_details") if _c else "") or "") -%}
+{%- set _rtl = bunood_print_language() == "ar" -%}
+{%- set _dir = "rtl" if _rtl else "ltr" -%}
+{%- set _start = "right" if _rtl else "left" -%}
+{%- set _end = "left" if _rtl else "right" -%}
+{# Title language is a print setting too; explicit tenant overrides share the
+   same helper, while the local default keeps the print's language/direction. #}
+{%- set _tl = bunood_print_setting("print_title_lang") if bunood_print_setting is defined else "" -%}
+{%- set _name_ar = _tl == "Arabic only" or (_tl != "English only" and _rtl) -%}
+{%- set display_name = (name_ar or name_en) if _name_ar else (name_en or name_ar) -%}
+<style>
+@media print {
+  /* Frappe v16's isolated Chromium template applies -12mm to both wrappers.
+     This managed header is already compact; cancelling that offset prevents
+     clipping while preserving the supported repeated header/footer path. */
+  .letter-head,
+  .letter-head-footer { margin-top: 0 !important; }
+}
+</style>
+{% macro identity_numbers(compact=False) -%}
+{% if vat or cr %}<table dir="{{ _dir }}" style="direction:{{ _dir }}; width:auto; margin-top:{{ '0' if compact else '4px' }}; border-collapse:collapse; font-size:10px; line-height:1.4; color:var(--bnd-ink-muted);">
+  {% if vat %}<tr><td style="text-align:{{ _start }}; padding:2px 6px;">{{ "الرقم الضريبي" if _rtl else "VAT number" }}</td><td dir="ltr" style="text-align:{{ _end }}; padding:2px 0; vertical-align:middle; white-space:nowrap;">{{ vat | e }}</td></tr>{% endif %}
+  {% if cr %}<tr><td style="text-align:{{ _start }}; padding:2px 6px;">{{ "السجل التجاري" if _rtl else "Commercial registration" }}</td><td dir="ltr" style="text-align:{{ _end }}; padding:2px 0; vertical-align:middle; white-space:nowrap;">{{ cr | e }}</td></tr>{% endif %}
+</table>{% endif %}
+{%- endmacro %}
+<!--BND lh=split-->
+<div dir="{{ _dir }}" class="bnd-lh-split" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0;">
+  <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; border-collapse:collapse; table-layout:fixed;">
+    <tr>
+      <td style="width:{{ '72%' if logo_src else '100%' }}; text-align:{{ _start }}; vertical-align:middle; line-height:1.45;">
+        {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700;">{{ display_name | e }}</div>{% endif %}
+        {{ identity_numbers() }}
+      </td>
+      {% if logo_src %}<td style="width:28%; text-align:{{ _end }}; vertical-align:middle;">
+        <img src="{{ logo_src | e }}" alt="{{ name_en | e }}" style="max-width:100%; max-height:54px;">
+      </td>{% endif %}
+    </tr>
+  </table>
+  {#- brand rule as BORDERS (not background) so it prints on every engine incl. headless Chrome -#}
+  <div class="bnd-lh-rule" style="border-top:1px solid var(--bnd-brand-solid); margin-top:8px;"></div>
+</div>
+<!--BND-END-->
+<!--BND lh=center-->
+<div dir="{{ _dir }}" class="bnd-lh-center" style="font-family:'Tajawal','Cairo','Noto Sans Arabic',sans-serif; color:var(--bnd-ink); padding:4px 6px 0; text-align:center;">
+  {% if logo_src %}<div><img src="{{ logo_src | e }}" alt="{{ name_en | e }}" style="max-height:44px;"></div>{% endif %}
+  {% if display_name %}<div dir="auto" style="font-size:15px; font-weight:700; line-height:1.4;">{{ display_name | e }}</div>{% endif %}
+  {{ identity_numbers() }}
+  <div style="border-top:2px solid var(--bnd-brand-solid); margin-top:8px; width:46%; margin-left:auto; margin-right:auto;"></div>
+</div>
+<!--BND-END-->
+<!--BND lh=minimal-->
+{# One bounded identity row: company, VAT and CR. Explicit table cells mirror
+   in Arabic and survive the isolated PDF header. The print engine reserves a
+   fixed-height header band, so a legal name must never grow the row and collide
+   with the invoice title. The complete legal name is printed again in the
+   seller block; this compact identity uses a smaller face and ellipsis only for
+   unusually long names. #}
+{% if display_name or logo_src or vat or cr %}
+<div dir="{{ _dir }}" lang="{{ 'ar' if _rtl else 'en' }}" class="bnd-lh-minimal" style="font-family:'Tajawal','Noto Sans Arabic','DejaVu Sans',sans-serif; color:var(--bnd-ink); padding:4px 0 0;">
+  <table dir="{{ _dir }}" style="direction:{{ _dir }}; width:100%; table-layout:fixed; border-collapse:collapse; margin:0;">
+    <tr>
+      <td class="bnd-lh-identity" style="width:{{ '30%' if vat and cr else ('60%' if vat or cr else '100%') }}; text-align:{{ _start }}; vertical-align:middle; padding:0;">
+        {% if logo_src %}<div style="display:inline-block; width:40px; vertical-align:middle; margin-{{ _end }}:6px;"><img class="bnd-lh-logo" src="{{ logo_src | e }}" alt="" style="display:block; width:auto !important; height:auto; max-width:100%; max-height:30px;"></div>{% endif %}
+        {% if display_name %}<span class="bnd-lh-name" dir="auto" title="{{ display_name | e }}" style="display:inline-block; max-width:{{ 'calc(100% - 46px)' if logo_src else '100%' }}; vertical-align:middle; font-size:{{ '10' if display_name|length > 42 else '17' }}px; line-height:1.4; font-weight:700; color:var(--bnd-ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ display_name | e }}</span>{% endif %}
+      </td>
+      {% for value, en, ar, width in [(vat, 'VAT number', 'الرقم الضريبي', '34%'), (cr, 'Commercial registration', 'السجل التجاري', '36%')] %}
+      {% if value %}<td class="bnd-lh-registration" style="width:{{ width if vat and cr else '40%' }}; text-align:{{ _end }}; vertical-align:middle; padding:0 {{ '10px' if _rtl else '0' }} 0 {{ '0' if _rtl else '10px' }}; line-height:1.6;">
+        <span style="font-size:{{ '12' if _rtl else '10' }}px; color:var(--bnd-ink-muted); white-space:nowrap;">{{ ar if _rtl else en }}</span>
+        <span class="bnd-lh-reg-value" dir="ltr" style="display:inline-block; font-size:11px; color:var(--bnd-ink); margin-{{ _start }}:6px; word-wrap:break-word; max-width:100%;">{{ value | e }}</span>
+      </td>{% endif %}
+      {% endfor %}
+    </tr>
+  </table>
+  <div class="bnd-lh-rule" style="border-top:1px solid var(--bnd-brand-solid); margin-top:8px;"></div>
+</div>
+{% endif %}
+<!--BND-END-->

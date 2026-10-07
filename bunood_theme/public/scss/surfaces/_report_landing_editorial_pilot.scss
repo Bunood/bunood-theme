@@ -1,0 +1,36 @@
+@use "../breakpoints" as bp;
+
+html[data-theme] .bnd-report-landing__head { min-block-size: 0; margin-block-end: var(--bnd-sp-3); padding: 0 0 var(--bnd-sp-3); border: 0; border-block-end: 1px solid var(--pilot-line); border-radius: 0; background: transparent; color: var(--pilot-ink); }
+html[data-theme] .bnd-report-landing__title { color: var(--pilot-ink); font-size: var(--bnd-text-xl); font-weight: 700; }
+html[data-theme] .bnd-report-landing__grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bnd-sp-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+html[data-theme] .bnd-report-landing__card {
+  min-block-size: 76px;
+  padding: var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+}
+html[data-theme] .bnd-report-landing__card.is-zatca { grid-column: 1 / -1; }
+html[data-theme] .bnd-report-landing__icon { border-radius: 0; background: transparent; }
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-report-landing__grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+html[data-theme] .bnd-report-landing__head {
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border-inline-start: 0;
+  border-radius: 4px;
+  background: var(--pilot-leaf);
+}
+html[data-theme] .bnd-report-landing__title { color: var(--pilot-deep-ink); font-size: clamp(1.7rem, 2.3vw, 2.1rem); }
+html[data-theme] .bnd-report-landing__card:hover {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-leaf);
+}

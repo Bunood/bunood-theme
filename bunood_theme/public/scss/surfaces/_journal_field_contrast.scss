@@ -1,0 +1,20 @@
+// These native inputs are moved outside .form-layout. A pale fill alone has
+// no identifiable boundary against the white voucher panel (1.4.11).
+html.bunood[data-theme] .bnd-task-journal .bnd-task-panel-lead {
+  :is(input.form-control:not([type="checkbox"]), select.form-control, textarea.form-control):not(:disabled):not([readonly]) {
+    border: var(--bnd-line-strong) solid var(--bnd-journal-field-edge, var(--bnd-ink-subtle));
+    background: var(--bnd-surface);
+
+    &:focus-visible {
+      outline: var(--bnd-line-2) solid var(--bnd-accent);
+      outline-offset: var(--bnd-focus-offset);
+      box-shadow: 0 0 0 calc(var(--bnd-line-2) * 2) var(--bnd-on-brand);
+    }
+  }
+
+  // Never mask the native invalid state with the neutral resting boundary.
+  .has-error,
+  .form-control:is(.has-error, [aria-invalid="true"]) {
+    --bnd-journal-field-edge: var(--bnd-critical);
+  }
+}

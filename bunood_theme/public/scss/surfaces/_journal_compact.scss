@@ -1,0 +1,90 @@
+@use "../breakpoints" as bp;
+
+// Journal entries are a ledger task: one action bar, context, balance, then rows.
+// Scope every override so the other transaction workbenches remain unchanged.
+html.bunood[data-theme] {
+  .bnd-journal-actions {
+    color: var(--bnd-on-brand);
+    background: var(--pilot-deep, var(--bnd-brand-solid));
+    border: 0;
+    border-radius: var(--bnd-radius-md);
+    margin-block: var(--bnd-sp-2) var(--bnd-sp-3);
+    padding: var(--bnd-sp-3);
+    box-shadow: none;
+    .bnd-simple-actions-identity { display: flex; }
+    .bnd-simple-actions-identity h2 {
+      margin: 0;
+      font-size: var(--bnd-text-lg);
+      line-height: var(--bnd-leading-tight);
+      color: inherit;
+    }
+    .bnd-simple-actions-identity span { color: var(--bnd-on-brand); }
+    .bnd-simple-switch { order: 1; gap: var(--bnd-sp-1); }
+    .bnd-simple-switch > button { min-block-size: var(--bnd-control-h); }
+    .bnd-simple-switch > button[aria-pressed="true"] {
+      color: var(--bnd-brand-ink);
+      background: var(--bnd-surface);
+      border-color: var(--bnd-surface);
+    }
+    .bnd-simple-switch > button[aria-pressed="false"] {
+      color: var(--bnd-on-brand);
+      background: transparent;
+      border-color: var(--bnd-on-brand);
+    }
+    :is(button, summary):focus-visible { outline-color: var(--bnd-on-brand); }
+    .bnd-simple-tools-menu :is(button, summary):focus-visible { outline-color: var(--bnd-accent); }
+  }
+  .bnd-task-journal {
+    gap: var(--bnd-sp-3);
+    .bnd-task-stages { display: none; }
+    .bnd-task-panel { padding: var(--bnd-sp-3); }
+    .bnd-task-panel-voucher > .bnd-task-panel-head { display: none; }
+    .bnd-task-panel-voucher > .bnd-task-panel-fields {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: var(--bnd-sp-3);
+    }
+    .bnd-task-panel-head { margin-block-end: var(--bnd-sp-2); }
+    .bnd-task-panel-head h3 { font-size: var(--bnd-text-md); }
+    .bnd-task-panel-head p { display: none; }
+    .bnd-task-outcome {
+      padding: var(--bnd-sp-2) var(--bnd-sp-3);
+      h3 { display: none; }
+      dl { grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; gap: var(--bnd-sp-3); }
+      dd { font-size: var(--bnd-text-lg); margin-block: 0; }
+      &[data-unbalanced="true"] dl > div:last-child dd { color: var(--bnd-critical); }
+    }
+    .bnd-journal-references {
+      margin-block-start: var(--bnd-sp-2);
+      summary {
+        cursor: pointer;
+        color: var(--bnd-ink-muted);
+        font-size: var(--bnd-text-sm);
+        inline-size: fit-content;
+        padding-block: var(--bnd-sp-1);
+      }
+      summary:focus-visible { outline: var(--bnd-line-2) solid var(--bnd-accent); outline-offset: var(--bnd-focus-offset); }
+      &[open] > .bnd-task-panel-fields {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        margin-block-start: var(--bnd-sp-2);
+      }
+      &[hidden] { display: none; }
+    }
+  }
+}
+@include bp.bnd-until(md) {
+  html.bunood[data-theme] .bnd-journal-actions {
+    flex-wrap: wrap;
+    .bnd-simple-actions-identity { flex-basis: 100%; }
+    .bnd-simple-switch { margin-inline-start: auto; }
+  }
+}
+@include bp.bnd-until(sm) {
+  html.bunood[data-theme] {
+    .bnd-journal-actions { position: static; }
+    .bnd-task-journal .bnd-task-panel-voucher > .bnd-task-panel-fields,
+    .bnd-task-journal .bnd-journal-references[open] > .bnd-task-panel-fields { grid-template-columns: 1fr; }
+    .bnd-journal-actions .bnd-bill-action { min-inline-size: 0; }
+    .bnd-journal-actions .bnd-simple-switch { flex-basis: 100%; margin-inline-start: 0; }
+    .bnd-task-journal .bnd-task-outcome dd { font-size: var(--bnd-text-md); }
+  }
+}

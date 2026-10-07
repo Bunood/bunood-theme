@@ -1,0 +1,1198 @@
+# Copyright (c) 2026, Bunood and contributors
+# For license information, please see license.txt
+"""The component registry — one table, several consumers.
+
+WHAT
+    Every piece of desk chrome this theme owns, described once: what kind of
+    thing it is, which native affordance it replaces, and which regions it can
+    occupy.
+
+WHY IT EXISTS
+    A component's existence is currently written out four times — the mount
+    ladder in bunood.js, the Desktop stand-down list in _sidebar.scss, the boot
+    payload keys, and the settings form order. Four places to remember, in three
+    languages. On 2026-07-30 the stand-down list was the one that got forgotten
+    and our chrome overlaid the Desktop page's own; on 2026-08-01 the release
+    review found status style "Off" deleting the Bottom Bar layout's only
+    chrome, because no single place said what that strip actually carries.
+
+    This is that single place. Consumers are converted one at a time — the
+    smoke suite's invariant matrix first, because it is the cheapest to move
+    and it makes every later conversion verifiable.
+
+WHAT IT IS NOT
+    Not a runtime resolver. Placement can only be settled against the live DOM
+    (is the header there, has Frappe's sidebar row rendered, is the container
+    display:none) — see ARCHITECTURE.md on why the reserve is measured rather
+    than declared. This table says what is POSSIBLE; bunood.js decides what
+    actually happened and stamps the result.
+"""
+
+#: A container owns space on the desk. It mounts, and other things live in it.
+CONTAINER = "container"
+#: A tenant owns a place. It has no space of its own; it sits in a container.
+TENANT = "tenant"
+
+#: Regions a tenant may occupy. "sidepane" means Frappe's own row, where core
+#: put it — which is what lets Classic stop being code and become a preset.
+REGIONS = ("topbar", "bottombar", "pagehead", "sidepane", "dock")
+
+#: Human labels for the regions, as the placement fields spell them.
+REGION_LABELS = {
+    "topbar": "Top Bar",
+    "bottombar": "Bottom Bar",
+    "pagehead": "Page Header",
+    "sidepane": "Side Pane",
+    "dock": "Dock",
+}
+
+#: Where inside a region a tenant sits.
+#:
+#: ONE VOCABULARY FOR EVERY REGION, and it is the logical one on purpose. This
+#: codebase is logical-properties throughout and the build enforces it, so a
+#: bar's "Start" is its left in English and its right in Arabic with no second
+#: table. The side pane is a column, so the same three words read top / middle /
+#: bottom there — the axis is the same, only its direction differs, which is
+#: exactly what start and end mean.
+#:
+#: The settings form may still SAY "Top / Middle / Bottom" over the pane's
+#: bands; that is a label for a reader, not a second set of values.
+ZONES = ("Start", "Center", "End")
+
+#: Zones a given region actually HAS. Bars have three; the side pane has two.
+#:
+#: NOT AN OVERSIGHT — measured, then decided. A bar's centre is a real place
+#: because a bar has free space along its length. The pane's does not exist: its
+#: content fills the column, so "after the workspace list" and "the foot of the
+#: pane" are the same position (the list IS the last thing in it), and three
+#: separate attempts put centre and end on an identical y. Offering a third
+#: choice that lands where the second one does is the "two options, one pixel"
+#: defect this vocabulary was written to remove — search's old "Sidebar Top" and
+#: "Sidebar Bottom" did exactly that for months.
+#:
+#: So the pane says two, and says it honestly. If a place below Frappe's own
+#: bottom strip is ever wanted, that is a new zone with a new name, not a
+#: centre that isn't one.
+ZONES_BY_REGION = {"sidepane": ("Start", "End")}
+
+#: Every placement value in existence: "<Region> <Zone>", plus "Off".
+#:
+#: WHY IT IS DERIVED AND NOT LISTED
+#:     Five components x five regions x three zones is 75 Select options that
+#:     have to agree with each other, with `regions` above, and with the
+#:     runtime. Listing them is how "Dock" ended up on a field whose runtime
+#:     dropped it in the sidebar (found 2026-08-07). Here the field options,
+#:     the desk diagram's slots and the migration all read the same function.
+def slots_for(key: str) -> list:
+    """Placement values a component may take, in desk order. "Off" first.
+
+    A component offers a zone only if its RUNTIME implements that zone — see
+    the ``zones`` key on the component. Region x zone was the first cut and it
+    was too generous: it offered search a Page Header it has no slug for, and
+    offered Home a bar centre when ``sb_mount_utils`` inserts at ``firstChild``
+    and nowhere else. Both would have been dishonest pickers, which is the one
+    thing this vocabulary exists to abolish.
+    """
+    component = next((c for c in COMPONENTS if c["key"] == key), None)
+    if not component:
+        return []
+    out = ["Off"] if component.get("offable") else []
+    limits = component.get("zones") or {}
+    for region in REGIONS:
+        if region not in component["regions"]:
+            continue
+        zones = limits.get(region, ZONES_BY_REGION.get(region, ZONES))
+        for zone in zones:
+            out.append(f"{REGION_LABELS[region]} {zone}")
+    return out
+
+
+def parse_slot(value: str):
+    """"Top Bar End" -> ("topbar", "end"). Unknown or "Off" -> (None, None)."""
+    if not value or value == "Off":
+        return (None, None)
+    for region, label in REGION_LABELS.items():
+        if value.startswith(label + " "):
+            zone = value[len(label) + 1:].lower()
+            return (region, zone) if zone in ("start", "center", "end") else (None, None)
+    return (None, None)
+
+#: The desk chrome, in settings-form order.
+#:
+#: ``selector``  what bunood.js mounts (containers) or the affordance a tenant
+#:               renders. Used by the Desktop stand-down assertion.
+#: ``native``    the stock ERPNext affordance this replaces, if any. A tenant
+#:               that fails to mount must leave its native visible — the
+#:               ownership-stamp rule. ``None`` means we add something ERPNext
+#:               does not have at all.
+#: ``regions``   where a tenant may go. Empty for containers, which are fixed.
+#: ``toggle``    the Theme Settings field that switches a CONTAINER on and off.
+#:               Containers only; a tenant is placed, not switched. It is named
+#:               here rather than derived from ``key`` because the two genuinely
+#:               differ for the side pane, whose fields have carried the
+#:               ``sidebar_`` prefix since item 10 while the registry has always
+#:               called the component ``sidepane``. Deriving would have to
+#:               special-case that; stating it costs one line and cannot drift.
+#: ``offable``   whether the component's placement field offers "Off". Stated,
+#:               not inferred: deriving it from ``native`` gave SEARCH an "Off"
+#:               it has never had, and inferring a field's options from a
+#:               neighbouring fact is exactly how "Dock" ended up on a field
+#:               whose runtime dropped it in the sidebar (2026-08-07). Search is
+#:               the one tenant with no Off — a desk nobody can search is not a
+#:               configuration this theme offers, and Ctrl+K does not count
+#:               because it is unreachable on touch.
+#: ``zones``     per region, the zones this component's RUNTIME implements, when
+#:               that is narrower than the region has. Absent means "all of
+#:               them". An empty tuple means the field does not offer that
+#:               region at all, though the component may still reach it by
+#:               fallback — search's dock is exactly that. This exists because
+#:               region x zone offered search a Page Header with no slug behind
+#:               it and Home a bar centre `sb_mount_utils` cannot produce.
+#: ``critical``  losing every route to this leaves a user unable to work.
+#:               These are the invariants the smoke matrix asserts in EVERY
+#:               state, because no single kit owns them and so no per-feature
+#:               test looks for them.
+COMPONENTS = [
+    {
+        "key": "topbar",
+        "part": "topbar",
+        "label": "Top bar",
+        "type": CONTAINER,
+        "selector": ".bnd-topbar",
+        "native": None,
+        "regions": (),
+        "toggle": "topbar_enabled",
+        "critical": False,
+    },
+    {
+        "key": "pagehead",
+        "part": "pagehead",
+        "label": "Page header",
+        "type": CONTAINER,
+        # The cluster, not the page head itself. Frappe renders the head on
+        # every page; what this container contributes is the group our tenants
+        # can live in, and that group is the thing that either mounted or did
+        # not. Naming the head would report the container present on every desk.
+        "selector": ".page-head .bnd-cluster",
+        "native": None,
+        "regions": (),
+        "toggle": "pagehead_enabled",
+        "critical": False,
+    },
+    {
+        "key": "bottombar",
+        "part": "bottombar",
+        "label": "Bottom bar",
+        "type": CONTAINER,
+        "selector": ".bnd-statusbar",
+        "native": None,
+        "regions": (),
+        "toggle": "bottombar_enabled",
+        "critical": False,
+    },
+    {
+        "key": "sidepane",
+        "part": "sidepane",
+        "label": "Side pane",
+        "type": CONTAINER,
+        # The thing whose VISIBILITY answers "is this container on the desk"
+        # - the runtime hides and measures the container, never the pane
+        # inside it (item 40 slice 9; the old value was the audit's defect
+        # 13). The one container whose host is not its own selector, because
+        # this theme built neither: the pane is Frappe's, we decorate it.
+        "selector": ".body-sidebar-container",
+        "host": ".body-sidebar",
+        "native": None,
+        "regions": (),
+        "toggle": "sidebar_enabled",
+        "critical": False,
+    },
+    {
+        "key": "dock",
+        "part": "dock",
+        "label": "Dock",
+        "type": CONTAINER,
+        "selector": ".bnd-dock",
+        "native": None,
+        "regions": (),
+        "toggle": "dock_enabled",
+        "critical": False,
+    },
+    {
+        "key": "search",
+        "part": "search",
+        "label": "Search",
+        "type": TENANT,
+        # Two forms, both real: the field we inject into a bar, and the icon
+        # the dock and page-head clusters carry. Naming only the field made
+        # the matrix report Dock as having no search at all.
+        "selector": ".bnd-search-field, .bnd-search-icon",
+        # The pane's row, and the search the desk page (/app) draws in its own
+        # navbar beside the pane (2026-09-14) — the pane's bar answers Ctrl+K there.
+        "native": ".body-sidebar .navbar-search-bar, .desktop-navbar .desktop-search-wrapper",
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": False,
+        # WHAT THE FIELD OFFERS, which is narrower than where search can END UP.
+        # `mount_search_at` works in slugs — sbtop, sbbottom, topedge, topcenter,
+        # botedge, botcenter — and a placement with no slug behind it is a
+        # picker that does nothing. Two regions are therefore empty:
+        #   pagehead  no slug exists at all; offering it would have been the
+        #             "Dock on a field whose runtime dropped it in the sidebar"
+        #             defect over again (2026-08-07).
+        #   dock      a slug DOES exist, but no admin picks it: the Dock layout
+        #             reaches it through the fallback chain, which is where the
+        #             icon form belongs. Offering it directly would let someone
+        #             ask for a dock search on a desk with no dock.
+        # The bars carry no "End" because no slug does; that is the next thing
+        # to build, not something to offer before it exists.
+        "zones": {
+            "topbar": ("Start", "Center"),
+            "bottombar": ("Start", "Center"),
+            "pagehead": (),
+            "dock": (),
+        },
+        # Ctrl+K does NOT satisfy this: it is unreachable on touch, and a
+        # user who cannot find anything cannot work.
+        "critical": True,
+    },
+    {
+        "key": "inbox",
+        "part": "bell",
+        "label": "Notifications",
+        "type": TENANT,
+        # The bell, NOT the badge inside it: the badge is the unread count and
+        # is legitimately hidden on a quiet bench.
+        "selector": ".bnd-bell",
+        # On a phone Notifications moves into the Account panel so the primary
+        # navigation stays at four stable destinations.  The account trigger is
+        # therefore a real route to this critical function, not merely a user
+        # affordance; the client guard reads this fallback before deciding that
+        # the side pane must be forced back on.
+        "fallback": '[data-bnd-inbox-route]',
+        # Two natives, comma-joined: the pane's row, and the bell Frappe's own
+        # desk page (/app) draws in ITS navbar beside the pane (2026-09-14). The
+        # build guard reads the last class of each; _layouts.scss hides both
+        # from the same token.
+        "native": ".body-sidebar .sidebar-notification, .desktop-navbar .desktop-notifications",
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        "critical": True,
+    },
+    {
+        "key": "user",
+        "part": "user",
+        "label": "User profile",
+        "type": TENANT,
+        "selector": ".bnd-avatar-btn",
+        # As the bell: the pane's row, and the desk page's own avatar menu.
+        "native": ".body-sidebar .sidebar-user-button, .desktop-navbar .desktop-avatar",
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        # Identity is the sharpest invariant in the app: lose every route to
+        # it and there is no log out, no theme switch, no session defaults.
+        "critical": True,
+    },
+    {
+        "key": "home",
+        "part": "home",
+        "label": "Home link",
+        "type": TENANT,
+        # BY IDENTITY, not by class, and the audit of 2026-08-07 is why. This
+        # said `.bnd-sb-item`, which is the SIDEBAR form of the link; placed in
+        # a bar or the dock it renders as `.bnd-icon-btn.bnd-sb-util` instead,
+        # so any consumer of this row measured "not there" in three of the four
+        # regions the component may occupy. Exactly the defect the `search` row
+        # above is annotated against — naming one of two forms — reappearing in
+        # a component added later.
+        "selector": '[data-bnd-part="home"]',
+        # Ours entirely — the sidebar kit adds it; stock ERPNext has no such
+        # affordance, so there is nothing to release if it fails to mount.
+        "native": None,
+        "regions": ("topbar", "bottombar", "sidepane", "dock"),
+        "toggle": None,
+        "offable": True,
+        # START ONLY on the bars and the dock, because that is all
+        # `sb_mount_utils` does: it inserts the link wrap at `firstChild` and
+        # has no other anchor. The quick links are leading-edge navigation —
+        # Home and All Apps sit where a user reaches first — so this is a
+        # statement about the component, not a gap waiting to be filled. The
+        # pane keeps both of its zones, which it genuinely has.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
+        "critical": False,
+    },
+    {
+        "key": "start",
+        "part": "start",
+        "label": "Start button",
+        "type": TENANT,
+        # The bar's brand pill (item 42, slice 7; redrawn 2026-09-14 by the
+        # user): the mark and the company's name, exactly as the pane's head
+        # draws them, and a click goes home. Until then it toggled the pane; the
+        # way back to a hidden pane is the page head's show button, which mounts
+        # beside this pill without repeating the brand.
+        "selector": '[data-bnd-part="start"]',
+        # Ours entirely; stock v16 has no such control, so a failed mount
+        # releases nothing — the pane is still reachable by its own handle.
+        "native": None,
+        # NOT the side pane: its head already IS this pill. The page header is
+        # out for the same reason search is — no slug exists there — and, when
+        # the pane is Hidden, the head carries the brand of its own accord.
+        "regions": ("topbar", "bottombar", "dock"),
+        "toggle": None,
+        # OFFABLE, and the taskbar layouts do not depend on it being on: the pane
+        # keeps its own collapse handle and Frappe's page-title toggle, so
+        # switching this off costs the shortcut, never the route. A tenant whose
+        # Off strands somebody would have to be `critical`, and this is not that.
+        "offable": True,
+        # START ONLY: it is the leading-edge control on every bar that carries it,
+        # which is what "start button" means. Offering Center or End would be a
+        # picker whose options land in places the name contradicts.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
+        "critical": False,
+    },
+    {
+        "key": "apps",
+        "part": "apps",
+        "label": "All apps link",
+        "type": TENANT,
+        # This said `.bnd-apps-rail`, which was a DIFFERENT COMPONENT: the
+        # rail of app icons the sidebar kit added under `sidebar_apps_rail`.
+        # The All Apps link is what `build_quick_link` renders. Nothing caught
+        # it because this row is not `critical`, so the invariant matrix never
+        # asks about it — a reminder that "not critical" means unwatched, not
+        # harmless. (Item 40 deleted that rail: two components did one job, and
+        # the dock is the one that should carry it. The confusion this comment
+        # records cannot recur, but the lesson about `critical` still can.)
+        "selector": '[data-bnd-part="apps"]',
+        "native": None,
+        "regions": ("topbar", "bottombar", "sidepane", "dock"),
+        "toggle": None,
+        "offable": True,
+        # START ONLY on the bars and the dock, because that is all
+        # `sb_mount_utils` does: it inserts the link wrap at `firstChild` and
+        # has no other anchor. The quick links are leading-edge navigation —
+        # Home and All Apps sit where a user reaches first — so this is a
+        # statement about the component, not a gap waiting to be filled. The
+        # pane keeps both of its zones, which it genuinely has.
+        "zones": {"topbar": ("Start",), "bottombar": ("Start",), "dock": ("Start",)},
+        "critical": False,
+    },
+    {
+        "key": "language",
+        "part": "language",
+        "label": "Language switch",
+        "type": TENANT,
+        "selector": '[data-bnd-part="language"]',
+        "native": None,
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        "critical": False,
+    },
+    {
+        "key": "appearance",
+        "part": "appearance",
+        "label": "Appearance button",
+        "type": TENANT,
+        "selector": '[data-bnd-part="appearance"]',
+        "native": None,
+        "regions": REGIONS,
+        "toggle": None,
+        "offable": True,
+        "critical": False,
+    },
+]
+
+#: Containers, in mount order.
+CONTAINERS = [c for c in COMPONENTS if c["type"] == CONTAINER]
+#: Tenants, in settings-form order.
+TENANTS = [c for c in COMPONENTS if c["type"] == TENANT]
+#: The components a user must never lose every route to.
+CRITICAL = [c for c in COMPONENTS if c["critical"]]
+
+#: What each ``desk_layout`` WRITES to the container fields — the catalogue.
+#:
+#: WHY IT DID NOT EXIST UNTIL NOW
+#:     Until slice 2c, ``desk_layout`` did not write anything. It was read at
+#:     mount time and a ladder of ``if`` branches decided which containers
+#:     appeared, so the layout was not a preset at all — it was a second
+#:     governing system sitting beside the per-component settings, and the seam
+#:     between the two produced every defect in 0.10.0. Splitting the containers
+#:     out is only half the job; a layout has to become a preset that writes
+#:     these values and then stops deciding, and a preset with no catalogue is
+#:     just a name.
+#:
+#: WHY IT IS NOT THE 0.11.0 MIGRATION PATCH
+#:     ``patches/v0_11_0/chrome_placement.py`` records what 0.10.0 *rendered*
+#:     for each layout. That is a one-shot artefact whose job is to leave every
+#:     upgraded site looking exactly as it did, including the states nobody
+#:     would design on purpose. This is the opposite: what a layout MEANS, going
+#:     forward, for somebody who picks it today. The two agree in most cells and
+#:     deliberately disagree in at least one — Classic writes no bottom bar
+#:     here, while a Classic site that had opted into the status bar keeps it
+#:     until the user picks a layout again. Reading either as the other is how a
+#:     migration artefact becomes a design.
+#:
+#: WHY VALUES, NOT A NAME
+#:     Same rule as the sidebar presets: the stored per-field values are the
+#:     canon and the preset name is a label. Applying a layout = writing these
+#:     values. Nothing anywhere has to understand "preset plus overrides",
+#:     because there is no such state — which is also what finally lets the
+#:     settings form derive a "Custom" label for the layout by COMPARING, the
+#:     same way the side pane's has always worked.
+#:
+#: Keys are container ``key``s, not toggle fieldnames: this table is about the
+#: desk, and :data:`CONTAINERS` already says which field carries each one.
+LAYOUT_CHROME = {
+    # Everything in the side pane — brand, search, workspaces, notifications
+    # and profile — with the ambient strip below. The shipped default (item 42).
+    "Unified Side Pane": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # A Windows-style bar along the bottom edge: a start button (slice 7),
+    # search centred, the bell and the profile as a tray. Same containers as
+    # Unified Side Pane — the two are told apart by where the tenants sit,
+    # which is what `layout_of` compares and `check_layout_identity` pins.
+    "Taskbar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # The same bar at the block start; the status strip stays.
+    "Top Taskbar": {"topbar": 1, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0},
+    # The dock as the primary surface: no side pane at rest, the pill carries
+    # everything (slice 9 gives it the start button and opens the pane as a sheet).
+    # THE PANE IS KEPT AND HIDDEN, not switched off (item 42, slice 9). With the
+    # container off there is nothing for this row's own start button to open and
+    # nothing for the pill to restore — the dock would be the only navigation
+    # there has ever been, which is not what "the pane opens as a sheet from the
+    # dock" means. At rest the desk looks identical either way.
+    "Floating Bar": {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 1},
+}
+
+
+#: How much of the pane each layout starts with — the catalogue's third half.
+#:
+#: A LAYOUT FIELD, not a look axis, and the distinction is the whole reason this
+#: table exists rather than a value in `_SIDEBAR_LOOKS`. How much of the pane is
+#: on screen is part of what a SHAPE means — it is the difference between a
+#: taskbar and a side-pane desk — while a look decides how the pane is painted.
+#: A look writing this would be the inline-override trap item 40's audit named,
+#: with a preset quietly moving chrome.
+#:
+#: THE PERSON STILL WINS. `bnd_pane_state` (personal.py) resolves after the shape
+#: in boot, so somebody who wants their pane open on a taskbar desk keeps it —
+#: this is where the desk STARTS, never where it is pinned.
+LAYOUT_PANE = {
+    "Unified Side Pane": "Open",
+    # Both taskbars start with the pane away: a Windows-style bar beside an
+    # already-open pane is not the shape this row draws, and the start button is
+    # the affordance that makes it a taskbar rather than a bar.
+    "Taskbar": "Hidden",
+    "Top Taskbar": "Hidden",
+    "Floating Bar": "Hidden",
+}
+
+
+#: Where each layout puts the tenants — the OTHER half of what a layout means.
+#:
+#: `desk_layout`'s own field description promises "where global search,
+#: notifications and your profile live", and until slice 2c-4 the preset wrote
+#: none of it: it moved the containers and left the controls wherever they had
+#: been. A freshly picked "Bottom Bar" therefore mounted a strip at the foot of
+#: the desk with a clock in it and nothing else, because the bar used to build
+#: a bell and an avatar unconditionally and had stopped.
+#:
+#: The values are the ones `patches/v0_11_0/chrome_placement.py` read off the
+#: 0.10.0 mount ladder. That they coincide is not an accident and not a reason
+#: to share the constant: that patch answers "what did this site RENDER", once,
+#: and this answers "what does this layout MEAN", forever. They are free to
+#: diverge and one day will.
+#: THE VALUES ARE SLOTS, and every one of them must be in `slots_for` for that
+#: field. This table wrote the OLD region-only vocabulary until E1 and was
+#: missed when the vocabulary changed — "Top Bar", "Page Header", "Dock",
+#: "Sidebar Top". Frappe rejects an out-of-range Select on save, and Theme
+#: Settings is a Single, so ONE illegal value here does not merely lose its own
+#: setting: it makes every later write of the whole document fail validation.
+#: The bench proved it, with `inbox_placement = "Side Pane Center"` left behind
+#: by a test — six unrelated save checks failed until it was healed.
+#:
+#: The zone each one gains is the one it MEASURED, taken from
+#: `patches/v0_11_0/slot_vocabulary.py`, which read the 0.10.0 desk rather than
+#: guessing from the names: the bell and the user menu landed in the trailing
+#: third of a bar, so they become "End"; search's centre was already a slot.
+#: `tests/smoke.mjs` now asserts this table against `slots_for` directly, so
+#: the next value added cannot be one the field will not accept.
+LAYOUT_TENANTS = {
+    "Unified Side Pane": {
+        # No start button: this desk's pane is already open, and a control that
+        # opens what is open is the dishonest affordance.
+        "start_placement": "Off",
+        # The pane's End zone is the foot card (item 42, slice 3): the account
+        # tile leading, the bell pinned to the inline end.
+        "inbox_placement": "Side Pane End",
+        "user_placement": "Side Pane End",
+        # Frappe's OWN search row, revealed at the pane's start; mount_search_at
+        # deliberately does not claim it.
+        "search_placement": "Side Pane Start",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
+    },
+    "Taskbar": {
+        # The page head owns the one stable pane toggle on every desktop.
+        "start_placement": "Bottom Bar Start",
+        "inbox_placement": "Bottom Bar End",
+        "user_placement": "Bottom Bar End",
+        "search_placement": "Bottom Bar Center",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
+    },
+    "Top Taskbar": {
+        "start_placement": "Top Bar Start",
+        "inbox_placement": "Top Bar End",
+        "user_placement": "Top Bar End",
+        "search_placement": "Top Bar Center",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
+    },
+    "Floating Bar": {
+        "start_placement": "Dock Start",
+        "inbox_placement": "Dock End",
+        "user_placement": "Dock End",
+        # `search_placement` has no "Dock" option — the dock takes the ICON form
+        # and mount_search resolves it through the fallback chain, which puts
+        # the dock first for this layout. Naming a slot the field does not offer
+        # would write an illegal value into a Select.
+        "search_placement": "Bottom Bar Center",
+        "language_placement": "Bottom Bar End",
+        "appearance_placement": "Bottom Bar End",
+    },
+}
+
+
+#: MOBILE / NARROW MODE (item 24) — the desk's shape below Frappe's 768 boundary.
+#:
+#: WHY A SEPARATE CATALOGUE AND NOT A LAYOUT
+#:     A layout is a preset the USER picks and it is PERSISTED. This is neither:
+#:     it is what EVERY layout collapses to on a phone, applied at runtime and
+#:     never written back — a resize is not a gesture, and one phone visit must
+#:     not rewrite a desk configured on a monitor. `bunood.js` reads these while
+#:     the viewport is narrow (`is_narrow`) and the stored fields stay untouched,
+#:     so `bnd_match_layout` still names the real layout.
+#:
+#: WHY THESE VALUES
+#:     Below 768 only the bottom bar can stand: it is the one container that
+#:     mounts host-free (`document.body`), while the top bar's <header> host is
+#:     swapped away by `toolbar.js` and the side pane becomes Frappe's own
+#:     off-canvas drawer. `sidepane` STAYS 1 so we do not fight that drawer — its
+#:     top-left menu is the workspace nav, which is why our bar carries only the
+#:     tenants Frappe buries and never a second workspaces control.
+NARROW_CHROME = {"topbar": 0, "pagehead": 0, "bottombar": 1, "sidepane": 1, "dock": 0}
+
+#: Where the tenants sit in the narrow bottom bar. Search is deliberately ABSENT:
+#: it walks a fallback chain (`SEARCH_FALLBACKS`), so tearing the top bar down and
+#: losing Frappe's sidebar search row (dropped on mobile) lands it in the bottom
+#: bar on its own. The tenants that do NOT walk a chain — the bell, the user menu
+#: the Home / All Apps links — are the ones that must be placed explicitly here, or
+#: `placement_for` returns "absent" and they vanish. Every value is a slot in
+#: `slots_for` for that tenant (apps offers only "Start" on a bar); the suite
+#: asserts it, the same guard `LAYOUT_TENANTS` gets.
+NARROW_PLACEMENT = {
+    # Notifications is secondary navigation on a phone.  It remains reachable
+    # as the first action in Account, with its unread badge on the Account
+    # trigger, instead of consuming a fifth primary-navigation column.
+    "inbox": "Off",
+    "user": "Bottom Bar End",
+    "apps": "Bottom Bar Start",
+    # A primary mobile navigation row needs stable routes to both destinations.
+    # Relying on Frappe's drawer made All Apps a dead end because that page has
+    # no side pane at all. Home and Apps therefore keep the same slots on every
+    # route; the current one is identified with aria-current, never removed.
+    "home": "Bottom Bar Start",
+    "language": "Off",
+    "appearance": "Off",
+}
+
+
+#: Surfaces — content the frame contains, as opposed to chrome that owns
+#: space (containers) or sits in it (tenants). A surface mounts nothing and
+#: injects nothing: it is attributes on <html> and a stylesheet over Frappe's
+#: own DOM, so it has no selector to stand down and no native to release —
+#: absent attributes ARE the stand-down. Item 16's list view is the first;
+#: the form view (item 18) joins it here.
+#: Identity-only rows (item 40, slice 9): nodes a consumer must FIND - the
+#: placement board, desk order, the invariant matrix - that are neither
+#: containers (no toggle of their own) nor tenants (a TENANT row would mint
+#: a placement field the doctype does not have). The registry stays the one
+#: table that answers "how do I find this component", which is what the
+#: identity guard holds bunood.js to; `panehead` also carries the ONE native
+#: its node owns, so OWNED_NATIVES derives it and the ownership guard sees it
+#: without a hand-kept exception.
+MARK = "mark"
+
+MARKS = [
+    {
+        "key": "railbtn",
+        "part": "railbtn",
+        "label": "Rail button",
+        "type": MARK,
+        "selector": ".bnd-railbtn",
+        "native": ".page-title .sidebar-toggle-btn",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "compactnav", "part": "compactnav", "label": "Compact navigation",
+        "type": MARK, "selector": ".bnd-compact-nav",
+        "native": ".body-sidebar-top", "regions": (), "toggle": None, "critical": False,
+    },
+    {
+        "key": "panehead",
+        "part": "panehead",
+        "label": "Place row",
+        "type": MARK,
+        "selector": ".bnd-sb-head",
+        # Hiding this native is legal ONLY from data-bnd-own~="panehead",
+        # stamped after the head is in the pane (claim_panehead measures).
+        # ...and the desk page's own logo tile: our brand row carries the brand.
+        "native": ".body-sidebar .sidebar-header, .desktop-navbar .navbar-home",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "panetoggle",
+        "part": "panetoggle",
+        "label": "Side pane toggle",
+        "type": MARK,
+        "selector": ".page-head .bnd-pagehead-sidebar-toggle",
+        # The independent control now lives in the page head beside Frappe's
+        # workspace/Home control.  It replaces only the pane-edge collapse
+        # link; the workspace control remains a distinct destination.
+        "native": ".body-sidebar .collapse-sidebar-link",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "drawer",
+        "part": "drawer",
+        "label": "Activity drawer",
+        "type": MARK,
+        "selector": ".bnd-drawer-toggle",
+        # Item 43 A6. The native is the form's own footer - the comment box
+        # and the timeline. It is never display:none'd: the Drawer option
+        # parks it off-canvas, which is hiding by another name, so the CSS
+        # keys on data-bnd-own~="drawer", stamped by mount_drawer only after
+        # the toggle that opens it is in the DOM and wired. A toggle that
+        # failed to mount leaves the footer below the form, exactly as stock.
+        "native": ".form-footer",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "dochead",
+        "part": "dochead",
+        "label": "Document header",
+        "type": MARK,
+        "selector": ".bnd-dochead",
+        # Item 43 A8a. Built by mount_dochead as the first child of
+        # .layout-main-section on every form refresh: the record's title, its
+        # status, a meta line and (Highlights/Hero) tiles from the doctype's
+        # own list-view fields. Owns no native: the page head keeps its title
+        # (the crumb kit already decides that) and the pill stays where it is
+        # until A8b's stage path claims it.
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "stagepath",
+        "part": "stagepath",
+        "label": "Stage path",
+        "type": MARK,
+        "selector": ".bnd-stagepath",
+        # Item 43 A8b. The band's chevron path: the active Workflow's states,
+        # else Draft · Submitted · Cancelled on a submittable doctype, else
+        # nothing. It says what the page head's docstatus pill says, so the
+        # pill is hidden - ONLY from data-bnd-own~="stagepath", stamped by
+        # mount_dochead after the path is in the band. The crumb kit's
+        # "status in the trail row" moves the same pill; while the path is on,
+        # that toggle is greyed with the reason.
+        # Measured on 16.33: the indicator is a bare span.indicator-pill inside
+        # .title-area - the .page-indicator-pill wrapper the crumb kit's own
+        # rule names does not exist on this build (a crumb-kit defect, filed).
+        "native": ".page-head .title-area > .indicator-pill",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "docfoot",
+        "part": "docfoot",
+        "label": "Pinned foot",
+        "type": MARK,
+        "selector": ".bnd-docfoot",
+        # Item 43 A8c. A fixed bar above the bottom chrome carrying the page's
+        # primary action (proxied: frm.page.btn_primary.trigger("click") runs
+        # the one jQuery handler Frappe binds; the native is re-read on every
+        # mutation of the action cluster), the list-view Currency fields as
+        # facts, and the drawer's toggle. The native button is hidden ONLY
+        # under data-bnd-own~="docfoot", stamped after the foot is in the DOM
+        # and wired, and only on form routes - a list's own primary action is
+        # the same class and is never ours.
+        "native": ".page-actions .primary-action",
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "settingsmap",
+        "part": "settingsmap",
+        "label": "Settings map",
+        "type": MARK,
+        "selector": ".bnd-sb-map",
+        # Item 43 B3. On the Theme Settings route only: a map of the form's
+        # cards in the pane's Start zone, its rows DERIVED from the rendered
+        # sections (the form script hands them over on every refresh), marked
+        # current by an IntersectionObserver, dotted by the same comparison the
+        # cards use. In the Rail state one chip opens it as a menu; in the
+        # Hidden state a "Sections" menu mounts in the page head (the chrome
+        # ladder, as the brand does). Owns no native.
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+]
+
+SURFACE = "surface"
+
+# Fixed controls owned by their host, without independent placement settings.
+CHROME_ACTIONS = []
+
+# Additive content, not chrome and not a replacement for native form controls.
+CONTENT_COMPONENTS = [
+	{"key": "sales_bill", "part": "sales-bill", "selector": '[data-bnd-part="sales-bill"]'},
+    {"key": "form_summary", "part": "form-summary", "selector": '[data-bnd-part="form-summary"]'},
+]
+
+SURFACES = [
+    {
+        "key": "list",
+        "part": "list",
+        "label": "List view",
+        "type": SURFACE,
+        # The anchor attribute, not a mounted node: everything the kit does is
+        # scoped under html[data-bnd-list], and "Original" clears it.
+        "selector": 'html[data-bnd-list]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "form",
+        "part": "form",
+        "label": "Form view",
+        "type": SURFACE,
+        # Item 18. Sections, tabs, child grids and the form sidebar, all
+        # scoped under html[data-bnd-form]; "Original" clears it.
+        "selector": 'html[data-bnd-form]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "workspace",
+        "part": "workspace",
+        "label": "Workspace",
+        "type": SURFACE,
+        # Item 25. The tile grid on a workspace and the Dashboard route — the
+        # canvas, the tile frame, the gutter, the rows and the tile menus, all
+        # scoped under html[data-bnd-ws]; "Original" clears it.
+        "selector": 'html[data-bnd-ws]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "chart",
+        "part": "chart",
+        "label": "Charts",
+        "type": SURFACE,
+        # Item 25. frappe-charts' chrome, themed through its --charts-* variables,
+        # with one axis (chart_grid) scoped under html[data-bnd-chart-grid]. Unlike
+        # the list and form kits there is no "Original": the base theming is always
+        # on, since raw vendor hex is never a style anyone chooses. Series COLOUR is
+        # a separate, JS-fed concern (palette.series_ramp) and is not a surface.
+        "selector": 'html[data-bnd-chart-grid]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "report",
+        # Labelled "Data tables", not "Report view": the kit reaches EVERY
+        # .datatable on the desk — report view, query report, web forms, the
+        # multi-select dialog, the data-import preview — so the picker would lie
+        # if it named one. The fieldnames stay report_* (the build guard's rule,
+        # and labels are independent of them). Item 26.
+        "part": "report",
+        "label": "Data tables",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-report]; "Original" clears it.
+        # The grain and row-feedback axes hang off data-bnd-report-* siblings.
+        "selector": 'html[data-bnd-report]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "views",
+        # Labelled "Alternate views", not any one view: ONE anchor dresses the
+        # kanban card, the calendar chip, the gantt bar and the gallery tile as
+        # the same object drawn four ways — the report kit's "reaches every
+        # datatable" reasoning, transposed to the four view routes. Splitting
+        # would let a user ship floating kanban cards beside flat gallery tiles.
+        # Item 27.
+        "part": "views",
+        "label": "Alternate views",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-views]; "Original" clears it.
+        # The band (kanban), event mark (calendar), image fit (gallery) and the
+        # reveal hang off data-bnd-views-* siblings. Gantt takes the anchor
+        # plus the dark-mode repairs and no axis of its own.
+        "selector": 'html[data-bnd-views]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "overlay",
+        # Labelled "Overlays", not any one of them: ONE anchor dresses the
+        # dialog, the grid-row editor, the dropdown, the context menu, the
+        # autocomplete, the toast, the popover, the datepicker, the report
+        # column list, the duration picker and the calendar's "+N more" card as
+        # the same floating object drawn several ways — the report kit's
+        # "reaches every datatable" reasoning again. NOT the lightbox: its black
+        # ground is correct in both modes and it is deliberately left alone
+        # (docs/upstream/frappe-overlays.md, "Not filed, and why").
+        # Splitting would permit a floating dialog beside a square menu.
+        # Item 28.
+        "part": "overlay",
+        "label": "Overlays",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-overlay]; "Original" clears it.
+        # The scrim and menu-row axes hang off data-bnd-overlay-* siblings.
+        #
+        # NOTE: the kit's REPAIRS are deliberately NOT under this anchor. They
+        # are scoped html[data-theme] in surfaces/_overlays.scss, because a
+        # contract survives Original and a style does not — overlays sit on
+        # every page, and three of the repairs are measured WCAG AA failures.
+        "selector": 'html[data-bnd-overlay]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "empty",
+        # Labelled "Empty states", plural, because ONE anchor dresses every
+        # "there is nothing here" block the desk draws: the list's no-result,
+        # the query report's box, the dashboard's, the inbox view's and the
+        # 404 page — the same object drawn five places. Item 29.
+        #
+        # The kit is a SURFACE by the definition above: it mounts nothing and
+        # injects nothing. That is worth stating, because the roadmap's brief
+        # for this item is "an action, not a zero", and an action a stylesheet
+        # cannot add would have made it something else. It does not have to:
+        # Frappe ALREADY renders the create button (list_view.js:562) and
+        # already distinguishes first-run from filtered-to-zero in both copy
+        # and label. The kit promotes what exists; what it cannot do — add the
+        # "Clear filters" control that copy promises — goes upstream.
+        "part": "empty",
+        "label": "Empty states",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-empty]; "Original" clears it.
+        #
+        # NOTE, exactly as for overlays: the kit's REPAIRS are deliberately NOT
+        # under this anchor. surfaces/_empty.scss scopes them html[data-theme],
+        # because a contract survives Original and a style does not — the child
+        # grid's "No rows" is a measured 2.85:1 AA failure and must not depend
+        # on a style choice.
+        "selector": 'html[data-bnd-empty]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "skeleton",
+        # Labelled "Loading", not "Skeletons": the setting governs every
+        # loading state the desk draws, and only two of them are literally
+        # skeletons. Item 30.
+        #
+        # THE 29/30 BOUNDARY IS WHY THIS IS A SEPARATE KIT rather than an axis
+        # of item 29. Empty and loading share DOM on several nodes, and the
+        # asymmetry decides ownership: a skeleton on an empty node is a promise
+        # that never resolves, while a quiet box on a loading node is merely
+        # early. So item 29 owns the BOX everywhere, and this owns MOTION and
+        # RESERVED GEOMETRY only where the class can mean nothing but loading.
+        "part": "skeleton",
+        "label": "Loading",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-skeleton]; "Original" clears
+        # it. As for overlays and empty states, the REPAIRS are not under this
+        # anchor — surfaces/_skeleton.scss scopes them html[data-theme],
+        # because a bone that is invisible AS a bone (stock's dark
+        # --skeleton-bg collides with --control-bg and --subtle-accent) is a
+        # legibility failure, not a style choice.
+        "selector": 'html[data-bnd-skeleton]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "filters",
+        # Labelled "Filters", not "Filters & saved views": the roadmap's title
+        # promises a saved-VIEW system (name + filters + columns + sort, one
+        # switchable object) and Frappe has three disjoint fragments of that
+        # and no unified object — `List Filter` (named, has a menu),
+        # `List View Settings` (a dialog, per doctype not per user) and
+        # `__UserSettings` (invisible). Naming the section for what the setting
+        # actually governs beats naming it for what the roadmap hoped. Item 31.
+        #
+        # ONE anchor dresses three DOM shapes as one object — a row of slots on
+        # a ground: the page header's strip (`.page-form`), a condition row
+        # inside the filter popover (`.filter-box`), and a saved filter's row
+        # in its menu (`.saved-filter-item`). They are three scopes because
+        # they have three different ancestors, not because they are three
+        # things.
+        #
+        # THE BOUNDARY THAT MATTERS IS WITH ITEM 28, and it was settled before
+        # a line was written: the overlay kit already owns every PANEL in this
+        # family — the filter popover is a `.popover`, both menus are
+        # `.dropdown-menu`, the create dialog is a `.modal` — and already wins
+        # them on specificity. This kit owns the INSIDES and the TRIGGERS.
+        "part": "filters",
+        "label": "Filters",
+        "type": SURFACE,
+        # The anchor, scoped under html[data-bnd-filters]; "Original" clears
+        # it. As for overlays, empty and skeleton, the REPAIRS are not under
+        # this anchor — surfaces/_filters.scss scopes them html[data-theme].
+        # Here that is not a stylistic preference: `.btn-primary-light`, the
+        # desk's only "this control is active" variant, measures 4.12:1 in
+        # light and 1.02:1 in dark, and it is shared with the SKIP LINK.
+        "selector": 'html[data-bnd-filters]',
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "login",
+        # The TENTH surface kit, and the FIRST that is not on the desk. Item 32.
+        #
+        # Everything the other nine stand on is absent here. /login is a WEBSITE
+        # page: no app_include_css, no frappe.boot, no bunood.js, and
+        # templates/base.html renders <html lang dir> with NO data-theme at all.
+        # So this entry's "selector" is the one thing in this table that is not
+        # an <html> attribute -- the anchor is a SERVER-RENDERED body class, set
+        # by context._auth_context from update_website_context, which is the only
+        # mechanism that is correct at first paint without JS.
+        #
+        # ONE surface, TWO routes, FIVE states. /login holds four <section>s
+        # behind hash routes (#login, #signup, #forgot, #login-with-email-link)
+        # and /update-password is a fifth on the same login.bundle.css. They are
+        # one object because they are one stylesheet, not because they are one
+        # URL.
+        "part": "login",
+        "label": "Sign in",
+        "type": SURFACE,
+        # The anchor. "Original" omits the -<style> half and every style rule
+        # goes with it; `body.bnd-auth` alone stays, carrying the CONTRACTS --
+        # eight measured repairs including a page on which NO control showed
+        # keyboard focus at all (WCAG 2.4.7 AA). Item 28's rule, and this surface
+        # has the strongest case for it yet: a user who cannot use this page
+        # cannot reach any other.
+        "selector": "body.bnd-auth",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "web",
+        # The ELEVENTH surface kit, and the second that is not on the desk.
+        # Item 33.
+        #
+        # ONE LOWERCASE WORD, AND THAT IS LOAD-BEARING RATHER THAN A STYLE
+        # CHOICE. `build.mjs`'s assertRegistryIdentity matches key and part with
+        # /^[a-z]+$/; a key containing an underscore or a digit matches NEITHER
+        # regex, keeps the two counts equal, and is therefore INVISIBLE to the
+        # guard that exists to catch exactly this row being wrong. "web" and not
+        # "portal" because the surface is not only the portal: /404, /message,
+        # every Web Form and every public page an installed app ships are in it,
+        # and "portal" under-describes half of them.
+        #
+        # THE WIDEST SURFACE IN THIS TABLE, and the only one defined by a
+        # DENYLIST. The other ten name what they dress; this one dresses every
+        # template rendered through templates/base.html except the desk, the two
+        # auth templates and printview. Enumerating the rest would be a second
+        # copy of Frappe's route table — measured, twelve erpnext portal routes
+        # collapse onto ONE template, so a route list would have been the wrong
+        # shape as well as the wrong size. See context._is_web_template.
+        "part": "web",
+        "label": "Website & portal",
+        "type": SURFACE,
+        # The anchor. "Original" omits the -<style> half and every style rule
+        # goes with it; `body.bnd-web` alone stays, carrying the CONTRACTS --
+        # the focus ring (no control on this surface drew one we recognised) and
+        # nineteen text nodes measured under AA, including /404's only link and
+        # /me's three primary actions.
+        "selector": "body.bnd-web",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "email",
+        # The TWELFTH surface kit, and the first that is not rendered by a
+        # browser at all. Item 34.
+        #
+        # ONE LOWERCASE WORD, for the reason the row above spells out:
+        # assertRegistryIdentity matches /^[a-z]+$/ and a key it cannot match is
+        # invisible to it rather than rejected by it.
+        #
+        # IT STRETCHES THIS TABLE'S DEFINITION OF A SURFACE FURTHER THAN ANY
+        # OTHER ROW, AND THAT IS WORTH SAYING RATHER THAN GLOSSING. The header
+        # above defines a surface as "attributes on <html> and a stylesheet over
+        # Frappe's own DOM", with absent attributes AS the stand-down. Item 32
+        # already had to stretch "attributes on <html>" to a server-rendered body
+        # class. This one goes further: the anchor is a class our own Jinja
+        # template writes, and the stylesheet is not fetched at all — it is
+        # substituted to literals and inlined into the message by Premailer.
+        #
+        # What survives, and is why this is still a SURFACE and not chrome: it
+        # MOUNTS NOTHING and INJECTS NOTHING. There is no runtime, no hook that
+        # can act, no native affordance to release. The absent pole class is
+        # still the stand-down. The parts of the definition that carry the
+        # ownership guarantee all hold; only the delivery is different.
+        "part": "email",
+        "label": "Email",
+        "type": SURFACE,
+        # The anchor. "Original" omits the -<style> half and every style rule
+        # goes with it; `.bnd-e` alone stays, carrying CONTRACTS E1-E3 — the
+        # floor (a Notification email has NO opaque ancestor above any of its
+        # text), the footer at 4.17:1 and every link at 3.15:1.
+        #
+        # NOT a `body` selector, and that is the one email-specific trap in this
+        # row. Rules Premailer INLINES may be rooted anywhere, because it
+        # resolves them at render; rules it PRESERVES (media queries) are
+        # resolved by the client, and Gmail strips <html> and <body> and re-wraps
+        # the content. A body-scoped dark rule would inline fine, survive into
+        # the <style>, and match nothing where it matters.
+        "selector": ".bnd-e",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+    {
+        "key": "print",
+        # The THIRTEENTH surface kit, and the first delivered as a DATABASE
+        # RECORD: the compiled print sheet is substituted per site and written
+        # into the Print Style "Bunood" (printing/sheet.py), which frappe
+        # inlines into every print view and PDF. Item 35. The anchor is a
+        # PRESET over four section axes (presets.PRINT_PRESETS writes them and
+        # stops existing; the picker's label derives by comparison) — so there
+        # is no stored anchor field, and the fields this kit owns are the axes
+        # plus the accent.
+        "part": "print",
+        "label": "Print",
+        "type": SURFACE,
+        # The Bunood formats' own wrapper class — the sheet's structural
+        # vocabulary hangs off it; generic print anatomy (.print-format,
+        # .letter-head, .print-heading) is the vendor's.
+        "selector": ".bnd-p",
+        "native": None,
+        "regions": (),
+        "toggle": None,
+        "critical": False,
+    },
+]
+
+#: The tenants' default desk order — REGISTRY ORDER, not a second list. E3's
+#: `desk_order` field seeds from this and the runtime falls back to it, so
+#: "the order the registry declares components in" and "the order they sit on
+#: a desk" are one fact. A tenant added to the table joins the order without
+#: anyone remembering a second edit.
+def default_desk_order() -> str:
+    """Tenant keys in registry order, comma-joined: "search,inbox,user,home,apps"."""
+    return ",".join(c["key"] for c in COMPONENTS if c["type"] == TENANT)
+
+
+def layout_settings(layout: str) -> dict:
+    """The Theme Settings values a layout preset writes, keyed by FIELD.
+
+    Returns ``{}`` for an unknown layout rather than raising — the same
+    fail-open rule the rest of the layout system follows, where a value nobody
+    recognises degrades to the stock desk instead of breaking one.
+
+    ALL FIVE CONTAINERS NOW EXIST, so this writes every field it names. Through
+    phase 0 the split landed one container per slice while this table was
+    complete from the start, and a writer had to intersect with the fields that
+    existed (``presets.SHIPPED_CONTAINERS``); item 36 deleted that tuple with
+    the last container, per its own charter. Writing a field the doctype has
+    not grown still leaves an orphan ``tabSingles`` row ``get_single_value``
+    refuses to read back — but there is no such field any more, so the caution
+    is history, not a live constraint.
+    """
+    chrome = LAYOUT_CHROME.get(layout)
+    if not chrome:
+        return {}
+    # Annotated because the two halves are genuinely different types — a
+    # container's cell is 0/1 and a tenant's is a slot label — and the checker
+    # otherwise infers dict[str, int] from the comprehension and rejects the
+    # update. The mixed type is the point: this returns FIELD -> VALUE.
+    values: dict = {c["toggle"]: chrome[c["key"]] for c in CONTAINERS if c["key"] in chrome}
+    values.update(LAYOUT_TENANTS.get(layout, {}))
+    # The pane's starting state (item 42, slice 9) — the third half of what a
+    # layout means, and the field that lets two rows with identical containers
+    # and identical tenants still be two rows.
+    if layout in LAYOUT_PANE:
+        values["sidebar_pane_state"] = LAYOUT_PANE[layout]
+    return values
+
+
+def as_dict() -> dict:
+    """The registry as plain data, for the smoke suite and the settings form.
+
+    Returned rather than imported field-by-field so a consumer in another
+    language gets the whole table in one round trip and cannot silently read a
+    stale half of it.
+    """
+    return {
+        "regions": list(REGIONS),
+        "components": COMPONENTS,
+        "containers": [c["key"] for c in CONTAINERS],
+        "tenants": [c["key"] for c in TENANTS],
+        "critical": [c["key"] for c in CRITICAL],
+        "actions": CHROME_ACTIONS,
+        # The catalogue rides along so a consumer asking "what does this layout
+        # mean" gets the answer in the same round trip as "what components are
+        # there" — the whole reason this returns a table rather than exposing
+        # names to import one at a time.
+        "layout_chrome": LAYOUT_CHROME,
+        # Field per container, so a JS consumer never has to restate the
+        # key -> fieldname mapping the side pane makes non-obvious.
+        "toggles": {c["key"]: c["toggle"] for c in CONTAINERS},
+    }

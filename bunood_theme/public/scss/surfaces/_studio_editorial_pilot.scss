@@ -1,0 +1,541 @@
+// Report Studio pilot: readable index and table-led viewer.
+@use "../breakpoints" as bp;
+
+.bnd-studio { max-inline-size: none; padding: var(--bnd-sp-4) clamp(var(--bnd-sp-4), 3vw, var(--bnd-sp-7)); background: var(--pilot-canvas); }
+.bnd-studio .bnd-studio__hero,
+.bnd-studio .bnd-studio__viewhead { min-block-size: 0; margin-block-end: var(--bnd-sp-3); padding: 0 0 var(--bnd-sp-3); border: 0; border-block-end: 1px solid var(--pilot-line); border-radius: 0; background: transparent; color: var(--pilot-ink); }
+.bnd-studio .bnd-studio__title { color: var(--pilot-ink); font-size: clamp(1.55rem, 2.2vw, 2rem); font-weight: 700; }
+.bnd-studio .bnd-studio__subtitle { margin-block-start: var(--bnd-sp-1); color: var(--pilot-muted); font-size: var(--bnd-text-sm); }
+.bnd-studio .bnd-studio__hero-count { border: 0; background: transparent; color: var(--pilot-muted); }
+.bnd-studio .bnd-studio__gallery-tools { margin-block-end: var(--bnd-sp-2); }
+.bnd-studio .bnd-studio__gallery-tools .bnd-studio__search { inline-size: min(34rem, 100%); min-block-size: 42px; border-color: var(--pilot-line); border-radius: 4px; background: var(--pilot-paper); }
+.bnd-studio .bnd-studio__domains { gap: var(--bnd-sp-3); margin-block-end: var(--bnd-sp-3); border-block-end: 1px solid var(--pilot-line); }
+.bnd-studio .bnd-studio__domain,
+.bnd-studio .bnd-studio__domain.is-active { padding: var(--bnd-sp-2) var(--bnd-sp-1); border: 0; border-block-end: 2px solid transparent; border-radius: 0; background: transparent; box-shadow: none; color: var(--pilot-muted); font-weight: 600; }
+.bnd-studio .bnd-studio__domain.is-active { border-block-end-color: var(--pilot-brand); color: var(--pilot-brand); }
+.bnd-studio .bnd-studio__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border: 1px solid var(--pilot-line); border-radius: 4px; background: var(--pilot-paper); }
+.bnd-studio .bnd-studio__card { display: grid; grid-template-columns: var(--bnd-sp-5) minmax(0, 1fr) auto; min-block-size: 82px; padding: var(--bnd-sp-3) var(--bnd-sp-4); border: 0; border-block-end: 1px solid var(--pilot-line); border-radius: 0; background: transparent; box-shadow: none; }
+.bnd-studio .bnd-studio__card:hover:not(:disabled) { transform: none; background: var(--bnd-hover); box-shadow: none; }
+.bnd-studio .bnd-studio__glyph { inline-size: var(--bnd-sp-5); block-size: var(--bnd-sp-5); border-radius: 0; background: transparent; color: var(--pilot-brand); }
+.bnd-studio .bnd-studio__glyph svg { inline-size: var(--bnd-sp-4); block-size: var(--bnd-sp-4); }
+.bnd-studio .bnd-studio__card-title { color: var(--pilot-ink); font-size: var(--bnd-text-md); font-weight: 700; }
+.bnd-studio .bnd-studio__card-desc { color: var(--pilot-muted); font-size: var(--bnd-text-xs); }
+.bnd-studio .bnd-studio__card-go { opacity: 1; color: var(--pilot-brand); }
+
+.bnd-studio .bnd-studio__kpis { grid-template-columns: repeat(auto-fit, minmax(min(11rem, 100%), 1fr)); gap: 0; margin-block-end: var(--bnd-sp-3); border: 1px solid var(--pilot-line); border-radius: 4px; background: var(--pilot-paper); }
+.bnd-studio .bnd-studio__kpi { min-block-size: 82px; padding: var(--bnd-sp-3); border: 0; border-inline-end: 1px solid var(--pilot-line); border-radius: 0; background: transparent; box-shadow: none; }
+.bnd-studio .bnd-studio__kpi-label { font-size: var(--bnd-text-xs); }
+.bnd-studio .bnd-studio__kpi-value { font-size: var(--bnd-text-xl); font-weight: 700; }
+.bnd-studio .bnd-studio__spark { opacity: .3; }
+.bnd-studio .bnd-studio__tablecard,
+.bnd-studio .bnd-studio__chartcard { margin-block-end: var(--bnd-sp-3); border: 1px solid var(--pilot-line); border-radius: 4px; background: var(--pilot-paper); box-shadow: none; }
+
+@include bp.bnd-until(md) {
+  .bnd-studio .bnd-studio__grid { grid-template-columns: minmax(0, 1fr); }
+  .bnd-studio .bnd-studio__card:nth-child(odd) { border-inline-end: 0; }
+  .bnd-studio .bnd-studio__hero { flex-wrap: wrap; }
+}
+
+// The catalogue remains a scannable index, with a quieter ledger signature
+// than a working invoice: restrained dividers and clearer report names.
+.bnd-studio .bnd-studio__hero,
+.bnd-studio .bnd-studio__viewhead {
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border-inline-start: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-leaf);
+}
+
+.bnd-studio .bnd-studio__title {
+  color: var(--pilot-deep-ink);
+  font-size: clamp(1.85rem, 2.7vw, 2.4rem);
+}
+
+.bnd-studio .bnd-studio__grid { border-block-start: 3px solid var(--pilot-deep); }
+.bnd-studio .bnd-studio__card { min-block-size: 90px; }
+.bnd-studio .bnd-studio__card-title { font-size: clamp(1rem, 1.25vw, 1.12rem); }
+.bnd-studio .bnd-studio__card:hover:not(:disabled) {
+  box-shadow: inset 3px 0 0 var(--pilot-brand);
+  background: var(--pilot-leaf);
+}
+
+.bnd-studio .bnd-studio__kpis { border-block-start: var(--bnd-line) solid var(--bnd-border); }
+.bnd-studio .bnd-studio__kpi-value { color: var(--pilot-deep-ink); }
+.bnd-studio .bnd-studio__tablecard { border-block-start: 3px solid var(--pilot-deep); }
+
+// Studio is a working index, not a landing-page card gallery. Common jobs
+// have one direct route; the full catalogue remains searchable underneath.
+.bnd-studio .bnd-studio__hero {
+  align-items: center;
+  margin-block-end: var(--bnd-sp-4);
+  padding: var(--bnd-sp-4) var(--bnd-sp-5);
+  background: var(--pilot-paper);
+}
+.bnd-studio .bnd-studio__hero .bnd-studio__subtitle {
+  max-inline-size: 58ch;
+  font-size: var(--bnd-text-sm);
+  line-height: 1.5;
+}
+.bnd-studio .bnd-studio__hero-count {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bnd-studio .bnd-studio__gallery-tools {
+  gap: var(--bnd-sp-4);
+  margin-block-end: var(--bnd-sp-4);
+}
+.bnd-studio .bnd-studio__gallery-tools .bnd-studio__search {
+  inline-size: min(38rem, 100%);
+  min-block-size: 46px;
+  padding-inline: var(--bnd-sp-4);
+  font-size: var(--bnd-text-md);
+}
+.bnd-studio .bnd-studio__start {
+  margin-block-end: var(--bnd-sp-5);
+}
+.bnd-studio .bnd-studio__start-title {
+  margin: 0 0 var(--bnd-sp-2);
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+}
+.bnd-studio .bnd-studio__start-links {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  overflow: hidden;
+}
+.bnd-studio .bnd-studio__start-link {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-content: center;
+  gap: 2px var(--bnd-sp-3);
+  min-block-size: 82px;
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  border: 0;
+  border-inline-end: 1px solid var(--pilot-line);
+  background: transparent;
+  color: var(--pilot-ink);
+  text-align: start;
+  cursor: pointer;
+}
+.bnd-studio .bnd-studio__start-link:last-child { border-inline-end: 0; }
+.bnd-studio .bnd-studio__start-link:hover { background: var(--pilot-leaf); }
+.bnd-studio .bnd-studio__start-link:focus-visible {
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: -3px;
+}
+.bnd-studio .bnd-studio__start-link strong {
+  grid-column: 1;
+  font-size: var(--bnd-text-md);
+  font-weight: 700;
+}
+.bnd-studio .bnd-studio__start-link > span:not(.bnd-studio__start-arrow) {
+  grid-column: 1;
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+.bnd-studio .bnd-studio__start-arrow {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  color: var(--pilot-brand);
+  font-size: var(--bnd-text-lg);
+}
+.bnd-studio .bnd-studio__domains {
+  margin-block-end: var(--bnd-sp-3);
+}
+.bnd-studio .bnd-studio__group-title {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--bnd-sp-3) var(--bnd-sp-4) var(--bnd-sp-2);
+  border-block-start: 1px solid var(--pilot-line);
+  background: var(--pilot-canvas);
+  color: var(--pilot-deep-ink);
+  font-size: var(--bnd-text-md);
+  font-weight: 700;
+}
+.bnd-studio .bnd-studio__group-title:first-child { border-block-start: 0; }
+.bnd-studio .bnd-studio__card {
+  min-block-size: 82px;
+  border-inline-end: 1px solid var(--pilot-line);
+}
+.bnd-studio .bnd-studio__card:nth-child(odd) { border-inline-end: 1px solid var(--pilot-line); }
+.bnd-studio .bnd-studio__card-desc {
+  line-height: 1.45;
+}
+
+// Results are the centre of the report. Scope precedes numbers; the chart
+// follows the records, and the page owns vertical scrolling.
+.bnd-studio .bnd-studio__viewhead {
+  gap: var(--bnd-sp-3) var(--bnd-sp-4);
+  padding: var(--bnd-sp-4) var(--bnd-sp-5);
+  border-inline-start: 0;
+  background: var(--pilot-deep);
+  color: var(--bnd-on-brand);
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__title {
+  color: var(--bnd-on-brand);
+  font-size: clamp(1.5rem, 2vw, 1.85rem);
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__subtitle {
+  color: var(--bnd-on-brand);
+  opacity: .82;
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__back,
+.bnd-studio .bnd-studio__viewhead .bnd-studio__action {
+  min-block-size: 38px;
+  border-color: color-mix(in srgb, var(--bnd-on-brand) 26%, transparent);
+  background: color-mix(in srgb, var(--bnd-on-brand) 10%, transparent);
+  color: var(--bnd-on-brand);
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__back:hover,
+.bnd-studio .bnd-studio__viewhead .bnd-studio__action:hover {
+  background: color-mix(in srgb, var(--bnd-on-brand) 20%, transparent);
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__action.is-primary {
+  border-color: var(--bnd-on-brand);
+  background: var(--bnd-on-brand);
+  color: var(--pilot-deep);
+  font-weight: 700;
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__action.is-primary:hover {
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep);
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__action.is-utility {
+  border-color: transparent;
+  background: transparent;
+  opacity: .86;
+}
+.bnd-studio .bnd-studio__viewhead .bnd-studio__action:disabled {
+  opacity: .52;
+}
+.bnd-studio .bnd-studio__controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12rem, auto);
+  align-items: end;
+  gap: var(--bnd-sp-3) var(--bnd-sp-5);
+  padding: var(--bnd-sp-4) var(--bnd-sp-5);
+  border-color: var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+}
+.bnd-studio .bnd-studio__controls-intro {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--bnd-sp-2);
+  padding-block-end: var(--bnd-sp-2);
+  border-block-end: 1px solid var(--pilot-line);
+}
+.bnd-studio .bnd-studio__controls-intro strong {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-md);
+}
+.bnd-studio .bnd-studio__controls-intro span {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.bnd-studio .bnd-studio__control-group {
+  min-inline-size: 0;
+}
+.bnd-studio .bnd-studio__control-label {
+  font-size: var(--bnd-text-sm);
+}
+.bnd-studio .bnd-studio__chips {
+  flex-wrap: wrap;
+}
+.bnd-studio .bnd-studio__chip {
+  min-block-size: 34px;
+}
+.bnd-studio .bnd-studio__company,
+.bnd-studio .bnd-studio__company-value {
+  display: flex;
+  align-items: center;
+  min-block-size: 38px;
+  padding-inline: var(--bnd-sp-3);
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-canvas);
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-sm);
+}
+.bnd-studio .bnd-studio__kpis {
+  border-block-start-color: var(--pilot-line);
+}
+.bnd-studio .bnd-studio__kpi:first-child {
+  background: var(--pilot-leaf);
+}
+.bnd-studio .bnd-studio__kpi-value {
+  font-variant-numeric: tabular-nums;
+}
+.bnd-studio .bnd-studio__tabletools {
+  gap: var(--bnd-sp-3);
+  padding: var(--bnd-sp-3) var(--bnd-sp-4);
+  background: var(--pilot-paper);
+}
+.bnd-studio .bnd-studio__tableheading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-inline-end: auto;
+}
+.bnd-studio .bnd-studio__tableheading h3 {
+  margin: 0;
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-md);
+  font-weight: 700;
+}
+.bnd-studio .bnd-studio__tabletools .bnd-studio__search {
+  min-block-size: 38px;
+  max-inline-size: 20rem;
+}
+.bnd-studio .bnd-studio__tablewrap {
+  max-block-size: none;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+.bnd-studio .bnd-studio__table {
+  font-size: var(--bnd-text-sm);
+  line-height: 1.45;
+}
+.bnd-studio .bnd-studio__table th,
+.bnd-studio .bnd-studio__table td {
+  padding-block: var(--bnd-sp-3);
+}
+.bnd-studio .bnd-studio__chartcard {
+  padding: var(--bnd-sp-4);
+  border-block-start-color: var(--pilot-line);
+}
+.bnd-studio .bnd-studio__actions[hidden] { display: none; }
+.bnd-studio .bnd-studio__controls[hidden] { display: none; }
+
+// Statement selection is a working search, not an empty presentation card.
+// In the base stylesheet the shared search has a flex-basis of 12rem; inside
+// this column that basis becomes its HEIGHT and produces the giant field.
+.bnd-studio .bnd-studio__picker {
+  max-inline-size: 64rem;
+  margin: 0 auto;
+  padding: clamp(var(--bnd-sp-4), 2vw, var(--bnd-sp-6));
+  gap: var(--bnd-sp-3);
+}
+.bnd-studio .bnd-studio__picker-intro {
+  padding-block-end: var(--bnd-sp-3);
+  border-block-end: 1px solid var(--pilot-line);
+}
+.bnd-studio .bnd-studio__picker-title {
+  color: var(--pilot-deep-ink);
+  font-size: var(--bnd-text-lg);
+  font-weight: 700;
+  text-align: start;
+}
+.bnd-studio .bnd-studio__picker-description {
+  margin: var(--bnd-sp-1) 0 0;
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+.bnd-studio .bnd-studio__picker > .bnd-studio__control-group--company {
+  inline-size: min(22rem, 100%);
+}
+.bnd-studio .bnd-studio__picker > .bnd-studio__chips {
+  align-self: start;
+  padding: 0;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: transparent;
+  gap: var(--bnd-sp-4);
+}
+.bnd-studio .bnd-studio__picker > .bnd-studio__chips .bnd-studio__chip {
+  min-block-size: 42px;
+  padding: var(--bnd-sp-2) 0;
+  border-block-end: 2px solid transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+.bnd-studio .bnd-studio__picker > .bnd-studio__chips .bnd-studio__chip.is-active {
+  border-block-end-color: var(--pilot-brand);
+  background: transparent;
+  color: var(--pilot-brand);
+}
+.bnd-studio .bnd-studio__picker-search-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bnd-sp-2);
+  color: var(--pilot-deep-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+}
+.bnd-studio .bnd-studio__picker .bnd-studio__search {
+  flex: none;
+  box-sizing: border-box;
+  inline-size: 100%;
+  block-size: 44px;
+  min-block-size: 44px;
+  max-inline-size: none;
+  padding-inline: var(--bnd-sp-3);
+  border-color: var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font-weight: 400;
+}
+.bnd-studio .bnd-studio__picker-quick {
+  padding-block: var(--bnd-sp-2);
+  border-block-end: 1px solid var(--pilot-line);
+}
+.bnd-studio .bnd-studio__picker-quick .bnd-studio__chip {
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+}
+.bnd-studio .bnd-studio__picker-list {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.bnd-studio .bnd-studio__picker-item {
+  min-block-size: 58px;
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  border-inline-end: 1px solid var(--pilot-line);
+  border-radius: 0;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+.bnd-studio .bnd-studio__picker-item:hover {
+  background: var(--pilot-leaf);
+  border-color: var(--pilot-line);
+  box-shadow: inset 3px 0 0 var(--pilot-brand);
+}
+.bnd-studio .bnd-studio__picker-list > .bnd-studio__picker-hint,
+.bnd-studio .bnd-studio__picker-retry {
+  grid-column: 1 / -1;
+  padding: var(--bnd-sp-4);
+}
+.bnd-studio .bnd-studio__picker-retry {
+  border: 0;
+  background: var(--pilot-paper);
+  color: var(--pilot-brand);
+  text-align: start;
+  cursor: pointer;
+}
+
+@include bp.bnd-until(md) {
+  .bnd-studio .bnd-studio__start-links { grid-template-columns: 1fr; }
+  .bnd-studio .bnd-studio__start-link {
+    min-block-size: 68px;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--pilot-line);
+  }
+  .bnd-studio .bnd-studio__start-link:last-child { border-block-end: 0; }
+  .bnd-studio .bnd-studio__controls { grid-template-columns: minmax(0, 1fr); }
+  .bnd-studio .bnd-studio__controls-intro { grid-column: 1; }
+}
+
+@include bp.bnd-until(sm) {
+  .bnd-studio .bnd-studio__hero,
+  .bnd-studio .bnd-studio__viewhead,
+  .bnd-studio .bnd-studio__controls { padding: var(--bnd-sp-3); }
+  .bnd-studio .bnd-studio__tableheading { inline-size: 100%; }
+  .bnd-studio .bnd-studio__tabletools .bnd-studio__search {
+    flex: 1 0 100%;
+    max-inline-size: none;
+  }
+  .bnd-studio .bnd-studio__picker > .bnd-studio__chips {
+    display: flex;
+    flex-wrap: nowrap;
+    align-self: stretch;
+    overflow-x: auto;
+    gap: var(--bnd-sp-3);
+  }
+  .bnd-studio .bnd-studio__picker > .bnd-studio__chips .bnd-studio__chip {
+    flex: none;
+    min-block-size: 40px;
+  }
+  .bnd-studio .bnd-studio__picker-list { grid-template-columns: minmax(0, 1fr); }
+  .bnd-studio .bnd-studio__picker-item { border-inline-end: 0; }
+}
+
+// A small report shelf lives in the existing Desk pane. Its ruled hierarchy
+// follows the catalogue's domains and leaves the actual report canvas wide.
+html[data-theme] .body-sidebar-top .bnd-studio-sidebar-index {
+  display: grid;
+  gap: 3px;
+  margin: 20px 14px 28px;
+  padding-block-start: 16px;
+  border-block-start: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-studio-sidebar-title {
+  margin: 0 8px 6px;
+  color: var(--pilot-ink);
+  font-size: .86rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+html[data-theme] .bnd-studio-sidebar-group {
+  display: grid;
+  gap: 2px;
+  margin-block-start: 9px;
+}
+
+html[data-theme] .bnd-studio-sidebar-group-title {
+  margin: 0 8px 3px;
+  color: var(--pilot-muted);
+  font-size: .72rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+html[data-theme] .bnd-studio-sidebar-link {
+  display: flex;
+  min-inline-size: 0;
+  min-block-size: 34px;
+  align-items: center;
+  padding: 7px 11px;
+  border-inline-start: 2px solid transparent;
+  border-radius: 3px;
+  color: var(--pilot-ink);
+  font-size: .79rem;
+  font-weight: 550;
+  line-height: 1.38;
+  text-decoration: none;
+}
+
+html[data-theme] .bnd-studio-sidebar-link:is(:hover, :focus-visible) {
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+  text-decoration: none;
+}
+
+html[data-theme] .bnd-studio-sidebar-link:focus-visible {
+  outline: 2px solid var(--pilot-brand);
+  outline-offset: 2px;
+}
+
+html[data-theme] .bnd-studio-sidebar-link.is-current {
+  border-inline-start-color: var(--pilot-brand);
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep-ink);
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-studio-sidebar-empty {
+  margin: 6px 8px 0;
+  color: var(--pilot-muted);
+  font-size: .76rem;
+  line-height: 1.5;
+}

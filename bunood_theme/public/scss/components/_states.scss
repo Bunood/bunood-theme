@@ -1,0 +1,152 @@
+// Shared feedback contract for Bunood-owned surfaces.
+//
+// Six variants share one structure, token vocabulary and interaction model.
+// Surface controllers provide contextual copy and at most one recovery action;
+// this component owns geometry, semantic tone, focus, responsive stacking and
+// reduced-motion behavior. Logical properties keep the same DOM valid in RTL.
+
+@use "../breakpoints" as *;
+
+html.bunood[data-theme] .bnd-system-state {
+  --bnd-state-tone: var(--bnd-brand-solid);
+  --bnd-state-wash: color-mix(in srgb, var(--bnd-state-tone) 7%, var(--bnd-surface));
+
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  gap: var(--bnd-sp-3);
+  inline-size: 100%;
+  max-inline-size: 38rem;
+  margin-inline: auto;
+  padding-block: var(--bnd-sp-7);
+  padding-inline: var(--bnd-sp-6);
+  border: var(--bnd-line) solid color-mix(in srgb, var(--bnd-state-tone) 28%, var(--bnd-border));
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-state-wash);
+  color: var(--bnd-ink);
+  text-align: center;
+}
+
+html.bunood[data-theme] .bnd-system-state.is-compact {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  justify-items: stretch;
+  max-inline-size: none;
+  padding-block: var(--bnd-sp-3);
+  padding-inline: var(--bnd-sp-4);
+  text-align: start;
+}
+
+html.bunood[data-theme] .bnd-system-state__icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: var(--bnd-radius-pill);
+  background: color-mix(in srgb, var(--bnd-state-tone) 12%, var(--bnd-surface));
+  color: var(--bnd-state-tone);
+  flex: none;
+}
+
+html.bunood[data-theme] .bnd-system-state.is-compact .bnd-system-state__icon {
+  inline-size: 36px;
+  block-size: 36px;
+}
+
+html.bunood[data-theme] .bnd-system-state__icon svg {
+  inline-size: 22px;
+  block-size: 22px;
+}
+
+html.bunood[data-theme] .bnd-system-state.is-compact .bnd-system-state__icon svg {
+  inline-size: 18px;
+  block-size: 18px;
+}
+
+html.bunood[data-theme] .bnd-system-state__copy {
+  display: grid;
+  gap: var(--bnd-sp-1);
+  min-inline-size: 0;
+}
+
+html.bunood[data-theme] .bnd-system-state__title {
+  margin: 0;
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-md);
+  font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+html.bunood[data-theme] .bnd-system-state__message {
+  margin: 0;
+  color: var(--bnd-ink-muted);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+html.bunood[data-theme] .bnd-system-state__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--bnd-sp-2);
+  min-inline-size: max-content;
+}
+
+html.bunood[data-theme] .bnd-system-state__action-icon {
+  display: inline-flex;
+}
+
+html.bunood[data-theme] .bnd-system-state__action-icon svg {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+html.bunood[data-theme] .bnd-system-state__action:focus-visible {
+  outline: var(--bnd-line-2) solid var(--bnd-accent);
+  outline-offset: var(--bnd-focus-offset);
+}
+
+html.bunood[data-theme] .bnd-system-state.is-configured-empty {
+  --bnd-state-tone: var(--bnd-ink-muted);
+}
+
+html.bunood[data-theme] .bnd-system-state.is-setup-incomplete,
+html.bunood[data-theme] .bnd-system-state.is-permission-denied {
+  --bnd-state-tone: var(--bnd-warn);
+}
+
+html.bunood[data-theme] .bnd-system-state.is-recoverable-error,
+html.bunood[data-theme] .bnd-system-state.is-offline-delayed-integration {
+  --bnd-state-tone: var(--bnd-critical);
+}
+
+html.bunood[data-theme] .bnd-system-state.is-loading .bnd-system-state__icon svg {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: bnd-system-state-spin var(--bnd-dur-slow) linear infinite;
+  }
+}
+
+@keyframes bnd-system-state-spin {
+  to { transform: rotate(1turn); }
+}
+
+@include bnd-until(sm) {
+  html.bunood[data-theme] .bnd-system-state,
+  html.bunood[data-theme] .bnd-system-state.is-compact {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: stretch;
+    padding-block: var(--bnd-sp-5);
+    padding-inline: var(--bnd-sp-4);
+    text-align: start;
+  }
+
+  html.bunood[data-theme] .bnd-system-state__icon {
+    justify-self: start;
+  }
+
+  html.bunood[data-theme] .bnd-system-state__action {
+    inline-size: 100%;
+  }
+}

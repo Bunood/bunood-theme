@@ -1,0 +1,930 @@
+// ============================================================================
+// LOGIN / SIGNUP / FORGOT — checklist item 32. The theme's SECOND STYLESHEET,
+// and the first thing here that is not on the desk.
+//
+// WHY THIS IS A SEPARATE SHEET AND NOT A PARTIAL OF bunood.scss
+//   `/login` is a WEBSITE page. It gets `web_include_css`, never
+//   `app_include_css`; there is no `frappe.boot`, so no `bnd_*` payload; there
+//   is no `bunood.js`, so nothing stamps `data-bnd-*` on `<html>`; and
+//   `templates/base.html` renders `<html lang dir>` with NO `data-theme` at
+//   all. Every mechanism the nine surface kits stand on is absent. Measured
+//   2026-08-21 before a line of this file existed: the login page loaded
+//   `website.bundle`, `erpnext-web.bundle` and `login.bundle`, not one byte of
+//   ours, and every `--bnd-*` property read as the empty string.
+//
+// SOURCE ORDER IS AGAINST US, SO EVERYTHING HERE WINS ON SPECIFICITY
+//   `templates/includes/head.html` emits `web_include_css` inside
+//   `{% block head %}`; `www/login.html` OVERRIDES `{% block head_include %}`
+//   with `include_style('login.bundle.css')`, which therefore comes after.
+//   Verified in the rendered HTML. The competitors, from a rule scan over
+//   `document.styleSheets` rather than guessed:
+//     (0,4,1)  .for-login .page-card .page-card-body input[type="text"]
+//     (0,4,0)  .for-login .page-card .page-card-actions .btn-login
+//     (0,5,0)  ...btn-login:hover, :focus AND :active — ONE selector list
+//     (0,5,0)  ...btn-login:disabled
+//     (0,3,0)  .for-reset-password .password-strength-container
+//                .password-strength-bar-track
+//     (0,2,0)  .btn:focus            { outline: 0 }        <- website.bundle
+//     (0,2,0)  .form-control:focus   { outline: 0; box-shadow: none }
+//     (0,2,0)  .btn:active           { color/background !important }
+//   `body.bnd-auth` is worth (0,1,1) as a prefix, so a two-class rule of ours
+//   clears the focus killers and a four-class rule clears the login bundle.
+//
+//   THIS LIST USED TO BE SHORTER, AND THE FOUR MISSING ENTRIES WERE FOUR
+//   DEFECTS. An adversarial release review found that the first scan had looked
+//   only at REST and HOVER: `:focus` and `:disabled` are separate rules at
+//   (0,5,0) that our (0,4,1) base lost to (the branded CTA reverted to grey the
+//   moment it was clicked, and to near-black when `login.js` disabled it); the
+//   strength-meter track is (0,3,0) against a rule of ours at (0,2,1), so it had
+//   NEVER applied; and `.btn:active` is `!important`, which no specificity can
+//   beat — pairing our flipping `--text-color` with Frappe's fixed
+//   `--control-bg` and making a held button 1.09:1 in dark, a regression this
+//   kit introduced.
+//
+//   The lesson, written where the next kit will read it: SCAN THE STATES, not
+//   the selector. A rule scan against an element at rest cannot see the rules
+//   that only exist for :hover, :focus, :active and :disabled, and a vendor that
+//   groups them into one selector list will out-specify a base rule sized
+//   against the base.
+//
+// THE SCOPE IS A BODY CLASS, SERVER-RENDERED
+//   `templates/base.html:57` renders `class="{{ body_class or '' }}"`, and
+//   `body_class` is an ordinary context key, so `update_website_context` sets
+//   it (see `context.py`). That gives this kit the same two halves every other
+//   kit has, with zero JS and no flash:
+//     `body.bnd-auth`         — CONTRACTS. Always present on these two TEMPLATES.
+//     `body.bnd-auth-<style>` — the ANCHOR. "Original" omits it.
+//   TEMPLATES, not routes, and that distinction cost the site root: on a stock
+//   site a guest hitting `/` is served the sign-in page, and `context.py` keyed
+//   on the request path, which is empty there. See `AUTH_TEMPLATES`.
+//   There is no `<html>` attribute to key on and no honest way to make one: the
+//   tag is hardcoded in Frappe's base template, and a JS stamp on a website
+//   page would either run in `head_html` (which is an admin's Website Settings
+//   field, not ours to occupy) or at end of body, which is after first paint.
+//
+// WHAT COUNTS AS A CONTRACT HERE, AND WHY R3 IS NOT ONE
+//   Item 28's rule: on a surface that is on the only page a user can reach, a
+//   MEASURED WCAG failure is repaired outside the anchor and survives
+//   "Original". Everything below qualifies under 1.4.3, 1.4.11 or 2.4.7 — with
+//   one deliberate demotion. The census's D3, "the card is the same colour as
+//   the page with no border and no shadow" (1.00:1, both modes), is NOT a WCAG
+//   failure: item 22's resting-identification rule is about CONTROLS, and a
+//   card is a container. Drawing the card is the anchor's job, so it moved to
+//   slice 2. Keeping the contract set to genuine failures is the whole reason
+//   the split means anything.
+//
+// RTL — THE ONE RULE, AND IT IS A PROHIBITION
+//   Frappe flips this page ITSELF, by a build-time rtlcss pass: an `ar` page
+//   serves `dist/css-rtl/login.bundle…css`, and measured there the field icon
+//   moves from `left: 8px` to `right: 8px`, the input's padding swaps 38/8 to
+//   8/38, and `.page-card-head` realigns. GUIDELINES §1.3: their flipped
+//   physical rules and our logical ones DO NOT COMPOSE — a logical restatement
+//   pins the element on both sides. **So this file restates none of them.** It
+//   sets logical properties only on what it introduces, and `assertLogicalOnly`
+//   holds the line at build time. `tests/smoke.mjs`'s "login: Frappe flips this
+//   page itself" is the standing evidence; if that ever fails, this paragraph
+//   is what changed.
+//
+// EVERY VALUE BELOW WAS MEASURED ON THE LIVE STACK, 2026-08-21/22, frappe
+// 16.27.0, seed #4d8756, in a GUEST browser context — `www/login.py:38-46`
+// redirects an authenticated session to /desk, so an admin cannot see this
+// page. Ratios are `bunood_theme.contrast.ratio`. The full census, including
+// what belongs upstream, is `docs/upstream/frappe-login.md`.
+// ============================================================================
+
+@use "../tokens";
+@use "../breakpoints" as *;
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE MODE, and why it is a media query rather than an attribute
+// ══════════════════════════════════════════════════════════════════════════
+//
+// A guest has no `User.desk_theme` — there is no user — so `prefers-color-scheme`
+// is the only honest signal a logged-out page has. It is also the only one that
+// is correct at FIRST PAINT without JS, which ARCHITECTURE §8 requires.
+//
+// `@use "../tokens"` above brings the light set at `:root`; this brings the
+// dark set through the mixin item 32 extracted, so the values exist ONCE for
+// the whole theme rather than in a third hand-kept copy.
+//
+// WE DELIBERATELY DO NOT STAMP `data-theme`. Frappe's own login bundle carries
+// a full `[data-theme="dark"]` branch and it is unreachable here — which is the
+// point, because three of the census's findings live INSIDE it: the enabled
+// submit at 1.06:1, the error banner at 2.52:1, and a primary button whose fill
+// equals the page. Activating their branch would inherit all three. We paint
+// both modes ourselves instead.
+//
+// AXIS `login_theme` — Follow OS (default) · Always Light · Always Dark.
+//
+// The round put this axis back in scope on the strength of the drawings: Split
+// and Plate carry a brand COMPOSITION, and under OS-follow alone which one a
+// visitor sees would be decided by their laptop rather than by the company.
+// Every other visual decision in this theme is the admin's.
+//
+// It costs no new mechanism. The mode is another server-rendered body class, so
+// the three values are three scopes in this file and `brand.py` never learns
+// about it — the per-site sheet stays colours-and-fonts, which is what its own
+// header argues for.
+//
+// `Follow OS` is the ABSENCE of a theme class, so the media query has to exclude
+// the two explicit ones or an Always-Light site would still flip on a dark OS.
+// The `:not()` pair is (0,3,1) against the explicit block's (0,1,1) — they never
+// both match, so the difference is bookkeeping rather than a contest.
+@media (prefers-color-scheme: dark) {
+  body.bnd-auth:not(.bnd-auth-theme-light):not(.bnd-auth-theme-dark) {
+    @include tokens.dark;
+  }
+}
+
+body.bnd-auth-theme-dark {
+  @include tokens.dark;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE CONTRACTS — scoped `body.bnd-auth`, outside any anchor, and every one of
+// them survives "Original". Nine census findings, seven repairable from CSS.
+// ══════════════════════════════════════════════════════════════════════════
+
+body.bnd-auth {
+  // ── The card's own fill, and why a CONTRACT declares it ──────────────────
+  // Drawing the card is the anchor's job (slice 2) — but the field fill below
+  // is a DELTA, and a delta needs to know what it is a delta FROM. So the
+  // contract declares the host at `Original`'s value and the poles re-point it;
+  // both declarations land on `<body>`, so the cascade resolves this before
+  // substituting it into the mix. `_filters.scss`'s working-set pattern.
+  --bnd-auth-card: var(--bnd-page);
+
+  // ── The resting fill for a text field (contract R4) ──────────────────────
+  // `_navbar.scss:48-54`'s lever at `_form.scss`'s percentage, for the third
+  // time. The border arm of item 22's rule is unreachable with this theme's
+  // line tokens (`--bnd-border` ~1.2:1, `--bnd-border-strong` ~1.4:1, both
+  // exempted on evidence at `contrast_gate.py`), so the fill-delta arm it is.
+  //
+  // MIXED AGAINST THE CARD, NOT `--bnd-surface`, AND THAT DISTINCTION COST A
+  // MEASUREMENT. The first cut copied `_filters.scss`'s `--bnd-flt-rest`
+  // verbatim — `color-mix(--bnd-ink 4%, --bnd-surface)` — on the strength of it
+  // being character-identical to an already-gated expression. It is; but there
+  // the HOST is `--bnd-surface` too, and here the card is `--bnd-page` under
+  // `Original`. Measured live: 4 channels of delta, not the 9 that expression
+  // gets in its own kit. Four is inside the range item 29 rejected twice as
+  // "renders as nothing". Copying an expression without copying its host is the
+  // same-fact-in-two-places trap wearing a compliment.
+  //
+  // Mixing against the host restores it: 9 channels in light, 9 in dark,
+  // invariant across seeds because it mixes INK and not the brand. The cost is
+  // honest and paid in `contrast_gate.py`: `--bnd-page` under a 4% ink wash is
+  // a background the gate did not already carry, so it is declared there.
+  --bnd-auth-field: color-mix(in srgb, var(--bnd-ink) 4%, var(--bnd-auth-card));
+
+  // ── The alarm wash (contract R6) ─────────────────────────────────────────
+  // CHARACTER-IDENTICAL to `contrast_gate.py`'s ALARM_BG, so `--bnd-critical`
+  // on it is already an enforced pair and this adds none.
+  --bnd-auth-alarm: color-mix(in srgb, var(--bnd-critical) 10%, var(--bnd-surface));
+
+  // ── Frappe's own variables, re-pointed INSIDE this scope only ────────────
+  //
+  // THE NON-NEGOTIABLE, AND WHY THIS SATISFIES IT. CLAUDE.md: "Frappe variables
+  // only inside [data-theme]; a neutral in bare :root is the light-leaks-into-
+  // dark bug." There is no `data-theme` on a website page to hang these on. The
+  // rule's REASON is that a neutral must never be declared where it outlives
+  // its mode — and `body.bnd-auth` is narrower than `[data-theme]`, not wider:
+  // it exists on two routes, both of which this file paints in both modes.
+  // Nothing lands in bare `:root` and nothing can reach the desk. Recorded in
+  // GUIDELINES §1.3 rather than left to look like an oversight.
+  --bg-color: var(--bnd-page);
+  --fg-color: var(--bnd-surface);
+  --text-color: var(--bnd-ink);
+  --heading-color: var(--bnd-ink);
+
+  // `--control-bg` IS RE-POINTED BECAUSE `--text-color` IS, and leaving it out was
+  // a contrast REGRESSION THIS KIT INTRODUCED. `website.bundle.css` ships
+  //
+  //     .btn:active { color: var(--text-color) !important;
+  //                   background-color: var(--control-bg) !important; }
+  //
+  // with `!important`, so no specificity here can beat it, and the two halves are
+  // ours and Frappe's respectively. `--text-color` now flips with the mode;
+  // `--control-bg` is #f3f3f3 with its dark value behind `[data-theme="dark"]`,
+  // which a website page can never match. Measured while holding a button in dark:
+  // #e8eaec on #f3f3f3, 1.09:1, where stock was 10.57:1.
+  //
+  // That is the literal-paired-with-a-token shape this file's own census
+  // catalogued three times (R5, R6, R7), re-created by one of its repairs. The
+  // pair has to flip together or not at all.
+  --control-bg: var(--bnd-auth-field);
+
+  // R2. `--ink-gray-5` is `#7c7c7c`, and Frappe uses it for the field LABEL and
+  // for the "Forgot password?" LINK and for /update-password's password hint
+  // and strength message: 4.17:1 on a white card, under 1.4.3's 4.5 floor. One
+  // re-point fixes all four, which is why it is a re-point and not four rules —
+  // item 28's Quill lever, fourth outing.
+  --ink-gray-5: var(--bnd-ink-muted);
+  --ink-gray-6: var(--bnd-ink-muted);
+  --ink-gray-4: var(--bnd-ink-subtle);
+
+  // R6's second half. `--ink-red-4` flips with the theme; `--red-50` does not
+  // (it has no dark value at all), so in dark the banner painted dark-mode red
+  // ink on a light-mode wash: 2.52:1, and a white box at 16.99:1 against the
+  // card.
+  --red-50: var(--bnd-auth-alarm);
+  --ink-red-4: var(--bnd-critical);
+  --outline-red-2: var(--bnd-critical);
+
+  // The field's own two, so the rule below needs no !important and no reach.
+  --surface-white: var(--bnd-auth-field);
+  --outline-gray-2: var(--bnd-border-strong);
+}
+
+// ── Contract R10: the card's inherited ink follows the theme ────────────────
+// `.page-card`'s computed `color` measured `#525252` in BOTH modes — a literal
+// that never flips, from Bootstrap's body colour rather than from any variable
+// we could re-point. On a dark card that is 2.25:1.
+//
+// The census filed this rather than repairing it, because nothing on the STOCK
+// login page inherits it: every text node sets its own colour. Item 32 changes
+// that calculus — the moment this sheet paints a dark card for real, the
+// inherited ink is a loaded gun pointed at anything Frappe, an app's
+// `signup_form_template`, or a future upstream revision adds without an
+// explicit colour. It renders at 2.25:1 in dark and passes review in light.
+// One declaration closes it.
+body.bnd-auth .page-card {
+  color: var(--bnd-ink-muted);
+}
+
+// ── Guest language — one compact control, not Frappe's full website navbar ──
+// Both language self-names remain visible, so a visitor can recover even when
+// the current interface is unfamiliar. The server owns translation/direction;
+// this control only chooses which server-rendered page to request.
+body.bnd-auth .bnd-auth-language-switch {
+  position: fixed;
+  z-index: 4;
+  inset-block-start: var(--bnd-sp-4);
+  inset-inline-start: var(--bnd-sp-4);
+  display: flex;
+  padding: 3px;
+  border: 1px solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-auth-field);
+}
+
+body.bnd-auth .bnd-auth-language-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 36px;
+  min-inline-size: 78px;
+  padding-inline: var(--bnd-sp-3);
+  border-radius: calc(var(--bnd-radius-md) - 3px);
+  color: var(--bnd-ink-muted);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+body.bnd-auth .bnd-auth-language-choice:hover {
+  background: color-mix(in srgb, var(--bnd-ink) 6%, transparent);
+}
+
+body.bnd-auth .bnd-auth-language-choice[aria-current="true"] {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+// The real, translated hero is rendered by the server and moved into the split
+// row by the auth-only script. Other login compositions intentionally hide it.
+body.bnd-auth .bnd-auth-hero {
+  display: none;
+}
+
+// ── Contract R11: the tagline stops being a promise ─────────────────────────
+// Theme Settings has shipped a `tagline` field whose description reads "Shown
+// on the login page." since day one, and nothing has ever read it. That is a
+// lie in the product, not a missing feature, which is why it lands with the
+// contracts rather than under a pole.
+//
+// IT RENDERS FROM A CUSTOM PROPERTY, and every other route was closed before
+// this one was chosen. Its slot is a LITERAL in Frappe's `logo_section` macro
+// (`www/login.html:91-104` takes title and subtitle; every call site passes
+// strings), `www/login.py` publishes no context key for it, and injecting a
+// node would mean end-of-body JS — a flash on the first screen a customer sees.
+// `brand.py` writes the string into the per-site sheet, escaped; this renders it.
+//
+// `content: none` IS THE ABSENT CASE, and that is the whole reason the fallback
+// is `none` rather than `""`. An empty string still generates a pseudo-element,
+// which would put the margin below every un-tagged site's subtitle.
+//
+// THE HONEST COST, recorded rather than glossed: generated content is not
+// selectable, and support for it in assistive technology is good but not
+// universal. The tagline is decorative — the page's actual instruction is the
+// subtitle above it — so this is the right side of that trade. The missing
+// context key is filed upstream.
+body.bnd-auth .page-card .page-card-head-text::after {
+  content: var(--bnd-login-tagline, none);
+  display: block;
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  line-height: 1.5;
+  text-wrap: balance;
+}
+
+// ── Contract R1: keyboard focus is visible again ────────────────────────────
+//
+// THE HEADLINE DEFECT, and the reason this kit's repairs are contracts.
+// Measured by tabbing with a REAL Tab (`.focus()` does not match
+// `:focus-visible` — item 31 paid for that once), every stop matching
+// `:focus-visible`: outline `none 0px`, box-shadow `none`, border unchanged.
+// Only a bare `<a>` kept a ring, because nothing styles it. WCAG 2.4.7 Focus
+// Visible, Level AA, failing on the form a keyboard user crosses first.
+//
+// TWO INDEPENDENT KILLERS, both measured:
+//   `.btn:focus { outline: 0 }`                      website.bundle  (0,2,0)
+//   `.form-control:focus { outline: 0; box-shadow: none }`           (0,2,0)
+// and, on top, `.for-login … .btn-login { box-shadow: none }` (0,4,0) with a
+// `:hover` twin at (0,5,0) that beats Bootstrap's own focus glow.
+//
+// SO THE RING IS AN `outline`, NOT A `box-shadow`. Three reasons, in order:
+// the box-shadow channel is contested up to (0,5,0) while the outline channel
+// is contested only at (0,2,0); an outline paints OUTSIDE the box so it cannot
+// shift layout or be clipped by the card; and item 31's critical defect was
+// precisely a box-shadow written into a channel that was already carrying
+// focus. `:is()` takes the specificity of its most specific argument (one
+// class), so this rule is (0,3,1) — clear of both killers, and deliberately
+// NOT deep enough to be fighting the anchor later.
+//
+// The colour is `--bnd-accent`, which `contrast_gate.py` already holds at
+// 1.4.11's 3:1 against every surface, as a cross product, because an outline's
+// neighbour is the CONTAINER's colour and not the control's. No new pair.
+body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible {
+  // A 2px literal, not a token: this theme has no line-weight token, and the first
+  // cut wrote `var(--bnd-line-thick, 2px)` for a property defined NOWHERE in the
+  // repo — a fallback dressed as a token, and invisible to the no-raw-px guard
+  // because it sits inside a var().
+  //
+  // AND NO FALLBACK ON `--bnd-accent`. This paragraph used to argue the opposite
+  // — that one was load-bearing, because an unparseable value would invalidate
+  // the whole shorthand at computed-value time and leave the page with no focus
+  // indicator at all. v0.32.1 removed the fallback and added
+  // `assertTokensDeclared` to forbid it: a base token from `_tokens.scss`'s
+  // `:root` can never be missing, so the fallback is dead code carrying a second
+  // copy of its value, and six had already drifted. The code changed and this
+  // comment did not, so it went on describing a fallback that was gone — and it
+  // is what put one back into `_site.scss`'s twin rule during item 33 slice 3a,
+  // where the guard caught it. Corrected there and here in the same commit.
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 2px;
+  // Frappe's `.btn:focus` also paints a grey glow that now reads as noise
+  // beside a real ring, and on `.btn-login` it is suppressed anyway.
+  box-shadow: none;
+}
+
+// ── Contract R4: a text field is identifiable at rest ───────────────────────
+// Measured: border `#e2e2e2` on a white card is 1.30:1 in light and `#343434`
+// on `#0f0f0f` is 1.54:1 in dark, with a fill delta of 1.00:1 and 1.07:1. Both
+// arms of item 22's rule fail, in both modes, on a page whose entire content is
+// two text fields.
+//
+// The re-points above do the work — Frappe's own rule reads `--surface-white`
+// and `--outline-gray-2` — so this rule exists only for the ink, which is a
+// literal in `--text-color`'s place on some inputs, and to carry R8.
+body.bnd-auth .page-card .page-card-body :is(input[type="text"], input[type="email"], input[type="password"]) {
+  color: var(--bnd-ink);
+  // ── Contract R8: bidi isolation ──────────────────────────────────────────
+  // The standing item-7 gap, and an email address inside an Arabic form is the
+  // textbook case for it: without isolation the neutral run at the end of a
+  // Latin address reorders against the paragraph direction.
+  unicode-bidi: isolate;
+}
+
+// The placeholder takes `--bnd-ink-muted`, NOT `--bnd-ink-subtle`, and the gate
+// is why. `--bnd-ink-subtle` is this theme's weakest ink, fitted against the raw
+// surfaces — and the field's fill is a surface DARKENED by a 4% ink wash, which
+// costs contrast rather than adding it. Measured by `npm run contrast` the
+// moment the row was declared: 4.38 at a bright-yellow seed, 4.24 near-white,
+// 4.16 at pure white, all under the 4.5 floor. Placeholder text is text.
+//
+// It reads as chrome rather than as a value because the VALUE is `--bnd-ink`;
+// two steps of ink is the hierarchy, not three. Stock's was `--ink-gray-4`
+// (#999999), which is worse than either.
+body.bnd-auth .page-card .page-card-body ::placeholder {
+  color: var(--bnd-ink-muted);
+  opacity: 1;
+}
+
+// ── Contract R7: the primary action keeps its shape in both modes ───────────
+// `background: var(--gray-900)` is `#171717`, and `--gray-900` is NOT
+// redefined in dark while `--bg-color` in dark resolves to it — so the button's
+// fill and the page's fill were the same colour, measured 1.00:1. Only the
+// white label survived; the control had no edges. WCAG 1.4.11 for a UI
+// component's boundary.
+//
+// The repair is an INVERSE pair of existing tokens, and it costs no gate row:
+// contrast is symmetric, so `--bnd-page` on `--bnd-ink` is the same ratio as
+// `--bnd-ink` on `--bnd-page`, which the gate already enforces as body text.
+// Deliberately NOT `--bnd-ink-inverse` — HANDOVER keeps that token uncalled on
+// purpose, and this is not the thing to spend it on.
+//
+// (0,4,1) against their (0,4,0), and (0,5,1) against their (0,5,0) hover twin.
+// Under `login_action: Branded` (slice 3) the brand takes this over; the
+// contract is what holds when it does not.
+// EVERY STATE, NOT JUST REST, and the first cut covered only rest and
+// hover/active. Frappe groups `:hover`, `:focus` AND `:active` into ONE selector
+// list at (0,5,0), and ships a separate `:disabled` at (0,5,0):
+//
+//     .for-login .page-card .page-card-actions .btn-login:focus
+//        { background: var(--gray-800); color: #fff }
+//     .for-login .page-card .page-card-actions .btn-login:disabled
+//        { background: var(--gray-900); color: #fff; opacity: 1 }
+//
+// A base rule at (0,4,1) loses to both, and `:is(:hover, :active)` never matches a
+// bare `:focus`. Measured: click Sign In and move the pointer away and the branded
+// CTA turned #383838 and stayed there — 1.36:1 against the dark column, with no
+// ring, because `:focus-visible` is false after a pointer click. And `:disabled` is
+// reachable in one gesture: `login.js:89` disables `.btn-login-with-email-link`
+// (which carries `.btn-login`) after "Send login link", giving #171717 on the dark
+// column — 1.12:1, contract R7's ORIGINAL defect reproduced inside the pole that
+// repairs it.
+//
+// `:disabled` is listed FIRST so the interactive states below win for a control
+// that is somehow both; equal specificity, later wins.
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login) {
+  background: var(--bnd-ink);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active) {
+  background: var(--bnd-ink-muted);
+  color: var(--bnd-page);
+}
+
+// ── Contract R5: the submit button is legible in dark ───────────────────────
+// `.btn-signup:not(:disabled)` pairs `background: var(--surface-gray-7)` with a
+// LITERAL `color: white`. `--surface-gray-7` is `#171717` in light and
+// `#f8f8f8` in dark, so the enabled button — the Send Link on the forgot
+// screen, and the signup submit — measured **1.06:1** in dark. White on
+// near-white.
+//
+// Its disabled state is 2.57:1 light / 2.90:1 dark. A disabled control is
+// exempt from 1.4.3 and this does not pretend otherwise, but the same re-point
+// answers both, so it does both.
+body.bnd-auth .page-card .page-card-actions .btn-signup {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled) {
+  background: var(--bnd-ink);
+  color: var(--bnd-page);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-signup:not(:disabled):is(:hover, :focus, :active) {
+  background: var(--bnd-ink-muted);
+  color: var(--bnd-page);
+}
+
+// ── Contract R6's rules: the secondary action stops being a white slab ──────
+// `.btn-login-option` takes `background: var(--gray-100)` (`#f3f3f3`, no dark
+// value) under `color: var(--gray-800)`. Its own label clears AA either way, so
+// this is not a contrast failure — but in dark it painted a near-white slab at
+// 16.16:1 against the page, i.e. the loudest object on the screen was the
+// SECONDARY action. Repaired here rather than in the anchor because it is the
+// same literal-vs-token split as R5 and R7 and belongs with them.
+body.bnd-auth .page-card .page-card-actions .btn-login-option {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-actions .btn-login-option:hover {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink);
+}
+
+// ── The banners, which are `display:none` until JS reveals them ─────────────
+// The fill and ink come from the re-points above; these rules exist because the
+// success banner uses a green pair with the same literal problem, and because
+// both need to sit on the card rather than float on it.
+body.bnd-auth .page-card .page-card-body .login-success-banner {
+  background-color: color-mix(in srgb, var(--bnd-good) 12%, var(--bnd-surface));
+  color: var(--bnd-ink);
+}
+
+body.bnd-auth .page-card .page-card-body .login-success-banner svg {
+  fill: var(--bnd-good);
+}
+
+body.bnd-auth .page-card .page-card-body .login-error-banner svg {
+  fill: var(--bnd-critical);
+}
+
+// ── /update-password's strength meter ───────────────────────────────────────
+// The track is `--surface-gray-2`, the same non-flipping family as R5's fill.
+// The four fill colours are `var(--dark-<hue>-500, …)` with literal fallbacks
+// and are left alone: they are a data ramp, not chrome, and item 25's law for
+// admin/data colour applies.
+// (0,4,1). The first cut was `body.bnd-auth .password-strength-bar-track` — (0,2,1)
+// against Frappe's `.for-reset-password .password-strength-container
+// .password-strength-bar-track` at (0,3,0), so THREE CLASSES BEAT TWO CLASSES PLUS
+// AN ELEMENT and the rule never applied at all. Measured on the live route: the
+// track stayed #f3f3f3 in both modes, a near-white bar at 14.42:1 against a dark
+// card — the same "the loudest object on the screen is chrome" defect R6 repairs
+// for `.btn-login-option`, left standing while the comment above it claimed
+// otherwise.
+body.bnd-auth .page-card .password-strength-container .password-strength-bar-track {
+  background: var(--bnd-auth-field);
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// THE ANCHOR — body.bnd-auth-<style>. Everything below is a STYLE: "Original"
+// omits the class and every rule here goes with it. The CONTRACTS above
+// survive that, which is the whole of the contract/style split.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// FOUR POLES, and `Bare` was dropped in the wireframe round before a line was
+// written: it discharges the card's identification with nothing, leaning
+// entirely on the field boundaries, and once `Original` carries the contracts
+// the two are visually close. Item 27 dropped `Headed` and item 31 dropped its
+// group-by repair on the same reasoning — a pole that cannot differ
+// meaningfully is the two-options-one-pixel defect wearing a thumbnail.
+//
+// THE WORKING SET, AND IT DECLARES EVERYTHING. Every pole sets every variable,
+// even to `none` or `0`. `_form.scss:75` records why: a block that omits one
+// inherits the PREVIOUS pole's value, and the picker then shows a style that
+// only renders correctly if you happened to arrive from the right neighbour.
+//
+// WHY THE BASE IS AN `:is()` AND NOT `body.bnd-auth`. The base has to reach the
+// three dressed poles and NOT `Original` — `Original` is the ABSENCE of the
+// class, so a base on `body.bnd-auth` would dress it and there would be no
+// stand-down at all. `:is()` takes the specificity of its most specific
+// argument (one class), so this is (0,1,1), the same as each pole block below,
+// and later source order lets a pole override. The pole list appears once.
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) {
+  --bnd-auth-ground: var(--bnd-page);
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+// ── Panel — the card becomes an object ──────────────────────────────────────
+// The smallest change that draws the card at all: our surface fill on the page
+// ground, a hairline ring, a soft lift, and vertically centred so the 220px
+// dead zone stops deciding the composition.
+//
+// THE RING IS A BOX-SHADOW, NOT A BORDER, and that is item 29's lesson rather
+// than a preference: its `Framed` pole compiled to a `border` of ZERO because
+// the discriminator it keyed on was Frappe's own `.no-border`, shipped globally
+// as `border: none !important`. A shadow ring cannot be zeroed that way, and it
+// costs no layout — which matters here because Frappe sizes this card to 371px
+// and a real border would make it 373.
+body.bnd-auth-panel {
+  --bnd-auth-ground: var(--bnd-page);
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+// ── Plate — the brand takes the ground ──────────────────────────────────────
+// A brand wash across the page with the card floating on it. The brand reads
+// immediately at a fraction of Split's cost and the card keeps stock geometry.
+//
+// THE WASH RIDES `--bnd-brand-solid` OVER AN INK FLOOR, AND ARITHMETIC CHOSE IT
+// BEFORE ANY OF IT WAS WRITTEN — the stage at which items 29 and 31 each caught
+// two poles that would have rendered as nothing. The obvious expression,
+// `color-mix(--bnd-brand 14%, --bnd-page)`, measures ZERO channels against the
+// card at a pure-white seed: `--bnd-brand` IS the seed and `--bnd-page` is
+// brand-mixed, so at a white seed both ends of the mix are white. That is item
+// 31's `Trough` well, exactly.
+//
+// Two things fix it and both are load-bearing. The INK FLOOR (7% of --bnd-ink
+// into --bnd-page) guarantees a delta no seed can take away, because ink is not
+// seed-derived. And `--bnd-brand-solid` rather than `--bnd-brand`, because
+// brand-solid is FITTED to carry a label at AA and therefore can never be
+// near-white however pale the seed is.
+//
+// Measured across all eleven gate seeds, both modes, against the card:
+//   light  30.5 (pure white) .. 53.5 (teal)       worst 30.5
+//   dark   17.9 (mid grey)   .. 28.0 (pure white) worst 17.9
+// Invariant, and clear of the 5-channel floor the other kits use. No text lands
+// on this ground — every string on the page is inside the card — so it is a
+// fill-delta question and not a contrast pair.
+body.bnd-auth-plate {
+  --bnd-auth-ground: color-mix(
+    in srgb,
+    var(--bnd-brand-solid) 12%,
+    color-mix(in srgb, var(--bnd-ink) 7%, var(--bnd-page))
+  );
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-lg);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+// ── Split — the shipped default ─────────────────────────────────────────────
+// A full-height form column beside a brand panel. The only pole where the brand
+// gets real estate rather than a 32px logo.
+//
+// THE CARD KEEPS NO FILL OF ITS OWN HERE: the COLUMN is the surface and the
+// card sits on it transparently. `--bnd-auth-card` is still the column's colour
+// rather than `transparent`, because the field fill is a delta computed against
+// it (contract R4) and handing that mix `transparent` would compute against
+// nothing.
+// BELOW `md`, SPLIT *IS* PANEL — and that is measurement, not taste. The art
+// panel is only worth having if it has width, and a column narrow enough to sit
+// beside it squeezes the form: with the first cut's `min(480px, 46%)` the form
+// measured 258px at 700 and **201px at 576**, against Frappe's own 371px card.
+// So the second column starts at `md` (768), not at Frappe's `sm` collapse, and
+// in the band between them this pole takes Panel's variables verbatim rather
+// than inventing a fourth composition for 192px of viewport.
+body.bnd-auth-split {
+  --bnd-auth-ground: var(--bnd-page);
+  --bnd-auth-card: var(--bnd-surface);
+  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
+  --bnd-auth-shadow: var(--bnd-shadow-md);
+  --bnd-auth-radius: var(--bnd-radius-lg);
+}
+
+// ── The object rules — the working set, consumed once each ──────────────────
+//
+// `$states` is every section this surface has, including `/update-password`'s.
+// It is listed once and reused, because "the four hash states plus the reset
+// route" is a fact about the DOM and not about any pole.
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) {
+  background-color: var(--bnd-auth-ground);
+}
+
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate)
+  :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password)
+  .page-card {
+  background-color: var(--bnd-auth-card);
+  box-shadow: var(--bnd-auth-ring), var(--bnd-auth-shadow);
+  border-radius: var(--bnd-auth-radius);
+}
+
+// Vertical placement. Frappe pins the card 60px from the top inside a wrapper
+// whose `min-height` is `calc(100vh - 220px)` — 220px reserved for a footer the
+// same stylesheet hides UNCONDITIONALLY (`login.bundle.scss:14`), measured
+// `display: none` on both routes. So there is nothing to reserve for and the
+// reserve is pure dead space: at 1440x812 the card is 394px tall with 358px of
+// nothing under it.
+//
+// RECORDED RATHER THAN ASSUMED: if upstream ever stops hiding `.web-footer`, a
+// full-viewport wrapper pushes it below the fold. A soft failure, and this note
+// is the reason it would be findable.
+body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-block-size: 100vh;
+  padding-block-start: 0;
+}
+
+// ── Split's layout ──────────────────────────────────────────────────────────
+//
+// THE SECOND COLUMN STARTS AT `md` (768), NOT AT FRAPPE'S `sm` COLLAPSE, and
+// that boundary was measured rather than chosen. With the column at `46%` the
+// form came out 258px wide at 700 and **201px at 576** — against Frappe's own
+// 371px card. An art panel is only worth having if it has width, and a column
+// narrow enough to sit beside it is not a form. Between 576 and 768 this pole
+// therefore takes PANEL's variables verbatim (see its block above) rather than
+// inventing a fourth composition for 192px of viewport, and below 576 Frappe's
+// own full-bleed takes over as it does for every pole.
+//
+// `52%` rather than `46%` for the same reason: at 768 it gives the form 335px,
+// and it reaches the 480px cap at 923 rather than 1044.
+@include bnd-from(md) {
+  // RTL BY FLEX ORDER, NEVER BY INSETS, and that is the whole reason this pole is
+  // safe to ship. Frappe flips this page with a build-time rtlcss pass, so any
+  // inset of ours would compound with a flipped copy (GUIDELINES 1.3). A flex row
+  // follows the document's own `dir`: `main` is first in the DOM and the art
+  // panel is a `::after`, so the column lands on the inline START side in both
+  // directions with no direction-aware declaration anywhere in this block.
+  //
+  // THE ART PANEL IS A PSEUDO-ELEMENT because a surface kit cannot add DOM. It
+  // carries a brand field and no text, which is not a compromise:
+  // `--bnd-brand-solid` is fitted, and with nothing written on it there is no
+  // pair to fail.
+  body.bnd-auth-split .page-content-wrapper {
+    display: flex;
+    // BOTH OF THESE ARE OVERRIDES, NOT DEFAULTS, and leaving either out is a
+    // silent layout failure. Split shares the centring rule above with Panel and
+    // Plate — it has to, because below `md` it IS Panel — and that rule sets
+    // `flex-direction: column` and `justify-content: center`. Inheriting the
+    // column direction here stacked the brand panel BELOW the form column
+    // instead of beside it, and the page still looked plausible because the
+    // column's fill and the page ground are four channels apart in light.
+    // Both suite checks passed through it too: `display` was still `flex`, and
+    // in a column container an explicitly-sized item still sits at the inline
+    // start in LTR and the inline end in RTL. Hence the height assertion in
+    // "Split mirrors with no direction-aware rule".
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: stretch;
+    min-block-size: 100vh;
+    padding-block-start: 0;
+  }
+
+  body.bnd-auth-split .page-content-wrapper > .page-breadcrumbs {
+    display: none;
+  }
+
+  // `.container`'s auto margins are physical AND SYMMETRIC (`margin-left: auto;
+  // margin-right: auto`), so rtlcss flips them onto themselves and there is no
+  // second declaration for ours to compound with. Ours is asymmetric, so it sets
+  // BOTH logical sides — one to a value, one to auto — exactly as GUIDELINES 1.3
+  // requires of anything that takes a side.
+  body.bnd-auth-split .page-content-wrapper > main {
+    flex: none;
+    inline-size: min(620px, 50%);
+    min-inline-size: calc(var(--bnd-auth-form-min) + 2 * clamp(var(--bnd-sp-6), 6vw, 76px));
+    max-inline-size: none;
+    margin-inline-start: 0;
+    margin-inline-end: auto;
+    padding-inline: clamp(var(--bnd-sp-6), 6vw, 76px);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: var(--bnd-auth-card);
+    box-shadow: var(--bnd-shadow-lg);
+    z-index: 1;
+  }
+
+  body.bnd-auth-split .page-content-wrapper > .bnd-auth-hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--bnd-sp-3);
+    text-align: center;
+
+    /* Typography */
+    color: var(--bnd-on-brand); /* White text */
+    flex: 1;
+    margin-block: var(--bnd-sp-2);
+    margin-inline-end: var(--bnd-sp-2);
+    border-start-end-radius: 24px;
+    border-end-end-radius: 24px;
+
+    /* Solid brand green background */
+    background-color: var(--bnd-brand-solid) !important;
+
+    /* Beautiful subtle dot-grid overlay using radial gradients */
+    background-image: radial-gradient(rgba(255, 255, 255, 0.15) 2px, transparent 2px) !important;
+    background-size: 32px 32px !important;
+  }
+
+  body.bnd-auth-split .bnd-auth-hero h2 {
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2rem, 3.2vw, 3.25rem);
+    font-weight: 750;
+    line-height: 1.25;
+  }
+
+  body.bnd-auth-split .bnd-auth-hero p {
+    margin: 0;
+    color: inherit;
+    font-size: 1.05rem;
+  }
+
+  body.bnd-auth-split
+    :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password)
+    .page-card {
+    background-color: transparent;
+    box-shadow: none;
+    max-inline-size: 430px;
+    inline-size: 100%;
+    margin-inline: auto;
+    padding-inline: 0;
+  }
+
+  body.bnd-auth-split .page-card .page-card-head {
+    margin-block-end: var(--bnd-sp-6);
+    text-align: start;
+  }
+
+  body.bnd-auth-split .page-card .page-card-head h4 {
+    font-size: 28px;
+    font-weight: 750;
+  }
+
+  body.bnd-auth-split .page-card .page-card-head .page-card-subtitle {
+    margin-block-start: var(--bnd-sp-2);
+  }
+
+  body.bnd-auth-split .page-card .page-card-body .form-control,
+  body.bnd-auth-split .page-card .page-card-actions .btn {
+    min-block-size: 46px;
+    border-radius: var(--bnd-radius-md);
+  }
+}
+
+// ── Below Frappe's own collapse, every pole converges ───────────────────────
+//
+// 576px, BISECTED RATHER THAN READ. `login.bundle.scss` uses
+// `@include media-breakpoint-down(xs)`, which in Bootstrap 4 means
+// `max-width: 575.98px` — below the `sm` breakpoint, not "extra small". At 576
+// the card is 371px with a 12px radius; at 575 it is `max-width: 100%`,
+// `min-height: 100svh`, radius 0, padding `60px 32px 32px`. The name reads like
+// 450-ish and it is 576; the planning document carried the wrong number until
+// this was bisected on the live page.
+//
+// 576 needs no new breakpoint: it is Frappe's own `$grid-breakpoints.sm` and
+// therefore already `bnd-bp(sm)`, which is exactly why that vocabulary is
+// Frappe's numbers rather than a house scale.
+//
+// Frappe already takes the card full-bleed here, so a ring, a radius and a
+// shadow would draw an object that fills the screen — and Split's art panel
+// would squeeze the column rather than dropping. Every pole stands down to the
+// same thing, which is honest: on a phone there is one composition.
+@include bnd-until(sm) {
+  body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate)
+    :is(.for-login, .for-signup, .for-forgot, .for-login-with-email-link, .for-email-login, .for-reset-password)
+    .page-card {
+    background-color: var(--bnd-auth-card);
+    box-shadow: none;
+    border-radius: 0;
+  }
+
+  // NOTHING HERE UNWINDS SPLIT, and that is the point of moving its layout
+  // behind `md`: the second column, the art panel and the card's zeroed padding
+  // only ever exist at 768 and above, so there is nothing below 576 to undo. An
+  // earlier cut had four rules here doing exactly that, and one of them (zeroing
+  // the column's padding as well as the card's) put the form flush against both
+  // screen edges. A stand-down you do not have to write cannot be written wrong.
+  body:is(.bnd-auth-panel, .bnd-auth-split, .bnd-auth-plate) .page-content-wrapper {
+    display: block;
+    min-block-size: auto;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// AXIS `login_action` — Neutral · Branded. The primary button.
+// ══════════════════════════════════════════════════════════════════════════
+//
+// Stock paints it `var(--gray-900)`, near-black, which is also the page colour
+// in dark — contract R7 repairs that to an inverse pair, and `Neutral` is that
+// repair left alone. `Branded` is the single most visible "this is our product"
+// change available on the page, and it is the ONE control the page exists to
+// offer.
+//
+// IT COSTS NO CONTRAST ROW, which is why it could be an axis rather than a
+// debate. `--bnd-on-brand` on `--bnd-brand-solid` is "label on a brand fill",
+// enforced at AA across eleven seeds and two modes; the fill's own edge against
+// the page is "brand fill against the chrome", enforced at 1.4.11's 3:1 as a
+// cross product over every surface. Both rows already existed.
+//
+// `Neutral` is the NEUTRAL and maps to no class, so this axis has one block.
+// The selectors match contract R7's depth exactly — (0,4,1) and (0,5,1) — and
+// come later in the file, which is how a style overrides a contract that shares
+// its property. A contract and an axis writing the same property cannot both be
+// asserted absolutely; item 31 wrote that down for its hover ring, and the
+// suite check for R7 is why it stays honest here: it asserts the CTA has edges
+// and a legible label, which both poles satisfy.
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login),
+body.bnd-auth-action-branded .page-card .page-card-actions .btn-signup:not(:disabled) {
+  background: var(--bnd-brand-solid);
+  color: var(--bnd-on-brand);
+}
+
+// The disabled arm has to be here too. Frappe's `:disabled` rule is (0,5,0) and
+// the axis base is (0,4,1), so without this a Branded CTA reverts to #171717 the
+// moment `login.js` disables it — one click on the forgot screen.
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):disabled {
+  background: var(--bnd-auth-field);
+  color: var(--bnd-ink-subtle);
+}
+
+body.bnd-auth-action-branded .page-card .page-card-actions :is(.btn-login, .btn-ldap-login):is(:hover, :focus, :active),
+body.bnd-auth-action-branded
+  .page-card
+  .page-card-actions
+  .btn-signup:not(:disabled):is(:hover, :focus, :active) {
+  background: color-mix(in srgb, var(--bnd-ink) 12%, var(--bnd-brand-solid));
+  color: var(--bnd-on-brand);
+}
+
+// Credentials are LTR strings even when the surrounding form is Arabic.
+// Keep the native field icons on the locale's leading side; align the value
+// with that icon so the caret and placeholder never jump across the control.
+body.bnd-auth .page-card .page-card-body :is(.email-field, .password-field) .form-control {
+  direction: ltr !important;
+  text-align: start !important;
+}
+
+html[dir="rtl"] body.bnd-auth .page-card .page-card-body :is(.email-field, .password-field) .form-control {
+  text-align: end !important;
+}
+
+/* Fix the default blue focus ring on input fields */
+body.bnd-auth :is(.btn, .form-control, a, [tabindex]):focus-visible,
+body.bnd-auth .form-control:focus {
+  border-color: var(--bnd-brand-solid) !important;
+  outline: 2px solid var(--bnd-brand-solid) !important;
+  outline-offset: 2px !important;
+  box-shadow: none !important;
+}

@@ -1,0 +1,525 @@
+// The accountant's first screen is a working ledger, not a sales campaign.
+// Keep the source and date of each number clear and make real documents one
+// click away. Every rule is limited to this role-specific Home variant.
+html[data-theme] .bnd-home-dashboard.is-accountant {
+  gap: 16px;
+  max-inline-size: 1560px;
+  margin-inline: auto;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 6px 24px;
+  padding: 0 0 12px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-accountant-title {
+  margin: 0;
+  color: var(--pilot-deep);
+  font-size: clamp(1.55rem, 2.1vw, 2.1rem);
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+html[data-theme] .bnd-accountant-description {
+  max-inline-size: 44rem;
+  margin: 0;
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant > .bnd-home-scope {
+  gap: 8px;
+  padding-block-end: 10px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-filters {
+  align-items: end;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-home-scope-field {
+  flex: 0 1 300px;
+  max-inline-size: 360px;
+}
+
+html[data-theme] .bnd-home-scope-reset {
+  min-block-size: 38px;
+  padding: 6px 12px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-brand);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-scope-reset:hover {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-home-scope-reset:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
+// A period is a frequent decision on sales-oriented views: one click changes
+// the report and visibly marks the active range, with no redundant Apply step.
+html[data-theme] .bnd-home-period-presets {
+  display: flex;
+  flex: 2 1 360px;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 5px;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-period-presets legend {
+  inline-size: 100%;
+  margin-block-end: 4px;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-period-preset {
+  min-block-size: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 4px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-home-period-preset.is-current {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-leaf);
+  color: var(--pilot-brand);
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-home-period-preset:hover {
+  border-color: var(--pilot-brand);
+}
+
+html[data-theme] .bnd-home-period-preset:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: 1px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant > .bnd-accountant-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-panel-head {
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-panel-title {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-panel-subtitle {
+  display: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-intro-actions {
+  display: flex;
+  flex: 1 1 600px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-action {
+  min-block-size: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--pilot-line);
+  border-radius: 5px;
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-action.is-primary {
+  border-color: var(--pilot-brand);
+  background: var(--pilot-brand);
+  color: #fff;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-actions .bnd-home-action:is(:hover, :focus-visible) {
+  border-color: var(--pilot-brand);
+  outline-offset: 2px;
+}
+
+html[data-theme] .bnd-accountant-snapshot {
+  overflow: hidden;
+  border: 1px solid var(--pilot-line);
+  border-block-start: 3px solid var(--pilot-brand);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-accountant-snapshot-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 5px 16px;
+  padding: 12px 16px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-accountant-snapshot-head h2 {
+  margin: 0;
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-lg);
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-accountant-snapshot-head span {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-xs);
+}
+
+html[data-theme] .bnd-accountant-measures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+html[data-theme] .bnd-accountant-measure {
+  display: grid;
+  gap: 7px;
+  min-inline-size: 0;
+  padding: 15px 17px 17px;
+  border-inline-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-accountant-measure:last-child {
+  border-inline-end: 0;
+}
+
+html[data-theme] .bnd-accountant-measure-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: 650;
+}
+
+html[data-theme] .bnd-accountant-measure-icon {
+  display: inline-flex;
+  inline-size: 18px;
+  block-size: 18px;
+  color: var(--pilot-brand);
+}
+
+html[data-theme] .bnd-accountant-measure-value {
+  overflow-wrap: anywhere;
+  color: var(--pilot-deep);
+  font-size: clamp(1.25rem, 1.9vw, 1.8rem);
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+html[data-theme] .bnd-accountant-work {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+
+html[data-theme] .bnd-accountant-work :is(.bnd-accountant-queue, .bnd-accountant-directory) {
+  grid-column: 1 / -1;
+}
+
+html[data-theme] .bnd-accountant-work :is(.bnd-accountant-queue, .bnd-accountant-reconciliation, .bnd-accountant-close) {
+  min-inline-size: 0;
+  overflow: hidden;
+  border: 1px solid var(--pilot-line);
+  border-radius: 8px;
+  background: var(--pilot-paper);
+}
+
+html[data-theme] .bnd-accountant-work :is(.bnd-accountant-queue, .bnd-accountant-reconciliation, .bnd-accountant-close) .bnd-home-panel-head {
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--pilot-line);
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-accountant-queue-groups,
+html[data-theme] .bnd-accountant-evidence-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+html[data-theme] .bnd-accountant-queue-filter,
+html[data-theme] .bnd-accountant-close-open {
+  min-block-size: 38px;
+  padding: 7px 12px;
+  border: 1px solid var(--pilot-brand);
+  border-radius: 7px;
+  background: var(--pilot-leaf);
+  color: var(--pilot-deep);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-accountant-queue-filter:disabled {
+  border-color: var(--pilot-line);
+  color: var(--pilot-muted);
+  cursor: not-allowed;
+}
+
+html[data-theme] .bnd-accountant-queue-rows,
+html[data-theme] .bnd-accountant-evidence-list {
+  display: grid;
+}
+
+html[data-theme] .bnd-accountant-queue-row,
+html[data-theme] .bnd-accountant-evidence-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 20px;
+  inline-size: 100%;
+  min-block-size: 64px;
+  padding: 10px 16px;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  background: var(--pilot-paper);
+  color: var(--pilot-ink);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-accountant-queue-row:hover,
+html[data-theme] .bnd-accountant-evidence-row:hover,
+html[data-theme] .bnd-accountant-queue-filter:hover,
+html[data-theme] .bnd-accountant-close-open:hover {
+  background: var(--pilot-leaf);
+}
+
+html[data-theme] .bnd-accountant-evidence-row:disabled {
+  color: var(--pilot-muted);
+  cursor: not-allowed;
+}
+
+html[data-theme] .bnd-accountant-queue-row:focus-visible,
+html[data-theme] .bnd-accountant-evidence-row:focus-visible,
+html[data-theme] .bnd-accountant-queue-filter:focus-visible,
+html[data-theme] .bnd-accountant-close-open:focus-visible {
+  outline: 2px solid var(--bnd-accent);
+  outline-offset: -2px;
+}
+
+html[data-theme] .bnd-accountant-queue-main,
+html[data-theme] .bnd-accountant-queue-meta {
+  display: grid;
+  gap: 3px;
+  min-inline-size: 0;
+}
+
+html[data-theme] .bnd-accountant-queue-main small,
+html[data-theme] .bnd-accountant-queue-meta span,
+html[data-theme] .bnd-accountant-evidence-note {
+  color: var(--pilot-muted);
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme] .bnd-accountant-queue-meta {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-accountant-queue-open {
+  color: var(--pilot-brand);
+  font-weight: 700;
+}
+
+html[data-theme] .bnd-accountant-evidence-note {
+  margin: 0;
+  padding: 10px 16px;
+}
+
+html[data-theme] .bnd-accountant-close-state {
+  display: block;
+  padding: 16px 16px 4px;
+  color: var(--pilot-deep);
+  font-size: var(--bnd-text-lg);
+}
+
+html[data-theme] .bnd-accountant-close-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  padding: 8px 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-theme] .bnd-accountant-close-open {
+  margin: 10px 16px 16px;
+}
+
+
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-panel,
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-directory {
+  min-inline-size: 0;
+  border: 1px solid var(--pilot-line);
+  border-radius: 6px;
+  background: var(--pilot-paper);
+  box-shadow: none;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-panel {
+  display: block;
+  grid-column: auto;
+  overflow: hidden;
+  border-color: var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-panel .bnd-home-panel-head {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border: 0;
+  border-block-end: 1px solid var(--pilot-line);
+  background: var(--pilot-leaf);
+  color: var(--pilot-ink);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-panel .bnd-home-panel-title {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-lg);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-panel .bnd-home-panel-subtitle {
+  color: var(--pilot-muted);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-panel .bnd-home-panel-mark {
+  margin: 0;
+  color: var(--pilot-brand);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-list {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-work .bnd-home-attn-row {
+  min-block-size: 54px;
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-directory .bnd-home-panel-head {
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-home-dashboard.is-accountant .bnd-accountant-directory .bnd-home-panel-title {
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-lg);
+}
+
+html[data-theme] .bnd-accountant-shelves {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+}
+
+html[data-theme] .bnd-accountant-shelf {
+  min-inline-size: 0;
+  padding: 14px;
+  border-inline-end: 1px solid var(--pilot-line);
+}
+
+html[data-theme] .bnd-accountant-shelf:last-child {
+  border-inline-end: 0;
+}
+
+html[data-theme] .bnd-accountant-shelf h3 {
+  margin: 0 0 8px;
+  color: var(--pilot-brand);
+  font-size: var(--bnd-text-sm);
+  font-weight: 750;
+}
+
+html[data-theme] .bnd-accountant-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  inline-size: 100%;
+  min-block-size: 36px;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--pilot-ink);
+  font-size: var(--bnd-text-sm);
+  text-align: start;
+  cursor: pointer;
+}
+
+html[data-theme] .bnd-accountant-link:is(:hover, :focus-visible) {
+  border-color: var(--pilot-line);
+  background: var(--pilot-leaf);
+  color: var(--pilot-brand);
+  outline-offset: 1px;
+}
+
+html[data-theme] .bnd-accountant-link-icon {
+  display: inline-flex;
+  flex: 0 0 17px;
+  inline-size: 17px;
+  block-size: 17px;
+  color: var(--pilot-brand);
+}
+
+@media (max-width: 992px) {
+  html[data-theme] .bnd-accountant-work { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 768px) {
+  html[data-theme] .bnd-accountant-measures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  html[data-theme] .bnd-accountant-measure:nth-child(2) { border-inline-end: 0; }
+  html[data-theme] .bnd-accountant-measure:nth-child(n+3) { border-block-start: 1px solid var(--pilot-line); }
+  html[data-theme] .bnd-accountant-shelves { grid-template-columns: minmax(0, 1fr); }
+  html[data-theme] .bnd-accountant-shelf { border-inline-end: 0; border-block-end: 1px solid var(--pilot-line); }
+  html[data-theme] .bnd-accountant-shelf:last-child { border-block-end: 0; }
+}
+
+@media (max-width: 380px) {
+  html[data-theme] .bnd-home-dashboard.is-accountant { padding-inline: 12px; }
+  html[data-theme] .bnd-accountant-measure { padding: 11px; }
+  html[data-theme] .bnd-accountant-measure-value { font-size: 1.16rem; }
+}

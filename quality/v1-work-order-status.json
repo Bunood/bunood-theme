@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "disclaimer": "Planning status only. This is not a test receipt and makes no release claim.",
+  "as_of": "2026-09-20",
+  "groups": [
+    {
+      "ids": ["WO-00"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "The MVP candidate, authority handoff, draft receipt and automated contracts exist; the machine-validated production-operations contract now binds candidate identity, release/service/incident states, deploy/rollback and twelve evidence groups without claiming production acceptance.",
+      "next_gate": "Complete production identity, physical output, administrator, candidate, legal and reproducibility evidence plus the contract's staging, deployment, rollback, restore, monitoring and customer-acceptance gates on the exact candidate."
+    },
+    {
+      "ids": ["WO-01"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Operational, deployment, upgrade and support guidance exists; the machine-validated production-operations contract fixes eight roles, twelve release states, twelve service states, ten incident states, the ten-link operations chain and twelve evidence groups, but production-controlled exercises are incomplete.",
+      "next_gate": "Pass two isolated restores plus normal/failed deployment, migration/rollback with post-deploy data boundary, monitoring/incident/on-call/customer communication, access/security/privacy, supported-upgrade and second-operator runbook rehearsals."
+    },
+    {
+      "ids": ["WO-10"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Company readiness foundations, the machine-validated guided-onboarding contract, and a built Home first-use spine now derive Company, Customer, Item, submitted Sales Invoice and submitted Payment Entry milestones from persisted permission-filtered native records with one current action and explicit blocked states. A compact twelve-row pre-live map covers every contract readiness domain with narrow native observations, responsible role, unresolved consequence and permission-derived setup/view action. An opt-in work plan creates one native ERPNext Project per company and one native Task per domain, preserving Assign To/ToDo ownership, due dates, comments and visible File evidence without a parallel ledger. A separate submittable Bunood Readiness Review now records permissioned authority/qualification, decision reason, evidence reference, exact site/app/asset/Task/evidence candidate digest, append-only receipt digest and explicit reopening chain without changing Task status or declaring launch approval. Runtime reads and creates preserve current-user permissions; external areas remain external, queries fail closed, and no real qualified/fresh-administrator acceptance receipt exists.",
+      "next_gate": "Deploy and migrate the receipt DocType, assign the explicit reviewer permission to genuinely qualified people, then prove a fresh permitted administrator can assign every applicable domain, attach/review evidence, submit and reopen candidate-bound receipts, and reach the first useful invoice/payment/print/statement outcome in Arabic and English without developer intervention."
+    },
+    {
+      "ids": ["WO-11"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "The machine-validated migration target contract fixes native dependency order, dry-run non-mutation, row/result states, duplicate identity, idempotency, exact reconciliation, cutover, rollback, privacy and evidence requirements. A bilingual submittable Bunood Migration Run freezes a mapped candidate packet with source hashes/row counts, source site and one-way database identity, mapping/evidence references, named owners, distinct material-opening review, cutover/backup/rollback controls and immutable scope/receipt digests. A guarded isolated-rehearsal path requires a different site/database plus explicit site opt-in, rechecks native permissions, verifies the exact attached file hash, runs Frappe's native Data Import, and captures an immutable privacy-minimised result receipt. Each Data Import dataset requires stable-identity evidence and an import-type-compatible duplicate disposition. Exact retry returns the existing rehearsal without enqueueing another job; exception correction creates a new draft bound to predecessor and receipt digest, and submission requires a material source/mapping/identity/duplicate/control-evidence change. A submitted exception receipt with failed rows can download Frappe's native errored-row template only after Bunood rechecks the isolated environment, receipt, packet, native import identity, current permissions and attached-file hash; Bunood does not proxy raw import logs. After every mapped Data Import dataset succeeds on the same clone, a submittable reconciliation record binds all successful receipt/result/file digests, preloads the eleven source-to-native control families, preserves exact decimal text and reproducible native report filters, derives exact/variance/exception state, requires owned recovery for every non-zero difference and enforces a different reviewer for material openings. It is immutable evidence, not a parallel ledger or accounting/cutover approval. No promoted migration run exists.",
+      "next_gate": "Execute the failed-row correction and reconciliation workflows with qualified operators/accountants on real de-identified clean and dirty fixtures; prove identity and duplicate decisions, retain reproducible native report evidence, reach exact applicable opening controls, and accept permission isolation plus complete restore or approved native rollback."
+    },
+    {
+      "ids": ["WO-14"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "The machine-validated cash/bank/payment contract fixes native authority, three distinct lifecycles, seven money chains, duplicate-safe statement ingestion, match controls, difference ownership, Saudi connector governance and twelve evidence groups. A route-scoped bilingual banking cockpit now provides a permission-filtered company-account picker, bounded period evidence, masked account presentation, native Bank Transaction movement/open-allocation summaries, ageing, older-open count, recent native import records, separately labelled bank-GL movement and direct handoffs to native Bank Statement Import, Bank Transaction, General Ledger and ERPNext v16 /banking. It creates only a native import draft and never matches, posts, submits or declares reconciliation. No controlled period is accepted.",
+      "next_gate": "Deploy and migrate the Page, then pass clean, dirty, duplicate, overlapping and reimport statement cases plus one-to-one, split/merge, partial, fee, FX, voucher-create and unmatch cases. Accept normal and exception periods with exact statement-to-voucher-to-bank-GL reconciliation, difference ownership and distinct qualified preparer/reviewer sign-off."
+    },
+    {
+      "ids": ["WO-30", "WO-31"],
+      "state": "planned",
+      "evidence": "The machine-validated integration contract now fixes three customer-selected categories, eight roles, sixteen connector states, fourteen message states, the ten-link operating chain, ten reconciliation links and twelve evidence groups; no production connector set is implemented or accepted.",
+      "next_gate": "Select one payment, one bank/Open Banking or statement, and one ecommerce/order provider from customer demand; implement the governed framework and pass controlled sandbox plus authorised-production normal/exception cycles, security, recovery, support and exact reconciliation."
+    },
+    {
+      "ids": ["WO-12", "WO-13"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Customer statement, receivables, payment setup, and accounting verification foundations exist; the cash/bank/payment contract now fixes allocation, callback, settlement, difference and native-ledger boundaries.",
+      "next_gate": "Pass full collections, receipt/allocation, callback and provider-settlement journeys with permission, idempotency, delivery, source evidence and exact Payment Ledger/outstanding/clearing/bank/GL reconciliation."
+    },
+    {
+      "ids": ["WO-15"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Role homes, KPI contracts and report routing exist; the machine-validated decision-support contract now fixes the versioned metric definition, eight definition states, ten result states, nine-link decision chain, ten reconciliation links and twelve evidence groups.",
+      "next_gate": "Implement the approved metric lifecycle and pass normal plus exception controlled periods with exact card/report/drill/export/print/schedule reconciliation, real owner questions, permissions, bilingual states and performance evidence."
+    },
+    {
+      "ids": ["WO-20", "WO-21", "WO-22"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Native documents plus simple purchasing, stock and return presentation foundations exist; the machine-validated procurement/inventory contract now fixes seventeen procurement states, fifteen stock states, the eight-link document chain, eleven reconciliation links and twelve evidence groups.",
+      "next_gate": "Implement and accept the task-designed request/order/receipt/inspect/bill/pay/return and transfer/transit/scan/count/reorder journeys in normal and exception cycles with exact quantity/value/tax/payable/payment/Stock Ledger/GL reconciliation."
+    },
+    {
+      "ids": ["WO-23"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Native POS plus Bunood item-name-first, payment-mode, role, catalogue and presentation foundations exist; the machine-validated POS contract now fixes readiness, sale and shift lifecycles, the eight-link chain, ten reconciliation links, device/degraded/offline claim boundaries and twelve evidence groups.",
+      "next_gate": "Implement remaining readiness/tender/return/close/reconciliation behavior and pass real cashier, supervisor and finance normal/exception open-to-close cycles on accepted devices with stock, tax, ZATCA, payment, receipt, closing and GL reconciliation."
+    },
+    {
+      "ids": ["FND-01", "FND-02", "FND-03", "FND-04", "FND-05"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Tokens, shell, roles, form grammar, bilingual contracts, responsive rules, tests, release tooling, and a fail-closed machine performance/reliability budget and evidence evaluator are materially implemented.",
+      "next_gate": "Complete the representative route-role-state-language-width-theme matrix, the persona usability benchmark, and the named Starter/Standard performance, load, recovery, upgrade, and evidence gates in the V1 performance and reliability contract."
+    },
+    {
+      "ids": ["OTC-01", "OTC-02", "OTC-03", "OTC-04"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Customer, quotation, invoice, statement, payment, print, POS, and accounting foundations cover parts of the chain; the machine-validated order-to-cash contract now fixes ten customer states, twenty-four commercial states, the ten-link document chain, portal isolation and twelve evidence groups alongside the money and POS contracts.",
+      "next_gate": "Implement remaining customer/quote/order/fulfilment/billing/collections/provider behavior and pass normal plus exception lead/customer-to-cash cycles with real role participants and exact stock/tax/ZATCA/AR/payment/settlement/GL reconciliation."
+    },
+    {
+      "ids": ["OTC-05"],
+      "state": "planned",
+      "evidence": "Commercial print formats exist and the validated order-to-cash contract fixes portal mapping, session, record/file/link/download, revoke, output parity and cross-customer controls; the promoted portal product does not exist.",
+      "next_gate": "Implement and security-test the customer portal, then accept cross-customer/API/file isolation, disabled/revoked/expired access, document/payment tasks, Arabic/English output parity and real customer usability."
+    },
+    {
+      "ids": ["FIN-01", "FIN-04", "FIN-09"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Native accounting authority, party/payment verification and core report workbench contracts exist; the machine-validated finance, cash/bank/payment and decision-support targets now fix statement/report source, filter, permission, drill-down and reconciliation boundaries; no controlled-close receipt exists.",
+      "next_gate": "Pass company/dimension controls, AR/AP-to-GL reconciliation, and governed statement/report/drill/export/print/schedule parity as part of two consecutive candidate-bound controlled closes."
+    },
+    {
+      "ids": ["FIN-03"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "The cash/bank/payment contract and machine register define roles, payment/bank/settlement states, seven money chains, ten reconciliation links, difference categories, Saudi connector boundaries and twelve evidence groups. The implemented Bunood banking cockpit exposes permission-filtered native source/import evidence, open allocations and ageing while routing all statement upload, matching, voucher creation and ledger work to ERPNext-native records and /banking. The UI explicitly refuses to infer reconciliation from zero open imported rows. Duplicate quarantine, matching acceptance, owned differences, reviewer sign-off and controlled periods remain unaccepted.",
+      "next_gate": "Exercise native import duplicate quarantine, explainable candidate matching, split/merge/partial, voucher creation, unmatch and difference management through the new entry point; add accountable difference ownership/review evidence and pass normal plus exception controlled periods."
+    },
+    {
+      "ids": ["FIN-02"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "A route-scoped bilingual Journal workbench now provides a permission-filtered Company and bounded-period queue over native Journal Entry records, explicitly distinguishes unbalanced drafts, balanced drafts awaiting review, submitted, cancelled, reversal and system-generated states, and shows source provenance for templates, Auto Repeat, deferred accounting and reversal. It intersects Auto Repeat references with separately permitted same-Company Journal Entry records, provides native template and schedule evidence, explains when Payment Entry or invoice documents are safer, and routes all create, review, submit, reverse, attachment, dimension and ledger work back to ERPNext-native records. It performs no posting, approval, allocation, schedule execution or parallel-ledger write.",
+      "next_gate": "Deploy and migrate the Page, then implement and accept the task-designed template, accrual, reversal, prepayment, deferred, allocation, recurring-entry, attachment and maker-checker journeys. Pass balanced/unbalanced, currency, dimension, party/reference, frozen-period, reversal, schedule and permission cases with exact source-to-Journal-Entry-to-GL trace under qualified accountant review."
+    },
+    {
+      "ids": ["FIN-05", "FIN-06", "FIN-07", "FIN-10"],
+      "state": "planned",
+      "evidence": "The detailed expert-finance contract and machine register define roles, continuous queues, pre-close/T+1–T+5 dependencies, eleven reconciliation families, asset, FX, budget, expert-workbench, statement, UX and evidence controls; task-designed accepted accountant journeys remain absent.",
+      "next_gate": "Implement in dependency order and prove a normal and exception month end covering stock, assets, deferred accounting, FX, budgets, tax, native locks, governed reopen and expert review, consuming the separately accepted journal and payment/bank/cash foundations."
+    },
+    {
+      "ids": ["FIN-08"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "A route-scoped bilingual finance-close cockpit now provides a permission-filtered Company and bounded-period review over native draft Journal Entry, Sales Invoice, Purchase Invoice and Payment Entry records; failed and submitted Period Closing Vouchers; overlapping Accounting Periods; and the Company accounts-frozen date. It presents attention, evidence-stage and protection states separately, describes Accounting Period, frozen-date and Period Closing Voucher semantics accurately, and hands users to native records and core reports. It performs no posting, reconciliation, approval, lock, reopen or accounting certification, and an unevaluated stage never becomes complete.",
+      "next_gate": "Implement the configured close instance, ownership, dependencies, reconciliation/evidence records, maker-checker review, soft close, governed reopen/relock and immutable close packet; then deploy/migrate and pass two consecutive candidate-bound controlled closes, one normal and one with deliberate exceptions, under qualified accountant review."
+    },
+    {
+      "ids": ["KSA-01", "KSA-02", "KSA-03", "KSA-04"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Legal-identity readiness, VAT/rounding, credential-free ZATCA facade/onboarding, XML/QR, print and status foundations exist; the machine-validated Saudi ZATCA operations contract now fixes sixteen document states, standard-clearance versus simplified-reporting rules, credential controls, reconciliation and twelve evidence groups.",
+      "next_gate": "Complete controlled Sandbox and authorised-Production configured-company cycles, physical parity, warning/rejection/delay/duplicate recovery, idempotency, credential continuity, exact native-ledger reconciliation and qualified Saudi review."
+    },
+    {
+      "ids": ["KSA-05"],
+      "state": "planned",
+      "evidence": "Native return/corrective-document foundations and the validated ZATCA contract define original-to-note preservation and tax/payment/stock/GL/XML/output reconciliation; the Saudi correction/withholding product is not accepted.",
+      "next_gate": "Implement and accept full/partial paid/unpaid stock/non-stock credit/debit-note and supported withholding matrices under qualified Saudi tax/accounting review."
+    },
+    {
+      "ids": ["KSA-06", "KSA-07"],
+      "state": "planned",
+      "evidence": "A bounded, machine-validated Saudi PDPL operations/control contract exists, but the privacy workspace and combined compliance evidence centre are not promoted products.",
+      "next_gate": "Implement all twelve PDPL acceptance groups plus qualified reviewer ownership, evidence age, ZATCA/payroll/privacy exception aggregation and remediation workflows."
+    },
+    {
+      "ids": ["BI-01", "BI-05"],
+      "state": "planned",
+      "evidence": "The machine-validated decision-support contract defines seventeen metric fields, eight definition states, ten result states, native authority, custom-report governance, permissions and twelve evidence groups; no signed active metric or accepted custom-report lifecycle exists.",
+      "next_gate": "Implement signed definition review/version/retirement and a permission-safe request/author/review/test/publish/disable/recovery custom-report lifecycle; accept controlled normal and exception data."
+    },
+    {
+      "ids": ["BI-02", "BI-03", "BI-04"],
+      "state": "implemented-acceptance-incomplete",
+      "evidence": "Owner/role homes, work queues, KPI contracts, report catalogue, saved-view and workbench foundations exist; the validated decision-support contract fixes owner questions, role queues, exact context, drill-down, export/print/schedule parity and meaningful result states.",
+      "next_gate": "Reconcile promoted values and prove real role questions, discovery, next actions, permissions, zero/empty/stale/partial/denied/error/difference states, bilingual output and query/delivery load budgets."
+    },
+    {
+      "ids": ["HR-01", "HR-02", "HR-03", "HR-04", "HR-05"],
+      "state": "planned",
+      "evidence": "The detailed Saudi people/payroll contract and machine register now define roles, native authority, employee self-service, time/expense inputs, effective-dated rule packs, the ten-link contract-to-payment/GOSI/GL chain, government state integrity and twelve evidence groups; no Bunood V1 payroll product is accepted.",
+      "next_gate": "Implement from self-service through payroll and accept normal plus exception parallel cycles with contract-to-WPS/GOSI/payment/GL reconciliation, authentic external responses and qualified Saudi HR/payroll/legal/accounting review."
+    }
+  ]
+}
