@@ -519,6 +519,36 @@ function getSettings(fields) {
 	return JSON.parse(out.trim().split("\n").pop());
 }
 
+// Typed null cannot distinguish a missing Single row from SQL NULL. Preserve
+// both during final cleanup; normal test writes still use the canonical writer.
+function getSettingsRows(fields) {
+	const out = benchPy(
+		`fields = json.loads(${JSON.stringify(JSON.stringify(fields))})\n` +
+		`print(json.dumps(frappe.db.sql("SELECT field, value FROM tabSingles WHERE doctype=%s AND field IN %s ORDER BY field", ("Theme Settings", tuple(fields)))))\n`
+	);
+	return JSON.parse(out.trim().split("\n").pop());
+}
+
+function restoreSettingsRows(rows, typed) {
+	benchPy(
+		`rows = json.loads(${JSON.stringify(JSON.stringify(rows))})\n` +
+		`typed = json.loads(${JSON.stringify(JSON.stringify(typed))})\n` +
+		`fields = tuple(typed)\n` +
+		`assert len({r[0] for r in rows}) == len(rows) and all(r[0] in fields for r in rows)\n` +
+		`frappe.db.sql("DELETE FROM tabSingles WHERE doctype=%s AND field IN %s", ("Theme Settings", fields))\n` +
+		`for field, value in rows:\n` +
+		`    frappe.db.sql("INSERT INTO tabSingles (doctype, field, value) VALUES (%s, %s, %s)", ("Theme Settings", field, value))\n` +
+		`frappe.db.commit()\nfrappe.clear_cache()\n` +
+		`from bunood_theme.brand import write_brand_css\nwrite_brand_css()\n` +
+		`frappe.db.commit()\nfrappe.clear_cache()\nfrappe.get_cached_doc("Theme Settings")\n` +
+		`actual = [list(r) for r in frappe.db.sql("SELECT field, value FROM tabSingles WHERE doctype=%s AND field IN %s ORDER BY field", ("Theme Settings", fields))]\n` +
+		`assert actual == rows, "Raw settings restoration failed"\n` +
+		`s = frappe.get_single("Theme Settings")\n` +
+		`assert {f: s.get(f) for f in fields} == typed, "Typed settings restoration failed"\n` +
+		`print("Owned settings rows and typed values restored")\n`
+	);
+}
+
 /**
  * Write BRANDING fields through a real `doc.save()`, run `fn`, restore the same
  * way, and VERIFY the restore by read-back. Item 36's identity matrix runs on
@@ -1738,8 +1768,9 @@ async function main() {
 
 	// REAP STALE SESSIONS BEFORE MINTING ANOTHER.
 	//
-	// Every run mints a sid and never cleans up, and so does every ad-hoc probe.
-	// They accumulate in `tabSessions` for the life of the dev site, and a
+	// Older runs and ad-hoc probes left their minted sessions behind. This run
+	// removes only its own minted sid in finally; inherited stale sessions still
+	// accumulate in `tabSessions` for the life of the dev site, and a
 	// bloated session table slows desk boot until timing-sensitive assertions
 	// start failing — with ROTATING identity, because it is load rather than
 	// logic. That is why two runs of the same tree failed 23 checks each with
@@ -1762,6 +1793,7 @@ async function main() {
 
 	const sid = process.env.BND_SID || mintSid();
 	const snapshot = getSettings(MUTABLE_FIELDS);
+	const rawSnapshot = getSettingsRows(MUTABLE_FIELDS);
 	// Language is snapshotted like the settings are, and for the same reason —
 	// but it is FORCED to LANG_DEFAULT before the run rather than merely
 	// restored after. Restoring protects the operator; forcing protects the run.
@@ -3326,6 +3358,7 @@ async function main() {
 			try {
 				await page.waitForFunction(
 					() => document.querySelectorAll(".bnd-statusbar .bnd-status-seg:not([hidden])").length > 0,
+					null,
 					{ timeout: 20000 }
 				);
 			} catch (e) {
@@ -3399,8 +3432,16 @@ async function main() {
 
 		await test("status: collapses by rank on narrow viewports", async () => {
 			// Pinned as the check above: the clock is rank 3, and item 42 ships it Off.
-			setSettings({ status_style: "Always On", search_placement: "Bottom Bar Center", status_clock: "24 Hour", sidebar_pane_width: "3" });
+			setSettings({ desk_layout: "Top Taskbar", status_style: "Always On", search_placement: "Bottom Bar Center", status_clock: "24 Hour", sidebar_pane_width: "3", status_segments_jobs: 1, status_segments_scheduler: 1 });
 			await goDesk("/desk/item", ".page-head", 4500);
+			try {
+			// Both live ranks start hidden until the native poll returns. A fixed
+			// settle sampled only the clock ([3]) on the loaded acceptance stack.
+			// Require the actual signals before testing CSS; unavailable data fails.
+			await page.waitForFunction(() => ["jobs", "scheduler"].every((id) => {
+				const node = document.querySelector(`.bnd-statusbar .bnd-status-seg[data-seg="${id}"]`);
+				return node && !node.hidden && node.textContent.trim() && getComputedStyle(node).display !== "none";
+			}), null, { timeout: 20000 });
 			const visiblePrios = async () =>
 				page.evaluate(() =>
 					[...document.querySelectorAll(".bnd-statusbar [data-bnd-prio]")]
@@ -3426,7 +3467,10 @@ async function main() {
 				narrow.every((p) => p >= Math.min(...wide)) && Math.max(...narrow) >= 5,
 				`signal ranks survive (${JSON.stringify(narrow)})`
 			);
-			setSettings({ search_placement: "Top Bar Center", status_style: "Quiet" });
+			} finally {
+				await page.setViewportSize({ width: 1920, height: 1080 });
+				setSettings({ search_placement: "Top Bar Center", status_style: "Quiet" });
+			}
 		});
 
 		// ── Bottom reserve: content never hides under the fixed chrome ─────
@@ -4079,15 +4123,31 @@ async function main() {
 			await page.evaluate(() => window.cur_frm.reload_doc());
 			await page.waitForTimeout(1500);
 			for (const round of [1, 2]) {
-				await page.evaluate(() => window.cur_frm.set_value("tagline", "smoke-" + Date.now()));
+				const intended = `smoke-${Date.now()}-${round}`;
+				await page.evaluate((value) => window.cur_frm.set_value("tagline", value), intended);
 				await page.keyboard.press("Control+s");
-				await page.waitForTimeout(3000);
+				// Saving and brand-sheet regeneration are asynchronous. A fixed
+				// three-second sample failed in the full run while an isolated
+				// native probe persisted both rounds. Wait for this exact save,
+				// within a budget, and still report a genuine conflict on timeout.
+				let saved = true;
+				try {
+					await page.waitForFunction(
+						(value) => !window.cur_frm.is_dirty() && !frappe.ui.form.is_saving && window.cur_frm.doc.tagline === value,
+						intended,
+						{ timeout: 15000 }
+					);
+				} catch {
+					saved = false;
+				}
 				const err = await page.evaluate(() => {
 					const modal = document.querySelector(".modal.show .modal-body");
 					return modal ? modal.textContent.slice(0, 120) : "";
 				});
 				expect(!/modified after/i.test(err), `round ${round} conflict dialog: ${err}`);
-				expect(!(await page.evaluate(() => window.cur_frm.is_dirty())), `round ${round} saved`);
+				expect(saved, `round ${round} saved within the budget`);
+				const stored = JSON.parse(benchPy('print(json.dumps(frappe.db.get_single_value("Theme Settings", "tagline")))\n').trim().split("\n").pop());
+				expectEq(stored, intended, `round ${round} persisted the intended tagline`);
 			}
 		});
 
@@ -4138,7 +4198,7 @@ async function main() {
 			// after exactly three seconds".
 			let saved = true;
 			try {
-				await page.waitForFunction(() => !window.cur_frm.is_dirty(), { timeout: 15000 });
+				await page.waitForFunction(() => !window.cur_frm.is_dirty(), null, { timeout: 15000 });
 			} catch (e) {
 				saved = false;
 			}
@@ -25491,10 +25551,19 @@ print('BND_DEF' + json.dumps(res))
 		});
 	} finally {
 		// Always restore the site to its pre-suite configuration.
+		let restorationError;
 		try {
 			setSettings(snapshot);
 		} catch (e) {
+			restorationError = e;
 			console.error("WARNING: settings restore failed — check Theme Settings manually.", e.message);
+		}
+		// Exact restoration must still run if the normal writer failed midway.
+		try {
+			restoreSettingsRows(rawSnapshot, snapshot);
+		} catch (e) {
+			restorationError ??= e;
+			console.error("WARNING: exact settings restore failed — check Theme Settings manually.", e.message);
 		}
 		// Separately try/caught: a failed SETTINGS restore must not skip the
 		// LANGUAGE restore. Leaving the site in Arabic is the more confusing of
@@ -25503,9 +25572,26 @@ print('BND_DEF' + json.dumps(res))
 		try {
 			setLang(langSnapshot);
 		} catch (e) {
+			restorationError ??= e;
 			console.error("WARNING: language restore failed — check System Settings manually.", e.message);
 		}
-		await browser.close();
+		try {
+			await browser.close();
+		} finally {
+			// A supplied SID belongs to the caller. Clean up only the session this
+			// run minted, through Frappe's native session lifecycle, even if closing
+			// the browser fails. A close error still makes the run fail.
+			if (!process.env.BND_SID) {
+				const remaining = JSON.parse(benchPy(
+					`from frappe.sessions import delete_session\n` +
+					`delete_session(${JSON.stringify(sid)}, user="Administrator", reason="Owned smoke run complete")\n` +
+					`frappe.db.commit()\n` +
+					`print(json.dumps(frappe.db.sql("SELECT COUNT(*) FROM tabSessions WHERE sid=%s", (${JSON.stringify(sid)},))[0][0]))\n`
+				).trim().split("\n").pop());
+				if (remaining !== 0) throw new Error("Owned smoke session cleanup failed");
+			}
+		}
+		if (restorationError) throw restorationError;
 	}
 
 	const failed = results.filter((r) => !r.ok);
