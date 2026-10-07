@@ -15699,3 +15699,88 @@ msgstr "تابع عروض الأسعار وأوامر البيع والتسلي�
 #, fuzzy
 msgid "No records to show"
 msgstr "لا توجد سجلات للعرض"
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Original invoice"
+msgstr "الفاتورة الأصلية"
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Returned items"
+msgstr "الأصناف المرتجعة"
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Credit and refund"
+msgstr "الإشعار الدائن ورد المبلغ"
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Review the invoice being returned and any amendment reference."
+msgstr "راجع الفاتورة المرتجعة ومرجع التعديل إن وجد."
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Keep the customer and currency connected to the original invoice."
+msgstr "حافظ على ارتباط العميل والعملة بالفاتورة الأصلية."
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Review the quantities and warehouses in the original item controls."
+msgstr "راجع الكميات والمستودعات في حقول الأصناف الأصلية."
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Taxes and credit"
+msgstr "الضرائب والإشعار الدائن"
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "ERPNext calculates the credit from the returned items and taxes."
+msgstr "يحسب النظام قيمة الإشعار الدائن من الأصناف المرتجعة والضرائب."
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "A credit note does not by itself confirm that a customer refund was paid."
+msgstr "الإشعار الدائن وحده لا يؤكد دفع المبلغ المسترد للعميل."
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Review the native accounting and supporting details."
+msgstr "راجع التفاصيل المحاسبية والبيانات الداعمة."
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Sales return / Credit note"
+msgstr "مرتجع مبيعات / إشعار دائن"
+
+#. src: sales return, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Customer refund"
+msgstr "رد مبلغ للعميل"
+
+#. src: sales journey catalogue coverage, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Return / Credit Note"
+msgstr "مرتجع / إشعار دائن"
+
+#. src: sales journey catalogue coverage, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Amend"
+msgstr "تعديل"
+
+#. src: sales journey catalogue coverage, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Drafts"
+msgstr "المسودات"
+
+#. src: sales journey catalogue coverage, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Previous"
+msgstr "السابق"
+
+#. src: sales journey catalogue coverage, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Next"
+msgstr "التالي"

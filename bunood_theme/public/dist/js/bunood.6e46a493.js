@@ -10364,11 +10364,8 @@
 	api.document_actions = { actionState, canSaveAndSubmit, saveAndSubmit, submitWithoutConfirmation, decorateAction, documentState, permitted };
 })();
 
-// Bunood Bill Workbench: the default full-page presentation of the CURRENT
-// native Sales/Purchase Invoice. Advanced mode reveals the same frm.doc.
-// No separate document, calculation engine, ledger, or persisted state.
-// Payment orchestration delegates to ERPNext's native mapper and controllers.
-// Native controls + model triggers own all changes. See docs/QUICK-BILL.md.
+// Bunood's current native invoice; controls and ERPNext own all mutations.
+// Advanced mode keeps the same frm.doc. See docs/QUICK-BILL.md.
 /* global frappe, __, $ */
 (() => {
 	"use strict";
@@ -10384,7 +10381,7 @@
 			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
 			paymentMethod: "bunood_settlement_method",
 			lineFields: ["qty", "rate", "price_list_rate", "discount_amount", "warehouse"],
-			context: ["tax_id", "company", "posting_date", "due_date", "currency", "selling_price_list", "set_warehouse"],
+			context: ["tax_id", "company", "posting_date", "due_date", "currency", "selling_price_list", "set_warehouse", "amended_from"],
 			options: ["posting_date", "due_date", "update_stock", "set_warehouse", "currency", "selling_price_list", "payment_terms_template", "po_no"],
 		},
 		"Purchase Invoice": {
@@ -10702,8 +10699,9 @@
 	function supports(frm) {
 		const d = frm?.doc;
 		const p = profileFor(frm);
-		return !!(d && p && [0, 1].includes(Number(d.docstatus)) && !d.is_return && !d.is_pos &&
-			!d.is_debit_note && !d.is_credit_note && !d.amended_from &&
+		return !!(d && p && [0, 1, 2].includes(Number(d.docstatus)) && !d.is_return && !d.is_pos &&
+			!d.is_debit_note && !d.is_credit_note &&
+			(frm.doctype === "Sales Invoice" || (!d.amended_from && Number(d.docstatus) < 2)) &&
 			fieldStatus(frm, p.party) !== "None" && frm.fields_dict.items?.grid);
 	}
 	function eligible(frm) {

@@ -675,10 +675,26 @@ function form(extra = {}) {
     perm: [{ write: 1, create: 1 }], save_disabled: false,
     fields_dict: { customer: { get_status: () => 'Write' }, items: { get_status: () => 'Write', grid: { is_editable: () => true, df: {} } } } };
 }
+
+test('sales cancellation remains an owned read-only bill and ordinary amendments retain editable native controls', () => {
+  const api=context.window.bunood_theme.sales_bill;
+  const cancelled=form({docstatus:2});
+  cancelled.fields_dict.customer.get_status=()=> 'Read';
+  cancelled.fields_dict.items.grid.is_editable=()=>false;
+  assert.equal(api.supports(cancelled),true);
+  assert.equal(api.eligible(cancelled),false);
+  assert.equal(api.supports(form({amended_from:'INV-CANCELLED'})),true);
+  assert.equal(api.eligible(form({amended_from:'INV-CANCELLED'})),true);
+  for(const extra of [{is_return:1},{is_pos:1},{is_credit_note:1},{is_debit_note:1}])assert.equal(api.supports(form({...extra,docstatus:2})),false);
+  for(const extra of [{docstatus:2},{amended_from:'PINV'}]){
+    const purchase=form(extra);purchase.doctype='Purchase Invoice';purchase.fields_dict.supplier=purchase.fields_dict.customer;
+    assert.equal(api.supports(purchase),false);
+  }
+});
 test('quick bill supports mapped rows while excluding posted, return, POS and restricted invoices', () => {
   assert.equal(eligible(form()), true);
   assert.equal(eligible(form({items:[{item_code:'ITEM-1',sales_order:'SO-1',so_detail:'SO-ITEM-1'}]})), true);
-  for (const extra of [{docstatus:1},{is_return:1},{is_pos:1},{amended_from:'INV'},{is_debit_note:1}]) assert.equal(eligible(form(extra)), false);
+  for (const extra of [{docstatus:1},{is_return:1},{is_pos:1},{is_debit_note:1}]) assert.equal(eligible(form(extra)), false);
   const restricted = form(); restricted.fields_dict.items.grid.is_editable = () => false;
   assert.equal(eligible(restricted), false);
   const disabled = form(); disabled.save_disabled = true;
