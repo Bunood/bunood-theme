@@ -1,20 +1,5 @@
 /* global frappe, __ */
-frappe.pages["bnd-home"].on_page_show = function () {
-    if (!frappe.boot.workspace_sidebar_item?.["bunood home"]) return;
-    // The native root route has no Page entity for sidebar resolution. Its
-    // router change follows a preloaded Page's show event and consumes options.
-    if (!frappe.route_options?.sidebar) {
-        const options = frappe.route_options = { ...frappe.route_options, sidebar: "Bunood Home" };
-        queueMicrotask(() => {
-            // An asynchronously loaded Page may show after that router event.
-            // Never carry our unconsumed association into a different route.
-            if (frappe.route_options !== options || options.sidebar !== "Bunood Home") return;
-            delete options.sidebar;
-            if (!Object.keys(options).length) frappe.route_options = null;
-        });
-    }
-    frappe.app.sidebar.setup(frappe.route_options.sidebar);
-};
+frappe.pages["bnd-home"].on_page_show = () => window.bunood_theme?.select_home_sidebar?.();
 frappe.pages["bnd-home"].on_page_load = function (wrapper) {
     const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Bunood Home"), single_column: true });
     const host = document.createElement("div");

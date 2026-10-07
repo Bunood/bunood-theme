@@ -15,6 +15,13 @@
 /* eslint-env browser */
 /* global frappe, __ */
 
+frappe.pages["bnd-report-studio"].on_page_show = () => {
+    const route = frappe.get_route?.().join("/");
+    queueMicrotask(() => {
+        if (route === frappe.get_route?.().join("/")) window.bunood_theme?.select_home_sidebar?.();
+    });
+};
+
 frappe.pages["bnd-report-studio"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
@@ -91,6 +98,7 @@ frappe.pages["bnd-report-studio"].on_page_load = function (wrapper) {
 				throw new Error("Report Studio renderer is unavailable");
 			}
 			api.report_studio_render(container, page);
+			api.select_home_sidebar?.();
 		})
 		.catch((error) => {
 			console.error("Report Studio asset load failed", error);

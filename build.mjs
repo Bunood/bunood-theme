@@ -2286,7 +2286,7 @@ const JS_ENTRIES = [
 // with the global desk entry, concatenated in this order after bunood.js:
 // list_presets.js (native list quick-filter queues) and document_actions.js
 // (the shared native-form action contract), invoice/task controllers and reports.
-const DESK_JS_SOURCES = ["bunood.js", "list_presets.js", "document_actions.js", "sales_bill.js", "simple_forms.js", "report_workbench.js"];
+const DESK_JS_SOURCES = ["bunood.js", "page_sidebar.js", "list_presets.js", "document_actions.js", "sales_bill.js", "simple_forms.js", "report_workbench.js"];
 
 async function readDeskJs() {
 	return (await Promise.all(DESK_JS_SOURCES.map(src => readFile(join(JS, src), "utf8"))))
