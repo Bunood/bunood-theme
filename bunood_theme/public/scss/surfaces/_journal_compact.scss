@@ -2,7 +2,8 @@
 
 // Journal entries are a ledger task: one action bar, context, balance, then rows.
 // Scope every override so the other transaction workbenches remain unchanged.
-html.bunood[data-theme] {
+// Original appearance removes html.bunood; owned workbench geometry still applies.
+html[data-theme] {
   .bnd-journal-actions {
     color: var(--bnd-on-brand);
     background: var(--pilot-deep, var(--bnd-brand-solid));
@@ -72,14 +73,14 @@ html.bunood[data-theme] {
   }
 }
 @include bp.bnd-until(md) {
-  html.bunood[data-theme] .bnd-journal-actions {
+  html[data-theme] .bnd-journal-actions {
     flex-wrap: wrap;
     .bnd-simple-actions-identity { flex-basis: 100%; }
     .bnd-simple-switch { margin-inline-start: auto; }
   }
 }
 @include bp.bnd-until(sm) {
-  html.bunood[data-theme] {
+  html[data-theme] {
     .bnd-journal-actions { position: static; }
     .bnd-task-journal .bnd-task-panel-voucher > .bnd-task-panel-fields,
     .bnd-task-journal .bnd-journal-references[open] > .bnd-task-panel-fields { grid-template-columns: 1fr; }

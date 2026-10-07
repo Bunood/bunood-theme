@@ -6,7 +6,7 @@
 	"description": "Build tooling for the Bunood Theme Frappe app. Compiles SCSS to a content-hashed CSS bundle and codegens bunood_theme/assets.py. See ARCHITECTURE.md section 7 for why the build runs on the host rather than via bench build.",
 	"scripts": {
 		"build": "npm run interface:test && node build.mjs",
-		"interface:test": "node --test tests/form-ownership.test.cjs tests/simple_forms.test.cjs tests/simple-forms-team-parity.test.cjs tests/home-navigation.test.cjs tests/home-page-route.test.cjs tests/finance-close.test.cjs tests/sales-journey.test.cjs tests/sales-center-page.test.cjs tests/sales-invoice-journey.test.cjs tests/sales_bill.test.cjs tests/sales-return-workbench.test.cjs",
+		"interface:test": "node --test tests/form-ownership.test.cjs tests/simple_forms.test.cjs tests/simple-forms-team-parity.test.cjs tests/home-navigation.test.cjs tests/home-page-route.test.cjs tests/finance-close.test.cjs tests/sales-journey.test.cjs tests/sales-center-page.test.cjs tests/sales-invoice-journey.test.cjs tests/sales_bill.test.cjs tests/sales-return-workbench.test.cjs tests/journal-original-layout.test.cjs",
 		"watch": "node --watch-path=./bunood_theme/public/scss build.mjs",
 		"test": "node tests/smoke.mjs",
 		"verify": "node tools/verify.mjs",
