@@ -84,6 +84,7 @@ const BASE_TOKENS = readBaseTokens(readFileSync(join(SCSS, "_tokens.scss"), "utf
  * `pyid` — the constant written into assets.py
  */
 const ENTRIES = [
+	{ key: "bnd-home", src: "home.scss", pyid: "HOME_CSS" },
 	{ key: "bunood", src: "bunood.scss", pyid: "THEME_CSS" },
 	// The web/login sheet is deliberately separate: the login page is a WEBSITE
 	// page, gets `web_include_css` rather than `app_include_css`, and Frappe's own
@@ -2263,6 +2264,7 @@ async function buildEntry({ key, src, pyid }) {
  * grows enough to want imports, add esbuild THEN, not preemptively.
  */
 const JS_ENTRIES = [
+	{ key: "bnd-home", src: "home.js", pyid: "HOME_JS" },
 	{ key: "bunood", src: "bunood.js", pyid: "THEME_JS" },
 	// The Report Studio engine, returning from the preserved studio-zatca line
 	// (HANDOVER: "the Report Studio stays on the branch"). A SECOND entry, not a

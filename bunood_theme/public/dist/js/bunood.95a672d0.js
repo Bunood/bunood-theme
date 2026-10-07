@@ -1083,28 +1083,10 @@
 	// ════════════════════════════════════════════════════════════════════════
 	// Ownership stamps
 	// ════════════════════════════════════════════════════════════════════════
-	//
-	// THE POLARITY OF EVERY NATIVE-HIDING RULE.
-	//
-	// The old rule was: the LAYOUT declares it will replace the sidebar's bell,
-	// so CSS hides that bell at first paint from `data-bnd-desk`. What
-	// actually mounts is decided later, in the DOM, by code that can fail —
-	// mount_topbar bails if Frappe rendered no <header>, and the Bottom Bar
-	// strip refused to mount at all when the status style was "Off". When the
-	// declaration removes the native and the replacement never arrives, the
-	// affordance is DELETED, not degraded: a desk with no notifications and no
-	// way to log out. That is the shape of every bug this area has produced.
-	//
-	// The new rule inverts it: natives stay visible until our replacement is
-	// STAMPED PRESENT. `bnd_own("bell")` is called after the node is in the
-	// DOM, and the CSS keys on `html[data-bnd-own~="bell"]`. There is no
-	// release path to write, because release is the default state — a mount
-	// that fails leaves the stock desk, which is this app's declared failure
-	// contract (see the head of chrome/_layouts.scss).
-	//
-	// The flash cost is nil: every native row this touches is built by
-	// Frappe's own JS after the splash, and a brief window showing both is
-	// strictly better than a window showing neither.
+	// Keep native affordances until their replacements are mounted and visible.
+	// Claim after mounting; CSS hides only under html[data-bnd-own~="token"].
+	// Failed mounts leave native UI intact; disown restores native control.
+	// See chrome/_layouts.scss for the failure contract.
 
 	/** Claim an affordance: our replacement for it is mounted and visible. */
 	function bnd_own(token) {
@@ -1180,6 +1162,25 @@
 		if (owned.size) html.setAttribute("data-bnd-own", [...owned].join(" "));
 		else html.removeAttribute("data-bnd-own");
 	}
+	// Native form ownership bridge. Claim only a visible replacement on the current Form.
+	const formOwners = { __proto__: null, simpleform: [".bnd-generic-simple", ".bnd-simple-actions:not([hidden])"], salesbill: [".bnd-bill-simple-active", ".bnd-bill:not([hidden])"] };
+	bunood.claim_native = token => {
+		const spec = typeof token === "string" && formOwners[token], frm = window.cur_frm, wrapper = frm?.$wrapper?.[0], route = frappe.get_route();
+		if (!spec) return;
+		if (route[0] === "Form" && route[1] === frm?.doctype && route[2] === frm?.doc?.name && wrapper?.isConnected && wrapper.matches(spec[0]) && wrapper.querySelector(spec[1])?.getClientRects().length) bnd_own(token);
+		else bnd_disown(token);
+	};
+	bunood.release_native = token => { if (typeof token === "string" && formOwners[token]) bnd_disown(token); };
+	// Ownership is local to the visible Form, even when Frappe caches its DOM.
+	if (frappe.router?.on) frappe.router.on("change", () => {
+		for (const token of Object.keys(formOwners)) bnd_disown(token);
+		// Native cached Forms can render before this event. Re-evaluate only
+		// their current, mounted, visible replacement; Advanced stays native.
+		requestAnimationFrame(() => {
+			for (const token of Object.keys(formOwners)) bunood.claim_native(token);
+		});
+	});
+	// End native form ownership bridge.
 
 	// ════════════════════════════════════════════════════════════════════════
 	// Sidebar style kit (item 10) — attribute application
@@ -10522,7 +10523,7 @@
 	}
 	function taxLabel(doc, fallback = __("Taxes and charges")) {
 		const rows = (doc?.taxes || []).filter(row => row?.account_head || row?.description || row?.rate != null);
-		const vatRows = rows.filter(row => /\bvat\b|value added|ط¶ط±ظٹط¨ط©/i.test(`${row.description || ""} ${row.account_head || ""}`));
+		const vatRows = rows.filter(row => /\bvat\b|value added|ضريبة/i.test(`${row.description || ""} ${row.account_head || ""}`));
 		if (!rows.length || vatRows.length === rows.length) {
 			const rates = [...new Set(vatRows.map(row => Number(row.rate)).filter(Number.isFinite))];
 			return rates.length === 1 ? `${__("VAT")} (${rates[0]}%)` : __("VAT");
@@ -10533,7 +10534,7 @@
 		return name === "net_total" || name === "total_taxes_and_charges" || !!doc?.[name];
 	}
 	const RATE_BASED_CHARGE_TYPES = new Set(["On Net Total", "On Previous Row Amount", "On Previous Row Total", "On Item Quantity"]);
-	const isVatRow = row => /\bvat\b|value added|ط¶ط±ظٹط¨ط©/i.test(`${row?.description || ""} ${row?.account_head || ""}`);
+	const isVatRow = row => /\bvat\b|value added|ضريبة/i.test(`${row?.description || ""} ${row?.account_head || ""}`);
 	const VAT_STANDARD = "standard";
 	const VAT_INCLUDED = "included";
 	const VAT_EXEMPT = "exempt";
@@ -11192,7 +11193,7 @@
 			this.customerTab.setAttribute("role", "tab");
 			this.previewTab = button(__("Preview"), railTabs, () => this.selectRailTab("preview"));
 			this.previewTab.setAttribute("role", "tab");
-			this.railClose = button("أ—", railHead, () => this.toggleRail(false));
+			this.railClose = button("×", railHead, () => this.toggleRail(false));
 			this.railClose.classList.add("bnd-bill-rail-close");
 			this.railClose.setAttribute("aria-label", __("Close customer and preview panel"));
 			this.customerSummary = node("section", "bnd-bill-customer-summary", null, this.rail);
@@ -11551,7 +11552,7 @@
 					});
 				}
 			}
-			control.$input?.attr("aria-label", rowField ? `${__(source.df.label)} آ· ${doc.item_code || __("New line")}` : __(source.df.label));
+			control.$input?.attr("aria-label", rowField ? `${__(source.df.label)} · ${doc.item_code || __("New line")}` : __(source.df.label));
 			if (this.invalid.has(key)) {
 				this.renderControl(control, key, true);
 			}
@@ -11942,7 +11943,7 @@
 			const operational = ["ready", "preparing", "ready_to_send", "accepted", "accepted_with_warnings", "duplicate_response", "rejected", "clearance_off"].includes(state);
 			const technical = (frappe.boot?.user?.roles || []).some(role => ["Accounts Manager", "System Manager"].includes(role));
 			this.zatcaMeta.textContent = operational ?
-				[technical && settings.server, technical && settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" آ· ") : "";
+				[technical && settings.server, technical && settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
 			let label = "";
 			if (["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"].includes(state)) label = __("ZATCA settings");
 			else if (state === "preparing") label = __("Refresh status");
@@ -12076,7 +12077,7 @@
 			this.stateBadge.textContent = __(documentState.label);
 			this.stateBadge.dataset.tone = documentState.tone;
 			this.root.dataset.documentState = documentState.tone;
-			this.documentState.textContent = [doc.__islocal ? __("New") : doc.name, doc.__islocal || frm.is_dirty() ? __("Not Saved") : ""].filter(Boolean).join(" آ· ");
+			this.documentState.textContent = [doc.__islocal ? __("New") : doc.name, doc.__islocal || frm.is_dirty() ? __("Not Saved") : ""].filter(Boolean).join(" · ");
 			if (this.invoiceNumberValue) this.invoiceNumberValue.textContent = doc.__islocal ? __("Assigned after saving") : doc.name;
 			this.context.replaceChildren();
 			for (const name of this.profile.context) {
@@ -12159,7 +12160,7 @@
 				view.info.dataset.itemReady = String(!!row.item_code);
 				view.itemName.hidden = !row.item_code;
 				view.itemName.textContent = row.item_name || row.item_code || "";
-				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" آ· ");
+				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" · ");
 				view.toggle.setAttribute("aria-label", `${__("Item")} ${position}: ${row.item_name || row.item_code || __("New line")}`);
 				amount.replaceChildren();
 				view.toggleAmount.replaceChildren();
@@ -12173,7 +12174,7 @@
 					view.remove = button(__("Remove"), view.actions, () => this.removeItem(row));
 					view.remove.classList.add("bnd-bill-line-remove");
 				}
-				view.remove.setAttribute("aria-label", `${__("Remove")} آ· ${row.item_code || __("New line")}`);
+				view.remove.setAttribute("aria-label", `${__("Remove")} · ${row.item_code || __("New line")}`);
 				view.remove.hidden = !canRemove(frm);
 			}
 			if (rows.length) this.setExpandedLine(this.mobileExpanded);
@@ -12810,11 +12811,11 @@
 		return ["Stock Entry", "Delivery Note"].includes(doctype) || !!TASK_WORKBENCHES[doctype] || !!COMPOSITIONS[doctype];
 	}
 	function candidate(frm) {
-		const allowed = new Set(["Quotation", "Sales Order", "Delivery Note", "Purchase Order", "Purchase Receipt", "Material Request", "Payment Entry", "Journal Entry", "Customer", "Supplier", "Item"]);
-		if (!allowed.has(frm?.doctype)) return false;
 		const meta = frm?.meta;
 		if (!frm?.doc || !meta || meta.istable || meta.issingle || EXCLUDED_MODULES.has(meta.module)) return false;
 		// Invoices use their purpose-built workbench; exceptional variants stay native.
+		// The complete workbench registry owns eligibility; a second allowlist hid
+		// integrated stock, property and POS interfaces despite their being ready.
 		// An unsupported document stays fully native until it receives a complete
 		// workbench. A field-filtered native form is not a finished Simple page.
 		return !["Sales Invoice", "Purchase Invoice"].includes(frm.doctype) && hasPurposeWorkbench(frm.doctype);
@@ -12963,6 +12964,7 @@
 				this.move(name, this.requiredFields); required++;
 			}
 			this.required.hidden = !required;
+			if (required) this.required.open = true;
 			const currency = this.frm.doc.currency || this.frm.doc.company_currency;
 			for (const metric of this.metricNodes) metric.node.innerHTML = this.format(
 				this.frm.doc[metric.fieldname], metric.fieldname, metric.type, currency
@@ -13034,7 +13036,7 @@
 				this.metric(__("Outgoing"), "0.00"), this.metric(__("Incoming"), "0.00"), this.metric(__("Difference"), "0.00"),
 			];
 		}
-		refresh(active) {
+		refresh(active, selected) {
 			this.root.hidden = !active;
 			if (!active) { this.restore(); return; }
 			this.move("stock_entry_type", this.movement.fields);
@@ -13043,6 +13045,12 @@
 			this.move("to_warehouse", this.route.fields);
 			this.move("items", this.items.fields);
 			for (const fieldname of ["company", "posting_date", "posting_time"]) this.move(fieldname, this.detailFields);
+			// Native mandatory extensions must remain reachable before the first save.
+			// Their original controls keep validation, field permissions and handlers.
+			const profile = new Set(PROFILES["Stock Entry"]);
+			for (const fieldname of selected || []) if (!profile.has(fieldname)) {
+				this.move(fieldname, this.detailFields); this.details.open = true;
+			}
 			const purpose = String(this.frm.doc.purpose || "").toLowerCase();
 			this.route.card.dataset.movement = purpose.includes("receipt") ? "receipt" : purpose.includes("issue") ? "issue" : "transfer";
 			this.metricNodes[0].innerHTML = this.format(this.frm.doc.total_outgoing_value, "total_outgoing_value");
@@ -13117,6 +13125,7 @@
 			this.toolsTrigger.setAttribute("role", "button");
 			this.toolsTrigger.setAttribute("aria-haspopup", "true");
 			this.menu = create("div", "bnd-simple-tools-menu", null, this.tools);
+			create("input", "bnd-simple-help", null, create("label", "", __("Show field guidance"), this.menu)).type = "checkbox";
 			this.menu.id = `bnd-simple-actions-${Math.random().toString(36).slice(2)}`;
 			this.toolsTrigger.setAttribute("aria-controls", this.menu.id);
 			this.toolsTrigger.setAttribute("aria-expanded", "false");
@@ -13246,8 +13255,6 @@
 			this.cancelButton.hidden = !state.showCancel;
 			if (this.printButton.parentNode !== this.primaryActions) this.primaryActions.append(this.printButton);
 			this.printButton.classList.toggle("bnd-bill-primary", state.primary === "print");
-			this.tools.hidden = ![this.draftButton, this.newButton, this.mobilePrintButton, this.duplicateButton, this.deleteButton, this.cancelButton]
-				.some(button => !button.hidden && button.parentNode === this.menu);
 		}
 		setMode(simple) {
 			const active = document.activeElement;

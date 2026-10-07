@@ -15,6 +15,7 @@ fake_frappe.utils.getdate = lambda value: value if isinstance(value, date) else 
 fake_frappe.utils.date_diff = lambda end, start: (fake_frappe.utils.getdate(end) - fake_frappe.utils.getdate(start)).days
 fake_frappe.utils.nowdate = lambda: "2026-09-20"
 fake_frappe.utils.now_datetime = lambda: "2026-09-20 12:00:00"
+fake_frappe.utils.flt = lambda value: float(value or 0)
 fake_frappe._ = lambda value: value
 fake_package = types.ModuleType("bunood_theme")
 fake_package.__path__ = [str(Path(__file__).parents[1] / "bunood_theme")]
@@ -59,7 +60,15 @@ class FinanceCloseTests(unittest.TestCase):
             name="Bunood Development",
         )
         self.calls = []
+        self.model = types.ModuleType("frappe.model")
+        self.model.get_permitted_fields = lambda *_args, **_kwargs: [
+            "name", "company", "docstatus", "posting_date", "modified", "disabled",
+            "start_date", "end_date", "exempted_role", "period_start_date", "period_end_date",
+            "closing_account_head", "gle_processing_status", "default_currency",
+            "default_finance_book", "accounts_frozen_till_date",
+        ]
         self.common = (
+            patch.dict(sys.modules, {"frappe.model": self.model}),
             patch.object(finance_close.frappe, "db", Database(), create=True),
             patch.object(finance_close.frappe, "has_permission", lambda *_args: True, create=True),
             patch.object(finance_close.frappe, "get_doc", lambda *_args: self.company, create=True),
@@ -78,6 +87,13 @@ class FinanceCloseTests(unittest.TestCase):
         for item in reversed(self.common):
             item.stop()
 
+    def native_query(self, query):
+        def reader(doctype, **kwargs):
+            if doctype == "Company":
+                return [{"name": self.company.name, **self.company}]
+            return query(doctype, **kwargs)
+        return reader
+
     def test_drafts_and_failed_native_voucher_are_attention_not_close_state(self):
         def get_list(doctype, **kwargs):
             self.calls.append((doctype, kwargs))
@@ -92,10 +108,11 @@ class FinanceCloseTests(unittest.TestCase):
                     "period_start_date": "2026-09-01",
                     "period_end_date": "2026-09-30",
                     "gle_processing_status": "Failed",
+                    "closing_account_head": "Retained Earnings", "modified": "2026-09-20",
                 }]
             return []
 
-        with patch.object(finance_close.frappe, "get_list", get_list, create=True):
+        with patch.object(finance_close.frappe, "get_list", self.native_query(get_list), create=True):
             result = finance_close.get_finance_close_cockpit(
                 "Bunood Development", "2026-09-01", "2026-09-20"
             )
@@ -106,7 +123,7 @@ class FinanceCloseTests(unittest.TestCase):
         self.assertEqual(result["summary"]["submitted_closing_voucher_count"], 1)
         self.assertNotIn("complete", repr(result).lower())
         self.assertNotIn("approved", repr(result).lower())
-        self.assertTrue(all(call[1].get("limit") in (0, 20) for call in self.calls))
+        self.assertTrue(all(call[1].get("limit") == 10001 for call in self.calls))
 
     def test_native_period_and_freeze_are_observations_not_accounting_acceptance(self):
         self.company["accounts_frozen_till_date"] = "2026-09-30"
@@ -118,10 +135,11 @@ class FinanceCloseTests(unittest.TestCase):
                     "start_date": "2026-09-01",
                     "end_date": "2026-09-30",
                     "exempted_role": "Accounts Manager",
+                    "modified": "2026-09-20",
                 }]
             return []
 
-        with patch.object(finance_close.frappe, "get_list", get_list, create=True):
+        with patch.object(finance_close.frappe, "get_list", self.native_query(get_list), create=True):
             result = finance_close.get_finance_close_cockpit(
                 "Bunood Development", "2026-09-01", "2026-09-20"
             )
@@ -141,10 +159,11 @@ class FinanceCloseTests(unittest.TestCase):
                     "period_start_date": "2026-09-01",
                     "period_end_date": "2026-09-30",
                     "gle_processing_status": "Completed",
+                    "closing_account_head": "Retained Earnings", "modified": "2026-09-20",
                 }]
             return []
 
-        with patch.object(finance_close.frappe, "get_list", get_list, create=True):
+        with patch.object(finance_close.frappe, "get_list", self.native_query(get_list), create=True):
             result = finance_close.get_finance_close_cockpit(
                 "Bunood Development", "2026-09-01", "2026-09-20"
             )
@@ -159,12 +178,14 @@ class FinanceCloseTests(unittest.TestCase):
                 raise ValueError("database stood down")
             return []
 
-        with patch.object(finance_close.frappe, "get_list", get_list, create=True):
+        with patch.object(finance_close.frappe, "get_list", self.native_query(get_list), create=True):
             result = finance_close.get_finance_close_cockpit(
                 "Bunood Development", "2026-09-01", "2026-09-20"
             )
         self.assertEqual(result["state"], "incomplete-evidence")
         self.assertEqual(result["query_errors"], ["Payment Entry"])
+        self.assertIsNone(result["draft_counts"]["Payment Entry"])
+        self.assertIsNone(result["summary"]["draft_source_count"])
 
         with self.assertRaisesRegex(RuntimeError, "Maximum close review period"):
             finance_close.get_finance_close_cockpit(

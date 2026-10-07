@@ -938,6 +938,23 @@ test('changing VAT treatment clears stale item tax overrides before native recal
   assert.ok(dirty>=2);
   assert.ok(refreshes.includes('taxes'));
 });
+test('Arabic VAT labels and inclusive rows work for sales and purchase invoices', async () => {
+  const profiles = {standard:{template:'VAT 15%',rate:15}};
+  for (const [doctype, description] of [['Sales Taxes and Charges','ضريبة المخرجات'],['Purchase Taxes and Charges','ضريبة المدخلات']]) {
+    const vat={doctype,name:'AR-VAT',description,rate:15,included_in_print_rate:0};
+    const shipping={doctype,name:'SHIPPING',description:'Shipping',rate:5,included_in_print_rate:0};
+    assert.equal(taxLabel({taxes:[vat]}),'VAT (15%)');
+    const frm={doc:{taxes:[vat,shipping]},refresh_field(){}};
+    const previousModel=context.frappe.model;
+    context.frappe.model={set_value:async (_doctype,name,field,value)=>{frm.doc.taxes.find(row=>row.name===name)[field]=value;}};
+    try {
+      assert.equal(await setVatIncludedInPrice(frm,true),1);
+      assert.equal(shipping.included_in_print_rate,0);
+      assert.equal(vatTreatment({...frm.doc,taxes_and_charges:'VAT 15%'},profiles),'included');
+    } finally { context.frappe.model=previousModel; }
+  }
+});
+
 test('VAT-inclusive pricing changes only native VAT rows', async () => {
   const vat={doctype:'Sales Taxes and Charges',name:'VAT-1',description:'Output VAT',included_in_print_rate:0};
   const shipping={doctype:'Sales Taxes and Charges',name:'SHIP-1',description:'Shipping',included_in_print_rate:0};

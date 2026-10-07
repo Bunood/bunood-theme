@@ -197,11 +197,11 @@
 		return ["Stock Entry", "Delivery Note"].includes(doctype) || !!TASK_WORKBENCHES[doctype] || !!COMPOSITIONS[doctype];
 	}
 	function candidate(frm) {
-		const allowed = new Set(["Quotation", "Sales Order", "Delivery Note", "Purchase Order", "Purchase Receipt", "Material Request", "Payment Entry", "Journal Entry", "Customer", "Supplier", "Item"]);
-		if (!allowed.has(frm?.doctype)) return false;
 		const meta = frm?.meta;
 		if (!frm?.doc || !meta || meta.istable || meta.issingle || EXCLUDED_MODULES.has(meta.module)) return false;
 		// Invoices use their purpose-built workbench; exceptional variants stay native.
+		// The complete workbench registry owns eligibility; a second allowlist hid
+		// integrated stock, property and POS interfaces despite their being ready.
 		// An unsupported document stays fully native until it receives a complete
 		// workbench. A field-filtered native form is not a finished Simple page.
 		return !["Sales Invoice", "Purchase Invoice"].includes(frm.doctype) && hasPurposeWorkbench(frm.doctype);
@@ -350,6 +350,7 @@
 				this.move(name, this.requiredFields); required++;
 			}
 			this.required.hidden = !required;
+			if (required) this.required.open = true;
 			const currency = this.frm.doc.currency || this.frm.doc.company_currency;
 			for (const metric of this.metricNodes) metric.node.innerHTML = this.format(
 				this.frm.doc[metric.fieldname], metric.fieldname, metric.type, currency
@@ -421,7 +422,7 @@
 				this.metric(__("Outgoing"), "0.00"), this.metric(__("Incoming"), "0.00"), this.metric(__("Difference"), "0.00"),
 			];
 		}
-		refresh(active) {
+		refresh(active, selected) {
 			this.root.hidden = !active;
 			if (!active) { this.restore(); return; }
 			this.move("stock_entry_type", this.movement.fields);
@@ -430,6 +431,12 @@
 			this.move("to_warehouse", this.route.fields);
 			this.move("items", this.items.fields);
 			for (const fieldname of ["company", "posting_date", "posting_time"]) this.move(fieldname, this.detailFields);
+			// Native mandatory extensions must remain reachable before the first save.
+			// Their original controls keep validation, field permissions and handlers.
+			const profile = new Set(PROFILES["Stock Entry"]);
+			for (const fieldname of selected || []) if (!profile.has(fieldname)) {
+				this.move(fieldname, this.detailFields); this.details.open = true;
+			}
 			const purpose = String(this.frm.doc.purpose || "").toLowerCase();
 			this.route.card.dataset.movement = purpose.includes("receipt") ? "receipt" : purpose.includes("issue") ? "issue" : "transfer";
 			this.metricNodes[0].innerHTML = this.format(this.frm.doc.total_outgoing_value, "total_outgoing_value");
@@ -504,6 +511,7 @@
 			this.toolsTrigger.setAttribute("role", "button");
 			this.toolsTrigger.setAttribute("aria-haspopup", "true");
 			this.menu = create("div", "bnd-simple-tools-menu", null, this.tools);
+			create("input", "bnd-simple-help", null, create("label", "", __("Show field guidance"), this.menu)).type = "checkbox";
 			this.menu.id = `bnd-simple-actions-${Math.random().toString(36).slice(2)}`;
 			this.toolsTrigger.setAttribute("aria-controls", this.menu.id);
 			this.toolsTrigger.setAttribute("aria-expanded", "false");
@@ -633,8 +641,6 @@
 			this.cancelButton.hidden = !state.showCancel;
 			if (this.printButton.parentNode !== this.primaryActions) this.primaryActions.append(this.printButton);
 			this.printButton.classList.toggle("bnd-bill-primary", state.primary === "print");
-			this.tools.hidden = ![this.draftButton, this.newButton, this.mobilePrintButton, this.duplicateButton, this.deleteButton, this.cancelButton]
-				.some(button => !button.hidden && button.parentNode === this.menu);
 		}
 		setMode(simple) {
 			const active = document.activeElement;

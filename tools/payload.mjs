@@ -58,6 +58,8 @@ const LEDGER = join(ROOT, "payload-budget.json");
  * repeat this. Add the file to a bucket, or the build fails and says so.
  */
 const BUCKETS = [
+	{ dir: ["css"], prefix: "bnd-home.", key: "home_css" },
+	{ dir: ["js"], prefix: "bnd-home.", key: "home_js" },
 	{ dir: ["css"], prefix: "bnd-report-landing.", key: "report_landing_css" },
 	{ dir: ["css"], prefix: "bnd-studio.", key: "studio_css" },
 	{ dir: ["css"], prefix: "bnd-pos.", key: "pos_css" },
@@ -130,6 +132,7 @@ export function measure() {
  * history row's comparability at the release that introduced a second sheet.
  */
 export const CEILING_KEYS = [
+	"home_css_gzip", "home_js_gzip",
 	"css_gzip", "js_gzip", "studio_js_gzip", "studio_css_gzip",
 	"report_landing_css_gzip", "report_landing_js_gzip", "banking_js_gzip",
 	"finance_close_js_gzip", "journal_workbench_js_gzip", "asset_workbench_js_gzip",

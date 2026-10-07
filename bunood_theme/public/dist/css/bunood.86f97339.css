@@ -9797,6 +9797,10 @@ html[data-bnd-body-width] body:not(.full-width) :is(.bnd-simple-form-head, .bnd-
   display: none;
 }
 
+html[data-theme][data-bnd-own~=simpleform] .bnd-generic-simple:not(:has(.bnd-simple-help:checked)) .frappe-control .help-box {
+  display: none;
+}
+
 .bnd-simple-actions-identity {
   display: flex;
   align-items: center;

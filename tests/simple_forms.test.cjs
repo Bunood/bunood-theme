@@ -23,7 +23,7 @@ function frm(doctype, module='Stock') {
   ]}, fields_dict: {} };
 }
 test('only completed workbenches default to Simple; unfinished and framework forms stay native', () => {
-  assert.equal(candidate(frm('Stock Entry')), false);
+  assert.equal(candidate(frm('Stock Entry')), true);
   assert.equal(candidate(frm('Quotation','Selling')), true);
   assert.equal(candidate(frm('Payment Entry','Accounts')), true);
   assert.equal(candidate(frm('Custom Vertical Order', 'Custom')), false);
@@ -230,6 +230,15 @@ test('the mode switch remounts beside a replaced native layout', () => {
   assert.match(source, /layout\.before\(this\.header/);
   assert.match(source, /this\.ensureMounted\(\);\s*this\.selected/);
 });
+test('native field guidance is optional only while the owned Simple surface is active', () => {
+  const source=fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8');
+  const css=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
+  assert.match(source,/create\("input", "bnd-simple-help", null, create\("label", "", __\("Show field guidance"\), this\.menu\)\)\.type = "checkbox"/);
+  assert.doesNotMatch(source,/\.checked\s*=\s*true|set_value\([^)]*description/);
+  assert.match(css,/html\[data-theme\]\[data-bnd-own~="simpleform"\] \.bnd-generic-simple:not\(:has\(\.bnd-simple-help:checked\)\) \.frappe-control \.help-box\s*\{\s*display: none;\s*\}/);
+  assert.doesNotMatch(source,/this\.tools\.hidden\s*=/, 'guidance remains reachable even when all document actions are unavailable');
+  assert.match(source,/toggleClass\("bnd-generic-simple", active\)/);
+});
 test('Stock Entry has a task-focused workbench over native controls', () => {
   const source=fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8');
   assert.match(source, /class StockEntryWorkbench/);
@@ -249,8 +258,9 @@ test('Delivery Note has its own three-step workbench and scoped active state', (
   assert.match(source, /bnd-delivery-simple-active/);
   assert.match(source, /bnd-stock-simple-active", active && this\.frm\.doctype === "Stock Entry"/);
 });
-test('official verticals and manufacturing keep their native controllers', () => {
-  for (const name of ['Property', 'Real Estate Unit', 'Lease', 'BOM']) assert.equal(candidate(frm(name)), false);
+test('completed property interfaces are reachable while unfinished verticals remain native', () => {
+  for (const name of ['Property', 'Real Estate Unit', 'Lease']) assert.equal(candidate(frm(name)), true);
+  for (const name of ['BOM', 'Work Order', 'Job Card', 'Project', 'Task', 'Timesheet']) assert.equal(candidate(frm(name)), false);
   assert.doesNotMatch(fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8'), /^  installBomCompatibility\(\);/m);
 });
 test('legacy ERPNext client permission calls use Frappe perm argument order', () => {

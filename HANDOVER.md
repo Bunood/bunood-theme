@@ -10,6 +10,39 @@
 
 ## 1. Where the work stands
 
+Final independent review identified and corrected stale Simple-form ownership on
+navigation (native Save could disappear) and private Workspace new-tab URLs. Both
+regressions failed before the fixes; the standard interface selection now passes
+80/80 and the build passes. The earlier 564/564 smoke tested the invoice/cashier
+corrections before these two additional navigation changes. Full RC run R3 was cancelled at a safe test boundary to finish cached-form
+reclaim after native render-before-change routing. Its owned session was removed,
+and136 typed/raw settings and both languages matched. Final full acceptance,
+CI and publication are pending.
+
+
+**2026-10-07 official Home correction tested locally, prepared0.51.0.** Final RC
+smoke: 564/564, exit0, owned session removed; 136 typed settings/raw rows, both
+languages and all five original owner-state groups restored exactly. Invoice
+Arabic/VAT literals and cashier permission handling are corrected. Final global
+JS is `95a672d0` (187849/188000 gzip bytes). Final-commit CI, independent release
+reviews, image acceptance and production deployment still require completion.
+These local results do not establish production readiness. The0.50.0
+screen import retained the original Home, which left the requested team navigation
+unfulfilled. `docs/official-home-integration.md` records the correction against
+immutable team1eaa6a9: owned native Page, lazy bundles, five scoped role dashboards,
+KPIs/trends/collections/cashier evidence, canonical accounting-reader reuse and
+preserved custom landings/links. Root also restores the eight complete Simple
+form interfaces previously excluded by a duplicate allowlist. Expanded build,
+payload/i18n gates and207 business/Home Node checks pass, followed by19 focused
+Home checks. Actual native26/26 passed with the owner snapshot unchanged. The
+eight restored forms passed owned-user native-control identity and Advanced
+restoration in the browser, with zero errors and user cleanup confirmed. Visual
+review found verbose Lease guidance; its separate disclosure correction and
+remaining role/full smoke/output proof are still pending. Initial navigation-only checks are not full dashboard
+proof. Global payload ceilings remain unchanged. Do not
+describe this as published: tenant readiness/bootstrap remain outside Theme,
+while the team's read-only business dashboard families are required and included.
+
 **THE SETTINGS AUDIT AND ITS CONSOLIDATION ARE RELEASED AS v0.49.0 (item 47; built
 2026-09-21 → 28, merged onto v0.48.4 and released 2026-10-02).** Nineteen commits, the
 merge, and the integration's seven after it; the account is CHANGELOG `[0.49.0]`, and the audit's census, findings, decision menu and render walk are under

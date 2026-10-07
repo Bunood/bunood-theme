@@ -92,6 +92,7 @@ from bunood_theme.presets import (
     WORKSPACE_FIELDS,
 )
 from bunood_theme.registry import LAYOUT_CHROME, layout_settings
+from bunood_theme.home_scope import HOME_PERIODS, HOME_VIEWS
 
 #: The prefix every key this app owns must carry. The guard uses it to find
 #: stray writes, so a key outside it is invisible to every check here.
@@ -155,6 +156,30 @@ UNLOCKABLE = ("bnd_motion",)
 #: ``empty`` is prose for the reader, not a value — the empty state is always the
 #: absence of the row, per the file header.
 AXES = (
+    {
+        "key": "bnd_home_company", "kind": STATE, "label": "Home company",
+        "values": None, "catalogue": "PERMITTED_COMPANIES", "lock": None, "boot": None,
+        "empty": "use the native Company default or first permitted company", "since": "official 0.51.0",
+        "note": "Explicit team_home.save_home_preferences only; team_home validates native company access before reading or writing this user's scope.",
+    },
+    {
+        "key": "bnd_home_period", "kind": STATE, "label": "Home period",
+        "values": HOME_PERIODS,
+        "lock": None, "boot": None, "empty": "month to date", "since": "official 0.51.0",
+        "note": "Explicit dashboard Save only; GET filters never write defaults.",
+    },
+    {
+        "key": "bnd_home_sales_person", "kind": STATE, "label": "Home sales person",
+        "values": None, "catalogue": "PERMITTED_SALES_PEOPLE", "lock": None, "boot": None,
+        "empty": "all permitted salespeople", "since": "official 0.51.0",
+        "note": "Validated native salesperson scope; absence inherits and never writes a global row.",
+    },
+    {
+        "key": "bnd_home_view", "kind": STATE, "label": "Home view",
+        "values": HOME_VIEWS,
+        "lock": None, "boot": None, "empty": "current permitted role default", "since": "official 0.51.0",
+        "note": "Permission-checked on every read and explicit Save; this is not the bnd_home landing route preference.",
+    },
     {
         "key": "bnd_look",
         "kind": PREFERENCE,

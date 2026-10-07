@@ -24,6 +24,43 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.51.0] — prepared 2026-10-06 — team Home and navigation
+
+This integration minor continues the0.50.0 edition; it is not a new roadmap
+completion claim. `/desk/bnd-home` brings the team's welcome/context, grouped
+role navigation, five scoped role dashboards, KPIs, trends, collections, POS shift
+evidence and accounting work into an owned native Page. Accounting and close
+evidence reuse the existing permission-checked readers. Complete native Simple
+interfaces are restored for Stock Entry, Stock Reconciliation, Company, Property,
+Real Estate Unit, Lease, POS Profile and Expense Claim, including required extension
+controls. Custom landing
+choices and sidebar links are retained; no tenant bootstrap or ledger logic is
+imported. Dashboard presentation lives in new lazy bundles; global payload ceilings
+remain unchanged.
+
+The final isolated RC smoke completed on 2026-10-07: 564/564, exit 0, with its
+owned session removed. All 136 typed settings and raw rows, both language values,
+and all five original owner-state groups matched after cleanup. Build, payload
+and Arabic coverage gates pass. The final invoice bundle is `95a672d0`.
+Eight corrupted Arabic/VAT literals are restored from the immutable team source,
+with a Sales/Purchase VAT regression check. Cashier profile evidence now respects
+parent and child field permissions and discards partial reads on failure (29
+source permission checks). Smoke startup fails before site mutations when the
+browser cannot launch; personal-default restoration retries cache reads only.
+Final-commit CI and independent release reviews remain pending. This heading is
+not publication or production acceptance evidence. The exact coverage and
+limitations are recorded in [the Home integration](docs/official-home-integration.md).
+
+
+Final independent review identified and corrected stale Simple-form ownership on
+navigation (native Save could disappear) and private Workspace new-tab URLs. Both
+regressions failed before the fixes; the standard interface selection now passes
+80/80 and the build passes. The earlier 564/564 smoke tested the invoice/cashier
+corrections before these two additional navigation changes. Full RC run R3 was cancelled at a safe test boundary to finish cached-form
+reclaim after native render-before-change routing. Its owned session was removed,
+and136 typed/raw settings and both languages matched. Final full acceptance,
+CI and publication are pending.
+
 ## [0.50.0] — 2026-10-04 — official simplified business screens
 
 This integration minor names the unified official edition rather than closing a

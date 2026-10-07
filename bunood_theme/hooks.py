@@ -32,7 +32,7 @@ app_publisher = "Bunood"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.50.0"
+app_version = "0.51.0"
 
 required_apps = []
 
@@ -109,7 +109,7 @@ update_website_context = "bunood_theme.context.desk_context"
 # Keep this MINIMAL. Anything that can be expressed as a CSS custom property belongs
 # in the brand stylesheet, not in boot: boot data arrives with the HTML but is only
 # usable by JS, which runs after first paint.
-extend_bootinfo = "bunood_theme.boot.extend_bootinfo"
+extend_bootinfo = ["bunood_theme.boot.extend_bootinfo", "bunood_theme.home.extend_bootinfo"]
 
 # ── PDF header/footer direction (item 35, S4) ─────────────────────────────────
 # wkhtmltopdf and the chrome generator render a document's header and footer as
@@ -126,8 +126,17 @@ pdf_header_html = "bunood_theme.printing.pdf_direction.pdf_header_html"
 pdf_footer_html = "bunood_theme.printing.pdf_direction.pdf_footer_html"
 
 # ── Lifecycle ───────────────────────────────────────────────────────────────────
-after_install = ["bunood_theme.setup.after_install", "bunood_theme.screen_install.install"]
-after_migrate = ["bunood_theme.setup.after_migrate", "bunood_theme.screen_install.install"]
+after_install = ["bunood_theme.setup.after_install", "bunood_theme.screen_install.install", "bunood_theme.report_compat.sync_report_compatibility"]
+after_migrate = ["bunood_theme.setup.after_migrate", "bunood_theme.screen_install.install", "bunood_theme.report_compat.sync_report_compatibility"]
+
+# Native report execution/export remains authoritative. These scoped adapters
+# preserve team report presentation without replacing global framework classes.
+extend_doctype_class = {"Report": ["bunood_theme.report_compat.ReportCompatibility"]}
+override_whitelisted_methods = {
+    "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
+    "frappe.desk.query_report.run": "bunood_theme.report_compat.run",
+    "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
+}
 
 doc_events = {
     "Theme Settings": {
