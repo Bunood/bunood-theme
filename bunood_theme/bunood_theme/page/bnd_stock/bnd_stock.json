@@ -1,0 +1,6 @@
+{
+ "doctype": "Page", "name": "bnd-stock", "page_name": "bnd-stock",
+ "title": "Stock", "module": "Bunood Theme", "standard": "Yes",
+ "modified": "2026-10-07 00:00:00.000000",
+ "roles": [{"role":"Stock User"},{"role":"Stock Manager"},{"role":"System Manager"}]
+}

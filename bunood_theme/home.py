@@ -14,7 +14,7 @@ DOCTYPES = ("Sales Invoice", "Purchase Invoice", "Journal Entry", "Payment Entry
 NAV_DOCTYPES = (*DOCTYPES, "Request for Quotation", "Supplier Quotation", "Purchase Receipt",
                 "Item", "Warehouse", "Stock Entry", "Stock Reconciliation", "Payment Reconciliation",
                 "Period Closing Voucher", "Company", "Accounts Settings")
-PAGES = ("bnd-selling", "bnd-accounting-home", "bnd-journal-workbench", "bnd-report-studio",
+PAGES = ("bnd-selling", "bnd-stock", "bnd-accounting-home", "bnd-journal-workbench", "bnd-report-studio",
          "bnd-finance-close", "bnd-banking", "bnd-asset-workbench",
          "real-estate-operations", "bnd-pos", "bnd-pos-register", "bnd-quick-sale", "bnd-inbox", "bnd-zatca")
 GROUPS = (
@@ -139,6 +139,28 @@ def extend_bootinfo(bootinfo):
         return
     allowed = {row["name"]: row for row in bootinfo.get("allowed_workspaces", []) if row.get("name")}
     items, used = [dict(entry)], set()
+    # Give the native resolver a real association for each permitted document.
+    # Workspace-only links make Form/List navigation choose a peer sidebar.
+    readable = set((bootinfo.get("user") or {}).get("can_read") or [])
+    native_groups = (
+        ("Selling", ("Quotation", "Sales Order", "Delivery Note", "Sales Invoice")),
+        ("Buying", ("Material Request", "Request for Quotation", "Supplier Quotation", "Purchase Order", "Purchase Receipt", "Purchase Invoice")),
+        ("Stock", ("Item", "Warehouse", "Stock Entry", "Stock Reconciliation")),
+        ("Accounting", ("Journal Entry", "Payment Entry", "Payment Reconciliation", "Period Closing Voucher")),
+    )
+    for title, names in native_groups:
+        visible = [name for name in names if name in readable]
+        if not visible:
+            continue
+        items.append({"type": "Section Break", "label": _(title), "collapsible": 1, "keep_closed": 0})
+        for name in visible:
+            items.append({"type": "Link", "label": _(name), "link_type": "DocType", "link_to": name,
+                          "child": 1, "route_options": '{"sidebar":"Bunood Home"}'})
+    for name in ("bnd-selling", "bnd-stock", "bnd-accounting-home", "bnd-journal-workbench", "bnd-report-studio"):
+        if frappe.db.exists("Page", name) and frappe.get_cached_doc("Page", name).is_permitted():
+            items.append({"type": "Link", "label": _(getattr(frappe.get_cached_doc("Page", name), "title", None) or name),
+                          "link_type": "Page", "link_to": name, "child": 0,
+                          "route_options": '{"sidebar":"Bunood Home"}'})
     for title, names in (*GROUPS, ("Other workspaces", tuple(allowed))):
         visible = [name for name in names if name in allowed and name not in used]
         if not visible:

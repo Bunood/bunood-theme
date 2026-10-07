@@ -371,6 +371,7 @@
         const deskGrid = add("div", "bnd-home-process", undefined, desks);
         const pages = [
             ["bnd-selling", __("Sales desk"), __("Follow offers, orders, deliveries, invoices and collections.")],
+            ["bnd-stock", __("Stock"), __("Stock Balance")],
             ["bnd-accounting-home", __("Accounting desk"), __("Review accounting drafts and bank evidence.")],
             ["bnd-journal-workbench", __("Journal workbench"), __("Prepare and review native journal entries with their supporting details.")],
             ["bnd-report-studio", __("Report Studio"), __("Browse sales, purchasing and accounting reports in one responsive catalogue.")],

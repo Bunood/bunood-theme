@@ -12693,6 +12693,7 @@
 		Customer: [["Essentials", 0, 4], ["Contact and tax", 4, 7], ["Defaults", 7, 99, 1]],
 		Supplier: [["Essentials", 0, 4], ["Contact and tax", 4, 7], ["Defaults", 7, 99, 1]],
 		Company: [["Essentials", 0, 4], ["Tax and branding", 4, 99]],
+		Warehouse: [["Essentials", 0, 4], ["Defaults", 4, 99]],
 		Item: [["Essentials", 0, 5], ["Sales and purchasing", 5, 10], ["Description and defaults", 10, 99, 1]],
 		Property: [["Essentials", 0, 5], ["Address and area", 5, 8], ["Plans and ownership", 8, 99, 1]],
 		"Real Estate Unit": [["Essentials", 0, 5], ["Leasing and status", 5, 10], ["Area", 10, 99]],

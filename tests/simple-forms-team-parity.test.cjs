@@ -31,7 +31,7 @@ const api = context.window.bunood_theme.simple_forms;
 const restored = [
   ['Stock Entry', 'Stock'], ['Stock Reconciliation', 'Stock'], ['Expense Claim', 'HR'],
   ['Company', 'Setup'], ['Property', 'Real Estate'], ['Real Estate Unit', 'Real Estate'],
-  ['Lease', 'Real Estate'], ['POS Profile', 'Accounts'],
+  ['Lease', 'Real Estate'], ['POS Profile', 'Accounts'], ['Warehouse', 'Stock'],
 ];
 function form(doctype, module) {
   return { doctype, doc: { doctype }, meta: { name: doctype, module, fields: [] }, fields_dict: {} };
@@ -42,7 +42,7 @@ for (const [doctype, module] of restored) test(`${doctype}: the completed team i
 });
 
 test('framework, invoices and incomplete workbenches keep their original native interface', () => {
-  for (const doctype of ['Sales Invoice', 'Purchase Invoice', 'BOM', 'Work Order', 'Job Card', 'Project', 'Task', 'Timesheet', 'Warehouse', 'Asset', 'Unknown Order']) {
+  for (const doctype of ['Sales Invoice', 'Purchase Invoice', 'BOM', 'Work Order', 'Job Card', 'Project', 'Task', 'Timesheet', 'Asset', 'Unknown Order']) {
     assert.equal(api.candidate(form(doctype, 'Custom')), false, doctype);
   }
   for (const module of ['Core', 'Desk', 'Email', 'Website', 'Printing', 'Workflow', 'Automation']) {
