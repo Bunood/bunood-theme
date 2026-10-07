@@ -25,6 +25,14 @@ Stock Page, and permission-filtered native document associations in Bunood Home.
 The Stock Page uses native client queries and native unsaved document creation;
 it introduces no inventory engine or balance calculation.
 
+The subsequent team invoice composition port restores the desktop party/date
+strip, four-column company/currency/price-list/warehouse context, compact stock
+settings, full-width item sheet, active-row surface and quiet total panel from
+the source editorial rules. Shared tenant tokens replace source hard-coded colors;
+native invoice controllers are unchanged. Final CSS is a4e0703d, 40,165 gzip bytes,
+with an explicit 40,300 ceiling for this scoped addition. The 106 focused invoice
+checks pass. Mobile retains its single-column adaptation and readable header.
+
 Local verification: 294 interface tests and 14 Home Python tests pass. Build,
 payload and Arabic coverage gates pass; 19 assets return HTTP 200. Global JS is
 187,708 gzip bytes, Desk CSS 39,895. Browser inspection confirmed the shared

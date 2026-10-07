@@ -54,6 +54,60 @@ html[data-theme] .bnd-bill {
     margin-block: var(--bnd-sp-2);
     padding: var(--bnd-sp-2);
   }
+  .bnd-bill-party h3 { margin: 0; font-size: var(--bnd-text-md); }
+  .bnd-bill-context .bnd-bill-hint {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .bnd-bill-line-head {
+    background: var(--bnd-pane);
+    color: var(--bnd-ink);
+    font-weight: 650;
+  }
+  .bnd-bill-line .frappe-control :is(input:not([type=checkbox]), select, .control-value) {
+    min-block-size: var(--bnd-control-h);
+    font-size: var(--bnd-text-md);
+  }
+  .bnd-bill-line:focus-within { --bnd-bill-row-bg: var(--bnd-hover); }
+  .bnd-bill-search .bnd-bill-button:first-child {
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
+    border-color: var(--bnd-brand-solid);
+  }
+  .bnd-bill-amount-summary { overflow: hidden; margin-block-start: var(--bnd-sp-2); }
+  .bnd-bill-amount-grand {
+    padding: var(--bnd-sp-3) var(--bnd-sp-4);
+    background: var(--bnd-pane);
+    color: var(--bnd-ink);
+    > :is(span, strong) { color: inherit; }
+  }
+}
+
+// Team desktop composition: one party/date strip, full-width item canvas.
+@container (width >= #{bp.bnd-cq(bill-rail)}) {
+  html[data-theme] .bnd-bill {
+    .bnd-bill-party {
+      display: grid;
+      grid-template-columns: minmax(11rem, auto) minmax(0, 1fr) auto;
+      align-items: end;
+      gap: var(--bnd-sp-2);
+    }
+    .bnd-bill-party > .bnd-bill-essentials {
+      grid-template-columns: minmax(0, 2fr) minmax(10rem, .7fr);
+      > .frappe-control:first-child { grid-column: auto; }
+    }
+    .bnd-bill-more-fields, .bnd-bill-context { grid-column: 1 / -1; }
+    .bnd-bill-more-fields > .bnd-bill-essentials { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .bnd-bill-context { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--bnd-sp-2); }
+    .bnd-bill-line-body > div { padding: var(--bnd-sp-1); }
+    .bnd-bill-stock-settings,
+    .bnd-bill-stock-settings[data-enabled="false"] {
+      grid-template-columns: max-content minmax(10rem, 15rem) minmax(0, 1fr);
+    }
+    .bnd-bill-stock-note { grid-column: auto; }
+  }
 }
 
 @include bp.bnd-until(md) {

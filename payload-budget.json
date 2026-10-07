@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-10-07: complete the team invoice party/date and stock-settings strips, full-width item canvas and total surface from 2108af3. Desk CSS is 40,165 gzip bytes; ceiling 39,900 -> 40,300 for this scoped composition. JavaScript is unchanged.",
 		"2026-10-07: restore missing demo1 invoice/stock composition with tenant tokens, functioning detail disclosure and mobile heading contrast. Desk CSS measures 39,895 gzip bytes; finite CSS ceiling moves from 39,500 to 39,900. JavaScript ceiling is unchanged.",
 		"Official integration 2026-10-04: Sales/Purchase native-form workbench adds 7.2 KB gzip CSS and 45.4 KB gzip JS over the curated integration base (39,193 and 187,626 bytes total). Explicit caps retain a small margin; accounting Page JS is loaded only on its route. Native financial defaults and original Home are preserved.",
 		"Capability branch: the bank-reconciliation page adds a route-scoped JavaScript bundle capped at 5,000 gzip bytes. Its scoped Desk rules measure 31,671 gzip bytes on main, raising that ceiling from 31,500 to 31,800.",
@@ -217,7 +218,7 @@
 	"ceiling": {
 		"home_css_gzip": 5000,
 		"home_js_gzip": 9500,
-		"css_gzip": 39900,
+		"css_gzip": 40300,
 		"js_gzip": 188000,
 		"studio_js_gzip": 39050,
 		"report_landing_css_gzip": 3100,
