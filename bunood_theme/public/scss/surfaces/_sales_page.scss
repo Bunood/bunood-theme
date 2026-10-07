@@ -1,0 +1,26 @@
+.bnd-sales-page {
+  padding: var(--bnd-sp-4);
+  color: var(--bnd-ink);
+  .bnd-sales-stages, .bnd-sales-filters, .bnd-sales-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bnd-sp-3);
+    margin-block-end: var(--bnd-sp-4);
+  }
+  .bnd-sales-stages [aria-pressed="true"] {
+    color: var(--bnd-ink);
+    background: var(--bnd-surface);
+    border-color: var(--bnd-border);
+    font-weight: 700;
+  }
+  .bnd-sales-filters label { display: grid; gap: var(--bnd-sp-2); }
+  .bnd-sales-table { overflow-x: auto; }
+  table { color: var(--bnd-ink); }
+  td, th { vertical-align: middle; }
+  td:first-child button { text-align: start; overflow-wrap: anywhere; }
+  button:focus-visible, input:focus-visible, select:focus-visible {
+    outline: var(--bnd-line) solid var(--bnd-ink);
+    outline-offset: var(--bnd-sp-1);
+  }
+}

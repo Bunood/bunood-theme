@@ -14,7 +14,7 @@ DOCTYPES = ("Sales Invoice", "Purchase Invoice", "Journal Entry", "Payment Entry
 NAV_DOCTYPES = (*DOCTYPES, "Request for Quotation", "Supplier Quotation", "Purchase Receipt",
                 "Item", "Warehouse", "Stock Entry", "Stock Reconciliation", "Payment Reconciliation",
                 "Period Closing Voucher", "Company", "Accounts Settings")
-PAGES = ("bnd-accounting-home", "bnd-journal-workbench", "bnd-report-studio",
+PAGES = ("bnd-selling", "bnd-accounting-home", "bnd-journal-workbench", "bnd-report-studio",
          "bnd-finance-close", "bnd-banking", "bnd-asset-workbench",
          "real-estate-operations", "bnd-pos", "bnd-pos-register", "bnd-quick-sale", "bnd-inbox", "bnd-zatca")
 GROUPS = (

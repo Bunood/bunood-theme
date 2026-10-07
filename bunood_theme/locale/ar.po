@@ -15629,3 +15629,73 @@ msgstr "البيان / المصدر"
 #, fuzzy
 msgid "Show field guidance"
 msgstr "إظهار إرشادات الحقول"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Create Sales Order"
+msgstr "إنشاء أمر بيع"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Create Delivery Note"
+msgstr "إنشاء إشعار تسليم"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Invalid sales list"
+msgstr "قائمة المبيعات غير صالحة"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Invalid page"
+msgstr "رقم الصفحة غير صالح"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Search is too long"
+msgstr "نص البحث طويل جداً"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Sales desk"
+msgstr "مركز المبيعات"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Offers"
+msgstr "عروض الأسعار"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Deliveries"
+msgstr "التسليمات"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Sales stages"
+msgstr "مراحل المبيعات"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Search invoices, orders or customer"
+msgstr "البحث في الفواتير والأوامر أو العميل"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Sales list pages"
+msgstr "صفحات قائمة المبيعات"
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Unable to load sales records. Check your permissions and try again."
+msgstr "تعذر تحميل سجلات المبيعات. تحقق من صلاحياتك ثم أعد المحاولة."
+
+#. src: sales journey, Arabic proposal 2026-10-07
+#, fuzzy
+msgid "Follow offers, orders, deliveries, invoices and collections."
+msgstr "تابع عروض الأسعار وأوامر البيع والتسليم والفواتير والتحصيل."
+
+#. src: sales journey native Arabic screenshot, 2026-10-07
+#, fuzzy
+msgid "No records to show"
+msgstr "لا توجد سجلات للعرض"

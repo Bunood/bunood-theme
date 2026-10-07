@@ -66,9 +66,7 @@
 		Lease: [["Agreement", 0, 5], ["Parties", 5, 9], ["Term", 9, 13], ["Compliance", 13, 99, 1]],
 		"POS Profile": [["Profile", 0, 3], ["Payment methods", 3, 4], ["Currency and write-off defaults", 4, 99]],
 	};
-	// Task workbenches are deliberately not a renamed GroupedWorkbench. Each
-	// document declares its own workflow, panel hierarchy and outcome summary;
-	// only the reversible native-control adapter is shared.
+	// Each task declares its workflow; only native-control movement is shared.
 	const TASK_WORKBENCHES = {
 		Quotation: {
 			variant: "offer", steps: ["Customer", "Offer", "Review"],
@@ -199,11 +197,8 @@
 	function candidate(frm) {
 		const meta = frm?.meta;
 		if (!frm?.doc || !meta || meta.istable || meta.issingle || EXCLUDED_MODULES.has(meta.module)) return false;
-		// Invoices use their purpose-built workbench; exceptional variants stay native.
-		// The complete workbench registry owns eligibility; a second allowlist hid
-		// integrated stock, property and POS interfaces despite their being ready.
-		// An unsupported document stays fully native until it receives a complete
-		// workbench. A field-filtered native form is not a finished Simple page.
+		// Registry owns eligibility. Invoices have their own workbench;
+		// unsupported documents retain the native form.
 		return !["Sales Invoice", "Purchase Invoice"].includes(frm.doctype) && hasPurposeWorkbench(frm.doctype);
 	}
 	function fallbackFields(frm) {
@@ -222,6 +217,18 @@
 		}
 		if (!profile && frm.meta.title_field) fields.add(frm.meta.title_field);
 		return fields;
+	}
+	const SALES_STAGES = { Quotation: ["Sales Order"], "Sales Order": ["Delivery Note", "Sales Invoice"], "Delivery Note": ["Sales Invoice"] };
+	function canAdvanceSales(frm, target) {
+		// Native registration owns eligibility and dialogs; recheck on click.
+		const button = frm?.custom_buttons?.[__(target)];
+		return !!(SALES_STAGES[frm?.doctype]?.includes(target) && window.cur_frm === frm &&
+			frm.doc?.name && !frm.doc.__islocal && Number(frm.doc.docstatus) === 1 &&
+			!frm.is_dirty() && frm.has_perm("read") && frappe.model.can_create(target) &&
+			button?.length && !button.prop("disabled"));
+	}
+	function advanceSales(frm, target) {
+		if (canAdvanceSales(frm, target)) return frm.custom_buttons[__(target)].trigger("click");
 	}
 	function canCreateSalesInvoice(frm) {
 		return frm?.doctype === "Quotation" && Number(frm.doc?.docstatus) === 1 &&
@@ -505,7 +512,9 @@
 			this.actionState.setAttribute("role", "status");
 			this.primaryActions = create("div", "bnd-simple-primary-actions", null, this.actions);
 			this.saveButton = this.action(this.primaryActions, __("Save and submit"), "F2", () => this.commit(), true);
-			this.invoiceButton = this.action(this.primaryActions, __("Create Sales Invoice"), "", () => createSalesInvoice(this.frm), true);
+			this.invoiceButton = this.action(this.primaryActions, __("Create Sales Invoice"), "", () => frm.doctype === "Quotation" ? createSalesInvoice(frm) : advanceSales(frm, "Sales Invoice"), true);
+			this.nextStage = frm.doctype === "Quotation" ? "Sales Order" : "Delivery Note";
+			this.stageButton = this.action(this.primaryActions, this.nextStage === "Sales Order" ? __("Create Sales Order") : __("Create Delivery Note"), "", () => advanceSales(frm, this.nextStage), true);
 			this.tools = create("details", "bnd-simple-tools", null, this.actions);
 			this.toolsTrigger = create("summary", "bnd-bill-button", __("Document actions"), this.tools);
 			this.toolsTrigger.setAttribute("role", "button");
@@ -632,7 +641,8 @@
 			this.saveButton.hidden = !canCommit && !state.showSave;
 			this.saveButton.querySelector(".bnd-bill-action-label").textContent = __(canCommit ? "Save and submit" : "Save");
 			this.draftButton.hidden = !canCommit;
-			this.invoiceButton.hidden = !state.showCreateInvoice;
+			this.invoiceButton.hidden = !state.showCreateInvoice && !canAdvanceSales(this.frm, "Sales Invoice");
+			this.stageButton.hidden = !canAdvanceSales(this.frm, this.nextStage);
 			this.newButton.hidden = !state.showNew;
 			this.printButton.hidden = !state.showPrint;
 			this.mobilePrintButton.hidden = !state.showPrint || state.primary === "print";
@@ -661,7 +671,7 @@
 	}
 	api.simple_forms = { mount,
 		candidate, profiles: PROFILES, compositions: COMPOSITIONS, taskWorkbenches: TASK_WORKBENCHES,
-		hasPurposeWorkbench, fallbackFields, canCreateSalesInvoice, createSalesInvoice, GroupedWorkbench, TaskWorkbench, JournalWorkbench,
+		hasPurposeWorkbench, fallbackFields, canAdvanceSales, advanceSales, canCreateSalesInvoice, createSalesInvoice, GroupedWorkbench, TaskWorkbench, JournalWorkbench,
 	};
 	// Refresh presentation after native field handlers and their requests finish.
 	document.addEventListener("pointerdown", event => {

@@ -112,6 +112,7 @@
 
 // ── Print — must stay last: within @media print, later rules win ties ───────
 @use "surfaces/accounting_page";
+@use "surfaces/sales_page";
 @use "surfaces/sales_bill";
 @use "surfaces/invoice_action_alignment";
 @use "surfaces/journal_compact";
