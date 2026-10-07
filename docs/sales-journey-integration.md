@@ -89,6 +89,41 @@ The full unfiltered release matrix still needs to run against this combined
 candidate. The earlier 564/564 result belongs to the earlier frozen navigation
 candidate, not this slice.
 
+## Native stage browser acceptance
+
+The current combined sales candidate passes 286 interface tests, Arabic coverage,
+9464 contrast pairs and the build. All nineteen local assets return 200; the
+current global bundle is `bunood.f00899b2.js`, 187700/188000 gzip bytes.
+
+A native Arabic browser run now passes the actual custom-button path: saved
+quotation, submitted Sales Order, partial Delivery Note for four of ten items,
+submitted invoice for 4 × 100 = 400, and a submitted Receive Payment Entry of
+200. Read-back verifies exact native document/child links, company and currency,
+40% delivered/billed, stock movement −4, separately balanced invoice GL 400 and
+payment GL 200, exact invoice allocation 200 and outstanding 200. The invoice's
+native delivery dialog was closed without sending a message.
+
+This run exposed native action registration completing after the SimpleForm
+render. SimpleForm and Return now share a narrow native-toolbar observer that
+updates action state without remounting fields. Scoped observer tests and actual
+quotation/order/delivery mapping pass. The browser harness uses actual parent
+control elements, visible-page scopes and native AJAX settlement to avoid cached
+forms and child-grid field ambiguity.
+
+The unique stock fixture was removed through native cancellation/deletion.
+Copied opening stock is cleared before creating the explicit owned receipt;
+repost processing uses ERPNext's synchronous test mode. Cleanup permits only
+verified owned terminal repost records without attachments, forbids internal
+commits until exact settings restoration, and verifies zero owned invoices,
+payments, GL, Payment Ledger and Stock Ledger entries.
+
+This is a same-currency, tax-free native test-company scenario, not VAT,
+serial/batch, restricted-role posting or production acceptance. The combined full
+unfiltered matrix remains pending. Its first run was invalidated by operator
+interference after restricted process inventory incorrectly hid the live runner;
+all owned processes were stopped and 136 typed/raw settings, both languages and
+the owned session were independently verified restored.
+
 ## Remaining sales completion gate
 
 Before moving to purchasing, verify quotations and orders through partial

@@ -106,19 +106,8 @@
             this.wrapperClasses.clear();
         }
         observeToolbar() {
-            const toolbar = this.frm.page?.inner_toolbar?.[0];
-            if (this.toolbar === toolbar) return;
-            this.toolbarObserver?.disconnect(); this.toolbarObserver = null;
-            this.toolbar = toolbar;
-            if (!toolbar || typeof MutationObserver !== "function") return;
-            this.toolbarObserver = new MutationObserver(() => {
-                if (!this.valid()) { this.destroy(); return; }
-                this.refreshActions();
-            });
-            // Native callbacks register buttons asynchronously. Observe only their
-            // toolbar, never our controls or native field layout.
-            this.toolbarObserver.observe(toolbar, { childList: true, subtree: true,
-                attributes: true, attributeFilter: ["disabled", "hidden", "class", "style", "aria-disabled", "aria-hidden"] });
+            this.stopToolbar?.();
+            this.stopToolbar = api.document_actions.observeNativeToolbar(this.frm, () => this.refreshActions(), () => this.destroy());
         }
         refreshActions() {
             const state = this.state();
@@ -165,7 +154,7 @@
         }
         setMode(simple) { if (!this.valid()) return; this.simple = !!simple; this.refresh(); }
         destroy() {
-            this.toolbarObserver?.disconnect(); this.toolbarObserver = null; this.toolbar = null;
+            this.stopToolbar?.(); this.stopToolbar = null;
             this.workbench.restore(); this.restoreClasses();
             this.header.remove(); this.actions.remove(); this.workbench.root.remove();
             if (window.cur_frm === this.frm) api.release_native("simpleform");

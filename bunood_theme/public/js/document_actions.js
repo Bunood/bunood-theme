@@ -129,5 +129,28 @@
 		return button;
 	}
 
-	api.document_actions = { actionState, canSaveAndSubmit, saveAndSubmit, submitWithoutConfirmation, decorateAction, documentState, permitted };
+	let toolbarWatch;
+	frappe.router?.on("change", () => toolbarWatch?.());
+	function observeNativeToolbar(frm, render, stale = () => {}) {
+		toolbarWatch?.(true);
+		const doc = frm.doc, target = frm.page?.inner_toolbar?.[0];
+		let observer;
+		const stop = () => { observer?.disconnect(); if (toolbarWatch === check) toolbarWatch = null; };
+		const check = (force = false) => {
+			const route = frappe.get_route?.();
+			if (force || window.cur_frm !== frm || frm.doc !== doc || !frm.$wrapper?.[0]?.isConnected ||
+				route?.[0] !== "Form" || route[1] !== frm.doctype || route[2] !== doc.name) {
+				stop(); if (!force) stale(); return false;
+			}
+			return true;
+		};
+		if (target && check() && typeof MutationObserver === "function") {
+			observer = new MutationObserver(() => { if (check()) render(); });
+			observer.observe(target, { childList: true, subtree: true, attributes: true,
+				attributeFilter: ["disabled", "hidden", "class", "style", "aria-disabled", "aria-hidden"] });
+			toolbarWatch = check;
+		}
+		return stop;
+	}
+	api.document_actions = { observeNativeToolbar, actionState, canSaveAndSubmit, saveAndSubmit, submitWithoutConfirmation, decorateAction, documentState, permitted };
 })();

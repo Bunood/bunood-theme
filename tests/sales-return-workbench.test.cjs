@@ -33,7 +33,9 @@ function setup({permissions={},docstatus=0,local=false,dirty=true}={}){
  const window={bunood_theme:api,cur_frm:frm};
  const frappe={get_route:()=>route,router:{on:(name,fn)=>events[name]=fn},ui:{form:{on:(dt,handlers)=>formEvents[dt]=handlers}},model:{can_create:dt=>permissions.payment!==false}};
  class MutationObserver{constructor(callback){this.callback=callback;observers.push(this);}observe(target,options){this.target=target;this.options=options;this.connected=true;}disconnect(){this.connected=false;}}
- vm.runInNewContext(fs.readFileSync(file,'utf8'),{window,frappe,MutationObserver,__:(x)=>x,document:{createElement:()=>new Node()},console,setTimeout:fn=>fn()});
+ const context={window,frappe,MutationObserver,__:(x)=>x,document:{createElement:()=>new Node()},console,setTimeout:fn=>fn()};
+ const actions=api.document_actions;vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../bunood_theme/public/js/document_actions.js'),'utf8'),context);Object.assign(api.document_actions,actions);
+ vm.runInNewContext(fs.readFileSync(file,'utf8'),context);
  return {api,frm,doc,fields,grid,wrapper,layout,calls,window,toolbar,observers,mutateToolbar:()=>observers.filter(o=>o.connected&&o.target===toolbar).forEach(o=>o.callback([])),routeTo:value=>{route=value;events.change?.();},formEvents};
 }
 test('return variant mounts native negative grid and all mandatory/extensions unchanged',()=>{
