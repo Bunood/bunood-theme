@@ -273,6 +273,17 @@ html[data-bnd-body-width] body:not(.full-width):is(
   gap: var(--bnd-sp-3);
 }
 .bnd-bill-essentials .control-label { min-block-size: 1.25rem; }
+.bnd-bill-party > .bnd-bill-essentials {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+}
+.bnd-bill-more-toggle { margin-block: var(--bnd-sp-2); }
+.bnd-bill-more-fields { display: none; }
+.bnd-bill-party.is-open > .bnd-bill-more-fields { display: block; }
+.bnd-bill-more-fields > .bnd-bill-essentials {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  padding-block: var(--bnd-sp-2);
+  border-block-start: var(--bnd-line) solid var(--bnd-border);
+}
 .bnd-bill-essentials > [data-fieldname="bunood_settlement_method"] { min-inline-size: 0; }
 .bnd-bill-essentials > [data-fieldname="bunood_settlement_method"] select { inline-size: 100%; max-inline-size: 100%; }
 .bnd-bill-essentials > [data-fieldname="bunood_settlement_method"] .help-box { display: none; }

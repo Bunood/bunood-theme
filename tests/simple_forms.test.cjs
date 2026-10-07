@@ -16,6 +16,40 @@ context.frappe.provide=path => {
 vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/document_actions.js', 'utf8'), context);
 vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/simple_forms.js', 'utf8'), context);
 const { candidate, fallbackFields, profiles, canCreateSalesInvoice, createSalesInvoice } = context.window.bunood_theme.simple_forms;
+function toolbarFixture(doctype) {
+  const observers=[],events={};let route=['Form',doctype,'TEST'];
+  const c={window:{bunood_theme:{}},document:{addEventListener(){}},$:()=>({on(){}}),__ :s=>s,setTimeout,
+    frappe:{get_route:()=>route,router:{on:(name,fn)=>events[name]=fn},model:{can_create:()=>true},boot:{user:{can_create:[]}}},
+    MutationObserver:class{constructor(fn){this.fn=fn;observers.push(this);}observe(target,options){this.target=target;this.options=options;this.connected=true;}disconnect(){this.connected=false;}}};
+  const source=fs.readFileSync('bunood_theme/public/js/simple_forms.js','utf8').replace('api.simple_forms = { mount,','api.simple_forms = { SimpleForm, mount,');
+  vm.runInNewContext(fs.readFileSync('bunood_theme/public/js/document_actions.js','utf8'),c);
+  vm.runInNewContext(source,c);
+  const f={doctype,doc:{name:'TEST',docstatus:1},custom_buttons:{},page:{inner_toolbar:[{}]},$wrapper:[{isConnected:true}],is_dirty:()=>false,has_perm:()=>true};
+  c.window.cur_frm=f;const ui=Object.create(c.window.bunood_theme.simple_forms.SimpleForm.prototype);ui.frm=f;ui.nextStage=doctype==='Quotation'?'Sales Order':'Delivery Note';
+  const node=()=>({dataset:{},classList:{toggle(){}},querySelector:()=>({}),hidden:false});
+  for(const key of ['actions','stateBadge','actionState','header','saveButton','draftButton','invoiceButton','stageButton','newButton','printButton','mobilePrintButton','duplicateButton','deleteButton','cancelButton'])ui[key]=node();
+  ui.primaryActions={append(){assert.fail('toolbar callback must not relocate controls');}};ui.printButton.parentNode=ui.primaryActions;
+  ui.ensureMounted=()=>assert.fail('must not remount');ui.workbench={refresh:()=>assert.fail('must not move fields')};
+  Object.assign(c.window.bunood_theme.document_actions,{actionState:()=>({}),documentState:()=>({label:'Submitted',tone:'submitted'}),canSaveAndSubmit:()=>false});
+  return {ui,f,observers,c,notify:()=>observers.filter(o=>o.connected).forEach(o=>o.fn()),leave:()=>{route=['List',doctype];events.change();}};
+}
+test('late native sales stages update only owned actions; disabled and removed handlers retract them',()=>{
+  for(const [doctype,target,button] of [['Quotation','Sales Order','stageButton'],['Sales Order','Delivery Note','stageButton'],['Sales Order','Sales Invoice','invoiceButton'],['Delivery Note','Sales Invoice','invoiceButton']]){
+    const x=toolbarFixture(doctype);x.ui.observeToolbar();x.ui.refreshActions();assert.equal(x.ui[button].hidden,true);
+    let disabled=false;x.f.custom_buttons[target]={length:1,prop:()=>disabled};x.notify();assert.equal(x.ui[button].hidden,false);
+    disabled=true;x.notify();assert.equal(x.ui[button].hidden,true);disabled=false;x.notify();assert.equal(x.ui[button].hidden,false);
+    delete x.f.custom_buttons[target];x.notify();assert.equal(x.ui[button].hidden,true);
+    assert.equal(x.observers[0].target,x.f.page.inner_toolbar[0]);assert.equal(x.observers[0].options.subtree,true);
+    x.leave();assert.equal(x.observers[0].connected,false);
+  }
+});
+test('native toolbar observer detaches on changed document/form and rebinds replaced toolbar',()=>{
+  for(const mutate of [x=>x.f.doc={name:'OTHER'},x=>x.c.window.cur_frm={}]){
+    const x=toolbarFixture('Quotation');x.ui.observeToolbar();mutate(x);x.notify();assert.equal(x.observers[0].connected,false);
+  }
+  const x=toolbarFixture('Quotation');x.ui.observeToolbar();x.f.page.inner_toolbar=[{}];x.ui.observeToolbar();
+  assert.equal(x.observers[0].connected,false);assert.equal(x.observers[1].connected,true);x.ui.disconnectToolbar();assert.equal(x.observers[1].connected,false);
+});
 function frm(doctype, module='Stock') {
   return { doctype, doc: { doctype }, meta: { name: doctype, module, fields: [
     {fieldname:'company', reqd:1}, {fieldname:'posting_date', bold:1},

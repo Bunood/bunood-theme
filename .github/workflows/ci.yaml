@@ -61,12 +61,18 @@ jobs:
         run: |
           set -e
           for f in build.mjs tests/smoke.mjs bunood_theme/public/js/bunood.js \
-                   bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js; do
+                   bunood_theme/bunood_theme/doctype/theme_settings/theme_settings.js \
+                   bunood_theme/bunood_theme/page/bnd_selling/bnd_selling.js \
+                   bunood_theme/public/js/sales_invoice_journey.js \
+                   bunood_theme/public/js/sales_return_workbench.js; do
             node --check "$f"
           done
 
       - name: Python syntax
         run: python3 -m compileall -q bunood_theme/
+
+      - name: Sales reader permission and boundary checks
+        run: python3 -m unittest discover -s tests -p test_sales_center.py
 
       # Recomputes every pair the token contract creates, for eight brand seeds
       # in both modes, plus the no-brand-stylesheet fallback — and asserts that

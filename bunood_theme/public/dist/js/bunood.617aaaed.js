@@ -10089,6 +10089,28 @@
 	}, 80, 150);
 })();
 
+/* global frappe */
+(() => {
+    const api = window.bunood_theme = window.bunood_theme || {};
+    // Refresh only our owned Page scripts; Frappe persists them across releases.
+    try { for (const page of ["bnd-home", "bnd-report-studio"]) window.localStorage?.removeItem("_page:" + page); } catch (_) {}
+    api.select_home_sidebar = () => {
+        if (!frappe.boot.workspace_sidebar_item?.["bunood home"]) return;
+        if (!frappe.route_options?.sidebar) {
+            const options = frappe.route_options = { ...frappe.route_options, sidebar: "Bunood Home" };
+            queueMicrotask(() => {
+                if (frappe.route_options !== options || options.sidebar !== "Bunood Home") return;
+                delete options.sidebar;
+                if (!Object.keys(options).length) frappe.route_options = null;
+            });
+        }
+        frappe.app.sidebar.setup(frappe.route_options.sidebar);
+    };
+})();
+
+
+
+
 /* global frappe, __ */
 (() => {
 	"use strict";
@@ -10361,14 +10383,34 @@
 		return button;
 	}
 
-	api.document_actions = { actionState, canSaveAndSubmit, saveAndSubmit, submitWithoutConfirmation, decorateAction, documentState, permitted };
+	let toolbarWatch;
+	frappe.router?.on("change", () => toolbarWatch?.());
+	function observeNativeToolbar(frm, render, stale = () => {}) {
+		toolbarWatch?.(true);
+		const doc = frm.doc, target = frm.page?.inner_toolbar?.[0];
+		let observer;
+		const stop = () => { observer?.disconnect(); if (toolbarWatch === check) toolbarWatch = null; };
+		const check = (force = false) => {
+			const route = frappe.get_route?.();
+			if (force || window.cur_frm !== frm || frm.doc !== doc || !frm.$wrapper?.[0]?.isConnected ||
+				route?.[0] !== "Form" || route[1] !== frm.doctype || route[2] !== doc.name) {
+				stop(); if (!force) stale(); return false;
+			}
+			return true;
+		};
+		if (target && check() && typeof MutationObserver === "function") {
+			observer = new MutationObserver(() => { if (check()) render(); });
+			observer.observe(target, { childList: true, subtree: true, attributes: true,
+				attributeFilter: ["disabled", "hidden", "class", "style", "aria-disabled", "aria-hidden"] });
+			toolbarWatch = check;
+		}
+		return stop;
+	}
+	api.document_actions = { observeNativeToolbar, actionState, canSaveAndSubmit, saveAndSubmit, submitWithoutConfirmation, decorateAction, documentState, permitted };
 })();
 
-// Bunood Bill Workbench: the default full-page presentation of the CURRENT
-// native Sales/Purchase Invoice. Advanced mode reveals the same frm.doc.
-// No separate document, calculation engine, ledger, or persisted state.
-// Payment orchestration delegates to ERPNext's native mapper and controllers.
-// Native controls + model triggers own all changes. See docs/QUICK-BILL.md.
+// Bunood's current native invoice; controls and ERPNext own all mutations.
+// Advanced mode keeps the same frm.doc. See docs/QUICK-BILL.md.
 /* global frappe, __, $ */
 (() => {
 	"use strict";
@@ -10384,7 +10426,7 @@
 			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
 			paymentMethod: "bunood_settlement_method",
 			lineFields: ["qty", "rate", "price_list_rate", "discount_amount", "warehouse"],
-			context: ["tax_id", "company", "posting_date", "due_date", "currency", "selling_price_list", "set_warehouse"],
+			context: ["tax_id", "company", "posting_date", "due_date", "currency", "selling_price_list", "set_warehouse", "amended_from"],
 			options: ["posting_date", "due_date", "update_stock", "set_warehouse", "currency", "selling_price_list", "payment_terms_template", "po_no"],
 		},
 		"Purchase Invoice": {
@@ -10702,8 +10744,9 @@
 	function supports(frm) {
 		const d = frm?.doc;
 		const p = profileFor(frm);
-		return !!(d && p && [0, 1].includes(Number(d.docstatus)) && !d.is_return && !d.is_pos &&
-			!d.is_debit_note && !d.is_credit_note && !d.amended_from &&
+		return !!(d && p && [0, 1, 2].includes(Number(d.docstatus)) && !d.is_return && !d.is_pos &&
+			!d.is_debit_note && !d.is_credit_note &&
+			(frm.doctype === "Sales Invoice" || (!d.amended_from && Number(d.docstatus) < 2)) &&
 			fieldStatus(frm, p.party) !== "None" && frm.fields_dict.items?.grid);
 	}
 	function eligible(frm) {
@@ -12668,21 +12711,17 @@
 		"Expense Claim": ["employee", "company", "posting_date", "approval_status", "expenses", "total_claimed_amount", "total_sanctioned_amount", "payable_account"],
 		"POS Profile": ["__newname", "company", "warehouse", "payments", "currency", "selling_price_list", "write_off_account", "write_off_cost_center", "write_off_limit"],
 	};
-	// [title, start, end, collapsed]. Indices slice the matching profile, so one
-	// field list owns both visibility and the order users actually see.
 	const COMPOSITIONS = {
 		Customer: [["Essentials", 0, 4], ["Contact and tax", 4, 7], ["Defaults", 7, 99, 1]],
 		Supplier: [["Essentials", 0, 4], ["Contact and tax", 4, 7], ["Defaults", 7, 99, 1]],
 		Company: [["Essentials", 0, 4], ["Tax and branding", 4, 99]],
+		Warehouse: [["Essentials", 0, 4], ["Defaults", 4, 99]],
 		Item: [["Essentials", 0, 5], ["Sales and purchasing", 5, 10], ["Description and defaults", 10, 99, 1]],
 		Property: [["Essentials", 0, 5], ["Address and area", 5, 8], ["Plans and ownership", 8, 99, 1]],
 		"Real Estate Unit": [["Essentials", 0, 5], ["Leasing and status", 5, 10], ["Area", 10, 99]],
 		Lease: [["Agreement", 0, 5], ["Parties", 5, 9], ["Term", 9, 13], ["Compliance", 13, 99, 1]],
 		"POS Profile": [["Profile", 0, 3], ["Payment methods", 3, 4], ["Currency and write-off defaults", 4, 99]],
 	};
-	// Task workbenches are deliberately not a renamed GroupedWorkbench. Each
-	// document declares its own workflow, panel hierarchy and outcome summary;
-	// only the reversible native-control adapter is shared.
 	const TASK_WORKBENCHES = {
 		Quotation: {
 			variant: "offer", steps: ["Customer", "Offer", "Review"],
@@ -12803,7 +12842,6 @@
 			},
 		});
 	}
-	// Official manufacturing interfaces remain native.
 	function create(tag, cls, text, parent) {
 		const el = document.createElement(tag); if (cls) el.className = cls; if (text != null) el.textContent = text; parent?.append(el); return el;
 	}
@@ -12813,11 +12851,6 @@
 	function candidate(frm) {
 		const meta = frm?.meta;
 		if (!frm?.doc || !meta || meta.istable || meta.issingle || EXCLUDED_MODULES.has(meta.module)) return false;
-		// Invoices use their purpose-built workbench; exceptional variants stay native.
-		// The complete workbench registry owns eligibility; a second allowlist hid
-		// integrated stock, property and POS interfaces despite their being ready.
-		// An unsupported document stays fully native until it receives a complete
-		// workbench. A field-filtered native form is not a finished Simple page.
 		return !["Sales Invoice", "Purchase Invoice"].includes(frm.doctype) && hasPurposeWorkbench(frm.doctype);
 	}
 	function fallbackFields(frm) {
@@ -12826,7 +12859,6 @@
 		for (const df of frm.meta.fields || []) {
 			if (!df.fieldname) continue;
 			if (profile) {
-				// Empty mandatory fields stay reachable so native validation cannot dead-end.
 				const control = frm.fields_dict?.[df.fieldname];
 				if (df.reqd && !df.hidden && control?.get_status?.() === "Write" && [null, undefined, ""].includes(frm.doc[df.fieldname])) fields.add(df.fieldname);
 			} else {
@@ -12836,6 +12868,17 @@
 		}
 		if (!profile && frm.meta.title_field) fields.add(frm.meta.title_field);
 		return fields;
+	}
+	const SALES_STAGES = { Quotation: ["Sales Order"], "Sales Order": ["Delivery Note", "Sales Invoice"], "Delivery Note": ["Sales Invoice"] };
+	function canAdvanceSales(frm, target) {
+		const button = frm?.custom_buttons?.[__(target)];
+		return !!(SALES_STAGES[frm?.doctype]?.includes(target) && window.cur_frm === frm &&
+			frm.doc?.name && !frm.doc.__islocal && Number(frm.doc.docstatus) === 1 &&
+			!frm.is_dirty() && frm.has_perm("read") && frappe.model.can_create(target) &&
+			button?.length && !button.prop("disabled"));
+	}
+	function advanceSales(frm, target) {
+		if (canAdvanceSales(frm, target)) return frm.custom_buttons[__(target)].trigger("click");
 	}
 	function canCreateSalesInvoice(frm) {
 		return frm?.doctype === "Quotation" && Number(frm.doc?.docstatus) === 1 &&
@@ -12971,8 +13014,6 @@
 			);
 		}
 	}
-
-	// Presentation only: move the original controls, never rebuild accounting rows.
 	class JournalWorkbench extends TaskWorkbench {
 		constructor(frm) {
 			super(frm, TASK_WORKBENCHES["Journal Entry"]);
@@ -12980,7 +13021,6 @@
 			this.references = create("details", "bnd-journal-references", null, this.panels[0].panel);
 			create("summary", "", __("Reference details"), this.references);
 			this.referenceFields = create("div", "bnd-task-panel-fields", null, this.references);
-			// Put the balance next to the rows, not below a potentially long ledger.
 			this.panels[1].panel.before(this.summary);
 			this.panels[1].panel.before(this.required);
 			this.references.addEventListener("toggle", () => {
@@ -13005,7 +13045,6 @@
 			}
 			this.references.hidden = !visible;
 			if (this.referencesRequired || hasValue) this.references.open = true;
-			// Unexpected mandatory extensions must be visible without another click.
 			if (!this.required.hidden) this.required.open = true;
 		}
 	}
@@ -13045,8 +13084,6 @@
 			this.move("to_warehouse", this.route.fields);
 			this.move("items", this.items.fields);
 			for (const fieldname of ["company", "posting_date", "posting_time"]) this.move(fieldname, this.detailFields);
-			// Native mandatory extensions must remain reachable before the first save.
-			// Their original controls keep validation, field permissions and handlers.
 			const profile = new Set(PROFILES["Stock Entry"]);
 			for (const fieldname of selected || []) if (!profile.has(fieldname)) {
 				this.move(fieldname, this.detailFields); this.details.open = true;
@@ -13119,7 +13156,9 @@
 			this.actionState.setAttribute("role", "status");
 			this.primaryActions = create("div", "bnd-simple-primary-actions", null, this.actions);
 			this.saveButton = this.action(this.primaryActions, __("Save and submit"), "F2", () => this.commit(), true);
-			this.invoiceButton = this.action(this.primaryActions, __("Create Sales Invoice"), "", () => createSalesInvoice(this.frm), true);
+			this.invoiceButton = this.action(this.primaryActions, __("Create Sales Invoice"), "", () => frm.doctype === "Quotation" ? createSalesInvoice(frm) : advanceSales(frm, "Sales Invoice"), true);
+			this.nextStage = frm.doctype === "Quotation" ? "Sales Order" : "Delivery Note";
+			this.stageButton = this.action(this.primaryActions, this.nextStage === "Sales Order" ? __("Create Sales Order") : __("Create Delivery Note"), "", () => advanceSales(frm, this.nextStage), true);
 			this.tools = create("details", "bnd-simple-tools", null, this.actions);
 			this.toolsTrigger = create("summary", "bnd-bill-button", __("Document actions"), this.tools);
 			this.toolsTrigger.setAttribute("role", "button");
@@ -13141,8 +13180,6 @@
 				if (!this.tools.contains(event.relatedTarget)) this.tools.open = false;
 			});
 			this.draftButton = this.action(this.menu, __("Save draft"), "", () => this.frm.save("Save"));
-			// Print stays visible on every saved document. It still invokes the
-			// native print engine and does not introduce a parallel rendering path.
 			this.printButton = this.action(this.primaryActions, __("Print"), "", () => this.frm.print_doc());
 			this.printButton.classList.add("bnd-simple-action-print");
 			this.mobilePrintButton = this.action(this.menu, __("Print"), "", () => this.frm.print_doc());
@@ -13234,6 +13271,14 @@
 			this.advancedButton.setAttribute("aria-pressed", String(!this.simple));
 			this.simpleButton.classList.toggle("bnd-bill-primary", this.simple);
 			this.advancedButton.classList.toggle("bnd-bill-primary", !this.simple);
+			this.observeToolbar(); this.refreshActions();
+		}
+		disconnectToolbar() { this.stopToolbar?.(); this.stopToolbar = null; }
+		observeToolbar() {
+			this.disconnectToolbar();
+			this.stopToolbar = api.document_actions.observeNativeToolbar(this.frm, () => this.refreshActions());
+		}
+		refreshActions() {
 			const contract = api.document_actions;
 			const state = contract.actionState(this.frm, { canCreateInvoice: canCreateSalesInvoice(this.frm) });
 			this.actions.dataset.primary = state.primary;
@@ -13246,7 +13291,8 @@
 			this.saveButton.hidden = !canCommit && !state.showSave;
 			this.saveButton.querySelector(".bnd-bill-action-label").textContent = __(canCommit ? "Save and submit" : "Save");
 			this.draftButton.hidden = !canCommit;
-			this.invoiceButton.hidden = !state.showCreateInvoice;
+			this.invoiceButton.hidden = !state.showCreateInvoice && !canAdvanceSales(this.frm, "Sales Invoice");
+			this.stageButton.hidden = !canAdvanceSales(this.frm, this.nextStage);
 			this.newButton.hidden = !state.showNew;
 			this.printButton.hidden = !state.showPrint;
 			this.mobilePrintButton.hidden = !state.showPrint || state.primary === "print";
@@ -13268,21 +13314,19 @@
 		}
 	}
 	function mount(frm) {
-		if (!candidate(frm)) return false;
+		if (!candidate(frm)) { controllers.get(frm)?.disconnectToolbar(); return false; }
 		const current = controllers.get(frm);
 		if (current) current.refresh(); else controllers.set(frm, new SimpleForm(frm));
 		return true;
 	}
 	api.simple_forms = { mount,
 		candidate, profiles: PROFILES, compositions: COMPOSITIONS, taskWorkbenches: TASK_WORKBENCHES,
-		hasPurposeWorkbench, fallbackFields, canCreateSalesInvoice, createSalesInvoice, GroupedWorkbench, TaskWorkbench, JournalWorkbench,
+		hasPurposeWorkbench, fallbackFields, canAdvanceSales, advanceSales, canCreateSalesInvoice, createSalesInvoice, GroupedWorkbench, TaskWorkbench, JournalWorkbench,
 	};
-	// Refresh presentation after native field handlers and their requests finish.
 	document.addEventListener("pointerdown", event => {
 		const open = window.cur_frm?.$wrapper?.[0]?.querySelector(".bnd-simple-tools[open]");
 		if (open && !open.contains(event.target)) open.open = false;
 	}, true);
-	// Do not calculate values here or return an AJAX wait into a native trigger.
 	if (frappe.ui?.form?.on) {
 		for (const [doctype, fields] of Object.entries({
 			"Journal Entry": ["voucher_type", "company", "posting_date", "finance_book", "cheque_no", "cheque_date", "total_debit", "total_credit", "difference"],
@@ -13297,7 +13341,6 @@
 		if (window.cur_frm !== frm) return;
 		const page = frm.$wrapper?.[0]?.closest(".page-container");
 		if (!candidate(frm)) { page?.classList.add("bnd-simple-native-ready"); return; }
-		// Mount before unrelated AJAX settles; re-sync once it does.
 		if (frm.$wrapper?.find(".form-layout").length) {
 			try { mount(frm); }
 			catch (error) { page?.classList.add("bnd-simple-native-ready"); console.error(error); }

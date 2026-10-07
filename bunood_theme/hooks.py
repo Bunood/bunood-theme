@@ -53,6 +53,10 @@ app_include_js = [THEME_JS]
 # values for Stock Users, who normally cannot open that configuration form;
 # the adapter keeps the server read field- and permission-bounded.
 doctype_js = {
+    "Sales Invoice": [
+        "public/js/sales_invoice_journey.js",
+        "public/js/sales_return_workbench.js",
+    ],
     "Warehouse": "public/js/reference_field_guidance.js",
     "Country": "public/js/reference_field_guidance.js",
     "Stock Entry": "public/js/stock_entry_compat.js",

@@ -1,0 +1,10 @@
+{
+ "doctype": "Page",
+ "name": "bnd-selling",
+ "page_name": "bnd-selling",
+ "title": "Sales desk",
+ "module": "Bunood Theme",
+ "standard": "Yes",
+ "modified": "2026-10-07 00:00:00.000000",
+ "roles": [{"role":"Sales User"},{"role":"Sales Manager"},{"role":"Accounts User"},{"role":"Accounts Manager"},{"role":"Stock User"},{"role":"Stock Manager"},{"role":"System Manager"}]
+}

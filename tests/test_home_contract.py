@@ -47,6 +47,15 @@ class TestHomeBoot(unittest.TestCase):
         self.home.extend_bootinfo(boot)
         self.assertEqual(boot.home_page, "bnd-home")
         self.assertEqual(boot.docs, [self.page])
+
+    def test_common_sidebar_contains_only_permitted_native_documents(self):
+        boot = self.boot()
+        boot.user = {"can_read": ["Sales Invoice", "Stock Entry", "Journal Entry"]}
+        self.home.extend_bootinfo(boot)
+        items = boot.workspace_sidebar_item["bunood home"]["items"]
+        docs = [row for row in items if row.get("link_type") == "DocType"]
+        self.assertEqual({row["link_to"] for row in docs}, {"Sales Invoice", "Stock Entry", "Journal Entry"})
+        self.assertTrue(all(row["route_options"] == '{"sidebar":"Bunood Home"}' for row in docs))
         self.home.extend_bootinfo(boot)
         self.assertEqual(boot.docs, [self.page])
 

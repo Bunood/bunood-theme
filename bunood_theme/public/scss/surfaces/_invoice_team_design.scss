@@ -1,0 +1,151 @@
+@use "../breakpoints" as bp;
+
+// Port the owned invoice composition from demo1/native-erp-ui (2108af3),
+// _editorial_pilot.scss, onto the maintained tenant color/spacing vocabulary.
+// Financial controllers and native validation remain independent of this skin.
+html[data-theme] .bnd-bill {
+  border-radius: var(--bnd-radius-lg);
+  .bnd-bill-seal, .bnd-bill-brand { display: none; }
+  .bnd-bill-intro {
+    margin: calc(var(--bnd-sp-4) * -1) calc(var(--bnd-sp-4) * -1) var(--bnd-sp-2);
+    padding: var(--bnd-sp-3) var(--bnd-sp-4);
+    background: var(--bnd-brand-deep);
+    color: var(--bnd-on-deep);
+    border-radius: var(--bnd-radius-lg) var(--bnd-radius-lg) 0 0;
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+    h2 { margin: 0; color: inherit; font-size: var(--bnd-text-xl); }
+    .bnd-bill-document-state, .bnd-document-state { color: var(--bnd-on-deep); }
+  }
+  .bnd-bill-toolbar {
+    .bnd-bill-action:not(.bnd-bill-action-save), .bnd-bill-tools > summary {
+      color: var(--bnd-on-deep);
+      background: var(--bnd-brand-deep);
+      border-color: var(--bnd-on-deep);
+    }
+    .bnd-bill-action.bnd-bill-action-submit-print,
+    .bnd-bill-action.bnd-bill-rail-toggle {
+      color: var(--bnd-brand-ink);
+      background: var(--bnd-surface);
+      border-color: var(--bnd-surface);
+    }
+    :is(button, summary):focus-visible { outline-color: var(--bnd-on-deep); }
+    .bnd-bill-tools-body {
+      color: var(--bnd-ink);
+      background: var(--bnd-surface);
+      .bnd-bill-action {
+        color: var(--bnd-ink);
+        background: var(--bnd-surface);
+        border-color: transparent;
+        &:hover { background: var(--bnd-hover); }
+        &:focus-visible { outline-color: var(--bnd-accent); }
+      }
+    }
+  }
+  .bnd-bill-main { gap: var(--bnd-sp-2); }
+  .bnd-bill-party { padding: 0 0 var(--bnd-sp-2); }
+  .bnd-bill-context {
+    padding-block-start: var(--bnd-sp-2);
+    border-block-start: var(--bnd-line) solid var(--bnd-border);
+    dd { font-weight: 650; }
+  }
+  .bnd-bill-items { padding-block: var(--bnd-sp-1); }
+  .bnd-bill-items > h3 { margin-block-end: var(--bnd-sp-2); color: var(--bnd-ink); }
+  .bnd-bill-stock-settings {
+    margin-block: var(--bnd-sp-2);
+    padding: var(--bnd-sp-2);
+  }
+  .bnd-bill-party h3 { margin: 0; font-size: var(--bnd-text-md); }
+  .bnd-bill-context .bnd-bill-hint {
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .bnd-bill-line-head {
+    background: var(--bnd-pane);
+    color: var(--bnd-ink);
+    font-weight: 650;
+  }
+  .bnd-bill-line .frappe-control :is(input:not([type=checkbox]), select, .control-value) {
+    min-block-size: var(--bnd-control-h);
+    font-size: var(--bnd-text-md);
+  }
+  .bnd-bill-line:focus-within { --bnd-bill-row-bg: var(--bnd-hover); }
+  .bnd-bill-search .bnd-bill-button:first-child {
+    background: var(--bnd-brand-solid);
+    color: var(--bnd-on-brand);
+    border-color: var(--bnd-brand-solid);
+  }
+  .bnd-bill-amount-summary { overflow: hidden; margin-block-start: var(--bnd-sp-2); }
+  .bnd-bill-amount-grand {
+    padding: var(--bnd-sp-3) var(--bnd-sp-4);
+    background: var(--bnd-pane);
+    color: var(--bnd-ink);
+    > :is(span, strong) { color: inherit; }
+  }
+}
+
+// Team desktop composition: one party/date strip, full-width item canvas.
+@container (width >= #{bp.bnd-cq(bill-rail)}) {
+  html[data-theme] .bnd-bill {
+    .bnd-bill-party {
+      display: grid;
+      grid-template-columns: minmax(11rem, auto) minmax(0, 1fr) auto;
+      align-items: end;
+      gap: var(--bnd-sp-2);
+    }
+    .bnd-bill-party > .bnd-bill-essentials {
+      grid-template-columns: minmax(0, 2fr) minmax(10rem, .7fr);
+      > .frappe-control:first-child { grid-column: auto; }
+    }
+    .bnd-bill-more-fields, .bnd-bill-context { grid-column: 1 / -1; }
+    .bnd-bill-more-fields > .bnd-bill-essentials { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .bnd-bill-context { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--bnd-sp-2); }
+    .bnd-bill-line-body > div { padding: var(--bnd-sp-1); }
+    .bnd-bill-stock-settings,
+    .bnd-bill-stock-settings[data-enabled="false"] {
+      grid-template-columns: max-content minmax(10rem, 15rem) minmax(0, 1fr);
+    }
+    .bnd-bill-stock-note { grid-column: auto; }
+  }
+}
+
+@include bp.bnd-until(md) {
+  html[data-theme] .bnd-bill {
+    .bnd-bill-party > .bnd-bill-essentials { grid-template-columns: 1fr; }
+    .bnd-bill-intro {
+      // Native mobile layout uses display:contents: no painted header box.
+      color: var(--bnd-ink);
+      .bnd-bill-document-state, .bnd-document-state { color: var(--bnd-ink-muted); }
+    }
+    .bnd-bill-toolbar {
+      background: var(--bnd-brand-deep);
+      padding: var(--bnd-sp-2);
+      border-radius: var(--bnd-radius-md);
+    }
+  }
+}
+
+// The same owned document rhythm for native stock and accounting forms.
+html[data-theme] {
+  .bnd-simple-actions {
+    background: var(--bnd-brand-deep);
+    color: var(--bnd-on-deep);
+    border-radius: var(--bnd-radius-lg);
+    .bnd-simple-actions-identity { color: inherit; }
+    .bnd-simple-actions-identity :is(strong, span, h2) { color: inherit; }
+  }
+  :is(.bnd-stock-card, .bnd-stock-details, .bnd-stock-summary, .bnd-task-panel, .bnd-task-outcome, .bnd-simple-group) {
+    border-radius: var(--bnd-radius-md);
+    background: var(--bnd-surface);
+    padding: var(--bnd-sp-3);
+  }
+  :is(.bnd-stock-card-head, .bnd-task-panel-head) { margin-block-end: var(--bnd-sp-2); }
+  :is(.bnd-stock-summary, .bnd-task-outcome) { background: var(--bnd-pane); color: var(--bnd-ink); }
+  .bnd-stock-simple-grid { gap: var(--bnd-sp-3); }
+  .bnd-stock-page > .bnd-sales-actions:first-child {
+    padding: var(--bnd-sp-3);
+    border-radius: var(--bnd-radius-lg);
+    background: var(--bnd-brand-deep);
+  }
+}
