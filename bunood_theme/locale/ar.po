@@ -5675,13 +5675,13 @@ msgstr "حركة الفواتير — {0}"
 #. the studio is not on this line, so nothing here emits it yet
 #. src: hesham
 msgid "Item-wise Purchase Register"
-msgstr "سجل المشتريات حسب الصنف"
+msgstr "تقرير المشتريات حسب الصنف"
 
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
 #. src: hesham
 msgid "Item-wise Sales Register"
-msgstr "سجل المبيعات حسب الصنف"
+msgstr "تقرير المبيعات حسب الصنف"
 
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
@@ -5975,7 +5975,7 @@ msgstr "تحليل أوامر الشراء"
 #. the studio is not on this line, so nothing here emits it yet
 #. src: hesham
 msgid "Purchase Register"
-msgstr "سجل المشتريات"
+msgstr "تقرير المشتريات"
 
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
@@ -6101,7 +6101,7 @@ msgstr "ملخص المعاملات حسب مندوب المبيعات"
 #. the studio is not on this line, so nothing here emits it yet
 #. src: hesham
 msgid "Sales Register"
-msgstr "سجل المبيعات"
+msgstr "تقرير المبيعات"
 
 #. Report Studio string — carried over from studio-zatca dd7f787 (Hesham);
 #. the studio is not on this line, so nothing here emits it yet
