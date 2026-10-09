@@ -24,6 +24,37 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.52.0] — 2026-10-09 — the simple invoice as the owner asked
+
+An integration minor on v0.51.1, not a roadmap completion claim. The owner reviewed the
+simple Sales and Purchase bill with screenshots on 2026-10-09; this is that list.
+
+- **One title, one row of essentials.** The page head's second title is gone; the party
+  (with a small "+" for a new one), the date, the payment method and "Additional details"
+  sit on one balanced line. The context strip, the Update Stock box, the customer/preview
+  drawer and its link to the ZATCA settings are removed.
+- **Barcode box above the lines (F2).** A scanner or a typed item code places the item
+  through ERPNext's own BarcodeScanner; a second scan raises the quantity, including after
+  the bill is saved (ERPNext's has_items dialog is bypassed). An unknown code on a purchase
+  bill offers "Add it as a new item".
+- **New item on the purchase bill only (F4).** A compact dialog — code (next number
+  suggested), name, barcode, item group (first leaf group by default), unit, purchase
+  price, selling price, quantity, all prices optional — makes a native Item and its Item
+  Prices and puts it on the bill at that quantity and cost. Shown only to a reader who may
+  create an item.
+- **Print** saves a draft and prints it unsubmitted.
+- **Stock is decided at setup, not on the bill** (Bunood Business's business setup): a
+  stock business's invoice made directly moves stock; one made from a delivery, a receipt
+  or an order, a return and a till sale are left as ERPNext makes them. The warehouse comes
+  from the branch: a small branch chooser appears only with more than one branch, fills only
+  an empty draft, and sets the invoice's branch field for ZATCA's branch configuration.
+- **Arabic:** report names read تقرير, never سجل (Sales/Purchase Register and their
+  item-wise forms).
+
+Checks: 298/298 interface tests, the guarded build (plural, Arabic coverage, logical
+properties, tokens, focus rings, payload). Payload against v0.51.0: desk JS -165 B and CSS
+-87 B gzip. Verified on the rc lab at desktop and phone widths.
+
 ## [0.51.0] — prepared 2026-10-06 — team Home and navigation
 
 This integration minor continues the0.50.0 edition; it is not a new roadmap
