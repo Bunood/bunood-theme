@@ -10431,6 +10431,9 @@
 		},
 		"Purchase Invoice": {
 			party: "supplier", partyDoctype: "Supplier", title: "Purchase bill", priceList: "buying_price_list",
+			// New goods arrive on a purchase bill (owner, 2026-10-09): the item is made
+			// there with its cost, and the bill's own line brings the stock in.
+			newItem: true,
 			lineFields: ["qty", "rate", "price_list_rate", "discount_amount", "warehouse"],
 			context: ["tax_id", "company", "posting_date", "due_date", "currency", "buying_price_list", "set_warehouse"],
 			options: ["bill_no", "bill_date", "posting_date", "due_date", "update_stock", "set_warehouse", "currency", "buying_price_list", "payment_terms_template"],
@@ -11048,14 +11051,12 @@
 			this.stateBadge = node("span", "bnd-document-state", "", title);
 			this.stateBadge.setAttribute("role", "status");
 			this.documentState = node("p", "bnd-bill-document-state", "", heading);
+			// One title per screen: the Simple/Advanced switch rides in this header, and
+			// the theme's document band above it is hidden while this view owns the page.
+			this.modeSlot = node("div", "bnd-bill-mode-slot", null, identity);
 			const toolbar = node("div", "bnd-bill-toolbar", null, intro); toolbar.setAttribute("role", "toolbar"); toolbar.setAttribute("aria-label", __("Document actions"));
 			const commitActions = node("div", "bnd-bill-action-group bnd-bill-action-group-commit", null, toolbar);
 			commitActions.setAttribute("role", "group"); commitActions.setAttribute("aria-label", __("Draft actions"));
-			this.railButton = this.action(toolbar, __("Customer & preview"), null, "user", () => this.toggleRail());
-			this.railButton.classList.add("bnd-bill-rail-toggle");
-			this.railButton.setAttribute("aria-expanded", "false");
-			this.railButton.setAttribute("aria-label", __("Customer & preview"));
-			this.railButton.setAttribute("title", __("Customer & preview"));
 			const tools = node("details", "bnd-bill-tools", null, toolbar);
 			const toolsTrigger = node("summary", "", null, tools);
 			const toolsIcon = node("span", "bnd-bill-action-icon", null, toolsTrigger);
@@ -11083,9 +11084,9 @@
 			utilityActions.setAttribute("role", "group"); utilityActions.setAttribute("aria-label", __("Invoice tools"));
 			this.newButton = this.action(utilityActions, __("New"), null, null, () => this.newDocument());
 			this.newButton.classList.add("bnd-bill-action-new");
-			// Saving a draft remains immediately available from Invoice tools and F2,
+			// Saving a draft remains immediately available from Invoice tools and F9,
 			// but it is not a second commitment CTA in the compact bottom bar.
-			this.saveButton = this.action(documentActions, __("Save draft"), "F2", "save", () => this.save());
+			this.saveButton = this.action(documentActions, __("Save draft"), "F9", "save", () => this.save());
 			this.saveButton.classList.add("bnd-bill-action-draft");
 			this.saveButton.dataset.bndAction = "save";
 			this.submitButton = this.action(commitActions, __("Save and submit"), null, "circle-check", () => this.submit(), true);
@@ -11101,11 +11102,11 @@
 			node("span", "", __("Total"), this.mobileTotal);
 			this.mobileTotalValue = node("strong", "", "", this.mobileTotal);
 			this.partyButton = this.action(documentActions, __(this.profile.partyDoctype), "F3", "user", () => this.partyControl?.set_focus());
-			this.deleteButton = this.action(documentActions, __("Delete"), "F4", "delete", () => this.removeDocument());
+			this.deleteButton = this.action(documentActions, __("Delete"), null, "delete", () => this.removeDocument());
 			this.deleteButton.classList.add("bnd-bill-action-danger");
-			// Printing is an operational action, not a maintenance tool. Keep it in
-			// the visible action group beside Record payment while continuing to use
-			// Frappe's native print route.
+			// Printing is an operational action, not a maintenance tool. A draft is
+			// saved and printed as it stands, without submitting it, so a customer can
+			// review it first; a submitted invoice keeps Frappe's native print route.
 			this.printButton = this.action(commitActions, __("Print"), null, "printer", () => this.print());
 			this.printButton.classList.add("bnd-bill-action-print");
 			this.printButton.setAttribute("aria-label", __("Print"));
@@ -11117,7 +11118,7 @@
 			this.cancelButton.classList.add("bnd-bill-action-danger");
 			this.paymentButton = this.action(commitActions, __("Record payment"), "F7", "coins", () => this.payment(), true);
 			this.paymentButton.classList.add("bnd-bill-action-save");
-			this.discountButton = this.action(documentActions, __("Discount"), "F10", "percent", () => { this.discount.open = !this.discount.open; this.discount.scrollIntoView({ block: "nearest" }); });
+			this.discountButton = this.action(documentActions, __("Discount"), "F10", "percent", () => this.openDetails("discount_amount"));
 			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", "rotate-ccw", () => this.restore());
 			this.searchButton = this.action(utilityActions, __("Find item"), "Alt+I", "search", () => this.focusItemEntry());
 			this.status = node("p", "bnd-bill-status", "", this.root);
@@ -11127,28 +11128,55 @@
 			this.editor = node("fieldset", "bnd-bill-editor", null, this.root);
 			const layout = node("div", "bnd-bill-layout", null, this.editor);
 			const main = node("div", "bnd-bill-main", null, layout);
-			const customer = node("section", "bnd-bill-panel bnd-bill-party", null, main);
-			const customerHead = node("header", "bnd-bill-section-head", null, customer);
-			node("h3", "", __(this.profile.partyDoctype), customerHead);
-			if ((frappe.boot.user.can_create || []).includes(this.profile.partyDoctype) && fieldStatus(frm, this.profile.party) === "Write") {
-				this.newPartyButton = button(__("New {0}", [__(this.profile.partyDoctype).toLowerCase()]), customerHead, () => this.newParty());
-			}
+			// The party strip is one row of equal controls: the party, the date, how the
+			// bill is settled, the branch when there is more than one, and the details
+			// switch. Every cell ends on the same line (align-items: end), so a button
+			// never sits higher or lower than the field beside it.
+			const customer = this.partySection = node("section", "bnd-bill-panel bnd-bill-party", null, main);
+			customer.setAttribute("aria-label", __(this.profile.partyDoctype));
 			const essentials = node("div", "bnd-bill-essentials", null, customer);
 			this.partyControl = this.bindControl(essentials, frm.fields_dict[this.profile.party], this.doc);
-			const moreToggle = button(__("Invoice details"), customer, () => {
-				const expanded = customer.classList.toggle("is-open");
-				moreToggle.setAttribute("aria-expanded", String(expanded));
-			});
+			this.partyControl?.$wrapper?.[0]?.classList.add("bnd-bill-party-field");
+			if ((frappe.boot.user.can_create || []).includes(this.profile.partyDoctype) && fieldStatus(frm, this.profile.party) === "Write") {
+				const label = __("New {0}", [__(this.profile.partyDoctype).toLowerCase()]);
+				this.newPartyButton = button("", essentials, () => this.newParty());
+				this.newPartyButton.classList.add("bnd-bill-icon-button", "bnd-bill-new-party");
+				this.newPartyButton.innerHTML = frappe.utils.icon("add", "sm");
+				this.newPartyButton.setAttribute("aria-label", label);
+				this.newPartyButton.title = label;
+			}
+			const primaryFields = ["posting_date", ...(this.profile.paymentMethod ? [this.profile.paymentMethod] : []), ...(frm.doctype === "Purchase Invoice" ? ["bill_no"] : [])];
+			for (const name of primaryFields) {
+				const source = frm.fields_dict[name];
+				if (source && fieldStatus(frm, name) !== "None") this.bindControl(essentials, source, this.doc);
+			}
+			// Branch: offered only when the company has more than one; each branch is
+			// tied to its warehouse (frappe.boot.bnd_branches), so choosing one is the
+			// whole stock decision on this screen.
+			this.branchField = node("div", "frappe-control bnd-bill-branch", null, essentials);
+			this.branchField.hidden = true;
+			const branchLabel = node("label", "control-label", __("Branch"), this.branchField);
+			this.branchSelect = node("select", "form-control bnd-bill-branch-select", null, this.branchField);
+			this.branchSelect.id = `bnd-bill-branch-${++controlId}`;
+			branchLabel.htmlFor = this.branchSelect.id;
+			this.branchSelect.addEventListener("change", () => this.chooseBranch(this.branchSelect.value));
+			const moreToggle = this.detailsToggle = button(__("Additional details"), essentials, () => this.openDetails());
 			moreToggle.classList.add("bnd-bill-more-toggle");
 			moreToggle.setAttribute("aria-expanded", "false");
 			const moreFields = node("div", "bnd-bill-more-fields", null, customer);
 			moreFields.id = `bnd-bill-more-${++controlId}`;
 			moreToggle.setAttribute("aria-controls", moreFields.id);
 			const extraEssentials = node("div", "bnd-bill-essentials", null, moreFields);
-			const primaryFields = ["posting_date", "due_date", ...(this.profile.paymentMethod ? [this.profile.paymentMethod] : []), ...(frm.doctype === "Purchase Invoice" ? ["bill_no", "bill_date"] : [])];
-			for (const name of primaryFields) {
+			const detailFields = [
+				"due_date",
+				...(frm.doctype === "Purchase Invoice" ? ["bill_date"] : []),
+				"currency", this.profile.priceList, "payment_terms_template",
+				...(frm.doctype === "Sales Invoice" ? ["po_no"] : []),
+				"apply_discount_on", "additional_discount_percentage", "discount_amount",
+			];
+			for (const name of detailFields) {
 				const source = frm.fields_dict[name];
-				if (source && fieldStatus(frm, name) !== "None") this.bindControl(name === "posting_date" ? essentials : extraEssentials, source, this.doc);
+				if (source && fieldStatus(frm, name) !== "None") this.bindControl(extraEssentials, source, this.doc);
 			}
 			if (frm.doctype === "Sales Invoice") {
 				const invoiceNumber = node("div", "frappe-control bnd-bill-static-field bnd-bill-invoice-number", null, extraEssentials);
@@ -11156,45 +11184,39 @@
 				node("label", "control-label", __("Invoice number"), invoiceNumber);
 				this.invoiceNumberValue = node("output", "bnd-bill-static-value", "", invoiceNumber);
 				this.invoiceNumberValue.dir = "auto";
-				node("small", "bnd-bill-hint", __("Invoice number assigned on save; set the series in Document options."), invoiceNumber);
 			}
-			// Company, currency, price list and default warehouse are working
-			// context, not advanced options. Keep them visible while the editable
-			// secondary fields remain behind Invoice details.
-			this.context = node("dl", "bnd-bill-context", null, customer);
 			const items = node("section", "bnd-bill-panel bnd-bill-items", null, main);
-			node("h3", "", __("Items"), items);
-			this.inlineStockOptions = new Set();
-			if (frm.doctype === "Sales Invoice") {
-				const stockSettings = node("section", "bnd-bill-stock-settings", null, items);
-				stockSettings.setAttribute("aria-label", __("Stock and warehouse"));
-				const updateSource = frm.fields_dict.update_stock;
-				if (updateSource && fieldStatus(frm, "update_stock") !== "None") {
-					this.stockUpdateControl = this.bindControl(stockSettings, updateSource, this.doc);
-					this.stockUpdateControl?.$wrapper?.[0]?.classList.add("bnd-bill-stock-toggle");
-					if (this.stockUpdateControl) this.inlineStockOptions.add("update_stock");
-				}
-				const warehouseSource = frm.fields_dict.set_warehouse;
-				if (warehouseSource) {
-					// The native field can be hidden by its `update_stock` dependency while
-					// the simple view is mounting. Ignore only that transient dependency flag;
-					// the original field's hidden/disabled/permission/docstatus rules still
-					// decide whether this native Link control may be shown or edited.
-					const warehouseStatus = () => frappe.perm.get_field_display_status(
-						{ ...warehouseSource.df, hidden_due_to_dependency: 0 }, this.doc, frm.perm,
-					);
-					this.stockWarehouseControl = this.bindControl(stockSettings, warehouseSource, this.doc, false, warehouseStatus);
-					this.stockWarehouseControl?.$wrapper?.[0]?.classList.add("bnd-bill-stock-source");
-					if (this.stockWarehouseControl) this.inlineStockOptions.add("set_warehouse");
-				}
-				this.stockNote = node("p", "bnd-bill-stock-note", "", stockSettings);
-				if (!this.stockUpdateControl) stockSettings.remove(); else this.stockSettings = stockSettings;
-			}
+			const itemsHead = node("header", "bnd-bill-items-head", null, items);
+			node("h3", "", __("Items"), itemsHead);
+			this.itemCount = node("span", "bnd-bill-hint bnd-bill-item-count", "", itemsHead);
+			// The scan box sits above the lines: a barcode scanner types into it and
+			// presses Enter, and so can a person with an item code. ERPNext's own
+			// BarcodeScanner places the item, so a second scan raises the quantity.
+			const scan = node("div", "bnd-bill-scan bnd-bill-draft-only", null, items);
+			scan.setAttribute("role", "search");
+			this.scanButton = button("", scan, () => this.focusScan());
+			this.scanButton.classList.add("bnd-bill-icon-button", "bnd-bill-scan-icon");
+			this.scanButton.innerHTML = frappe.utils.icon("scan", "sm");
+			this.scanButton.setAttribute("aria-label", __("Scan barcode"));
+			this.scanButton.title = __("Scan barcode");
+			this.scanInput = node("input", "bnd-bill-scan-input", null, scan);
+			this.scanInput.type = "text";
+			this.scanInput.autocomplete = "off";
+			this.scanInput.spellcheck = false;
+			this.scanInput.placeholder = __("Scan a barcode or type an item code, then press Enter");
+			this.scanInput.setAttribute("aria-label", __("Scan a barcode or type an item code, then press Enter"));
+			this.scanInput.addEventListener("keydown", e => {
+				if (e.key !== "Enter" || e.isComposing) return;
+				e.preventDefault(); e.stopPropagation();
+				void this.scanCode(this.scanInput.value);
+			});
+			node("kbd", "bnd-bill-scan-key", "F2", scan).setAttribute("aria-hidden", "true");
 			const search = node("div", "bnd-bill-search bnd-bill-draft-only", null, items);
 			this.addLineButton = button(__("Add line"), search, () => this.addBlankLine(true), true);
-			this.newItemButton = button(__("New item"), search, () => this.newItem());
-			this.scanButton = button(__("Scan barcode"), search, () => this.scanItem());
-			const lineHint = node("p", "bnd-bill-hint bnd-bill-draft-only", __("Type or search directly in the item column. Use Add line when you need another item."), items);
+			if (this.profile.newItem) {
+				this.newItemButton = button(__("New item"), search, () => this.newItem());
+				node("kbd", "bnd-bill-search-key", "F4", this.newItemButton).setAttribute("aria-hidden", "true");
+			}
 			this.lines = node("div", "bnd-bill-lines", null, items);
 			this.lineHead = node("div", "bnd-bill-line-head", null, this.lines);
 			const rowHead = node("span", "bnd-bill-head-row", "#", this.lineHead);
@@ -11205,7 +11227,7 @@
 				__("Amount"),
 				__("Actions"),
 			]) node("span", "", label, this.lineHead);
-			items.append(this.lines, search, lineHint);
+			items.append(this.lines, search);
 			this.amountSummary = node("section", "bnd-bill-amount-summary", null, items);
 			this.amountSummary.setAttribute("aria-label", __("Bill total"));
 			this.amountSummary.setAttribute("aria-live", "polite");
@@ -11223,87 +11245,98 @@
 			this.vatChoiceStatus = node("small", "bnd-vat-treatment-status", __("Loading VAT choices…"), this.vatChoice);
 			this.amountBreakdown = node("dl", "bnd-bill-amount-breakdown", null, this.amountSummary);
 			this.amountGrand = node("div", "bnd-bill-amount-grand", null, this.amountSummary);
-			this.railScrim = button("", layout, () => this.toggleRail(false));
-			this.railScrim.classList.add("bnd-bill-rail-scrim");
-			this.railScrim.setAttribute("aria-label", __("Close customer and preview panel"));
-			this.rail = node("aside", "bnd-bill-panel bnd-bill-rail", null, layout);
-			this.rail.id = `bnd-bill-rail-${++controlId}`;
-			this.railButton.setAttribute("aria-controls", this.rail.id);
-			const railHead = node("header", "bnd-bill-rail-head", null, this.rail);
-			const railTabs = node("div", "bnd-bill-rail-tabs", null, railHead);
-			railTabs.setAttribute("role", "tablist");
-			this.customerTab = button(__(this.profile.partyDoctype), railTabs, () => this.selectRailTab("customer"));
-			this.customerTab.setAttribute("role", "tab");
-			this.previewTab = button(__("Preview"), railTabs, () => this.selectRailTab("preview"));
-			this.previewTab.setAttribute("role", "tab");
-			this.railClose = button("×", railHead, () => this.toggleRail(false));
-			this.railClose.classList.add("bnd-bill-rail-close");
-			this.railClose.setAttribute("aria-label", __("Close customer and preview panel"));
-			this.customerSummary = node("section", "bnd-bill-customer-summary", null, this.rail);
-			this.customerSummary.setAttribute("role", "tabpanel");
-			this.preview = node("section", "bnd-bill-preview", null, this.rail);
-			this.preview.setAttribute("role", "tabpanel");
-			this.preview.setAttribute("aria-live", "polite");
-			node("h3", "", __("Bill total"), this.rail);
-			this.totals = node("dl", "bnd-bill-totals", null, this.rail);
-			if (frm.doctype === "Sales Invoice") {
-				this.settlementNote = node("div", "bnd-bill-settlement-note bnd-bill-draft-only", null, this.rail);
-			}
-			this.stock = node("p", "bnd-bill-hint bnd-bill-draft-only", null, this.rail);
-			if (frm.doctype === "Sales Invoice") {
-				this.zatca = node("details", "bnd-bill-options", null, this.rail); this.zatca.open = true;
-				this.zatca.dataset.bndPart = "zatca-status";
-				node("summary", "", __("ZATCA e-invoicing"), this.zatca);
-				this.zatcaStatus = node("p", "bnd-bill-hint", __("Checking ZATCA setup…"), this.zatca);
-				this.zatcaMeta = node("p", "bnd-bill-hint", "", this.zatca);
-				this.zatcaButton = button(__("Refresh status"), this.zatca, () => this.zatcaAction());
-				this.zatcaButton.hidden = true;
-			}
-			const options = node("details", "bnd-bill-options", null, this.rail);
-			node("summary", "", __("Document options"), options);
-			for (const name of [...(frm.doctype === "Sales Invoice" ? ["naming_series"] : []), ...this.profile.options]) {
-				if (primaryFields.includes(name) || this.inlineStockOptions.has(name)) continue;
-				const source = frm.fields_dict[name];
-				if (source && fieldStatus(frm, name) !== "None") this.bindControl(options, source, this.doc);
-			}
-			this.discount = node("details", "bnd-bill-options", null, this.rail);
-			node("summary", "", __("Discount and tax"), this.discount);
-			for (const name of ["apply_discount_on", "additional_discount_percentage", "discount_amount"]) {
-				const source = frm.fields_dict[name]; if (source && fieldStatus(frm, name) !== "None") this.bindControl(this.discount, source, this.doc);
-			}
-			node("p", "bnd-bill-hint bnd-bill-draft-only", __("A draft does not post accounts, move stock, or record payment. Submission uses the native validation and confirmation flow."), this.rail);
 			let popupWasOpen = false;
 			this.root.addEventListener("keydown", e => { if (e.key === "Escape") popupWasOpen = !!this.root.querySelector('[aria-expanded="true"]'); }, true);
 			this.root.addEventListener("keydown", e => {
 				if (e.key !== "Escape" || popupWasOpen) return;
 				e.preventDefault();
-				if (this.root.dataset.bndRailOpen === "true") this.toggleRail(false);
+				if (this.partySection.classList.contains("is-open")) this.closeDetails();
 				else this.fullInvoice();
 			});
 			this.root.addEventListener("keydown", e => this.shortcut(e, true), true);
-			this.root.dataset.bndRailOpen = "false";
-			this.selectRailTab("preview");
-			this.setMode(true); this.render(); this.applyDefaultTax(); this.loadVatChoices();
+			this.setMode(true); this.render(); this.applyDefaultTax(); this.loadVatChoices(); this.applyBranchDefault();
 			frappe.after_ajax(() => {
 				if (this.active() && this.doc.__islocal && !this.doc[this.profile.party] &&
 					!this.root.contains(document.activeElement)) this.partyControl?.set_focus();
 			});
 		}
-		toggleRail(force) {
-			const open = typeof force === "boolean" ? force : this.root.dataset.bndRailOpen !== "true";
-			this.root.dataset.bndRailOpen = String(open);
-			this.railButton?.setAttribute("aria-expanded", String(open));
-			if (open) this.railClose?.focus({ preventScroll: true });
-			else if (this.rail?.contains(document.activeElement)) this.railButton?.focus({ preventScroll: true });
+		openDetails(fieldname) {
+			const open = fieldname ? true : !this.partySection.classList.contains("is-open");
+			this.partySection.classList.toggle("is-open", open);
+			this.detailsToggle?.setAttribute("aria-expanded", String(open));
+			if (!open || !fieldname) return;
+			const entry = this.controls.find(control => !control.rowField && control.fieldname === fieldname);
+			if (!entry) return;
+			entry.control.$wrapper?.[0]?.scrollIntoView?.({ block: "nearest" });
+			entry.control.set_focus?.();
 		}
-		selectRailTab(tab) {
-			const customer = tab === "customer";
-			this.customerSummary.hidden = !customer;
-			this.preview.hidden = customer;
-			this.customerTab.setAttribute("aria-selected", String(customer));
-			this.previewTab.setAttribute("aria-selected", String(!customer));
-			this.customerTab.tabIndex = customer ? 0 : -1;
-			this.previewTab.tabIndex = customer ? -1 : 0;
+		closeDetails() {
+			this.partySection.classList.remove("is-open");
+			this.detailsToggle?.setAttribute("aria-expanded", "false");
+			if (this.partySection.contains(document.activeElement)) this.detailsToggle?.focus({ preventScroll: true });
+		}
+		focusScan() {
+			if (!this.scanInput || Number(this.doc.docstatus) !== 0) return;
+			this.scanInput.focus({ preventScroll: true });
+			this.scanInput.select?.();
+		}
+		branches() {
+			// Published by Bunood Business at boot: [{ name, warehouse, company }].
+			const company = this.doc.company;
+			return (frappe.boot?.bnd_branches || []).filter(row =>
+				row?.name && row.warehouse && (!row.company || !company || row.company === company));
+		}
+		warehouseStatus() {
+			const df = this.frm.fields_dict.set_warehouse?.df;
+			// The native Link may be hidden by its update_stock dependency; its real
+			// permission and docstatus rules still decide whether it may change.
+			return df ? frappe.perm.get_field_display_status({ ...df, hidden_due_to_dependency: 0 }, this.doc, this.frm.perm) : "None";
+		}
+		branchKey() { return `bnd-bill-branch:${this.frm.doctype}:${this.doc.company || ""}`; }
+		rememberedBranch() {
+			try { return window.localStorage?.getItem(this.branchKey()) || ""; } catch (_) { return ""; }
+		}
+		renderBranch() {
+			if (!this.branchField) return;
+			const branches = this.branches();
+			const status = this.warehouseStatus();
+			this.branchField.hidden = branches.length < 2 || status === "None";
+			if (this.branchField.hidden) return;
+			const current = branches.find(row => row.warehouse === this.doc.set_warehouse);
+			const options = branches.map(row => [row.name, __(row.label || row.name)]);
+			if (!current && this.doc.set_warehouse) options.push(["", this.doc.set_warehouse]);
+			const signature = JSON.stringify(options);
+			if (this.branchSelect.dataset.options !== signature) {
+				this.branchSelect.replaceChildren();
+				for (const [value, label] of options) {
+					const option = node("option", "", label, this.branchSelect);
+					option.value = value;
+				}
+				this.branchSelect.dataset.options = signature;
+			}
+			this.branchSelect.value = current ? current.name : "";
+			this.branchSelect.disabled = status !== "Write" || Number(this.doc.docstatus) !== 0;
+		}
+		async chooseBranch(name) {
+			const branch = this.branches().find(row => row.name === name);
+			if (!branch || this.warehouseStatus() !== "Write") { this.renderBranch(); return; }
+			try { window.localStorage?.setItem(this.branchKey(), branch.name); } catch (_) { /* per-viewer convenience only */ }
+			if (branch.warehouse === this.doc.set_warehouse) return;
+			try { await this.change(() => this.frm.set_value("set_warehouse", branch.warehouse)); }
+			catch (_) { this.renderBranch(); }
+		}
+		applyBranchDefault() {
+			// A new draft starts in the user's last branch, or the only one, so the
+			// warehouse is never a question on this screen.
+			if (!this.doc.__islocal || Number(this.doc.docstatus) !== 0 || this.warehouseStatus() !== "Write") return;
+			const branches = this.branches();
+			if (!branches.length || branches.some(row => row.warehouse === this.doc.set_warehouse)) return;
+			const remembered = this.rememberedBranch();
+			const branch = branches.find(row => row.name === remembered) || branches[0];
+			this.change(() => this.frm.set_value("set_warehouse", branch.warehouse)).catch(() => {});
+		}
+		currentWarehouse() {
+			return this.doc.set_warehouse || (this.doc.items || []).find(row => row.warehouse)?.warehouse || "";
 		}
 		action(parent, label, key, icon, handler, primary = false) {
 			const b = button("", parent, handler, primary); b.classList.add("bnd-bill-action");
@@ -11311,7 +11344,8 @@
 		}
 		shortcut(e, local = false) {
 			if (!this.simple || (!local && !this.active()) || e.target?.closest?.(".modal")) return;
-			const keys = { F2: () => this.save(), F3: () => this.partyControl?.set_focus(), F4: () => this.removeDocument(), F7: () => this.payment(), F10: () => this.discountButton.click(), F11: () => this.restore() };
+			// F2 scan · F4 new item · F9 save: the cashier's three, as on the shortcut strip.
+			const keys = { F2: () => this.focusScan(), F3: () => this.partyControl?.set_focus(), F4: () => this.profile.newItem && this.newItem(), F7: () => this.payment(), F9: () => this.save(), F10: () => this.discountButton.click(), F11: () => this.restore() };
 			const save = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s";
 			const findItem = e.altKey && e.key.toLowerCase() === "i";
 			if (!keys[e.key] && !save && !findItem) return;
@@ -11350,6 +11384,9 @@
 				tabs.classList.add("bnd-bill-mode-row");
 				this.mode.dataset.bndInline = "true";
 				tabs.append(this.mode);
+			} else if (simple && this.modeSlot) {
+				delete this.mode.dataset.bndInline;
+				this.modeSlot.append(this.mode);
 			} else {
 				delete this.mode.dataset.bndInline;
 				this.root.before(this.mode);
@@ -11422,6 +11459,7 @@
 			if (this.editor) this.editor.disabled = locked;
 			if (this.addLineButton) this.addLineButton.disabled = busy || !canAdd(this.frm);
 			for (const action of [this.saveButton, this.submitButton, this.submitPrintButton, this.sendButton, this.newButton, this.advancedButton, this.scanButton, this.newPartyButton]) if (action) action.disabled = busy;
+			if (this.scanInput) this.scanInput.disabled = locked;
 			for (const [profileName, action] of [[VAT_STANDARD, this.vatStandardButton], [VAT_STANDARD, this.vatIncludedButton], [VAT_EXEMPT, this.vatExemptButton]]) {
 				if (action) action.disabled = busy || Number(this.doc.docstatus) !== 0 || !vatPartyReady(this.frm) || this.vatProfilesLoading || !this.vatProfiles?.[profileName];
 			}
@@ -11429,7 +11467,6 @@
 				if (remove) remove.disabled = busy;
 				if (duplicate) duplicate.disabled = busy;
 			}
-			if (this.zatcaButton) this.zatcaButton.disabled = busy || !!this.zatcaSending;
 			this.root?.setAttribute("aria-busy", String(busy));
 		}
 		message(text, error = false, action = null) {
@@ -11809,92 +11846,180 @@
 			if (!df || df.hidden || df.read_only || frappe.perm.get_field_display_status(df, entry.doc, frappe.perm.get_perm(this.profile.partyDoctype)) !== "Write") return;
 			entry.add_fields([{ ...df, label: __("Tax ID") }]);
 		}
-		async newItem() {
+		async newItem(prefill = {}) {
+			if (!this.profile?.newItem || Number(this.doc.docstatus) !== 0 || this.itemDialog) return;
 			if (!(frappe.boot.user.can_create || []).includes("Item")) {
 				this.message(__("You do not have permission to create an item."), true);
 				return;
 			}
+			let defaults = {};
+			try {
+				const response = await frappe.call({ method: "bunood_theme.api.bill_item_defaults", type: "GET", args: { company: this.doc.company || "" } });
+				defaults = response.message || {};
+			} catch (_) { /* The dialog still works with the site's defaults. */ }
+			if (!this.active()) return;
+			const groups = defaults.item_groups || [];
+			const stockItem = Number(defaults.is_stock_item ?? 1) === 1;
+			const byCode = defaults.naming !== "Naming Series";
+			const dialog = this.itemDialog = new frappe.ui.Dialog({
+				title: __("New item"),
+				fields: [
+					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), reqd: byCode ? 1 : 0, default: prefill.item_code || (byCode ? defaults.next_code || "" : "") },
+					{ fieldtype: "Column Break" },
+					{ fieldname: "item_name", fieldtype: "Data", label: __("Item name"), reqd: 1, placeholder: __("For example: a can of juice") },
+					{ fieldtype: "Section Break", hide_border: 1 },
+					{ fieldname: "barcode", fieldtype: "Data", label: __("Barcode"), default: prefill.barcode || "" },
+					{ fieldtype: "Column Break" },
+					groups.length
+						? { fieldname: "item_group", fieldtype: "Select", label: __("Item group"), reqd: 1, options: groups, default: defaults.item_group || groups[0] }
+						: { fieldname: "item_group", fieldtype: "Link", options: "Item Group", label: __("Item group"), reqd: 1, default: defaults.item_group || "" },
+					{ fieldtype: "Column Break" },
+					{ fieldname: "stock_uom", fieldtype: "Link", options: "UOM", label: __("Unit of measure"), reqd: 1, default: defaults.stock_uom || "" },
+					{ fieldtype: "Section Break", hide_border: 1 },
+					{ fieldname: "buying_rate", fieldtype: "Currency", label: __("Purchase price"), default: 0, non_negative: 1 },
+					{ fieldtype: "Column Break" },
+					{ fieldname: "selling_rate", fieldtype: "Currency", label: __("Selling price"), default: 0, non_negative: 1 },
+					{ fieldtype: "Column Break" },
+					{ fieldname: "qty", fieldtype: "Float", label: __("Quantity"), default: 0, non_negative: 1 },
+					{ fieldtype: "Section Break", hide_border: 1 },
+					{ fieldname: "note", fieldtype: "HTML" },
+				],
+				primary_action_label: __("Save and add to invoice"),
+				primary_action: values => void this.saveQuickItem(values, dialog, stockItem, defaults),
+				secondary_action_label: __("Cancel"),
+				secondary_action: () => dialog.hide(),
+				onhide: () => { if (this.itemDialog === dialog) this.itemDialog = null; if (this.active()) this.focusScan(); },
+			});
+			dialog.$wrapper?.addClass("bnd-item-quick-entry");
+			const note = dialog.fields_dict.note?.$wrapper?.[0];
+			if (note) node("p", "bnd-bill-hint", __("Prices and quantity are optional: leave them at 0 if you do not need them. The quantity and the purchase price go on this bill."), note);
+			// Enter walks the fields in order and saves from the last one, so a
+			// cashier never needs the mouse; an open suggestion list keeps Enter.
+			dialog.$wrapper?.[0]?.addEventListener("keydown", e => {
+				if (e.key !== "Enter" || e.isComposing || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+				const target = e.target;
+				if (!target?.matches?.("input, select") || target.closest(".awesomplete")?.querySelector("ul:not([hidden])")) return;
+				const inputs = [...dialog.$wrapper[0].querySelectorAll(".modal-body :is(input, select)")]
+					.filter(input => !input.disabled && input.type !== "hidden" && input.getClientRects().length);
+				const index = inputs.indexOf(target);
+				if (index < 0) return;
+				e.preventDefault(); e.stopPropagation();
+				if (index < inputs.length - 1) { inputs[index + 1].focus(); inputs[index + 1].select?.(); }
+				else dialog.get_primary_btn().trigger("click");
+			}, true);
+			dialog.show();
+			setTimeout(() => dialog.fields_dict[dialog.get_value("item_code") ? "item_name" : "item_code"]?.set_focus?.(), 200);
+		}
+		async saveQuickItem(values, dialog, stockItem, defaults) {
+			if (this.savingItem) return;
+			const number = value => Number(value || 0);
+			const buying = number(values.buying_rate), selling = number(values.selling_rate), qty = number(values.qty);
+			if (![buying, selling, qty].every(value => Number.isFinite(value) && value >= 0)) {
+				frappe.msgprint(__("Use zero or more for the prices and the quantity."));
+				return;
+			}
+			const company = this.doc.company, warehouse = this.currentWarehouse();
+			const uom = values.stock_uom;
+			const sellingList = defaults.selling_price_list;
+			const buyingList = this.doc.buying_price_list || defaults.buying_price_list;
+			const code = String(values.item_code || "").trim();
+			const barcode = String(values.barcode || "").trim();
+			// Native Item fields only. ERPNext adds the selling price to the selling price
+			// list (standard_rate) on insert; the stock arrives through this bill's own
+			// line when it is submitted, so no opening stock is recorded twice.
+			const doc = {
+				doctype: "Item",
+				...(code ? { item_code: code } : {}),
+				item_name: String(values.item_name || "").trim(),
+				item_group: values.item_group,
+				stock_uom: uom,
+				is_stock_item: stockItem ? 1 : 0,
+				...(selling > 0 ? { standard_rate: selling } : {}),
+				...(buying > 0 ? { valuation_rate: buying } : {}),
+				barcodes: barcode ? [{ barcode, uom }] : [],
+				item_defaults: company ? [{ company, ...(warehouse ? { default_warehouse: warehouse } : {}), ...(sellingList ? { default_price_list: sellingList } : {}) }] : [],
+			};
+			this.savingItem = true;
+			dialog.disable_primary_action();
+			let item;
+			try {
+				const response = await frappe.call({ method: "frappe.client.insert", args: { doc }, freeze: true, freeze_message: __("Saving item…") });
+				item = response.message;
+			} catch (_) { /* Frappe shows the server's reason; the dialog keeps the values. */ }
+			finally { this.savingItem = false; dialog.enable_primary_action(); }
+			if (!item?.name) return;
+			if (buying > 0 && buyingList) {
+				try {
+					await frappe.call({ method: "frappe.client.insert", args: { doc: { doctype: "Item Price", item_code: item.name, price_list: buyingList, price_list_rate: buying, uom } } });
+				} catch (_) {
+					frappe.show_alert({ message: __("The item was saved, but its purchase price was not added to the price list."), indicator: "orange" });
+				}
+			}
+			dialog.hide();
+			frappe.show_alert({ message: __("Item saved: {0}", [item.item_name || item.name]), indicator: "green" });
+			await this.addItemToInvoice(item.name, { qty, rate: buying });
+		}
+		async addItemToInvoice(itemCode, { qty = 0, rate = 0 } = {}) {
+			if (!this.active() || !itemCode) return;
 			await this.ensureEntryRow();
 			const entry = this.entryControl();
-			if (!entry) return;
-			return frappe.ui.form.make_quick_entry("Item", doc => {
-				if (!this.active()) return;
-				return entry.control.set_value(doc.name);
-			}, quickEntry => this.addItemStockAndPriceFields(quickEntry));
-		}
-		addItemStockAndPriceFields(entry) {
-			if (!entry?.add_fields || !entry.doc || entry.__bnd_item_fields) return;
-			entry.__bnd_item_fields = true;
-			entry.wrapper?.[0]?.closest(".modal")?.classList.add("bnd-item-quick-entry");
-			const permitted = name => {
-				const df = frappe.meta.get_docfield("Item", name);
-				if (!df || df.read_only) return null;
-				// ERPNext hides opening_stock on the full Item form; this quick
-				// entry intentionally reveals it. Check actual write permission on
-				// a copy with that presentation-only flag cleared.
-				const shown = name === "opening_stock" ? { ...df, hidden: 0, hidden_due_to_dependency: 0 } : df;
-				const status = frappe.perm.get_field_display_status(shown, entry.doc, frappe.perm.get_perm("Item"));
-				return status === "Write" ? df : null;
-			};
-			const fields = [];
-			for (const name of ["standard_rate", "opening_stock", "valuation_rate"]) {
-				const df = permitted(name);
-				if (df && !entry.fields_dict?.[name]) fields.push({ ...df, hidden: 0, hidden_due_to_dependency: 0 });
-			}
-			const company = this.doc.company;
-			if (company && permitted("opening_stock")) {
-				fields.push({
-					fieldname: "__bnd_opening_warehouse",
-					fieldtype: "Link",
-					options: "Warehouse",
-					label: __("Warehouse"),
-					get_query: () => ({ filters: { company, is_group: 0 } }),
-					default: this.doc.set_warehouse || "",
+			try {
+				if (entry && !entry.doc.item_code) await entry.control.set_value(itemCode);
+				else await this.change(() => this.addScanned({ item_code: itemCode }));
+				// The line carries what was typed in the dialog: its quantity and cost.
+				const row = (this.frm.doc.items || []).filter(item => item.item_code === itemCode).at(-1);
+				if (row && (qty > 0 || rate > 0)) await this.change(async () => {
+					if (qty > 0 && Number(row.qty) !== qty) await frappe.model.set_value(row.doctype, row.name, "qty", qty);
+					if (rate > 0 && Number(row.rate) !== rate) await frappe.model.set_value(row.doctype, row.name, "rate", rate);
 				});
-			}
-			if (!fields.length) return;
-			entry.add_fields(fields);
-			const stock = entry.fields_dict?.opening_stock;
-			const warehouse = entry.fields_dict?.__bnd_opening_warehouse;
-			const cost = entry.fields_dict?.valuation_rate;
-			const syncStockFields = () => {
-				const hasOpening = Number(stock?.get_value() || 0) > 0;
-				if (warehouse) entry.toggle_reqd("__bnd_opening_warehouse", hasOpening);
-				if (cost) entry.toggle_reqd("valuation_rate", hasOpening);
-			};
-			if (stock) {
-				const previous = stock.df.onchange;
-				stock.df.onchange = function (...args) {
-					if (previous) previous.apply(this, args);
-					syncStockFields();
-				};
-			}
-			if (warehouse && this.doc.set_warehouse) warehouse.set_value(this.doc.set_warehouse);
-			syncStockFields();
-			const updateDoc = entry.update_doc.bind(entry);
-			entry.update_doc = () => {
-				const doc = updateDoc();
-				const selected = warehouse?.get_value();
-				const sellingPriceList = this.frm.doctype === "Sales Invoice" ? this.doc.selling_price_list : "";
-				delete doc.__bnd_opening_warehouse;
-				if (company && (selected || sellingPriceList)) {
-					doc.item_defaults = [{ doctype: "Item Default", company,
-						...(selected ? { default_warehouse: selected } : {}),
-						...(sellingPriceList ? { default_price_list: sellingPriceList } : {}),
-					}];
+			} catch (error) { this.message(error?.message || __("Could not add the item to the invoice."), true); }
+			if (this.active()) this.focusScan();
+		}
+		async scanCode(raw) {
+			const value = String(raw || "").trim();
+			if (!value || !this.active() || Number(this.doc.docstatus) !== 0 || this.saving || this.closing) return;
+			this.scanInput.value = "";
+			let data = {};
+			try {
+				const response = await frappe.call({
+					method: "erpnext.stock.utils.scan_barcode",
+					args: { search_value: value, ctx: { set_warehouse: this.doc.set_warehouse, company: this.doc.company } },
+				});
+				data = response.message || {};
+				if (!data.item_code) {
+					// No barcode, serial or batch: an item code typed by hand.
+					const found = await frappe.db.get_value("Item", { name: value, disabled: 0 }, "name");
+					if (found?.message?.name) data = { item_code: found.message.name };
 				}
-				return doc;
-			};
+			} catch (_) { data = {}; }
+			if (!this.active()) return;
+			if (!data.item_code) { this.scanNotFound(value); return; }
+			try {
+				await this.change(() => this.addScanned(data));
+				await this.ensureEntryRow();
+				this.message("");
+			} catch (error) { this.message(error?.message || __("Could not add the item to the invoice."), true); }
+			if (this.active()) this.focusScan();
 		}
-		scanItem() {
-			if (!window.frappe?.ui?.Scanner) { this.message(__("Camera scanning is not available in this browser. Type the barcode in item search."), true); return; }
-			new frappe.ui.Scanner({ dialog: true, multiple: false, on_scan: data => {
-				const value = data?.result?.text; if (!value || !this.active()) return;
-				this.ensureEntryRow().then(() => {
-					const entry = this.entryControl();
-					if (entry) entry.control.set_value(value);
-				});
-			} });
+		addScanned(data) {
+			const Scanner = window.erpnext?.utils?.BarcodeScanner;
+			if (Scanner) {
+				const scanner = new Scanner({ frm: this.frm });
+				// The scan box is ours; the scanner only places the item on the lines.
+				scanner.scan_barcode_field = { value: "", set_value: () => Promise.resolve() };
+				return scanner.update_table(data);
+			}
+			const entry = this.entryControl();
+			if (!entry || entry.doc.item_code) throw Error(__("Add a line first, then scan again."));
+			return entry.control.set_value(data.item_code);
+		}
+		scanNotFound(value) {
+			const canCreate = !!this.profile?.newItem && (frappe.boot.user.can_create || []).includes("Item");
+			this.message(__("No item has the code or barcode {0}.", [value]), true, canCreate ? {
+				label: __("Add it as a new item"),
+				run: () => this.newItem({ barcode: value }),
+			} : null);
+			this.focusScan();
 		}
 		format(value, df, doc = this.doc) {
 			// Native precision/currency formatting; HTML stripped before display.
@@ -11909,105 +12034,6 @@
 			} else node("bdi", "", this.format(value, df, doc), wrap);
 			return wrap;
 		}
-		customerAccountKey() {
-			if (this.frm.doctype !== "Sales Invoice" || !this.doc.customer || !this.doc.company) return "";
-			return `${this.doc.customer}:${this.doc.company}:${this.doc.name || "new"}:${this.doc.docstatus}`;
-		}
-		loadCustomerAccount() {
-			const key = this.customerAccountKey();
-			if (!key || key === this.accountSummaryKey) return;
-			this.accountSummaryKey = key; this.accountSummary = null; this.accountSummaryLoading = true;
-			const request = this.accountSummaryRequest = (this.accountSummaryRequest || 0) + 1;
-			frappe.call({
-				method: "bunood_theme.api.get_customer_account_summary",
-				type: "GET",
-				args: { customer: this.doc.customer, company: this.doc.company },
-			}).then(response => {
-				if (!this.active() || request !== this.accountSummaryRequest || key !== this.customerAccountKey()) return;
-				this.accountSummary = response.message || null; this.accountSummaryLoading = false; this.renderCustomerSummary();
-			}).catch(() => {
-				if (request !== this.accountSummaryRequest) return;
-				this.accountSummaryLoading = false; this.accountSummary = { unavailable: true }; this.renderCustomerSummary();
-			});
-		}
-		openCustomerStatement() {
-			if (!this.doc.customer || !this.doc.company) return;
-			if (api.studio_report_route?.("General Ledger")?.[0] === "bnd-report-studio") {
-				frappe.set_route("bnd-report-studio", "account-statement", `customer~${this.doc.customer}`,
-					{ bnd_studio_context: 1, company: this.doc.company });
-				return;
-			}
-			frappe.set_route("query-report", "General Ledger", {
-				company: this.doc.company,
-				party_type: "Customer",
-				party: [this.doc.customer],
-			});
-		}
-		async loadZatca(force = false) {
-			if (!this.zatca || !this.active()) return;
-			const key = `${this.doc.name || "new"}:${this.doc.docstatus}:${this.doc.company || ""}`;
-			if (!force && this.zatcaKey === key) return;
-			this.zatcaKey = key;
-			const request = this.zatcaRequest = (this.zatcaRequest || 0) + 1;
-			this.zatcaStatus.textContent = __("Checking ZATCA setup…");
-			try {
-				if (!this.doc.company) { this.zatcaStatus.textContent = __("Select a company"); return; }
-				const args = this.doc.__islocal ? { company: this.doc.company } : { invoice_name: this.doc.name, company: this.doc.company };
-				const response = await frappe.call({ method: "bunood_theme.zatca.status.get_invoice_status", type: "GET", args });
-				if (!this.active() || request !== this.zatcaRequest) return;
-				this.zatcaData = response.message || {}; this.renderZatca();
-			} catch (error) {
-				if (request !== this.zatcaRequest) return;
-				this.zatcaStatus.textContent = error.message || __("ZATCA status is temporarily unavailable.");
-				this.zatcaStatus.classList.add("bnd-bill-error"); this.zatcaButton.hidden = false;
-			}
-		}
-		renderZatca() {
-			const data = this.zatcaData || {}, state = data.state || "missing_app";
-			const messages = {
-				missing_app: __("The ZATCA connector is not installed on this site."),
-				needs_settings: __("Create ZATCA Business Settings for this company."),
-				disabled: __("ZATCA integration is disabled for this company."),
-				needs_onboarding: __("Complete device onboarding with the OTP from Fatoora."),
-				needs_csid: __("Run compliance checks, then obtain the production CSID."),
-				ready: __("ZATCA is ready. This invoice will be prepared when it is submitted."),
-				preparing: __("The signed invoice is being prepared for ZATCA."),
-				ready_to_send: __("The signed invoice is ready to send to ZATCA."),
-				accepted: __("ZATCA accepted this invoice."),
-				accepted_with_warnings: __("ZATCA accepted this invoice with warnings."),
-				duplicate_response: __("ZATCA returned a duplicate response. Reconcile it with the original submission before treating this invoice as accepted."),
-				rejected: __("ZATCA rejected this invoice. Open the validation record before correcting it."),
-				clearance_off: __("ZATCA clearance is switched off. Review the validation record and company settings."),
-			};
-			this.zatcaStatus.classList.toggle("bnd-bill-error", state === "rejected" || state === "missing_app");
-			this.zatcaStatus.classList.toggle("bnd-bill-warning", ["accepted_with_warnings", "duplicate_response", "clearance_off"].includes(state));
-			this.zatcaStatus.textContent = messages[state] || __("ZATCA status is temporarily unavailable.");
-			const settings = data.settings || {}, invoice = data.invoice || {};
-			const operational = ["ready", "preparing", "ready_to_send", "accepted", "accepted_with_warnings", "duplicate_response", "rejected", "clearance_off"].includes(state);
-			const technical = (frappe.boot?.user?.roles || []).some(role => ["Accounts Manager", "System Manager"].includes(role));
-			this.zatcaMeta.textContent = operational ?
-				[technical && settings.server, technical && settings.sync, invoice.integration_status].filter(Boolean).map(value => __(value)).join(" · ") : "";
-			let label = "";
-			if (["needs_settings", "disabled", "needs_onboarding", "needs_csid", "ready"].includes(state)) label = __("ZATCA settings");
-			else if (state === "preparing") label = __("Refresh status");
-			else if (state === "ready_to_send") label = __("View ZATCA record");
-			else if (invoice.name) label = __("View ZATCA record");
-			this.zatcaButton.textContent = label; this.zatcaButton.hidden = !label;
-			clearTimeout(this.zatcaTimer);
-			if (state === "preparing") this.zatcaTimer = setTimeout(() => this.loadZatca(true), 5000);
-		}
-		async zatcaAction() {
-			if (this.zatcaButton.disabled) return;
-			const data = this.zatcaData || {}, state = data.state;
-			if (state === "missing_app") {
-				frappe.msgprint(__("Install and migrate the KSA Compliance app before configuring ZATCA.")); return;
-			}
-			if (state === "preparing") return this.loadZatca(true);
-
-			if (data.invoice?.name) { frappe.set_route("Form", "Sales Invoice Additional Fields", data.invoice.name); return; }
-			const route = data.settings?.route;
-			if (route?.length) frappe.set_route(...route);
-		}
 		setExpandedLine(name) {
 			this.mobileExpanded = name;
 			for (const [rowName, view] of this.rowViews) {
@@ -12015,56 +12041,6 @@
 				view.line.classList.toggle("is-expanded", expanded);
 				view.toggle.setAttribute("aria-expanded", String(expanded));
 			}
-		}
-		renderCustomerSummary() {
-			const doc = this.doc, summary = this.customerSummary;
-			this.loadCustomerAccount();
-			summary.replaceChildren();
-			node("h3", "", __(this.profile.partyDoctype), summary);
-			const name = doc[`${this.profile.party}_name`] || doc[this.profile.party];
-			if (!name) {
-				node("p", "bnd-bill-preview-empty", this.profile.party === "customer"
-					? __("Choose a customer to see their document context here.")
-					: __("Choose a supplier to see their document context here."), summary);
-				return;
-			}
-			node("strong", "bnd-bill-customer-name", name, summary);
-			const details = node("dl", "bnd-bill-preview-meta", null, summary);
-			for (const [label, value] of [
-				[__("Tax ID"), doc.tax_id],
-				[__("Currency"), doc.currency],
-				[__("Price list"), doc[this.profile.priceList]],
-				[__("Settlement Method"), __(settlementValue(doc))],
-			]) {
-				if (!value) continue;
-				const pair = node("div", "", null, details);
-				node("dt", "", label, pair); node("dd", "", value, pair);
-			}
-			if (this.frm.doctype === "Sales Invoice") {
-				const account = node("div", "bnd-bill-customer-account", null, summary);
-				if (this.accountSummaryLoading) {
-					node("span", "bnd-bill-hint", __("Loading customer balance…"), account);
-				} else if (this.accountSummary && !this.accountSummary.unavailable) {
-					const balance = Number(this.accountSummary.balance || 0);
-					node("span", "bnd-bill-hint", balance < 0 ? __("Customer credit") : __("Amount due from customer"), account);
-					const value = node("strong", "", null, account);
-					this.money(value, Math.abs(balance), { fieldtype: "Currency", options: "currency", precision: 2 }, { currency: this.accountSummary.currency || doc.currency });
-				}
-				const statement = button(__("Open customer statement"), account, () => this.openCustomerStatement());
-				statement.classList.add("bnd-bill-customer-statement");
-			}
-			const focus = button(__("Edit customer fields"), summary, () => {
-				this.toggleRail(false); this.partyControl?.set_focus();
-			});
-			focus.classList.add("bnd-bill-customer-focus");
-		}
-		renderStockSettings() {
-			if (!this.stockSettings) return;
-			const enabled = Number(this.doc.update_stock) === 1;
-			this.stockSettings.dataset.enabled = String(enabled);
-			this.stockNote.textContent = enabled
-				? __("On submission, quantities are deducted from stock. The source warehouse is used for every item unless changed on its row.")
-				: __("Warehouse is a default. Stock moves only when Update Stock is on.");
 		}
 		renderAmountSummary() {
 			const frm = this.frm, doc = this.doc;
@@ -12122,26 +12098,6 @@
 			this.root.dataset.documentState = documentState.tone;
 			this.documentState.textContent = [doc.__islocal ? __("New") : doc.name, doc.__islocal || frm.is_dirty() ? __("Not Saved") : ""].filter(Boolean).join(" · ");
 			if (this.invoiceNumberValue) this.invoiceNumberValue.textContent = doc.__islocal ? __("Assigned after saving") : doc.name;
-			this.context.replaceChildren();
-			for (const name of this.profile.context) {
-				if (["posting_date", "due_date"].includes(name)) continue;
-				const field = frm.fields_dict[name];
-				if (!field) continue;
-				const isWarehouse = name === "set_warehouse";
-				// Stock movement can hide the native Link by dependency. Show the
-				// summary without relaxing its actual field permission or editing it.
-				const status = isWarehouse
-					? frappe.perm.get_field_display_status({ ...field.df, hidden_due_to_dependency: 0 }, doc, frm.perm)
-					: fieldStatus(frm, name);
-				if (status === "None" || (!isWarehouse && !doc[name])) continue;
-				const pair = node("div", "", null, this.context);
-				node("dt", "", isWarehouse ? __("Default warehouse") : __(field.df.label), pair);
-				node("dd", "", doc[name] ? this.format(doc[name], field.df) : __("Not set"), pair);
-				if (frm.doctype === "Sales Invoice" && name === "selling_price_list") {
-					const hint = node("small", "bnd-bill-hint", __("Sets suggested item prices; you can still edit each price."), pair);
-					hint.title = hint.textContent;
-				}
-			}
 			const draft = Number(doc.docstatus) === 0;
 			const rows = draft ? (doc.items || []) : (doc.items || []).filter(r => r.item_code);
 			for (const [name, view] of this.rowViews) if (!rows.some(r => r.name === name)) { this.forgetRow(name); view.line.remove(); this.rowViews.delete(name); }
@@ -12151,7 +12107,7 @@
 			for (const { control, key } of this.controls) {
 				this.renderControl(control, key, true);
 			}
-			this.renderStockSettings();
+			this.renderBranch();
 			this.renderVatTreatment();
 			this.revertButton.hidden = !this.invalid.size;
 			this.lines.querySelector(".bnd-bill-empty")?.remove();
@@ -12222,39 +12178,19 @@
 			}
 			if (rows.length) this.setExpandedLine(this.mobileExpanded);
 			this.renderAmountSummary();
-			this.totals.replaceChildren();
-			for (const name of ["net_total", "discount_amount", "total_taxes_and_charges", "rounding_adjustment"]) {
-				const field = frm.fields_dict[name];
-				if (!field || fieldStatus(frm, name) === "None" || !showSummary(name, doc)) continue;
-				const pair = node("div", "", null, this.totals);
-				const label = name === "total_taxes_and_charges" ? taxLabel(doc, __(field.df.label)) : __(field.df.label);
-				node("dt", "", label, pair); this.money(node("dd", "", null, pair), doc[name] || 0, field.df);
-			}
 			const totalName = totalField(frm);
 			const totalControl = frm.fields_dict[totalName];
 			this.mobileTotalValue.replaceChildren();
-			if (totalControl && fieldStatus(frm, totalName) !== "None") {
-				const pair = node("div", "bnd-bill-grand", null, this.totals);
-				node("dt", "", __("Total"), pair); this.money(node("dd", "", null, pair), doc[totalName], totalControl.df);
-				this.money(this.mobileTotalValue, doc[totalName], totalControl.df);
-			}
-			for (const name of ["paid_amount", "outstanding_amount"]) {
-				const field = frm.fields_dict[name];
-				if (!field || fieldStatus(frm, name) === "None" || (!doc[name] && draft)) continue;
-				const pair = node("div", `bnd-bill-settlement bnd-bill-${name.replace("_", "-")}`, null, this.totals);
-				node("dt", "", __(field.df.label), pair);
-				this.money(node("dd", "", null, pair), doc[name] || 0, field.df);
-			}
-			this.stock.textContent = doc.update_stock ? __("Stock will be updated when the invoice is submitted.") : __("Stock is not updated by this invoice.");
-			this.renderCustomerSummary();
-			this.renderPreview(rows);
+			if (totalControl && fieldStatus(frm, totalName) !== "None") this.money(this.mobileTotalValue, doc[totalName], totalControl.df);
+			const itemCount = rows.filter(row => row.item_code).length;
+			this.itemCount.textContent = itemCount ? __("Items: {0}", [itemCount]) : "";
 			const nativeActions = api.document_actions.actionState(frm, {
 				canRecordPayment: typeof frm.cscript?.make_payment_entry === "function",
 			});
 			const { showSave } = nativeActions;
 			const showSubmit = draft && !!frm.meta?.is_submittable && api.document_actions.permitted(frm, "submit");
 			this.root.dataset.bndDraft = String(draft); this.searchButton.hidden = !draft;
-			this.addLineButton.hidden = !draft; this.newItemButton.hidden = !draft; this.scanButton.hidden = !draft; this.saveButton.hidden = !showSave;
+			this.addLineButton.hidden = !draft; if (this.newItemButton) this.newItemButton.hidden = !draft; this.saveButton.hidden = !showSave;
 			this.submitButton.hidden = !showSubmit;
 			this.submitPrintButton.hidden = !showSubmit;
 			this.saveAndNewButton.hidden = !showSave;
@@ -12263,64 +12199,9 @@
 			this.duplicateButton.hidden = !nativeActions.showDuplicate;
 			this.cancelButton.hidden = !nativeActions.showCancel;
 			this.paymentButton.hidden = !nativeActions.showRecordPayment;
-			this.printButton.hidden = !nativeActions.showPrint; this.discountButton.hidden = !draft;
+			this.printButton.hidden = !nativeActions.showPrint && !showSubmit; this.discountButton.hidden = !draft;
 			this.sendButton.hidden = this.frm.doctype !== "Sales Invoice" || !submittedCustomerInvoice(frm);
-			if (this.settlementNote) {
-				this.settlementNote.hidden = !draft;
-				this.settlementNote.replaceChildren();
-				const settlement = settlementValue(doc);
-				const immediate = settlementCreatesPayment(settlement);
-				const mixed = mixedPaymentSelected(settlement);
-				node("strong", "", mixed ? __("Split payment") : immediate ? __("Payment received now") : __("Credit sale"), this.settlementNote);
-				node("small", "", mixed
-					? __("Before submission, enter the Cash and Network amounts. ERPNext will post two linked Payment Entries and settle this invoice.")
-					: immediate
-						? __("After submission, a linked Payment Entry opens with the selected method. Submit that receipt to reduce the customer balance.")
-						: __("Submission increases Accounts Receivable. A later receipt reduces the same customer balance."), this.settlementNote);
-			}
-			this.loadZatca();
 			this.busy();
-		}
-		renderPreview(rows) {
-			const doc = this.doc, preview = this.preview;
-			preview.replaceChildren();
-			const head = node("header", "bnd-bill-preview-head", null, preview);
-			node("strong", "", __(this.frm.doctype === "Sales Invoice" ? "Live invoice summary" : "Live bill summary"), head);
-			node("span", "", doc.name && !doc.__islocal ? doc.name : __("Draft"), head);
-			node("p", "bnd-bill-preview-note", doc.__islocal
-				? __("This is a live draft summary, not the final PDF layout.")
-				: __("Open print preview for the final A4 or thermal layout."), preview);
-			node("div", "bnd-bill-preview-company", doc.company || "Bunood", preview);
-			const meta = node("dl", "bnd-bill-preview-meta", null, preview);
-			for (const [label, value] of [
-				[__(this.profile.partyDoctype), doc[this.profile.party] || "—"],
-				[__("Date"), doc.posting_date ? this.format(doc.posting_date, this.frm.fields_dict.posting_date.df) : "—"],
-			]) {
-				const pair = node("div", "", null, meta);
-				node("dt", "", label, pair); node("dd", "", value, pair);
-			}
-			const table = node("div", "bnd-bill-preview-table", null, preview);
-			const tableHead = node("div", "bnd-bill-preview-row bnd-bill-preview-row-head", null, table);
-			for (const label of [__("Item"), __("Quantity"), __("Amount")]) node("span", "", label, tableHead);
-			for (const row of rows.filter(row => row.item_code)) {
-				const line = node("div", "bnd-bill-preview-row", null, table);
-				node("span", "", row.item_name || row.item_code, line);
-				node("span", "", this.format(row.qty, frappe.meta.get_docfield(row.doctype, "qty", row.name), row), line);
-				const amount = node("span", "", null, line);
-				this.money(amount, row.amount || 0, frappe.meta.get_docfield(row.doctype, "amount", row.name), row);
-			}
-			if (!rows.some(row => row.item_code)) {
-				node("p", "bnd-bill-preview-empty", __("Your invoice preview will update as you enter items."), table);
-			}
-			const foot = node("div", "bnd-bill-preview-total", null, preview);
-			node("span", "", __("Total"), foot);
-			const value = node("strong", "", null, foot);
-			const totalName = totalField(this.frm), df = this.frm.fields_dict[totalName]?.df;
-			if (df) this.money(value, doc[totalName] || 0, df);
-			if (!doc.__islocal) {
-				const open = button(__("Open print preview"), preview, () => this.print(), true);
-				open.classList.add("bnd-bill-preview-open");
-			}
 		}
 		async flush() {
 			for (const timer of this.editTimers.values()) clearTimeout(timer);
@@ -12440,7 +12321,17 @@
 		removeDocument() { if (!this.doc.__islocal && Number(this.doc.docstatus) === 0) this.frm.savetrash(); }
 		duplicateDocument() { if (!this.doc.__islocal) return this.frm.copy_doc(); }
 		cancelDocument() { if (Number(this.doc.docstatus) === 1) return this.frm.savecancel(); }
-		print() { if (!this.doc.__islocal) void printCustomerInvoice(this.frm); }
+		async print() {
+			if (this.saving || this.closing) return;
+			if (Number(this.doc.docstatus) === 0) {
+				// Preview before commitment: save the draft as it stands and open
+				// Frappe's print view; nothing is submitted.
+				if ((this.doc.__islocal || this.frm.is_dirty()) && !await this.save()) return;
+				if (this.active()) this.frm.print_doc();
+				return;
+			}
+			void printCustomerInvoice(this.frm);
+		}
 		restore() {
 			const reload = () => this.frm.reload_doc().then(() => { this.syncDocument(); this.render(); });
 			if (this.frm.is_dirty()) frappe.confirm(__("Discard unsaved changes and reload this document?"), reload); else reload();

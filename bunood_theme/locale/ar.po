@@ -15784,3 +15784,129 @@ msgstr "السابق"
 #, fuzzy
 msgid "Next"
 msgstr "التالي"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Additional details"
+msgstr "تفاصيل إضافية"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Item name"
+msgstr "اسم الصنف"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Item group"
+msgstr "مجموعة الأصناف"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Unit of measure"
+msgstr "وحدة القياس"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Purchase price"
+msgstr "سعر الشراء"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Selling price"
+msgstr "سعر البيع"
+
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Save and add to invoice"
+msgstr "حفظ وإضافة للفاتورة"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "For example: a can of juice"
+msgstr "مثال: علبة عصير"
+
+#. src: owner's simple-invoice mock, 2026-10-09
+msgid "Scan a barcode or type an item code, then press Enter"
+msgstr "امسح الباركود أو اكتب رمز الصنف ثم Enter…"
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Items: {0}"
+msgstr "الأصناف: {0}"
+
+
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Use zero or more for the prices and the quantity."
+msgstr "أدخل صفرًا أو أكثر للأسعار والكمية."
+
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Saving item…"
+msgstr "جارٍ حفظ الصنف…"
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "The item was saved, but its purchase price was not added to the price list."
+msgstr "حُفظ الصنف، لكن لم يُضف سعر الشراء إلى قائمة الأسعار."
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Item saved: {0}"
+msgstr "حُفظ الصنف: {0}"
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Could not add the item to the invoice."
+msgstr "تعذّرت إضافة الصنف إلى الفاتورة."
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Add a line first, then scan again."
+msgstr "أضف صفًا أولًا ثم امسح مرة أخرى."
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "No item has the code or barcode {0}."
+msgstr "لا يوجد صنف بالرمز أو الباركود {0}."
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Add it as a new item"
+msgstr "أضفه صنفًا جديدًا"
+
+#. src: carried from the hand-added translations/ar.csv rows (the CSV is generated; the PO is the source)
+msgid "Stock Balance"
+msgstr "رصيد المخزون"
+
+#. src: carried from the hand-added translations/ar.csv rows (the CSV is generated; the PO is the source)
+msgid "Stock Ledger"
+msgstr "أستاذ المخزون"
+
+#. src: carried from the hand-added translations/ar.csv rows (the CSV is generated; the PO is the source)
+msgid "Unable to load records"
+msgstr "تعذر تحميل السجلات"
+
+#. src: carried from the hand-added translations/ar.csv rows (the CSV is generated; the PO is the source)
+msgid "View all"
+msgstr "عرض الكل"
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Branch"
+msgstr "الفرع"
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Barcode"
+msgstr "الباركود"
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Cancel"
+msgstr "إلغاء"
+
+#. src: simple purchase bill, Arabic proposal 2026-10-09
+#, fuzzy
+msgid "Prices and quantity are optional: leave them at 0 if you do not need them. The quantity and the purchase price go on this bill."
+msgstr "الأسعار والكمية اختيارية — اتركها 0 إن لم تحتجها. تُضاف الكمية وسعر الشراء إلى هذه الفاتورة."
+
+#. src: ERPNext answers «Nos» with «لا» (no); on this surface it is the counting unit
+#, fuzzy
+msgid "Nos"
+msgstr "عدد"

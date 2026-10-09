@@ -1866,3 +1866,44 @@ def get_customer_account_summary(customer: str, company: str) -> dict:
         "credit": credit,
         "currency": frappe.db.get_value("Company", company, "default_currency") or "",
     }
+
+
+@frappe.whitelist(methods=["GET"])
+def bill_item_defaults(company: str | None = None) -> dict:
+    """What the invoice's quick «New item» dialog starts from.
+
+    The leaf item groups in tree order (the first is the default unless Stock
+    Settings names one), the default unit, the next numeric item code when the
+    site names items by code, whether a new item is a stock item (the Item
+    DocType's own default, which the business-type setup sets), and the default
+    selling and buying price lists. Nothing is created here: the dialog inserts
+    an ordinary Item with the caller's own permissions.
+    """
+    if not frappe.has_permission("Item", "create"):
+        frappe.throw(_("You do not have permission to create an item."), frappe.PermissionError)
+
+    groups = frappe.get_list("Item Group", filters={"is_group": 0}, pluck="name", order_by="lft asc", limit=200)
+    stock = frappe.get_cached_doc("Stock Settings")
+    group = stock.item_group if stock.item_group in groups else (groups[0] if groups else None)
+    uom = stock.stock_uom or ("Nos" if frappe.db.exists("UOM", "Nos") else None)
+    naming = stock.item_naming_by or "Item Code"
+    next_code = ""
+    if naming != "Naming Series":
+        # Only plain numeric codes count: a site that names items «ITEM-0001» or
+        # by words gets no suggestion rather than a wrong one.
+        highest = frappe.db.sql(
+            "select max(cast(name as unsigned)) from `tabItem` where name regexp '^[0-9]{1,15}$'"
+        )[0][0]
+        next_code = str(int(highest) + 1) if highest else ""
+    stock_field = frappe.get_meta("Item").get_field("is_stock_item")
+    is_stock_item = int(stock_field.default) if stock_field and str(stock_field.default or "").isdigit() else 1
+    return {
+        "item_groups": groups,
+        "item_group": group,
+        "stock_uom": uom,
+        "naming": naming,
+        "next_code": next_code,
+        "is_stock_item": is_stock_item,
+        "selling_price_list": frappe.db.get_single_value("Selling Settings", "selling_price_list"),
+        "buying_price_list": frappe.db.get_single_value("Buying Settings", "buying_price_list"),
+    }

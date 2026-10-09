@@ -18,13 +18,22 @@ The Sales and Purchase profiles share one controller and vary only their native
 party, price-list, mapped-source and document-option fields. The workbench includes:
 
 * New, Save draft, party focus, Delete, Print, Payment, Discount, Reload and item
-  focus actions with F1/F2/F3/F4/F6/F7/F10/F11 shortcuts and the
-  browser-safe Alt+I item shortcut;
+  focus actions; the cashier's shortcuts are F2 (scan box), F4 (new item, on a
+  purchase bill), F9 (save draft), with F3/F7/F10/F11 and the browser-safe Alt+I
+  item shortcut;
 * native Customer/Supplier Quick Entry when the current user may create the party;
 * a blank, directly editable Item row that is always ready in a draft—there is no
   separate item-search gate or first-line Add Item step;
 * native Item Link search inside that row, explicit Add Line for additional rows,
-  barcode text entry, and camera scanning where Frappe's scanner is available;
+  and a scan box above the lines: a barcode scanner (or a person) types the code
+  and presses Enter, and ERPNext's own `BarcodeScanner` places the item — a
+  barcode, serial or batch, or a typed item code — raising the quantity of a line
+  that already has it;
+* on a purchase bill only (owner, 2026-10-09: new goods arrive on purchases), a
+  compact New item dialog — code, name, barcode, group (first by default), unit,
+  purchase price, selling price, quantity — that inserts an ordinary Item (the
+  selling price as `standard_rate`, the purchase price as an Item Price in the
+  bill's buying list) and puts it on the bill at that quantity and cost;
 * automatic consolidation when the same item is added again: the existing native
   row quantity increases instead of creating a duplicate line. Lines remain separate
   when UOM, price, discount, warehouse, tax, batch/serial, delivery date, margin, or
@@ -32,8 +41,11 @@ party, price-list, mapped-source and document-option fields. The workbench inclu
 * quantity, unit, rate, a currency-amount line discount by default, item tax
   template and warehouse per line; percentage discounts remain available in
   Advanced mode;
-* document dates, stock/warehouse, currency, price list, payment terms and customer
-  PO or supplier bill details where the DocType exposes them;
+* document dates, currency, price list, payment terms, customer PO or supplier
+  bill details and the discount, behind Additional details; the warehouse follows
+  the branch (a chooser appears only when the company has more than one branch,
+  from `frappe.boot.bnd_branches`), and stock movement is the site's setup
+  decision (the `update_stock` default), never a switch on this screen;
 * invoice-level discount and tax controls;
 * native net, discount, tax, rounding and grand totals, including the official SAR
   vector; and
@@ -110,8 +122,11 @@ cannot collide with or appear below the item sheet's sticky column header.
 The preferred-payment selector spans otherwise unused grid space and does not add
 a separate prose row, keeping the party area compact in Arabic and English.
 Desktop item rows use the full available invoice width and expand with the page;
-the sheet has no internal horizontal or vertical scrollbar. Customer context and
-preview remain available from the toolbar as an on-demand drawer.
+the sheet has no internal horizontal or vertical scrollbar. There is one title per
+screen: the Simple/Advanced switch sits in the invoice header and the document
+band is hidden while Simple mode owns the page. Print saves a draft as it stands
+and opens Frappe's print view without submitting it. The party strip is one row
+of controls that all end on the same line.
 White, alternating gray, and focused green row surfaces paint the complete grid
 row, including the item, amount, and action columns.
 

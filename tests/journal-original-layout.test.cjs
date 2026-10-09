@@ -13,7 +13,7 @@ test('owned compact journal layout also applies with the Original appearance', (
 
 test('invoice details collapse independently of the aligned party and date fields', () => {
   const css = fs.readFileSync(path.join(__dirname, '../bunood_theme/public/scss/surfaces/_sales_bill.scss'), 'utf8');
-  assert.match(css, /\.bnd-bill-party > \.bnd-bill-essentials\s*\{[^}]*grid-template-columns: minmax\(0, 2fr\) minmax\(0, 1fr\)/);
+  assert.match(css, /\.bnd-bill-party > \.bnd-bill-essentials\s*\{[^}]*display: flex;[^}]*align-items: flex-end;/);
   assert.match(css, /\.bnd-bill-more-fields\s*\{[^}]*display: none/);
   assert.match(css, /\.bnd-bill-party\.is-open > \.bnd-bill-more-fields\s*\{[^}]*display: block/);
 });

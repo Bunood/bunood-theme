@@ -23,7 +23,7 @@ html[data-theme] .bnd-bill {
       border-color: var(--bnd-on-deep);
     }
     .bnd-bill-action.bnd-bill-action-submit-print,
-    .bnd-bill-action.bnd-bill-rail-toggle {
+    .bnd-bill-action.bnd-bill-action-print {
       color: var(--bnd-brand-ink);
       background: var(--bnd-surface);
       border-color: var(--bnd-surface);
@@ -43,23 +43,16 @@ html[data-theme] .bnd-bill {
   }
   .bnd-bill-main { gap: var(--bnd-sp-2); }
   .bnd-bill-party { padding: 0 0 var(--bnd-sp-2); }
-  .bnd-bill-context {
-    padding-block-start: var(--bnd-sp-2);
-    border-block-start: var(--bnd-line) solid var(--bnd-border);
-    dd { font-weight: 650; }
-  }
   .bnd-bill-items { padding-block: var(--bnd-sp-1); }
-  .bnd-bill-items > h3 { margin-block-end: var(--bnd-sp-2); color: var(--bnd-ink); }
-  .bnd-bill-stock-settings {
-    margin-block: var(--bnd-sp-2);
-    padding: var(--bnd-sp-2);
-  }
-  .bnd-bill-party h3 { margin: 0; font-size: var(--bnd-text-md); }
-  .bnd-bill-context .bnd-bill-hint {
-    display: block;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+  .bnd-bill-items-head h3 { color: var(--bnd-ink); }
+  // The Simple/Advanced switch sits on the dark header: the chosen view takes the
+  // light plate, the other an outline in the header's own ink.
+  .bnd-bill-mode-slot .bnd-bill-mode > .bnd-bill-button {
+    min-block-size: calc(var(--bnd-control-h) - var(--bnd-sp-2));
+    padding-block: var(--bnd-sp-1);
+    &[aria-pressed="true"] { color: var(--bnd-brand-ink); background: var(--bnd-surface); border-color: var(--bnd-surface); }
+    &[aria-pressed="false"] { color: var(--bnd-on-deep); background: transparent; border-color: var(--bnd-on-deep); }
+    &:focus-visible { outline-color: var(--bnd-on-deep); }
   }
   .bnd-bill-line-head {
     background: var(--bnd-pane);
@@ -85,34 +78,16 @@ html[data-theme] .bnd-bill {
   }
 }
 
-// Team desktop composition: one party/date strip, full-width item canvas.
+// Team desktop composition: one party strip, full-width item canvas.
 @container (width >= #{bp.bnd-cq(bill-rail)}) {
   html[data-theme] .bnd-bill {
-    .bnd-bill-party {
-      display: grid;
-      grid-template-columns: minmax(11rem, auto) minmax(0, 1fr) auto;
-      align-items: end;
-      gap: var(--bnd-sp-2);
-    }
-    .bnd-bill-party > .bnd-bill-essentials {
-      grid-template-columns: minmax(0, 2fr) minmax(10rem, .7fr);
-      > .frappe-control:first-child { grid-column: auto; }
-    }
-    .bnd-bill-more-fields, .bnd-bill-context { grid-column: 1 / -1; }
     .bnd-bill-more-fields > .bnd-bill-essentials { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-    .bnd-bill-context { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--bnd-sp-2); }
     .bnd-bill-line-body > div { padding: var(--bnd-sp-1); }
-    .bnd-bill-stock-settings,
-    .bnd-bill-stock-settings[data-enabled="false"] {
-      grid-template-columns: max-content minmax(10rem, 15rem) minmax(0, 1fr);
-    }
-    .bnd-bill-stock-note { grid-column: auto; }
   }
 }
 
 @include bp.bnd-until(md) {
   html[data-theme] .bnd-bill {
-    .bnd-bill-party > .bnd-bill-essentials { grid-template-columns: 1fr; }
     .bnd-bill-intro {
       // Native mobile layout uses display:contents: no painted header box.
       color: var(--bnd-ink);
@@ -122,6 +97,12 @@ html[data-theme] .bnd-bill {
       background: var(--bnd-brand-deep);
       padding: var(--bnd-sp-2);
       border-radius: var(--bnd-radius-md);
+    }
+    // No painted header on a phone: the switch returns to its light-page pair.
+    .bnd-bill-mode-slot .bnd-bill-mode > .bnd-bill-button {
+      &[aria-pressed="true"] { color: var(--bnd-on-deep); background: var(--bnd-brand-deep); border-color: var(--bnd-brand-deep); }
+      &[aria-pressed="false"] { color: var(--bnd-ink); background: var(--bnd-surface); border-color: var(--bnd-border); }
+      &:focus-visible { outline-color: var(--bnd-brand-ink); }
     }
   }
 }
