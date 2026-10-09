@@ -22,7 +22,7 @@ class POSWorkbenchContractTests(unittest.TestCase):
     def test_every_public_mutation_is_declared_post_only(self):
         for name in (
             "open_shift", "preview_cart", "hold_cart", "checkout", "create_return",
-            "preview_close", "close_shift", "preview_return", "submit_return",
+            "preview_close", "close_shift", "preview_return", "submit_return", "receipt_link",
         ):
             decorators = self.decorators_for(name)
             self.assertTrue(
@@ -133,6 +133,23 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('"has_serial_no"', partial)
         self.assertIn('if doc.doctype != "Sales Invoice":', self.body("_apply_refund"))
         self.assertIn('"credit_allowed": source.doctype == "Sales Invoice"', self.body("return_context"))
+
+    def test_a_receipt_link_only_for_the_cashiers_own_completed_receipt(self):
+        link = self.body("receipt_link")
+        # A boolean check: a 403 makes Frappe route the cashier out of the counter.
+        self.assertIn('if not frappe.has_permission(doc.doctype, "print", doc):', link)
+        self.assertNotIn(".check_permission(", link)
+        self.assertIn("if doc.docstatus != 1 or not cint(doc.is_pos) or doc.owner != frappe.session.user:", link)
+        # The code faces the queue: walk-in sales without a VAT number only (review 2026-10-09).
+        self.assertIn('doc.customer == frappe.db.get_value("POS Profile", doc.pos_profile, "customer")', link)
+        self.assertIn('if not walk_in or doc.get("tax_id"):', link)
+        self.assertIn("@rate_limit(limit=600, seconds=60 * 60)\ndef receipt_link", self.source)
+        # ERPNext's own share key, reused while valid instead of a new row per call.
+        self.assertIn('"key": _share_key(doc)', link)
+        self.assertIn('"expires_on": [">", nowdate()]', self.body("_share_key"))
+        self.assertIn('get_url(f"/printview?{urlencode(query)}")', link)
+        self.assertIn("except ImportError:", self.body("_qr_svg"))
+        self.assertIn('"company_logo": frappe.get_cached_value("Company", profile.company, "company_logo")', self.source)
 
     def test_native_document_engine_remains_authoritative(self):
         self.assertIn('doc.run_method("set_missing_values")', self.source)

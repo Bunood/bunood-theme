@@ -18,6 +18,7 @@
   --bnd-ink-muted: #494d57;
   --bnd-ink-subtle: #666a71;
   --bnd-ink-inverse: #ffffff;
+  --bnd-qr-ground: #ffffff;
   --bnd-line: 0.5px;
   --bnd-line-strong: 1px;
   --bnd-line-2: 2px;
@@ -106,6 +107,7 @@
   --bnd-z-flyout: 1030;
   --bnd-z-panel: 1040;
   --bnd-z-palette: 1045;
+  --bnd-z-customer-screen: 2100;
   --bnd-cat-1: #2a78d6;
   --bnd-cat-2: #eb6834;
   --bnd-cat-3: #1baf7a;

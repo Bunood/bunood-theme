@@ -18020,3 +18020,151 @@ msgstr "هذا الإيصال لشركة أخرى."
 #, fuzzy
 msgid "Return part of a serial-numbered item from the invoice form."
 msgstr "أرجع جزءًا من صنف بأرقام تسلسلية من نموذج الفاتورة."
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The browser blocked the customer screen. Allow pop-ups for this site, then press the screen button again."
+msgstr "منع المتصفح شاشة العميل. اسمح بالنوافذ المنبثقة لهذا الموقع، ثم اضغط زر الشاشة مرة أخرى."
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Customer screen opened. If it opened on this monitor, drag it to the customer's."
+msgstr "فُتحت شاشة العميل. إن فُتحت على هذه الشاشة فاسحبها إلى شاشة العميل."
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Customer screen: connected"
+msgstr "شاشة العميل: متصلة"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open the customer screen"
+msgstr "فتح شاشة العميل"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Customer screen"
+msgstr "شاشة العميل"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipt QR code"
+msgstr "رمز QR للإيصال"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "See you soon"
+msgstr "نراك قريبًا"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Welcome"
+msgstr "أهلًا بك"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "VAT included"
+msgstr "شامل ضريبة القيمة المضافة"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Last item"
+msgstr "آخر صنف"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Your receipt on your phone"
+msgstr "إيصالك على جوالك"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "After paying, scan the code that appears here — no paper needed."
+msgstr "بعد الدفع امسح الرمز الذي يظهر هنا — بلا ورق."
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Amount due"
+msgstr "المطلوب"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Tap your card or phone on the terminal"
+msgstr "قرّب بطاقتك أو جوالك من الجهاز"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Received"
+msgstr "استُلم"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Your change"
+msgstr "الباقي لك"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Thank you"
+msgstr "شكرًا لك"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "On your account"
+msgstr "على حسابك"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Invoice"
+msgstr "الفاتورة"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Your e-receipt"
+msgstr "فاتورتك الإلكترونية"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan with your phone's camera"
+msgstr "امسحه بكاميرا جوالك"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Waiting for the counter…"
+msgstr "بانتظار نقطة البيع…"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This counter is closed"
+msgstr "نقطة البيع هذه مغلقة"
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgid "This receipt type cannot be shared."
+msgstr "لا يمكن مشاركة هذا النوع من الإيصالات."
+
+#. src: pos phase 3 — the customer screen, 2026-10-09
+#, fuzzy
+msgid "Only a receipt you completed can be shared."
+msgstr "لا يُشارك إلا إيصال أتممته أنت."
