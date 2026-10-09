@@ -68,57 +68,116 @@ test("outdated shifts are blocked and handed to the native closing flow", () => 
 	assert.match(js, /This shift is out of date/);
 });
 
-test("counter workflow covers catalogue, barcode, customer, hold, split tender, receipt and return", () => {
+
+test("the counter covers scanning, the pad, customer, hold, split tender, receipt and return", () => {
 	for (const contract of [
-		/frappe\.ui\.Scanner/,
+		/api\("get_items", \{/,
 		/api\("preview_cart"/,
 		/api\("hold_cart"/,
 		/api\("held_carts"/,
+		/api\("load_cart"/,
 		/api\("checkout"/,
 		/api\("create_return"/,
-		/printReceipt/,
+		/api\("search_customers"/,
+		/api\("receipt_register"/,
+		/function printReceipt\(doctype, name\)/,
 		/mode_of_payment/,
 		/reference_no/,
-		/frappe\.ui\.form\.make_control/,
+		/make_quick_entry\("Customer"/,
+		/make_quick_entry\("Item"/,
 	]) assert.match(js, contract);
 	assert.match(setup, /ensure_pos_reference_field\(\)/);
 });
 
-test("mobile POS has one app bottom navigation and keeps its own navigation at the top", () => {
-	const mobile = scss.match(/@include bnd-until\(md\) \{([\s\S]*)$/)?.[1] || "";
-	assert.match(mobile, /\.bnd-pos__mobile-nav[\s\S]*?position:\s*sticky;[\s\S]*?inset-block-start:\s*0;/);
-	assert.match(mobile, /\.bnd-pos__cart-actions[\s\S]*?position:\s*static;/);
-	assert.doesNotMatch(mobile, /position:\s*fixed/);
-	assert.doesNotMatch(mobile, /inset-block-end:\s*0/);
-	assert.match(js, /setMobileView\("items"\)/);
-	assert.match(js, /aria-current/);
+test("scale labels carry the item's barcode and the weight in grams", () => {
+	assert.match(js, /const SCALE_PREFIX = "21";/);
+	assert.match(js, /new RegExp\(`\^\$\{SCALE_PREFIX\}\(\\\\d\{5\}\)\(\\\\d\{5\}\)\\\\d\$`\)/);
+	assert.match(js, /return grams > 0 \? \{ barcode: match\[1\], qty: grams \/ 1000 \} : null;/);
+	// A count typed before the scan ("3*" then the barcode) multiplies it.
+	assert.match(js, /\/\^\(\\d\+\(\?:\\\.\\d\+\)\?\)\\\*\(\.\+\)\$\/\.exec\(code\)/);
+	// An unknown code never blocks the sale: link it to an item or make a new one.
+	assert.match(js, /state\.unknown = code;/);
+	assert.match(js, /doc\.barcodes = \(doc\.barcodes \|\| \[\]\)\.concat\(\[\{ doctype: "Item Barcode", barcode: code \}\]\);/);
+	assert.match(js, /frappe\.xcall\("frappe\.client\.save", \{ doc \}\)/);
 });
 
-test("POS copy is fully shipped in Arabic", () => {
-	for (const source of [
-		"Bunood POS",
-		"Quick Sale",
-		"Open shift",
-		"Hold sale",
-		"Collect payment",
-		"Payment reference: {0}",
-		"Receipts and returns",
-	]) {
-		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",") || line.startsWith('"' + source.replaceAll('"', '""') + '",')), source);
+test("the pad reads 7 8 9 left to right in every language", () => {
+	assert.match(js, /const pad = h\("div", \{ class: "bnd-pos__pad", dir: "ltr"/);
+	const sevens = [...js.matchAll(/cell\("([0-9])", "\1", (\d), (\d)/g)].map((m) => [m[1], Number(m[2]), Number(m[3])]);
+	const row = (r) => sevens.filter((cell) => cell[2] === r).sort((a, b) => a[1] - b[1]).map((cell) => cell[0]).join("");
+	assert.equal(row(1), "789");
+	assert.equal(row(2), "456");
+	assert.equal(row(3), "123");
+});
+
+test("the counter keys never take a key the browser owns", () => {
+	const fkeys = js.match(/const fkeys = \{([\s\S]*?)\n\t\t\t\};/)?.[1] || "";
+	assert.ok(fkeys.length > 0, "the F-key map is where this test expects it");
+	for (const owned of ["F5", "F11", "F12"]) assert.doesNotMatch(fkeys, new RegExp(`\\b${owned}:`), owned);
+	assert.match(js, /event\.altKey && event\.code === "KeyR"/, "Alt+R reads the key's position, so it works on an Arabic layout");
+	assert.match(js, /window\.addEventListener\("keydown", onKey, true\);/);
+});
+
+test("the counter covers the desk while open, and only answers keys while shown", () => {
+	assert.match(scss, /html\[data-theme\] \.bnd-pos \{\s+position: fixed;\s+inset: 0;\s+z-index: var\(--bnd-z-flyout\);/);
+	// A fixed element has no offsetParent even when shown; visibility is its boxes.
+	const active = js.match(/function counterActive\(\) \{([\s\S]*?)\n\t\t\}/)?.[1] || "";
+	assert.match(active, /root\.getClientRects\(\)\.length/);
+	assert.doesNotMatch(active, /root.offsetParent/);
+	assert.match(active, /document\.querySelector\("\.modal\.show"\)/, "Frappe's own dialogs keep their keys");
+	assert.match(scss, /\.bnd-pos__bar \{\s+\/\/ [^\n]*\n\s+position: relative;\s+z-index: 8;/, "the settings menu drops above the body");
+});
+
+test("a corner badge takes the page's direction, so it never covers the name's start", () => {
+	assert.match(js, /count \? h\("span", \{ class: "bnd-pos__badge" \}, ltr\(/);
+	assert.doesNotMatch(js, /class: "bnd-pos__badge", dir:/);
+	assert.match(scss, /\.bnd-pos__badge \{\s+position: absolute;\s+inset-block-start: var\(--bnd-sp-2\);\s+inset-inline-end: var\(--bnd-sp-2\);/);
+});
+
+test("totals show ERPNext's own figures once its preview matches the bill", () => {
+	assert.match(js, /const server = state\.preview && state\.preview\.rev === state\.rev \? state\.preview : null;/);
+	assert.match(js, /rounding: server\.rounded_total \? round\(server\.rounded_total - server\.grand_total\) : 0,/);
+	assert.match(js, /const fresh = state\.preview && state\.preview\.rev === state\.rev \? state\.preview\.items \|\| \[\] : null;/);
+	assert.match(js, /if \(state\.lines\.some\(\(line\) => line\.qty > 0\)\) previewTimer = setTimeout\(previewSale, 300\);/);
+});
+
+test("paying: exact cash and card in one key, notes from the total, credit only for a named customer", () => {
+	assert.match(js, /F8: \(\) => \(state\.screen === "pay" \? addPay\(cardMethod\(\)\) : instant\("card"\)\),/);
+	assert.match(js, /F10: \(\) => \(state\.screen === "pay" \? complete\(\) : instant\("cash"\)\),/);
+	assert.match(js, /\[10, 50, 100\]\.forEach\(\(step\) => add\(Math\.ceil\(total \/ step\) \* step\)\);/);
+	assert.match(js, /if \(!state\.profile\.allow_partial_payment\) \{/);
+	assert.match(js, /if \(isWalkIn\(\)\) \{\s+state\.payErr = __\("The rest can stay on account only for a named customer\.", null, "Bunood POS"\);/);
+});
+
+test("hold appears only where the site can hold", () => {
+	assert.match(js, /function canHold\(\) \{\s+return Boolean\(state\.context\?\.capabilities\?\.can_hold\);/);
+	assert.match(js, /canHold\(\) \? tab\("held"/);
+	assert.match(server, /"can_hold": _can_hold\(invoice_type\),/);
+	assert.match(server, /if not _can_hold\(invoice_type\):\s+return \[\]/);
+	assert.match(server, /if not _can_hold\(_invoice_type\(\)\):\s+frappe\.throw\(_\("Holding sales is not set up on this site yet\."\)\)/);
+});
+
+test("every counter string is in the translation gate, with the counter's own context", () => {
+	const i18n = read("tools/i18n.mjs");
+	assert.match(i18n, /join\(APP, "public", "js", "pos_workbench\.js"\),/);
+	assert.doesNotMatch(js.slice(0, js.indexOf("The native print view")), /__\("[^"]+"\)/, "a bare __() would take a global meaning (Nos reads «لا»)");
+	for (const [source, arabicText] of [["Bunood POS", "نقطة بيع بنود"], ["Exact cash", "نقدي مضبوط"], ["Held sales", "الفواتير المعلّقة"], ["Nos", "حبة"]]) {
+		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(`${source},${arabicText},Bunood POS`)), source);
 	}
 });
 
 test("receipts from both invoice types act on their own type", () => {
 	assert.match(server, /return receipt_register\(\s+mode="all", pos_profile=pos_profile, search_term=search_term, limit=limit,\s+\)\["rows"\]/);
 	assert.match(server, /filters\["is_consolidated"\] = 0/);
-	assert.match(js, /const doctype = row\.doctype \|\| state\.context\.invoice_type;/);
-	assert.match(js, /doctype === state\.context\.invoice_type \? state\.context\.profile\.print_format : "Standard"/);
-	assert.match(js, /createReturn\(row\.name, doctype\)/);
-	assert.match(js, /frappe\.set_route\("Form", row\.doctype \|\| state\.context\.invoice_type, row\.name\)/);
-	assert.match(js, /async function createReturn\(name, doctype = state\.context\.invoice_type\)/);
-	assert.match(js, /source_doctype: doctype, source_name: name/);
+	assert.match(js, /onclick: \(\) => printReceipt\(row\.doctype, row\.name\)/);
+	assert.match(js, /api\("create_return", \{ source_doctype: row\.doctype, source_name: row\.name \}/);
+	assert.match(js, /frappe\.set_route\("bnd-pos-register"\)/);
 });
 
+test("resuming a held sale asks before replacing a bill in progress", () => {
+	assert.match(js, /function resume\(name\) \{\s+const go = \(\) => resumeNow\(name\);\s+if \(state\.lines\.length && state\.screen === "sale"\) \{\s+frappe\.confirm\(/);
+	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("Replace the current bill with this held sale? Hold the current one first if you need it.,")));
+});
 
 test("the receipt register is a role-gated Page over the read-only union, reprinting natively", () => {
 	const page = JSON.parse(read("bunood_theme/bunood_theme/page/bnd_pos_register/bnd_pos_register.json"));
@@ -134,41 +193,10 @@ test("the receipt register is a role-gated Page over the read-only union, reprin
 	assert.match(js, /window\.open\(`\/printview\?\$\{query\.toString\(\)\}`, "_blank", "noopener"\)/);
 	assert.doesNotMatch(js, /get_delivery_status|printCustomerReceipt|queue_invoice/, "no ZATCA delivery gate on reprint");
 	assert.match(js, /frappe\.set_route\("bnd-pos-register"\)/);
-	assert.match(js, /allReceipts\.hidden = view !== "history";/);
 	assert.match(scss, /html\[data-theme\] \.bnd-pos-register \{/);
 	assert.doesNotMatch(scss.slice(scss.indexOf("The receipt register")), /#[0-9a-fA-F]{3,6}\b/, "re-tokenised");
 	for (const source of ["POS sales register", "View all POS receipts", "Reprint", "Load more receipts"]) {
 		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(source + ",")), source);
 	}
-});
-
-test("catalogue tiles: a drawing or initials on a stable group tint, services without stock", () => {
-	assert.match(js, /function productIllustration\(item\)/);
-	assert.match(js, /if \(!kind\) return el\("span", null, initials\(item\.item_name \|\| item\.item_code\)\);/);
-	assert.match(js, /svg\.setAttribute\("aria-hidden", "true"\);/);
-	assert.match(js, /card\.dataset\.tone = String\(\[\.\.\.key\]\.reduce\(\(sum, char\) => sum \+ char\.codePointAt\(0\), 0\) % 6\);/);
-	assert.match(js, /card\.classList\.add\("has-image"\);/);
-	assert.match(js, /card\.classList\.remove\("has-image"\);\s+media\.replaceChildren\(productIllustration\(item\)\);/);
-	assert.match(js, /item\.is_stock_item\s+\? __\("Stock \{0\}", \[number\(item\.actual_qty\)\]\)\s+: __\("Service"\)/);
-	assert.match(js, /if \(group === "All Item Groups"\) continue;\s+const control = button\(__\(group\), null, "bnd-pos__group", \(\) => chooseGroup\(group\)\);/);
-	for (let tone = 0; tone < 6; tone += 1) {
-		assert.ok(scss.includes(`.bnd-pos__product[data-tone="${tone}"] { --bnd-pos-tone: var(--bnd-cat-${tone + 1}); }`), `tone ${tone}`);
-	}
-	assert.match(scss, /\[data-tone\]:not\(\.has-image\) \.bnd-pos__product-media \{\s+background: color-mix\(in srgb, var\(--bnd-pos-tone\) var\(--bnd-cat-tint\), var\(--bnd-pane\)\);\s+color: var\(--bnd-ink\);/);
-});
-
-test("the cart says New sale, always offers it, and holds only with a customer", () => {
-	assert.match(js, /const newSale = button\(__\("New sale"\), "plus", "btn btn-default", resetSale\);/);
-	assert.match(js, /hold\.disabled = !enabled \|\| state\.busy \|\| !state\.customer;/);
-	assert.match(js, /pay\.disabled = !enabled \|\| state\.busy \|\| !state\.customer;/);
-	assert.match(js, /newSale\.disabled = state\.busy;/);
-	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("New sale,")), "New sale");
-});
-
-test("resuming a held sale asks before replacing a ticket in progress", () => {
-	assert.match(js, /function resume\(name\) \{\s+if \(state\.cart\.size \|\| state\.draft\) \{\s+frappe\.confirm\(__\("Replace the current ticket with this held sale\? Hold it first if you need to keep it\."\), \(\) => resumeNow\(name\)\);\s+return;/);
-	assert.match(js, /async function resumeNow\(name\) \{\s+setBusy\(true, __\("Resuming held sale…"\)\);/);
-	assert.match(js, /button\(__\("Resume"\), "play", "btn btn-primary", \(\) => resume\(row\.name\)\)/);
-	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("Replace the current ticket with this held sale? Hold it first if you need to keep it.,")));
 });
 

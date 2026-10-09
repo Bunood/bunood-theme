@@ -15784,3 +15784,1444 @@ msgstr "السابق"
 #, fuzzy
 msgid "Next"
 msgstr "التالي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Bunood POS"
+msgstr "نقطة بيع بنود"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Point of sale"
+msgstr "نقطة البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan a barcode, search by name, or type a command"
+msgstr "امسح الباركود، أو ابحث بالاسم، أو اكتب أمرًا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan, search or command"
+msgstr "المسح أو البحث أو الأوامر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sale lines"
+msgstr "أسطر الفاتورة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Number pad"
+msgstr "لوحة الأرقام"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Show the device keyboard"
+msgstr "إظهار لوحة مفاتيح الجهاز"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Suggestions"
+msgstr "الاقتراحات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item groups"
+msgstr "مجموعات الأصناف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Preparing the counter…"
+msgstr "جارٍ تجهيز نقطة البيع…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The counter could not be prepared."
+msgstr "تعذّر تجهيز نقطة البيع."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No POS Profile is available to you."
+msgstr "لا توجد نقطة بيع متاحة لك."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Ask the system manager to create a POS Profile and assign it to your user."
+msgstr "اطلب من مسؤول النظام إنشاء ملف نقطة بيع وربطه بمستخدمك."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This shift is out of date"
+msgstr "هذه الوردية قديمة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Review and close the outdated shift before opening today's counter."
+msgstr "راجع الوردية القديمة وأغلقها قبل فتح وردية اليوم."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Reference"
+msgstr "المرجع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Review and close shift"
+msgstr "مراجعة الوردية وإغلاقها"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Fewer {0}"
+msgstr "إنقاص فئة {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "More {0}"
+msgstr "زيادة فئة {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open the shift"
+msgstr "فتح الوردية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Count the opening cash in the drawer"
+msgstr "عدّ النقد الافتتاحي في الدرج"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Opening balances"
+msgstr "الأرصدة الافتتاحية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Total"
+msgstr "الإجمالي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The warehouse, price list and payment methods come from this point of sale."
+msgstr "المستودع وقائمة الأسعار وطرق الدفع تأتي من نقطة البيع هذه."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open the shift and start selling"
+msgstr "فتح الوردية وبدء البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "You do not have permission to open a POS shift."
+msgstr "ليست لديك صلاحية فتح وردية نقطة البيع."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Opening the counter…"
+msgstr "جارٍ فتح الوردية…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The shift could not be opened."
+msgstr "تعذّر فتح الوردية."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Items could not be loaded."
+msgstr "تعذّر تحميل الأصناف."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Added: {0} {1}"
+msgstr "أُضيف: {0} {1}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This barcode belongs to more than one item"
+msgstr "هذا الباركود لأكثر من صنف — اختر الصنف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Unknown barcode: {0}"
+msgstr "باركود غير معروف: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The barcode could not be looked up."
+msgstr "تعذّر البحث عن الباركود."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Choose a line from the bill first"
+msgstr "اختر سطرًا من الفاتورة أولًا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This point of sale does not allow price changes"
+msgstr "نقطة البيع هذه لا تسمح بتعديل السعر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This point of sale does not allow discounts"
+msgstr "نقطة البيع هذه لا تسمح بالخصم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Removed: {0}"
+msgstr "حُذف: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The total could not be calculated."
+msgstr "تعذّر حساب الإجمالي."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "New sale — scan the first item"
+msgstr "فاتورة جديدة — امسح أول صنف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Add an item first"
+msgstr "أضف صنفًا أولًا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This POS Profile has no payment methods."
+msgstr "لا توجد طرق دفع في ملف نقطة البيع هذا."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Short of the total by: {0}"
+msgstr "ينقص عن الإجمالي: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The rest can stay on account only for a named customer."
+msgstr "لا يُترك المتبقي دينًا إلا على عميل مسجّل."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Completing the sale…"
+msgstr "جارٍ إتمام البيع…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Sale complete: {0}"
+msgstr "تم البيع: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The sale was not submitted."
+msgstr "لم يُعتمد البيع."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This point of sale has no cash method"
+msgstr "لا توجد طريقة دفع نقدي في نقطة البيع هذه"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This point of sale has no card method"
+msgstr "لا توجد طريقة دفع بالبطاقة في نقطة البيع هذه"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Holding sales is not set up on this site yet."
+msgstr "تعليق الفواتير غير مُفعّل في هذا النظام بعد."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Nothing to hold"
+msgstr "لا شيء لتعليقه"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Holding the sale…"
+msgstr "جارٍ تعليق الفاتورة…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Held as {0} — F7 to bring it back"
+msgstr "عُلّقت برقم {0} — F7 لاستعادتها"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The sale could not be held."
+msgstr "تعذّر تعليق الفاتورة."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Replace the current bill with this held sale? Hold the current one first if you need it."
+msgstr "استبدال الفاتورة الحالية بهذه الفاتورة المعلّقة؟ علّق الحالية أولًا إن كنت تحتاجها."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Resumed: {0}"
+msgstr "استُعيدت: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The held sale could not be resumed."
+msgstr "تعذّر استعادة الفاتورة المعلّقة."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Customers could not be loaded."
+msgstr "تعذّر تحميل العملاء."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Customer: {0}"
+msgstr "العميل: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Barcode saved — {0} → {1}"
+msgstr "حُفظ الباركود — {0} ← {1}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The barcode could not be saved."
+msgstr "تعذّر حفظ الباركود."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Pay"
+msgstr "الدفع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Exact cash and finish"
+msgstr "نقدي مضبوط وإنهاء"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Card for the full amount"
+msgstr "بطاقة بالمبلغ كاملًا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Hold the bill"
+msgstr "تعليق الفاتورة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Held sales"
+msgstr "الفواتير المعلّقة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Customer"
+msgstr "العميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipts and returns"
+msgstr "الإيصالات والمرتجع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Supermarket mode"
+msgstr "وضع السوبرماركت"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Close the shift"
+msgstr "إغلاق الوردية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shortcuts"
+msgstr "الاختصارات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Commands"
+msgstr "الأوامر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Shortcut {0}"
+msgstr "اختصار {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Customers"
+msgstr "العملاء"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Quantity"
+msgstr "الكمية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Quantity: {0} — {1}"
+msgstr "الكمية: {0} — {1}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Enter to apply"
+msgstr "Enter للتطبيق"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Discount"
+msgstr "الخصم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "{0}% off {1}"
+msgstr "خصم {0}% على {1}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Price"
+msgstr "السعر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Price: {0} — {1}"
+msgstr "السعر: {0} — {1}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Now scan the item — quantity {0}"
+msgstr "امسح الصنف الآن — الكمية {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Type the count, press ×, then scan the item"
+msgstr "اكتب العدد، ثم ×، ثم امسح الصنف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan the new barcode first, then choose New item"
+msgstr "امسح الباركود الجديد أولًا، ثم اختر «صنف جديد»"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Supermarket mode — function-key bar"
+msgstr "وضع السوبرماركت — شريط مفاتيح F"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Leave full screen"
+msgstr "الخروج من ملء الشاشة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Full screen"
+msgstr "ملء الشاشة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "POS views"
+msgstr "شاشات نقطة البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sale"
+msgstr "البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Held"
+msgstr "المعلّقة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Connected"
+msgstr "متصل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No connection — selling paused"
+msgstr "لا اتصال — البيع متوقف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shift"
+msgstr "الوردية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Counter settings"
+msgstr "إعدادات نقطة البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Leave the counter"
+msgstr "الخروج من نقطة البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Held bill"
+msgstr "فاتورة معلّقة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Bill"
+msgstr "الفاتورة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Walk-in customer"
+msgstr "عميل نقدي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Tax invoice"
+msgstr "فاتورة ضريبية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Hold"
+msgstr "تعليق"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "{0}% off"
+msgstr "خصم {0}%"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Discount %"
+msgstr "الخصم %"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The bill is ready"
+msgstr "الفاتورة جاهزة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan the first item or touch one on the other side. No need to choose the customer now."
+msgstr "امسح أول صنف أو المس صنفًا من الجهة الأخرى. لا حاجة لاختيار العميل الآن."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Lines: {0} · Pieces: {1}"
+msgstr "الأسطر: {0} · القطع: {1}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Before VAT"
+msgstr "قبل الضريبة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "VAT"
+msgstr "الضريبة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Total (estimating…)"
+msgstr "الإجمالي (يُحسب…)"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "New sale"
+msgstr "بيع جديد"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Complete"
+msgstr "إتمام"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Exact cash"
+msgstr "نقدي مضبوط"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Delete a digit"
+msgstr "حذف رقم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Clear"
+msgstr "مسح"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Count for the next scan"
+msgstr "العدد للصنف الممسوح التالي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Enter"
+msgstr "إدخال"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Qty"
+msgstr "الكمية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Disc %"
+msgstr "خصم %"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Delete"
+msgstr "حذف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Searching…"
+msgstr "جارٍ البحث…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "↑ ↓ to move · Enter to run · Esc to close"
+msgstr "↑ ↓ للتنقل · Enter للتنفيذ · Esc للإغلاق"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Unknown barcode"
+msgstr "باركود غير معروف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "the sale carries on"
+msgstr "البيع مستمر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Link to an existing item"
+msgstr "ربط بصنف موجود"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "New item"
+msgstr "صنف جديد"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Dismiss"
+msgstr "تجاهل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "All items"
+msgstr "كل الأصناف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Loading items…"
+msgstr "جارٍ تحميل الأصناف…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Results for «{0}»: {1} — Enter adds the first"
+msgstr "نتائج «{0}»: {1} — Enter يضيف الأول"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Items: {0}"
+msgstr "الأصناف: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "In stock {0}"
+msgstr "متوفر {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Service"
+msgstr "خدمة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "By weight"
+msgstr "بالوزن"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Out of stock"
+msgstr "نفد"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Left: {0}"
+msgstr "المتبقي: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "{0} — put it on the scale or type the weight on the pad"
+msgstr "{0} — ضعه على الميزان أو اكتب الوزن على اللوحة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No item with this name"
+msgstr "لا صنف بهذا الاسم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No items in this group"
+msgstr "لا أصناف في هذه المجموعة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Try another name, scan the barcode, or add it as a new item."
+msgstr "جرّب اسمًا آخر، أو امسح الباركود، أو أضفه صنفًا جديدًا."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "More items"
+msgstr "أصناف أخرى"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sale complete"
+msgstr "تم البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Change for the customer"
+msgstr "الباقي للعميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No change"
+msgstr "لا باقي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan the next item or press Enter — a new sale starts by itself"
+msgstr "امسح الصنف التالي أو اضغط Enter — يبدأ بيع جديد تلقائيًا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Print receipt"
+msgstr "طباعة الإيصال"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open the invoice"
+msgstr "فتح الفاتورة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Into the drawer"
+msgstr "إلى الدرج"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sent to the card terminal"
+msgstr "يُرسل لجهاز البطاقات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Other tender"
+msgstr "طريقة دفع أخرى"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Reference (optional)"
+msgstr "المرجع (اختياري)"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Payment reference for {0}"
+msgstr "مرجع الدفع لـ {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Remove this payment"
+msgstr "حذف طريقة الدفع هذه"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Exact"
+msgstr "المضبوط"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Note"
+msgstr "ورقة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Remaining — on the customer's account"
+msgstr "المتبقي — دين على العميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Remaining"
+msgstr "المتبقي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Payment"
+msgstr "الدفع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Tax invoice — {0}"
+msgstr "فاتورة ضريبية — {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Simplified tax invoice"
+msgstr "فاتورة ضريبية مبسطة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back to items"
+msgstr "رجوع للأصناف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Due"
+msgstr "المطلوب"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Paid"
+msgstr "المدفوع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Choose a payment method above or beside the pad — or press Complete to take the exact amount in cash"
+msgstr "اختر طريقة الدفع من الأعلى أو بجانب لوحة الأرقام — أو اضغط «إتمام» لتحصيل المبلغ المضبوط نقدًا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Quick cash:"
+msgstr "نقدًا سريعًا:"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Choose a customer"
+msgstr "اختيار عميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan"
+msgstr "المسح"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Returns"
+msgstr "المرتجع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Delete line"
+msgstr "حذف السطر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Card"
+msgstr "البطاقة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Show all"
+msgstr "عرض الكل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Pieces: {0}"
+msgstr "القطع: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No held sales"
+msgstr "لا فواتير معلّقة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A held sale is a draft: it takes no stock and is not reported to ZATCA until it is paid."
+msgstr "الفاتورة المعلّقة مسودة: لا تخصم المخزون ولا تُبلَّغ لزاتكا حتى تُدفع."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Resume"
+msgstr "استئناف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open"
+msgstr "فتح"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Hold a bill with F6 to serve the next customer, then bring it back with F7."
+msgstr "علّق الفاتورة بـ F6 لتخدم العميل التالي، ثم استعدها بـ F7."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipts could not be loaded."
+msgstr "تعذّر تحميل الإيصالات."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Invoice number or customer"
+msgstr "رقم الفاتورة أو العميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Search receipts"
+msgstr "بحث الإيصالات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This shift"
+msgstr "هذه الوردية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Today"
+msgstr "اليوم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Mine"
+msgstr "إيصالاتي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "To return items: find the receipt, then press Return"
+msgstr "للإرجاع: ابحث عن الإيصال ثم اضغط «مرتجع»"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Loading receipts…"
+msgstr "جارٍ تحميل الإيصالات…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Time"
+msgstr "الوقت"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Number"
+msgstr "الرقم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Status"
+msgstr "الحالة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Return"
+msgstr "مرتجع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Print"
+msgstr "طباعة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No receipts here"
+msgstr "لا إيصالات هنا"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Change the filter or search by invoice number."
+msgstr "غيّر التصفية أو ابحث برقم الفاتورة."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Create a return from receipt {0}? It opens as a draft you can edit, then submit."
+msgstr "إنشاء مرتجع من الإيصال {0}؟ يُفتح مسودةً تعدّلها ثم تعتمدها."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Preparing the return…"
+msgstr "جارٍ تجهيز المرتجع…"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The return draft could not be created."
+msgstr "تعذّر إنشاء مسودة المرتجع."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Mobile, name or customer code"
+msgstr "الجوال أو الاسم أو رمز العميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Search customers"
+msgstr "بحث العملاء"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "By mobile, name or VAT number"
+msgstr "بالجوال أو الاسم أو الرقم الضريبي"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Close"
+msgstr "إغلاق"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Default for this point of sale — simplified invoice"
+msgstr "الافتراضي لنقطة البيع هذه — فاتورة مبسطة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "+ New customer"
+msgstr "+ عميل جديد"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item name"
+msgstr "اسم الصنف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Search items"
+msgstr "بحث الأصناف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Link the barcode to an item"
+msgstr "ربط الباركود بصنف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Saved as one more barcode of the item, so it is never asked about again: {0}"
+msgstr "يُحفظ باركودًا إضافيًا للصنف، فلا يُسأل عنه مرة أخرى: {0}"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Cancel"
+msgstr "إلغاء"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Link and add to the bill"
+msgstr "ربط وإضافة للفاتورة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This list"
+msgstr "هذه القائمة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scan field"
+msgstr "خانة المسح"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "New item for an unknown barcode"
+msgstr "صنف جديد لباركود غير معروف"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Pay / complete"
+msgstr "الدفع / الإتمام"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Next payment method"
+msgstr "طريقة الدفع التالية"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Print the receipt"
+msgstr "طباعة الإيصال"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Lines or suggestions"
+msgstr "الأسطر أو الاقتراحات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Line quantity"
+msgstr "كمية السطر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Delete the line"
+msgstr "حذف السطر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back / cancel"
+msgstr "رجوع / إلغاء"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "then the barcode = 3 pieces"
+msgstr "ثم الباركود = 3 حبات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "quantity 5 for the chosen line"
+msgstr "الكمية 5 للسطر المحدد"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "discount on the chosen line"
+msgstr "خصم على السطر المحدد"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "new price (with permission)"
+msgstr "سعر جديد (بصلاحية)"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "customer by name or mobile"
+msgstr "العميل بالاسم أو الجوال"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "every command"
+msgstr "كل الأوامر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "scale label: the weight is read from it"
+msgstr "ملصق الميزان: يُقرأ الوزن منه"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "name"
+msgstr "اسم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "filters the items; Enter adds the first"
+msgstr "يصفّي الأصناف، وEnter يضيف الأول"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shortcuts and typing rules"
+msgstr "الاختصارات وقواعد الكتابة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Typed in the scan field"
+msgstr "تُكتب في خانة المسح"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Receipts"
+msgstr "الإيصالات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "POS"
+msgstr "نقطة البيع"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Cashier"
+msgstr "الكاشير"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Unpaid"
+msgstr "غير مدفوعة"
+
+#. src: ar.csv-only row shipped in v0.51.1, moved into the PO 2026-10-09
+msgid "Stock Balance"
+msgstr "رصيد المخزون"
+
+#. src: ar.csv-only row shipped in v0.51.1, moved into the PO 2026-10-09
+msgid "Stock Ledger"
+msgstr "أستاذ المخزون"
+
+#. src: ar.csv-only row shipped in v0.51.1, moved into the PO 2026-10-09
+msgid "View all"
+msgstr "عرض الكل"
+
+#. src: ar.csv-only row shipped in v0.51.1, moved into the PO 2026-10-09
+msgid "Unable to load records"
+msgstr "تعذر تحميل السجلات"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgid "Holding sales is not set up on this site yet."
+msgstr "تعليق الفواتير غير مُفعّل في هذا النظام بعد."
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Rounding"
+msgstr "التقريب"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Nos"
+msgstr "حبة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Unit"
+msgstr "وحدة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Kg"
+msgstr "كجم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Gram"
+msgstr "غرام"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Litre"
+msgstr "لتر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Box"
+msgstr "كرتون"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Pair"
+msgstr "زوج"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Set"
+msgstr "طقم"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Hour"
+msgstr "ساعة"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS unit"
+msgid "Meter"
+msgstr "متر"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Left on the customer's account"
+msgstr "دين على العميل"
+
+#. src: pos counter redesign 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "All POS receipts"
+msgstr "كل إيصالات نقاط البيع"
