@@ -2091,6 +2091,236 @@ html[data-theme] .bnd-pos .bnd-pos__closed {
   justify-items: center;
   text-align: center;
 }
+html[data-theme] .bnd-pos .bnd-pos__settings {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  align-items: start;
+  overflow: hidden;
+  border: var(--bnd-line) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-xl);
+  background: var(--bnd-surface);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-nav {
+  display: grid;
+  align-content: start;
+  gap: var(--bnd-sp-1);
+  align-self: stretch;
+  padding: var(--bnd-sp-3) var(--bnd-sp-2);
+  border-inline-end: var(--bnd-line) solid var(--bnd-border);
+  background: var(--bnd-pane);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  min-block-size: 3rem;
+  padding-inline: var(--bnd-sp-3);
+  border: 0;
+  border-radius: var(--bnd-radius-lg);
+  background: transparent;
+  font-weight: var(--bnd-weight-medium);
+  text-align: start;
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-nav button bdi {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 1.75rem;
+  block-size: 1.75rem;
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-nav button[aria-current=page] {
+  background: var(--bnd-surface);
+  box-shadow: var(--bnd-shadow-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-nav button[aria-current=page] bdi {
+  background: var(--bnd-brand-deep);
+  color: var(--bnd-on-deep);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-body {
+  display: grid;
+  align-content: start;
+  min-inline-size: 0;
+  padding: var(--bnd-sp-4) var(--bnd-sp-5);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-body h3 {
+  margin: 0;
+  font-size: var(--bnd-text-xl);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__settings-body > p {
+  margin: var(--bnd-sp-1) 0 var(--bnd-sp-2);
+}
+html[data-theme] .bnd-pos .bnd-pos__setting {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-3) var(--bnd-sp-5);
+  min-block-size: 4.25rem;
+  padding-block: var(--bnd-sp-2);
+  border-block-end: var(--bnd-line) solid var(--bnd-border);
+}
+html[data-theme] .bnd-pos .bnd-pos__setting-text {
+  display: grid;
+  flex: 1 1 18rem;
+  min-inline-size: 0;
+  line-height: var(--bnd-leading-tight);
+}
+html[data-theme] .bnd-pos .bnd-pos__setting-text strong {
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__setting-text span {
+  margin-block-start: var(--bnd-sp-1);
+  color: var(--bnd-ink-subtle);
+  font-size: var(--bnd-text-sm);
+}
+html[data-theme] .bnd-pos .bnd-pos__switch {
+  display: flex;
+  align-items: center;
+  flex: none;
+  inline-size: 3.25rem;
+  block-size: 1.875rem;
+  padding: 3px;
+  border: 0;
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-border-strong);
+}
+html[data-theme] .bnd-pos .bnd-pos__switch[aria-checked=true] {
+  justify-content: flex-end;
+  background: var(--bnd-brand);
+}
+html[data-theme] .bnd-pos .bnd-pos__switch-knob {
+  inline-size: 1.5rem;
+  block-size: 1.5rem;
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-surface);
+  box-shadow: var(--bnd-shadow-sm);
+}
+html[data-theme] .bnd-pos .bnd-pos__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border-radius: var(--bnd-radius-lg);
+  background: var(--bnd-hover);
+}
+html[data-theme] .bnd-pos .bnd-pos__options button {
+  min-block-size: 2.25rem;
+  padding-inline: var(--bnd-sp-3);
+  border: 0;
+  border-radius: var(--bnd-radius-md);
+  background: transparent;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+  white-space: nowrap;
+}
+html[data-theme] .bnd-pos .bnd-pos__options button[aria-checked=true] {
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  box-shadow: var(--bnd-shadow-sm);
+}
+html[data-theme] .bnd-pos .bnd-pos__chipset {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--bnd-sp-2);
+  max-inline-size: 34rem;
+}
+html[data-theme] .bnd-pos .bnd-pos__opt-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-1);
+  min-block-size: 2.25rem;
+  padding-inline: var(--bnd-sp-3);
+  border: var(--bnd-line) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-pill);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__opt-chip[aria-pressed=true] {
+  border-color: color-mix(in srgb, var(--bnd-brand) 45%, transparent);
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+}
+html[data-theme] .bnd-pos .bnd-pos__number {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+}
+html[data-theme] .bnd-pos .bnd-pos__number input {
+  inline-size: 6.5rem;
+  block-size: 2.5rem;
+  padding-inline: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+  color: var(--bnd-ink);
+  font-weight: var(--bnd-weight-semibold);
+  text-align: center;
+}
+html[data-theme] .bnd-pos .bnd-pos__mask {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 3px;
+  font-size: var(--bnd-text-sm);
+}
+html[data-theme] .bnd-pos .bnd-pos__mask input,
+html[data-theme] .bnd-pos .bnd-pos__mask span {
+  display: grid;
+  place-items: center;
+  min-block-size: 2.75rem;
+  padding-inline: var(--bnd-sp-2);
+  border-radius: var(--bnd-radius-md);
+  line-height: 1.1;
+}
+html[data-theme] .bnd-pos .bnd-pos__mask input {
+  inline-size: 3.5rem;
+  border: 2px solid var(--bnd-ink);
+  background: var(--bnd-ink);
+  color: var(--bnd-surface);
+  font-weight: var(--bnd-weight-semibold);
+  text-align: center;
+}
+html[data-theme] .bnd-pos .bnd-pos__mask small {
+  font-size: var(--bnd-text-xs);
+  font-weight: var(--bnd-weight-medium);
+}
+html[data-theme] .bnd-pos .bnd-pos__mask [data-part=code] {
+  background: var(--bnd-active);
+  color: var(--bnd-brand-ink);
+}
+html[data-theme] .bnd-pos .bnd-pos__mask [data-part=value] {
+  background: color-mix(in srgb, var(--bnd-warn) 12%, var(--bnd-surface));
+  color: var(--bnd-warn);
+}
+html[data-theme] .bnd-pos .bnd-pos__mask [data-part=check] {
+  background: var(--bnd-hover);
+  color: var(--bnd-ink-muted);
+}
+html[data-theme] .bnd-pos .bnd-pos__select {
+  min-inline-size: 16rem;
+  block-size: 2.5rem;
+  padding-inline: var(--bnd-sp-2);
+  border: var(--bnd-line) solid var(--bnd-border-strong);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+}
+html[data-theme] .bnd-pos[data-tiles=s] {
+  --bnd-pos-tile-h: 5rem;
+}
+html[data-theme] .bnd-pos[data-tiles=l] {
+  --bnd-pos-tile-h: 8.5rem;
+}
 html[data-theme] .bnd-pos .bnd-pos__scrim {
   position: absolute;
   inset: 0;
@@ -2516,6 +2746,14 @@ html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
     flex: 1;
   }
 }
+@media (width >= 1200px) {
+  html[data-theme] .bnd-pos[data-tiles=s] .bnd-pos__grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+  html[data-theme] .bnd-pos[data-tiles=l] .bnd-pos__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 @media (width < 1200px) {
   html[data-theme] .bnd-pos {
     --bnd-pos-bill-w: 26rem;
@@ -2562,6 +2800,18 @@ html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
   }
   html[data-theme] .bnd-pos .bnd-pos__split {
     grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-theme] .bnd-pos .bnd-pos__settings {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  html[data-theme] .bnd-pos .bnd-pos__settings-nav {
+    display: flex;
+    overflow-x: auto;
+    border-inline-end: 0;
+    border-block-end: var(--bnd-line) solid var(--bnd-border);
+  }
+  html[data-theme] .bnd-pos .bnd-pos__settings-nav button {
+    flex: none;
   }
   html[data-theme] .bnd-pos .bnd-pos__tr--return {
     grid-template-columns: 2.75rem minmax(0, 1fr) auto;

@@ -18168,3 +18168,679 @@ msgstr "لا يمكن مشاركة هذا النوع من الإيصالات."
 #, fuzzy
 msgid "Only a receipt you completed can be shared."
 msgstr "لا يُشارك إلا إيصال أتممته أنت."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The screen"
+msgstr "الشاشة"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "How the sale screen looks for whoever works this counter."
+msgstr "كيف تبدو شاشة البيع لمن يعمل على نقطة البيع هذه."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A bar of function keys under the screen, to touch or press. Each device can still switch it from the counter's menu."
+msgstr "شريط مفاتيح F أسفل الشاشة يُلمس أو يُضغط. ويستطيع كل جهاز تغييره من قائمة نقطة البيع."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item pictures on the tiles"
+msgstr "صور الأصناف على البطاقات"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Without pictures the catalogue is faster and clearer when most items are scanned."
+msgstr "بدون صور تكون القائمة أسرع وأوضح عندما تُمسح أغلب الأصناف بالباركود."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item tile size"
+msgstr "حجم بطاقات الأصناف"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Small shows more items; large is easier to touch."
+msgstr "الصغير يعرض أصنافًا أكثر، والكبير أسهل للمس."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Small"
+msgstr "صغير"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Medium"
+msgstr "متوسط"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Large"
+msgstr "كبير"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Out-of-stock items"
+msgstr "الأصناف النافدة"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shown with their stock, or left out of the catalogue."
+msgstr "تظهر مع رصيدها، أو تُستبعد من القائمة."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shown"
+msgstr "تظهر"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Hidden"
+msgstr "تُخفى"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The screen button on the counter's bar opens the customer-facing window."
+msgstr "زر الشاشة في شريط نقطة البيع يفتح نافذة العميل."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Keypad and permissions"
+msgstr "لوحة الأرقام والصلاحيات"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "What the cashier can change from the pad and the scan field."
+msgstr "ما يستطيع الكاشير تعديله من لوحة الأرقام وخانة المسح."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Changing the price"
+msgstr "تعديل السعر"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The Price key, and =12.5 in the scan field."
+msgstr "زر «السعر»، و‎=12.5‎ في خانة المسح."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Not allowed"
+msgstr "ممنوع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Allowed"
+msgstr "مسموح"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Line discount"
+msgstr "الخصم على السطر"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The Disc % key, and -10% in the scan field."
+msgstr "زر «خصم %»، و‎-10%‎ في خانة المسح."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The counter's maximum discount"
+msgstr "الحد الأعلى للخصم في نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A line discount above it is refused. 0: only each item's own maximum."
+msgstr "يُرفض الخصم على السطر إذا تجاوزه. 0: حد كل صنف فقط."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Returns at the counter"
+msgstr "المرتجع من نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Return by receipt from Receipts and returns. Off: returns go through the invoice form."
+msgstr "المرتجع بالإيصال من «الإيصالات والمرتجع». عند الإيقاف يكون المرتجع من نموذج الفاتورة."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "New items from the counter"
+msgstr "إضافة صنف جديد من نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Make an item for an unknown barcode, for cashiers allowed to create items."
+msgstr "إنشاء صنف لباركود مجهول، للكاشير الذي يملك صلاحية إنشاء الأصناف."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The payment methods on this counter and the quick cash buttons."
+msgstr "طرق الدفع في نقطة البيع هذه وأزرار النقد السريع."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Payment methods"
+msgstr "طرق الدفع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Touch to add or remove. A method needs its account for this company before it can be added."
+msgstr "اضغط للإضافة أو الإزالة. تحتاج الطريقة حسابها لهذه الشركة قبل إضافتها."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Default payment method"
+msgstr "طريقة الدفع الافتراضية"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "ERPNext's default for this POS Profile."
+msgstr "الافتراضية في ERPNext لملف نقطة البيع هذا."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Exact amount button"
+msgstr "زر المبلغ المضبوط"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The first quick cash button pays the total exactly."
+msgstr "أول زر نقد سريع يدفع الإجمالي بالضبط."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Suggested cash notes"
+msgstr "الأوراق النقدية المقترحة"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Payment offers the fewest of each note that covers the total."
+msgstr "تقترح شاشة الدفع أقل عدد من كل ورقة يغطي الإجمالي."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Credit sales"
+msgstr "البيع الآجل"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The rest of a sale on a named customer's account."
+msgstr "باقي الفاتورة على حساب عميل مسمّى."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Rounding the total"
+msgstr "تقريب الإجمالي"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "By ERPNext's rounding for the currency, or none."
+msgstr "حسب تقريب ERPNext للعملة، أو بدون."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Rounded"
+msgstr "مقرّب"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Not rounded"
+msgstr "بدون تقريب"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Barcodes and scale"
+msgstr "الباركود والميزان"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "How the counter reads repeated scans and store labels."
+msgstr "كيف تقرأ نقطة البيع المسح المكرر وملصقات المتجر."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Merge repeated scans"
+msgstr "دمج المسح المكرر"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scanning the same item raises its quantity instead of adding a line."
+msgstr "مسح الصنف نفسه يزيد كميته بدل إضافة سطر جديد."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Scale label"
+msgstr "ملصق الميزان"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Grams"
+msgstr "جرام"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The sale carries on either way."
+msgstr "لا يتوقف البيع في الحالتين."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Offer to link or make an item"
+msgstr "اقتراح الربط أو إنشاء صنف"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Alert only"
+msgstr "تنبيه فقط"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipt and customer screen"
+msgstr "الإيصال وشاشة العميل"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "What happens after paying."
+msgstr "ما يحدث بعد الدفع."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Printing the receipt"
+msgstr "طباعة الإيصال"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "When a sale completes."
+msgstr "عند إتمام البيع."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Print automatically"
+msgstr "تلقائيًا"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "On request"
+msgstr "عند الطلب"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipt print format"
+msgstr "نموذج طباعة الإيصال"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Empty: the invoice's default print format."
+msgstr "فارغ: نموذج الطباعة الافتراضي للفاتورة."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipt code on the customer screen"
+msgstr "رمز الفاتورة على شاشة العميل"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Walk-in sales without a VAT number only: anyone in the queue can scan it."
+msgstr "للعميل النقدي بلا رقم ضريبي فقط، لأن أي شخص في الطابور يستطيع مسحه."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shift and drawer"
+msgstr "الوردية والدرج"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Closing the shift."
+msgstr "إغلاق الوردية."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Difference that needs a reason"
+msgstr "الفرق الذي يحتاج سببًا"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A closing difference above this needs a reason. 0: any difference."
+msgstr "فرق الإغلاق الذي يتجاوز هذا يحتاج سببًا. 0: أي فرق."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Held sales at closing"
+msgstr "الفواتير المعلّقة عند الإغلاق"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Carry to the next shift"
+msgstr "تُنقل للوردية القادمة"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Block the close"
+msgstr "تمنع الإغلاق"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The settings could not be read."
+msgstr "تعذّرت قراءة الإعدادات."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Leave without saving the changes?"
+msgstr "الخروج دون حفظ التغييرات؟"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Saving the settings…"
+msgstr "جارٍ حفظ الإعدادات…"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Settings saved"
+msgstr "حُفظت الإعدادات"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The settings were not saved."
+msgstr "لم تُحفظ الإعدادات."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item code"
+msgstr "كود الصنف"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Check"
+msgstr "تحقق"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Set this method's account for the company first."
+msgstr "عيّن حساب هذه الطريقة للشركة أولًا."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The invoice's default"
+msgstr "الافتراضي للفاتورة"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Point of sale settings"
+msgstr "إعدادات نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "saved in the POS Profile, for everyone who sells on it"
+msgstr "تُحفظ في ملف نقطة البيع وتسري على كل من يبيع عليها"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Unsaved changes"
+msgstr "تغييرات لم تُحفظ"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "All saved"
+msgstr "كل شيء محفوظ"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Save"
+msgstr "حفظ"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Loading the settings…"
+msgstr "جارٍ تحميل الإعدادات…"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "You can view these settings. Changing them needs write access to the POS Profile."
+msgstr "يمكنك عرض هذه الإعدادات، وتغييرها يحتاج صلاحية الكتابة على ملف نقطة البيع."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Settings sections"
+msgstr "أقسام الإعدادات"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Supermarket mode"
+msgstr "وضع السوبرماركت"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Item tile size"
+msgstr "حجم بطاقات الأصناف"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Customer screen"
+msgstr "شاشة العميل"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Receipt code on the customer screen"
+msgstr "رمز الفاتورة على شاشة العميل"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "The counter's maximum discount"
+msgstr "الحد الأعلى للخصم في نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Returns at the counter"
+msgstr "المرتجع من نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "New items from the counter"
+msgstr "إضافة صنف جديد من نقطة البيع"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Exact cash button"
+msgstr "زر المبلغ المضبوط"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Suggested cash notes"
+msgstr "الأوراق النقدية المقترحة"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Merge repeated scans"
+msgstr "دمج المسح المكرر"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Scale label prefix"
+msgstr "بادئة ملصق الميزان"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Unknown barcodes"
+msgstr "الباركود المجهول"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Difference that needs a reason"
+msgstr "الفرق الذي يحتاج سببًا"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Held sales at closing"
+msgstr "الفواتير المعلّقة عند الإغلاق"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "The counter settings are not valid."
+msgstr "إعدادات نقطة البيع غير صالحة."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Invalid value for the counter setting: {0}"
+msgstr "قيمة غير صالحة لإعداد نقطة البيع: {0}"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "The discount is above this counter's maximum: {0}%"
+msgstr "الخصم أعلى من الحد الأعلى لنقطة البيع: {0}%"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "This counter takes no returns. Return from the invoice form."
+msgstr "نقطة البيع هذه لا تستقبل المرتجعات. أرجع من نموذج الفاتورة."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "The settings are not valid."
+msgstr "الإعدادات غير صالحة."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Choose a print format for {0}."
+msgstr "اختر نموذج طباعة لـ {0}."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Keep at least one payment method."
+msgstr "أبقِ طريقة دفع واحدة على الأقل."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "This payment method has no account for the company yet: {0}"
+msgstr "لا حساب لطريقة الدفع هذه لدى الشركة بعد: {0}"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Choose exactly one default payment method."
+msgstr "اختر طريقة دفع افتراضية واحدة فقط."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Counter settings changed: {0}"
+msgstr "تغيّرت إعدادات نقطة البيع: {0}"
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "complete them before closing the shift."
+msgstr "أكملها قبل إغلاق الوردية."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The weight is read from the label. The prefix is one of the in-store ranges, 20 to 29 or 02. Empty: no scale labels."
+msgstr "يُقرأ الوزن من الملصق. البادئة من نطاقات المتجر: من 20 إلى 29 أو 02. فارغ: لا ملصقات ميزان."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "They stay held for the next shift, or today's close waits until they are completed. An abandoned one is deleted from the invoice list by whoever may delete invoices."
+msgstr "تبقى معلّقة للوردية القادمة، أو ينتظر إغلاق اليوم حتى تُكمل. والمتروكة يحذفها من قائمة الفواتير من يملك صلاحية حذف الفواتير."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Saved. Reopen the counter to apply the settings."
+msgstr "حُفظت. أعد فتح نقطة البيع لتطبيق الإعدادات."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "Complete the held sales before closing the shift."
+msgstr "أكمل الفواتير المعلّقة قبل إغلاق الوردية."
+
+#. src: pos phase 4 — the settings page, 2026-10-10
+#, fuzzy
+msgid "The POS Profile changed after these settings were opened. Open them again."
+msgstr "تغيّر ملف نقطة البيع بعد فتح هذه الإعدادات. افتحها من جديد."

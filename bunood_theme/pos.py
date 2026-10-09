@@ -180,6 +180,160 @@ def _profile_taxes(profile) -> list[dict[str, Any]]:
     ]
 
 
+# ── Counter settings ───────────────────────────────────────────────────────
+#
+# What the counter does on top of ERPNext, per POS Profile, so it applies to
+# everyone selling on it. Native choices (images, rate and discount changes,
+# credit, rounding, printing, payment methods) stay on the POS Profile itself;
+# these are the counter's own, kept as one JSON value in Frappe's DefaultValue
+# table under their own parent (not __default, so they never ride in every
+# user's boot). Only values that differ from the defaults are stored, and the
+# defaults are the counter's behaviour before the settings page existed.
+
+COUNTER_SETTINGS_PARENT = "bunood_pos_settings"
+COUNTER_DEFAULTS: dict[str, Any] = {
+    "fbar": False,
+    "tiles": "m",
+    "customer_screen": True,
+    "receipt_qr": True,
+    "max_discount": 0,
+    "returns": True,
+    "new_item": True,
+    "cash_exact": True,
+    "cash_notes": [10, 50, 100, 200, 500],
+    "merge_scans": True,
+    "scale_prefix": "21",
+    "unknown_barcode": "offer",
+    "reason_threshold": 0,
+    "held_on_close": "carry",
+}
+CASH_NOTES = (1, 5, 10, 20, 50, 100, 200, 500)
+# GS1 keeps 20-29 and 02 for in-store numbers: any other prefix would read
+# ordinary product barcodes (628… in Saudi Arabia) as scale labels.
+STORE_PREFIXES = frozenset({"02", *(f"2{digit}" for digit in range(10))})
+NATIVE_FLAGS = (
+    "hide_images",
+    "hide_unavailable_items",
+    "allow_rate_change",
+    "allow_discount_change",
+    "allow_partial_payment",
+    "disable_rounded_total",
+    "print_receipt_on_order_complete",
+)
+
+
+def _counter_label(key: str) -> str:
+    """The setting's name for the profile's comment, in the reader's language."""
+    return {
+        "fbar": _("Supermarket mode"),
+        "tiles": _("Item tile size"),
+        "customer_screen": _("Customer screen"),
+        "receipt_qr": _("Receipt code on the customer screen"),
+        "max_discount": _("The counter's maximum discount"),
+        "returns": _("Returns at the counter"),
+        "new_item": _("New items from the counter"),
+        "cash_exact": _("Exact cash button"),
+        "cash_notes": _("Suggested cash notes"),
+        "merge_scans": _("Merge repeated scans"),
+        "scale_prefix": _("Scale label prefix"),
+        "unknown_barcode": _("Unknown barcodes"),
+        "reason_threshold": _("Difference that needs a reason"),
+        "held_on_close": _("Held sales at closing"),
+    }.get(key, key)
+
+
+def _clean_counter(values: Any, strict: bool) -> dict[str, Any]:
+    """Known keys only, each checked. ``strict`` refuses a bad value (on save);
+    otherwise it is dropped and the default stands (on read)."""
+    if not isinstance(values, dict):
+        if strict:
+            frappe.throw(_("The counter settings are not valid."))
+        return {}
+    clean: dict[str, Any] = {}
+
+    def bad(key: str) -> None:
+        if strict:
+            frappe.throw(_("Invalid value for the counter setting: {0}").format(key))
+
+    for key, value in values.items():
+        if key not in COUNTER_DEFAULTS:
+            continue
+        default = COUNTER_DEFAULTS[key]
+        if isinstance(default, bool):
+            if isinstance(value, bool):
+                clean[key] = value
+            else:
+                bad(key)
+        elif key == "tiles":
+            if value in ("s", "m", "l"):
+                clean[key] = value
+            else:
+                bad(key)
+        elif key == "unknown_barcode":
+            if value in ("offer", "alert"):
+                clean[key] = value
+            else:
+                bad(key)
+        elif key == "held_on_close":
+            if value in ("carry", "block"):
+                clean[key] = value
+            else:
+                bad(key)
+        elif key in ("max_discount", "reason_threshold"):
+            try:
+                number = float(value)
+            except (TypeError, ValueError):
+                bad(key)
+                continue
+            ceiling = 100 if key == "max_discount" else 1_000_000
+            if 0 <= number <= ceiling:
+                clean[key] = flt(number, 2)
+            else:
+                bad(key)
+        elif key == "cash_notes":
+            if isinstance(value, list) and all(note in CASH_NOTES for note in value):
+                clean[key] = sorted(set(value))
+            else:
+                bad(key)
+        elif key == "scale_prefix":
+            text = str(value or "")
+            if text == "" or text in STORE_PREFIXES:
+                clean[key] = text
+            else:
+                bad(key)
+    return clean
+
+
+def _drop_counter_cache() -> None:
+    from frappe.cache_manager import clear_defaults_cache
+
+    clear_defaults_cache(COUNTER_SETTINGS_PARENT)
+
+
+def rename_counter_settings(doc, method=None, old: str = "", new: str = "", merge: bool = False) -> None:
+    """POS Profile after_rename: the settings follow the profile's new name."""
+    stored = frappe.defaults.get_defaults_for(COUNTER_SETTINGS_PARENT).get(old)
+    if isinstance(stored, str) and stored and not merge:
+        frappe.defaults.set_default(new, stored, parent=COUNTER_SETTINGS_PARENT)
+    frappe.defaults.clear_default(key=old, parent=COUNTER_SETTINGS_PARENT)
+
+
+def drop_counter_settings(doc, method=None) -> None:
+    """POS Profile on_trash: a later profile of the same name starts from the defaults."""
+    frappe.defaults.clear_default(key=doc.name, parent=COUNTER_SETTINGS_PARENT)
+
+
+def _counter_settings(profile_name: str) -> dict[str, Any]:
+    stored = frappe.defaults.get_defaults_for(COUNTER_SETTINGS_PARENT).get(profile_name)
+    settings = {key: (list(value) if isinstance(value, list) else value) for key, value in COUNTER_DEFAULTS.items()}
+    if isinstance(stored, str) and stored:
+        try:
+            settings.update(_clean_counter(json.loads(stored), strict=False))
+        except ValueError:
+            pass
+    return settings
+
+
 def _profile_payload(profile) -> dict[str, Any]:
     return {
         "name": profile.name,
@@ -199,6 +353,8 @@ def _profile_payload(profile) -> dict[str, Any]:
         "print_receipt_on_order_complete": bool(profile.print_receipt_on_order_complete),
         "payments": _payment_methods(profile),
         "taxes": _profile_taxes(profile),
+        "counter": _counter_settings(profile.name),
+        "can_edit": bool(frappe.has_permission("POS Profile", "write", profile)),
     }
 
 
@@ -511,6 +667,9 @@ def _apply_cart(doc, data: dict[str, Any], profile) -> None:
             max_discount = flt(frappe.get_cached_value("Item", item_code, "max_discount"))
             if max_discount and child.discount_percentage > max_discount:
                 frappe.throw(_("The discount is above the item's maximum. Item: {0} · Maximum discount: {1}%").format(item_code, max_discount))
+            ceiling = flt(_counter_settings(profile.name)["max_discount"])
+            if ceiling and child.discount_percentage > ceiling:
+                frappe.throw(_("The discount is above this counter's maximum: {0}%").format(f"{ceiling:g}"))
             child.discount_amount = flt(
                 flt(child.price_list_rate) * child.discount_percentage / 100.0, child.precision("discount_amount")
             )
@@ -920,6 +1079,12 @@ def _reconcile(closing, counted: dict[str, float]) -> list[dict[str, Any]]:
     return rows
 
 
+def _needs_reason(rows: list[dict[str, Any]], threshold: float) -> bool:
+    """A difference needs a reason when it is above the counter's threshold
+    (0: any difference of a halala or more)."""
+    return any(abs(flt(row["difference"])) >= 0.005 and abs(flt(row["difference"])) > flt(threshold) for row in rows)
+
+
 def _closing_summary(closing, rows: list[dict[str, Any]]) -> dict[str, Any]:
     invoices = closing.get("sales_invoices") or closing.get("pos_invoices") or []
     returns = [row for row in invoices if cint(row.get("is_return"))]
@@ -993,10 +1158,16 @@ def close_shift(pos_profile: str, counted: Any, reason: str = "") -> dict[str, A
     profile, opening = _current_opening(pos_profile)
     _require("POS Closing Entry", "create")
     _require("POS Closing Entry", "submit")
+    settings = _counter_settings(profile.name)
+    # Only today's shift: an out-of-date one cannot complete a held sale, and
+    # blocking it would keep the counter from ever opening again.
+    current = getdate(opening.period_start_date) == getdate(nowdate())
+    if settings["held_on_close"] == "block" and current and _can_hold(_invoice_type()) and held_carts(profile.name):
+        frappe.throw(_("Complete the held sales before closing the shift."))
     closing = _closing_draft(opening, profile)
     rows = _reconcile(closing, _counted(counted))
     reason = (reason or "").strip()[:140]
-    if any(abs(flt(row["difference"])) >= 0.005 for row in rows) and not reason:
+    if _needs_reason(rows, settings["reason_threshold"]) and not reason:
         frappe.throw(_("Give the reason for the difference before closing the shift."))
     closing.insert()
     # Before submit: ERPNext commits inside the closing's on_submit, so a note
@@ -1250,6 +1421,11 @@ def _partial_return(source, profile, lines: Any, refund: str, reason: str, lock:
     return doc
 
 
+def _returns_allowed(profile) -> None:
+    if not _counter_settings(profile.name)["returns"]:
+        frappe.throw(_("This counter takes no returns. Return from the invoice form."))
+
+
 def _return_summary(doc) -> dict[str, Any]:
     return {
         **_summary(doc),
@@ -1276,6 +1452,7 @@ def preview_return(pos_profile: str, source_doctype: str, source_name: str, line
     """The credit note ERPNext would issue for these lines. Writes nothing."""
     profile = _profile(pos_profile)
     _open_entry(profile.name)
+    _returns_allowed(profile)
     source = _return_source(source_doctype, source_name)
     _require(source.doctype, "create")
     return _return_summary(_partial_return(source, profile, lines, refund, ""))
@@ -1298,6 +1475,7 @@ def submit_return(
     """
     profile = _profile(pos_profile)
     _open_entry(profile.name)
+    _returns_allowed(profile)
     source = _return_source(source_doctype, source_name)
     _require(source.doctype, "create")
     reason = (reason or "").strip()[:140]
@@ -1317,6 +1495,154 @@ def submit_return(
     if key:
         frappe.cache.set_value(key, doc.name, expires_in_sec=24 * 3600)
     return {**_return_summary(doc), "already_issued": False}
+
+
+# ── The settings page ──────────────────────────────────────────────────────
+
+
+def _settings_profile(pos_profile: str):
+    # Not _profile(): a manager editing a profile need not be one of its cashiers.
+    if not pos_profile or not frappe.db.exists("POS Profile", pos_profile):
+        frappe.throw(_("Choose an available POS Profile."))
+    profile = frappe.get_doc("POS Profile", pos_profile)
+    profile.check_permission("read")
+    return profile
+
+
+def _payment_modes(company: str, keep: list[str] | None = None) -> list[dict[str, Any]]:
+    """Enabled modes of payment, plus any the profile already carries, and
+    whether each has an account for the company (ERPNext refuses a POS payment
+    row without one). A disabled one already on the profile stays removable."""
+    with_account = set(
+        frappe.get_all(
+            "Mode of Payment Account",
+            filters={"company": company, "parenttype": "Mode of Payment", "default_account": ["is", "set"]},
+            pluck="parent",
+        )
+    )
+    rows = frappe.get_all(
+        "Mode of Payment",
+        or_filters={"enabled": 1, "name": ["in", keep or [""]]},
+        fields=["name", "type", "enabled"],
+        order_by="name asc",
+    )
+    return [
+        {"mode_of_payment": row.name, "type": row.type or "", "has_account": row.name in with_account, "enabled": bool(row.enabled)}
+        for row in rows
+    ]
+
+
+@frappe.whitelist(methods=["GET"])
+def settings_context(pos_profile: str) -> dict[str, Any]:
+    profile = _settings_profile(pos_profile)
+    invoice_type = _invoice_type()
+    return {
+        "profile": profile.name,
+        "company": profile.company,
+        "warehouse": profile.warehouse,
+        "can_edit": bool(frappe.has_permission("POS Profile", "write", profile)),
+        "native": {
+            **{field: bool(cint(profile.get(field))) for field in NATIVE_FLAGS},
+            "print_format": profile.print_format or "",
+            "payments": [
+                {"mode_of_payment": row.mode_of_payment, "default": bool(cint(row.default))}
+                for row in profile.get("payments") or []
+            ],
+        },
+        "counter": _counter_settings(profile.name),
+        "defaults": COUNTER_DEFAULTS,
+        "cash_notes": list(CASH_NOTES),
+        "modes": _payment_modes(profile.company, [row.mode_of_payment for row in profile.get("payments") or []]),
+        "modified": str(profile.modified),
+        "print_formats": frappe.get_all(
+            "Print Format", filters={"doc_type": invoice_type, "disabled": 0}, pluck="name", order_by="name asc"
+        ),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def save_settings(pos_profile: str, native: Any = None, counter: Any = None, modified: str = "") -> dict[str, Any]:
+    """Save the page: native choices on the POS Profile (ERPNext validates and
+    versions it), the counter's own as one value. A comment on the profile says
+    what changed and who changed it. ``counter`` carries only the keys the page
+    changed, so two people saving different settings keep both."""
+    profile = _settings_profile(pos_profile)
+    profile.check_permission("write")
+    if modified and str(profile.modified) != str(modified):
+        frappe.throw(_("The POS Profile changed after these settings were opened. Open them again."))
+    native = _json(native, {})
+    if not isinstance(native, dict):
+        frappe.throw(_("The settings are not valid."))
+    changed: list[str] = []
+
+    for field in NATIVE_FLAGS:
+        if field in native and bool(native[field]) != bool(cint(profile.get(field))):
+            profile.set(field, 1 if native[field] else 0)
+            changed.append(profile.meta.get_label(field))
+
+    if "print_format" in native and (native["print_format"] or "") != (profile.print_format or ""):
+        print_format = str(native["print_format"] or "")
+        if print_format and not frappe.db.exists(
+            "Print Format", {"name": print_format, "doc_type": _invoice_type(), "disabled": 0}
+        ):
+            frappe.throw(_("Choose a print format for {0}.").format(_(_invoice_type())))
+        profile.print_format = print_format or None
+        changed.append(profile.meta.get_label("print_format"))
+
+    if "payments" in native:
+        wanted = native["payments"]
+        if not isinstance(wanted, list) or not wanted or len(wanted) > 20:
+            frappe.throw(_("Keep at least one payment method."))
+        existing = {row.mode_of_payment: row for row in profile.get("payments") or []}
+        usable = {row["mode_of_payment"]: row for row in _payment_modes(profile.company)}
+        picked, defaults = [], 0
+        for raw in wanted:
+            mode = str((raw or {}).get("mode_of_payment") or "")
+            if any(item[0] == mode for item in picked):
+                frappe.throw(_("Payment method unavailable in this POS Profile: {0}").format(mode))
+            # A method the profile already has may stay as it is; a new one must be usable.
+            if mode not in existing:
+                if mode not in usable:
+                    frappe.throw(_("Payment method unavailable in this POS Profile: {0}").format(mode))
+                if not usable[mode]["has_account"]:
+                    frappe.throw(_("This payment method has no account for the company yet: {0}").format(mode))
+            is_default = 1 if (raw or {}).get("default") else 0
+            defaults += is_default
+            picked.append((mode, is_default))
+        if defaults != 1:
+            frappe.throw(_("Choose exactly one default payment method."))
+        current = [(row.mode_of_payment, cint(row.default)) for row in profile.get("payments") or []]
+        if current != picked:
+            # The rows kept are the same documents: every other field on them stays.
+            rows = []
+            for mode, is_default in picked:
+                row = existing.get(mode) or profile.append("payments", {"mode_of_payment": mode})
+                row.default = is_default
+                rows.append(row)
+            profile.set("payments", rows)
+            changed.append(profile.meta.get_label("payments"))
+
+    if changed:
+        profile.save()
+
+    if counter is not None:
+        before = _counter_settings(profile.name)
+        after = {**before, **_clean_counter(_json(counter, {}), strict=True)}
+        if after != before:
+            stored = {key: value for key, value in after.items() if value != COUNTER_DEFAULTS[key]}
+            if stored:
+                value = json.dumps(stored, sort_keys=True)
+                frappe.defaults.set_default(profile.name, value, parent=COUNTER_SETTINGS_PARENT)
+            else:
+                frappe.defaults.clear_default(key=profile.name, parent=COUNTER_SETTINGS_PARENT)
+            # set_default drops the cache before this commits; a request in that gap
+            # would cache the old value again, so drop it once more after the commit.
+            frappe.db.after_commit.add(_drop_counter_cache)
+            changed += [_counter_label(key) for key in after if after[key] != before[key]]
+
+    if changed:
+        profile.add_comment("Comment", _("Counter settings changed: {0}").format(", ".join(changed)))
+    return {**settings_context(profile.name), "changed": changed}
 
 
 # ── The customer's e-receipt ───────────────────────────────────────────────
@@ -1373,7 +1699,7 @@ def receipt_link(doctype: str, name: str) -> dict[str, Any]:
     if doc.docstatus != 1 or not cint(doc.is_pos) or doc.owner != frappe.session.user:
         frappe.throw(_("Only a receipt you completed can be shared."))
     walk_in = doc.pos_profile and doc.customer == frappe.db.get_value("POS Profile", doc.pos_profile, "customer")
-    if not walk_in or doc.get("tax_id"):
+    if not walk_in or doc.get("tax_id") or not _counter_settings(doc.pos_profile)["receipt_qr"]:
         return none
     query = {"doctype": doc.doctype, "name": doc.name, "key": _share_key(doc)}
     print_format = frappe.db.get_value("POS Profile", doc.pos_profile, "print_format") if doc.pos_profile else None

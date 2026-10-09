@@ -229,6 +229,59 @@ def run() -> None:
         )
         assert after_close["returns"] == before_close["returns"] + 1
 
+        # Phase 4, 2026-10-10: the settings page. Only the counter's own settings
+        # here: a POS Profile save would leave its cached document behind the rollback.
+        saved = pos.save_settings(
+            profile_name, None, json.dumps({"max_discount": 5, "returns": False, "held_on_close": "block", "reason_threshold": 2})
+        )
+        assert saved["counter"]["max_discount"] == 5 and saved["counter"]["returns"] is False, saved["counter"]
+        assert pos._profile_payload(frappe.get_doc("POS Profile", profile_name))["counter"]["held_on_close"] == "block"
+        ceiling_refused = None
+        if profile.get("allow_discount_change"):
+            ceiling_refused = refused(
+                lambda: pos.preview_cart({**payload, "items": [{**payload["items"][0], "discount_percentage": 8}]}),
+                "The discount is above this counter's maximum: {0}%",
+            )
+            assert ceiling_refused, "A discount above the counter's maximum was accepted."
+        returns_refused = refused(
+            lambda: pos.preview_return(profile_name, sold["doctype"], sold["name"], one, first_mode),
+            "This counter takes no returns. Return from the invoice form.",
+        )
+        assert returns_refused, "A return went through a counter that takes none."
+        held_blocks = None
+        if pos._can_hold(context["invoice_type"]):
+            pos.hold_cart(payload)
+            # No reason given: were the block to fail, the reason gate refuses
+            # before ERPNext's own commit, and the message check fails this run.
+            held_blocks = refused(lambda: pos.close_shift(profile_name, zero_count, ""), "Complete the held sales before closing the shift.")
+            assert held_blocks, "A held sale did not block the close."
+        assert pos._needs_reason([{"difference": 1.5}], 2) is False and pos._needs_reason([{"difference": 2.5}], 2) is True
+        assert refused(lambda: pos.save_settings(profile_name, None, json.dumps({"tiles": "xl"})), "Invalid value for the counter setting: {0}")
+        # Review 2026-10-10: only the in-store prefixes (62 would read every Saudi barcode as a label).
+        assert refused(lambda: pos.save_settings(profile_name, None, json.dumps({"scale_prefix": "62"})), "Invalid value for the counter setting: {0}")
+        assert pos.save_settings(profile_name, None, json.dumps({"scale_prefix": "22"}))["counter"]["scale_prefix"] == "22"
+        # A page opened before someone else saved the profile is refused.
+        assert refused(
+            lambda: pos.save_settings(profile_name, json.dumps({"hide_images": True}), None, "2000-01-01 00:00:00"),
+            "The POS Profile changed after these settings were opened. Open them again.",
+        )
+        # Saving the payment methods keeps each kept row's own fields (Allow In Returns).
+        rows = frappe.get_doc("POS Profile", profile_name).payments
+        frappe.db.set_value("POS Payment Method", rows[0].name, "allow_in_returns", 1, update_modified=False)
+        frappe.clear_document_cache("POS Profile", profile_name)
+        reordered = [{"mode_of_payment": row.mode_of_payment, "default": 1 if index == len(rows) - 1 else 0} for index, row in enumerate(rows)]
+        pos.save_settings(profile_name, json.dumps({"payments": reordered}), None, pos.settings_context(profile_name)["modified"])
+        kept_row = next(row for row in frappe.get_doc("POS Profile", profile_name).payments if row.mode_of_payment == rows[0].mode_of_payment)
+        assert kept_row.allow_in_returns == 1, "Saving the payment methods reset Allow In Returns."
+        # The settings follow a renamed profile.
+        frappe.defaults.set_default("bnd-acceptance-old", '{"tiles": "l"}', parent=pos.COUNTER_SETTINGS_PARENT)
+        pos.rename_counter_settings(None, "after_rename", "bnd-acceptance-old", "bnd-acceptance-new")
+        moved = frappe.defaults.get_defaults_for(pos.COUNTER_SETTINGS_PARENT)
+        assert moved.get("bnd-acceptance-new") == '{"tiles": "l"}' and not moved.get("bnd-acceptance-old"), moved
+        # Back to the defaults for the checks that follow (a 10% discount among them).
+        restored = pos.save_settings(profile_name, None, json.dumps(pos.COUNTER_DEFAULTS))
+        assert restored["counter"] == pos.COUNTER_DEFAULTS, restored["counter"]
+
         # Pre-release review, 2026-10-09. ERPNext keeps a cashier's discount only when the line's
         # rate is the one it derives itself (the percentage rounded to its field, the amount
         # rounded, then the rate); on a one-cent difference it treats the rate as typed, sets
@@ -305,6 +358,10 @@ def run() -> None:
             "refund_reaches_closing": True,
             "over_return_refused": over_refused,
             "walk_in_credit_refused": walk_in_credit_refused,
+            "settings_saved": True,
+            "discount_ceiling_refused": ceiling_refused,
+            "returns_switched_off": returns_refused,
+            "held_sales_block_the_close": held_blocks,
             "stale_shift_detected": stale_detected,
             "rolled_back": True,
         }
@@ -315,6 +372,12 @@ def run() -> None:
         opening = (context or {}).get("opening_entry") or {}
         if opening.get("name"):
             frappe.cache.delete_value(f"bunood_pos_checked_count:{opening['name']}")
+        # The counter settings are cached beyond the transaction: drop what it saw.
+        from frappe.cache_manager import clear_defaults_cache
+
+        clear_defaults_cache(pos.COUNTER_SETTINGS_PARENT)
+        if context.get("profile"):
+            frappe.clear_document_cache("POS Profile", context["profile"]["name"])
 
 
 run()

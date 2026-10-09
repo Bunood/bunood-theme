@@ -166,6 +166,11 @@ doc_events = {
         "on_update": "bunood_theme.api.clear_workspace_cache",
         "after_delete": "bunood_theme.api.clear_workspace_cache",
     },
+    # The counter's own settings are keyed by the POS Profile's name (pos.py).
+    "POS Profile": {
+        "after_rename": "bunood_theme.pos.rename_counter_settings",
+        "on_trash": "bunood_theme.pos.drop_counter_settings",
+    },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
     # Invoice would switch every new invoice to exact-halala totals (no

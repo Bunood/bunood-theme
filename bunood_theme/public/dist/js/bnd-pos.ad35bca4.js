@@ -12,8 +12,6 @@
 
 	const METHOD = "bunood_theme.pos.";
 	const PAGE_SIZE = 40;
-	// Weighed-item labels: 21 + 5-digit item barcode + 5-digit grams + check digit.
-	const SCALE_PREFIX = "21";
 	const WEIGHED_UOM = /^(kg|kgs|kilo|kilogram|كجم|كغ|كيلو|كيلوغرام|كيلوجرام)$/i;
 	const PREFS_KEY = "bnd_pos_prefs";
 	const CAT_HUES = 7;
@@ -139,12 +137,14 @@
 		} catch (_error) { /* private window: the preference lasts this visit */ }
 	}
 
-	// The scale label carries the item's own barcode and the weight in grams.
-	function parseScale(code) {
-		const match = new RegExp(`^${SCALE_PREFIX}(\\d{5})(\\d{5})\\d$`).exec(code);
-		if (!match) return null;
-		const grams = parseInt(match[2], 10);
-		return grams > 0 ? { barcode: match[1], qty: grams / 1000 } : null;
+	// A scale label: the counter's 2-digit prefix, the item's 5-digit barcode,
+	// the weight in grams (5 digits) and a check digit. The prefix comes from
+	// the POS Profile's settings ("" switches scale labels off).
+	function parseLabel(code, scalePrefix) {
+		const match = /^(\d{2})(\d{5})(\d{5})\d$/.exec(String(code || ""));
+		if (!match || !scalePrefix || match[1] !== scalePrefix) return null;
+		const grams = parseInt(match[3], 10);
+		return grams > 0 ? { barcode: match[2], qty: grams / 1000 } : null;
 	}
 
 	function render(container, page) {
@@ -185,6 +185,7 @@
 			pi: 0,
 			palette: null,
 			unknown: "",
+			unknownLabel: "",
 			pays: [],
 			psel: -1,
 			payBuf: "",
@@ -205,6 +206,7 @@
 			gateProfile: "",
 			close: null,
 			ret: null,
+			settings: null,
 		};
 
 		const root = h("section", { class: "bnd-pos", "aria-label": __("Point of sale", null, "Bunood POS") });
@@ -249,6 +251,16 @@
 		const catalog = h("section", { class: "bnd-pos__catalog" }, omniArea, alertBox, groupsBar, statusLine, gridWrap, panel);
 		const saleLayout = h("div", { class: "bnd-pos__sale" }, billCol, catalog);
 		const listView = h("div", { class: "bnd-pos__list-view" });
+
+		// The POS Profile's counter settings (the settings page); the server fills
+		// every key, so a missing one means the profile has not loaded yet.
+		function counter(key) {
+			return state.profile?.counter?.[key];
+		}
+		// Supermarket mode: this device's own choice, else the profile's.
+		function fbarOn() {
+			return typeof prefs.fbar === "boolean" ? prefs.fbar : Boolean(counter("fbar"));
+		}
 
 		// ── Formatting ────────────────────────────────────────────────────────
 		function currency() {
@@ -322,6 +334,8 @@
 			}
 			state.profile = state.context.profile;
 			state.gateProfile = state.profile?.name || "";
+			root.toggleAttribute("data-fbar", fbarOn());
+			root.setAttribute("data-tiles", counter("tiles") || "m");
 			connectDisplay();
 			resetSale({ silent: true });
 			renderBar();
@@ -501,7 +515,16 @@
 		}
 
 		function closeHasDifference() {
-			return (state.close?.result?.rows || []).some((row) => Math.abs(Number(row.difference || 0)) >= 0.005);
+			const threshold = Number(counter("reason_threshold") || 0);
+			return (state.close?.result?.rows || []).some((row) => {
+				const difference = Math.abs(Number(row.difference || 0));
+				return difference >= 0.005 && difference > threshold;
+			});
+		}
+
+		// Only today's shift: an out-of-date one cannot complete a held sale (the server agrees).
+		function heldBlocksClose() {
+			return counter("held_on_close") === "block" && Boolean(state.context?.opening_entry) && Number(state.close?.ctx?.held || 0) > 0;
 		}
 
 		async function previewClose() {
@@ -584,8 +607,10 @@
 			const held = Number(close.ctx.held || 0);
 			return h("div", { class: "bnd-pos__split" },
 				h("section", { class: "bnd-pos__split-main" },
-					held ? h("div", { class: "bnd-pos__notice", "data-tone": "warn" }, svg("alert", 18),
-						h("span", null, __("Held sales: {0}", [held]), " — ", __("they stay held for the next shift on this point of sale.", null, "Bunood POS")),
+					held ? h("div", { class: "bnd-pos__notice", "data-tone": heldBlocksClose() ? "bad" : "warn" }, svg("alert", 18),
+						h("span", null, __("Held sales: {0}", [held]), " — ", heldBlocksClose()
+							? __("complete them before closing the shift.", null, "Bunood POS")
+							: __("they stay held for the next shift on this point of sale.", null, "Bunood POS")),
 						state.context?.opening_entry ? h("button", { type: "button", class: "bnd-pos__ghost", onclick: () => { state.close = null; showList("held"); } }, __("Open", null, "Bunood POS")) : null) : null,
 					cash ? h("div", { class: "bnd-pos__sheet" },
 						h("div", { class: "bnd-pos__gate-head" }, h("strong", null, __("Count the cash in the drawer", null, "Bunood POS")), h("span", { class: "bnd-pos__muted" }, __("The expected amount appears after the count, so the count stays honest.", null, "Bunood POS"))),
@@ -640,7 +665,7 @@
 			];
 			const differs = closeHasDifference();
 			const reasons = closeReasons();
-			const blocked = close.busy || (differs && !closeReason());
+			const blocked = close.busy || (differs && !closeReason()) || heldBlocksClose();
 			return h("div", { class: "bnd-pos__split" },
 				h("section", { class: "bnd-pos__split-main" },
 					table,
@@ -740,7 +765,7 @@
 			const uom = item.uom || item.stock_uom || "";
 			const lineKey = [item.item_code, uom, item.batch_no || "", item.serial_no || ""].join("::");
 			const price = Number(item.price_list_rate || 0);
-			let index = isWeighed || item.serial_no ? -1 : state.lines.findIndex((line) => line.key === lineKey && !line.discount_percentage && line.rate === price);
+			let index = isWeighed || item.serial_no || counter("merge_scans") === false ? -1 : state.lines.findIndex((line) => line.key === lineKey && !line.discount_percentage && line.rate === price);
 			if (index >= 0) {
 				state.lines[index].qty = round(state.lines[index].qty + amount, 3);
 			} else {
@@ -781,17 +806,30 @@
 				qty = parseFloat(multiplied[1]);
 				code = multiplied[2].trim();
 			}
-			const scale = parseScale(code);
-			const lookup = scale ? scale.barcode : code;
-			if (scale) qty = scale.qty;
+			let label = parseLabel(code, counter("scale_prefix"));
+			const counted = qty;
+			let lookup = label ? label.barcode : code;
+			if (label) qty = label.qty;
 			setQuery("");
-			try {
+			const find = async (term) => {
 				const result = await api("get_items", {
-					pos_profile: state.profile.name, start: 0, page_length: 20, search_term: lookup,
+					pos_profile: state.profile.name, start: 0, page_length: 20, search_term: term,
 				}, { type: "GET" });
 				const rows = result?.items || [];
-				const exact = rows.filter((row) => [row.barcode, row.item_code, row.serial_no, row.batch_no].includes(lookup));
-				const hits = exact.length ? exact : (rows.length === 1 && !/^\d+$/.test(lookup) ? rows : []);
+				const exact = rows.filter((row) => [row.barcode, row.item_code, row.serial_no, row.batch_no].includes(term));
+				return exact.length ? exact : (rows.length === 1 && !/^\d+$/.test(term) ? rows : []);
+			};
+			try {
+				let hits = await find(lookup);
+				if (label && !hits.length) {
+					const whole = await find(code);
+					if (whole.length) {
+						hits = whole;
+						label = null;
+						lookup = code;
+						qty = counted;
+					}
+				}
 				if (hits.length === 1) {
 					addItem(hits[0], qty);
 				} else if (hits.length > 1) {
@@ -807,7 +845,9 @@
 					};
 					renderPalette();
 				} else {
-					state.unknown = code;
+					// A label links its item's 5-digit code; the label itself is read again after.
+					state.unknown = lookup;
+					state.unknownLabel = label ? code : "";
 					state.mult = null;
 					frappe.utils?.play_sound?.("error");
 					flash("err", __("Unknown barcode: {0}", [code]));
@@ -904,7 +944,8 @@
 			if (!state.lines.some((line) => line.qty > 0)) return null;
 			state.previewing = true;
 			try {
-				const result = await api("preview_cart", { payload: JSON.stringify(payload()) });
+				// The refusal shows in the status line; a desk dialog would cover the bill.
+				const result = await api("preview_cart", { payload: JSON.stringify(payload()) }, { silent: true });
 				if (rev !== state.rev) return null;
 				state.preview = { ...result, rev };
 				renderBill();
@@ -1028,9 +1069,11 @@
 				const rounded = round(value);
 				if (rounded >= total - 0.001 && !values.some((other) => Math.abs(other - rounded) < 0.001)) values.push(rounded);
 			};
-			add(total);
-			[10, 50, 100].forEach((step) => add(Math.ceil(total / step) * step));
-			[200, 500].forEach(add);
+			if (counter("cash_exact") !== false) add(total);
+			// Notes up to 100 round the total up (87 → 90, 100); 200 and 500 are
+			// offered as one note when it covers the total. The defaults give the
+			// buttons the counter showed before it had settings.
+			(counter("cash_notes") || [10, 50, 100, 200, 500]).forEach((note) => add(note >= 200 ? note : Math.ceil(total / note) * note));
 			return values.slice(0, 5);
 		}
 
@@ -1259,13 +1302,16 @@
 			const overlay = state.overlay;
 			const row = overlay?.rows?.[overlay.sel];
 			if (!row) return;
+			const labelled = state.unknownLabel;
 			try {
 				await addBarcode(row.item_code, overlay.code);
 				state.overlay = null;
 				state.unknown = "";
+				state.unknownLabel = "";
 				renderLayer();
 				renderAlert();
-				addItem(row, 1);
+				if (labelled) scan(labelled);
+				else addItem(row, 1);
 				flash("ok", __("Barcode saved — {0} → {1}", [overlay.code, row.item_name || row.item_code]));
 			} catch (error) {
 				frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The barcode could not be saved.", null, "Bunood POS")), indicator: "red" });
@@ -1273,12 +1319,14 @@
 		}
 		function newItem() {
 			const code = state.unknown;
+			const labelled = state.unknownLabel;
 			frappe.ui.form.make_quick_entry("Item", async (doc) => {
 				try {
 					if (code) await addBarcode(doc.name, code);
 					state.unknown = "";
+					state.unknownLabel = "";
 					renderAlert();
-					if (code) scan(code);
+					if (code) scan(labelled || code);
 				} catch (error) {
 					frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The barcode could not be saved.", null, "Bunood POS")), indicator: "red" });
 				}
@@ -1457,6 +1505,7 @@
 					else if (state.close?.step === "count") leaveClose();
 				}
 				else if (state.view === "return") { if (!state.ret?.busy) leaveReturn(); }
+				else if (state.view === "settings") { if (!state.settings?.busy) leaveSettings(); }
 				else if (state.view !== "sale" && state.view !== "gate") showSale();
 				else if (state.palette) { setQuery(""); }
 				else if (state.query) setQuery("");
@@ -1467,12 +1516,12 @@
 				return;
 			}
 			if (inOverlayField) return;
-			if (state.view === "gate" || state.view === "close" || state.view === "return") return;
+			if (["gate", "close", "return", "settings"].includes(state.view)) return;
 			const fkeys = {
 				F1: openHelp,
 				F2: () => { if (state.view !== "sale") showSale(); setQuery(""); focusOmni(); },
 				F3: openCustomer,
-				F4: () => { if (state.unknown) newItem(); else flash("info", __("Scan the new barcode first, then choose New item", null, "Bunood POS")); },
+				F4: () => { if (counter("new_item") === false || counter("unknown_barcode") === "alert") return; if (state.unknown) newItem(); else flash("info", __("Scan the new barcode first, then choose New item", null, "Bunood POS")); },
 				F6: hold,
 				F7: toggleHeld,
 				F8: () => (state.screen === "pay" ? addPay(cardMethod()) : instant("card")),
@@ -1578,7 +1627,7 @@
 			omni.focus({ preventScroll: true });
 		}
 		function toggleFbar() {
-			prefs.fbar = !prefs.fbar;
+			prefs.fbar = !fbarOn();
 			writePrefs(prefs);
 			root.toggleAttribute("data-fbar", prefs.fbar);
 			state.menuOpen = false;
@@ -1733,7 +1782,7 @@
 		// The e-receipt's code is scannable by the whole queue, so only a walk-in
 		// sale without a VAT number offers one; the server checks the same.
 		function receiptOffered() {
-			return isWalkIn() && !state.customerTaxId && state.context?.capabilities?.can_print_invoice !== false;
+			return isWalkIn() && !state.customerTaxId && state.context?.capabilities?.can_print_invoice !== false && counter("receipt_qr") !== false;
 		}
 
 		// The receipt's QR for the thanks screen, only while a screen is showing it.
@@ -1747,6 +1796,321 @@
 		}
 
 		window.addEventListener("pagehide", () => display.channel?.postMessage({ type: "counter-gone" }));
+
+		// ── The settings page ────────────────────────────────────────────────
+		// Approved board «الإعدادات». Every row changes something real: native
+		// choices are saved on the POS Profile (ERPNext validates and versions
+		// them), the counter's own through pos.save_settings. Rows on the board
+		// that the counter cannot honour yet are not shown.
+		function settingsSections() {
+			const settings = state.settings;
+			const modes = settings?.ctx?.modes || [];
+			const chosen = (settings?.native?.payments || []).map((row) => row.mode_of_payment);
+			const T = (source, key, label, desc, invert) => ({ kind: "toggle", source, key, label, desc, invert });
+			const S = (source, key, label, desc, options) => ({ kind: "options", source, key, label, desc, options });
+			return [
+				{ name: __("The screen", null, "Bunood POS"), intro: __("How the sale screen looks for whoever works this counter.", null, "Bunood POS"), rows: [
+					T("counter", "fbar", __("Supermarket mode", null, "Bunood POS"), __("A bar of function keys under the screen, to touch or press. Each device can still switch it from the counter's menu.", null, "Bunood POS")),
+					T("native", "hide_images", __("Item pictures on the tiles", null, "Bunood POS"), __("Without pictures the catalogue is faster and clearer when most items are scanned.", null, "Bunood POS"), true),
+					S("counter", "tiles", __("Item tile size", null, "Bunood POS"), __("Small shows more items; large is easier to touch.", null, "Bunood POS"), [["s", __("Small", null, "Bunood POS")], ["m", __("Medium", null, "Bunood POS")], ["l", __("Large", null, "Bunood POS")]]),
+					S("native", "hide_unavailable_items", __("Out-of-stock items", null, "Bunood POS"), __("Shown with their stock, or left out of the catalogue.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
+					T("counter", "customer_screen", __("Customer screen", null, "Bunood POS"), __("The screen button on the counter's bar opens the customer-facing window.", null, "Bunood POS")),
+				] },
+				{ name: __("Keypad and permissions", null, "Bunood POS"), intro: __("What the cashier can change from the pad and the scan field.", null, "Bunood POS"), rows: [
+					S("native", "allow_rate_change", __("Changing the price", null, "Bunood POS"), __("The Price key, and =12.5 in the scan field.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]),
+					S("native", "allow_discount_change", __("Line discount", null, "Bunood POS"), __("The Disc % key, and -10% in the scan field.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]),
+					{ kind: "number", source: "counter", key: "max_discount", label: __("The counter's maximum discount", null, "Bunood POS"), desc: __("A line discount above it is refused. 0: only each item's own maximum.", null, "Bunood POS"), unit: "%", max: 100 },
+					T("counter", "returns", __("Returns at the counter", null, "Bunood POS"), __("Return by receipt from Receipts and returns. Off: returns go through the invoice form.", null, "Bunood POS")),
+					T("counter", "new_item", __("New items from the counter", null, "Bunood POS"), __("Make an item for an unknown barcode, for cashiers allowed to create items.", null, "Bunood POS")),
+				] },
+				{ name: __("Payment", null, "Bunood POS"), intro: __("The payment methods on this counter and the quick cash buttons.", null, "Bunood POS"), rows: [
+					{ kind: "payments", label: __("Payment methods", null, "Bunood POS"), desc: __("Touch to add or remove. A method needs its account for this company before it can be added.", null, "Bunood POS"), modes },
+					{ kind: "default", label: __("Default payment method", null, "Bunood POS"), desc: __("ERPNext's default for this POS Profile.", null, "Bunood POS"), options: chosen },
+					T("counter", "cash_exact", __("Exact amount button", null, "Bunood POS"), __("The first quick cash button pays the total exactly.", null, "Bunood POS")),
+					{ kind: "notes", source: "counter", key: "cash_notes", label: __("Suggested cash notes", null, "Bunood POS"), desc: __("Payment offers the fewest of each note that covers the total.", null, "Bunood POS"), notes: settings?.ctx?.cash_notes || [] },
+					S("native", "allow_partial_payment", __("Credit sales", null, "Bunood POS"), __("The rest of a sale on a named customer's account.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]),
+					S("native", "disable_rounded_total", __("Rounding the total", null, "Bunood POS"), __("By ERPNext's rounding for the currency, or none.", null, "Bunood POS"), [[false, __("Rounded", null, "Bunood POS")], [true, __("Not rounded", null, "Bunood POS")]]),
+				] },
+				{ name: __("Barcodes and scale", null, "Bunood POS"), intro: __("How the counter reads repeated scans and store labels.", null, "Bunood POS"), rows: [
+					T("counter", "merge_scans", __("Merge repeated scans", null, "Bunood POS"), __("Scanning the same item raises its quantity instead of adding a line.", null, "Bunood POS")),
+					{ kind: "label", source: "counter", key: "scale_prefix", label: __("Scale label", null, "Bunood POS"), desc: __("The weight is read from the label. The prefix is one of the in-store ranges, 20 to 29 or 02. Empty: no scale labels.", null, "Bunood POS"), value: __("Grams", null, "Bunood POS"), sample: "01250" },
+					S("counter", "unknown_barcode", __("Unknown barcode", null, "Bunood POS"), __("The sale carries on either way.", null, "Bunood POS"), [["offer", __("Offer to link or make an item", null, "Bunood POS")], ["alert", __("Alert only", null, "Bunood POS")]]),
+				] },
+				{ name: __("Receipt and customer screen", null, "Bunood POS"), intro: __("What happens after paying.", null, "Bunood POS"), rows: [
+					S("native", "print_receipt_on_order_complete", __("Printing the receipt", null, "Bunood POS"), __("When a sale completes.", null, "Bunood POS"), [[true, __("Print automatically", null, "Bunood POS")], [false, __("On request", null, "Bunood POS")]]),
+					{ kind: "format", source: "native", key: "print_format", label: __("Receipt print format", null, "Bunood POS"), desc: __("Empty: the invoice's default print format.", null, "Bunood POS"), options: settings?.ctx?.print_formats || [] },
+					T("counter", "receipt_qr", __("Receipt code on the customer screen", null, "Bunood POS"), __("Walk-in sales without a VAT number only: anyone in the queue can scan it.", null, "Bunood POS")),
+				] },
+				{ name: __("Shift and drawer", null, "Bunood POS"), intro: __("Closing the shift.", null, "Bunood POS"), rows: [
+					{ kind: "number", source: "counter", key: "reason_threshold", label: __("Difference that needs a reason", null, "Bunood POS"), desc: __("A closing difference above this needs a reason. 0: any difference.", null, "Bunood POS"), unit: currency(), max: 1000000 },
+					S("counter", "held_on_close", __("Held sales at closing", null, "Bunood POS"), __("They stay held for the next shift, or today's close waits until they are completed. An abandoned one is deleted from the invoice list by whoever may delete invoices.", null, "Bunood POS"), [["carry", __("Carry to the next shift", null, "Bunood POS")], ["block", __("Block the close", null, "Bunood POS")]]),
+				] },
+			];
+		}
+
+		async function openSettings() {
+			if (!state.profile?.can_edit) return;
+			state.heldOpen = false;
+			renderHeldPopover();
+			const settings = { ctx: null, native: null, counter: null, section: 0, busy: false, error: "", dirty: false, profile: state.profile.name };
+			state.settings = settings;
+			state.view = "settings";
+			fill(body, listView);
+			renderBar();
+			renderFoot();
+			renderSettingsView();
+			try {
+				const ctx = await api("settings_context", { pos_profile: settings.profile }, { type: "GET", silent: true });
+				if (state.settings !== settings) return;
+				settingsLoaded(ctx);
+			} catch (error) {
+				if (state.settings !== settings) return;
+				settings.error = messageOf(error, __("The settings could not be read.", null, "Bunood POS"));
+			}
+			renderSettingsView();
+		}
+
+		function settingsLoaded(ctx) {
+			const settings = state.settings;
+			settings.ctx = ctx;
+			settings.native = JSON.parse(JSON.stringify(ctx.native));
+			settings.counter = JSON.parse(JSON.stringify(ctx.counter));
+			settings.dirty = false;
+		}
+
+		// Anything that leaves the settings page with unsaved changes asks first.
+		function unsavedGuard(go) {
+			if (state.view === "settings" && state.settings?.dirty) {
+				frappe.confirm(__("Leave without saving the changes?", null, "Bunood POS"), () => {
+					state.settings = null;
+					go();
+				});
+			} else {
+				if (state.view === "settings") state.settings = null;
+				go();
+			}
+		}
+
+		function leaveSettings() {
+			unsavedGuard(() => {
+				if (state.context?.opening_entry) showSale();
+				else renderGate();
+			});
+		}
+
+		function changeSetting(source, key, value, quiet) {
+			const settings = state.settings;
+			if (!settings?.ctx?.can_edit || settings.busy) return;
+			settings[source][key] = value;
+			settings.dirty = JSON.stringify(settings.native) !== JSON.stringify(settings.ctx.native) || JSON.stringify(settings.counter) !== JSON.stringify(settings.ctx.counter);
+			settings.error = "";
+			if (!quiet) {
+				renderSettingsView();
+				return;
+			}
+			// While typing: only the save button and the state tag change.
+			const saveButton = listView.querySelector(".bnd-pos__list-head .bnd-pos__primary");
+			if (saveButton) saveButton.disabled = !settings.dirty;
+			const tag = listView.querySelector(".bnd-pos__list-head .bnd-pos__tag");
+			if (tag) {
+				tag.textContent = settings.dirty ? __("Unsaved changes", null, "Bunood POS") : __("All saved", null, "Bunood POS");
+				tag.toggleAttribute("data-tone", settings.dirty);
+				if (settings.dirty) tag.setAttribute("data-tone", "warn");
+			}
+		}
+
+		async function saveSettings() {
+			const settings = state.settings;
+			if (!settings?.dirty || settings.busy) return;
+			const native = {};
+			for (const [field, value] of Object.entries(settings.native)) {
+				if (JSON.stringify(value) !== JSON.stringify(settings.ctx.native[field])) native[field] = value;
+			}
+			const counterChanges = {};
+			for (const [field, value] of Object.entries(settings.counter)) {
+				if (JSON.stringify(value) !== JSON.stringify(settings.ctx.counter[field])) counterChanges[field] = value;
+			}
+			settings.busy = true;
+			settings.error = "";
+			renderSettingsView();
+			try {
+				const ctx = await api("save_settings", {
+					pos_profile: settings.profile,
+					native: JSON.stringify(native),
+					counter: JSON.stringify(counterChanges),
+					modified: settings.ctx.modified,
+				}, { silent: true, freeze: true, message: __("Saving the settings…", null, "Bunood POS") });
+				if (state.settings !== settings) return;
+				settingsLoaded(ctx);
+				flash("ok", __("Settings saved", null, "Bunood POS"));
+				frappe.show_alert?.({ message: __("Settings saved", null, "Bunood POS"), indicator: "green" });
+				// The counter takes the new settings at once: the profile as ERPNext now has it.
+				try {
+					const fresh = await api("get_context", { pos_profile: settings.profile }, { type: "GET", silent: true });
+					if (fresh?.profile?.name === state.profile?.name) {
+						state.context = fresh;
+						state.profile = fresh.profile;
+						root.toggleAttribute("data-fbar", fbarOn());
+						root.setAttribute("data-tiles", counter("tiles") || "m");
+					}
+				} catch (_error) {
+					flash("info", __("Saved. Reopen the counter to apply the settings.", null, "Bunood POS"));
+				}
+			} catch (error) {
+				settings.error = messageOf(error, __("The settings were not saved.", null, "Bunood POS"));
+			} finally {
+				settings.busy = false;
+				renderBar();
+				renderSettingsView();
+			}
+		}
+
+		function settingsRow(row) {
+			const settings = state.settings;
+			const editable = Boolean(settings.ctx.can_edit) && !settings.busy;
+			const value = row.source ? settings[row.source][row.key] : null;
+			let control = null;
+			if (row.kind === "toggle") {
+				const on = row.invert ? !value : Boolean(value);
+				control = h("button", {
+					type: "button",
+					class: "bnd-pos__switch",
+					role: "switch",
+					"aria-checked": String(on),
+					"aria-label": row.label,
+					disabled: !editable,
+					onclick: () => changeSetting(row.source, row.key, row.invert ? on : !on),
+				}, h("span", { class: "bnd-pos__switch-knob" }));
+			} else if (row.kind === "options") {
+				control = h("div", { class: "bnd-pos__options", role: "radiogroup", "aria-label": row.label }, row.options.map(([option, label]) => h("button", {
+					type: "button",
+					role: "radio",
+					"aria-checked": String(option === value),
+					disabled: !editable,
+					onclick: () => changeSetting(row.source, row.key, option),
+				}, label)));
+			} else if (row.kind === "number") {
+				control = h("label", { class: "bnd-pos__number" },
+					h("input", {
+						type: "text",
+						name: `setting-${row.key}`,
+						inputmode: "decimal",
+						dir: "ltr",
+						autocomplete: "off",
+						"aria-label": row.label,
+						value: String(value ?? 0),
+						disabled: !editable,
+						oninput: (event) => {
+							const number = Math.min(Math.max(Number(latinDigits(event.target.value) || 0), 0), row.max);
+							changeSetting(row.source, row.key, round(number, 2), true);
+						},
+						onchange: () => renderSettingsView(),
+					}),
+					h("span", null, row.unit));
+			} else if (row.kind === "label") {
+				control = h("div", { class: "bnd-pos__mask", dir: "ltr" },
+					h("input", {
+						type: "text",
+						name: `setting-${row.key}`,
+						inputmode: "numeric",
+						maxlength: 2,
+						autocomplete: "off",
+						"aria-label": row.label,
+						placeholder: "—",
+						value: value || "",
+						disabled: !editable,
+						// Kept as typed; the server takes only 20-29 and 02, and says so.
+						oninput: (event) => changeSetting(row.source, row.key, latinDigits(event.target.value).replace(/\./g, "").slice(0, 2), true),
+						onchange: () => renderSettingsView(),
+					}),
+					h("span", { "data-part": "code" }, h("b", null, "01230"), h("small", null, __("Item code", null, "Bunood POS"))),
+					h("span", { "data-part": "value" }, h("b", null, row.sample), h("small", null, row.value)),
+					h("span", { "data-part": "check" }, h("b", null, "9"), h("small", null, __("Check", null, "Bunood POS"))));
+			} else if (row.kind === "payments") {
+				const chosen = settings.native.payments;
+				control = h("div", { class: "bnd-pos__chipset" }, row.modes.map((mode) => {
+					const index = chosen.findIndex((item) => item.mode_of_payment === mode.mode_of_payment);
+					const on = index >= 0;
+					return h("button", {
+						type: "button",
+						class: "bnd-pos__opt-chip",
+						"aria-pressed": String(on),
+						title: mode.has_account ? null : __("Set this method's account for the company first.", null, "Bunood POS"),
+						disabled: !editable || (!on && !mode.has_account) || (on && chosen.length === 1),
+						onclick: () => {
+							const next = on ? chosen.filter((item) => item.mode_of_payment !== mode.mode_of_payment) : chosen.concat([{ mode_of_payment: mode.mode_of_payment, default: false }]);
+							if (!next.some((item) => item.default) && next.length) next[0] = { ...next[0], default: true };
+							changeSetting("native", "payments", next);
+						},
+					}, on ? svg("check", 14) : "+", " ", __(mode.mode_of_payment));
+				}));
+			} else if (row.kind === "default") {
+				const chosen = settings.native.payments;
+				control = h("div", { class: "bnd-pos__options", role: "radiogroup", "aria-label": row.label }, chosen.map((item) => h("button", {
+					type: "button",
+					role: "radio",
+					"aria-checked": String(Boolean(item.default)),
+					disabled: !editable,
+					onclick: () => changeSetting("native", "payments", chosen.map((other) => ({ ...other, default: other.mode_of_payment === item.mode_of_payment }))),
+				}, __(item.mode_of_payment))));
+			} else if (row.kind === "notes") {
+				const notes = value || [];
+				control = h("div", { class: "bnd-pos__chipset" }, row.notes.map((note) => {
+					const on = notes.includes(note);
+					return h("button", {
+						type: "button",
+						class: "bnd-pos__opt-chip",
+						"aria-pressed": String(on),
+						disabled: !editable,
+						onclick: () => changeSetting(row.source, row.key, on ? notes.filter((other) => other !== note) : notes.concat([note]).sort((a, b) => a - b)),
+					}, on ? svg("check", 14) : "+", " ", ltr(String(note)));
+				}));
+			} else if (row.kind === "format") {
+				control = h("select", {
+					class: "bnd-pos__select",
+					"aria-label": row.label,
+					disabled: !editable,
+					onchange: (event) => changeSetting(row.source, row.key, event.target.value),
+				}, h("option", { value: "", selected: !value }, __("The invoice's default", null, "Bunood POS")),
+				row.options.map((name) => h("option", { value: name, selected: name === value }, __(name))));
+			}
+			return h("div", { class: "bnd-pos__setting" },
+				h("div", { class: "bnd-pos__setting-text" }, h("strong", null, row.label), h("span", null, row.desc)),
+				control);
+		}
+
+		function renderSettingsView() {
+			const settings = state.settings;
+			if (!settings || state.view !== "settings") return;
+			const head = h("div", { class: "bnd-pos__list-head" },
+				h("h2", null, __("Point of sale settings", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__muted" }, settings.profile, settings.ctx?.warehouse ? ` · ${settings.ctx.warehouse}` : "", " — ", __("saved in the POS Profile, for everyone who sells on it", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__spacer" }),
+				settings.ctx ? h("span", { class: "bnd-pos__tag", "data-tone": settings.dirty ? "warn" : null }, settings.dirty ? __("Unsaved changes", null, "Bunood POS") : __("All saved", null, "Bunood POS")) : null,
+				h("button", { type: "button", class: "bnd-pos__ghost", onclick: leaveSettings }, __("Back", null, "Bunood POS"), " ", key("Esc")),
+				settings.ctx?.can_edit ? h("button", { type: "button", class: "bnd-pos__primary", disabled: !settings.dirty || settings.busy, onclick: saveSettings }, __("Save", null, "Bunood POS")) : null);
+			const error = settings.error ? h("div", { class: "bnd-pos__pay-error", role: "alert" }, svg("alert", 18), settings.error) : null;
+			if (!settings.ctx) {
+				keepField(() => fill(listView, h("div", { class: "bnd-pos__list bnd-pos__list--wide" }, head, error || h("p", { class: "bnd-pos__muted" }, __("Loading the settings…", null, "Bunood POS")))));
+				return;
+			}
+			const sections = settingsSections();
+			const current = sections[settings.section] || sections[0];
+			keepField(() => fill(listView, h("div", { class: "bnd-pos__list bnd-pos__list--wide" }, head, error,
+				settings.ctx.can_edit ? null : h("div", { class: "bnd-pos__notice" }, svg("alert", 18), h("span", null, __("You can view these settings. Changing them needs write access to the POS Profile.", null, "Bunood POS"))),
+				h("div", { class: "bnd-pos__settings" },
+					h("nav", { class: "bnd-pos__settings-nav", "aria-label": __("Settings sections", null, "Bunood POS") }, sections.map((section, index) => h("button", {
+						type: "button",
+						"aria-current": index === settings.section ? "page" : null,
+						onclick: () => { settings.section = index; renderSettingsView(); },
+					}, ltr(String(index + 1)), section.name))),
+					h("section", { class: "bnd-pos__settings-body" },
+						h("h3", null, current.name),
+						h("p", { class: "bnd-pos__muted" }, current.intro),
+						current.rows.map(settingsRow))))));
+			// On a phone the sections are a strip: keep the open one in sight.
+			listView.querySelector('.bnd-pos__settings-nav [aria-current="page"]')?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+		}
 
 		// ── Rendering ────────────────────────────────────────────────────────
 		function showSale() {
@@ -1786,20 +2150,21 @@
 		function renderBar() {
 			const ctx = state.context;
 			const online = navigator.onLine;
-			const locked = state.view === "gate" || (state.view === "close" && !ctx?.opening_entry);
+			const locked = state.view === "gate" || ((state.view === "close" || state.view === "settings") && !ctx?.opening_entry);
 			const tab = (view, label, count) => h("button", {
 				type: "button",
 				class: "bnd-pos__tab",
 				"aria-current": state.view === view || (view === "sale" && state.view === "gate") || (view === "receipts" && state.view === "return") ? "page" : null,
 				disabled: locked && view !== "sale",
-				onclick: () => (view === "sale" ? showSale() : showList(view)),
+				onclick: () => unsavedGuard(() => (view === "sale" ? showSale() : showList(view))),
 			}, label, count ? h("span", { class: "bnd-pos__count", dir: "ltr" }, String(count)) : null);
 			const opening = ctx?.opening_entry;
 			const since = opening?.period_start_date ? frappe.datetime?.str_to_user?.(opening.period_start_date)?.split(" ").pop()?.slice(0, 5) : "";
 			const menu = state.menuOpen ? h("div", { class: "bnd-pos__menu", role: "menu" },
-				h("button", { type: "button", role: "menuitemcheckbox", "aria-checked": String(Boolean(prefs.fbar)), onclick: toggleFbar }, __("Supermarket mode — function-key bar", null, "Bunood POS")),
+				h("button", { type: "button", role: "menuitemcheckbox", "aria-checked": String(fbarOn()), onclick: toggleFbar }, __("Supermarket mode — function-key bar", null, "Bunood POS")),
 				h("button", { type: "button", role: "menuitem", onclick: toggleFullscreen }, document.fullscreenElement ? __("Leave full screen", null, "Bunood POS") : __("Full screen", null, "Bunood POS")),
-				opening ? h("button", { type: "button", role: "menuitem", onclick: () => { state.menuOpen = false; renderBar(); closeShift(); } }, __("Review and close shift", null, "Bunood POS")) : null,
+				opening ? h("button", { type: "button", role: "menuitem", onclick: () => { state.menuOpen = false; renderBar(); unsavedGuard(closeShift); } }, __("Review and close shift", null, "Bunood POS")) : null,
+				state.profile?.can_edit ? h("button", { type: "button", role: "menuitem", onclick: () => { state.menuOpen = false; renderBar(); openSettings(); } }, __("Point of sale settings", null, "Bunood POS")) : null,
 				h("button", { type: "button", role: "menuitem", onclick: () => { state.menuOpen = false; renderBar(); openHelp(); } }, __("Shortcuts", null, "Bunood POS"))) : null;
 			fill(bar, 
 				h("span", { class: "bnd-pos__brand", "aria-hidden": "true" }, frappe.boot?.sysdefaults?.company?.slice?.(0, 1) || "B"),
@@ -1811,7 +2176,7 @@
 				h("span", { class: "bnd-pos__pill", "data-tone": online ? "good" : "warn" }, h("span", { class: "bnd-pos__dot" }), online ? __("Connected", null, "Bunood POS") : __("No connection — selling paused", null, "Bunood POS")),
 				opening ? h("span", { class: "bnd-pos__pill" }, __("Shift", null, "Bunood POS"), " ", since ? ltr(since) : null, " · ", opening.pos_profile) : null,
 				h("span", { class: "bnd-pos__user" }, frappe.user_info?.(frappe.session?.user)?.fullname || frappe.session?.user || ""),
-				h("button", {
+				counter("customer_screen") === false ? null : h("button", {
 					type: "button",
 					class: "bnd-pos__icon-btn bnd-pos__screen-btn",
 					"data-on": display.connected ? "1" : null,
@@ -1822,7 +2187,7 @@
 				h("span", { class: "bnd-pos__menu-wrap" },
 					h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Counter settings", null, "Bunood POS"), "aria-expanded": String(state.menuOpen), onclick: () => { state.menuOpen = !state.menuOpen; renderBar(); } }, svg("settings", 18)),
 					menu),
-				h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Leave the counter", null, "Bunood POS"), onclick: () => frappe.set_route("") }, svg("exit", 18)),
+				h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Leave the counter", null, "Bunood POS"), onclick: () => unsavedGuard(() => frappe.set_route("")) }, svg("exit", 18)),
 			);
 		}
 
@@ -1964,13 +2329,14 @@
 				renderMult();
 				return;
 			}
-			const canItem = frappe.model?.can_create?.("Item");
+			const offer = counter("unknown_barcode") !== "alert";
+			const canItem = offer && frappe.model?.can_create?.("Item");
 			alertBox.hidden = false;
 			fill(alertBox, 
 				h("span", { class: "bnd-pos__alert-mark" }, "!"),
 				h("span", { class: "bnd-pos__alert-text" }, h("strong", null, __("Unknown barcode", null, "Bunood POS")), " ", ltr(state.unknown), " — ", __("the sale carries on", null, "Bunood POS")),
 				canItem ? h("button", { type: "button", class: "bnd-pos__ghost", onclick: openLink }, __("Link to an existing item", null, "Bunood POS")) : null,
-				canItem ? h("button", { type: "button", class: "bnd-pos__dark", onclick: newItem }, __("New item", null, "Bunood POS"), " ", key("F4")) : null,
+				canItem && counter("new_item") !== false ? h("button", { type: "button", class: "bnd-pos__dark", onclick: newItem }, __("New item", null, "Bunood POS"), " ", key("F4")) : null,
 				h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Dismiss", null, "Bunood POS"), onclick: () => { state.unknown = ""; renderAlert(); focusOmni(); } }, "×"));
 			renderMult();
 		}
@@ -2133,14 +2499,14 @@
 		}
 
 		function renderFoot() {
-			const fbar = Boolean(prefs.fbar) && state.view === "sale";
-			if (state.view === "gate" || state.view === "close" || state.view === "return") { fill(foot); return; }
+			const fbar = fbarOn() && state.view === "sale";
+			if (["gate", "close", "return", "settings"].includes(state.view)) { fill(foot); return; }
 			if (fbar) {
 				const keys = [
 					["F1", __("Shortcuts", null, "Bunood POS"), openHelp],
 					["F2", __("Scan", null, "Bunood POS"), () => { setQuery(""); focusOmni(); }],
 					["F3", __("Customer", null, "Bunood POS"), openCustomer],
-					["F4", __("New item", null, "Bunood POS"), () => (state.unknown ? newItem() : flash("info", __("Scan the new barcode first, then choose New item", null, "Bunood POS"))) ],
+					counter("new_item") === false || counter("unknown_barcode") === "alert" ? null : ["F4", __("New item", null, "Bunood POS"), () => (state.unknown ? newItem() : flash("info", __("Scan the new barcode first, then choose New item", null, "Bunood POS"))) ],
 					canHold() ? ["F6", __("Hold", null, "Bunood POS"), hold] : null,
 					canHold() ? ["F7", __("Held", null, "Bunood POS"), toggleHeld] : null,
 					["Alt+R", __("Returns", null, "Bunood POS"), () => showList("receipts", true)],
@@ -2211,7 +2577,7 @@
 				oninput: (event) => { state.receiptsTerm = event.target.value; clearTimeout(receiptsTimer); receiptsTimer = setTimeout(loadReceipts, 260); },
 			});
 			const modes = [["shift", __("This shift", null, "Bunood POS")], ["today", __("Today", null, "Bunood POS")], ["returns", __("Returns", null, "Bunood POS")], ["mine", __("Mine", null, "Bunood POS")]];
-			const canReturn = state.context?.capabilities?.can_create_invoice;
+			const canReturn = state.context?.capabilities?.can_create_invoice && counter("returns") !== false;
 			fill(listView, h("div", { class: "bnd-pos__list" },
 				h("div", { class: "bnd-pos__list-head" }, h("h2", null, __("Receipts and returns", null, "Bunood POS")),
 					state.returnHint ? h("span", { class: "bnd-pos__tag", "data-tone": "warn" }, __("To return items: find the receipt, then press Return", null, "Bunood POS")) : null,
@@ -2550,8 +2916,8 @@
 						h("button", { type: "button", class: "bnd-pos__primary", onclick: saveLink, disabled: !overlay.rows?.length }, __("Link and add to the bill", null, "Bunood POS"))));
 			} else if (overlay.kind === "help") {
 				const keys = [["F1", __("This list", null, "Bunood POS")], ["F2", __("Scan field", null, "Bunood POS")], ["F3", __("Customer", null, "Bunood POS")], ["F4", __("New item for an unknown barcode", null, "Bunood POS")], ["F6", __("Hold the bill", null, "Bunood POS")], ["F7", __("Held sales", null, "Bunood POS")], ["F8", __("Card for the full amount", null, "Bunood POS")], ["F9", __("Pay / complete", null, "Bunood POS")], ["F10", __("Exact cash and finish", null, "Bunood POS")], ["Alt+R", __("Receipts and returns", null, "Bunood POS")], ["Tab", __("Next payment method", null, "Bunood POS")], ["Ctrl+P", __("Print the receipt", null, "Bunood POS")], ["↑ ↓", __("Lines or suggestions", null, "Bunood POS")], ["+ / −", __("Line quantity", null, "Bunood POS")], ["Delete", __("Delete the line", null, "Bunood POS")], ["Esc", __("Back / cancel", null, "Bunood POS")]];
-				const grammarRows = [["3*", __("then the barcode = 3 pieces", null, "Bunood POS")], ["*5", __("quantity 5 for the chosen line", null, "Bunood POS")], ["-10%", __("discount on the chosen line", null, "Bunood POS")], ["=12.5", __("new price (with permission)", null, "Bunood POS")], ["@", __("customer by name or mobile", null, "Bunood POS")], ["/", __("every command", null, "Bunood POS")], [`${SCALE_PREFIX}…`, __("scale label: the weight is read from it", null, "Bunood POS")], [__("name", null, "Bunood POS"), __("filters the items; Enter adds the first", null, "Bunood POS")]];
-				const grid2 = (rows, cls) => h("div", { class: "bnd-pos__help-grid" }, rows.map(([k, text]) => h("div", { class: "bnd-pos__help-row" }, h("kbd", { class: `bnd-pos__key ${cls || ""}`, dir: "ltr" }, k), h("span", null, text))));
+				const grammarRows = [["3*", __("then the barcode = 3 pieces", null, "Bunood POS")], ["*5", __("quantity 5 for the chosen line", null, "Bunood POS")], ["-10%", __("discount on the chosen line", null, "Bunood POS")], ["=12.5", __("new price (with permission)", null, "Bunood POS")], ["@", __("customer by name or mobile", null, "Bunood POS")], ["/", __("every command", null, "Bunood POS")], counter("scale_prefix") ? [`${counter("scale_prefix")}…`, __("scale label: the weight is read from it", null, "Bunood POS")] : null, [__("name", null, "Bunood POS"), __("filters the items; Enter adds the first", null, "Bunood POS")]];
+				const grid2 = (rows, cls) => h("div", { class: "bnd-pos__help-grid" }, rows.filter(Boolean).map(([k, text]) => h("div", { class: "bnd-pos__help-row" }, h("kbd", { class: `bnd-pos__key ${cls || ""}`, dir: "ltr" }, k), h("span", null, text))));
 				dialog = h("div", { class: "bnd-pos__dialog bnd-pos__dialog--wide", role: "dialog", "aria-modal": "true", "aria-label": __("Shortcuts", null, "Bunood POS") },
 					h("div", { class: "bnd-pos__dialog-head" }, h("strong", null, __("Shortcuts and typing rules", null, "Bunood POS")), h("span", { class: "bnd-pos__spacer" }), h("button", { type: "button", class: "bnd-pos__ghost", onclick: close }, __("Close", null, "Bunood POS"), " ", key("Esc"))),
 					grid2(keys),
