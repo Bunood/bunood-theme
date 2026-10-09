@@ -96,12 +96,14 @@
 			freeze: Boolean(options?.freeze),
 			freeze_message: options?.message,
 			type: options?.type,
+			// The shift close and the return show the server's refusal in place.
+			silent: Boolean(options?.silent),
 		}).then((response) => response.message);
 	}
 
 	function messageOf(error, fallback) {
 		if (error?.message) return error.message;
-		const server = error?._server_messages;
+		const server = error?._server_messages || error?.responseJSON?._server_messages;
 		if (server) {
 			try {
 				const messages = JSON.parse(server).map((entry) => JSON.parse(entry).message).filter(Boolean);
@@ -194,6 +196,8 @@
 			menuOpen: false,
 			opening: null,
 			gateProfile: "",
+			close: null,
+			ret: null,
 		};
 
 		const root = h("section", { class: "bnd-pos", "aria-label": __("Point of sale", null, "Bunood POS") });
@@ -330,7 +334,7 @@
 			return h("div", { class: "bnd-pos__failure", role: "alert" }, svg("alert", 22), h("strong", null, title), detail ? h("span", null, detail) : null);
 		}
 
-		const DENOMINATIONS = [500, 200, 100, 50, 10, 5, 1, 0.5];
+		const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
 		function renderGate() {
 			state.view = "gate";
 			const ctx = state.context;
@@ -401,18 +405,275 @@
 			}
 		}
 
+		// ── Closing the shift: count first, then see what was expected ──────
+		// The count step never receives the expected figures; the server keeps
+		// the first count, and the closing record says so if a recount differs.
+		function closeReasons() {
+			return [__("Wrong change given", null, "Bunood POS"), __("Cash taken out without a record", null, "Bunood POS"), __("Counting mistake", null, "Bunood POS")];
+		}
+		// Arabic-Indic digits typed on a device keyboard read as Latin digits; a
+		// thousands separator is dropped and only the first decimal point counts.
+		function latinDigits(text) {
+			const plain = String(text || "")
+				.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+				.replace(/[\u06F0-\u06F9]/g, (d) => String(d.charCodeAt(0) - 0x06F0))
+				.replace(/\u066B/g, ".")
+				.replace(/[^0-9.]/g, "");
+			const dot = plain.indexOf(".");
+			return dot < 0 ? plain : plain.slice(0, dot + 1) + plain.slice(dot + 1).replace(/\./g, "");
+		}
+		// Re-rendering a view keeps the field the cashier is typing in.
+		function keepField(render) {
+			const active = document.activeElement;
+			const name = active && listView.contains(active) ? active.getAttribute("name") : null;
+			const caret = name ? active.selectionStart : null;
+			render();
+			if (!name) return;
+			const next = Array.from(listView.querySelectorAll("[name]")).find((node) => node.getAttribute("name") === name);
+			if (!next) return;
+			next.focus({ preventScroll: true });
+			if (caret !== null) next.setSelectionRange?.(caret, caret);
+		}
+
 		function closeShift() {
 			const opening = state.context?.opening_entry || state.context?.stale_opening_entry;
 			if (!opening) return;
-			frappe.route_options = {
-				pos_profile: opening.pos_profile,
-				user: frappe.session.user,
-				company: opening.company,
-				pos_opening_entry: opening.name,
-				period_end_date: frappe.datetime.now_datetime(),
-				posting_date: frappe.datetime.get_today(),
+			state.heldOpen = false;
+			renderHeldPopover();
+			state.menuOpen = false;
+			const close = { step: "count", ctx: null, counts: DENOMINATIONS.map(() => 0), coins: "", others: {}, result: null, reason: -1, other: "", error: "", busy: false, closed: null, profile: opening.pos_profile };
+			state.close = close;
+			state.view = "close";
+			fill(body, listView);
+			renderBar();
+			renderFoot();
+			renderCloseView();
+			api("close_shift_context", { pos_profile: opening.pos_profile }, { type: "GET", silent: true })
+				.then((ctx) => { if (state.close === close) { close.ctx = ctx; renderCloseView(); } })
+				.catch((error) => { if (state.close === close) { close.error = messageOf(error, __("The shift could not be read.", null, "Bunood POS")); renderCloseView(); } });
+		}
+
+		function leaveClose() {
+			state.close = null;
+			if (state.context?.opening_entry) showSale();
+			else renderGate();
+		}
+
+		function closeCash() {
+			return (state.close?.ctx?.methods || []).find((row) => row.type === "Cash") || null;
+		}
+
+		// Notes by count, then loose coins as one amount (halalas included).
+		function countedCash() {
+			const close = state.close;
+			const notes = DENOMINATIONS.reduce((sum, value, index) => sum + value * close.counts[index], 0);
+			return round(notes + Number(latinDigits(close.coins) || 0));
+		}
+
+		// A card terminal can settle below zero (refunds over sales): a leading minus counts.
+		function settled(text) {
+			const value = Number(latinDigits(text) || 0);
+			return /^\s*[-\u2212]/.test(String(text || "")) ? -value : value;
+		}
+
+		function countedRows() {
+			const close = state.close;
+			const cash = closeCash();
+			return (close.ctx?.methods || []).map((row) => ({
+				mode_of_payment: row.mode_of_payment,
+				amount: cash && row.mode_of_payment === cash.mode_of_payment ? countedCash() : round(settled(close.others[row.mode_of_payment])),
+			}));
+		}
+
+		function closeReason() {
+			const close = state.close;
+			if (close.reason === -2) return close.other.trim();
+			return close.reason >= 0 ? closeReasons()[close.reason] : "";
+		}
+
+		function closeHasDifference() {
+			return (state.close?.result?.rows || []).some((row) => Math.abs(Number(row.difference || 0)) >= 0.005);
+		}
+
+		async function previewClose() {
+			const close = state.close;
+			if (!close || close.busy) return;
+			close.busy = true;
+			close.error = "";
+			renderCloseView();
+			try {
+				close.result = await api("preview_close", { pos_profile: close.profile, counted: JSON.stringify(countedRows()) }, { silent: true });
+				close.step = "result";
+			} catch (error) {
+				close.error = messageOf(error, __("The count could not be checked.", null, "Bunood POS"));
+			} finally {
+				close.busy = false;
+				renderCloseView();
+			}
+		}
+
+		async function submitClose() {
+			const close = state.close;
+			if (!close || close.busy) return;
+			if (closeHasDifference() && !closeReason()) {
+				close.error = __("Choose the reason for the difference first.", null, "Bunood POS");
+				renderCloseView();
+				return;
+			}
+			close.busy = true;
+			close.error = "";
+			renderCloseView();
+			try {
+				close.closed = await api("close_shift", { pos_profile: close.profile, counted: JSON.stringify(countedRows()), reason: closeReason() }, { silent: true, freeze: true, message: __("Closing the shift…", null, "Bunood POS") });
+				close.step = "closed";
+				state.context.opening_entry = null;
+				state.context.stale_opening_entry = null;
+				renderBar();
+				flash("ok", __("Shift closed: {0}", [close.closed.name]));
+				openPrintView("POS Closing Entry", close.closed.name, "Standard");
+			} catch (error) {
+				close.error = messageOf(error, __("The shift was not closed.", null, "Bunood POS"));
+			} finally {
+				close.busy = false;
+				renderCloseView();
+			}
+		}
+
+		function renderCloseView() {
+			const close = state.close;
+			if (!close || state.view !== "close") return;
+			const opening = state.context?.opening_entry || state.context?.stale_opening_entry;
+			const since = opening?.period_start_date && frappe.datetime?.str_to_user ? frappe.datetime.str_to_user(opening.period_start_date) : "";
+			const steps = [["count", __("Count the drawer", null, "Bunood POS")], ["result", __("Result", null, "Bunood POS")], ["closed", __("Closed", null, "Bunood POS")]];
+			const head = h("div", { class: "bnd-pos__list-head" },
+				h("h2", null, __("Close the shift", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__muted" }, close.profile, since ? " · " : null, since ? ltr(since) : null),
+				h("ol", { class: "bnd-pos__steps" }, steps.map(([id, label], index) => h("li", { "aria-current": close.step === id ? "step" : null }, ltr(String(index + 1)), label))),
+				h("span", { class: "bnd-pos__spacer" }),
+				close.step !== "closed" ? h("button", { type: "button", class: "bnd-pos__ghost", onclick: leaveClose }, state.context?.opening_entry ? __("Back to the sale", null, "Bunood POS") : __("Back", null, "Bunood POS"), " ", key("Esc")) : null);
+			const error = close.error ? h("div", { class: "bnd-pos__pay-error", role: "alert" }, svg("alert", 18), close.error) : null;
+			let main = null;
+			if (!close.ctx) main = close.error ? null : h("p", { class: "bnd-pos__muted" }, __("Loading the shift…", null, "Bunood POS"));
+			else if (close.step === "count") main = renderCloseCount();
+			else if (close.step === "result") main = renderCloseResult();
+			else main = renderClosed();
+			keepField(() => fill(listView, h("div", { class: "bnd-pos__list bnd-pos__list--wide" }, head, error, main)));
+		}
+
+		function renderCloseCount() {
+			const close = state.close;
+			const cash = closeCash();
+			const notes = DENOMINATIONS.map((value, index) => h("div", { class: "bnd-pos__note", "data-filled": close.counts[index] ? "1" : null },
+				h("strong", { class: "bnd-pos__note-value" }, ltr(String(value))),
+				h("div", { class: "bnd-pos__stepper", dir: "ltr" },
+					h("button", { type: "button", "aria-label": __("Fewer {0}", [value]), onclick: () => { close.counts[index] = Math.max(0, close.counts[index] - 1); renderCloseView(); } }, "−"),
+					h("span", null, String(close.counts[index])),
+					h("button", { type: "button", "aria-label": __("More {0}", [value]), onclick: () => { close.counts[index] += 1; renderCloseView(); } }, "+")),
+				h("span", { class: "bnd-pos__muted" }, ltr(num(value * close.counts[index], 2)))));
+			const others = (close.ctx.methods || []).filter((row) => !cash || row.mode_of_payment !== cash.mode_of_payment);
+			const held = Number(close.ctx.held || 0);
+			return h("div", { class: "bnd-pos__split" },
+				h("section", { class: "bnd-pos__split-main" },
+					held ? h("div", { class: "bnd-pos__notice", "data-tone": "warn" }, svg("alert", 18),
+						h("span", null, __("Held sales: {0}", [held]), " — ", __("they stay held for the next shift on this point of sale.", null, "Bunood POS")),
+						state.context?.opening_entry ? h("button", { type: "button", class: "bnd-pos__ghost", onclick: () => { state.close = null; showList("held"); } }, __("Open", null, "Bunood POS")) : null) : null,
+					cash ? h("div", { class: "bnd-pos__sheet" },
+						h("div", { class: "bnd-pos__gate-head" }, h("strong", null, __("Count the cash in the drawer", null, "Bunood POS")), h("span", { class: "bnd-pos__muted" }, __("The expected amount appears after the count, so the count stays honest.", null, "Bunood POS"))),
+						h("div", { class: "bnd-pos__notes" }, notes),
+						h("label", { class: "bnd-pos__field bnd-pos__field--inline" },
+							h("span", null, __("Loose coins and other cash", null, "Bunood POS")),
+							h("input", { type: "text", name: "close-coins", inputmode: "decimal", dir: "ltr", autocomplete: "off", value: close.coins, oninput: (event) => { close.coins = event.target.value; renderCloseView(); } })),
+						h("div", { class: "bnd-pos__gate-total" }, h("span", null, __("Counted cash", null, "Bunood POS")), h("strong", null, ltr(money(countedCash()))))) : null),
+				h("aside", { class: "bnd-pos__split-side" },
+					others.length ? h("div", { class: "bnd-pos__sheet" },
+						h("strong", null, __("Cards and other methods", null, "Bunood POS")),
+						others.map((row) => h("label", { class: "bnd-pos__field" },
+							h("span", null, __(row.mode_of_payment), row.type === "Bank" ? h("span", { class: "bnd-pos__muted" }, " — ", __("the terminal's settlement total", null, "Bunood POS")) : null),
+							h("input", {
+								type: "text",
+								name: `close-${row.mode_of_payment}`,
+								inputmode: "decimal",
+								dir: "ltr",
+								autocomplete: "off",
+								value: close.others[row.mode_of_payment] ?? "",
+								oninput: (event) => { close.others[row.mode_of_payment] = event.target.value; },
+							})))) : null,
+					h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", disabled: close.busy, onclick: previewClose }, __("Done counting — show the result", null, "Bunood POS"))));
+		}
+
+		function renderCloseResult() {
+			const close = state.close;
+			const result = close.result;
+			const cash = closeCash();
+			const cashRow = (result.rows || []).find((row) => cash && row.mode_of_payment === cash.mode_of_payment);
+			const chip = (row) => {
+				const diff = round(Number(row.difference || 0));
+				const tone = Math.abs(diff) < 0.005 ? "good" : diff < 0 ? "bad" : "over";
+				const label = tone === "good" ? __("Matches", null, "Bunood POS") : tone === "bad" ? __("Short", null, "Bunood POS") : __("Over", null, "Bunood POS");
+				return h("span", { class: "bnd-pos__diff", "data-tone": tone }, label, tone === "good" ? null : ltr(money(Math.abs(diff))));
 			};
-			frappe.new_doc("POS Closing Entry");
+			const table = h("div", { class: "bnd-pos__table", role: "table", "aria-label": __("Count result", null, "Bunood POS") },
+				h("div", { class: "bnd-pos__tr bnd-pos__tr--head bnd-pos__tr--close", role: "row" }, [__("Payment method", null, "Bunood POS"), __("Expected", null, "Bunood POS"), __("Counted", null, "Bunood POS"), __("Difference", null, "Bunood POS")].map((text, index) => h("span", { role: "columnheader", class: index ? "bnd-pos__num" : null }, text))),
+				(result.rows || []).map((row) => h("div", { class: "bnd-pos__tr bnd-pos__tr--close", role: "row" },
+					h("span", { role: "cell", class: "bnd-pos__person-text" }, h("strong", null, __(row.mode_of_payment)),
+						h("span", null, cashRow === row ? __("Opening float + cash sales − cash refunds", null, "Bunood POS") : row.type === "Bank" ? __("Compared with the terminal's settlement", null, "Bunood POS") : __("Payments taken this shift", null, "Bunood POS"))),
+					h("span", { role: "cell", class: "bnd-pos__num" }, ltr(money(row.expected_amount))),
+					h("span", { role: "cell", class: "bnd-pos__num" }, ltr(money(row.closing_amount))),
+					h("span", { role: "cell", class: "bnd-pos__num" }, chip(row)))));
+			const stats = [
+				[__("Invoices", null, "Bunood POS"), ltr(String(result.invoices || 0))],
+				[__("Returns", null, "Bunood POS"), ltr(String(result.returns || 0))],
+				[__("Returns total", null, "Bunood POS"), ltr(money(Math.abs(result.returns_total || 0)))],
+				[__("Net sales including VAT", null, "Bunood POS"), ltr(money(result.grand_total))],
+				[__("VAT", null, "Bunood POS"), ltr(money(result.total_taxes_and_charges))],
+				[__("Pieces", null, "Bunood POS"), ltr(num(result.total_quantity, 2))],
+			];
+			const differs = closeHasDifference();
+			const reasons = closeReasons();
+			const blocked = close.busy || (differs && !closeReason());
+			return h("div", { class: "bnd-pos__split" },
+				h("section", { class: "bnd-pos__split-main" },
+					table,
+					h("div", { class: "bnd-pos__stats bnd-pos__stats--report" }, stats.map(([label, value]) => h("div", null, h("span", null, label), h("strong", null, value))))),
+				h("aside", { class: "bnd-pos__split-side" },
+					differs ? h("div", { class: "bnd-pos__sheet", "data-tone": "bad" },
+						h("strong", null, __("The reason for the difference is required", null, "Bunood POS")),
+						h("div", { class: "bnd-pos__reasons", role: "radiogroup" },
+							reasons.map((label, index) => h("button", { type: "button", class: "bnd-pos__reason", role: "radio", "aria-checked": String(close.reason === index), onclick: () => { close.reason = index; close.error = ""; renderCloseView(); } }, label)),
+							h("button", { type: "button", class: "bnd-pos__reason", role: "radio", "aria-checked": String(close.reason === -2), onclick: () => { close.reason = -2; renderCloseView(); listView.querySelector(".bnd-pos__text")?.focus(); } }, __("Other", null, "Bunood POS"))),
+						close.reason === -2 ? h("input", {
+							type: "text",
+							name: "close-other",
+							class: "bnd-pos__text",
+							maxlength: 140,
+							value: close.other,
+							placeholder: __("Write the reason", null, "Bunood POS"),
+							oninput: (event) => {
+								close.other = event.target.value;
+								const go = listView.querySelector(".bnd-pos__close-go");
+								if (go) go.disabled = close.busy || !close.other.trim();
+							},
+						}) : null) : null,
+					cashRow ? h("div", { class: "bnd-pos__sheet" },
+						h("strong", null, __("Cash in the drawer", null, "Bunood POS")),
+						h("div", { class: "bnd-pos__trow" }, h("span", null, __("Opening float", null, "Bunood POS")), ltr(money(cashRow.opening_amount))),
+						h("div", { class: "bnd-pos__trow" }, h("span", null, __("To hand over (counted cash − opening float)", null, "Bunood POS")), ltr(money(Math.max(0, round(cashRow.closing_amount - cashRow.opening_amount)))))) : null,
+					h("div", { class: "bnd-pos__split-actions" },
+						h("button", { type: "button", class: "bnd-pos__ghost bnd-pos__ghost--tall", disabled: close.busy, onclick: () => { close.step = "count"; close.error = ""; renderCloseView(); } }, __("Back to the count", null, "Bunood POS")),
+						h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall bnd-pos__close-go", disabled: blocked, onclick: submitClose }, __("Close the shift and print the report", null, "Bunood POS")),
+						h("span", { class: "bnd-pos__muted" }, __("ERPNext's POS Closing Entry is submitted with the counted amounts and the differences. This point of sale cannot sell until a new shift is opened.", null, "Bunood POS")))));
+		}
+
+		function renderClosed() {
+			const done = state.close.closed;
+			return h("div", { class: "bnd-pos__gate" }, h("div", { class: "bnd-pos__gate-card bnd-pos__closed" },
+				h("span", { class: "bnd-pos__done-mark" }, svg("check", 30)),
+				h("h2", null, __("The shift is closed", null, "Bunood POS")),
+				h("p", null, __("Closing entry", null, "Bunood POS"), ": ", ltr(done.name)),
+				done.status === "Queued" ? h("p", { class: "bnd-pos__muted" }, __("ERPNext is still consolidating this shift's invoices in the background.", null, "Bunood POS")) : null,
+				h("div", { class: "bnd-pos__card-actions" },
+					h("button", { type: "button", class: "bnd-pos__ghost bnd-pos__ghost--tall", onclick: () => openPrintView("POS Closing Entry", done.name, "Standard") }, svg("printer", 18), __("Print the closing report", null, "Bunood POS")),
+					h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", onclick: () => { state.close = null; state.opening = null; initialize(state.profile?.name); } }, __("Open a new shift", null, "Bunood POS")))));
 		}
 
 		// ── Catalogue ────────────────────────────────────────────────────────
@@ -1180,6 +1441,11 @@
 				if (state.overlay) { state.overlay = null; renderLayer(); focusOmni(); }
 				else if (state.menuOpen) { state.menuOpen = false; renderBar(); focusOmni(); }
 				else if (state.heldOpen) { state.heldOpen = false; renderHeldPopover(); focusOmni(); }
+				else if (state.view === "close") {
+					if (state.close?.step === "result" && !state.close.busy) { state.close.step = "count"; renderCloseView(); }
+					else if (state.close?.step === "count") leaveClose();
+				}
+				else if (state.view === "return") { if (!state.ret?.busy) leaveReturn(); }
 				else if (state.view !== "sale" && state.view !== "gate") showSale();
 				else if (state.palette) { setQuery(""); }
 				else if (state.query) setQuery("");
@@ -1190,7 +1456,7 @@
 				return;
 			}
 			if (inOverlayField) return;
-			if (state.view === "gate") return;
+			if (state.view === "gate" || state.view === "close" || state.view === "return") return;
 			const fkeys = {
 				F1: openHelp,
 				F2: () => { if (state.view !== "sale") showSale(); setQuery(""); focusOmni(); },
@@ -1365,11 +1631,12 @@
 		function renderBar() {
 			const ctx = state.context;
 			const online = navigator.onLine;
+			const locked = state.view === "gate" || (state.view === "close" && !ctx?.opening_entry);
 			const tab = (view, label, count) => h("button", {
 				type: "button",
 				class: "bnd-pos__tab",
-				"aria-current": state.view === view || (view === "sale" && state.view === "gate") ? "page" : null,
-				disabled: state.view === "gate" && view !== "sale",
+				"aria-current": state.view === view || (view === "sale" && state.view === "gate") || (view === "receipts" && state.view === "return") ? "page" : null,
+				disabled: locked && view !== "sale",
 				onclick: () => (view === "sale" ? showSale() : showList(view)),
 			}, label, count ? h("span", { class: "bnd-pos__count", dir: "ltr" }, String(count)) : null);
 			const opening = ctx?.opening_entry;
@@ -1710,7 +1977,7 @@
 
 		function renderFoot() {
 			const fbar = Boolean(prefs.fbar) && state.view === "sale";
-			if (state.view === "gate") { fill(foot); return; }
+			if (state.view === "gate" || state.view === "close" || state.view === "return") { fill(foot); return; }
 			if (fbar) {
 				const keys = [
 					["F1", __("Shortcuts", null, "Bunood POS"), openHelp],
@@ -1814,7 +2081,41 @@
 			}
 		}
 
+		// ── Returning part of a receipt ──────────────────────────────────────
+		// The lines, condition, reason and refund are chosen here; the credit
+		// note is ERPNext's own, built and checked by pos.submit_return.
+		function returnReasons() {
+			return [__("Changed their mind", null, "Bunood POS"), __("Damaged or faulty item", null, "Bunood POS"), __("Wrong item", null, "Bunood POS"), __("Expired", null, "Bunood POS")];
+		}
+
 		function createReturn(row) {
+			const token = window.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+			const ret = { source: row, token, ctx: null, picks: {}, reason: -1, other: "", refund: "", preview: null, rev: 0, error: "", busy: false, issued: null };
+			state.ret = ret;
+			state.view = "return";
+			fill(body, listView);
+			renderBar();
+			renderFoot();
+			renderReturnView();
+			api("return_context", { source_doctype: row.doctype, source_name: row.name }, { type: "GET", silent: true })
+				.then((ctx) => {
+					if (state.ret !== ret) return;
+					ret.ctx = ctx;
+					// An invoice discount or a fixed charge comes back only with the whole receipt.
+					if (ctx.whole_only) ctx.lines.forEach((line) => { ret.picks[line.row] = { on: true, qty: Number(line.returnable || 0), damaged: false }; });
+					ret.refund = defaultRefund(ctx);
+					if (ctx.whole_only) returnChanged();
+					else renderReturnView();
+				})
+				.catch((error) => {
+					if (state.ret !== ret) return;
+					ret.error = messageOf(error, __("The receipt could not be read.", null, "Bunood POS"));
+					renderReturnView();
+				});
+		}
+
+		// The native return form, for what the counter does not take back itself.
+		function nativeReturn(row) {
 			frappe.confirm(__("Create a return from receipt {0}? It opens as a draft you can edit, then submit.", [row.name]), async () => {
 				try {
 					const result = await api("create_return", { source_doctype: row.doctype, source_name: row.name }, { freeze: true, message: __("Preparing the return…", null, "Bunood POS") });
@@ -1823,6 +2124,217 @@
 					frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The return draft could not be created.", null, "Bunood POS")), indicator: "red" });
 				}
 			});
+		}
+
+		function leaveReturn() {
+			state.ret = null;
+			showList("receipts");
+		}
+
+		function refundOptions(ctx) {
+			const own = methods();
+			const options = [];
+			(ctx.payments || []).forEach((payment) => {
+				const row = own.find((method) => method.mode_of_payment === payment.mode_of_payment);
+				if (row && !options.some((option) => option.id === row.mode_of_payment)) options.push({ id: row.mode_of_payment, row, same: true });
+			});
+			own.forEach((row) => {
+				if (!options.some((option) => option.id === row.mode_of_payment)) options.push({ id: row.mode_of_payment, row, same: false });
+			});
+			if (ctx.credit_allowed && ctx.customer && ctx.customer !== state.profile?.customer) options.push({ id: "__credit__", row: null, same: false });
+			return options;
+		}
+
+		function defaultRefund(ctx) {
+			const options = refundOptions(ctx);
+			// Nothing was paid in money: the refund can only stay on the account.
+			if (Number(ctx.refundable || 0) <= 0.005 && options.some((option) => option.id === "__credit__")) return "__credit__";
+			return options[0]?.id || "";
+		}
+
+		function returnPicks() {
+			return Object.entries(state.ret?.picks || {})
+				.filter(([, pick]) => pick.on && pick.qty > 0)
+				.map(([row, pick]) => ({ row, qty: pick.qty, damaged: Boolean(pick.damaged) }));
+		}
+
+		function returnReason() {
+			const ret = state.ret;
+			if (ret.reason === -2) return ret.other.trim();
+			return ret.reason >= 0 ? returnReasons()[ret.reason] : "";
+		}
+
+		let returnTimer = 0;
+		function returnChanged() {
+			const ret = state.ret;
+			ret.rev += 1;
+			ret.preview = null;
+			ret.error = "";
+			renderReturnView();
+			clearTimeout(returnTimer);
+			if (returnPicks().length && ret.refund) returnTimer = setTimeout(previewReturn, 250);
+		}
+
+		async function previewReturn() {
+			const ret = state.ret;
+			if (!ret?.ctx) return;
+			const rev = ret.rev;
+			try {
+				const result = await api("preview_return", {
+					pos_profile: state.profile.name,
+					source_doctype: ret.ctx.doctype,
+					source_name: ret.ctx.name,
+					lines: JSON.stringify(returnPicks()),
+					refund: ret.refund,
+				}, { silent: true });
+				if (state.ret !== ret || rev !== ret.rev) return;
+				ret.preview = { ...result, rev };
+			} catch (error) {
+				if (state.ret !== ret || rev !== ret.rev) return;
+				ret.error = messageOf(error, __("The refund could not be calculated.", null, "Bunood POS"));
+			}
+			renderReturnView();
+		}
+
+		async function submitReturn() {
+			const ret = state.ret;
+			if (!ret?.ctx || ret.busy || ret.issued) return;
+			if (!returnPicks().length) { ret.error = __("Choose at least one item to return.", null, "Bunood POS"); renderReturnView(); return; }
+			const reason = returnReason();
+			if (!reason) { ret.error = __("Choose the reason for the return.", null, "Bunood POS"); renderReturnView(); return; }
+			ret.busy = true;
+			ret.error = "";
+			renderReturnView();
+			try {
+				ret.issued = await api("submit_return", {
+					pos_profile: state.profile.name,
+					source_doctype: ret.ctx.doctype,
+					source_name: ret.ctx.name,
+					lines: JSON.stringify(returnPicks()),
+					refund: ret.refund,
+					reason,
+					request_id: ret.token,
+				}, { silent: true, freeze: true, message: __("Issuing the credit note…", null, "Bunood POS") });
+				frappe.utils?.play_sound?.("submit");
+				flash("ok", __("Credit note issued: {0}", [ret.issued.name]));
+				if (state.profile.print_receipt_on_order_complete) printReceipt(ret.issued.doctype, ret.issued.name);
+			} catch (error) {
+				ret.error = messageOf(error, __("The credit note was not issued.", null, "Bunood POS"));
+			} finally {
+				ret.busy = false;
+				renderReturnView();
+			}
+		}
+
+		function renderReturnView() {
+			const ret = state.ret;
+			if (!ret || state.view !== "return") return;
+			const ctx = ret.ctx;
+			const head = h("div", { class: "bnd-pos__list-head" },
+				h("h2", null, __("Return by receipt", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__spacer" }),
+				ctx && !ret.issued ? h("button", { type: "button", class: "bnd-pos__link", onclick: () => nativeReturn(ret.source) }, __("Open the return in the invoice form", null, "Bunood POS")) : null,
+				h("button", { type: "button", class: "bnd-pos__ghost", onclick: leaveReturn }, __("Back to receipts", null, "Bunood POS"), " ", key("Esc")));
+			if (!ctx) {
+				fill(listView, h("div", { class: "bnd-pos__list bnd-pos__list--wide" }, head,
+					ret.error ? h("div", { class: "bnd-pos__pay-error", role: "alert" }, svg("alert", 18), ret.error) : h("p", { class: "bnd-pos__muted" }, __("Loading the receipt…", null, "Bunood POS"))));
+				return;
+			}
+			const locked = Boolean(ret.issued) || ret.busy;
+			const before = ctx.lines.some((line) => Number(line.returned) > 0);
+			const paidWith = (ctx.payments || []).map((row) => __(row.mode_of_payment)).filter((value, index, all) => all.indexOf(value) === index).join(" + ");
+			const when = frappe.datetime?.str_to_user ? frappe.datetime.str_to_user(ctx.posting_date) : ctx.posting_date;
+			const source = h("div", { class: "bnd-pos__sheet bnd-pos__return-source" },
+				h("div", { class: "bnd-pos__person-text" },
+					h("strong", null, __("Receipt", null, "Bunood POS"), " ", ltr(ctx.name)),
+					h("span", null, ltr(`${when} ${String(ctx.posting_time || "").slice(0, 5)}`), " · ", ctx.customer_name || ctx.customer, paidWith ? ` · ${paidWith} ` : " ", ltr(money(ctx.rounded_total || ctx.grand_total)))),
+				h("span", { class: "bnd-pos__spacer" }),
+				h("span", { class: "bnd-pos__tag" }, __("Days since the sale: {0}", [ctx.days])),
+				h("span", { class: "bnd-pos__tag", "data-tone": before ? "warn" : null }, before ? __("Partly returned before", null, "Bunood POS") : __("Nothing returned yet", null, "Bunood POS")));
+			const damagedOk = Boolean(ctx.damaged_warehouse);
+			const rows = ctx.lines.map((line) => {
+				const pick = ret.picks[line.row] || { on: false, qty: 0, damaged: false };
+				const max = Number(line.returnable || 0);
+				const step = Math.min(1, max);
+				const gone = max <= 0;
+				const fixed = Boolean(ctx.whole_only) || locked;
+				const set = (patch) => { ret.picks[line.row] = { ...pick, ...patch }; returnChanged(); };
+				return h("div", { class: "bnd-pos__tr bnd-pos__tr--return", role: "row", "data-on": pick.on ? "1" : null, "data-gone": gone ? "1" : null },
+					h("span", { role: "cell" }, h("button", {
+						type: "button",
+						class: "bnd-pos__check",
+						role: "checkbox",
+						"aria-checked": String(Boolean(pick.on)),
+						"aria-label": line.item_name || line.item_code,
+						disabled: gone || fixed,
+						onclick: () => set({ on: !pick.on, qty: pick.qty > 0 ? pick.qty : step }),
+					}, pick.on ? svg("check", 16) : null)),
+					h("span", { role: "cell", class: "bnd-pos__person-text" },
+						h("strong", { class: "bnd-pos__ellipsis" }, line.item_name || line.item_code),
+						h("span", null, __("Sold", null, "Bunood POS"), " ", ltr(String(round(line.qty, 3))), " ", unitLabel(line.uom), " · ", ltr(money(line.rate)),
+							Number(line.returned) > 0 ? [" · ", __("Returned before", null, "Bunood POS"), " ", ltr(String(round(line.returned, 3)))] : null)),
+					h("span", { role: "cell" }, gone ? h("span", { class: "bnd-pos__tag" }, __("Fully returned", null, "Bunood POS")) : h("div", { class: "bnd-pos__stepper bnd-pos__stepper--small", dir: "ltr" },
+						h("button", { type: "button", "aria-label": __("Less", null, "Bunood POS"), disabled: !pick.on || fixed || pick.qty <= step, onclick: () => set({ qty: round(Math.max(step, pick.qty - 1), 3) }) }, "−"),
+						h("span", null, pick.on ? String(round(pick.qty, 3)) : "0"),
+						h("button", { type: "button", "aria-label": __("More", null, "Bunood POS"), disabled: !pick.on || fixed || pick.qty >= max, onclick: () => set({ qty: round(Math.min(max, pick.qty + 1), 3) }) }, "+"))),
+					h("span", { role: "cell", class: "bnd-pos__num" }, ltr(money(pick.on ? round(pick.qty * Number(line.rate || 0)) : 0))),
+					h("span", { role: "cell" }, damagedOk
+						? h("div", { class: "bnd-pos__seg", role: "radiogroup", "aria-label": __("Item condition", null, "Bunood POS") },
+							h("button", { type: "button", role: "radio", "aria-checked": String(!pick.damaged), disabled: !pick.on || locked, onclick: () => set({ damaged: false }) }, __("Back to stock", null, "Bunood POS")),
+							h("button", { type: "button", role: "radio", "data-tone": "bad", "aria-checked": String(Boolean(pick.damaged)), disabled: !pick.on || locked, onclick: () => set({ damaged: true }) }, __("Damaged", null, "Bunood POS")))
+						: h("span", { class: "bnd-pos__muted" }, __("Back to stock", null, "Bunood POS"))));
+			});
+			const table = h("div", { class: "bnd-pos__table", role: "table", "aria-label": __("Receipt lines", null, "Bunood POS") },
+				h("div", { class: "bnd-pos__tr bnd-pos__tr--head bnd-pos__tr--return", role: "row" }, ["", __("Item", null, "Bunood POS"), __("Quantity to return", null, "Bunood POS"), __("Amount", null, "Bunood POS"), __("Item condition", null, "Bunood POS")].map((text, index) => h("span", { role: "columnheader", class: index === 3 ? "bnd-pos__num" : null }, text))),
+				rows);
+			const reasons = returnReasons();
+			const reasonCard = h("div", { class: "bnd-pos__sheet" },
+				h("strong", null, __("Reason for the return", null, "Bunood POS")),
+				h("div", { class: "bnd-pos__reasons", role: "radiogroup" },
+					reasons.map((label, index) => h("button", { type: "button", class: "bnd-pos__reason", role: "radio", "aria-checked": String(ret.reason === index), disabled: locked, onclick: () => { ret.reason = index; ret.error = ""; renderReturnView(); } }, label)),
+					h("button", { type: "button", class: "bnd-pos__reason", role: "radio", "aria-checked": String(ret.reason === -2), disabled: locked, onclick: () => { ret.reason = -2; renderReturnView(); listView.querySelector(".bnd-pos__text")?.focus(); } }, __("Other", null, "Bunood POS"))),
+				ret.reason === -2 ? h("input", { type: "text", name: "return-other", class: "bnd-pos__text", maxlength: 140, value: ret.other, disabled: locked, placeholder: __("Write the reason", null, "Bunood POS"), oninput: (event) => { ret.other = event.target.value; } }) : null);
+			const total = Number(ctx.rounded_total || ctx.grand_total || 0);
+			const refundCard = h("div", { class: "bnd-pos__sheet" },
+				h("strong", null, __("Refund by", null, "Bunood POS")),
+				h("div", { class: "bnd-pos__radios", role: "radiogroup" }, refundOptions(ctx).map((option) => h("button", {
+					type: "button",
+					class: "bnd-pos__radio",
+					role: "radio",
+					"aria-checked": String(ret.refund === option.id),
+					disabled: locked,
+					onclick: () => { ret.refund = option.id; returnChanged(); },
+				},
+				h("span", { class: "bnd-pos__radio-dot", "aria-hidden": "true" }),
+				h("span", { class: "bnd-pos__person-text" },
+					h("strong", null, option.id === "__credit__" ? __("Credit on the customer's account", null, "Bunood POS") : option.same ? [__("Same payment method", null, "Bunood POS"), " — ", __(option.id)] : __(option.id)),
+					h("span", null, option.id === "__credit__" ? __("Used on the customer's next purchases", null, "Bunood POS") : option.row.type === "Cash" ? __("Paid out of this shift's cash", null, "Bunood POS") : __("Refunded through the card terminal", null, "Bunood POS")))))),
+				Number(ctx.refundable || 0) < total - 0.005 ? h("div", { class: "bnd-pos__trow" }, h("span", { class: "bnd-pos__muted" }, __("Still refundable in money", null, "Bunood POS")), ltr(money(Math.max(0, ctx.refundable)))) : null);
+			const preview = ret.preview && ret.preview.rev === ret.rev ? ret.preview : null;
+			const refund = preview ? Math.abs(Number(preview.rounded_total || preview.grand_total || 0)) : null;
+			const totalsCard = h("div", { class: "bnd-pos__sheet bnd-pos__return-total" },
+				h("div", { class: "bnd-pos__trow" }, h("span", null, __("Before VAT", null, "Bunood POS")), ltr(preview ? money(Math.abs(preview.net_total)) : "—")),
+				h("div", { class: "bnd-pos__trow" }, h("span", null, __("VAT", null, "Bunood POS")), ltr(preview ? money(Math.abs(preview.total_taxes_and_charges)) : "—")),
+				h("div", { class: "bnd-pos__trow bnd-pos__trow--grand" },
+					h("span", null, ret.refund === "__credit__" ? __("Credit to the customer", null, "Bunood POS") : __("Refund to the customer", null, "Bunood POS")),
+					h("strong", null, ltr(refund === null ? "—" : money(refund)))),
+				ret.error ? h("div", { class: "bnd-pos__pay-error", role: "alert" }, ret.error) : null,
+				ret.issued
+					? [
+						h("div", { class: "bnd-pos__issued", role: "status" }, svg("check", 18), __("Credit note issued", null, "Bunood POS"), " ", ltr(ret.issued.name)),
+						h("div", { class: "bnd-pos__card-actions" },
+							h("button", { type: "button", class: "bnd-pos__primary", onclick: () => printReceipt(ret.issued.doctype, ret.issued.name) }, svg("printer", 16), __("Print", null, "Bunood POS")),
+							h("button", { type: "button", class: "bnd-pos__ghost", onclick: leaveReturn }, __("Back to receipts", null, "Bunood POS"))),
+					]
+					: h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", disabled: !preview || ret.busy, onclick: submitReturn }, __("Issue the credit note", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__muted" }, __("The original invoice is not changed: a credit note linked to it is issued.", null, "Bunood POS")));
+			keepField(() => fill(listView, h("div", { class: "bnd-pos__list bnd-pos__list--wide" }, head,
+				h("div", { class: "bnd-pos__split" },
+					h("section", { class: "bnd-pos__split-main" },
+						source,
+						ctx.whole_only ? h("div", { class: "bnd-pos__notice", "data-tone": "warn" }, svg("alert", 18), h("span", null, __("This receipt has a discount on the whole invoice or a fixed charge, so it comes back whole.", null, "Bunood POS"))) : null,
+						table),
+					h("aside", { class: "bnd-pos__split-side" }, reasonCard, refundCard, totalsCard)))));
 		}
 
 		function renderLayer(options) {

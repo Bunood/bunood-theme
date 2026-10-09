@@ -15,11 +15,24 @@ from frappe.utils import flt, now_datetime, nowdate
 from bunood_theme import pos
 
 
+def refused(call, message: str) -> bool:
+    """True only when ``call`` is refused for ``message`` (as translated for this
+    user): a refusal for some other reason must not pass for this one."""
+    try:
+        call()
+    except frappe.ValidationError as error:
+        head = frappe._(message).split("{0}")[0].strip()
+        assert head in str(error), (message, str(error))
+        return True
+    return False
+
+
 def run() -> None:
     frappe.set_user("Administrator")
     savepoint = "bunood_pos_live_acceptance"
     frappe.db.savepoint(savepoint)
     result = {}
+    context = {}
 
     try:
         context = pos.get_context()
@@ -134,6 +147,69 @@ def run() -> None:
         return_doc = frappe.get_doc(returned["doctype"], returned["name"])
         assert return_doc.docstatus == 0 and return_doc.return_against == checked_out["name"]
 
+        # Phase 2, 2026-10-09. The count is blind: nothing the cashier reads before
+        # counting carries an expected figure. close_shift itself is NOT exercised
+        # here: ERPNext's POS Closing Entry.on_submit commits (create_merge_logs),
+        # so no rollback can undo it; the reason guard refuses before any write.
+        closing_context = pos.close_shift_context(profile_name)
+        assert "expected" not in json.dumps(closing_context, default=str), "The count context leaks expected figures."
+        zero_count = json.dumps([{"mode_of_payment": row["mode_of_payment"], "amount": 0} for row in closing_context["methods"]])
+        first_mode = methods[0]["mode_of_payment"]
+        expected = lambda result: next(flt(row["expected_amount"]) for row in result["rows"] if row["mode_of_payment"] == first_mode)
+        before_close = pos.preview_close(profile_name, zero_count)
+        assert any(abs(flt(row["difference"])) >= 0.005 for row in before_close["rows"]), "The sale reached no closing row."
+        reason_required = refused(
+            lambda: pos.close_shift(profile_name, zero_count, ""),
+            "Give the reason for the difference before closing the shift.",
+        )
+        assert reason_required, "A shift with a difference closed without a reason."
+
+        # A partial return: one of three, ERPNext's own credit note, refunded by
+        # the profile's first method, and counted by the shift's closing.
+        three = {**payload, "items": [{**payload["items"][0], "qty": 3}]}
+        three_total = pos.preview_cart(three)
+        three_total = flt(three_total.get("rounded_total") or three_total.get("grand_total"))
+        sold = pos.checkout(three, [{"mode_of_payment": first_mode, "amount": three_total}])
+        sold_line = pos.return_context(sold["doctype"], sold["name"])["lines"][0]
+        assert flt(sold_line["returnable"]) == 3, sold_line
+        one = json.dumps([{"row": sold_line["row"], "qty": 1}])
+        reason_refused = refused(
+            lambda: pos.submit_return(profile_name, sold["doctype"], sold["name"], one, first_mode, ""),
+            "Give the reason for the return.",
+        )
+        assert reason_refused, "A return was issued without a reason."
+        request_id = frappe.generate_hash(length=16)
+        credit = pos.submit_return(profile_name, sold["doctype"], sold["name"], one, first_mode, "acceptance", request_id)
+        assert credit.get("already_issued") is False, credit
+        # A retry after a lost answer gets the same credit note back, not a second refund.
+        replay = pos.submit_return(profile_name, sold["doctype"], sold["name"], one, first_mode, "acceptance", request_id)
+        assert replay.get("already_issued") is True and replay["name"] == credit["name"], replay
+        note = frappe.get_doc(credit["doctype"], credit["name"])
+        refund = flt(note.rounded_total or note.grand_total)
+        assert note.docstatus == 1 and note.is_return and note.return_against == sold["name"]
+        assert len(note.items) == 1 and flt(note.items[0].qty) == -1, [(row.item_code, row.qty) for row in note.items]
+        assert refund < 0 and abs(flt(note.paid_amount) - refund) < 0.005, (note.paid_amount, refund)
+        assert [row.mode_of_payment for row in note.payments if flt(row.amount)] == [first_mode]
+        assert flt(pos.return_context(sold["doctype"], sold["name"])["lines"][0]["returnable"]) == 2
+        # Refused for the quantity, not by the money cap three units would also hit.
+        over_refused = refused(
+            lambda: pos.preview_return(profile_name, sold["doctype"], sold["name"], json.dumps([{"row": sold_line["row"], "qty": 3}]), first_mode),
+            "Returnable quantity for {0}: {1}",
+        )
+        assert over_refused, "More than the returnable quantity was accepted."
+        walk_in_credit_refused = None
+        if customer == profile.get("customer"):
+            walk_in_credit_refused = refused(
+                lambda: pos.preview_return(profile_name, sold["doctype"], sold["name"], one, "__credit__"),
+                "Credit can stay only on a named customer's account.",
+            )
+            assert walk_in_credit_refused, "Credit was left on the walk-in customer's account."
+        after_close = pos.preview_close(profile_name, zero_count)
+        assert abs(expected(after_close) - (expected(before_close) + three_total + refund)) < 0.01, (
+            expected(before_close), three_total, refund, expected(after_close)
+        )
+        assert after_close["returns"] == before_close["returns"] + 1
+
         # Pre-release review, 2026-10-09. ERPNext keeps a cashier's discount only when the line's
         # rate is the one it derives itself (the percentage rounded to its field, the amount
         # rounded, then the rate); on a one-cent difference it treats the rate as typed, sets
@@ -202,12 +278,23 @@ def run() -> None:
             "exact_discount_kept": exact_discount,
             "max_discount_enforced": cap_enforced,
             "box_moves_twelve": box_moves_twelve,
+            "blind_count": True,
+            "difference_needs_reason": reason_required,
+            "partial_return_credit_note": credit["name"],
+            "replayed_return_is_the_same_note": True,
+            "refund_reaches_closing": True,
+            "over_return_refused": over_refused,
+            "walk_in_credit_refused": walk_in_credit_refused,
             "stale_shift_detected": stale_detected,
             "rolled_back": True,
         }
         print(json.dumps(result, ensure_ascii=False, default=str))
     finally:
         frappe.db.rollback(save_point=savepoint)
+        # preview_close remembers the last checked count outside the database.
+        opening = (context or {}).get("opening_entry") or {}
+        if opening.get("name"):
+            frappe.cache.delete_value(f"bunood_pos_checked_count:{opening['name']}")
 
 
 run()
