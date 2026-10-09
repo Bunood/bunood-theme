@@ -90,13 +90,24 @@ test("the counter covers scanning, the pad, customer, hold, split tender, receip
 });
 
 test("scale labels carry the item's barcode and the weight in grams", () => {
-	assert.match(js, /const SCALE_PREFIX = "21";/);
-	assert.match(js, /new RegExp\(`\^\$\{SCALE_PREFIX\}\(\\\\d\{5\}\)\(\\\\d\{5\}\)\\\\d\$`\)/);
-	assert.match(js, /return grams > 0 \? \{ barcode: match\[1\], qty: grams \/ 1000 \} : null;/);
+	// Phase 4: the prefixes come from the POS Profile's settings; run the parser itself.
+	const start = js.indexOf("\n\tfunction parseLabel(");
+	const parseLabel = new Function(`${js.slice(start, js.indexOf("\n\t}\n", start) + 3)}\nreturn parseLabel;`)();
+	assert.deepEqual(parseLabel("2101230012509", "21"), { barcode: "01230", qty: 1.25 });
+	assert.deepEqual(parseLabel("2201230012509", "22"), { barcode: "01230", qty: 1.25 });
+	assert.equal(parseLabel("2101230012509", ""), null, "scale labels are off without a prefix");
+	assert.equal(parseLabel("6281007100014", "21"), null, "an ordinary EAN-13 is not a label");
+	assert.equal(parseLabel("2101230000009", "21"), null, "a zero weight is no label");
+	assert.match(js, /let label = parseLabel\(code, counter\("scale_prefix"\)\);/);
+	// Review 2026-10-10: a label whose item is unknown is tried as an ordinary barcode,
+	// and linking keeps the item's 5-digit code, then reads the label again.
+	assert.match(fn("scan"), /if \(label && !hits\.length\) \{\s+const whole = await find\(code\);/);
+	assert.match(fn("scan"), /state\.unknown = lookup;\s+state\.unknownLabel = label \? code : "";/);
+	assert.match(fn("saveLink"), /if \(labelled\) scan\(labelled\);\s+else addItem\(row, 1\);/);
 	// A count typed before the scan ("3*" then the barcode) multiplies it.
 	assert.match(js, /\/\^\(\\d\+\(\?:\\\.\\d\+\)\?\)\\\*\(\.\+\)\$\/\.exec\(code\)/);
 	// An unknown code never blocks the sale: link it to an item or make a new one.
-	assert.match(js, /state\.unknown = code;/);
+	assert.match(js, /state\.unknown = lookup;/);
 	assert.match(js, /doc\.barcodes = \(doc\.barcodes \|\| \[\]\)\.concat\(\[\{ doctype: "Item Barcode", barcode: code \}\]\);/);
 	assert.match(js, /frappe\.xcall\("frappe\.client\.save", \{ doc \}\)/);
 });
@@ -144,7 +155,9 @@ test("totals show ERPNext's own figures once its preview matches the bill", () =
 test("paying: exact cash and card in one key, notes from the total, credit only for a named customer", () => {
 	assert.match(js, /F8: \(\) => \(state\.screen === "pay" \? addPay\(cardMethod\(\)\) : instant\("card"\)\),/);
 	assert.match(js, /F10: \(\) => \(state\.screen === "pay" \? complete\(\) : instant\("cash"\)\),/);
-	assert.match(js, /\[10, 50, 100\]\.forEach\(\(step\) => add\(Math\.ceil\(total \/ step\) \* step\)\);/);
+	// The profile's notes; by default the buttons the counter showed before it had settings.
+	assert.match(js, /\(counter\("cash_notes"\) \|\| \[10, 50, 100, 200, 500\]\)\.forEach\(\(note\) => add\(note >= 200 \? note : Math\.ceil\(total \/ note\) \* note\)\);/);
+	assert.match(js, /if \(counter\("cash_exact"\) !== false\) add\(total\);/);
 	assert.match(js, /if \(!state\.profile\.allow_partial_payment\) \{/);
 	assert.match(js, /if \(isWalkIn\(\)\) \{\s+state\.payErr = __\("The rest can stay on account only for a named customer\.", null, "Bunood POS"\);/);
 });
@@ -216,7 +229,9 @@ test("the shift close counts blind: the expected figures arrive only with the re
 	assert.doesNotMatch(fn("renderCloseCount"), /expected_amount|closing_amount|difference|close\.result/);
 	assert.match(fn("renderCloseResult"), /row\.expected_amount/);
 	// A difference holds the close until a reason is given.
-	assert.match(fn("renderCloseResult"), /const blocked = close\.busy \|\| \(differs && !closeReason\(\)\);/);
+	assert.match(fn("renderCloseResult"), /const blocked = close\.busy \|\| \(differs && !closeReason\(\)\) \|\| heldBlocksClose\(\);/);
+	// Phase 4: a difference within the profile's threshold needs no reason.
+	assert.match(fn("closeHasDifference"), /return difference >= 0\.005 && difference > threshold;/);
 	assert.match(fn("submitClose"), /if \(closeHasDifference\(\) && !closeReason\(\)\)/);
 	// The menu and the out-of-date gate open the counter's close, not a blank native form.
 	assert.doesNotMatch(js, /frappe\.new_doc\("POS Closing Entry"\)/);
@@ -264,8 +279,8 @@ test("a return by receipt sends only the chosen lines, and issues only the previ
 
 test("inside the close and return views no sale key fires; Esc steps back", () => {
 	const onKey = fn("onKey");
-	assert.match(onKey, /if \(state\.view === "gate" \|\| state\.view === "close" \|\| state\.view === "return"\) return;/);
-	assert.ok(onKey.indexOf('state.view === "close") return;') < onKey.indexOf("const fkeys"), "views return before the function keys");
+	assert.match(onKey, /if \(\["gate", "close", "return", "settings"\]\.includes\(state\.view\)\) return;/);
+	assert.ok(onKey.indexOf('"settings"].includes(state.view)) return;') < onKey.indexOf("const fkeys"), "views return before the function keys");
 	assert.match(onKey, /else if \(state\.view === "return"\) \{ if \(!state\.ret\?\.busy\) leaveReturn\(\); \}/);
 	assert.match(onKey, /if \(state\.close\?\.step === "result" && !state\.close\.busy\) \{ state\.close\.step = "count"; renderCloseView\(\); \}/);
 	// The server's refusal shows in the view, not as a desk dialog over it.
@@ -318,7 +333,7 @@ test("the customer screen renders text, never markup, and only a same-site logo"
 test("the counter keeps the screen in step and asks for a receipt link only while one is shown", () => {
 	for (const name of ["renderBill", "renderPanel", "renderGate"]) assert.match(fn(name), /pushDisplay\(\);/, name);
 	assert.match(fn("loadReceipt"), /if \(!display\.connected \|\| !result\?\.name \|\| !receiptOffered\(\)\) return;/);
-	assert.match(fn("receiptOffered"), /return isWalkIn\(\) && !state\.customerTaxId && state\.context\?\.capabilities\?\.can_print_invoice !== false;/);
+	assert.match(fn("receiptOffered"), /return isWalkIn\(\) && !state\.customerTaxId && state\.context\?\.capabilities\?\.can_print_invoice !== false && counter\("receipt_qr"\) !== false;/);
 	assert.match(fn("loadReceipt"), /api\("receipt_link", \{ doctype: result\.doctype, name: result\.name \}, \{ silent: true \}\)/);
 	// The bill and the screen read one set of line amounts.
 	assert.match(fn("renderBill"), /const amounts = shownAmounts\(\);/);
@@ -327,4 +342,37 @@ test("the counter keeps the screen in step and asks for a receipt link only whil
 	assert.match(js, /const displayFor = new URLSearchParams\(window\.location\.search\)\.get\("display"\);\n\t\tif \(displayFor\) \{\n\t\t\trenderDisplay\(container, page, displayFor\);/);
 	assert.match(scss, /--bnd-qr-ground/);
 	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("Your e-receipt,فاتورتك الإلكترونية,Bunood POS")));
+});
+
+// Phase 4, 2026-10-10: the settings page.
+test("the settings page saves through the server and the counter takes the result at once", () => {
+	assert.match(fn("openSettings"), /if \(!state\.profile\?\.can_edit\) return;/);
+	assert.match(js, /state\.profile\?\.can_edit \? h\("button", \{ type: "button", role: "menuitem", onclick: \(\) => \{ state\.menuOpen = false; renderBar\(\); openSettings\(\); \} \}/);
+	assert.match(fn("openSettings"), /api\("settings_context", \{ pos_profile: settings\.profile \}, \{ type: "GET", silent: true \}\)/);
+	const save = fn("saveSettings");
+	assert.match(save, /api\("save_settings", \{/);
+	// Only the native fields that changed go to the POS Profile.
+	assert.match(save, /if \(JSON\.stringify\(value\) !== JSON\.stringify\(settings\.ctx\.native\[field\]\)\) native\[field\] = value;/);
+	assert.match(save, /api\("get_context", \{ pos_profile: settings\.profile \}, \{ type: "GET", silent: true \}\)/);
+	assert.match(fn("unsavedGuard"), /if \(state\.view === "settings" && state\.settings\?\.dirty\) \{\s+frappe\.confirm\(/);
+	assert.match(fn("changeSetting"), /if \(!settings\?\.ctx\?\.can_edit \|\| settings\.busy\) return;/);
+	// Every row is one the counter honours: no row names a key the server does not know.
+	const sections = fn("settingsSections");
+	assert.doesNotMatch(js, /price_prefix/, "price labels are not part of this phase");
+	// Only the counter keys this page changed, and the profile version it read.
+	assert.match(save, /counter: JSON\.stringify\(counterChanges\),\s+modified: settings\.ctx\.modified,/);
+	for (const name of ["renderBar", "leaveSettings"]) assert.match(fn(name), /unsavedGuard\(/, name);
+	for (const key of ["fbar", "tiles", "customer_screen", "max_discount", "returns", "new_item", "cash_exact", "cash_notes", "merge_scans", "scale_prefix", "unknown_barcode", "receipt_qr", "reason_threshold", "held_on_close"]) {
+		assert.ok(sections.includes(`"${key}"`), key);
+		assert.ok(server.includes(`"${key}": `), `server default for ${key}`);
+	}
+});
+
+test("a profile that never opened the settings behaves as before", () => {
+	// Supermarket mode: this device's own choice first, the profile's otherwise.
+	assert.match(fn("fbarOn"), /return typeof prefs\.fbar === "boolean" \? prefs\.fbar : Boolean\(counter\("fbar"\)\);/);
+	assert.match(fn("addItem"), /isWeighed \|\| item\.serial_no \|\| counter\("merge_scans"\) === false \? -1/);
+	assert.match(fn("renderAlert"), /const offer = counter\("unknown_barcode"\) !== "alert";/);
+	assert.match(js, /const canReturn = state\.context\?\.capabilities\?\.can_create_invoice && counter\("returns"\) !== false;/);
+	assert.match(scss, /&\[data-tiles="s"\] \{\s+--bnd-pos-tile-h: 5rem;/);
 });

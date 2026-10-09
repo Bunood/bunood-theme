@@ -142,7 +142,7 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn("if doc.docstatus != 1 or not cint(doc.is_pos) or doc.owner != frappe.session.user:", link)
         # The code faces the queue: walk-in sales without a VAT number only (review 2026-10-09).
         self.assertIn('doc.customer == frappe.db.get_value("POS Profile", doc.pos_profile, "customer")', link)
-        self.assertIn('if not walk_in or doc.get("tax_id"):', link)
+        self.assertIn('if not walk_in or doc.get("tax_id") or not _counter_settings(doc.pos_profile)["receipt_qr"]:', link)
         self.assertIn("@rate_limit(limit=600, seconds=60 * 60)\ndef receipt_link", self.source)
         # ERPNext's own share key, reused while valid instead of a new row per call.
         self.assertIn('"key": _share_key(doc)', link)
@@ -150,6 +150,50 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('get_url(f"/printview?{urlencode(query)}")', link)
         self.assertIn("except ImportError:", self.body("_qr_svg"))
         self.assertIn('"company_logo": frappe.get_cached_value("Company", profile.company, "company_logo")', self.source)
+
+    def test_counter_defaults_are_the_counter_before_the_settings_page(self):
+        # A profile that never opened the page keeps exactly the old behaviour.
+        assignment = next(
+            node for node in self.tree.body
+            if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "COUNTER_DEFAULTS"
+        )
+        self.assertEqual(ast.literal_eval(assignment.value), {
+            "fbar": False, "tiles": "m", "customer_screen": True, "receipt_qr": True, "max_discount": 0,
+            "returns": True, "new_item": True, "cash_exact": True, "cash_notes": [10, 50, 100, 200, 500],
+            "merge_scans": True, "scale_prefix": "21", "unknown_barcode": "offer",
+            "reason_threshold": 0, "held_on_close": "carry",
+        })
+
+    def test_settings_are_saved_only_with_write_access_and_kept_off_the_boot(self):
+        save = self.body("save_settings")
+        self.assertLess(save.index('profile.check_permission("write")'), save.index("profile.save()"))
+        self.assertIn("_clean_counter(_json(counter, {}), strict=True)", save)
+        # Their own DefaultValue parent: a __default row would ride in every user's boot.
+        self.assertIn('COUNTER_SETTINGS_PARENT = "bunood_pos_settings"', self.source)
+        self.assertIn("frappe.defaults.set_default(profile.name, value, parent=COUNTER_SETTINGS_PARENT)", save)
+        self.assertIn("frappe.defaults.get_defaults_for(COUNTER_SETTINGS_PARENT)", self.body("_counter_settings"))
+        self.assertIn('profile.add_comment("Comment"', save)
+        # Review 2026-10-10: a stale page is refused; kept payment rows are the same
+        # documents (Allow In Returns survives); the cache drops again after commit.
+        self.assertIn("if modified and str(profile.modified) != str(modified):", save)
+        self.assertIn('row = existing.get(mode) or profile.append("payments", {"mode_of_payment": mode})', save)
+        self.assertIn("frappe.db.after_commit.add(_drop_counter_cache)", save)
+        self.assertIn('STORE_PREFIXES = frozenset({"02", *(f"2{digit}" for digit in range(10))})', self.source)
+        hooks = (ROOT / "bunood_theme" / "hooks.py").read_text(encoding="utf-8")
+        self.assertIn('"after_rename": "bunood_theme.pos.rename_counter_settings"', hooks)
+        self.assertIn('"on_trash": "bunood_theme.pos.drop_counter_settings"', hooks)
+
+    def test_the_settings_that_touch_money_are_enforced_on_the_server(self):
+        apply_cart = self.body("_apply_cart")
+        self.assertIn('ceiling = flt(_counter_settings(profile.name)["max_discount"])', apply_cart)
+        self.assertIn("_returns_allowed(profile)", self.body("preview_return"))
+        self.assertIn("_returns_allowed(profile)", self.body("submit_return"))
+        close = self.body("close_shift")
+        # Only today's shift: an out-of-date one cannot complete a held sale (review 2026-10-10).
+        self.assertIn("current = getdate(opening.period_start_date) == getdate(nowdate())", close)
+        self.assertIn('if settings["held_on_close"] == "block" and current and _can_hold(_invoice_type()) and held_carts(profile.name):', close)
+        self.assertIn('if _needs_reason(rows, settings["reason_threshold"]) and not reason:', close)
+        self.assertLess(close.index("held_carts(profile.name)"), close.index("closing.insert()"))
 
     def test_native_document_engine_remains_authoritative(self):
         self.assertIn('doc.run_method("set_missing_values")', self.source)
