@@ -24,6 +24,36 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.55.0] — 2026-10-10 — the POS counter sells through a lost connection, and takes Tabby and Tamara
+
+The last two phases of the «المنصة» counter the owner ordered, each through an adversarial
+review before merging.
+
+- **Selling through a lost connection (phase 5).** The counter keeps its POS Profile's catalogue
+  on the device and, when the connection drops, keeps selling: scans and the grid read the
+  device's copy, totals round exactly as ERPNext will (its rounding repeated on the device and
+  pinned against Frappe's own function), payment is in full, and each sale is kept on the device
+  under its own id with a provisional receipt that says the tax invoice follows. When the
+  connection returns, each is priced again by the server and posted when the payments settle
+  that price exactly as collected; otherwise it becomes a held draft for review, its remarks
+  saying what was collected. One sale id, one invoice: the id travels with checkout too, a lock
+  per id is held to the commit, and a sale sent twice is found, not posted again. The shift does
+  not close while this device holds unsent or unreviewed sales (an out-of-date shift excepted,
+  after a confirmation). The server now refuses a walk-in remainder on account, which only the
+  counter's screen checked before.
+- **Tabby and Tamara (phase 6).** Any non-cash payment method of a POS Profile can be marked
+  Tabby or Tamara with its number of payments. Its line shows the split, needs the order number
+  from the provider's app (the server insists and writes it into the invoice's remarks), and the
+  customer screen asks the customer to approve the payment in the app. The providers' own
+  checkout APIs need each store's merchant keys and are not part of this release.
+
+Known: the device holds unsent sale lines until they are sent; a shift closed from another
+device does not see this device's queue; the desk must have loaded before the connection drops.
+
+Checks on the merged tree: guarded build (byte-identical bundles); 332/332 interface and counter
+tests; tests/test_pos_workbench.py; tools/pos-backend-acceptance.py (rollback) on the lab with
+sabotages for each new guard; lab browser runs of both phases.
+
 ## [0.54.0] — 2026-10-10 — the POS counter's phases 2 to 4: shift close, returns, the customer screen, settings
 
 Three phases of the «المنصة» counter the owner ordered after v0.53.0, each from its approved
