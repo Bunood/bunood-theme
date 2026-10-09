@@ -8304,10 +8304,25 @@
 		// UNTRANSLATED ON BOTH SIDES: matching the __() labels against w.title
 		// (English) only worked on an English desk; in Arabic nothing dropped
 		// and Home was listed twice (reported 2026-09-07).
+		// boot.bnd_app_menu [{label, icon, route|url}] (Bunood Business) replaces the workspaces.
+		const curated = frappe.boot && Array.isArray(frappe.boot.bnd_app_menu) ? frappe.boot.bnd_app_menu : null;
+		if (curated) {
+			const apps = curated.filter((app) => app && app.label && (app.route || app.url));
+			if (apps.length) items.push("divider");
+			for (const app of apps) {
+				items.push({
+					label: app.label,
+					icon: ws_symbol(app.icon),
+					run: () => (app.url ? (window.location.href = app.url) : frappe.set_route(app.route)),
+				});
+			}
+		}
 		const taken = new Set(items.map((i) => i.key));
-		const roots = ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
-			(w) => !w.parent_page && !taken.has(w.title || w.name)
-		);
+		const roots = curated
+			? []
+			: ((frappe.boot && frappe.boot.allowed_workspaces) || []).filter(
+					(w) => !w.parent_page && !taken.has(w.title || w.name)
+			  );
 		if (roots.length) items.push("divider");
 		for (const w of roots) {
 			const links = sb_quick_links(w);
