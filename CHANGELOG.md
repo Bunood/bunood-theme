@@ -24,6 +24,50 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.54.0] — 2026-10-10 — the POS counter's phases 2 to 4: shift close, returns, the customer screen, settings
+
+Three phases of the «المنصة» counter the owner ordered after v0.53.0, each from its approved
+canvas board, each through an adversarial review before merging, plus v0.53.1 (the pane head's
+app list) so this release does not take it back out.
+
+- **Shift close with a blind count (phase 2).** Count the drawer by notes and loose coins and
+  type each card or other method's settlement; the expected figures appear only after the
+  count. ERPNext's own POS Closing Entry is submitted with the counted amounts and the
+  differences (the opening float added to expected, as ERPNext's form does); a difference needs
+  a reason, written before the submit (ERPNext commits inside it); every count checked against
+  the expected figures is noted on the opening entry. A submitted closing ends the shift even
+  while ERPNext merges ten or more POS Invoices in the background.
+- **Return by receipt (phase 2).** Lines and quantities up to what is still returnable, back to
+  stock or damaged (the company's rejected-goods warehouse), a reason, and a refund by the
+  receipt's own method, another profile method, or credit on a named customer's account. The
+  credit note is ERPNext's make_sales_return cut to the chosen rows; a money refund is one
+  negative payment the shift's closing counts, never more than the receipt took in money; an
+  invoice discount or a fixed charge returns only whole; one return at a time per receipt (row
+  lock), and a retried submit returns the same note.
+- **The customer screen (phase 3).** A second window on the customer's monitor, fed by the
+  counter over a BroadcastChannel: the sale, the payment, then thanks with the change and an
+  e-receipt QR (ERPNext's Document Share Key), for walk-in sales without a VAT number only; it
+  never shows the customer's name or VAT number, and desk messages never reach it.
+- **The settings page (phase 4).** Six sections per POS Profile: native choices on the profile,
+  the counter's own (supermarket mode, tile size, discount ceiling, returns, new items, cash
+  notes, merging scans, the scale label's in-store prefix, unknown barcodes, the receipt code,
+  the difference that needs a reason, held sales at closing) as one stored value. The defaults
+  are the counter before the page existed. Settings with a money effect are enforced on the
+  server.
+- **v0.53.1** — merged in: the pane head's menu lists the apps a site curates.
+
+New tokens: `--bnd-qr-ground`, `--bnd-z-customer-screen`. New hooks: POS Profile after_rename and
+on_trash move or drop its counter settings. The bnd-pos route bundle grows (route-scoped,
+recorded in payload-budget.json).
+
+Known, not in this release: price labels, manager approval, WhatsApp receipts, pushing the amount
+to the mada terminal, drawer logging (the settings page omits their rows); the customer screen's
+link does not pin a print format; per-return rounding can leave a last part to the invoice form.
+
+Checks on the merged tree: guarded build (bundles byte-identical to the merged commits);
+328/328 interface and counter tests; tests/test_pos_workbench.py; tools/pos-backend-acceptance.py
+(rollback) on the lab, with sabotages for each money guard; lab browser runs of every phase.
+
 ## [0.53.1] — 2026-10-10 — the pane head's menu offers the apps in the new design
 
 The pane head's menu listed every workspace, each opening in its old design. A site app that
