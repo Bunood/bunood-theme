@@ -192,7 +192,21 @@
 <div class="bnd-p-th-title">{{ title_ar | e }}<br><span>{{ title_en | e }}</span></div>
 <div class="bnd-p-th-sub" dir="ltr">{{ doc.name | e }}</div>
 {% if doc.get("posting_date") %}<div class="bnd-p-th-sub" dir="ltr">{{ doc.get_formatted("posting_date") }} {{ doc.get_formatted("posting_time") if doc.get("posting_time") else "" }}</div>{% endif %}
+{{ thermal_service(doc) }}
 <div class="bnd-p-th-rule"></div>
+{%- endmacro %}
+
+{#- The restaurant line under the receipt header: «محلي · طاولة 7» or «سفري · رقم الاستلام #214».
+    Prints only when the invoice carries an order type (an app such as Bunood Dining stamps it);
+    every other receipt is unchanged. -#}
+{% macro thermal_service(doc) -%}
+{%- set _ot = doc.get("custom_bunood_order_type") -%}
+{%- if _ot -%}
+{%- set _title = (frappe.db.get_value("Dining Order Type", _ot, "title_ar") if frappe.db.exists("DocType", "Dining Order Type") else None) or _ot -%}
+<div class="bnd-p-th-sub"><b>{{ _title | e }}</b>
+{%- if doc.get("custom_bunood_table") %} · طاولة <b dir="ltr">{{ doc.custom_bunood_table | e }}</b>{% endif %}
+{%- if doc.get("custom_bunood_pickup_no") %} · رقم الاستلام <b dir="ltr">#{{ doc.custom_bunood_pickup_no | e }}</b>{% endif %}</div>
+{%- endif -%}
 {%- endmacro %}
 
 {#- Closing block for a thermal receipt: the letter head's footer fields, inline.
