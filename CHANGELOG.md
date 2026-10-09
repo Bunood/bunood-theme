@@ -24,6 +24,15 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.53.1] — 2026-10-10 — the pane head's menu offers the apps in the new design
+
+The pane head's menu listed every workspace, each opening in its old design. A site app that
+curates the apps on offer (Bunood Business v0.6.2) hands the menu its own list in
+`frappe.boot.bnd_app_menu` ([{label, icon, route | url}]), each entry opening that app's own
+page; the workspaces still open from their addresses, and without the list the menu is as it
+was. Checks: tests/pane_head_menu.test.cjs (the new case failed on v0.53.0), the guarded build,
+298/298 interface tests. Payload: desk JS +~0.2 KB gzip, under its ceiling.
+
 ## [0.53.0] — 2026-10-09 — the POS counter «المنصة», released with the simple invoice
 
 The owner asked for one release once the POS was done: this is v0.52.0 (the simple
