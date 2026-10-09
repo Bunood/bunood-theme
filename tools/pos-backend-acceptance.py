@@ -33,6 +33,7 @@ def run() -> None:
     frappe.db.savepoint(savepoint)
     result = {}
     context = {}
+    used_sale_ids = []
 
     try:
         context = pos.get_context()
@@ -229,6 +230,47 @@ def run() -> None:
         )
         assert after_close["returns"] == before_close["returns"] + 1
 
+        # Phase 5, 2026-10-10: a sale kept on a device while offline posts once,
+        # priced by the server; one the server will not post becomes a held
+        # draft for review; a walk-in remainder is refused on the server.
+        catalog = pos.offline_catalog(profile_name)
+        assert catalog["items"] and all("barcodes" in row for row in catalog["items"]), "The offline catalogue is empty."
+        due_now = pos.preview_cart(payload)
+        due_now = flt(due_now.get("rounded_total") or due_now.get("grand_total"))
+        offline_id = f"acceptance-{frappe.generate_hash(length=12)}"
+        used_sale_ids.extend([offline_id, f"{offline_id}-b", f"{offline_id}-c"])
+        cash_row = [{"mode_of_payment": first_mode, "amount": due_now}]
+        synced = pos.sync_offline_sale(offline_id, "2026-10-10 09:00", json.dumps(payload), json.dumps(cash_row))
+        assert synced["status"] == "submitted" and synced["docstatus"] == 1, synced
+        again = pos.sync_offline_sale(offline_id, "2026-10-10 09:00", json.dumps(payload), json.dumps(cash_row))
+        assert again["already"] and again["name"] == synced["name"], again
+        short = pos.sync_offline_sale(f"{offline_id}-b", "2026-10-10 09:01", json.dumps(payload), json.dumps([{"mode_of_payment": first_mode, "amount": 0.01}]))
+        assert short["status"] == "review" and short["docstatus"] == 0, short
+        # Review 2026-10-10: a total that moved since the device priced it goes to
+        # review with what was collected, and nothing posts.
+        moved = pos.sync_offline_sale(
+            f"{offline_id}-c", "2026-10-10 09:02", json.dumps(payload), json.dumps(cash_row), str(flt(due_now) - 1)
+        )
+        assert moved["status"] == "review", moved
+        assert "bnd-offline:" in frappe.db.get_value(moved["doctype"], moved["name"], "remarks")
+        states = pos.offline_sale_state(json.dumps([offline_id, f"{offline_id}-c", f"{offline_id}-zz"]))
+        assert states[offline_id]["docstatus"] == 1 and states[f"{offline_id}-c"]["docstatus"] == 0, states
+        assert states[f"{offline_id}-zz"]["name"] is None, states
+        # One sale id, one invoice: a checkout whose answer was lost and is sent again.
+        client_id = f"acceptance-{frappe.generate_hash(length=12)}"
+        used_sale_ids.append(client_id)
+        first_try = pos.checkout(payload, cash_row, None, client_id)
+        second_try = pos.checkout(payload, cash_row, None, client_id)
+        assert first_try["name"] == second_try["name"] and second_try["already_submitted"], (first_try, second_try)
+        # …and the same id, sent from the device's queue afterwards, finds that invoice too.
+        from_queue = pos.sync_offline_sale(client_id, "2026-10-10 09:03", json.dumps(payload), json.dumps(cash_row), str(due_now))
+        assert from_queue["already"] and from_queue["name"] == first_try["name"], from_queue
+        if customer == profile.get("customer"):
+            assert refused(
+                lambda: pos.checkout(payload, [{"mode_of_payment": first_mode, "amount": 0.01}]),
+                "The rest can stay on account only for a named customer.",
+            ) or profile.get("allow_partial_payment") is False
+
         # Phase 4, 2026-10-10: the settings page. Only the counter's own settings
         # here: a POS Profile save would leave its cached document behind the rollback.
         saved = pos.save_settings(
@@ -358,6 +400,8 @@ def run() -> None:
             "refund_reaches_closing": True,
             "over_return_refused": over_refused,
             "walk_in_credit_refused": walk_in_credit_refused,
+            "offline_sale_posted_once": True,
+            "offline_short_sale_held_for_review": True,
             "settings_saved": True,
             "discount_ceiling_refused": ceiling_refused,
             "returns_switched_off": returns_refused,
@@ -376,6 +420,9 @@ def run() -> None:
         from frappe.cache_manager import clear_defaults_cache
 
         clear_defaults_cache(pos.COUNTER_SETTINGS_PARENT)
+        # The sale ids this run used: their remembered invoices were rolled back.
+        for sale_id in used_sale_ids:
+            frappe.cache.delete_value(pos._sale_key(sale_id))
         if context.get("profile"):
             frappe.clear_document_cache("POS Profile", context["profile"]["name"])
 

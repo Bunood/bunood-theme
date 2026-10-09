@@ -23,6 +23,7 @@ class POSWorkbenchContractTests(unittest.TestCase):
         for name in (
             "open_shift", "preview_cart", "hold_cart", "checkout", "create_return",
             "preview_close", "close_shift", "preview_return", "submit_return", "receipt_link",
+            "sync_offline_sale",
         ):
             decorators = self.decorators_for(name)
             self.assertTrue(
@@ -194,6 +195,32 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('if settings["held_on_close"] == "block" and current and _can_hold(_invoice_type()) and held_carts(profile.name):', close)
         self.assertIn('if _needs_reason(rows, settings["reason_threshold"]) and not reason:', close)
         self.assertLess(close.index("held_carts(profile.name)"), close.index("closing.insert()"))
+
+    def test_an_offline_sale_posts_once_and_falls_back_to_review(self):
+        sync = self.body("sync_offline_sale")
+        # The id is checked before it reaches the LIKE pattern; one lock per sale; a
+        # repeat finds the first (the remembered name read with a row lock, then remarks).
+        self.assertIn("offline_id = _offline_id(offline_id)", sync)
+        self.assertIn('not text.replace("-", "").isalnum() or not text.isascii()', self.body("_offline_id"))
+        self.assertIn("with _sale_lock(offline_id):", sync)
+        self.assertLess(sync.index("_posted_sale(invoice_type, offline_id, by_remarks=True)"), sync.index("_new_or_held(data)"))
+        self.assertIn('status = frappe.db.get_value(doctype, name, "docstatus", for_update=True)', self.body("_posted_sale"))
+        # Decided before anything is written (review 2026-10-10: a savepoint retry let a
+        # rolled-back attempt's after-commit work run); a total that moved goes to review.
+        self.assertNotIn("savepoint", sync)
+        self.assertIn("_apply_payments(doc, profile, tendered)", sync)
+        self.assertIn("if abs(total - collected) >= 0.005:", sync)
+        self.assertLess(sync.index("if reason:"), sync.index("doc.insert()"))
+
+    def test_a_checkout_sent_twice_under_one_id_is_one_invoice(self):
+        checkout = self.body("checkout")
+        self.assertIn("with _sale_lock(sale_id):", checkout)
+        self.assertIn("if name and status == 1:", checkout)
+        self.assertIn('_remember_sale(sale_id, result["name"])', checkout)
+
+    def test_a_walk_in_sale_never_leaves_a_remainder_on_account(self):
+        payments = self.body("_apply_payments")
+        self.assertIn("if paid < total and (not doc.customer or doc.customer == profile.customer):", payments)
 
     def test_native_document_engine_remains_authoritative(self):
         self.assertIn('doc.run_method("set_missing_values")', self.source)

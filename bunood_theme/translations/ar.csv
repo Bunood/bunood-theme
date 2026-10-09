@@ -72,6 +72,7 @@ A gallery tile's controls rest hidden and appear on hover or keyboard focus. Alw
 A hairline ring and a deep shadow — the panel lifts clear of the page. The default.,طوق رفيع وظلّ عميق — ترتفع اللوحة عن الصفحة. الخيار الافتراضي.,
 A healthy desk shows almost nothing. A signal appears only once it needs you.,المكتب السليم لا يكاد يعرض شيئًا. الإشارة تظهر فقط حين تحتاج إليك.,
 A held sale is a draft: it takes no stock and is not reported to ZATCA until it is paid.,الفاتورة المعلّقة مسودة: لا تخصم المخزون ولا تُبلَّغ لزاتكا حتى تُدفع.,Bunood POS
+A held sale is completed with the connection.,الفاتورة المعلّقة تُكمل عند وجود الاتصال.,Bunood POS
 A huge title and the total inverted — the strongest statement ink can make.,عنوان ضخم وإجمالي معكوس الألوان — أقوى ما يمكن أن يقوله الحبر.,
 "A leading > # or / narrows to actions, documents, or reports.",بدء السطر بـ > أو # أو / يحصر النتائج في الإجراءات أو المستندات أو التقارير.,
 A line discount above it is refused. 0: only each item's own maximum.,يُرفض الخصم على السطر إذا تجاوزه. 0: حد كل صنف فقط.,Bunood POS
@@ -469,6 +470,7 @@ Cash taken out without a record,سحب نقدي لم يُسجَّل,Bunood POS
 "Cash, payments and POS",النقد والمدفوعات ونقطة البيع,
 Cashier,الكاشير,
 Cashier desk,مساحة عمل أمين الصندوق,
+Catalogue saved,حُفظت قائمة الأصناف,Bunood POS
 Center,الوسط,
 Centered Mark,شعار في المنتصف,
 Centred,موسّط,
@@ -573,6 +575,7 @@ Closing the shift…,جارٍ إغلاق الوردية…,Bunood POS
 Collapse all sections,طيّ كل الأقسام,
 Collapse to Back Crumb on Narrow Screens,الطي إلى رابط رجوع على الشاشات الضيقة,
 Collect payment,تحصيل الدفع,
+Collected: {0},المحصَّل: {0},
 Collections,التحصيلات,
 Colored Chips,شرائح ملونة,
 Colored Dots,نقاط ملونة,
@@ -632,6 +635,8 @@ Confirmation,التأكيد,
 Confirms authority to review this evidence only; it is not production go-live approval.,يؤكد صلاحية مراجعة هذه الأدلة فقط؛ ولا يُعد اعتمادًا لبدء الإنتاج.,
 Connected,متصل,Bunood POS
 Connection Segment,مقطع الاتصال,
+Connection back — sending the sales kept on this device,عاد الاتصال — جارٍ إرسال المبيعات المحفوظة على هذا الجهاز,Bunood POS
+Connection lost — selling continues on this device,انقطع الاتصال — البيع مستمر على هذا الجهاز,Bunood POS
 "Connection, density and the clock only. No server calls at all.",الاتصال والكثافة والساعة فقط. بلا أي نداءات للخادم.,
 Connector installed,الموصل مثبت,
 Connector not installed,الموصل غير مثبت,
@@ -865,6 +870,7 @@ Dim,تعتيم,
 Direction,اتجاه الحركة,
 Disbursement Voucher,سند صرف,
 Disc %,خصم %,Bunood POS
+Discard,تجاهل,Bunood POS
 Discard changes and switch,تجاهل التغييرات والتبديل,
 Discard unsaved changes and reload this document?,هل تريد تجاهل التغييرات غير المحفوظة وإعادة تحميل هذا المستند؟,
 Discount,الخصم,
@@ -1685,6 +1691,8 @@ Needs an attached pane,يتطلب لوحة ملتصقة,
 Needs attention,يحتاج متابعة,
 Needs resend,يحتاج إلى إعادة إرسال,
 Needs review,تحتاج إلى مراجعة,
+Needs review,يحتاج مراجعة,Bunood POS
+Needs review: {0},يحتاج مراجعة: {0},
 Needs the Bunood panel,يتطلب لوحة بنود,
 Needs your attention,يحتاج إلى متابعتك,
 Negative,سالب,
@@ -1742,9 +1750,12 @@ No ZATCA record exists yet for this submitted invoice.,لا يوجد حتى ال
 "No asset or accounting record was changed. Review the error, then try again.",لم يتغير أي سجل للأصول أو للمحاسبة. راجع الخطأ ثم حاول مرة أخرى.,
 No boundary on any control — the bar separates itself with a rule instead.,لا حدّ حول أيّ عنصر — بل يفصل الشريط نفسه بخطّ.,
 "No card — the message reads as a letter, with room around it.",بلا بطاقة — تُقرأ الرسالة كخطاب، مع مساحة حولها.,
+No catalogue on this device yet: items can be added once the connection returns.,لا توجد قائمة أصناف على هذا الجهاز بعد، ويمكن إضافة الأصناف عند عودة الاتصال.,Bunood POS
 No change,لا باقي,Bunood POS
 No companies are available for this role,لا توجد شركات متاحة لهذا الدور,
 No company bank account is available,لا يتوفر حساب بنكي للشركة,
+No connection — selling continues,لا يوجد اتصال — البيع مستمر,Bunood POS
+No connection — selling continues on this device; the sales are sent when it returns.,لا يوجد اتصال — البيع مستمر على هذا الجهاز، وتُرسل المبيعات عند عودته.,Bunood POS
 No connection — selling paused,لا اتصال — البيع متوقف,Bunood POS
 No create actions are available for your permissions.,لا تتوفر إجراءات إنشاء ضمن صلاحياتك.,
 No dashboard on this site.,لا توجد لوحة معلومات في هذا الموقع.,
@@ -1815,6 +1826,7 @@ Not permitted,غير مسموح,
 Not permitted to read customer ledger entries.,غير مصرح بقراءة قيود دفتر العميل.,
 Not protected,غير محمي,
 Not rounded,بدون تقريب,Bunood POS
+Not sent,لم يُرسل,Bunood POS
 Not set,غير محدد,
 Not shown anywhere: {0},لا يُعرض في أي مكان: {0},
 Not-applicable controls,الضوابط غير المنطبقة,
@@ -2184,6 +2196,7 @@ Protection is present,الحماية موجودة,
 Protection observed,تم رصد الحماية,
 Protection present,الحماية مفعلة,
 Provider: {0}. Strings: {1}. Estimated cost: ${2}. Cap: ${3}. Every result lands as a proposal to review — nothing is applied on its own.,المزوِّد: {0}. النصوص: {1}. التكلفة المقدرة: ${2}. السقف: ${3}. كل نتيجة تصل مقترحًا للمراجعة — لا شيء يُطبَّق من تلقاء نفسه.,
+Provisional receipt,إيصال مؤقت,Bunood POS
 Pulse,نبض,
 Purchase,شراء,
 Purchase Invoice,فاتورة شراء,
@@ -2533,6 +2546,8 @@ Sale,بيع,
 Sale,البيع,Bunood POS
 Sale complete,تم البيع,Bunood POS
 Sale complete: {0},تم البيع: {0},
+Sale kept on this device,حُفظ البيع على هذا الجهاز,Bunood POS
+Sale kept on this device until the connection returns,حُفظ البيع على هذا الجهاز حتى يعود الاتصال,Bunood POS
 Sale lines,أسطر الفاتورة,Bunood POS
 Sales,المبيعات,
 Sales & Returns,المبيعات والمرتجعات,
@@ -2556,12 +2571,16 @@ Sales by Item Group,مبيعات الأقسام,
 Sales desk,مركز المبيعات,
 Sales drafts,مسودات المبيعات,
 Sales figures use the selected period. Collections and tasks show current balances.,تعرض أرقام المبيعات للفترة المحددة، بينما تعرض التحصيلات والمهام الأرصدة الحالية.,
+Sales held for review: {0},مبيعات عُلّقت للمراجعة: {0},
 Sales invoices,فواتير المبيعات,
+Sales kept on this device are waiting to be sent.,مبيعات محفوظة على هذا الجهاز بانتظار الإرسال.,Bunood POS
+Sales kept on this device will post into the next shift. Waiting: {0},المبيعات المحفوظة على هذا الجهاز ستُسجَّل في الوردية التالية. بانتظار الإرسال: {0},
 Sales list pages,صفحات قائمة المبيعات,
 Sales person,مندوب المبيعات,
 Sales person is not available for this dashboard,مندوب المبيعات غير متاح في لوحة المعلومات هذه,
 Sales process,دورة المبيعات,
 Sales return / Credit note,مرتجع مبيعات / إشعار دائن,
+Sales sent from this device: {0},مبيعات أُرسلت من هذا الجهاز: {0},
 Sales stages,مراحل المبيعات,
 Sales trend,اتجاه المبيعات,
 Sales — net of adjustments,المبيعات — صافيةً من التعديلات,
@@ -2673,6 +2692,10 @@ Selling price missing for item: {0},سعر البيع غير موجود للصن
 "Selling value is net of VAT — the profit is measured before tax, and the margin is profit over net selling.",مبلغ البيع صافٍ من ضريبة القيمة المضافة — فالربح محتسب قبل الضريبة، والنسبة = الربح ÷ صافي البيع.,
 Send email,إرسال البريد,
 Send invoice to customer,إرسال الفاتورة للعميل,
+Send now,أرسل الآن,Bunood POS
+Send or resolve the sales kept on this device first. Waiting: {0},أرسل المبيعات المحفوظة على هذا الجهاز أو عالجها أولًا. بانتظار الإرسال: {0},
+Sending the sales kept on this device…,جارٍ إرسال المبيعات المحفوظة على هذا الجهاز…,Bunood POS
+Sent to ERPNext when the connection returns.,يُرسل إلى ERPNext عند عودة الاتصال.,Bunood POS
 Sent to the card terminal,يُرسل لجهاز البطاقات,Bunood POS
 Separate receipt voucher,سند قبض مستقل,
 "Separated by AIR — generous space and no frame. The default, because this block sits inside containers that already frame it.",يفصلها الفراغ — مساحة سخية بلا إطار. الافتراضي، لأن هذه الكتلة تقع داخل حاويات تؤطّرها أصلاً.,
@@ -2832,6 +2855,8 @@ Soft Wash,صبغة ناعمة,
 Soft pill,كبسولة ناعمة,
 "Soft tiles, filled empties, rounded elevation throughout.",بطاقات ناعمة، وحالات فارغة ممتلئة، وارتفاع مستدير في كل مكان.,
 Sold,بِيع,Bunood POS
+Sold offline at {0},بيع دون اتصال في {0},
+Sold without a connection. The tax invoice follows when this device is back online.,بيع دون اتصال. تصدر الفاتورة الضريبية عند عودة هذا الجهاز للاتصال.,Bunood POS
 Solid,معتم,
 Solid Panels,ألواح صلبة,
 Solid Pill,كبسولة معتمة,
@@ -3135,6 +3160,7 @@ The rehearsal identity is required.,هوية تجربة الترحيل مطلو�
 The rehearsal site is required.,موقع التجربة مطلوب.,
 The report could not be run. Open the classic view for details.,تعذر تشغيل التقرير. افتح العرض التقليدي للتفاصيل.,
 "The report view's grid, grain and rows.",شبكة عرض التقرير ونسيجها وصفوفها.,
+The rest can stay on account only for a named customer.,لا يبقى الباقي على الحساب إلا لعميل مسمّى.,
 The rest can stay on account only for a named customer.,لا يُترك المتبقي دينًا إلا على عميل مسجّل.,Bunood POS
 The rest of a sale on a named customer's account.,باقي الفاتورة على حساب عميل مسمّى.,Bunood POS
 The return draft could not be created.,تعذّر إنشاء مسودة المرتجع.,Bunood POS
@@ -3142,6 +3168,7 @@ The return lines are not valid.,أسطر المرتجع غير صالحة.,
 The reviewer for material opening data must be different from the packet submitter.,يجب أن يكون مراجع البيانات الافتتاحية الجوهرية مختلفًا عن مقدم الحزمة.,
 The sale carries on either way.,لا يتوقف البيع في الحالتين.,Bunood POS
 The sale could not be held.,تعذّر تعليق الفاتورة.,Bunood POS
+The sale could not be kept on this device. Nothing was recorded.,تعذّر حفظ البيع على هذا الجهاز، ولم يُسجَّل شيء.,Bunood POS
 The sale was not submitted.,لم يُعتمد البيع.,Bunood POS
 The same design in daylight — a floating card lifted off the page instead of attached solid.,التصميم نفسه في وضح النهار — بطاقة عائمة مرفوعة عن الصفحة بدل اللوح المصمت الملتصق.,
 "The same row, pinned to the sidebar's foot.",الصف نفسه مثبتًا في قدم الشريط الجانبي.,
@@ -3149,6 +3176,7 @@ The screen,الشاشة,Bunood POS
 The screen button on the counter's bar opens the customer-facing window.,زر الشاشة في شريط نقطة البيع يفتح نافذة العميل.,Bunood POS
 The selected Task is not a Bunood readiness task.,المهمة المحددة ليست مهمة جاهزية لبنود.,
 "The selected tax template contains no tax rows. Choose a valid standard, zero-rate, exempt, or out-of-scope template.",القالب الضريبي المحدد لا يحتوي على بنود ضريبية. اختر قالباً صالحاً للضريبة القياسية أو الصفرية أو الإعفاء أو العمليات خارج النطاق.,
+The server did not take this sale.,لم يقبل الخادم هذا البيع.,Bunood POS
 The settings are not valid.,الإعدادات غير صالحة.,
 The settings could not be read.,تعذّرت قراءة الإعدادات.,Bunood POS
 The settings were not saved.,لم تُحفظ الإعدادات.,Bunood POS
@@ -3239,6 +3267,7 @@ This migration packet has no native Data Import datasets to reconcile.,لا تح
 This migration packet no longer matches its frozen scope.,لم تعد حزمة الترحيل هذه تطابق نطاقها المجمّد.,
 This migration packet no longer matches the current candidate. Create a new packet.,لم تعد حزمة الترحيل هذه تطابق النسخة المرشحة الحالية. أنشئ حزمة جديدة.,
 This month,هذا الشهر,
+This needs the connection. Selling continues meanwhile.,هذا يحتاج الاتصال، والبيع مستمر في الأثناء.,Bunood POS
 This packet predates database binding. Create and submit a new migration packet.,أُنشئت هذه الحزمة قبل إضافة ربط قاعدة البيانات. أنشئ حزمة ترحيل جديدة وقدّمها.,
 This packet predates environment binding. Create and submit a new migration packet.,أُنشئت هذه الحزمة قبل إضافة ربط البيئة. أنشئ حزمة ترحيل جديدة وقدّمها.,
 This packet predates explicit duplicate identity controls. Create and submit a new migration packet.,أُنشئت هذه الحزمة قبل إضافة ضوابط هوية التكرار الصريحة. أنشئ حزمة ترحيل جديدة وقدّمها.,
@@ -3260,6 +3289,8 @@ This record controls one native Data Import run on a different site database. It
 This rehearsal currently supports the native Data Import path only.,تدعم هذه التجربة حاليًا مسار استيراد البيانات المدمج فقط.,
 This rehearsal has no failed rows to download.,لا تحتوي هذه التجربة على صفوف فاشلة لتنزيلها.,
 This report is not installed on this site,هذا التقرير غير مثبت في هذا الموقع,
+This sale is being sent from another window. Try again in a moment.,هذا البيع يُرسل من نافذة أخرى. حاول بعد قليل.,
+This sale will not reach ERPNext. Print its provisional receipt first if you need a paper record. Discard it?,لن يصل هذا البيع إلى ERPNext. اطبع إيصاله المؤقت أولًا إن احتجت سجلًا ورقيًا. هل تتجاهله؟,Bunood POS
 This shift,هذه الوردية,
 This shift,هذه الوردية,Bunood POS
 This shift is out of date,هذه الوردية قديمة,Bunood POS
@@ -3301,6 +3332,7 @@ Total Debit,إجمالي المدين,
 Total Strings,إجمالي النصوص,
 Total credit,إجمالي الدائن,
 Total debit,إجمالي المدين,
+Total now: {0} · Collected: {1},الإجمالي الآن: {0} · المحصَّل: {1},
 Total purchases,إجمالي المشتريات,
 Total quantity,إجمالي الكمية,
 Total records,إجمالي السجلات,
@@ -3439,6 +3471,8 @@ Views Picker,منتقي العروض,
 Voucher,السند,
 Waiting,في الانتظار,
 Waiting for the counter…,بانتظار نقطة البيع…,Bunood POS
+Waiting to send: {0},بانتظار الإرسال: {0},
+Waiting: {0},بانتظار الإرسال: {0},
 Walk-in customer,عميل نقدي,
 Walk-in customer,عميل نقدي,Bunood POS
 Walk-in sales without a VAT number only: anyone in the queue can scan it.,للعميل النقدي بلا رقم ضريبي فقط، لأن أي شخص في الطابور يستطيع مسحه.,Bunood POS
@@ -3516,6 +3550,7 @@ Width Segment,مقطع العرض,
 Width toggle,مبدّل العرض,
 Width: following site default,العرض: بحسب افتراضي الموقع,
 Width: {0},العرض: {0},
+Without a connection a sale is paid in full.,بدون اتصال تُدفع الفاتورة كاملة.,Bunood POS
 Without pictures the catalogue is faster and clearer when most items are scanned.,بدون صور تكون القائمة أسرع وأوضح عندما تُمسح أغلب الأصناف بالباركود.,Bunood POS
 Wordmark,الاسم,
 Work queue,قائمة العمل,

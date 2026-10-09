@@ -2059,6 +2059,35 @@ html[data-theme] .bnd-pos {
 		text-align: center;
 	}
 
+	// ── Selling through a lost connection ───────────────────────────────
+	.bnd-pos__offline {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2) var(--bnd-sp-3);
+		flex: none;
+		padding: var(--bnd-sp-2) var(--bnd-sp-4);
+		background: color-mix(in srgb, var(--bnd-warn) 18%, var(--bnd-surface));
+		color: var(--bnd-ink);
+		font-size: var(--bnd-text-sm);
+
+		svg {
+			color: var(--bnd-warn);
+		}
+
+		&[data-online] {
+			background: color-mix(in srgb, var(--bnd-status-blue) 10%, var(--bnd-surface));
+
+			svg {
+				color: var(--bnd-status-blue);
+			}
+		}
+	}
+
+	.bnd-pos__done-main[data-offline] {
+		background: color-mix(in srgb, var(--bnd-warn) 10%, var(--bnd-surface));
+	}
+
 	// ── The settings page ───────────────────────────────────────────────
 	.bnd-pos__settings {
 		display: grid;
