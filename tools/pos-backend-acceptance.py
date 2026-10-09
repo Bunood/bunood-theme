@@ -134,6 +134,59 @@ def run() -> None:
         return_doc = frappe.get_doc(returned["doctype"], returned["name"])
         assert return_doc.docstatus == 0 and return_doc.return_against == checked_out["name"]
 
+        # Pre-release review, 2026-10-09. ERPNext keeps a cashier's discount only when the line's
+        # rate is the one it derives itself (the percentage rounded to its field, the amount
+        # rounded, then the rate); on a one-cent difference it treats the rate as typed, sets
+        # discount_percentage to 0, and Item.max_discount then checks nothing. 12.25 at 10% is a
+        # half-cent tie: the amount rounds one way and a rate computed directly the other.
+        code = item["item_code"]
+        exact_discount = cap_enforced = False
+        if profile.get("allow_discount_change"):
+            frappe.db.sql(
+                "update `tabItem Price` set price_list_rate = 12.25 where item_code = %s and price_list = %s",
+                (code, profile.get("selling_price_list")),
+            )
+            frappe.db.set_value("Item", code, "max_discount", 10, update_modified=False)
+            frappe.clear_document_cache("Item", code)
+            frappe.clear_cache(doctype="Item")
+            line = {**payload["items"][0], "discount_percentage": 10}
+            kept = pos.preview_cart({**payload, "items": [line]})["items"][0]
+            assert flt(kept.get("discount_percentage")) == 10, f"ERPNext dropped the 10% discount: {kept}"
+            saved, _ = pos._new_or_held({**payload, "items": [line]})
+            saved.insert()
+            assert flt(saved.items[0].discount_percentage) == 10, "The saved line lost its discount percentage."
+            exact_discount = True
+            try:
+                pos.preview_cart({**payload, "items": [{**line, "discount_percentage": 60.004}]})
+            except frappe.ValidationError:
+                cap_enforced = True
+            assert cap_enforced, "A discount above the item's maximum discount was accepted."
+
+        # Sold by a box of twelve, the line must move twelve stock units: the line carried a
+        # conversion factor of 1 whatever unit it was sold in.
+        box_moves_twelve = False
+        stock_uom = frappe.db.get_value("Item", code, "stock_uom")
+        taken = {stock_uom, *frappe.get_all("UOM Conversion Detail", filters={"parent": code, "parenttype": "Item"}, pluck="uom")}
+        box = next((uom for uom in ("Box", "Pack", "Carton", "Dozen", "Unit") if uom not in taken and frappe.db.exists("UOM", uom)), None)
+        assert box, "No spare unit of measure to sell the item by the box."
+        if box:
+            frappe.get_doc(
+                {"doctype": "UOM Conversion Detail", "parent": code, "parenttype": "Item", "parentfield": "uoms", "uom": box, "conversion_factor": 12, "idx": 99}
+            ).db_insert()
+            frappe.db.set_value("Item", code, "sales_uom", box, update_modified=False)
+            frappe.get_doc(
+                {"doctype": "Item Price", "item_code": code, "price_list": profile.get("selling_price_list"), "uom": box, "price_list_rate": 120}
+            ).insert(ignore_permissions=True)
+            frappe.clear_document_cache("Item", code)
+            frappe.clear_cache(doctype="Item")
+            boxed, _ = pos._new_or_held({**payload, "items": [{"item_code": code, "uom": box, "qty": 1}]})
+            row = boxed.items[0]
+            assert row.uom == box, f"The box ({box}) was not sold as a box: {row.uom}"
+            assert flt(row.conversion_factor) == 12 and flt(row.stock_qty) == 12, (
+                f"A box moved {row.stock_qty} stock units (conversion factor {row.conversion_factor})."
+            )
+            box_moves_twelve = True
+
         result = {
             "engine": context.get("engine"),
             "profile": profile_name,
@@ -146,6 +199,9 @@ def run() -> None:
             "return_draft": True,
             "discount_reaches_rate": discount_checked,
             "other_group_sells": other_group_checked,
+            "exact_discount_kept": exact_discount,
+            "max_discount_enforced": cap_enforced,
+            "box_moves_twelve": box_moves_twelve,
             "stale_shift_detected": stale_detected,
             "rolled_back": True,
         }

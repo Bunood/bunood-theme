@@ -139,13 +139,12 @@ def _profile_taxes(profile) -> list[dict[str, Any]]:
     """VAT rows for the counter's instant estimate while a preview is in flight.
 
     Display only: preview_cart and checkout run ERPNext's own tax calculation,
-    which stays the authority for every total the cashier collects.
+    which stays the authority for every total the cashier collects. Only the
+    profile's own template: ERPNext never applies the company's default template
+    to a POS invoice (set_taxes_and_charges returns early when is_pos is set), so
+    estimating from it would show VAT the sale does not charge.
     """
-    template = profile.taxes_and_charges or frappe.db.get_value(
-        "Sales Taxes and Charges Template",
-        {"company": profile.company, "is_default": 1, "disabled": 0},
-        "name",
-    )
+    template = profile.taxes_and_charges
     if not template:
         return []
     rows = frappe.get_all(
@@ -449,12 +448,25 @@ def _apply_cart(doc, data: dict[str, Any], profile) -> None:
         if flt(rate) < 0:
             frappe.throw(_("Rate cannot be negative."))
 
+        uom = authoritative.get("uom") or raw.get("uom")
+        stock_uom = authoritative.get("stock_uom") or frappe.get_cached_value("Item", item_code, "stock_uom")
+        # ERPNext's catalogue row carries no conversion factor, and ERPNext keeps a
+        # factor of 1 on a line whose unit differs from the stock unit: a box of
+        # twelve moved one stock unit. The factor comes from the item's own units.
+        conversion_factor = 1.0
+        if uom and uom != stock_uom:
+            from erpnext.stock.get_item_details import get_conversion_factor
+
+            conversion_factor = flt(get_conversion_factor(item_code, uom).get("conversion_factor"))
+            if conversion_factor <= 0:
+                frappe.throw(_("This unit has no conversion factor. Item: {0} · Unit: {1}").format(item_code, uom))
+
         row = {
             "item_code": item_code,
             "qty": qty,
-            "uom": authoritative.get("uom") or raw.get("uom"),
-            "stock_uom": authoritative.get("stock_uom"),
-            "conversion_factor": authoritative.get("conversion_factor") or 1,
+            "uom": uom,
+            "stock_uom": stock_uom,
+            "conversion_factor": conversion_factor,
             "warehouse": profile.warehouse,
             "price_list_rate": rate,
             "rate": rate,
@@ -470,11 +482,20 @@ def _apply_cart(doc, data: dict[str, Any], profile) -> None:
         child = doc.append("items", row)
         if discount:
             # ERPNext derives the rate from a discount only when the rate is empty
-            # (calculate_item_values), and this row always carries one. The native
-            # POS client sets both on a discount, so the server does the same.
-            child.discount_percentage = discount
-            child.rate = flt(flt(child.price_list_rate) * (1 - discount / 100), child.precision("rate"))
-            child.discount_amount = flt(flt(child.price_list_rate) - child.rate, child.precision("discount_amount"))
+            # (calculate_item_values), and this row always carries one, so the server
+            # sets the rate itself, by ERPNext's own steps (calculate_item_rate): the
+            # percentage rounded to its field, the amount rounded, then the rate. Any
+            # other rate, even a cent apart on a half-cent tie, reads as typed by hand:
+            # ERPNext then zeroes discount_percentage and Item.max_discount checks
+            # nothing. The cap is checked here too, so the preview refuses it.
+            child.discount_percentage = flt(discount, child.precision("discount_percentage"))
+            max_discount = flt(frappe.get_cached_value("Item", item_code, "max_discount"))
+            if max_discount and child.discount_percentage > max_discount:
+                frappe.throw(_("The discount is above the item's maximum. Item: {0} · Maximum discount: {1}%").format(item_code, max_discount))
+            child.discount_amount = flt(
+                flt(child.price_list_rate) * child.discount_percentage / 100.0, child.precision("discount_amount")
+            )
+            child.rate = flt(flt(child.price_list_rate) - child.discount_amount, child.precision("rate"))
 
     # This is ERPNext's own POS initializer. It resolves accounts, price-list
     # context, taxes, warehouse defaults and payment rows from the profile.

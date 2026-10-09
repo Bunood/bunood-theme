@@ -85,14 +85,23 @@ class POSWorkbenchContractTests(unittest.TestCase):
         # previewed and posted at full price.
         apply_cart = self.source.split("def _apply_cart", 1)[1].split("\ndef ", 1)[0]
         self.assertIn('child = doc.append("items", row)', apply_cart)
-        self.assertIn(
-            'child.rate = flt(flt(child.price_list_rate) * (1 - discount / 100), child.precision("rate"))',
-            apply_cart,
-        )
-        self.assertIn("child.discount_percentage = discount", apply_cart)
+        # ERPNext's own steps (calculate_item_rate), or it zeroes the percentage on a
+        # one-cent difference and Item.max_discount checks nothing; the live check
+        # (tools/pos-backend-acceptance.py) holds the 12.25-at-10% tie and the cap.
+        self.assertIn('child.discount_percentage = flt(discount, child.precision("discount_percentage"))', apply_cart)
+        self.assertIn("flt(child.price_list_rate) * child.discount_percentage / 100.0", apply_cart)
+        self.assertIn('child.rate = flt(flt(child.price_list_rate) - child.discount_amount, child.precision("rate"))', apply_cart)
+        self.assertIn("max_discount", apply_cart)
         self.assertIn("if discount < 0 or discount > 100:", apply_cart)
         self.assertIn("if profile.allow_discount_change and raw.get(\"discount_percentage\")", apply_cart)
         self.assertNotIn('row["discount_percentage"]', apply_cart)
+
+    def test_a_line_sold_in_another_unit_carries_its_conversion_factor(self):
+        # ERPNext's catalogue row has no conversion_factor: a box of twelve moved
+        # one stock unit. The live check sells a box and counts twelve.
+        apply_cart = self.source.split("def _apply_cart", 1)[1].split("\ndef ", 1)[0]
+        self.assertNotIn('authoritative.get("conversion_factor")', apply_cart)
+        self.assertIn("get_conversion_factor(item_code, uom)", apply_cart)
 
     def test_every_profile_group_is_sellable_not_only_the_first(self):
         # get_parent_item_group() answers the profile's FIRST group; starting a

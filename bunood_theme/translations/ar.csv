@@ -2845,6 +2845,7 @@ The current site identity is unavailable.,هوية الموقع الحالي غ�
 The desk before the body was rebuilt: floating cards on a hue-washed pane.,المكتب قبل إعادة بناء المتن: بطاقات عائمة على لوحة مغسولة بلون العلامة.,
 "The desk you are on is the preview: every choice applies to this page as you click, and saves on its own.",المكتب الذي أنت فيه هو المعاينة: كل اختيار يُطبَّق على هذه الصفحة فور النقر، ويُحفظ من تلقاء نفسه.,
 The desk's own glyphs at these settings.,أيقونات سطح المكتب بهذه الإعدادات.,
+The discount is above the item's maximum. Item: {0} · Maximum discount: {1}%,الخصم أعلى من الحد الأقصى للصنف. الصنف: {0} · أقصى خصم: {1}%,
 The document title and section headings.,عنوان المستند وعناوين الأقسام.,
 The document was not submitted. Review the highlighted fields.,لم يُعتمد المستند. راجع الحقول المميزة.,
 The draft was not saved. Review the message or open the advanced form.,لم تُحفظ المسودة. راجع الرسالة أو افتح النموذج المتقدم.,
@@ -3026,6 +3027,7 @@ This report is not installed on this site,هذا التقرير غير مثبت 
 This shift,هذه الوردية,
 This shift,هذه الوردية,Bunood POS
 This shift is out of date,هذه الوردية قديمة,Bunood POS
+This unit has no conversion factor. Item: {0} · Unit: {1},لا يوجد معامل تحويل لهذه الوحدة. الصنف: {0} · الوحدة: {1},
 This view does not declare the boundary reconciled. Qualified preparer and reviewer evidence remains required.,لا يعلن هذا العرض أن النطاق مطابَق، وتبقى إثباتات المُعِدّ والمراجع المؤهلَين مطلوبة.,
 Three lines,ثلاثة أسطر,
 "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look.",صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات.,

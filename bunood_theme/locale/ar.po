@@ -17326,3 +17326,13 @@ msgstr "دين على العميل"
 msgctxt "Bunood POS"
 msgid "All POS receipts"
 msgstr "كل إيصالات نقاط البيع"
+
+#. src: pos counter pre-release review 2026-10-09
+#, fuzzy
+msgid "This unit has no conversion factor. Item: {0} · Unit: {1}"
+msgstr "لا يوجد معامل تحويل لهذه الوحدة. الصنف: {0} · الوحدة: {1}"
+
+#. src: pos counter pre-release review 2026-10-09
+#, fuzzy
+msgid "The discount is above the item's maximum. Item: {0} · Maximum discount: {1}%"
+msgstr "الخصم أعلى من الحد الأقصى للصنف. الصنف: {0} · أقصى خصم: {1}%"
