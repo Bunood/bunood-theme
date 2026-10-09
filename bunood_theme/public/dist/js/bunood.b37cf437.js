@@ -12157,6 +12157,7 @@
 				view.toggleIndex.textContent = position;
 				view.toggleTitle.textContent = row.item_name || row.item_code || __("New line");
 				view.info.dataset.itemReady = String(!!row.item_code);
+				view.line.dataset.itemReady = String(!!row.item_code);
 				view.itemName.hidden = !row.item_code;
 				view.itemName.textContent = row.item_name || row.item_code || "";
 				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" · ");
