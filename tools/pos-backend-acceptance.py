@@ -72,6 +72,35 @@ def run() -> None:
         preview = pos.preview_cart(payload)
         assert flt(preview.get("grand_total")) > 0, "Native preview did not calculate a total."
 
+        # A line discount must reach the rate ERPNext charges: ERPNext derives a
+        # rate from discount_percentage only when the rate is empty, and every
+        # counter line carries one (2026-10-09: 10% previewed at full price).
+        discount_checked = False
+        if profile.get("allow_discount_change"):
+            discounted = pos.preview_cart(
+                {**payload, "items": [{**payload["items"][0], "discount_percentage": 10}]}
+            )
+            line = discounted["items"][0]
+            expected = flt(flt(line.get("price_list_rate")) * 0.9, 2)
+            assert abs(flt(line.get("rate")) - expected) <= 0.01, f"Discount not applied: {line}"
+            assert flt(discounted.get("net_total")) < flt(preview.get("net_total")), "Discount did not lower the total."
+            discount_checked = True
+
+        # Every group of the profile sells, not only the first one.
+        groups = [g if isinstance(g, str) else (g.get("name") or g.get("item_group")) for g in context.get("item_groups") or []]
+        other_group_checked = False
+        if len(groups) > 1:
+            others = [
+                row for row in (pos.get_items(profile_name, item_group=groups[-1], page_length=5).get("items") or [])
+                if flt(row.get("price_list_rate")) > 0
+            ]
+            if others:
+                other = pos.preview_cart(
+                    {**payload, "items": [{"item_code": others[0]["item_code"], "uom": others[0].get("uom"), "qty": 1}]}
+                )
+                assert flt(other.get("grand_total")) > 0, "An item of the profile's last group did not price."
+                other_group_checked = True
+
         ordinary_draft, _ = pos._new_or_held(payload)
         ordinary_draft.insert()
         assert not ordinary_draft.get(pos.HELD_FIELD)
@@ -115,6 +144,8 @@ def run() -> None:
             "submitted": True,
             "idempotent_checkout": True,
             "return_draft": True,
+            "discount_reaches_rate": discount_checked,
+            "other_group_sells": other_group_checked,
             "stale_shift_detected": stale_detected,
             "rolled_back": True,
         }
