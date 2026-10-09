@@ -79,6 +79,51 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn("getdate(row.period_start_date) != today", self.source)
         self.assertIn('"stale_opening_entry"', self.source)
 
+    def test_a_line_discount_reaches_the_rate_erpnext_charges(self):
+        # ERPNext derives a rate from discount_percentage only when the rate is
+        # empty, and every counter line carries one: before this, a 10% discount
+        # previewed and posted at full price.
+        apply_cart = self.source.split("def _apply_cart", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn('child = doc.append("items", row)', apply_cart)
+        self.assertIn(
+            'child.rate = flt(flt(child.price_list_rate) * (1 - discount / 100), child.precision("rate"))',
+            apply_cart,
+        )
+        self.assertIn("child.discount_percentage = discount", apply_cart)
+        self.assertIn("if discount < 0 or discount > 100:", apply_cart)
+        self.assertIn("if profile.allow_discount_change and raw.get(\"discount_percentage\")", apply_cart)
+        self.assertNotIn('row["discount_percentage"]', apply_cart)
+
+    def test_every_profile_group_is_sellable_not_only_the_first(self):
+        # get_parent_item_group() answers the profile's FIRST group; starting a
+        # lookup there hid, and refused at checkout, items filed under the others.
+        self.assertNotIn("get_parent_item_group", self.source)
+        self.assertIn('return get_root_of("Item Group")', self.source)
+        self.assertIn("group = item_group or _catalog_root()", self.source)
+        native = self.source.split("def _native_catalog_item", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn("_catalog_root(),", native)
+
+    def test_vat_rows_reach_the_counter_for_display_only(self):
+        taxes = self.source.split("def _profile_taxes", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn("frappe.get_all(", taxes)
+        self.assertIn('"Sales Taxes and Charges"', taxes)
+        self.assertIn('"included": bool(row.included_in_print_rate)', taxes)
+        self.assertIn('"taxes": _profile_taxes(profile)', self.source)
+        self.assertNotIn("ignore_permissions", taxes)
+
+    def test_holding_is_offered_only_where_the_marker_field_exists(self):
+        self.assertIn('"can_hold": _can_hold(invoice_type)', self.source)
+        self.assertIn("return bool(frappe.get_meta(invoice_type).has_field(HELD_FIELD))", self.source)
+        held = self.source.split("def held_carts", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn("if not _can_hold(invoice_type):\n        return []", held)
+        hold = self.source.split("def hold_cart", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn("if not _can_hold(_invoice_type()):", hold)
+
+    def test_customer_search_says_who_takes_a_tax_invoice(self):
+        search = self.source.split("def search_customers", 1)[1].split("\ndef ", 1)[0]
+        self.assertIn('"tax_id"', search)
+        self.assertIn('"customer_type"', search)
+
     def test_context_selects_profile_from_mapping_payload(self):
         self.assertIn('row["name"] for row in profiles if row["is_default"]', self.source)
         self.assertIn('profiles[0]["name"]', self.source)

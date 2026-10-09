@@ -135,6 +135,35 @@ def _payment_methods(profile) -> list[dict[str, Any]]:
     return rows
 
 
+def _profile_taxes(profile) -> list[dict[str, Any]]:
+    """VAT rows for the counter's instant estimate while a preview is in flight.
+
+    Display only: preview_cart and checkout run ERPNext's own tax calculation,
+    which stays the authority for every total the cashier collects.
+    """
+    template = profile.taxes_and_charges or frappe.db.get_value(
+        "Sales Taxes and Charges Template",
+        {"company": profile.company, "is_default": 1, "disabled": 0},
+        "name",
+    )
+    if not template:
+        return []
+    rows = frappe.get_all(
+        "Sales Taxes and Charges",
+        filters={"parent": template, "parenttype": "Sales Taxes and Charges Template"},
+        fields=["charge_type", "rate", "included_in_print_rate"],
+        order_by="idx asc",
+    )
+    return [
+        {
+            "charge_type": row.charge_type,
+            "rate": flt(row.rate),
+            "included": bool(row.included_in_print_rate),
+        }
+        for row in rows
+    ]
+
+
 def _profile_payload(profile) -> dict[str, Any]:
     return {
         "name": profile.name,
@@ -151,11 +180,28 @@ def _profile_payload(profile) -> dict[str, Any]:
         "print_format": profile.print_format or "POS Invoice",
         "print_receipt_on_order_complete": bool(profile.print_receipt_on_order_complete),
         "payments": _payment_methods(profile),
+        "taxes": _profile_taxes(profile),
     }
+
+
+def _can_hold(invoice_type: str) -> bool:
+    """Holding needs the hidden marker field that ``setup.ensure_pos_retail`` installs."""
+    return bool(frappe.get_meta(invoice_type).has_field(HELD_FIELD))
+
+
+def _catalog_root() -> str:
+    """The top of the item tree. ERPNext's own POS item-group condition still
+    confines every lookup to the profile's groups; starting from the profile's
+    FIRST group instead would hide, and refuse at checkout, every item filed
+    under its other groups."""
+    from frappe.utils.nestedset import get_root_of
+
+    return get_root_of("Item Group")
 
 
 def _capabilities(invoice_type: str) -> dict[str, bool]:
     return {
+        "can_hold": _can_hold(invoice_type),
         "can_create_invoice": bool(frappe.has_permission(invoice_type, ptype="create")),
         "can_submit_invoice": bool(frappe.has_permission(invoice_type, ptype="submit")),
         "can_print_invoice": bool(frappe.has_permission(invoice_type, ptype="print")),
@@ -288,12 +334,9 @@ def get_items(
     """Delegate catalogue search, barcode resolution, pricing and stock to ERPNext."""
     profile = _profile(pos_profile)
     _open_entry(profile.name)
-    from erpnext.selling.page.point_of_sale.point_of_sale import (
-        get_items as native_get_items,
-        get_parent_item_group,
-    )
+    from erpnext.selling.page.point_of_sale.point_of_sale import get_items as native_get_items
 
-    group = item_group or get_parent_item_group(profile.name)
+    group = item_group or _catalog_root()
     result = native_get_items(
         max(cint(start), 0),
         min(max(cint(page_length), 1), MAX_PAGE_LENGTH),
@@ -318,7 +361,7 @@ def search_customers(search_term: str = "", limit: int = 20) -> list[dict[str, A
         "Customer",
         filters=filters,
         or_filters=or_filters,
-        fields=["name", "customer_name", "mobile_no", "customer_group"],
+        fields=["name", "customer_name", "mobile_no", "customer_group", "customer_type", "tax_id"],
         order_by="customer_name asc",
         limit_page_length=min(max(cint(limit), 1), 40),
     )
@@ -347,16 +390,13 @@ def _number(value: Any, label: str) -> float:
 
 
 def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dict[str, Any]:
-    from erpnext.selling.page.point_of_sale.point_of_sale import (
-        get_items as native_get_items,
-        get_parent_item_group,
-    )
+    from erpnext.selling.page.point_of_sale.point_of_sale import get_items as native_get_items
 
     result = native_get_items(
         0,
         20,
         profile.selling_price_list,
-        get_parent_item_group(profile.name),
+        _catalog_root(),
         profile.name,
         item_code,
     ) or {"items": []}
@@ -422,12 +462,19 @@ def _apply_cart(doc, data: dict[str, Any], profile) -> None:
             "serial_no": raw.get("serial_no") or authoritative.get("serial_no"),
             "use_serial_batch_fields": 1,
         }
+        discount = 0.0
         if profile.allow_discount_change and raw.get("discount_percentage") not in (None, ""):
             discount = _number(raw.get("discount_percentage"), _("Discount"))
             if discount < 0 or discount > 100:
                 frappe.throw(_("Discount must be between 0 and 100."))
-            row["discount_percentage"] = discount
-        doc.append("items", row)
+        child = doc.append("items", row)
+        if discount:
+            # ERPNext derives the rate from a discount only when the rate is empty
+            # (calculate_item_values), and this row always carries one. The native
+            # POS client sets both on a discount, so the server does the same.
+            child.discount_percentage = discount
+            child.rate = flt(flt(child.price_list_rate) * (1 - discount / 100), child.precision("rate"))
+            child.discount_amount = flt(flt(child.price_list_rate) - child.rate, child.precision("discount_amount"))
 
     # This is ERPNext's own POS initializer. It resolves accounts, price-list
     # context, taxes, warehouse defaults and payment rows from the profile.
@@ -475,6 +522,7 @@ def _summary(doc) -> dict[str, Any]:
                 "item_name": row.item_name,
                 "qty": row.qty,
                 "uom": row.uom,
+                "price_list_rate": row.price_list_rate,
                 "rate": row.rate,
                 "amount": row.amount,
                 "discount_percentage": row.discount_percentage,
@@ -495,6 +543,8 @@ def preview_cart(payload: Any) -> dict[str, Any]:
 def hold_cart(payload: Any, draft_name: str | None = None) -> dict[str, Any]:
     """Insert or update a native draft; its document name is the resume token."""
     data = _cart(payload)
+    if not _can_hold(_invoice_type()):
+        frappe.throw(_("Holding sales is not set up on this site yet."))
     doc, _profile_doc = _new_or_held(data, draft_name)
     doc.set(HELD_FIELD, 1)
     if doc.is_new():
@@ -584,6 +634,8 @@ def held_carts(pos_profile: str, limit: int = 30) -> list[dict[str, Any]]:
     profile = _profile(pos_profile)
     invoice_type = _invoice_type()
     _require(invoice_type, "read")
+    if not _can_hold(invoice_type):
+        return []
     return frappe.get_list(
         invoice_type,
         filters={

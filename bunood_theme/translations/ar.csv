@@ -1,3 +1,4 @@
++ New customer,+ عميل جديد,Bunood POS
 "01 — Company, fiscal year and legal identity",01 — الشركة والسنة المالية والهوية القانونية,
 "02 — Chart, dimensions, tax and defaults",02 — دليل الحسابات والأبعاد والضريبة والإعدادات الافتراضية,
 "03 — Units, groups, warehouses and dimensions",03 — الوحدات والمجموعات والمستودعات والأبعاد,
@@ -68,6 +69,7 @@ A gallery tile's controls rest hidden and appear on hover or keyboard focus. Alw
 "A global strip above every page, carrying whatever you place in it. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load.",شريط عام فوق كل صفحة يحمل ما تضعه فيه. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي.,
 A hairline ring and a deep shadow — the panel lifts clear of the page. The default.,طوق رفيع وظلّ عميق — ترتفع اللوحة عن الصفحة. الخيار الافتراضي.,
 A healthy desk shows almost nothing. A signal appears only once it needs you.,المكتب السليم لا يكاد يعرض شيئًا. الإشارة تظهر فقط حين تحتاج إليك.,
+A held sale is a draft: it takes no stock and is not reported to ZATCA until it is paid.,الفاتورة المعلّقة مسودة: لا تخصم المخزون ولا تُبلَّغ لزاتكا حتى تُدفع.,Bunood POS
 A huge title and the total inverted — the strongest statement ink can make.,عنوان ضخم وإجمالي معكوس الألوان — أقوى ما يمكن أن يقوله الحبر.,
 "A leading > # or / narrows to actions, documents, or reports.",بدء السطر بـ > أو # أو / يحصر النتائج في الإجراءات أو المستندات أو التقارير.,
 A migration dataset is required.,مجموعة بيانات الترحيل مطلوبة.,
@@ -135,6 +137,7 @@ Action count,عدد المهام,
 Active Link Style,نمط الرابط النشط,
 Active link,الرابط النشط,
 "Add a line first, then scan again.",أضف صفًا أولًا ثم امسح مرة أخرى.,
+Add an item first,أضف صنفًا أولًا,Bunood POS
 Add at least one dataset before submitting this migration packet.,أضف مجموعة بيانات واحدة على الأقل قبل تقديم حزمة الترحيل.,
 Add at least one item before continuing.,أضف صنفاً واحداً على الأقل قبل المتابعة.,
 Add at least one item to the cart.,أضف صنفاً واحداً على الأقل إلى السلة.,
@@ -149,6 +152,7 @@ Add the items and quantities. Stock changes only after submission.,أضف الأ
 Add the migration reconciliation controls.,أضف ضوابط تسوية الترحيل.,
 "Add the products or services, quantities and prices the customer will receive.",أضف المنتجات أو الخدمات والكميات والأسعار التي سيحصل عليها العميل.,
 Add your first item. Prices and taxes follow your invoice settings.,أضف أول صنف. تتبع الأسعار والضرائب إعدادات فاتورتك.,
+Added: {0} {1},أُضيف: {0} {1},
 Additional details,تفاصيل إضافية,
 Additional filters: {0},عوامل تصفية إضافية: {0},
 Address and area,العنوان والمساحة,
@@ -168,10 +172,12 @@ Alert,تنبيه,
 Alerts on the phone bar,التنبيهات على شريط الهاتف,
 All Apps,كل التطبيقات,
 All Apps Link Placement,موضع رابط كل التطبيقات,
+All POS receipts,كل إيصالات نقاط البيع,Bunood POS
 All Toasts,كل التنبيهات,
 All apps link,رابط كل التطبيقات,
 All columns,كل الأعمدة,
 All companies,جميع الشركات,
+All items,كل الأصناف,Bunood POS
 All permitted companies,جميع الشركات المصرح بها,
 All permitted sales,جميع المبيعات المصرح بها,
 All read,الكل مقروء,
@@ -244,6 +250,7 @@ Arrows,سهمان,
 As of,حتى تاريخ,
 As of today,حتى اليوم,
 Ask an Accounts Manager with ZATCA settings access to complete this step.,اطلب من مدير حسابات لديه صلاحية إعدادات الفوترة الإلكترونية إكمال هذه الخطوة.,
+Ask the system manager to create a POS Profile and assign it to your user.,اطلب من مسؤول النظام إنشاء ملف نقطة بيع وربطه بمستخدمك.,Bunood POS
 Asset attention is required,يلزم الانتباه إلى الأصول,
 Asset evidence is incomplete,بيانات الأصول غير مكتملة,
 Asset or purpose,الأصل أو الغرض,
@@ -278,7 +285,9 @@ Average invoice,متوسط الفاتورة,
 Average order value,متوسط قيمة أمر البيع,
 Awaiting response,بانتظار الرد,
 Back,رجوع,
+Back / cancel,رجوع / إلغاء,Bunood POS
 Back crumb on small screens,رابط رجوع على الشاشات الصغيرة,
+Back to items,رجوع للأصناف,Bunood POS
 Back to settings,العودة إلى الإعدادات,
 Back to {0},العودة إلى {0},
 Background export requested. Download link email: {0},طُلب التصدير في الخلفية. سيصل رابط التنزيل إلى البريد: {0},
@@ -301,7 +310,9 @@ Bank transaction,معاملة بنكية,
 Banking actions,إجراءات الحساب البنكي,
 Banking evidence could not be loaded,تعذر تحميل أدلة تسوية الحساب البنكي,
 Barcode,الباركود,
+Barcode saved — {0} → {1},حُفظ الباركود — {0} ← {1},
 Bars & panes,الأشرطة واللوحات,
+Before VAT,قبل الضريبة,Bunood POS
 "Before submission, enter the Cash and Network amounts. ERPNext will post two linked Payment Entries and settle this invoice.",أدخل المبلغ النقدي ومبلغ الشبكة قبل الاعتماد. سينشئ ERPNext سندَي دفع مرتبطين ويسوّي هذه الفاتورة.,
 Before this period,قبل هذه الفترة,
 Bell,الجرس,
@@ -312,6 +323,7 @@ Beside,بجانب النموذج,
 Beside totals,بجوار الإجماليات,
 Beyond the desk,خارج المكتب,
 Bilingual Split,ثنائية اللغة,
+Bill,الفاتورة,Bunood POS
 Bill total,إجمالي الفاتورة,
 Blocked: this is the frozen source site. Restore the packet to a separate rehearsal site first.,محظور: هذا هو موقع المصدر المجمّد. استعد الحزمة إلى موقع تجربة منفصل أولًا.,
 Blocked: this site points to the frozen source database. Use a separate restored database.,محظور: يشير هذا الموقع إلى قاعدة بيانات المصدر المجمّدة. استخدم قاعدة بيانات مستعادة منفصلة.,
@@ -334,6 +346,7 @@ Bottom Bar Center,وسط الشريط السفلي,
 Bottom Bar End,نهاية الشريط السفلي,
 Bottom Bar Start,بداية الشريط السفلي,
 Bottom bar,الشريط السفلي,
+Box,كرتون,Bunood POS unit
 Boxed,مربَّعات,
 Boxed Classic,الكلاسيكي المؤطَّر,
 Branch,الفرع,
@@ -377,6 +390,7 @@ Bunood Migration Rehearsal Result,نتيجة تجربة ترحيل بنود,
 Bunood Migration Run,تشغيل ترحيل بنود,
 Bunood Night,بنود ليلي,
 Bunood POS,نقطة بيع بنود,
+Bunood POS,نقطة بيع بنود,Bunood POS
 Bunood Palette,لوحة بنود,
 Bunood Readiness Review,مراجعة جاهزية بنود,
 Bunood Readiness Reviewer,مراجع جاهزية بنود,
@@ -391,12 +405,15 @@ Busiest day,أكثر الأيام,
 Business identity and duplicate policy,هوية العمل وسياسة التكرار,
 Business owner,مالك المنشأة,
 Buying,المشتريات,
+"By mobile, name or VAT number",بالجوال أو الاسم أو الرقم الضريبي,Bunood POS
+By weight,بالوزن,Bunood POS
 CRM,إدارة علاقات العملاء,
 CRM deal,صفقة CRM,
 CRM is not installed.,CRM غير مثبّت.,
 Call to Action,دعوة إلى الإجراء,
 Camera scanning is not available in this browser. Type the barcode in item search.,المسح بالكاميرا غير متاح في هذا المتصفح. اكتب الباركود في بحث الأصناف.,
 Cancel,إلغاء,
+Cancel,إلغاء,Bunood POS
 Cancel document,إلغاء المستند,
 Candidate digest,بصمة النسخة المرشحة,
 Candidate reference,مرجع النسخة المرشحة,
@@ -413,7 +430,9 @@ Capture and submit the isolated rehearsal result before downloading failed rows.
 Captured at,وقت التسجيل,
 Captured by,سجّلها,
 Carbon,كربون,
+Card,البطاقة,Bunood POS
 Card depth,عمق البطاقة,
+Card for the full amount,بطاقة بالمبلغ كاملًا,Bunood POS
 Card rows,صفوف البطاقة,
 Carrying value,القيمة الدفترية,
 Cash Flow,التدفقات النقدية,
@@ -427,6 +446,7 @@ Cash and bank accounts,الصناديق والبنوك,
 Cash and bank control,ضبط النقد والبنوك,
 "Cash, bank, advances and open allocations",النقد والبنوك والدفعات المقدمة والتخصيصات المفتوحة,
 "Cash, payments and POS",النقد والمدفوعات ونقطة البيع,
+Cashier,الكاشير,
 Cashier desk,مساحة عمل أمين الصندوق,
 Center,الوسط,
 Centered Mark,شعار في المنتصف,
@@ -434,6 +454,8 @@ Centred,موسّط,
 "Centred in the bottom strip, beside the status signals.",في وسط الشريط السفلي، إلى جوار إشارات الحالة.,
 Centred in the top bar — the modern default.,في وسط الشريط العلوي — الافتراضي العصري.,
 Change,تغيير,
+Change for the customer,الباقي للعميل,Bunood POS
+Change the filter or search by invoice number.,غيّر التصفية أو ابحث برقم الفاتورة.,Bunood POS
 Changed,مُغيَّر,
 Changes apply as you click — there is nothing to save.,التغييرات تسري وأنت تنقر — لا شيء يحتاج حفظًا.,
 Changes apply on the palette's next open — press Ctrl+K to try it.,التغييرات تسري عند فتح اللوحة القادم — اضغط Ctrl+K لتجربتها.,
@@ -454,10 +476,13 @@ Chip,شريحة,
 Choose a bank account,اختر حسابًا بنكيًا,
 "Choose a company and dates, then review the evidence. No books are changed here.",اختر الشركة والتواريخ ثم راجع المستندات المؤيدة. لا تتغير الدفاتر في هذه الخطوة.,
 Choose a company and period first,اختر الشركة والفترة أولًا,
+Choose a customer,اختيار عميل,Bunood POS
 Choose a customer before continuing.,اختر عميلاً قبل المتابعة.,
 Choose a customer before saving the sale.,اختر عميلاً قبل حفظ عملية البيع.,
 Choose a customer before setting VAT.,اختر عميلاً قبل تحديد ضريبة القيمة المضافة.,
 Choose a customer to see their document context here.,اختر عميلاً لعرض سياق مستنداته هنا.,
+Choose a line from the bill first,اختر سطرًا من الفاتورة أولًا,Bunood POS
+Choose a payment method above or beside the pad — or press Complete to take the exact amount in cash,اختر طريقة الدفع من الأعلى أو بجانب لوحة الأرقام — أو اضغط «إتمام» لتحصيل المبلغ المضبوط نقدًا,Bunood POS
 Choose a submitted sale receipt to return.,اختر إيصال بيع معتمداً لإنشاء المرتجع.,
 Choose a supplier before continuing.,اختر مورداً قبل المتابعة.,
 Choose a supplier before setting VAT.,اختر مورداً قبل تحديد ضريبة القيمة المضافة.,
@@ -492,16 +517,19 @@ Classic view,العرض التقليدي,
 Claude API Key,مفتاح Claude API,
 Claude Model,نموذج Claude,
 Clear,مسح,
+Clear,مسح,Bunood POS
 Clearance switched off,التخليص معطل,
 Clears what the frecency ranking has learned for your user.,يمسح ما تعلمه ترتيب الاستخدام لمستخدمك.,
 Click,النقر,
 Click to cycle how wide the body runs. Each person sets their own; the site width below is what they start from.,انقر لتدوير عرض متن الصفحة. كل شخص يضبط عرضه الخاص، وعرض الموقع أدناه هو ما يبدأ منه.,
 Click to cycle row density.,انقر للتنقل بين كثافات الصفوف.,
 Clock,الساعة,
+Close,إغلاق,Bunood POS
 Close and VAT,الإقفال والضريبة,
 Close customer and preview panel,إغلاق لوحة العميل والمعاينة,
 Close notifications,إغلاق الإخطارات,
 Close path,مسار الإقفال,
+Close the shift,إغلاق الوردية,Bunood POS
 Closing Balance,الرصيد الختامي,
 Closing Vouchers,سندات إقفال الفترة,
 Closing credit balance,الرصيد الختامي (دائن),
@@ -520,6 +548,7 @@ Colours follow the site.,الألوان تتبع إعدادات الموقع.,
 Comfortable,مريحة,
 Command Palette,لوحة الأوامر,
 Command palette,لوحة الأوامر,
+Commands,الأوامر,Bunood POS
 Commercial terms,الشروط التجارية,
 Commission earned by each sales person on submitted invoices,العمولة المستحقة لكل مندوب على الفواتير المعتمدة,
 Commitment,الالتزام,
@@ -542,11 +571,13 @@ Company setup needed,إعداد الشركة مطلوب,
 Compare,مقارنة,
 Comparing: {0},مقارنة: {0},
 Complete,مكتمل,
+Complete,إتمام,Bunood POS
 Complete Sandbox checks and obtain the Sandbox-issued CSID.,أكمل فحوصات بيئة الاختبار واستخرج شهادة الجهاز الصادرة لها.,
 Complete device onboarding with the OTP from Fatoora.,أكمل تهيئة الجهاز باستخدام رمز التحقق من منصة فاتورة.,
 Complete every applicable reconciliation value and evidence reference before submitting.,أكمل كل قيمة تسوية منطبقة ومرجع دليل قبل التقديم.,
 Complete the connector's OTP onboarding in native settings.,أكمل تسجيل الجهاز برمز التحقق في إعدادات الموصل الأصلية.,
 "Complete the required fields highlighted in the form, then try again.",أكمل الحقول المطلوبة المميزة في النموذج، ثم أعد المحاولة.,
+Completing the sale…,جارٍ إتمام البيع…,Bunood POS
 Compliance,الامتثال,
 Compose,تأليف,
 Composed from your logo and names and kept in sync with your colours. Frappe's own leaves whatever Letter Head the site already uses untouched.,تُكوَّن من شعارك واسمَيك وتبقى مُزامَنة مع ألوانك. «ترويسة فرابي» تُبقي أي ترويسة يستخدمها الموقع كما هي.,
@@ -562,6 +593,7 @@ Confirm your authority before submitting this review.,أكد صلاحيتك قب
 Confirm your reconciliation authority before submitting.,أكد صلاحيتك لمراجعة التسوية قبل التقديم.,
 Confirmation,التأكيد,
 Confirms authority to review this evidence only; it is not production go-live approval.,يؤكد صلاحية مراجعة هذه الأدلة فقط؛ ولا يُعد اعتمادًا لبدء الإنتاج.,
+Connected,متصل,Bunood POS
 Connection Segment,مقطع الاتصال,
 "Connection, density and the clock only. No server calls at all.",الاتصال والكثافة والساعة فقط. بلا أي نداءات للخادم.,
 Connector installed,الموصل مثبت,
@@ -612,8 +644,11 @@ Count,عدد,
 Count Badges,شارات العدد,
 Count badges,شارات العدد,
 Count context,سياق الجرد,
+Count for the next scan,العدد للصنف الممسوح التالي,Bunood POS
+Count the opening cash in the drawer,عدّ النقد الافتتاحي في الدرج,Bunood POS
 Counted,بعدّاد,
 Counted stock,المخزون المعدود,
+Counter settings,إعدادات نقطة البيع,Bunood POS
 Counts,أعداد,
 Counts and row outcomes are copied from the permissioned native Data Import result. Error text is retained only in the native log.,تُنسخ الأعداد ونتائج الصفوف من نتيجة استيراد البيانات المدمج المصرح بها. ويظل نص الخطأ محفوظًا في السجل المدمج فقط.,
 "Counts every submitted invoice in the period, returns included — a return is a document too.",يعدّ كل فاتورة معتمدة في الفترة، والمرتجعات منها — المرتجع مستندٌ أيضاً.,
@@ -626,6 +661,7 @@ Create Sales Invoice,إنشاء فاتورة مبيعات,
 Create Sales Order,إنشاء أمر بيع,
 Create ZATCA Business Settings for this company.,أنشئ إعدادات الفوترة الإلكترونية لهذه الشركة.,
 Create a correction only from a submitted mapped migration packet.,أنشئ التصحيح من حزمة ترحيل مقدّمة ومكتملة التعيين فقط.,
+"Create a return from receipt {0}? It opens as a draft you can edit, then submit.",إنشاء مرتجع من الإيصال {0}؟ يُفتح مسودةً تعدّلها ثم تعتمدها.,
 Create and open the readiness work plan before recording a review.,أنشئ خطة أعمال الجاهزية وافتحها قبل تسجيل مراجعة.,
 Create migration reconciliation from a submitted successful rehearsal.,أنشئ تسوية الترحيل من تجربة ناجحة مقدّمة.,
 Create or enable a company bank account before importing a statement.,أنشئ حسابًا بنكيًا للشركة أو فعّله قبل استيراد كشف الحساب.,
@@ -655,6 +691,7 @@ Current shift,الوردية الحالية,
 Current state,الحالة الحالية,
 Custom Period,فترة مخصصة,
 "Custom — your own combination. Picking a look overwrites every setting it names, including the colours.",مخصّص — تركيبتك أنت. اختيار مظهر يستبدل كل إعداد يسمّيه، بما في ذلك الألوان.,
+Customer,العميل,Bunood POS
 Customer & preview,العميل والمعاينة,
 Customer Acquisition and Loyalty,اكتساب العملاء وولاؤهم,
 Customer Ledger Summary,ملخص دفتر أستاذ العملاء,
@@ -667,8 +704,11 @@ Customer or supplier payment,دفعة عميل أو مورد,
 Customer refund,رد مبلغ للعميل,
 Customer sale,بيع لعميل,
 "Customer, company and validity stay together at the top of the offer.",تظهر بيانات العميل والشركة وصلاحية العرض معًا في أعلى الصفحة.,
+Customer: {0},العميل: {0},
+Customers,العملاء,Bunood POS
 Customers Without Any Sales Transactions,عملاء بلا أي معاملات بيع,
 Customers and suppliers,العملاء والموردون,
+Customers could not be loaded.,تعذّر تحميل العملاء.,Bunood POS
 Customers on the books who have never bought,عملاء في الدفاتر لم يشتروا قط,
 "Customers, suppliers and terms",العملاء والموردون والشروط,
 Cutover and recovery,الانتقال والاستعادة,
@@ -703,13 +743,18 @@ DeepL API Key,مفتاح DeepL API,
 Default,الافتراضي,
 Default Density,الكثافة الافتراضية,
 Default destination,الوجهة الافتراضية,
+Default for this point of sale — simplified invoice,الافتراضي لنقطة البيع هذه — فاتورة مبسطة,Bunood POS
 Default warehouse,المستودع الافتراضي,
 Defaults,القيم الافتراضية,
 Deferred accounting,المحاسبة المؤجلة,
 Deferred revenue and expense,الإيرادات والمصروفات المؤجلة,
 "Define what is included, excluded, archived externally and why this migration strategy was approved.",حدّد ما يشمله الترحيل وما يُستبعد أو يُؤرشف خارجيًا، وسبب اعتماد هذه الاستراتيجية.,
 Delete,حذف,
+Delete,حذف,Bunood POS
+Delete a digit,حذف رقم,Bunood POS
 Delete draft,حذف المسودة,
+Delete line,حذف السطر,Bunood POS
+Delete the line,حذف السطر,Bunood POS
 Delivered Items To Be Billed,أصناف سُلّمت ولم تُفوتر,
 Deliveries,التسليمات,
 Delivery Note,إذن تسليم,
@@ -753,15 +798,19 @@ Differs from default,يختلف عن الافتراضي,
 Dim,تعتيم,
 Direction,اتجاه الحركة,
 Disbursement Voucher,سند صرف,
+Disc %,خصم %,Bunood POS
 Discard changes and switch,تجاهل التغييرات والتبديل,
 Discard unsaved changes and reload this document?,هل تريد تجاهل التغييرات غير المحفوظة وإعادة تحميل هذا المستند؟,
 Discount,الخصم,
+Discount,الخصم,Bunood POS
+Discount %,الخصم %,Bunood POS
 Discount (%),الخصم (%),
 Discount Amount,مبلغ الخصم,
 Discount Amount (incl. tax),مبلغ الخصم (شامل الضريبة),
 "Discount amounts need an item price in the selected price list. Choose a priced item or price list, or set Discount Amount to 0 and use Net unit price.",يتطلب مبلغ الخصم سعراً للصنف في قائمة الأسعار المحددة. اختر صنفاً له سعر أو قائمة أسعار أخرى، أو اجعل مبلغ الخصم صفراً واستخدم صافي سعر الوحدة.,
 Discount and tax,الخصم والضريبة,
 Discount must be between 0 and 100.,يجب أن تكون نسبة الخصم بين 0 و100.,
+Dismiss,تجاهل,Bunood POS
 Display,عرض بارز,
 Disposed,مستبعد,
 Divided,مقسّم,
@@ -802,6 +851,7 @@ Drafts observed,المسودات المرصودة,
 "Drag a control onto the desk, click it and then click where it should go, or pick it up and use its Move to menu.",اسحب عنصر تحكم إلى المكتب، أو انقره ثم انقر حيث ينبغي أن يذهب، أو التقطه واستخدم قائمة «نقل إلى» الخاصة به.,
 "Drag to move, or click to pick up",اسحب للنقل، أو انقر للالتقاط,
 Drawer,دُرج,
+Due,المطلوب,Bunood POS
 Due or failed depreciation and open repairs,إهلاك مستحق أو متعثر وإصلاحات مفتوحة,
 Due soon,الموعد قريب,
 Duotone,ثنائي اللون,
@@ -860,6 +910,7 @@ Enable the integration for Sandbox only after reviewing setup.,فعّل الرب
 Engineering Office,المكتب الهندسي,
 English,الإنجليزية,
 English only,الإنجليزية فقط,
+Enter,إدخال,Bunood POS
 Enter a WhatsApp number with its country code.,أدخل رقم واتساب مع رمز الدولة.,
 Enter a payment amount.,أدخل مبلغ الدفع.,
 Enter a price before discount first.,أدخل السعر قبل الخصم أولاً.,
@@ -868,6 +919,7 @@ Enter the lowercase SHA-256 receipt digest from the prior rehearsal.,أدخل ب
 Enter the paid and received amounts in their native currencies.,أدخل المبلغ المدفوع والمبلغ المستلم بعملتيهما الأصليتين.,
 Enter the physical quantity and valuation for every counted item.,أدخل الكمية الفعلية والتقييم لكل صنف تم جرده.,
 "Enter the two-letter ISO country code, such as SA for Saudi Arabia—not a numeric code. Search for the country first to avoid a duplicate.",أدخل رمز الدولة المكوّن من حرفين وفق معيار ISO، مثل SA للسعودية، وليس رقماً. ابحث عن الدولة أولاً لتجنّب تكرارها.,
+Enter to apply,Enter للتطبيق,Bunood POS
 Enter valid Cash and Network amounts.,أدخل مبالغ صحيحة للنقد والشبكة.,
 Entry type,نوع القيد,
 Environment,البيئة,
@@ -904,6 +956,9 @@ Evidence,الأدلة,
 Evidence incomplete,الأدلة غير مكتملة,
 Evidence reference,مرجع الدليل,
 Exact,متطابق,
+Exact,المضبوط,Bunood POS
+Exact cash,نقدي مضبوط,Bunood POS
+Exact cash and finish,نقدي مضبوط وإنهاء,Bunood POS
 Exact controls,الضوابط المتطابقة,
 "Exact release or configuration candidate reviewed, such as a release tag, commit plus asset hashes, or an approved run-packet identifier.",النسخة الدقيقة للإصدار أو الإعدادات التي تمت مراجعتها، مثل وسم إصدار أو التزام مع بصمات الملفات أو معرّف حزمة تشغيل معتمدة.,
 "Exact site, release and mapping candidate. It is included in the frozen digest.",الموقع والإصدار ونسخة تعيين الحقول المرشحة بدقة. تُضمَّن في البصمة المجمّدة.,
@@ -938,6 +993,7 @@ Failure,فشل,
 Fallback Rows,صفوف احتياطية,
 Fallback rows,صفوف احتياطية,
 Favicon,أيقونة الموقع,
+Fewer {0},إنقاص فئة {0},
 Filing company,المنشأة المقدِّمة,
 Filing details,بيانات الإقرار,
 Filing period,الفترة الضريبية,
@@ -1039,6 +1095,7 @@ Fulfilment and pricing,التنفيذ والتسعير,
 Full,كامل,
 Full Bleed,عرض كامل,
 Full connector diagnostic is available in the native record.,التشخيص الكامل للموصل متاح في السجل الأصلي.,
+Full screen,ملء الشاشة,Bunood POS
 Full-width rules and a boxed total — the classical accounting document.,خطوط بكامل العرض وإجمالي مؤطَّر — المستند المحاسبي الكلاسيكي.,
 Fully allocated,مخصّص بالكامل,
 Fully depreciated,مُهلك بالكامل,
@@ -1060,6 +1117,7 @@ Good evening,مساء الخير,
 Good morning,صباح الخير,
 Google Translate API Key,مفتاح Google Translate API,
 Gradient,متدرّج,
+Gram,غرام,Bunood POS unit
 Grand total,الإجمالي العام,
 "Grid checkboxes rest hidden and appear on hover, keyboard focus, or while anything is selected. Always visible on touch screens.",مربعات اختيار الجدول تستقر مخفية وتظهر عند التحويم أو تركيز لوحة المفاتيح أو ما دام شيء محددًا. ظاهرة دائمًا على شاشات اللمس.,
 "Grid rows rest clean; a checkbox appears on hover or keyboard focus, and all of them while anything is selected. Always visible on touch.",صفوف الجدول تستقر نظيفة؛ يظهر مربع الاختيار عند التحويم أو تركيز لوحة المفاتيح، وتظهر كلها ما دام شيء محددًا. ظاهرة دائمًا على اللمس.,
@@ -1089,19 +1147,30 @@ Headed Panel,لوحة معنونة,
 Header tone,نبرة الرأس,
 Headings,العناوين,
 Headline,عنوان رئيسي,
+Held,المعلّقة,Bunood POS
+Held as {0} — F7 to bring it back,عُلّقت برقم {0} — F7 لاستعادتها,
+Held bill,فاتورة معلّقة,Bunood POS
 Held sales,المبيعات المعلّقة,
+Held sales,الفواتير المعلّقة,Bunood POS
 Helpdesk is not installed.,Helpdesk غير مثبّت.,
 Helpdesk ticket,تذكرة الدعم,
 Hero Band,الشريط الرئيسي,
 Hide applies only where the QR is optional — a simplified tax invoice keeps its QR and its warning regardless.,«إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة المبسطة تحتفظ برمزها وبتحذيرها مهما كان الاختيار.,
 Hide the side pane,إخفاء اللوحة الجانبية,
 Highlights Band,شريط الأبرز,
+Hold,تعليق,Bunood POS
+"Hold a bill with F6 to serve the next customer, then bring it back with F7.",علّق الفاتورة بـ F6 لتخدم العميل التالي، ثم استعدها بـ F7.,Bunood POS
 Hold sale,تعليق العملية,
+Hold the bill,تعليق الفاتورة,Bunood POS
+Holding sales is not set up on this site yet.,تعليق الفواتير غير مُفعّل في هذا النظام بعد.,
+Holding sales is not set up on this site yet.,تعليق الفواتير غير مُفعّل في هذا النظام بعد.,Bunood POS
+Holding the sale…,جارٍ تعليق الفاتورة…,Bunood POS
 Home & All Apps,الرئيسية وكل التطبيقات,
 Home Link Placement,موضع رابط الرئيسية,
 Home link,رابط الصفحة الرئيسية,
 "Horizontal rules only — the accounting ledger, header on the canvas.",خطوط أفقية فقط — دفتر الأستاذ المحاسبي، برأس بلا تعبئة.,
 "Horizontal rules only — the value scale, and nothing competing with it.",خطوط أفقية فقط — مقياس القيمة، دون أي شيء ينافسه.,
+Hour,ساعة,Bunood POS unit
 Hover,التحويم,
 Hover + Pin,التحويم مع التثبيت,
 Hover + pin,التحويم مع التثبيت,
@@ -1169,6 +1238,7 @@ Import type,نوع الاستيراد,
 Imported deposits,الإيداعات المستوردة,
 Imported withdrawals,المسحوبات المستوردة,
 "Imported — created: {0}, updated: {1}, left empty: {2}",استُورد — أُنشئ: {0}، حُدّث: {1}، تُرك فارغًا: {2},
+In stock {0},متوفر {0},
 In use,قيد الاستخدام,
 Inactive Sales Items,الأصناف الراكدة,
 Inbox + Page,الوارد مع صفحة,
@@ -1199,6 +1269,7 @@ Integrations and credentials,التكاملات وبيانات الاعتماد,
 Interactive chart,رسم بياني تفاعلي,
 "Interactive elements: links, focus rings, primary actions.",العناصر التفاعلية: الروابط وحلقات التركيز والإجراءات الأساسية.,
 Internal Transfer,تحويل داخلي,
+Into the drawer,إلى الدرج,Bunood POS
 Invalid ZATCA status filter.,مرشح حالة زاتكا غير صالح.,
 Invalid end date.,تاريخ النهاية غير صالح.,
 Invalid invoice page cursor.,مؤشر صفحة الفواتير غير صالح.,
@@ -1223,6 +1294,7 @@ Invoice monitor is temporarily unavailable.,متابعة الفواتير غير
 Invoice movement — {0},حركة الفواتير — {0},
 Invoice number,رقم الفاتورة,
 Invoice number assigned on save; set the series in Document options.,يُحدّد رقم الفاتورة عند الحفظ؛ اضبط سلسلة الترقيم في خيارات المستند.,
+Invoice number or customer,رقم الفاتورة أو العميل,Bunood POS
 Invoice print preview is unavailable. Try again shortly.,معاينة طباعة الفاتورة غير متاحة. أعد المحاولة بعد قليل.,
 Invoice status,حالة الفواتير,
 Invoice submitted,اعتُمدت الفاتورة,
@@ -1240,7 +1312,9 @@ Isolation proof,إثبات العزل,
 Item,الصنف,
 Item code,رمز الصنف,
 Item group,مجموعة الأصناف,
+Item groups,مجموعات الأصناف,Bunood POS
 Item name,اسم الصنف,
+Item name,اسم الصنف,Bunood POS
 Item saved: {0},حُفظ الصنف: {0},
 Item table,جدول البنود,
 Item unavailable in this POS Profile: {0},الصنف غير متاح في ملف نقطة البيع هذا: {0},
@@ -1249,6 +1323,7 @@ Item-wise Sales History,تاريخ المبيعات حسب الصنف,
 Item-wise Sales Register,تقرير المبيعات حسب الصنف,
 Items,الأصناف,
 Items before discount,الأصناف قبل الخصم,
+Items could not be loaded.,تعذّر تحميل الأصناف.,Bunood POS
 Items requiring attention,بنود تحتاج إلى الانتباه,
 "Items that have not sold for a while, by territory",أصناف لم تُبَع منذ مدة، حسب منطقة البيع,
 Items total,إجمالي الأصناف,
@@ -1282,6 +1357,7 @@ Key columns,الأعمدة الرئيسة,
 Keyboard Triage,الفرز بلوحة المفاتيح,
 Keyboard triage,الفرز بلوحة المفاتيح,
 "Keys stay on the server: every provider call is made from Python, and a Password field is encrypted at rest and never enters the boot payload.",المفاتيح تبقى على الخادم: كل نداء مزوّد يُجرى من Python، وحقل كلمة المرور مشفّر في التخزين ولا يدخل حمولة الإقلاع أبدًا.,
+Kg,كجم,Bunood POS unit
 Kind,النوع,
 Label each row Approval / Mention / Share so a mixed list stays scannable.,وسم كل صف بموافقة / إشارة / مشاركة لتبقى القائمة المختلطة سهلة المسح.,
 Labels on brand fills are dark rather than white.,التسميات على تعبئات الهوية داكنة لا بيضاء.,
@@ -1308,6 +1384,8 @@ Layout preset: {0}. Each mark is a control — select it to change where that pi
 Lease,عقد إيجار,
 Leasing,التأجير,
 Leasing and status,التأجير والحالة,
+Leave full screen,الخروج من ملء الشاشة,Bunood POS
+Leave the counter,الخروج من نقطة البيع,Bunood POS
 Leaves,الإجازات,
 Ledger,دفتر,theme name
 Ledger Account,حساب من الدليل,
@@ -1317,6 +1395,8 @@ Ledger check — output VAT,فحص الأستاذ — ضريبة المخرجا�
 Ledger movement minus invoice VAT on the accounts purchases used. Zero means they agree.,حركة الأستاذ ناقص ضريبة الفواتير على الحسابات التي استخدمتها المشتريات. الصفر يعني التطابق.,
 Ledger movement minus invoice VAT on the accounts sales used. Zero means they agree.,حركة الأستاذ ناقص ضريبة الفواتير على الحسابات التي استخدمتها المبيعات. الصفر يعني التطابق.,
 Ledger-impacting native documents,مستندات أصلية مؤثرة في دفتر الأستاذ,
+Left on the customer's account,دين على العميل,Bunood POS
+Left: {0},المتبقي: {0},
 Legacy stored values Hover-Expand / Hover + Pin still resolve to Rail client-side.,القيم المخزنة القديمة Hover-Expand و Hover + Pin ما تزال تُحل إلى «سكة» لدى العميل.,
 Letter,خطاب,
 Letterhead,الترويسة,
@@ -1328,8 +1408,14 @@ Lifecycle state,حالة دورة الحياة,
 Light,فاتح,
 Light or dark,فاتح أو داكن,
 Line items,بنود السطور,
+Line quantity,كمية السطر,Bunood POS
+Lines or suggestions,الأسطر أو الاقتراحات,Bunood POS
+Lines: {0} · Pieces: {1},الأسطر: {0} · القطع: {1},
 Link,رابط,
+Link and add to the bill,ربط وإضافة للفاتورة,Bunood POS
 Link copied,نُسخ الرابط,
+Link the barcode to an item,ربط الباركود بصنف,Bunood POS
+Link to an existing item,ربط بصنف موجود,Bunood POS
 Links & icons,الروابط والأيقونات,
 List Hover,تحويم القائمة,
 List Picker,منتقي القائمة,
@@ -1341,6 +1427,7 @@ List view,عرض القائمة,
 Listed,مُدرَج,
 Lists,القوائم,
 Lists & pages,القوائم والصفحات,
+Litre,لتر,Bunood POS unit
 Live,مباشر,
 Live record indicators on links.,مؤشرات حية لعدد السجلات على الروابط.,
 Live updates,التحديثات الحية,
@@ -1353,7 +1440,9 @@ Loading VAT choices…,جارٍ تحميل الخيارات الضريبية…,
 Loading bank reconciliation evidence…,جارٍ تحميل أدلة تسوية الحساب البنكي…,
 Loading customer balance…,جارٍ تحميل رصيد العميل…,
 Loading invoice details…,جارٍ تحميل تفاصيل الفاتورة…,
+Loading items…,جارٍ تحميل الأصناف…,Bunood POS
 Loading print preview...,جارٍ تحميل معاينة الطباعة...,
+Loading receipts…,جارٍ تحميل الإيصالات…,Bunood POS
 Loading…,جارٍ التحميل…,
 Location or custodian,الموقع أو أمين العهدة,
 Log Out,تسجيل الخروج,
@@ -1403,6 +1492,7 @@ Menu rail,سكة القائمة,
 "Merges the global controls into each page's own title row instead of giving them a strip of their own. Independent of the desk layout: a layout preset writes this setting, it no longer decides it. Applies site-wide on the next page load.",يدمج عناصر التحكم العامة في صف عنوان كل صفحة بدلًا من منحها شريطًا خاصًا بها. مستقل عن تخطيط المكتب: نمط التخطيط يكتب هذا الإعداد ولم يعد يقرره. يسري على الموقع كله عند تحميل الصفحة التالي.,
 Message,الرسالة,
 Message digest,بصمة الرسالة,
+Meter,متر,Bunood POS unit
 Microsoft Region,منطقة Microsoft,
 Microsoft Translator API Key,مفتاح Microsoft Translator API,
 Migration control fields are not installed. Run the site migration first.,حقول رقابة الترحيل غير مثبّتة. شغّل ترحيل الموقع أولًا.,
@@ -1412,6 +1502,7 @@ Migration rehearsals are issued by the isolated rehearsal action and cannot be e
 Migration run,تشغيل الترحيل,
 Migration scope,نطاق الترحيل,
 Migration strategy,استراتيجية الترحيل,
+Mine,إيصالاتي,Bunood POS
 Minimal,بسيط,
 Minimal polls nothing,«بسيط» لا يستطلع شيئًا,
 Minimal shows no live signals,«بسيط» لا يعرض إشارات حية,
@@ -1422,13 +1513,16 @@ Mixed Payment,دفع متعدد,
 Mixed Weights,أوزان متباينة,
 Mobile Bar,شريط الجوّال,
 Mobile bar,شريط الجوّال,
+"Mobile, name or customer code",الجوال أو الاسم أو رمز العميل,Bunood POS
 Mode Sigils (Pro),رموز الأنماط (الاحترافية),
 Mode sigils,رموز الأنماط,
 Monochrome,أحادي اللون,
 Month to date,منذ بداية الشهر,
 More,المزيد,
+More items,أصناف أخرى,Bunood POS
 More records are available in the full lists.,توجد سجلات أخرى في القوائم الكاملة.,
 More workspaces,مزيد من مساحات العمل,
+More {0},زيادة فئة {0},
 Most workspace links ship no icon of their own. Smart infers one from the title.,معظم روابط مساحة العمل لا تملك أيقونة خاصة بها. الوضع الذكي يستنتج واحدة من العنوان.,
 Motion,الحركة,
 Move and assign custody,النقل وتسليم العهدة,
@@ -1504,18 +1598,24 @@ New Since Previous,الجديد منذ السابق,
 New capitalization,رسملة جديدة,
 "New customers each month, and what the returning ones spent",العملاء الجدد في كل شهر، وما أنفقه العائدون,
 New item,صنف جديد,
+New item,صنف جديد,Bunood POS
+New item for an unknown barcode,صنف جديد لباركود غير معروف,Bunood POS
 New line,صف جديد,
 New movement,حركة جديدة,
 New notification,إخطار جديد,
 New repair,إصلاح جديد,
 New sale,عملية جديدة,
+New sale,بيع جديد,Bunood POS
+New sale — scan the first item,فاتورة جديدة — امسح أول صنف,Bunood POS
 New since previous scan: {0},الجديد منذ الفحص السابق: {0},
 Next,التالي,
 Next action,الإجراء التالي,
 Next depreciation,الإهلاك التالي,
+Next payment method,طريقة الدفع التالية,Bunood POS
 Next schedule date,تاريخ التنفيذ التالي,
 Next step,الخطوة التالية,
 No,لا,
+No POS Profile is available to you.,لا توجد نقطة بيع متاحة لك.,Bunood POS
 No POS profile is assigned to you for this company. Ask an administrator to assign one.,لم يُخصّص لك ملف نقطة بيع لهذه الشركة. اطلب من المسؤول تخصيص ملف لك.,
 No POS receipts match these filters.,لا توجد إيصالات نقطة بيع تطابق هذه المرشحات.,
 No POS sales in this period,لا توجد مبيعات نقطة بيع في هذه الفترة,
@@ -1526,8 +1626,10 @@ No ZATCA record exists yet for this submitted invoice.,لا يوجد حتى ال
 "No asset or accounting record was changed. Review the error, then try again.",لم يتغير أي سجل للأصول أو للمحاسبة. راجع الخطأ ثم حاول مرة أخرى.,
 No boundary on any control — the bar separates itself with a rule instead.,لا حدّ حول أيّ عنصر — بل يفصل الشريط نفسه بخطّ.,
 "No card — the message reads as a letter, with room around it.",بلا بطاقة — تُقرأ الرسالة كخطاب، مع مساحة حولها.,
+No change,لا باقي,Bunood POS
 No companies are available for this role,لا توجد شركات متاحة لهذا الدور,
 No company bank account is available,لا يتوفر حساب بنكي للشركة,
+No connection — selling paused,لا اتصال — البيع متوقف,Bunood POS
 No create actions are available for your permissions.,لا تتوفر إجراءات إنشاء ضمن صلاحياتك.,
 No dashboard on this site.,لا توجد لوحة معلومات في هذا الموقع.,
 No data,لا بيانات,
@@ -1536,9 +1638,12 @@ No draft or failed native records were observed in the selected boundary. This i
 No errors,لا أخطاء,
 No exceptions observed in this bounded view,لم تُرصد استثناءات في هذا العرض المحدود,
 No extra bars — global controls share the page title row. Most space for data.,بلا أشرطة إضافية — عناصر التحكم العامة تشارك صف عنوان الصفحة. أكبر مساحة للبيانات.,
+No held sales,لا فواتير معلّقة,Bunood POS
 No invoice data yet,لا توجد بيانات فواتير بعد,
 "No invoice in the period touched this Tax account, yet it moved — a Journal Entry or an opening. Include it in the filing by hand.",لم تمسّه أي فاتورة في الفترة ومع ذلك تحرّك — قيد يومية أو قيد افتتاحي. أدخِله في الإقرار يدوياً.,
 No item has the code or barcode {0}.,لا يوجد صنف بالرمز أو الباركود {0}.,
+No item with this name,لا صنف بهذا الاسم,Bunood POS
+No items in this group,لا أصناف في هذه المجموعة,Bunood POS
 No language was chosen.,لم يتم اختيار أي لغة.,
 No limit on either edge,بلا حد على أي من الحافتين,
 "No lines at all — spacing separates, hover defines.",بلا خطوط إطلاقًا — التباعد يفصل والتحويم يعرّف.,
@@ -1561,6 +1666,7 @@ No permitted company is available. Ask your administrator for company access.,ل
 No permitted lifecycle activity or open repair was observed in this boundary.,لم يُرصد في هذا النطاق نشاط لدورة الحياة أو إصلاح مفتوح مسموح به.,
 No permitted template was observed for this company.,لم يُرصد قالب مسموح به لهذه الشركة.,
 No previous period,لا فترة سابقة,
+No receipts here,لا إيصالات هنا,Bunood POS
 No recent activity,لا توجد أنشطة حديثة,
 No recent native statement import records were found for this account.,لم يُعثر على سجلات حديثة لاستيراد كشف الحساب الأصلي لهذا الحساب.,
 No records to show,لا توجد سجلات للعرض,
@@ -1576,6 +1682,7 @@ Non-taxable amount,المبلغ غير الخاضع,
 Non-taxable invoices,فواتير غير ضريبية,
 None for this period,لا يوجد لهذه الفترة,
 Nos,عدد,
+Nos,حبة,Bunood POS unit
 Not Applicable,غير منطبق,
 Not Saved,غير محفوظة,
 Not a reconciled register total,ليست إجماليًا مطابقًا للسجل,
@@ -1594,11 +1701,13 @@ Not set,غير محدد,
 Not shown anywhere: {0},لا يُعرض في أي مكان: {0},
 Not-applicable controls,الضوابط غير المنطبقة,
 Not-applicable reason,سبب عدم الانطباق,
+Note,ورقة,Bunood POS
 Notes,ملاحظات,
 Nothing found,لا نتائج,
 Nothing here yet,لا شيء هنا بعد,
 Nothing in this period,لا شيء في هذه الفترة,
 Nothing to export yet,لا بيانات للتصدير بعد,
+Nothing to hold,لا شيء لتعليقه,Bunood POS
 Nothing to show,لا شيء يُعرض,
 Nothing waiting on your approval,لا شيء ينتظر موافقتك,
 Notification Picker,منتقي الإخطارات,
@@ -1607,8 +1716,11 @@ Notification settings,إعدادات الإخطارات,
 Notifications Placement,موضع الإخطارات,
 Notifications and your profile are in the pane — place them in a bar first,الإشعارات وملفك الشخصي داخل اللوحة — ضعهما في شريط أولًا,
 Notifications are in the pane — place them in a bar first,الإشعارات داخل اللوحة — ضعها في شريط أولًا,
+Now scan the item — quantity {0},امسح الصنف الآن — الكمية {0},
+Number,الرقم,Bunood POS
 Number Card Metric,مقياس بطاقة الأرقام,
 Number cards,بطاقات الأرقام,
+Number pad,لوحة الأرقام,Bunood POS
 Observed,مرصود,
 Observed carrying value,القيمة الدفترية المرصودة,
 Obtain the Sandbox CSID,استخرج شهادة جهاز بيئة الاختبار,
@@ -1640,6 +1752,7 @@ Only customer sales and POS invoices can be delivered here.,يمكن تسليم 
 Only the first 200 open transactions are shown. Use the native workspace for the full queue.,تُعرض أول 200 معاملة مفتوحة فقط. استخدم مساحة العمل الأصلية لعرض القائمة كاملة.,
 Only the hero band is painted,الشريط الرئيسي وحده يُطلى,
 Only the warehouses required for this movement are shown.,تظهر فقط المستودعات المطلوبة لهذه الحركة.,
+Open,فتح,Bunood POS
 Open,مفتوح,pane state
 Open Board,لوح مفتوح,
 Open Canvas,مساحة مفتوحة,
@@ -1679,8 +1792,11 @@ Open template,فتح القالب,
 Open the POS shift before creating or changing a sale.,افتح وردية نقطة البيع قبل إنشاء عملية بيع أو تعديلها.,
 Open the advanced form to create this payment.,افتح النموذج المتقدم لإنشاء هذه الدفعة.,
 Open the command palette,افتح لوحة الأوامر,
+Open the invoice,فتح الفاتورة,Bunood POS
 Open the live dashboard and its operational records,افتح لوحة المؤشرات الحالية وسجلاتها التشغيلية,
 "Open the native document to review account rows, parties, references, currencies, dimensions, attachments and approval history.",افتح المستند الأصلي لمراجعة سطور الحسابات والأطراف والمراجع والعملات والأبعاد والمرفقات وسجل الاعتماد.,
+Open the shift,فتح الوردية,Bunood POS
+Open the shift and start selling,فتح الوردية وبدء البيع,Bunood POS
 "Open the source document to verify affected assets, stock or service cost, accounting date, evidence and approval history.",افتح المستند المصدر للتحقق من الأصول المتأثرة وتكلفة المخزون أو الخدمة والتاريخ المحاسبي والإثباتات وسجل الاعتماد.,
 Open this rehearsal on the same isolated site and database that produced it.,افتح هذه التجربة على الموقع وقاعدة البيانات المعزولين نفسيهما اللذين أصدراها.,
 Open this rehearsal on the same isolated site and database that started it.,افتح هذه التجربة على الموقع وقاعدة البيانات المعزولين نفسيهما اللذين بدأت عليهما.,
@@ -1689,9 +1805,11 @@ Open transactions,المعاملات المفتوحة,
 Opening Balance,الرصيد الافتتاحي,
 Opening Invoice Creation Tool,أداة إنشاء الفواتير الافتتاحية,
 Opening Only,أرصدة افتتاحية فقط,
+Opening balances,الأرصدة الافتتاحية,Bunood POS
 Opening credit balance,الرصيد الافتتاحي (دائن),
 Opening debit balance,الرصيد الافتتاحي (مدين),
 Opening stock quantity and value,كمية وقيمة المخزون الافتتاحي,
+Opening the counter…,جارٍ فتح الوردية…,Bunood POS
 "Opening, invoiced, paid and closing balance for every customer",الرصيد الافتتاحي والمفوتر والمسدَّد والختامي لكل عميل,
 Opening-data reviewer,مراجع البيانات الافتتاحية,
 "Operational work item only. Completing this task is not tax, ZATCA, accounting or launch approval.",هذه مهمة تشغيلية فقط. إكمالها ليس اعتمادًا ضريبيًا أو محاسبيًا أو للفوترة الإلكترونية أو للتشغيل الفعلي.,
@@ -1723,11 +1841,13 @@ Original leaves the stock panel,«الأصلي» يُبقي اللوحة الأ�
 Original leaves the stock trail,«الأصلي» يُبقي المسار الأصلي,
 Original leaves the stock workspace untouched — nothing below applies.,«الأصلي» يترك مساحة العمل الأصلية كما هي — لا شيء أدناه يسري.,
 "Original records, including older POS invoice types",السجلات الأصلية، بما فيها أنواع فواتير نقطة البيع السابقة,
+Other tender,طريقة دفع أخرى,Bunood POS
 Other vouchers — {0},سندات أخرى — {0},
 Other workspaces,مساحات عمل أخرى,
 "Our palette over Frappe's own search: grouped results, pinned fallbacks, per-user frecency, footer hints.",لوحتنا فوق بحث Frappe نفسه: نتائج مجمّعة وصفوف احتياطية مثبتة وترتيب استخدام لكل مستخدم وتلميحات سفلية.,
 Out of balance,غير متوازن,
 "Out of scope, present in the period",خارج النطاق وحاضر في الفترة,
+Out of stock,نفد,Bunood POS
 Out-of-scope sales,مبيعات خارج نطاق الضريبة,
 Outgoing,الصادر,
 "Outgoing email: style, header, action, theme.",البريد الصادر: النمط والرأس والإجراء والسمة.,
@@ -1745,6 +1865,7 @@ Overlay Style,نمط العناصر العائمة,
 Overlays,العناصر العائمة,
 Owner Ledger,كشف حساب المالك,
 P&L transfer; not a lock,ترحيل الأرباح والخسائر؛ وليس قفلاً,
+POS,نقطة البيع,
 POS Profile,ملف نقطة البيع,
 POS Register,تقرير نقاط البيع,
 POS invoices,فواتير نقطة البيع,
@@ -1754,6 +1875,7 @@ POS receipts could not be loaded. Rebuild the theme assets and try again.,تعذ
 POS register,سجل نقطة البيع,
 POS sales filters,مرشحات مبيعات نقطة البيع,
 POS sales register,سجل مبيعات نقطة البيع,
+POS views,شاشات نقطة البيع,Bunood POS
 Page Header,رأس الصفحة,
 Page Header Center,وسط رأس الصفحة,
 Page Header End,نهاية رأس الصفحة,
@@ -1762,6 +1884,8 @@ Page header,رأس الصفحة,
 Page title row,صف عنوان الصفحة,
 Pages & Workspaces,الصفحات ومساحات العمل,
 Paid,مدفوعة,
+Paid,المدفوع,Bunood POS
+Pair,زوج,Bunood POS unit
 Palette Picker,منتقي اللوحة,
 Palette Pro,اللوحة الاحترافية,
 Palette Pro only,اللوحة الاحترافية فقط,
@@ -1783,12 +1907,15 @@ Parties,الأطراف,
 Partly paid,مدفوعة جزئيًا,
 Paste theme JSON,الصق JSON المظهر,
 Pay,صرف,
+Pay,الدفع,Bunood POS
+Pay / complete,الدفع / الإتمام,Bunood POS
 Payables,الذمم الدائنة,
 Payables due,مبالغ مستحقة للدفع,
 Payables due soon,مستحقات واجبة قريبًا,
 "Payables, currency, dates and ageing",الذمم الدائنة والعملات والتواريخ وأعمار الديون,
 Payload,الحمولة,
 Payment,دفعة,
+Payment,الدفع,Bunood POS
 Payment Entries,سندات الدفع,
 Payment Entry,سند دفع أو قبض,
 Payment Reconciliation,تسوية المدفوعات,
@@ -1803,6 +1930,7 @@ Payment methods,طرق الدفع,
 Payment must cover the full sale total.,يجب أن يغطي الدفع إجمالي عملية البيع بالكامل.,
 Payment received now,المبلغ المحصّل الآن,
 Payment recorded,سُجّلت الدفعة,
+Payment reference for {0},مرجع الدفع لـ {0},
 Payment reference: {0},مرجع الدفع: {0},
 Payment status,حالة السداد,
 Payroll,الرواتب,
@@ -1825,6 +1953,7 @@ Personalization,التخصيص الشخصي,
 Physical custody and accounting value are different controls. Use the native document that matches the event.,العهدة المادية والقيمة المحاسبية ضابطان مختلفان. استخدم المستند الأصلي المطابق للحدث.,
 "Pick at least two, in the order the switch should list them. Only languages enabled in the Language list appear here. Applies on the next page load.",اختر لغتين على الأقل، بالترتيب الذي يجب أن يعرضه المبدّل. لا تظهر هنا إلا اللغات المفعّلة في قائمة اللغات. يُطبَّق عند تحميل الصفحة التالي.,
 Picked up: {0},التقاط: {0},
+Pieces: {0},القطع: {0},
 Pill,كبسولة,
 Pills draw no separators,الكبسولات لا ترسم فواصل,
 Pills have their own hover,للكبسولات تحويمها الخاص,
@@ -1840,6 +1969,7 @@ Planned cutover,موعد الانتقال المخطط,
 Plans and ownership,المخططات والملكية,
 Plate,صفيحة,
 Please find your invoice attached.,تجدون فاتورتكم في المرفقات.,
+Point of sale,نقطة البيع,Bunood POS
 Points,نقاط,
 "Portfolio, leases, billing and collections in one place",المحفظة والعقود والفوترة والتحصيل في مكان واحد,
 Poster,مُلصَق,
@@ -1853,21 +1983,26 @@ Prepare and review native journal entries with their supporting details.,أعد 
 "Prepare, review and trace accounting adjustments without hiding native controls or creating a second ledger.",حضّر التسويات المحاسبية وراجعها وتتبعها من دون إخفاء الضوابط الأصلية أو إنشاء دفتر أستاذ ثانٍ.,
 Prepared at,وقت الإعداد,
 Prepared by,أعدّها,
+Preparing the counter…,جارٍ تجهيز نقطة البيع…,Bunood POS
 Preparing the native statement import…,جارٍ إعداد استيراد كشف الحساب الأصلي…,
+Preparing the return…,جارٍ تجهيز المرتجع…,Bunood POS
 Presentation,وضع العرض,
 Preview: {0},معاينة: {0},
 Previous,السابق,
 Previous receipt,سجل القرار السابق,
 Previous shift needs closing,تحتاج الوردية السابقة إلى إغلاق,
+Price,السعر,Bunood POS
 Price before discount,السعر قبل الخصم,
 Price includes VAT,السعر شامل الضريبة,
 Price includes VAT ({0}%),السعر شامل الضريبة ({0}%),
 Price list,قائمة الأسعار,
+Price: {0} — {1},السعر: {0} — {1},
 Prices and quantity are optional: leave them at 0 if you do not need them. The quantity and the purchase price go on this bill.,الأسعار والكمية اختيارية — اتركها 0 إن لم تحتجها. تُضاف الكمية وسعر الشراء إلى هذه الفاتورة.,
 Prices and validity,الأسعار وفترات الصلاحية,
 Primary Action,الإجراء الأساسي,
 Primary Button,الزر الأساسي,
 Primary button,الزر الأساسي,
+Print,طباعة,Bunood POS
 Print Accent,لمسة الطباعة اللونية,
 Print Amount in Words,المبلغ كتابةً في الطباعة,
 Print Header Style,نمط ترويسة الطباعة,
@@ -1883,6 +2018,8 @@ Print Title Language,لغة عنوان الطباعة,
 Print Totals Style,نمط إجماليات الطباعة,
 "Print formats: header, tables, totals, headings, QR, signatures.",تنسيقات الطباعة: الرأس والجداول والمجاميع والعناوين ورمز QR والتوقيعات.,
 Print preview,معاينة الطباعة,
+Print receipt,طباعة الإيصال,Bunood POS
+Print the receipt,طباعة الإيصال,Bunood POS
 "Print, numbering and language",الطباعة والترقيم واللغة,
 Printed on,طُبع في,
 Prior rehearsal receipt digest,بصمة إيصال تجربة الترحيل السابقة,
@@ -1927,15 +2064,19 @@ Put controls in the page title row,وضع عناصر التحكم في صف عن
 Put in use and depreciate,التشغيل والإهلاك,
 QR placement,موضع الرمز,
 QR size,حجم الرمز,
+Qty,الكمية,Bunood POS
 Qualification and authority basis,أساس التأهيل والصلاحية,
 Quality,الجودة,
 Quantity,الكمية,
+Quantity,الكمية,Bunood POS
 Quantity must be greater than zero.,يجب أن تكون الكمية أكبر من صفر.,
+Quantity: {0} — {1},الكمية: {0} — {1},
 Queued,في قائمة الانتظار,
 Quick Links,روابط سريعة,
 Quick Links Picker,منتقي الروابط السريعة,
 Quick Sale,بيع سريع,
 Quick actions,إجراءات سريعة,
+Quick cash:,نقدًا سريعًا:,Bunood POS
 Quick filters,عوامل تصفية سريعة,
 "Quick links in the pane head's menu: each module row opens a flyout of New … rows for what you may create, the module's reports, and Go to. Brief 3+2, Standard 6+4, Full 12+8 rows; Off keeps the module list alone.",روابط سريعة في قائمة رأس اللوحة: كل صف وحدة يفتح قائمة جانبية بصفوف «جديد» لما يمكنك إنشاؤه، وتقارير الوحدة، و«اذهب إلى». موجز 3+2، أساسي 6+4، كامل 12+8 صفًا؛ «معطَّل» يبقي قائمة الوحدات وحدها.,
 Quiet,هادئ,
@@ -1982,7 +2123,10 @@ Receipt chain key,مفتاح سلسلة سجلات القرار,
 Receipt digest,بصمة سجل القرار,
 Receipt or customer,الإيصال أو العميل,
 Receipt value,قيمة الاستلام,
+Receipts,الإيصالات,
 Receipts and returns,الإيصالات والمرتجعات,
+Receipts and returns,الإيصالات والمرتجع,Bunood POS
+Receipts could not be loaded.,تعذّر تحميل الإيصالات.,Bunood POS
 Receipts could not be loaded. Try again.,تعذر تحميل الإيصالات. حاول مرة أخرى.,
 Receivables,الذمم المدينة,
 Receivables due soon,مستحقات العملاء القريبة,
@@ -2039,6 +2183,8 @@ Recruitment,التوظيف,
 Recurring journal schedules,جداول القيود الدورية,
 Reduced,مُخفَّفة,
 Reference,المرجع,
+Reference,المرجع,Bunood POS
+Reference (optional),المرجع (اختياري),Bunood POS
 Reference approved control totals for every material opening dataset.,أضف مرجع الإجماليات الرقابية المعتمدة لكل مجموعة بيانات افتتاحية جوهرية.,
 Reference date,تاريخ المرجع,
 Reference details,تفاصيل المرجع,
@@ -2062,11 +2208,16 @@ Rehearsal title,عنوان تجربة الترحيل,
 Reject,رفض,
 Reject existing matches,رفض السجلات المطابقة الموجودة,
 Remaining,المتبقي,
+Remaining,المتبقي,Bunood POS
+Remaining — on the customer's account,المتبقي — دين على العميل,Bunood POS
 Remove,إزالة,
 Remove this item from the invoice? Item: {0},هل تريد إزالة هذا الصنف من الفاتورة؟ الصنف: {0},
+Remove this payment,حذف طريقة الدفع هذه,Bunood POS
+Removed: {0},حُذف: {0},
 Rent Roll,سجل الإيجارات,
 Reopened,أُعيد فتحه,
 Reopening requires a current Accepted or Not Applicable receipt.,تتطلب إعادة الفتح سجلًا حاليًا بحالة «مقبول» أو «غير منطبق».,
+Replace the current bill with this held sale? Hold the current one first if you need it.,استبدال الفاتورة الحالية بهذه الفاتورة المعلّقة؟ علّق الحالية أولًا إن كنت تحتاجها.,Bunood POS
 Replace the current ticket with this held sale? Hold it first if you need to keep it.,هل تريد استبدال الطلب الحالي بهذه العملية المعلّقة؟ علّق الطلب الحالي أولًا إذا أردت الاحتفاظ به.,
 Report Picker,منتقي التقرير,
 Report Studio,استوديو التقارير,
@@ -2097,16 +2248,21 @@ Restricts configured document types; it does not transfer profit or loss.,يقي
 Result digest,بصمة النتيجة,
 Result rows,صفوف النتائج,
 Results,النتائج,
+Results for «{0}»: {1} — Enter adds the first,نتائج «{0}»: {1} — Enter يضيف الأول,
 Results: {0},النتائج: {0},
+Resume,استئناف,Bunood POS
+Resumed: {0},استُعيدت: {0},
 Retention and disposal policy,سياسة الاحتفاظ والإتلاف,
 Retry,إعادة المحاولة,
 Retrying…,جارٍ إعادة المحاولة…,
 Return,مرتجع,
+Return,مرتجع,Bunood POS
 Return / Credit Note,مرتجع / إشعار دائن,
 Return summary,خلاصة الإقرار,
 Return to role default,العودة إلى العرض الافتراضي للدور,
 Returned items,الأصناف المرتجعة,
 Returns,المرتجعات,
+Returns,المرتجع,Bunood POS
 Reusable native controls,ضوابط أصلية قابلة لإعادة الاستخدام,
 Reusable templates,قوالب قابلة لإعادة الاستخدام,
 Reveal Card Menus on Hover,إظهار قوائم البطاقات عند التحويم,
@@ -2127,8 +2283,10 @@ Review Sandbox setup and native invoice evidence by company.,راجع إعداد
 Review VAT,مراجعة ضريبة القيمة المضافة,
 Review accounting drafts and bank evidence.,مراجعة مسودات المحاسبة والأدلة البنكية.,
 Review an expense claim,مراجعة مطالبة مصروفات,
+Review and close shift,مراجعة الوردية وإغلاقها,Bunood POS
 Review and close the current POS shift before opening another POS Profile.,راجع وردية نقطة البيع الحالية وأغلقها قبل فتح ملف نقطة بيع آخر.,
 Review and close the outdated POS shift before opening a new shift.,راجع وردية نقطة البيع القديمة وأغلقها قبل فتح وردية جديدة.,
+Review and close the outdated shift before opening today's counter.,راجع الوردية القديمة وأغلقها قبل فتح وردية اليوم.,Bunood POS
 Review and receipt,المراجعة والإيصال,
 Review assets,مراجعة الأصول,
 "Review assets, depreciation, repairs and lifecycle drafts by company and period.",راجع الأصول والإهلاك والإصلاحات ومسودات دورة الحياة حسب الشركة والفترة.,
@@ -2170,6 +2328,7 @@ Rollback method,طريقة التراجع,
 Rollback owner,مسؤول التراجع,
 Rollback point and decision reference,مرجع نقطة التراجع وقراره,
 Roomy,فسيح,
+Rounding,التقريب,Bunood POS
 Row,الصف,
 Row Feedback,استجابة الصف,
 Row Stripes,صفوف مُخطَّطة,
@@ -2204,6 +2363,10 @@ SHA-256 of the frozen receipt including who froze it and when.,بصمة SHA-256 
 SHA-256 of the native message and exception. Sensitive error text remains in the permissioned Data Import log.,بصمة SHA-256 للرسالة والاستثناء المدمجين. يظل نص الخطأ الحساس في سجل استيراد البيانات المصرح به.,
 SVG — wordmark used,SVG — استُخدم الاسم النصي,
 Sale,بيع,
+Sale,البيع,Bunood POS
+Sale complete,تم البيع,Bunood POS
+Sale complete: {0},تم البيع: {0},
+Sale lines,أسطر الفاتورة,Bunood POS
 Sales,المبيعات,
 Sales & Returns,المبيعات والمرتجعات,
 Sales (output VAT),المبيعات (ضريبة المخرجات),
@@ -2253,17 +2416,25 @@ Save translation,حفظ الترجمة,
 "Save, submit and print",حفظ واعتماد وطباعة,
 Saved,محفوظ,
 Saved Filters,عوامل التصفية المحفوظة,
+"Saved as one more barcode of the item, so it is never asked about again: {0}",يُحفظ باركودًا إضافيًا للصنف، فلا يُسأل عنه مرة أخرى: {0},
 Saved — applies on the next page load.,حُفظ — يسري عند تحميل الصفحة التالي.,
 Saving and preparing print…,جارٍ الحفظ وتجهيز الطباعة…,
 Saving and submitting…,جارٍ الحفظ والاعتماد…,
 Saving invoice…,جارٍ حفظ الفاتورة…,
 Saving item…,جارٍ حفظ الصنف…,
 Says when the realtime connection is down. The desk still works — what stops is anything updating on its own.,يخبرك عندما ينقطع الاتصال اللحظي. المكتب يظل يعمل — ما يتوقف هو تحدّث أي شيء من تلقاء نفسه.,
+Scan,المسح,Bunood POS
 "Scan a barcode or type an item code, then press Enter",امسح الباركود أو اكتب رمز الصنف ثم Enter…,
+"Scan a barcode, search by name, or type a command",امسح الباركود، أو ابحث بالاسم، أو اكتب أمرًا,Bunood POS
 Scan barcode,مسح الباركود,
 Scan failed,فشل الفحص,
+Scan field,خانة المسح,Bunood POS
 Scan now,افحص الآن,
 Scan running…,الفحص جارٍ…,
+Scan the first item or touch one on the other side. No need to choose the customer now.,امسح أول صنف أو المس صنفًا من الجهة الأخرى. لا حاجة لاختيار العميل الآن.,Bunood POS
+"Scan the new barcode first, then choose New item",امسح الباركود الجديد أولًا، ثم اختر «صنف جديد»,Bunood POS
+Scan the next item or press Enter — a new sale starts by itself,امسح الصنف التالي أو اضغط Enter — يبدأ بيع جديد تلقائيًا,Bunood POS
+"Scan, search or command",المسح أو البحث أو الأوامر,Bunood POS
 "Scan, search, or add items in the table. Stock is posted only after submission.",امسح الباركود أو ابحث أو أضف الأصناف في الجدول. لا تُرحّل حركة المخزون إلا بعد الاعتماد.,
 Schedule,الجدول,
 Scheduler Segment,مقطع المجدول,
@@ -2276,13 +2447,17 @@ Search & Status Picker,منتقي البحث والحالة,
 Search Picker,منتقي البحث,
 Search Placement,موضع البحث,
 Search all documents for “{0}”,ابحث في كل المستندات عن «{0}»,
+Search customers,بحث العملاء,Bunood POS
 "Search invoices, orders or customer",البحث في الفواتير والأوامر أو العميل,
 Search is too long,نص البحث طويل جداً,
+Search items,بحث الأصناف,Bunood POS
 Search receipt number or customer,ابحث برقم الإيصال أو العميل,
+Search receipts,بحث الإيصالات,Bunood POS
 Search reports,البحث في التقارير,
 Search settings,البحث في الإعدادات,
 Search settings…,ابحث في الإعدادات…,
 "Search, notifications and profile in a bar above the page. Slim status bar below.",البحث والإخطارات والملف الشخصي في شريط فوق الصفحة، وشريط حالة رفيع أسفلها.,
+Searching…,جارٍ البحث…,Bunood POS
 Search…,ابحث…,
 Section Layout,تخطيط الأقسام,
 Sections,الأقسام,
@@ -2322,6 +2497,7 @@ Selling price missing for item: {0},سعر البيع غير موجود للصن
 "Selling value is net of VAT — the profit is measured before tax, and the margin is profit over net selling.",مبلغ البيع صافٍ من ضريبة القيمة المضافة — فالربح محتسب قبل الضريبة، والنسبة = الربح ÷ صافي البيع.,
 Send email,إرسال البريد,
 Send invoice to customer,إرسال الفاتورة للعميل,
+Sent to the card terminal,يُرسل لجهاز البطاقات,Bunood POS
 Separate receipt voucher,سند قبض مستقل,
 "Separated by AIR — generous space and no frame. The default, because this block sits inside containers that already frame it.",يفصلها الفراغ — مساحة سخية بلا إطار. الافتراضي، لأن هذه الكتلة تقع داخل حاويات تؤطّرها أصلاً.,
 Separated by TONE — a filled card with no boundary.,تفصلها الدرجة اللونية — بطاقة معبّأة بلا حدّ.,
@@ -2331,6 +2507,8 @@ Separators erased — whitespace and titles carry the structure.,الفواصل 
 Series,سلسلة,
 Serif,مُذيَّل,
 Serif headings and almost no chrome — the formal letter register.,عناوين بخط مُذيَّل وزخرفة تكاد تنعدم — سجلّ الرسائل الرسمية.,
+Service,خدمة,Bunood POS
+Set,طقم,Bunood POS unit
 "Set by the picker above. A bar pinned above the bottom edge carrying the record's primary action and its key amounts, wherever the page is scrolled.",يُضبط من المنتقي أعلاه. شريط مثبّت فوق الحافة السفلية يحمل الإجراء الرئيسي للسجل ومبالغه الأساسية، أينما مُرّرت الصفحة.,
 "Set by the picker above. A chevron path across the document header: the workflow's states, or Draft · Submitted · Cancelled on a submittable document.",يُضبط من المنتقي أعلاه. مسار سهمي عبر رأس المستند: حالات سير العمل، أو مسودة · مُعتمد · ملغى في مستند قابل للاعتماد.,
 "Set by the picker above. A signed-out visitor has no stored preference, so the default follows their device.",يُضبط من المُنتقي أعلاه. الزائر غير المُسجَّل ليس لديه تفضيل محفوظ، لذا يتبع الوضع الافتراضي جهازه.,
@@ -2408,14 +2586,21 @@ Setup,الإعداد,
 Setup and administration,الإعداد والإدارة,
 Shape,الشكل,
 Share invoice on WhatsApp,مشاركة الفاتورة عبر واتساب,
+Shift,الوردية,Bunood POS
 Shift & Attendance,الورديات والحضور,
 Shift open today,وردية اليوم مفتوحة,
+Short of the total by: {0},ينقص عن الإجمالي: {0},
+Shortcut {0},اختصار {0},
+Shortcuts,الاختصارات,Bunood POS
+Shortcuts and typing rules,الاختصارات وقواعد الكتابة,Bunood POS
 Show,إظهار,
+Show all,عرض الكل,Bunood POS
 Show field guidance,إظهار إرشادات الحقول,
 Show notifications in the bottom bar below 768px. Search is always there (it is the only search on a phone); this and the two below choose what joins it. Applies on the next page load.,إظهار الإشعارات في الشريط السفلي عند العرض دون 768 بكسل. البحث موجود دائمًا (فهو البحث الوحيد على الهاتف)؛ يختار هذا الخيار والخياران التاليان ما ينضمّ إليه. يسري عند تحميل الصفحة التالي.,
 Show report,عرض التقرير,
 Show the All Apps button in the bottom bar below 768px. Workspaces stay on Frappe's own top-left menu either way.,إظهار زر جميع التطبيقات في الشريط السفلي عند العرض دون 768 بكسل. تبقى مساحات العمل في قائمة Frappe العلوية في كلتا الحالتين.,
 Show the bottom bar,إظهار الشريط السفلي,
+Show the device keyboard,إظهار لوحة مفاتيح الجهاز,Bunood POS
 Show the dock,إظهار شريط الإرساء,
 Show the side pane,إظهار اللوحة الجانبية,
 Show the top bar,إظهار الشريط العلوي,
@@ -2442,6 +2627,7 @@ Sign-in,تسجيل الدخول,
 Signatures,التواقيع,
 Simple,مبسّط,
 Simple mode,الوضع المبسّط,
+Simplified tax invoice,فاتورة ضريبية مبسطة,Bunood POS
 Site Default,افتراضي الموقع,
 Site survey,مسح الموقع,
 Site-wide default row and control height. Each user can override it from the settings menu; Compact shortens rows and padding but never the text size.,الارتفاع الافتراضي للصفوف وعناصر التحكم على مستوى الموقع. يمكن لكل مستخدم تجاوزه من قائمة الإعدادات؛ «مضغوطة» تقصّر الصفوف والحشوات ولا تمس حجم النص أبدًا.,
@@ -2510,6 +2696,7 @@ Statement movement in,الحركة الواردة في كشف الحساب,
 Statement movement out,الحركة الصادرة في كشف الحساب,
 Statement of Account,كشف حساب,
 Statements,القوائم المالية,
+Status,الحالة,Bunood POS
 Status Bar,شريط الحالة,
 Status Path,مسار الحالة,
 Status Pill in Trail Row,كبسولة الحالة في صف المسار,
@@ -2566,7 +2753,10 @@ Subtle,خفيفة,
 Success,نجاح,
 Successful records,السجلات الناجحة,
 Successful rehearsals,التجارب الناجحة,
+Suggestions,الاقتراحات,Bunood POS
 Summary,ملخص,
+Supermarket mode,وضع السوبرماركت,Bunood POS
+Supermarket mode — function-key bar,وضع السوبرماركت — شريط مفاتيح F,Bunood POS
 Supersedes migration packet,يستبدل حزمة الترحيل,
 Supplier,المورد,
 Supplier Ledger Summary,ملخص دفتر أستاذ الموردين,
@@ -2593,6 +2783,8 @@ Tax ID,الرقم الضريبي,
 Tax accounts in the ledger,حسابات الضريبة في الأستاذ,
 Tax and branding,الضريبة والهوية التجارية,
 Tax collected,الضريبة المحصَّلة,
+Tax invoice,فاتورة ضريبية,Bunood POS
+Tax invoice — {0},فاتورة ضريبية — {0},
 "Tax issue. Row: {0}. The rate is missing or invalid. Enter a rate, or choose an explicit zero-rate, exempt, or out-of-scope template.",مشكلة ضريبية. الصف: {0}. النسبة مفقودة أو غير صالحة. أدخل نسبة أو اختر قالباً صريحاً للضريبة الصفرية أو الإعفاء أو العمليات خارج النطاق.,
 Tax issue. Rows: {0}. Conflicting rates: {1}. Use one rate per tax account or separate the rates into different tax accounts.,مشكلة ضريبية. الصفوف: {0}. النسب المتعارضة: {1}. استخدم نسبة واحدة لكل حساب ضريبي أو وزّع النسب على حسابات ضريبية مختلفة.,
 Taxable amount,المبلغ الخاضع,
@@ -2630,7 +2822,10 @@ The attached native import file changed after the rehearsal started.,تغيّر 
 The banking workspace bundle is not registered. Rebuild the theme assets.,حزمة مساحة عمل البنوك غير مسجلة. أعد بناء ملفات السمة.,
 The banking workspace failed to load. Check the browser console.,تعذر تحميل مساحة عمل البنوك. راجع وحدة تحكم المتصفح.,
 The bar is recessed and the controls sit up out of it.,يغور الشريط وترتفع العناصر فوقه.,
+The barcode could not be looked up.,تعذّر البحث عن الباركود.,Bunood POS
+The barcode could not be saved.,تعذّر حفظ الباركود.,Bunood POS
 "The bell: style, placement, badge, grouping, row actions.",الجرس: النمط والموضع والشارة والتجميع وإجراءات الصف.,
+The bill is ready,الفاتورة جاهزة,Bunood POS
 "The body's type set: values, labels, section heads and titles move together, and the head leads. Density is separate and never touches type.",مجموعة خطوط المتن: القيم والتسميات وعناوين الأقسام والعناوين تتحرك معًا، والعنوان يتقدّم. الكثافة منفصلة ولا تمسّ الخط أبدًا.,
 "The bottom bar: clock, connection, jobs, errors.",الشريط السفلي: الساعة والاتصال والمهام والأخطاء.,
 "The brand and accent seeds, their dark-mode counterparts, and the ground the surfaces are mixed from.",بذرتا العلامة والتمييز، ونظيراهما في الوضع الداكن، والأرضية التي تُمزج منها الأسطح.,
@@ -2642,6 +2837,7 @@ The chart surface's grid.,شبكة سطح المخططات.,
 The close evidence could not be loaded,تعذر تحميل أدلة الإقفال,
 "The company's name, logo, favicon and tagline as the desk shows them.",اسم الشركة وشعارها وأيقونتها وسطرها التعريفي كما يعرضها المكتب.,
 The composer shows the real desk beside every decision and writes through the same settings as the cards below.,يعرض المؤلّف المكتب الحقيقي بجانب كل قرار ويكتب عبر الإعدادات نفسها التي تكتبها البطاقات أدناه.,
+The counter could not be prepared.,تعذّر تجهيز نقطة البيع.,Bunood POS
 The current database identity is unavailable. Check the site configuration.,هوية قاعدة البيانات الحالية غير متاحة. تحقق من إعدادات الموقع.,
 The current rehearsal database identity is unavailable.,هوية قاعدة بيانات التجربة الحالية غير متاحة.,
 The current rehearsal site identity is unavailable.,هوية موقع التجربة الحالي غير متاحة.,
@@ -2675,6 +2871,7 @@ The frozen source site is required.,موقع المصدر المجمّد مطل�
 The glyph on the side pane's collapse button.,الأيقونة على زر طيّ اللوحة الجانبية.,
 "The glyph stroke, normalised across sprite grids so this is the weight you actually get.",سُمك خط الأيقونة، موحّد عبر شبكات الأيقونات ليكون الوزن الذي تحصل عليه فعلاً.,
 "The gridded meta-and-table composition the legacy formats drew, re-derived.",تكوين البيانات والجدول المُشبَّك الذي رسمته النماذج السابقة، مُعاد اشتقاقه.,
+The held sale could not be resumed.,تعذّر استعادة الفاتورة المعلّقة.,Bunood POS
 "The hero band's paint: a tint of the brand, or the brand deepened to a dark block.",طلاء الشريط الرئيسي: صبغة من لون العلامة، أو العلامة معمّقة إلى كتلة داكنة.,
 "The icon set, its weight, and where the desk draws it.",مجموعة الأيقونات ووزنها وأين يرسمها المكتب.,
 The identity strip at the top of every printed page.,شريط الهوية أعلى كل صفحة مطبوعة.,
@@ -2725,12 +2922,17 @@ The rehearsal identity is required.,هوية تجربة الترحيل مطلو�
 The rehearsal site is required.,موقع التجربة مطلوب.,
 The report could not be run. Open the classic view for details.,تعذر تشغيل التقرير. افتح العرض التقليدي للتفاصيل.,
 "The report view's grid, grain and rows.",شبكة عرض التقرير ونسيجها وصفوفها.,
+The rest can stay on account only for a named customer.,لا يُترك المتبقي دينًا إلا على عميل مسجّل.,Bunood POS
+The return draft could not be created.,تعذّر إنشاء مسودة المرتجع.,Bunood POS
 The reviewer for material opening data must be different from the packet submitter.,يجب أن يكون مراجع البيانات الافتتاحية الجوهرية مختلفًا عن مقدم الحزمة.,
+The sale could not be held.,تعذّر تعليق الفاتورة.,Bunood POS
+The sale was not submitted.,لم يُعتمد البيع.,Bunood POS
 The same design in daylight — a floating card lifted off the page instead of attached solid.,التصميم نفسه في وضح النهار — بطاقة عائمة مرفوعة عن الصفحة بدل اللوح المصمت الملتصق.,
 "The same row, pinned to the sidebar's foot.",الصف نفسه مثبتًا في قدم الشريط الجانبي.,
 The selected Task is not a Bunood readiness task.,المهمة المحددة ليست مهمة جاهزية لبنود.,
 "The selected tax template contains no tax rows. Choose a valid standard, zero-rate, exempt, or out-of-scope template.",القالب الضريبي المحدد لا يحتوي على بنود ضريبية. اختر قالباً صالحاً للضريبة القياسية أو الصفرية أو الإعفاء أو العمليات خارج النطاق.,
 The shape of a calendar event.,شكل حدث التقويم.,
+The shift could not be opened.,تعذّر فتح الوردية.,Bunood POS
 The shipped defaults could not be loaded — reset chips and change dots are unavailable until this page is reloaded.,تعذر تحميل الإعدادات الافتراضية الأصلية — أزرار إعادة الضبط ونقاط التغيير غير متاحة حتى يُعاد تحميل هذه الصفحة.,
 "The shipped look: a hero band naming the record, the activity in a drawer, a ruled sheet for the lines, zebra lists.",المظهر الافتراضي: شريط رئيسي يسمّي السجل، والنشاط في دُرج، وورقة مسطّرة للبنود، وقوائم مخططة.,
 "The side pane: placement, material, colour, its rail and its width.",اللوحة الجانبية: موضعها ومادتها ولونها وسكّتها وعرضها.,
@@ -2758,10 +2960,12 @@ The table shows the twenty-five largest invoices; the tiles are measured over th
 The table's background grain.,نسيج خلفية الجدول.,
 The tafqit strip under the totals.,شريط التفقيط أسفل الإجماليات.,
 "The taskbar at the top: start button, centred search, notifications and profile above the page.",شريط المهام في الأعلى: زر البدء، وبحث في المنتصف، والإشعارات والملف الشخصي فوق الصفحة.,
+The total could not be calculated.,تعذّر حساب الإجمالي.,Bunood POS
 The total is {0}.,الإجمالي {0}.,
 "The trail above a record: style, separator, hover, status.",المسار فوق السجل: النمط والفاصل والتحويم والحالة.,
 "The twenty-five biggest invoices, and how much the top ten carry",أكبر خمسٍ وعشرين فاتورة، وكم تحمل العشر الأعلى,
 "The untranslated msgids per app, as JSON: {app: [msgid, ...]}. The export, the providers and the delta all read THIS scan rather than re-scanning.","معرّفات النصوص غير المترجمة لكل تطبيق بصيغة JSON: ‏{app: [msgid, ...]}. التصدير والمزوّدون والفرق كلها تقرأ هذا الفحص بعينه بدلًا من إعادة الفحص.",
+"The warehouse, price list and payment methods come from this point of sale.",المستودع وقائمة الأسعار وطرق الدفع تأتي من نقطة البيع هذه.,Bunood POS
 "The whole block breathes — one mechanism for bones and text alike, and the calmer of the two.",تتنفّس الكتلة كاملة — آلية واحدة للهياكل والنص معًا، وهي الأهدأ بينهما.,
 "The whole look in one place: what the desk is now, and the composer that changes it one decision at a time.",المظهر كله في مكان واحد: ما هو المكتب الآن، والمؤلّف الذي يغيّره قرارًا بعد قرار.,
 The workspace's own icon as a small chip in the trail.,أيقونة مساحة العمل نفسها كشريحة صغيرة في المسار.,
@@ -2774,12 +2978,14 @@ Theme exported (downloaded and copied). The logo and favicon are files on this s
 "These routes retain native permissions, validation, posting and audit history.",تحافظ هذه المسارات على الصلاحيات والتحقق والترحيل وسجل التدقيق الأصلي.,
 They are not counted above. Consolidate them into Sales Invoices before filing.,لم تُحتسب أعلاه. وحّدها في فواتير مبيعات قبل التقديم.,
 This Month,الشهر الجاري,
+This POS Profile has no payment methods.,لا توجد طرق دفع في ملف نقطة البيع هذا.,Bunood POS
 This POS Profile is disabled.,ملف نقطة البيع هذا معطّل.,
 This POS Profile is not assigned to your user.,ملف نقطة البيع هذا غير مسند إلى مستخدمك.,
 This Quarter,ربع السنة الجاري,
 This Week,هذا الأسبوع,
 This Year,هذا العام,
 This bank account is unavailable for the selected company,هذا الحساب البنكي غير متاح للشركة المحددة,
+This barcode belongs to more than one item,هذا الباركود لأكثر من صنف — اختر الصنف,Bunood POS
 This cart has too many lines. Start a second sale.,تحتوي هذه السلة على أسطر كثيرة جداً. ابدأ عملية بيع ثانية.,
 "This dataset uses a different native load path, not Data Import.",تستخدم مجموعة البيانات هذه مسار تحميل أصليًا مختلفًا، وليس استيراد البيانات.,
 This desk is {0}.,هذا المكتب هو {0}.,
@@ -2797,6 +3003,7 @@ This is a bounded work queue. Open the native Journal Entry list for the complet
 This is not a close approval. Review book-only entries and complete the native reconciliation before signing off.,هذه ليست موافقة إقفال. راجع القيود الدفترية غير الموجودة في الكشف وأكمل التسوية الأصلية قبل الاعتماد.,
 This is not fixed-asset or General Ledger reconciliation. Complete the native reports and qualified review.,هذه ليست مطابقة للأصول الثابتة ولا لدفتر الأستاذ العام. أكمل التقارير الأصلية والمراجعة المؤهلة.,
 This item is no longer on the invoice.,هذا الصنف لم يعد موجوداً في الفاتورة.,
+This list,هذه القائمة,Bunood POS
 This migration packet has no native Data Import datasets to reconcile.,لا تحتوي حزمة الترحيل هذه على مجموعات بيانات استيراد مدمجة لتسويتها.,
 This migration packet no longer matches its frozen scope.,لم تعد حزمة الترحيل هذه تطابق نطاقها المجمّد.,
 This migration packet no longer matches the current candidate. Create a new packet.,لم تعد حزمة الترحيل هذه تطابق النسخة المرشحة الحالية. أنشئ حزمة جديدة.,
@@ -2805,6 +3012,10 @@ This packet predates database binding. Create and submit a new migration packet.
 This packet predates environment binding. Create and submit a new migration packet.,أُنشئت هذه الحزمة قبل إضافة ربط البيئة. أنشئ حزمة ترحيل جديدة وقدّمها.,
 This packet predates explicit duplicate identity controls. Create and submit a new migration packet.,أُنشئت هذه الحزمة قبل إضافة ضوابط هوية التكرار الصريحة. أنشئ حزمة ترحيل جديدة وقدّمها.,
 This page will not switch environments. Review the server in native settings.,لن تغيّر هذه الصفحة البيئة. راجع الخادم في الإعدادات الأصلية.,
+This point of sale does not allow discounts,نقطة البيع هذه لا تسمح بالخصم,Bunood POS
+This point of sale does not allow price changes,نقطة البيع هذه لا تسمح بتعديل السعر,Bunood POS
+This point of sale has no card method,لا توجد طريقة دفع بالبطاقة في نقطة البيع هذه,Bunood POS
+This point of sale has no cash method,لا توجد طريقة دفع نقدي في نقطة البيع هذه,Bunood POS
 This preview is only available for submitted Sandbox invoices.,هذه المعاينة متاحة فقط للفواتير المعتمدة في البيئة التجريبية.,
 This proposal has no text to accept.,هذا المقترح لا نص فيه ليُقبل.,
 This receipt type cannot be returned.,لا يمكن إنشاء مرتجع من هذا النوع من الإيصالات.,
@@ -2813,9 +3024,12 @@ This rehearsal currently supports the native Data Import path only.,تدعم ه�
 This rehearsal has no failed rows to download.,لا تحتوي هذه التجربة على صفوف فاشلة لتنزيلها.,
 This report is not installed on this site,هذا التقرير غير مثبت في هذا الموقع,
 This shift,هذه الوردية,
+This shift,هذه الوردية,Bunood POS
+This shift is out of date,هذه الوردية قديمة,Bunood POS
 This view does not declare the boundary reconciled. Qualified preparer and reviewer evidence remains required.,لا يعلن هذا العرض أن النطاق مطابَق، وتبقى إثباتات المُعِدّ والمراجع المؤهلَين مطلوبة.,
 Three lines,ثلاثة أسطر,
 "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look.",صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات.,
+Time,الوقت,Bunood POS
 Tinted,مُلوَّن,
 Tinted Heads,عناوين ملوّنة,
 Tints the whole strip when something has failed. Off by default — a bar that shouts gets ignored.,يصبغ الشريط كله عندما يفشل شيء. موقوف افتراضيًا — الشريط الذي يصرخ يُتجاهَل.,
@@ -2823,7 +3037,9 @@ Title Block,كتلة العنوان,
 Title Fusion,اندماج العنوان,
 To Date,إلى تاريخ,
 To date,إلى تاريخ,
+"To return items: find the receipt, then press Return",للإرجاع: ابحث عن الإيصال ثم اضغط «مرتجع»,Bunood POS
 Today,اليوم,
+Today,اليوم,Bunood POS
 "Today's POS overview stays current. The period changes the recent receipt list, not your shift.",يبقى ملخص نقطة البيع لليوم محدثًا؛ تغيير الفترة يؤثر في قائمة الإيصالات الحديثة، لا في ورديتك.,
 Today's POS position,ملخص نقطة البيع اليوم,
 Today's POS sales,مبيعات نقطة البيع اليوم,
@@ -2839,6 +3055,8 @@ Top bar,الشريط العلوي,
 Top contributors,أعلى المساهمين,
 Top ten share,حصة العشر الأعلى,
 Total,الإجمالي,
+Total,الإجمالي,Bunood POS
+Total (estimating…),الإجمالي (يُحسب…),Bunood POS
 Total Credit,إجمالي الدائن,
 Total Debit,إجمالي المدين,
 Total Strings,إجمالي النصوص,
@@ -2863,6 +3081,7 @@ Trial Balance and financial statements,ميزان المراجعة والقوا�
 Trough,غائر,
 "Try a wider period, or another company.",جرّب فترة أوسع أو شركة أخرى.,
 "Try again, or use the native banking workspace.",حاول مرة أخرى، أو استخدم مساحة عمل البنوك الأصلية.,
+"Try another name, scan the barcode, or add it as a new item.",جرّب اسمًا آخر، أو امسح الباركود، أو أضفه صنفًا جديدًا.,Bunood POS
 Two lines,سطران,
 "Two links, placed independently. Applies on the next page load.",رابطان يوضعان باستقلال. يسري عند تحميل الصفحة التالي.,
 Two original ERPNext Payment Entries will be posted and linked to this invoice.,سيُرحّل سندا دفع أصليان في ERPNext ويُربطان بهذه الفاتورة.,
@@ -2870,6 +3089,8 @@ Type,النوع,
 "Type a name, or take one of the shortcuts.",اكتب اسماً، أو خذ أحد المختصرات.,
 Type or search directly in the item column. Use Add line when you need another item.,اكتب أو ابحث مباشرة في عمود الصنف. استخدم إضافة صف لإدخال صنف آخر.,
 Type scale,مقياس الخط,
+"Type the count, press ×, then scan the item",اكتب العدد، ثم ×، ثم امسح الصنف,Bunood POS
+Typed in the scan field,تُكتب في خانة المسح,Bunood POS
 UUID,المعرّف الفريد (UUID),
 Unable to load Home. Try again.,تعذر تحميل الصفحة الرئيسية. حاول مرة أخرى.,
 Unable to load accounting evidence.,تعذّر تحميل بيانات المحاسبة.,
@@ -2889,10 +3110,14 @@ Under tablet width the trail becomes a single labeled link to the parent.,دون
 Underline,تسطير,
 Unframed and text-forward — the container does the framing.,بلا إطارات ومع تقديم النص — الحاوية هي التي تؤطّر.,
 Unified Side Pane,اللوحة الجانبية الموحّدة,
+Unit,وحدة,Bunood POS unit
 Unit of measure,وحدة القياس,
 Unit price,سعر الوحدة,
 Unknown action.,إجراء غير معروف.,
+Unknown barcode,باركود غير معروف,Bunood POS
+Unknown barcode: {0},باركود غير معروف: {0},
 Unmatched and partially matched transactions,المعاملات غير المطابقة والمطابقة جزئيًا,
+Unpaid,غير مدفوعة,
 Unread: {0},غير المقروء: {0},
 Unsaved changes,تغييرات غير محفوظة,
 "Unseen error count, using ERPNext's own permission-filtered counter.",عدد الأخطاء غير المطالَعة، عبر عدّاد ERPNext نفسه المرشّح بالصلاحيات.,
@@ -2936,6 +3161,7 @@ User menu,قائمة المستخدم,
 "Users, roles and approvals",المستخدمون والأدوار والموافقات,
 "Uses ERPNext's configured tax category, template, and inclusive-price setting.",يستخدم الفئة الضريبية والقالب وإعداد شمول السعر للضريبة المضبوطة في ERPNext.,
 VAT,ضريبة القيمة المضافة,
+VAT,الضريبة,Bunood POS
 VAT Return,الإقرار الضريبي,
 VAT Summary,ملخص ضريبة القيمة المضافة,
 VAT account moved outside invoices: {0},حساب ضريبة تحرّك خارج الفواتير: {0},
@@ -2969,6 +3195,7 @@ Views Picker,منتقي العروض,
 Voucher,السند,
 Waiting,في الانتظار,
 Walk-in customer,عميل نقدي,
+Walk-in customer,عميل نقدي,Bunood POS
 Warehouse,المستودع,
 Warehouse is a default. Stock moves only when Update Stock is on.,المستودع قيمة افتراضية. لا يتحرّك المخزون إلا عند تفعيل تحديث المخزون.,
 "Warehouse, stock and valuation",المستودع والمخزون والتقييم,
@@ -3064,6 +3291,7 @@ You do not have permission to create readiness tasks.,ليست لديك صلاح
 You do not have permission to create the readiness work plan.,ليست لديك صلاحية إنشاء خطة أعمال الجاهزية.,
 You do not have permission to email this invoice.,ليس لديك صلاحية إرسال هذه الفاتورة بالبريد الإلكتروني.,
 You do not have permission to import bank statements,ليست لديك صلاحية استيراد كشوف الحساب البنكي,
+You do not have permission to open a POS shift.,ليست لديك صلاحية فتح وردية نقطة البيع.,Bunood POS
 You do not have permission to prepare migration reconciliation.,ليست لديك صلاحية إعداد تسوية الترحيل.,
 You do not have permission to read bank transactions,ليست لديك صلاحية عرض المعاملات البنكية,
 You do not have permission to read the attached import file.,ليست لديك صلاحية قراءة ملف الاستيراد المرفق.,
@@ -3111,20 +3339,26 @@ all your invoices,كل فواتيرك,
 close,إغلاق,
 commercial,التجارة والتسعير,
 company,الشركة,
+customer by name or mobile,العميل بالاسم أو الجوال,Bunood POS
 density,الكثافة,
 desk shape,شكل المكتب,
+discount on the chosen line,خصم على السطر المحدد,Bunood POS
 documents,مستندات,
 draft,مسودة,
 dry-run-validated,تم التحقق في التجربة,
+every command,كل الأوامر,Bunood POS
 exception,استثناء,
 fill,تعبئة,
+filters the items; Enter adds the first,يصفّي الأصناف، وEnter يضيف الأول,Bunood POS
 first letter — no logo,الحرف الأول — لا شعار,
 first_transaction,المعاملة الأولى,
 integrations,التكاملات,
 look,المظهر,
 mapped,تم تعيين الحقول,
+name,اسم,Bunood POS
 names from the Company record,الأسماء من سجل الشركة,
 navigate,تنقّل,
+new price (with permission),سعر جديد (بصلاحية),Bunood POS
 new tab,تبويب جديد,
 not on this desk,ليس على هذا المكتب,
 of,من,
@@ -3133,10 +3367,12 @@ operations,التشغيل والدعم,
 output,المخرجات,
 parties,العملاء والموردون,
 payments,المدفوعات,
+quantity 5 for the chosen line,الكمية 5 للسطر المحدد,Bunood POS
 reconciled,تمت التسوية,
 reports,تقارير,
 row,صف,
 running,قيد التشغيل,
+scale label: the weight is read from it,ملصق الميزان: يُقرأ الوزن منه,Bunood POS
 side pane state,حالة اللوحة الجانبية,
 stock,المخزون,
 tax_zatca,الضريبة والفوترة الإلكترونية,
@@ -3145,9 +3381,11 @@ the Bunood mark,علامة بنود,
 the bottom bar is switched off,الشريط السفلي موقوف,
 the dock is switched off,شريط الإرساء موقوف,
 the page title row is not carrying controls,صف عنوان الصفحة لا يحمل عناصر تحكم,
+the sale carries on,البيع مستمر,Bunood POS
 the side pane is hidden,اللوحة الجانبية مخفية,
 the side pane is switched off,اللوحة الجانبية موقوفة,
 the top bar is switched off,الشريط العلوي موقوف,
+then the barcode = 3 pieces,ثم الباركود = 3 حبات,Bunood POS
 this item,هذا الصنف,
 vs previous period,مقارنة بالفترة السابقة,
 wash,غسلة,
@@ -3155,7 +3393,11 @@ width,العرض,
 your favicon,أيقونتك,
 your logo,شعارك,
 {0} — not available: {1}. Falls back to the nearest slot.,{0} — غير متاح: {1}. يرجع إلى أقرب موضع.,
+{0} — put it on the scale or type the weight on the pad,{0} — ضعه على الميزان أو اكتب الوزن على اللوحة,
+{0}% off,خصم {0}%,
+{0}% off {1},خصم {0}% على {1},
 {0}: {1} — not available: {2},{0}: {1} — غير متاح: {2},
 {0}m ago,منذ {0} د,
 {0}s ago,منذ {0} ث,
+↑ ↓ to move · Enter to run · Esc to close,↑ ↓ للتنقل · Enter للتنفيذ · Esc للإغلاق,Bunood POS
 ↑↓ move · ↵ open · e read,↑↓ تنقّل · ↵ فتح · e مقروء,
