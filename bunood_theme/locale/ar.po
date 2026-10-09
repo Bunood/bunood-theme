@@ -17336,3 +17336,687 @@ msgstr "لا يوجد معامل تحويل لهذه الوحدة. الصنف: {
 #, fuzzy
 msgid "The discount is above the item's maximum. Item: {0} · Maximum discount: {1}%"
 msgstr "الخصم أعلى من الحد الأقصى للصنف. الصنف: {0} · أقصى خصم: {1}%"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Wrong change given"
+msgstr "خطأ في الباقي"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Cash taken out without a record"
+msgstr "سحب نقدي لم يُسجَّل"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Counting mistake"
+msgstr "خطأ في العد"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The shift could not be read."
+msgstr "تعذّرت قراءة الوردية."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The count could not be checked."
+msgstr "تعذّر فحص العد."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Choose the reason for the difference first."
+msgstr "اختر سبب الفرق أولًا."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Closing the shift…"
+msgstr "جارٍ إغلاق الوردية…"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Shift closed: {0}"
+msgstr "أُغلقت الوردية: {0}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The shift was not closed."
+msgstr "لم تُغلق الوردية."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Count the drawer"
+msgstr "عدّ الدرج"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Result"
+msgstr "النتيجة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Closed"
+msgstr "الإغلاق"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back to the sale"
+msgstr "رجوع للبيع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back"
+msgstr "رجوع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Loading the shift…"
+msgstr "جارٍ تحميل الوردية…"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Held sales: {0}"
+msgstr "مبيعات معلّقة: {0}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "they stay held for the next shift on this point of sale."
+msgstr "تبقى معلّقة للوردية القادمة على نقطة البيع هذه."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Count the cash in the drawer"
+msgstr "عدّ النقد في الدرج"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The expected amount appears after the count, so the count stays honest."
+msgstr "المبلغ المتوقع يظهر بعد العد، حتى يبقى العد صادقًا."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Counted cash"
+msgstr "النقد المعدود"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Cards and other methods"
+msgstr "البطاقات والطرق الأخرى"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "the terminal's settlement total"
+msgstr "إجمالي تسوية الجهاز"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Done counting — show the result"
+msgstr "انتهيت من العد — عرض النتيجة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Matches"
+msgstr "مطابق"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Short"
+msgstr "عجز"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Over"
+msgstr "زيادة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Count result"
+msgstr "نتيجة العد"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Payment method"
+msgstr "طريقة الدفع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Expected"
+msgstr "المتوقع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Counted"
+msgstr "المعدود"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Difference"
+msgstr "الفرق"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Opening float + cash sales − cash refunds"
+msgstr "رصيد الافتتاح + المبيعات النقدية − المرتجعات النقدية"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Compared with the terminal's settlement"
+msgstr "يُقارن بتسوية الجهاز"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Payments taken this shift"
+msgstr "المقبوض في هذه الوردية"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Invoices"
+msgstr "الفواتير"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Returns total"
+msgstr "إجمالي المرتجعات"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Net sales including VAT"
+msgstr "صافي المبيعات شامل الضريبة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Pieces"
+msgstr "القطع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The reason for the difference is required"
+msgstr "سبب الفرق مطلوب"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Other"
+msgstr "أخرى"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Write the reason"
+msgstr "اكتب السبب"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Cash in the drawer"
+msgstr "النقد في الدرج"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Opening float"
+msgstr "رصيد الافتتاح"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "To hand over (counted cash − opening float)"
+msgstr "يُسلَّم للخزينة (المعدود − رصيد الافتتاح)"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back to the count"
+msgstr "رجوع للعد"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Close the shift and print the report"
+msgstr "إغلاق الوردية وطباعة التقرير"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "ERPNext's POS Closing Entry is submitted with the counted amounts and the differences. This point of sale cannot sell until a new shift is opened."
+msgstr "يُعتمد قيد إغلاق الوردية في ERPNext بالمبالغ المعدودة والفروق، ولا يمكن البيع على نقطة البيع هذه حتى تُفتح وردية جديدة."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The shift is closed"
+msgstr "أُغلقت الوردية"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Closing entry"
+msgstr "قيد الإغلاق"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "ERPNext is still consolidating this shift's invoices in the background."
+msgstr "ما زال ERPNext يجمّع فواتير هذه الوردية في الخلفية."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Print the closing report"
+msgstr "طباعة تقرير الإغلاق"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open a new shift"
+msgstr "فتح وردية جديدة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Changed their mind"
+msgstr "غيّر رأيه"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Damaged or faulty item"
+msgstr "صنف تالف أو معيب"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Wrong item"
+msgstr "خطأ في الصنف"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Expired"
+msgstr "منتهي الصلاحية"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The receipt could not be read."
+msgstr "تعذّرت قراءة الإيصال."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The refund could not be calculated."
+msgstr "تعذّر حساب المبلغ المرتجع."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Choose at least one item to return."
+msgstr "اختر صنفًا واحدًا على الأقل لإرجاعه."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Choose the reason for the return."
+msgstr "اختر سبب الإرجاع."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Issuing the credit note…"
+msgstr "جارٍ إصدار الإشعار الدائن…"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Credit note issued: {0}"
+msgstr "صدر إشعار دائن: {0}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The credit note was not issued."
+msgstr "لم يصدر الإشعار الدائن."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Return by receipt"
+msgstr "المرتجع بالإيصال"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Open the return in the invoice form"
+msgstr "فتح المرتجع في نموذج الفاتورة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back to receipts"
+msgstr "رجوع للإيصالات"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Loading the receipt…"
+msgstr "جارٍ تحميل الإيصال…"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipt"
+msgstr "الإيصال"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Days since the sale: {0}"
+msgstr "أيام منذ البيع: {0}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Partly returned before"
+msgstr "أُرجع جزء منه سابقًا"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Nothing returned yet"
+msgstr "لم يُرجع منه شيء"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sold"
+msgstr "بِيع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Returned before"
+msgstr "أُرجع سابقًا"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Fully returned"
+msgstr "أُرجع بالكامل"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Less"
+msgstr "أقل"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "More"
+msgstr "أكثر"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item condition"
+msgstr "حالة الصنف"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Back to stock"
+msgstr "يعود للمخزون"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Damaged"
+msgstr "تالف"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Receipt lines"
+msgstr "أسطر الإيصال"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item"
+msgstr "الصنف"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Quantity to return"
+msgstr "الكمية المرتجعة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Amount"
+msgstr "المبلغ"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Reason for the return"
+msgstr "سبب الإرجاع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Refund by"
+msgstr "طريقة الاسترداد"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Credit on the customer's account"
+msgstr "رصيد في حساب العميل"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Same payment method"
+msgstr "نفس طريقة الدفع"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Used on the customer's next purchases"
+msgstr "يُستخدم في مشتريات العميل القادمة"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Paid out of this shift's cash"
+msgstr "يُصرف من نقد هذه الوردية"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Refunded through the card terminal"
+msgstr "يُرد عبر جهاز البطاقات"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Still refundable in money"
+msgstr "المتبقي القابل للرد نقدًا"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Credit to the customer"
+msgstr "رصيد للعميل"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Refund to the customer"
+msgstr "يُرد للعميل"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Credit note issued"
+msgstr "صدر الإشعار الدائن"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Issue the credit note"
+msgstr "إصدار إشعار دائن"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The original invoice is not changed: a credit note linked to it is issued."
+msgstr "لا تُعدَّل الفاتورة الأصلية، بل يصدر إشعار دائن مرتبط بها."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This receipt has a discount on the whole invoice or a fixed charge, so it comes back whole."
+msgstr "على هذا الإيصال خصم على الفاتورة كلها أو رسم ثابت، لذا يُرجع كاملًا."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "There is no open POS shift to close."
+msgstr "لا توجد وردية نقطة بيع مفتوحة لإغلاقها."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "The counted amounts are not valid."
+msgstr "المبالغ المعدودة غير صالحة."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Counted amount"
+msgstr "المبلغ المعدود"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Give the reason for the difference before closing the shift."
+msgstr "اذكر سبب الفرق قبل إغلاق الوردية."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Count difference at closing: {0}"
+msgstr "فرق العد عند الإغلاق: {0}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Credit can stay only on a named customer's account."
+msgstr "لا يبقى الرصيد إلا في حساب عميل مسمّى."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Paid in money on this receipt: {0}. Choose credit on the customer's account."
+msgstr "المدفوع نقدًا من هذا الإيصال: {0}. اختر رصيدًا في حساب العميل."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "The return lines are not valid."
+msgstr "أسطر المرتجع غير صالحة."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "This line is not on the receipt."
+msgstr "هذا السطر ليس في الإيصال."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Returnable quantity for {0}: {1}"
+msgstr "الكمية القابلة للإرجاع من {0}: {1}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Choose at least one item to return."
+msgstr "اختر صنفًا واحدًا على الأقل لإرجاعه."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "This receipt has a discount on the whole invoice. Return all of it, or return from the invoice form."
+msgstr "على هذا الإيصال خصم على الفاتورة كلها. أرجعه كاملًا، أو أرجعه من نموذج الفاتورة."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "This receipt has a fixed charge. Return all of it, or return from the invoice form."
+msgstr "على هذا الإيصال رسم ثابت. أرجعه كاملًا، أو أرجعه من نموذج الفاتورة."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "There is no rejected-goods warehouse for damaged items."
+msgstr "لا يوجد مستودع للبضاعة المرفوضة لاستقبال الأصناف التالفة."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Give the reason for the return."
+msgstr "اذكر سبب الإرجاع."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Loose coins and other cash"
+msgstr "الفكة والنقد الآخر"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Counted cash cannot be negative."
+msgstr "لا يمكن أن يكون النقد المعدود سالبًا."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Count checked against the expected figures: {0}"
+msgstr "عدٌّ قورن بالمتوقع: {0}"
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Credit on account is available for Sales Invoice receipts only."
+msgstr "الرصيد في الحساب متاح لإيصالات فواتير المبيعات فقط."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "This receipt belongs to another company."
+msgstr "هذا الإيصال لشركة أخرى."
+
+#. src: pos phase 2 — shift close and return by receipt, 2026-10-09
+#, fuzzy
+msgid "Return part of a serial-numbered item from the invoice form."
+msgstr "أرجع جزءًا من صنف بأرقام تسلسلية من نموذج الفاتورة."

@@ -20,7 +20,10 @@ class POSWorkbenchContractTests(unittest.TestCase):
         return function.decorator_list
 
     def test_every_public_mutation_is_declared_post_only(self):
-        for name in ("open_shift", "preview_cart", "hold_cart", "checkout", "create_return"):
+        for name in (
+            "open_shift", "preview_cart", "hold_cart", "checkout", "create_return",
+            "preview_close", "close_shift", "preview_return", "submit_return",
+        ):
             decorators = self.decorators_for(name)
             self.assertTrue(
                 any(
@@ -36,6 +39,100 @@ class POSWorkbenchContractTests(unittest.TestCase):
                 ),
                 name,
             )
+
+    def body(self, name):
+        return self.source.split(f"\ndef {name}(", 1)[1].split("\ndef ", 1)[0]
+
+    def test_phase_two_reads_are_get_only(self):
+        for name in ("close_shift_context", "return_context"):
+            decorators = self.decorators_for(name)
+            self.assertTrue(
+                any(
+                    isinstance(item, ast.Call)
+                    and any(
+                        keyword.arg == "methods" and ast.literal_eval(keyword.value) == ["GET"]
+                        for keyword in item.keywords
+                    )
+                    for item in decorators
+                ),
+                name,
+            )
+
+    def test_the_count_context_carries_no_expected_figure(self):
+        # The cashier counts before seeing what was expected (owner-approved design).
+        context = self.body("close_shift_context")
+        for figure in ("expected_amount", "closing_amount", "opening_amount", "difference", "grand_total"):
+            self.assertNotIn(figure, context)
+        # Names only, from the same draft the closing is built from (review 2026-10-09:
+        # the screen and the server listed different methods, so a shift could not close).
+        self.assertIn("names = [row.mode_of_payment for row in _closing_draft(opening, profile).payment_reconciliation]", context)
+        self.assertIn('"methods": [{"mode_of_payment": mode, "type": _mode_type(mode)} for mode in modes]', context)
+
+    def test_the_closing_is_erpnexts_entry_with_the_float_and_a_reason(self):
+        draft = self.body("_closing_draft")
+        self.assertIn("closing = make_closing_entry_from_opening(opening)", draft)
+        # ERPNext's own form adds the opening float client-side; the server must too.
+        self.assertIn("row.expected_amount = flt(flt(row.expected_amount) + row.opening_amount", draft)
+        close = self.body("close_shift")
+        self.assertIn('_require("POS Closing Entry", "submit")', close)
+        self.assertLess(close.index("Give the reason for the difference"), close.index("closing.insert()"))
+        # The reason is written before submit: ERPNext commits inside on_submit.
+        self.assertLess(close.index('closing.add_comment("Comment"'), close.index("closing.submit()"))
+        reconcile = self.body("_reconcile")
+        # A card terminal may settle below zero; a drawer may not.
+        self.assertIn('if mode_type == "Cash" and amount < 0:', reconcile)
+        self.assertNotIn("cannot be negative", self.body("_counted"))
+        # A method counted at zero that the shift does not carry is no reason to refuse.
+        self.assertIn("mode not in known and abs(flt(amount)) >= 0.005", reconcile)
+        # Every distinct count checked against the expected figures is on the record.
+        self.assertIn('opening.add_comment(', self.body("preview_close"))
+
+    def test_a_submitted_closing_ends_the_shift_even_while_erpnext_queues_it(self):
+        unclosed = self.body("_unclosed_entries")
+        self.assertIn('"POS Closing Entry"', unclosed)
+        self.assertIn('"pos_opening_entry": ["in", [row.name for row in rows]], "docstatus": 1', unclosed)
+        self.assertIn("return [row for row in rows if row.name not in closed]", unclosed)
+
+    def test_a_return_never_exceeds_what_is_left_or_what_was_paid(self):
+        partial = self.body("_partial_return")
+        self.assertIn("doc = make_sales_return(source.name)", partial)
+        self.assertIn("if qty > available + 1e-9:", partial)
+        self.assertIn('"docstatus": 1', self.body("_returned_qty"))
+        refund = self.body("_apply_refund")
+        self.assertIn("refundable = _refundable(source, lock)", refund)
+        self.assertIn("if abs(total) > refundable + 0.005:", refund)
+        self.assertIn("if not doc.customer or doc.customer == profile.customer:", refund)
+        # A money refund is a POS document, so the shift's closing counts it.
+        self.assertIn("doc.is_created_using_pos = 1", refund)
+
+    def test_an_invoice_discount_or_a_fixed_charge_comes_back_only_whole(self):
+        partial = self.body("_partial_return")
+        self.assertIn('if flt(source.get("discount_amount")):', partial)
+        self.assertIn('tax.charge_type == "Actual"', partial)
+        self.assertLess(partial.index("if not whole:"), partial.index("make_sales_return(source.name)"))
+
+    def test_a_return_needs_an_open_shift_a_reason_and_submit_permission(self):
+        submit = self.body("submit_return")
+        self.assertIn("_open_entry(profile.name)", submit)
+        self.assertIn('frappe.throw(_("Give the reason for the return."))', submit)
+        self.assertIn('doc.check_permission("submit")', submit)
+
+    def test_one_credit_note_per_request_and_one_return_at_a_time(self):
+        submit = self.body("submit_return")
+        lock = submit.index('frappe.db.get_value(source.doctype, source.name, "name", for_update=True)')
+        self.assertLess(lock, submit.index("_partial_return(source, profile, lines, refund, reason, lock=True)"))
+        self.assertIn('"already_issued": True', submit)
+        self.assertLess(submit.index("frappe.cache.get_value(key)"), submit.index("doc.insert()"))
+        # Locking reads see a return committed while this request waited.
+        self.assertIn("for_update=lock", self.body("_returned_qty"))
+        self.assertIn("for_update=lock", self.body("_refundable"))
+
+    def test_returns_stay_in_the_drawers_company_and_off_serials_and_pos_invoice_credit(self):
+        partial = self.body("_partial_return")
+        self.assertIn("if source.company != profile.company:", partial)
+        self.assertIn('"has_serial_no"', partial)
+        self.assertIn('if doc.doctype != "Sales Invoice":', self.body("_apply_refund"))
+        self.assertIn('"credit_allowed": source.doctype == "Sales Invoice"', self.body("return_context"))
 
     def test_native_document_engine_remains_authoritative(self):
         self.assertIn('doc.run_method("set_missing_values")', self.source)

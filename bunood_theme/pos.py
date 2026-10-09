@@ -15,7 +15,7 @@ from typing import Any
 
 import frappe
 from frappe import _
-from frappe.utils import cint, flt, getdate, now_datetime, nowdate
+from frappe.utils import cint, date_diff, flt, getdate, now_datetime, nowdate, nowtime
 
 
 MAX_CART_LINES = 200
@@ -81,7 +81,7 @@ def _available_profiles() -> list[dict[str, Any]]:
 
 
 def _unclosed_entries() -> list[dict[str, Any]]:
-    return frappe.get_list(
+    rows = frappe.get_list(
         "POS Opening Entry",
         filters={
             "user": frappe.session.user,
@@ -92,6 +92,20 @@ def _unclosed_entries() -> list[dict[str, Any]]:
         order_by="period_start_date desc",
         limit_page_length=20,
     )
+    if not rows:
+        return rows
+    # A submitted closing ends the shift even while ERPNext is still merging
+    # ten or more POS Invoices in the background: the opening is marked closed
+    # only when that job finishes, and a sale made meanwhile would fall after
+    # the closing's period, outside every closing.
+    closed = set(
+        frappe.get_all(
+            "POS Closing Entry",
+            filters={"pos_opening_entry": ["in", [row.name for row in rows]], "docstatus": 1},
+            pluck="pos_opening_entry",
+        )
+    )
+    return [row for row in rows if row.name not in closed]
 
 
 def _open_entries() -> list[dict[str, Any]]:
@@ -808,6 +822,496 @@ def create_return(source_doctype: str, source_name: str) -> dict[str, Any]:
         "name": returned.name,
         "route": ["Form", returned.doctype, returned.name],
     }
+
+
+# ── Closing the shift: count first, then see what was expected ─────────────
+#
+# The closing record is ERPNext's own POS Closing Entry, built by its own
+# make_closing_entry_from_opening and submitted through its own lifecycle. This
+# shell adds what the native form leaves to a person: the opening float in the
+# expected amount (the native form's script adds it client-side), the counted
+# amount and the difference per payment method, and a reason when they differ.
+# The context call never carries the expected figures, so the count is blind.
+
+
+def _current_opening(pos_profile: str):
+    profile = _profile(pos_profile)
+    entry = next((row for row in _unclosed_entries() if row.pos_profile == profile.name), None)
+    if not entry:
+        frappe.throw(_("There is no open POS shift to close."))
+    opening = frappe.get_doc("POS Opening Entry", entry.name)
+    opening.check_permission("read")
+    return profile, opening
+
+
+def _counted(values: Any) -> dict[str, float]:
+    supplied = _json(values, [])
+    if not isinstance(supplied, list):
+        frappe.throw(_("The counted amounts are not valid."))
+    counted: dict[str, float] = {}
+    for raw in supplied:
+        if not isinstance(raw, dict):
+            continue
+        mode = str(raw.get("mode_of_payment") or "")
+        amount = _number(raw.get("amount"), _("Counted amount"))
+        counted[mode] = counted.get(mode, 0) + amount
+    return counted
+
+
+def _mode_type(mode: str) -> str:
+    return frappe.db.get_value("Mode of Payment", mode, "type") or ""
+
+
+def _closing_draft(opening, profile):
+    """ERPNext's closing entry for this shift as it stands now, not saved.
+
+    Every method the shift can count has a row: the ones that took payments
+    (ERPNext's own rows), the ones the opening counted, and the profile's, so
+    the count screen and the closing record name the same methods.
+    """
+    from erpnext.accounts.doctype.pos_closing_entry.pos_closing_entry import (
+        make_closing_entry_from_opening,
+    )
+
+    closing = make_closing_entry_from_opening(opening)
+    opening_amounts: dict[str, float] = {}
+    for row in opening.get("balance_details") or []:
+        opening_amounts[row.mode_of_payment] = opening_amounts.get(row.mode_of_payment, 0) + flt(row.opening_amount)
+    present = {row.mode_of_payment for row in closing.payment_reconciliation}
+    for mode in [*opening_amounts, *(row["mode_of_payment"] for row in _payment_methods(profile))]:
+        if mode not in present:
+            closing.append("payment_reconciliation", {"mode_of_payment": mode, "opening_amount": 0, "expected_amount": 0})
+            present.add(mode)
+    for row in closing.payment_reconciliation:
+        row.opening_amount = flt(opening_amounts.get(row.mode_of_payment, 0), row.precision("opening_amount"))
+        row.expected_amount = flt(flt(row.expected_amount) + row.opening_amount, row.precision("expected_amount"))
+    return closing
+
+
+def _reconcile(closing, counted: dict[str, float]) -> list[dict[str, Any]]:
+    known = {row.mode_of_payment for row in closing.payment_reconciliation}
+    unknown = sorted(mode for mode, amount in counted.items() if mode not in known and abs(flt(amount)) >= 0.005)
+    if unknown:
+        frappe.throw(_("Payment method unavailable in this POS Profile: {0}").format(", ".join(unknown)))
+    rows = []
+    for row in closing.payment_reconciliation:
+        mode_type = _mode_type(row.mode_of_payment)
+        amount = flt(counted.get(row.mode_of_payment, 0), row.precision("closing_amount"))
+        # A card terminal can settle below zero (refunds over sales); a drawer cannot.
+        if mode_type == "Cash" and amount < 0:
+            frappe.throw(_("Counted cash cannot be negative."))
+        row.closing_amount = amount
+        row.difference = flt(row.closing_amount - flt(row.expected_amount), row.precision("difference"))
+        rows.append(
+            {
+                "mode_of_payment": row.mode_of_payment,
+                "type": mode_type,
+                "opening_amount": row.opening_amount,
+                "expected_amount": row.expected_amount,
+                "closing_amount": row.closing_amount,
+                "difference": row.difference,
+            }
+        )
+    return rows
+
+
+def _closing_summary(closing, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    invoices = closing.get("sales_invoices") or closing.get("pos_invoices") or []
+    returns = [row for row in invoices if cint(row.get("is_return"))]
+    return {
+        "opening_entry": closing.pos_opening_entry,
+        "period_start_date": closing.period_start_date,
+        "period_end_date": closing.period_end_date,
+        "rows": rows,
+        "invoices": len(invoices) - len(returns),
+        "returns": len(returns),
+        "returns_total": flt(sum(flt(row.get("grand_total")) for row in returns)),
+        "grand_total": closing.grand_total,
+        "net_total": closing.net_total,
+        "total_taxes_and_charges": closing.total_taxes_and_charges,
+        "total_quantity": closing.total_quantity,
+    }
+
+
+@frappe.whitelist(methods=["GET"])
+def close_shift_context(pos_profile: str) -> dict[str, Any]:
+    """What the cashier counts: method names only. The count is blind."""
+    profile, opening = _current_opening(pos_profile)
+    # The draft names every method the closing will carry; its figures stay here.
+    names = [row.mode_of_payment for row in _closing_draft(opening, profile).payment_reconciliation]
+    first = [row["mode_of_payment"] for row in _payment_methods(profile)]
+    modes = first + [mode for mode in names if mode not in first]
+    invoice_type = _invoice_type()
+    held = len(held_carts(profile.name)) if _can_hold(invoice_type) else 0
+    return {
+        "opening_entry": opening.name,
+        "pos_profile": profile.name,
+        "period_start_date": opening.period_start_date,
+        "methods": [{"mode_of_payment": mode, "type": _mode_type(mode)} for mode in modes],
+        "held": held,
+        "can_close": _capabilities(invoice_type)["can_close_shift"],
+    }
+
+
+def _checked_count_key(opening) -> str:
+    return f"bunood_pos_checked_count:{opening.name}"
+
+
+@frappe.whitelist(methods=["POST"])
+def preview_close(pos_profile: str, counted: Any) -> dict[str, Any]:
+    """Expected, counted and difference per method, from the cashier's count.
+
+    It changes no figure. Each distinct count checked here is noted on the
+    shift's opening entry, so a recount after seeing the expected figures is
+    on the record, not silent.
+    """
+    profile, opening = _current_opening(pos_profile)
+    _require("POS Closing Entry", "create")
+    closing = _closing_draft(opening, profile)
+    count = _counted(counted)
+    rows = _reconcile(closing, count)
+    key = _checked_count_key(opening)
+    if frappe.cache.get_value(key) != count:
+        opening.add_comment(
+            "Comment",
+            _("Count checked against the expected figures: {0}").format(
+                ", ".join(f"{_(row['mode_of_payment'])} {flt(row['closing_amount']):.2f}" for row in rows)
+            ),
+        )
+        frappe.cache.set_value(key, count, expires_in_sec=2 * 24 * 3600)
+    return _closing_summary(closing, rows)
+
+
+@frappe.whitelist(methods=["POST"])
+def close_shift(pos_profile: str, counted: Any, reason: str = "") -> dict[str, Any]:
+    """Submit ERPNext's POS Closing Entry with the counted amounts."""
+    profile, opening = _current_opening(pos_profile)
+    _require("POS Closing Entry", "create")
+    _require("POS Closing Entry", "submit")
+    closing = _closing_draft(opening, profile)
+    rows = _reconcile(closing, _counted(counted))
+    reason = (reason or "").strip()[:140]
+    if any(abs(flt(row["difference"])) >= 0.005 for row in rows) and not reason:
+        frappe.throw(_("Give the reason for the difference before closing the shift."))
+    closing.insert()
+    # Before submit: ERPNext commits inside the closing's on_submit, so a note
+    # written after it could be lost while the closing stands.
+    if reason:
+        closing.add_comment("Comment", _("Count difference at closing: {0}").format(reason))
+    closing.submit()
+    frappe.cache.delete_value(_checked_count_key(opening))
+    closing.reload()
+    return {**_closing_summary(closing, rows), "name": closing.name, "status": closing.status}
+
+
+# ── Returning part of a receipt ────────────────────────────────────────────
+#
+# The credit note is ERPNext's own: make_sales_return builds it from the
+# receipt, every row linked to the row it returns. This shell keeps only the
+# rows and quantities the cashier chose, never more than is still returnable,
+# sends a damaged row to the company's rejected-goods warehouse, and refunds by
+# one of the profile's methods (a negative payment, so the shift's closing
+# counts it) or as credit on a named customer's account (no payment, no POS).
+
+
+def _return_source(source_doctype: str, source_name: str):
+    if source_doctype not in INVOICE_TYPES:
+        frappe.throw(_("This receipt type cannot be returned."))
+    source = frappe.get_doc(source_doctype, source_name)
+    source.check_permission("read")
+    if source.docstatus != 1 or cint(source.is_return):
+        frappe.throw(_("Choose a submitted sale receipt to return."))
+    return source
+
+
+def _return_link(doctype: str) -> str:
+    return "sales_invoice_item" if doctype == "Sales Invoice" else "pos_invoice_item"
+
+
+def _returned_qty(source, lock: bool = False) -> dict[str, float]:
+    """Quantities already returned against each receipt row.
+
+    With ``lock`` the read takes row locks, and so sees returns committed while
+    this request waited for the receipt's lock; a plain read answers from the
+    transaction's snapshot and would miss them.
+    """
+    link = _return_link(source.doctype)
+    rows = frappe.db.get_values(
+        f"{source.doctype} Item",
+        {link: ["in", [row.name for row in source.items] or [""]], "docstatus": 1},
+        [link, "qty"],
+        as_dict=True,
+        for_update=lock,
+    )
+    returned: dict[str, float] = {}
+    for row in rows:
+        returned[row.get(link)] = returned.get(row.get(link), 0) + abs(flt(row.qty))
+    return returned
+
+
+def _damaged_warehouse(company: str) -> str | None:
+    rows = frappe.get_all(
+        "Warehouse",
+        filters={"company": company, "is_rejected_warehouse": 1, "disabled": 0, "is_group": 0},
+        pluck="name",
+        order_by="name asc",
+        limit_page_length=1,
+    )
+    return rows[0] if rows else None
+
+
+def _refundable(source, lock: bool = False) -> float:
+    """What the receipt took in money, net of change and of refunds already paid out."""
+    taken = flt(source.paid_amount) - flt(source.get("change_amount"))
+    refunded = frappe.db.get_values(
+        source.doctype,
+        {"return_against": source.name, "docstatus": 1, "is_return": 1},
+        ["paid_amount"],
+        as_dict=True,
+        for_update=lock,
+    )
+    return flt(taken - sum(abs(flt(row.paid_amount)) for row in refunded), source.precision("paid_amount"))
+
+
+@frappe.whitelist(methods=["GET"])
+def return_context(source_doctype: str, source_name: str) -> dict[str, Any]:
+    source = _return_source(source_doctype, source_name)
+    returned = _returned_qty(source)
+    lines = []
+    for row in source.items:
+        already = returned.get(row.name, 0)
+        lines.append(
+            {
+                "row": row.name,
+                "item_code": row.item_code,
+                "item_name": row.item_name,
+                "uom": row.uom,
+                "qty": row.qty,
+                "rate": row.rate,
+                "amount": row.amount,
+                "discount_percentage": row.discount_percentage,
+                "returned": already,
+                "returnable": max(flt(row.qty) - already, 0),
+            }
+        )
+    return {
+        "doctype": source.doctype,
+        "name": source.name,
+        "company": source.company,
+        "customer": source.customer,
+        "customer_name": source.customer_name,
+        "posting_date": source.posting_date,
+        "posting_time": source.posting_time,
+        "grand_total": source.grand_total,
+        "rounded_total": source.rounded_total,
+        "currency": source.currency,
+        "days": date_diff(nowdate(), source.posting_date),
+        "payments": [
+            {"mode_of_payment": row.mode_of_payment, "amount": row.amount}
+            for row in (source.get("payments") or [])
+            if flt(row.amount)
+        ],
+        "lines": lines,
+        "refundable": _refundable(source),
+        # A POS Invoice must carry a payment (POSInvoice.validate), so only a
+        # Sales Invoice receipt can leave the refund on the customer's account.
+        "credit_allowed": source.doctype == "Sales Invoice",
+        "damaged_warehouse": _damaged_warehouse(source.company) if cint(source.get("update_stock")) else None,
+        # An invoice-level discount or a fixed charge comes back only with the
+        # whole receipt (see _partial_return).
+        "whole_only": bool(
+            flt(source.get("discount_amount"))
+            or any(tax.charge_type == "Actual" and flt(tax.tax_amount) for tax in source.get("taxes") or [])
+        ),
+    }
+
+
+def _apply_refund(doc, source, profile, refund: str, lock: bool = False) -> None:
+    doc.set("payments", [])
+    if refund == "__credit__":
+        if doc.doctype != "Sales Invoice":
+            frappe.throw(_("Credit on account is available for Sales Invoice receipts only."))
+        if not doc.customer or doc.customer == profile.customer:
+            frappe.throw(_("Credit can stay only on a named customer's account."))
+        # A credit note with no payment: the refund stays on the customer's
+        # account, so it is not a POS document and no shift counts it.
+        doc.is_pos = 0
+        doc.is_created_using_pos = 0
+        doc.paid_amount = 0
+        doc.base_paid_amount = 0
+        doc.run_method("calculate_taxes_and_totals")
+        return
+    allowed = {row["mode_of_payment"]: row for row in _payment_methods(profile)}
+    if refund not in allowed:
+        frappe.throw(_("Payment method unavailable in this POS Profile: {0}").format(refund))
+    doc.is_pos = 1
+    if doc.doctype == "Sales Invoice":
+        doc.is_created_using_pos = 1
+    doc.run_method("calculate_taxes_and_totals")
+    total = flt(doc.rounded_total or doc.grand_total, doc.precision("grand_total"))
+    # Money goes back only as far as money came in: a sale left partly on the
+    # customer's account refunds the rest as credit, never as cash.
+    refundable = _refundable(source, lock)
+    if abs(total) > refundable + 0.005:
+        frappe.throw(_("Paid in money on this receipt: {0}. Choose credit on the customer's account.").format(refundable))
+    doc.append(
+        "payments",
+        {
+            "mode_of_payment": refund,
+            "account": allowed[refund]["account"],
+            "type": allowed[refund]["type"],
+            "amount": total,
+        },
+    )
+    doc.run_method("calculate_taxes_and_totals")
+
+
+def _partial_return(source, profile, lines: Any, refund: str, reason: str, lock: bool = False):
+    # The refund leaves this drawer, so the receipt must be this company's.
+    if source.company != profile.company:
+        frappe.throw(_("This receipt belongs to another company."))
+    supplied = _json(lines, [])
+    if not isinstance(supplied, list):
+        frappe.throw(_("The return lines are not valid."))
+    if len(supplied) > MAX_CART_LINES:
+        frappe.throw(_("The return lines are not valid."))
+    by_row = {row.name: row for row in source.items}
+    returned = _returned_qty(source, lock)
+    wanted: dict[str, dict[str, Any]] = {}
+    for raw in supplied:
+        if not isinstance(raw, dict):
+            continue
+        row_name = str(raw.get("row") or "")
+        if row_name not in by_row:
+            frappe.throw(_("This line is not on the receipt."))
+        qty = _number(raw.get("qty"), _("Quantity"))
+        if qty <= 0:
+            continue
+        available = flt(by_row[row_name].qty) - returned.get(row_name, 0)
+        if qty > available + 1e-9:
+            frappe.throw(_("Returnable quantity for {0}: {1}").format(by_row[row_name].item_name, available))
+        # The counter cannot say which serial numbers come back.
+        if qty < available - 1e-9 and frappe.get_cached_value("Item", by_row[row_name].item_code, "has_serial_no"):
+            frappe.throw(_("Return part of a serial-numbered item from the invoice form."))
+        wanted[row_name] = {"qty": qty, "damaged": bool(raw.get("damaged"))}
+    if not wanted:
+        frappe.throw(_("Choose at least one item to return."))
+    # ERPNext's return negates an invoice-level discount and a fixed charge in
+    # full; that is right only when the whole receipt comes back at once.
+    whole = not returned and all(
+        row.name in wanted and abs(wanted[row.name]["qty"] - flt(row.qty)) <= 1e-9 for row in source.items
+    )
+    if not whole:
+        if flt(source.get("discount_amount")):
+            frappe.throw(_("This receipt has a discount on the whole invoice. Return all of it, or return from the invoice form."))
+        if any(tax.charge_type == "Actual" and flt(tax.tax_amount) for tax in source.get("taxes") or []):
+            frappe.throw(_("This receipt has a fixed charge. Return all of it, or return from the invoice form."))
+    damaged_warehouse = None
+    if any(pick["damaged"] for pick in wanted.values()):
+        damaged_warehouse = _damaged_warehouse(source.company)
+        if not damaged_warehouse or not cint(source.get("update_stock")):
+            frappe.throw(_("There is no rejected-goods warehouse for damaged items."))
+
+    if source.doctype == "POS Invoice":
+        from erpnext.accounts.doctype.pos_invoice.pos_invoice import make_sales_return
+    else:
+        from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
+
+    doc = make_sales_return(source.name)
+    link = _return_link(source.doctype)
+    kept = []
+    for item in doc.items:
+        pick = wanted.get(item.get(link))
+        if not pick:
+            continue
+        item.qty = -pick["qty"]
+        item.stock_qty = item.qty * flt(item.conversion_factor or 1)
+        if pick["damaged"]:
+            item.warehouse = damaged_warehouse
+        kept.append(item)
+    if len(kept) != len(wanted):
+        frappe.throw(_("This line is not on the receipt."))
+    doc.set("items", kept)
+    doc.pos_profile = profile.name
+    doc.posting_date = nowdate()
+    doc.posting_time = nowtime()
+    doc.set_posting_time = 1
+    if reason:
+        doc.remarks = reason
+        if doc.meta.has_field("custom_return_reason"):
+            doc.custom_return_reason = reason
+    doc.run_method("calculate_taxes_and_totals")
+    _apply_refund(doc, source, profile, refund, lock)
+    return doc
+
+
+def _return_summary(doc) -> dict[str, Any]:
+    return {
+        **_summary(doc),
+        "is_return": 1,
+        "return_against": doc.return_against,
+        "payments": [
+            {"mode_of_payment": row.mode_of_payment, "amount": row.amount}
+            for row in (doc.get("payments") or [])
+        ],
+    }
+
+
+def _return_request_key(request_id: str) -> str:
+    request_id = str(request_id or "").strip()
+    if not request_id:
+        return ""
+    if len(request_id) > 64 or not request_id.replace("-", "").isalnum():
+        frappe.throw(_("The POS request is not valid."))
+    return f"bunood_pos_return:{frappe.session.user}:{request_id}"
+
+
+@frappe.whitelist(methods=["POST"])
+def preview_return(pos_profile: str, source_doctype: str, source_name: str, lines: Any, refund: str) -> dict[str, Any]:
+    """The credit note ERPNext would issue for these lines. Writes nothing."""
+    profile = _profile(pos_profile)
+    _open_entry(profile.name)
+    source = _return_source(source_doctype, source_name)
+    _require(source.doctype, "create")
+    return _return_summary(_partial_return(source, profile, lines, refund, ""))
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_return(
+    pos_profile: str,
+    source_doctype: str,
+    source_name: str,
+    lines: Any,
+    refund: str,
+    reason: str = "",
+    request_id: str = "",
+) -> dict[str, Any]:
+    """Issue ERPNext's credit note for the chosen lines and refund.
+
+    Repeating a request (a retry after a lost response) answers with the credit
+    note it already issued, never a second one.
+    """
+    profile = _profile(pos_profile)
+    _open_entry(profile.name)
+    source = _return_source(source_doctype, source_name)
+    _require(source.doctype, "create")
+    reason = (reason or "").strip()[:140]
+    if not reason:
+        frappe.throw(_("Give the reason for the return."))
+    # One return at a time per receipt: the lock lasts to the end of this
+    # request, so a second till waits, then counts this credit note.
+    frappe.db.get_value(source.doctype, source.name, "name", for_update=True)
+    key = _return_request_key(request_id)
+    issued = frappe.cache.get_value(key) if key else None
+    if issued and frappe.db.get_value(source.doctype, issued, "docstatus", for_update=True) == 1:
+        return {**_return_summary(frappe.get_doc(source.doctype, issued)), "already_issued": True}
+    doc = _partial_return(source, profile, lines, refund, reason, lock=True)
+    doc.insert()
+    doc.check_permission("submit")
+    doc.submit()
+    if key:
+        frappe.cache.set_value(key, doc.name, expires_in_sec=24 * 3600)
+    return {**_return_summary(doc), "already_issued": False}
 
 
 def ensure_pos_reference_field() -> None:

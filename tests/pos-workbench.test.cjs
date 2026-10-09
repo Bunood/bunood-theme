@@ -59,7 +59,7 @@ test("mutations are POST-only, permission checked, and checkout is replay safe",
 	assert.match(server, /doc\.owner != frappe\.session\.user/);
 });
 
-test("outdated shifts are blocked and handed to the native closing flow", () => {
+test("outdated shifts are blocked and closed through ERPNext's own closing entry", () => {
 	assert.match(server, /def _stale_entries\(\)/);
 	assert.match(server, /getdate\(row\.period_start_date\) != today/);
 	assert.match(server, /"stale_opening_entry"/);
@@ -200,3 +200,83 @@ test("the receipt register is a role-gated Page over the read-only union, reprin
 	}
 });
 
+// Phase 2, 2026-10-09: the shift close and the return by receipt, inside the counter.
+const fn = (name) => {
+	const start = js.indexOf(`function ${name}(`);
+	assert.ok(start > 0, name);
+	const next = js.indexOf("\n\t\tfunction ", start + 1);
+	return js.slice(start, next > 0 ? next : undefined);
+};
+
+test("the shift close counts blind: the expected figures arrive only with the result", () => {
+	assert.match(fn("closeShift"), /api\("close_shift_context", \{ pos_profile: opening\.pos_profile \}, \{ type: "GET", silent: true \}\)/);
+	assert.match(fn("previewClose"), /api\("preview_close", \{ pos_profile: close\.profile, counted: JSON\.stringify\(countedRows\(\)\) \}/);
+	assert.match(fn("submitClose"), /api\("close_shift", \{ pos_profile: close\.profile, counted: JSON\.stringify\(countedRows\(\)\), reason: closeReason\(\) \}/);
+	// The count step renders from the context, which carries no expected figure.
+	assert.doesNotMatch(fn("renderCloseCount"), /expected_amount|closing_amount|difference|close\.result/);
+	assert.match(fn("renderCloseResult"), /row\.expected_amount/);
+	// A difference holds the close until a reason is given.
+	assert.match(fn("renderCloseResult"), /const blocked = close\.busy \|\| \(differs && !closeReason\(\)\);/);
+	assert.match(fn("submitClose"), /if \(closeHasDifference\(\) && !closeReason\(\)\)/);
+	// The menu and the out-of-date gate open the counter's close, not a blank native form.
+	assert.doesNotMatch(js, /frappe\.new_doc\("POS Closing Entry"\)/);
+	assert.match(fn("submitClose"), /openPrintView\("POS Closing Entry", close\.closed\.name, "Standard"\)/);
+});
+
+test("a count typed with Arabic-Indic digits is read as the same number", () => {
+	const latinDigits = new Function(`${fn("latinDigits")}
+return latinDigits;`)();
+	assert.equal(latinDigits("٧٥"), "75");
+	assert.equal(latinDigits("١٢٣٫٥"), "123.5");
+	assert.equal(latinDigits("۱۲"), "12");
+	assert.equal(Number(latinDigits(" 4 0 ر.س")), 40);
+	// A thousands separator never turns into a second decimal point (that read as 0).
+	assert.equal(latinDigits("1,250.50"), "1250.50");
+	assert.equal(latinDigits("١٬٢٥٠٫٥"), "1250.5");
+	assert.match(fn("countedRows"), /round\(settled\(close\.others\[row\.mode_of_payment\]\)\)/);
+	// A card settlement may be negative; the drawer's cash may not.
+	const settled = new Function("latinDigits", `${fn("settled")}\nreturn settled;`)(latinDigits);
+	assert.equal(settled("-120.5"), -120.5);
+	assert.equal(settled("\u2212٤٠"), -40);
+	assert.equal(settled("75"), 75);
+	// Notes and coins in use (20 and 2 riyal included), plus loose coins as an amount.
+	assert.match(js, /const DENOMINATIONS = \[500, 200, 100, 50, 20, 10, 5, 2, 1, 0\.5\];/);
+	assert.match(fn("countedCash"), /return round\(notes \+ Number\(latinDigits\(close\.coins\) \|\| 0\)\);/);
+});
+
+test("a return by receipt sends only the chosen lines, and issues only the previewed credit note", () => {
+	assert.match(fn("createReturn"), /api\("return_context", \{ source_doctype: row\.doctype, source_name: row\.name \}, \{ type: "GET", silent: true \}\)/);
+	assert.match(fn("returnPicks"), /\.filter\(\(\[, pick\]\) => pick\.on && pick\.qty > 0\)/);
+	assert.match(fn("previewReturn"), /if \(state\.ret !== ret \|\| rev !== ret\.rev\) return;/);
+	// The issue button waits for the preview of exactly these lines and this refund.
+	assert.match(fn("renderReturnView"), /const preview = ret\.preview && ret\.preview\.rev === ret\.rev \? ret\.preview : null;/);
+	assert.match(fn("renderReturnView"), /disabled: !preview \|\| ret\.busy, onclick: submitReturn/);
+	assert.match(fn("submitReturn"), /api\("submit_return", \{/);
+	// Credit is offered only for a named customer; the native form stays reachable.
+	assert.match(fn("refundOptions"), /if \(ctx\.credit_allowed && ctx\.customer && ctx\.customer !== state\.profile\?\.customer\) options\.push\(\{ id: "__credit__"/);
+	// One token per return view: a retry after a lost answer gets the same credit note.
+	assert.match(fn("createReturn"), /const ret = \{ source: row, token,/);
+	assert.match(fn("submitReturn"), /request_id: ret\.token,/);
+	assert.match(fn("nativeReturn"), /api\("create_return"/);
+	// The damaged toggle appears only where the company has a rejected-goods warehouse.
+	assert.match(fn("renderReturnView"), /const damagedOk = Boolean\(ctx\.damaged_warehouse\);/);
+});
+
+test("inside the close and return views no sale key fires; Esc steps back", () => {
+	const onKey = fn("onKey");
+	assert.match(onKey, /if \(state\.view === "gate" \|\| state\.view === "close" \|\| state\.view === "return"\) return;/);
+	assert.ok(onKey.indexOf('state.view === "close") return;') < onKey.indexOf("const fkeys"), "views return before the function keys");
+	assert.match(onKey, /else if \(state\.view === "return"\) \{ if \(!state\.ret\?\.busy\) leaveReturn\(\); \}/);
+	assert.match(onKey, /if \(state\.close\?\.step === "result" && !state\.close\.busy\) \{ state\.close\.step = "count"; renderCloseView\(\); \}/);
+	// The server's refusal shows in the view, not as a desk dialog over it.
+	assert.match(js, /silent: Boolean\(options\?\.silent\)/);
+	assert.match(js, /error\?\._server_messages \|\| error\?\.responseJSON\?\._server_messages/);
+});
+
+test("the receipts table's narrow layout leaves the close and return tables their own", () => {
+	assert.match(scss, /\.bnd-pos__tr:not\(\.bnd-pos__tr--close, \.bnd-pos__tr--return\) \{\s+grid-template-columns: 4rem minmax\(0, 1fr\) 7rem;/);
+	assert.match(scss, /\.bnd-pos__tr--close \{\s+grid-template-columns: minmax\(0, 1\.4fr\) repeat\(3, minmax\(0, 1fr\)\);/);
+	for (const [source, arabicText] of [["Done counting — show the result", "انتهيت من العد — عرض النتيجة"], ["Issue the credit note", "إصدار إشعار دائن"], ["Back to stock", "يعود للمخزون"]]) {
+		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(`${source},${arabicText},Bunood POS`)), source);
+	}
+});
