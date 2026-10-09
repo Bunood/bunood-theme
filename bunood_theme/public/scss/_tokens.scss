@@ -107,6 +107,10 @@
   // because token names are a contract Layer 3/4 may consume, and removing one
   // is a breaking change (GUIDELINES 1.4). Do not reach for it for a brand fill.
   --bnd-ink-inverse: #ffffff;
+  // The ground behind a QR code: white in every mode, because a phone's camera
+  // reads dark modules on light, never the reverse (the customer screen's
+  // e-receipt, 2026-10-09). A surface, not ink, so not --bnd-ink-inverse.
+  --bnd-qr-ground: #ffffff;
 
   // ── Lines ─────────────────────────────────────────────────────────────────
   // 0.5px reads as a true hairline on retina and rounds up on 1x, which is the
@@ -376,6 +380,10 @@
   // modals (1050): executing a palette row can open a Frappe dialog, and
   // that dialog must cover what launched it.
   --bnd-z-palette: 1045;
+  // The POS customer screen is the one layer ABOVE Frappe's modals and toasts
+  // (2000): it faces the queue, and a dialog or alert meant for the cashier
+  // must never show on it (customer screen review, 2026-10-09).
+  --bnd-z-customer-screen: 2100;
 
   // ── Categorical hues ──────────────────────────────────────────────────────
   // Fixed order, validated for colour-vision separation. ASSIGN ONCE PER ENTITY

@@ -280,3 +280,51 @@ test("the receipts table's narrow layout leaves the close and return tables thei
 		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(`${source},${arabicText},Bunood POS`)), source);
 	}
 });
+
+// Phase 3, 2026-10-09: the customer screen.
+const moduleFn = (name) => {
+	const start = js.indexOf(`\n\tfunction ${name}(`);
+	assert.ok(start > 0, name);
+	const next = js.indexOf("\n\tfunction ", start + 1);
+	return js.slice(start, next > 0 ? next : undefined);
+};
+
+test("the customer screen shows the customer only what faces the queue", () => {
+	const shown = fn("displayState");
+	// Never the customer's name or tax number, a held draft's number or a payment reference.
+	assert.doesNotMatch(shown, /customerName|customerTaxId|state\.customer\b|reference|state\.draft/);
+	for (const mode of ["closed", "thanks", "pay", "idle", "sale"]) assert.match(shown, new RegExp(`mode: "${mode}"`));
+	// One channel per POS Profile; the screen fetches nothing of its own.
+	const channel = new Function(`${moduleFn("displayChannel")}\nreturn displayChannel;`)();
+	assert.equal(channel("نقطة 1"), "bnd-pos-display:نقطة 1");
+	assert.doesNotMatch(moduleFn("renderDisplay"), /api\(|frappe\.call|fetch\(/);
+});
+
+test("the customer screen renders text, never markup, and only a same-site logo", () => {
+	const screen = moduleFn("renderDisplay");
+	assert.doesNotMatch(screen, /innerHTML|outerHTML|insertAdjacentHTML/);
+	assert.match(screen, /receipt\.qr_svg\.startsWith\("<svg"\)/);
+	assert.match(screen, /src: `data:image\/svg\+xml;base64,\$\{btoa\(receipt\.qr_svg\)\}`/);
+	assert.match(screen, /DISPLAY_MODES\.has\(message\.state\?\.mode\)/);
+	// Review 2026-10-09: an origin check (a "/\host" path resolves off-site), desk
+	// messages kept off the customer's monitor, a thanks screen that does not linger.
+	assert.match(screen, /new URL\(path, window\.location\.origin\)\.origin === window\.location\.origin/);
+	assert.match(screen, /Object\.assign\(frappe, \{ msgprint: quiet, show_alert: quiet, show_progress: quiet \}\)/);
+	assert.match(screen, /\}, 30000\);/);
+	assert.match(screen, /if \(next\.mode === "thanks" && next\.name && next\.name === expired\) return;/);
+	assert.match(scss, /\.bnd-pos-display \{[^}]*z-index: var\(--bnd-z-customer-screen\);/);
+});
+
+test("the counter keeps the screen in step and asks for a receipt link only while one is shown", () => {
+	for (const name of ["renderBill", "renderPanel", "renderGate"]) assert.match(fn(name), /pushDisplay\(\);/, name);
+	assert.match(fn("loadReceipt"), /if \(!display\.connected \|\| !result\?\.name \|\| !receiptOffered\(\)\) return;/);
+	assert.match(fn("receiptOffered"), /return isWalkIn\(\) && !state\.customerTaxId && state\.context\?\.capabilities\?\.can_print_invoice !== false;/);
+	assert.match(fn("loadReceipt"), /api\("receipt_link", \{ doctype: result\.doctype, name: result\.name \}, \{ silent: true \}\)/);
+	// The bill and the screen read one set of line amounts.
+	assert.match(fn("renderBill"), /const amounts = shownAmounts\(\);/);
+	assert.match(fn("displayState"), /const amounts = shownAmounts\(\);/);
+	// The second window is the same Page with ?display=<POS Profile>.
+	assert.match(js, /const displayFor = new URLSearchParams\(window\.location\.search\)\.get\("display"\);\n\t\tif \(displayFor\) \{\n\t\t\trenderDisplay\(container, page, displayFor\);/);
+	assert.match(scss, /--bnd-qr-ground/);
+	assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith("Your e-receipt,فاتورتك الإلكترونية,Bunood POS")));
+});

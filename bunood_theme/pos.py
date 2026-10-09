@@ -9,13 +9,16 @@ tax, total and posting validation is resolved again on the server.
 
 from __future__ import annotations
 
+import io
 import json
 from decimal import Decimal, InvalidOperation
 from typing import Any
+from urllib.parse import urlencode
 
 import frappe
 from frappe import _
-from frappe.utils import cint, date_diff, flt, getdate, now_datetime, nowdate, nowtime
+from frappe.rate_limiter import rate_limit
+from frappe.utils import cint, date_diff, flt, get_url, getdate, now_datetime, nowdate, nowtime
 
 
 MAX_CART_LINES = 200
@@ -181,6 +184,8 @@ def _profile_payload(profile) -> dict[str, Any]:
     return {
         "name": profile.name,
         "company": profile.company,
+        # The customer screen's header: the store's own logo, when it has one.
+        "company_logo": frappe.get_cached_value("Company", profile.company, "company_logo") or "",
         "warehouse": profile.warehouse,
         "currency": profile.currency,
         "customer": profile.customer,
@@ -1312,6 +1317,70 @@ def submit_return(
     if key:
         frappe.cache.set_value(key, doc.name, expires_in_sec=24 * 3600)
     return {**_return_summary(doc), "already_issued": False}
+
+
+# ── The customer's e-receipt ───────────────────────────────────────────────
+#
+# After payment the customer screen shows a QR of the receipt's print view,
+# reachable without signing in through ERPNext's own Document Share Key, which
+# expires after System Settings' document_share_key_expiry days. The screen
+# faces the queue and anyone can scan it, so the link is offered only for a
+# walk-in sale: the profile's own customer and no VAT number on the receipt.
+
+
+def _qr_svg(text: str) -> str:
+    try:
+        import pyqrcode
+    except ImportError:
+        return ""
+    buffer = io.BytesIO()
+    pyqrcode.create(text, error="M").svg(
+        buffer, scale=1, quiet_zone=2, xmldecl=False, omithw=True, svgclass=None, lineclass=None
+    )
+    return buffer.getvalue().decode("ascii")
+
+
+def _share_key(doc) -> str:
+    """A key still valid for this receipt, else ERPNext's own new one.
+
+    get_document_share_key() looks only for a key without expiry, while every
+    key it makes gets one, so each call would add a row."""
+    key = frappe.db.get_value(
+        "Document Share Key",
+        {"reference_doctype": doc.doctype, "reference_docname": doc.name, "expires_on": [">", nowdate()]},
+        "key",
+        order_by="expires_on desc",
+    )
+    return key or doc.get_document_share_key()
+
+
+@frappe.whitelist(methods=["POST"])
+@rate_limit(limit=600, seconds=60 * 60)
+def receipt_link(doctype: str, name: str) -> dict[str, Any]:
+    """A share link to a walk-in receipt this cashier has just completed, and its QR.
+
+    An empty link (no error) when the receipt is not one to show the queue,
+    or the cashier may not print it: the thanks screen then shows no code.
+    """
+    if doctype not in INVOICE_TYPES:
+        frappe.throw(_("This receipt type cannot be shared."))
+    doc = frappe.get_doc(doctype, name)
+    none = {"name": doc.name, "url": "", "qr_svg": ""}
+    # A boolean check: check_permission would raise a 403, and Frappe answers a
+    # 403 with a dialog that routes the cashier out of the counter.
+    if not frappe.has_permission(doc.doctype, "print", doc):
+        return none
+    if doc.docstatus != 1 or not cint(doc.is_pos) or doc.owner != frappe.session.user:
+        frappe.throw(_("Only a receipt you completed can be shared."))
+    walk_in = doc.pos_profile and doc.customer == frappe.db.get_value("POS Profile", doc.pos_profile, "customer")
+    if not walk_in or doc.get("tax_id"):
+        return none
+    query = {"doctype": doc.doctype, "name": doc.name, "key": _share_key(doc)}
+    print_format = frappe.db.get_value("POS Profile", doc.pos_profile, "print_format") if doc.pos_profile else None
+    if print_format:
+        query["format"] = print_format
+    url = get_url(f"/printview?{urlencode(query)}")
+    return {"name": doc.name, "url": url, "qr_svg": _qr_svg(url)}
 
 
 def ensure_pos_reference_field() -> None:

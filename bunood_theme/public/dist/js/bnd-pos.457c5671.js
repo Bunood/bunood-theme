@@ -31,6 +31,7 @@
 		printer: '<path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
 		undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
 		alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+		monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
 	};
 
 	function h(tag, props, ...kids) {
@@ -147,6 +148,12 @@
 	}
 
 	function render(container, page) {
+		// The same Page in the counter's second window is the customer screen.
+		const displayFor = new URLSearchParams(window.location.search).get("display");
+		if (displayFor) {
+			renderDisplay(container, page, displayFor);
+			return;
+		}
 		fill(container);
 		page?.set_title?.(__("Bunood POS", null, "Bunood POS"));
 
@@ -315,6 +322,7 @@
 			}
 			state.profile = state.context.profile;
 			state.gateProfile = state.profile?.name || "";
+			connectDisplay();
 			resetSale({ silent: true });
 			renderBar();
 			if (!state.profile) {
@@ -337,6 +345,7 @@
 		const DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5];
 		function renderGate() {
 			state.view = "gate";
+			pushDisplay();
 			const ctx = state.context;
 			renderBar();
 			renderFoot();
@@ -529,6 +538,7 @@
 				state.context.opening_entry = null;
 				state.context.stale_opening_entry = null;
 				renderBar();
+				pushDisplay(true);
 				flash("ok", __("Shift closed: {0}", [close.closed.name]));
 				openPrintView("POS Closing Entry", close.closed.name, "Standard");
 			} catch (error) {
@@ -1058,6 +1068,7 @@
 				}, { freeze: true, message: __("Completing the sale…", null, "Bunood POS") });
 				state.done = { ...result, payments };
 				state.screen = "done";
+				loadReceipt(result);
 				state.draft = "";
 				frappe.utils?.play_sound?.("submit");
 				flash("ok", __("Sale complete: {0}", [result.name]));
@@ -1593,6 +1604,150 @@
 			else document.documentElement.requestFullscreen?.().catch(() => {});
 		}
 
+		// ── The customer screen ──────────────────────────────────────────────
+		// A second window on the terminal's customer-facing monitor, in the same
+		// browser. The counter tells it what the customer may see — the bill,
+		// what is due, the change — over a BroadcastChannel: no server round
+		// trip, and nothing else the cashier does is sent.
+		const display = { channel: null, name: "", connected: false, timer: 0, receipt: null, window: null, profile: "" };
+
+		function connectDisplay() {
+			const name = displayChannel(state.profile?.name);
+			if (!state.profile || typeof BroadcastChannel !== "function" || display.name === name) return;
+			// A screen left on the previous profile's channel must not keep its last bill.
+			display.channel?.postMessage({ type: "counter-gone" });
+			display.channel?.close();
+			display.name = name;
+			display.connected = false;
+			display.channel = new BroadcastChannel(name);
+			display.channel.onmessage = (event) => {
+				const message = event.data || {};
+				if (message.type === "hello") {
+					display.connected = true;
+					renderBar();
+					pushDisplay(true);
+				} else if (message.type === "bye") {
+					display.connected = false;
+					renderBar();
+				}
+			};
+			// A screen already open from before this page loaded answers with hello.
+			display.channel.postMessage({ type: "counter" });
+		}
+
+		function shownAmounts() {
+			// ERPNext's own line amounts once its preview matches this bill.
+			const fresh = state.preview && state.preview.rev === state.rev ? state.preview.items || [] : null;
+			const amounts = new Map();
+			if (fresh) {
+				let position = 0;
+				state.lines.forEach((line, index) => {
+					if (line.qty > 0) amounts.set(index, fresh[position++]?.amount);
+				});
+			}
+			return state.lines.map((line, index) => (amounts.get(index) !== undefined ? amounts.get(index) : lineAmount(line)));
+		}
+
+		// What the customer may see. Never the customer's name or tax number, the
+		// cashier's notes, references or other sales: the screen faces the queue.
+		function displayState() {
+			const store = { name: state.profile?.company || "", logo: state.profile?.company_logo || "", currency: currency() };
+			if (!state.context?.opening_entry || state.view === "gate") return { mode: "closed", store };
+			if (state.screen === "done" && state.done) {
+				const result = state.done;
+				const total = Number(result.rounded_total || result.grand_total || 0);
+				return {
+					mode: "thanks",
+					store,
+					total,
+					change: Number(result.change_amount || 0),
+					owed: Math.max(round(total - Number(result.paid_amount || 0)), 0),
+					name: result.name,
+					receipt: display.receipt && display.receipt.name === result.name ? display.receipt : null,
+				};
+			}
+			if (state.screen === "pay") {
+				const total = due();
+				const sum = paid();
+				return {
+					mode: "pay",
+					store,
+					due: total,
+					paid: sum,
+					rest: round(total - sum),
+					tenders: state.pays.filter((row) => Number(row.amount) > 0).map((row) => ({
+						mode_of_payment: row.mode_of_payment,
+						amount: Number(row.amount),
+						tone: methodTone(methods().find((method) => method.mode_of_payment === row.mode_of_payment)),
+					})),
+				};
+			}
+			const amounts = shownAmounts();
+			const lines = [];
+			state.lines.forEach((line, index) => {
+				if (line.qty <= 0) return;
+				lines.push({
+					name: line.item_name,
+					qty: qtyText(line),
+					uom: unitLabel(line.uom),
+					rate: line.rate,
+					discount: line.discount_percentage || 0,
+					amount: amounts[index],
+					last: index === state.sel,
+				});
+			});
+			if (!lines.length) return { mode: "idle", store };
+			const t = totals();
+			return { mode: "sale", store, lines, vat: t.vat, total: t.total, exact: t.exact, receipt_offered: receiptOffered() };
+		}
+
+		function pushDisplay(now) {
+			if (!display.channel || !display.connected) return;
+			clearTimeout(display.timer);
+			const send = () => {
+				try {
+					display.channel.postMessage({ type: "state", state: displayState() });
+				} catch (_error) { /* the channel closed with the page */ }
+			};
+			if (now) send();
+			else display.timer = setTimeout(send, 60);
+		}
+
+		async function openDisplay() {
+			if (!state.profile) return;
+			connectDisplay();
+			const url = `/desk/bnd-pos?display=${encodeURIComponent(state.profile.name)}`;
+			if (display.window && !display.window.closed) {
+				// Open for another profile: move it to this one's channel.
+				if (display.profile !== state.profile.name) display.window.location.assign(url);
+				display.profile = state.profile.name;
+				display.window.focus();
+				return;
+			}
+			display.profile = state.profile.name;
+			display.window = window.open(url, "bnd-pos-display", await displayPlacement());
+			if (!display.window) flash("err", __("The browser blocked the customer screen. Allow pop-ups for this site, then press the screen button again.", null, "Bunood POS"));
+			else flash("info", __("Customer screen opened. If it opened on this monitor, drag it to the customer's.", null, "Bunood POS"));
+		}
+
+		// The e-receipt's code is scannable by the whole queue, so only a walk-in
+		// sale without a VAT number offers one; the server checks the same.
+		function receiptOffered() {
+			return isWalkIn() && !state.customerTaxId && state.context?.capabilities?.can_print_invoice !== false;
+		}
+
+		// The receipt's QR for the thanks screen, only while a screen is showing it.
+		async function loadReceipt(result) {
+			if (!display.connected || !result?.name || !receiptOffered()) return;
+			try {
+				const link = await api("receipt_link", { doctype: result.doctype, name: result.name }, { silent: true });
+				display.receipt = link?.qr_svg ? link : null;
+				pushDisplay(true);
+			} catch (_error) { /* the thanks screen shows without the QR */ }
+		}
+
+		window.addEventListener("pagehide", () => display.channel?.postMessage({ type: "counter-gone" }));
+
 		// ── Rendering ────────────────────────────────────────────────────────
 		function showSale() {
 			state.view = "sale";
@@ -1656,6 +1811,14 @@
 				h("span", { class: "bnd-pos__pill", "data-tone": online ? "good" : "warn" }, h("span", { class: "bnd-pos__dot" }), online ? __("Connected", null, "Bunood POS") : __("No connection — selling paused", null, "Bunood POS")),
 				opening ? h("span", { class: "bnd-pos__pill" }, __("Shift", null, "Bunood POS"), " ", since ? ltr(since) : null, " · ", opening.pos_profile) : null,
 				h("span", { class: "bnd-pos__user" }, frappe.user_info?.(frappe.session?.user)?.fullname || frappe.session?.user || ""),
+				h("button", {
+					type: "button",
+					class: "bnd-pos__icon-btn bnd-pos__screen-btn",
+					"data-on": display.connected ? "1" : null,
+					"aria-label": display.connected ? __("Customer screen: connected", null, "Bunood POS") : __("Open the customer screen", null, "Bunood POS"),
+					title: display.connected ? __("Customer screen: connected", null, "Bunood POS") : __("Open the customer screen", null, "Bunood POS"),
+					onclick: openDisplay,
+				}, svg("monitor", 18)),
 				h("span", { class: "bnd-pos__menu-wrap" },
 					h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Counter settings", null, "Bunood POS"), "aria-expanded": String(state.menuOpen), onclick: () => { state.menuOpen = !state.menuOpen; renderBar(); } }, svg("settings", 18)),
 					menu),
@@ -1664,6 +1827,7 @@
 		}
 
 		function renderBill() {
+			pushDisplay();
 			const t = totals();
 			const walkIn = isWalkIn();
 			const taxInvoice = !walkIn && Boolean(state.customerTaxId);
@@ -1678,18 +1842,10 @@
 				canHold() ? h("button", { type: "button", class: "bnd-pos__ghost", onclick: hold, disabled: state.screen !== "sale" || !state.lines.length }, svg("pause", 15), __("Hold", null, "Bunood POS")) : null,
 			);
 
-			// ERPNext's own line amounts once its preview matches this bill.
-			const fresh = state.preview && state.preview.rev === state.rev ? state.preview.items || [] : null;
-			const serverAmount = new Map();
-			if (fresh) {
-				let position = 0;
-				state.lines.forEach((line, index) => {
-					if (line.qty > 0) serverAmount.set(index, fresh[position++]?.amount);
-				});
-			}
+			const amounts = shownAmounts();
 			fill(billLines, ...(state.lines.length ? state.lines.map((line, index) => {
 				const on = index === state.sel && state.screen === "sale";
-				const shown = serverAmount.has(index) && serverAmount.get(index) !== undefined ? serverAmount.get(index) : lineAmount(line);
+				const shown = amounts[index];
 				const ring = (mode) => (on && state.mode === mode ? "1" : null);
 				return h("button", {
 					type: "button",
@@ -1894,6 +2050,7 @@
 		}
 
 		function renderPanel() {
+			pushDisplay();
 			const paying = state.screen === "pay";
 			const done = state.screen === "done";
 			panel.hidden = !(paying || done);
@@ -2410,6 +2567,196 @@
 		}
 
 		initialize();
+	}
+
+	// ── The customer screen (bnd-pos?display=<POS Profile>) ─────────────────
+	// The same Page, opened by the counter in a second window. It fetches
+	// nothing: it shows what the counter sends over the channel, and says hello
+	// when it opens so the counter sends the bill as it stands.
+	function displayChannel(profile) {
+		return `bnd-pos-display:${profile || ""}`;
+	}
+
+	function formatMoney(value, currency) {
+		if (typeof format_currency === "function") return format_currency(Number(value || 0), currency, 2);
+		return `${Number(value || 0).toFixed(2)} ${currency || ""}`;
+	}
+
+	// The window lands on another monitor when the browser can say where one is.
+	async function displayPlacement() {
+		const fallback = "popup=yes,width=1024,height=600";
+		try {
+			if (typeof window.getScreenDetails !== "function") return fallback;
+			const status = await navigator.permissions?.query?.({ name: "window-management" }).catch(() => null);
+			if (status?.state === "denied") return fallback;
+			const details = await window.getScreenDetails();
+			const other = details.screens.find((screen) => screen !== details.currentScreen);
+			if (!other) return fallback;
+			return `popup=yes,left=${other.availLeft},top=${other.availTop},width=${other.availWidth},height=${other.availHeight}`;
+		} catch (_error) {
+			return fallback;
+		}
+	}
+
+	const DISPLAY_MODES = new Set(["waiting", "closed", "idle", "sale", "pay", "thanks"]);
+
+	function renderDisplay(container, page, profileName) {
+		fill(container);
+		const title = __("Customer screen", null, "Bunood POS");
+		page?.set_title?.(title);
+		document.title = title;
+		const root = h("section", { class: "bnd-pos-display", "aria-label": title });
+		const head = h("header", { class: "bnd-pos-display__head" });
+		const main = h("div", { class: "bnd-pos-display__main", "aria-live": "polite" });
+		const full = h("button", {
+			type: "button",
+			class: "bnd-pos-display__full",
+			onclick: () => document.documentElement.requestFullscreen?.().catch(() => {}),
+		}, __("Full screen", null, "Bunood POS"));
+		root.append(head, main, full);
+		container.append(root);
+		let current = { mode: "waiting", store: {} };
+
+		const money = (value) => formatMoney(value, current.store?.currency);
+		// Only this site's own file is shown as the logo; anything else is ignored.
+		const sameSite = (path) => {
+			try {
+				return typeof path === "string" && path.startsWith("/") && new URL(path, window.location.origin).origin === window.location.origin;
+			} catch (_error) {
+				return false;
+			}
+		};
+		const logo = (store) => (sameSite(store?.logo)
+			? h("img", { class: "bnd-pos-display__logo", src: store.logo, alt: "" })
+			: h("span", { class: "bnd-pos-display__logo", "aria-hidden": "true" }, String(store?.name || "B").slice(0, 1)));
+		const qr = (receipt) => (typeof receipt?.qr_svg === "string" && receipt.qr_svg.startsWith("<svg")
+			? h("img", { class: "bnd-pos-display__qr", alt: __("Receipt QR code", null, "Bunood POS"), src: `data:image/svg+xml;base64,${btoa(receipt.qr_svg)}` })
+			: null);
+
+		function draw() {
+			const s = current;
+			const greeting = {
+				pay: __("Payment", null, "Bunood POS"),
+				thanks: __("See you soon", null, "Bunood POS"),
+			}[s.mode] || __("Welcome", null, "Bunood POS");
+			fill(head, logo(s.store), h("strong", { class: "bnd-pos-display__store" }, s.store?.name || ""), h("span", { class: "bnd-pos-display__greeting" }, greeting));
+			root.setAttribute("data-mode", s.mode);
+			if (s.mode === "sale") {
+				const lines = Array.isArray(s.lines) ? s.lines : [];
+				const last = lines.find((line) => line.last) || lines[lines.length - 1];
+				fill(main, h("div", { class: "bnd-pos-display__sale" },
+					h("section", { class: "bnd-pos-display__bill" },
+						h("div", { class: "bnd-pos-display__lines" }, lines.map((line) => h("div", { class: "bnd-pos-display__line", "data-last": line === last ? "1" : null },
+							h("bdi", { dir: "ltr", class: "bnd-pos-display__qty" }, String(line.qty)),
+							h("span", { class: "bnd-pos-display__name" }, line.name, Number(line.discount) ? h("span", { class: "bnd-pos-display__off" }, " · ", __("{0}% off", [Number(line.discount)])) : null),
+							h("bdi", { dir: "ltr", class: "bnd-pos-display__amount" }, money(line.amount))))),
+						h("div", { class: "bnd-pos-display__total" },
+							h("span", { class: "bnd-pos-display__total-side" },
+								h("span", null, __("Items: {0}", [lines.length])),
+								h("span", null, __("VAT included", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(s.vat)))),
+							h("span", { class: "bnd-pos-display__total-main" }, h("span", null, __("Total", null, "Bunood POS")), h("bdi", { dir: "ltr" }, money(s.total))))),
+					h("aside", { class: "bnd-pos-display__side" },
+						last ? h("div", { class: "bnd-pos-display__card" },
+							h("span", { class: "bnd-pos-display__muted" }, __("Last item", null, "Bunood POS")),
+							h("strong", { class: "bnd-pos-display__last-name" }, last.name),
+							h("bdi", { dir: "ltr", class: "bnd-pos-display__last-price" }, `${last.qty} × ${money(last.rate)}`)) : null,
+						s.receipt_offered ? h("div", { class: "bnd-pos-display__card bnd-pos-display__card--soft" },
+							h("strong", null, __("Your receipt on your phone", null, "Bunood POS")),
+							h("span", { class: "bnd-pos-display__muted" }, __("After paying, scan the code that appears here — no paper needed.", null, "Bunood POS"))) : null)));
+			} else if (s.mode === "pay") {
+				const tenders = Array.isArray(s.tenders) ? s.tenders : [];
+				const rest = Number(s.rest || 0);
+				fill(main, h("div", { class: "bnd-pos-display__center" },
+					h("span", { class: "bnd-pos-display__label" }, __("Amount due", null, "Bunood POS")),
+					h("bdi", { dir: "ltr", class: "bnd-pos-display__due" }, money(s.due)),
+					tenders.length ? h("div", { class: "bnd-pos-display__tenders" }, tenders.map((row) => h("div", { class: "bnd-pos-display__tender", "data-tone": row.tone },
+						h("strong", null, __(row.mode_of_payment)),
+						h("bdi", { dir: "ltr" }, money(row.amount)),
+						h("span", { class: "bnd-pos-display__muted" }, row.tone === "card" ? __("Tap your card or phone on the terminal", null, "Bunood POS") : row.tone === "cash" ? __("Received", null, "Bunood POS") : "")))) : null,
+					rest > 0.004 && tenders.length ? h("span", { class: "bnd-pos-display__label" }, __("Remaining", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(rest))) : null,
+					rest < -0.004 ? h("span", { class: "bnd-pos-display__label" }, __("Your change", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(-rest))) : null));
+			} else if (s.mode === "thanks") {
+				const owed = Number(s.owed || 0);
+				const change = Number(s.change || 0);
+				const code = qr(s.receipt);
+				fill(main, h("div", { class: "bnd-pos-display__thanks" },
+					h("div", { class: "bnd-pos-display__thanks-text" },
+						h("strong", { class: "bnd-pos-display__hero" }, __("Thank you", null, "Bunood POS")),
+						owed > 0.004 ? [h("span", { class: "bnd-pos-display__label" }, __("On your account", null, "Bunood POS")), h("bdi", { dir: "ltr", class: "bnd-pos-display__change" }, money(owed))]
+							: change > 0.004 ? [h("span", { class: "bnd-pos-display__label" }, __("Your change", null, "Bunood POS")), h("bdi", { dir: "ltr", class: "bnd-pos-display__change" }, money(change))]
+								: h("bdi", { dir: "ltr", class: "bnd-pos-display__change" }, money(s.total)),
+						s.name ? h("span", { class: "bnd-pos-display__muted" }, __("Invoice", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, s.name)) : null),
+					code ? h("div", { class: "bnd-pos-display__card bnd-pos-display__receipt" },
+						code,
+						h("strong", null, __("Your e-receipt", null, "Bunood POS")),
+						h("span", { class: "bnd-pos-display__muted" }, __("Scan with your phone's camera", null, "Bunood POS"))) : null));
+			} else {
+				const text = {
+					waiting: __("Waiting for the counter…", null, "Bunood POS"),
+					closed: __("This counter is closed", null, "Bunood POS"),
+				}[s.mode];
+				fill(main, h("div", { class: "bnd-pos-display__center" },
+					h("strong", { class: "bnd-pos-display__hero" }, text || __("Welcome", null, "Bunood POS")),
+					text ? null : h("span", { class: "bnd-pos-display__label" }, s.store?.name || "")));
+			}
+		}
+
+		// Desk messages are for the cashier: none reaches the customer's monitor
+		// (the screen also sits above Frappe's modal and toast layers).
+		const quiet = () => {};
+		Object.assign(frappe, { msgprint: quiet, show_alert: quiet, show_progress: quiet });
+
+		// A thanks screen, and its code, return to the welcome after half a minute.
+		// A receipt whose half-minute has passed is not shown again when the
+		// counter repeats its state.
+		let thanksTimer = 0;
+		let expired = "";
+		const show = (next) => {
+			if (next.mode === "thanks" && next.name && next.name === expired) return;
+			current = next;
+			clearTimeout(thanksTimer);
+			if (current.mode === "thanks") {
+				thanksTimer = setTimeout(() => {
+					expired = current.name;
+					show({ mode: "idle", store: current.store });
+				}, 30000);
+			}
+			draw();
+		};
+		const channel = typeof BroadcastChannel === "function" ? new BroadcastChannel(displayChannel(profileName)) : null;
+		if (channel) {
+			channel.onmessage = (event) => {
+				const message = event.data || {};
+				if (message.type === "counter") channel.postMessage({ type: "hello" });
+				else if (message.type === "counter-gone") show({ mode: "waiting", store: current.store });
+				else if (message.type === "state" && DISPLAY_MODES.has(message.state?.mode)) {
+					// The counter repeats the thanks state; the half-minute runs from the first.
+					if (message.state.mode === "thanks" && current.mode === "thanks" && current.name === message.state.name) {
+						current = message.state;
+						draw();
+					} else show(message.state);
+				}
+			};
+			channel.postMessage({ type: "hello" });
+			window.addEventListener("pagehide", () => channel.postMessage({ type: "bye" }));
+		}
+		draw();
+
+		// A customer-facing monitor: no sleeping screen, no resting cursor.
+		const awake = () => navigator.wakeLock?.request?.("screen").catch(() => {});
+		awake();
+		document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") awake(); });
+		let still = 0;
+		const moved = () => {
+			root.removeAttribute("data-still");
+			clearTimeout(still);
+			still = setTimeout(() => root.setAttribute("data-still", ""), 3000);
+		};
+		root.addEventListener("pointermove", moved);
+		moved();
+		const fullscreen = () => { full.hidden = Boolean(document.fullscreenElement); };
+		document.addEventListener("fullscreenchange", fullscreen);
+		fullscreen();
 	}
 
 	// The native print view in a new tab, as the counter's own Print opens it.

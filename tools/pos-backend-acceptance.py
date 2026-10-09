@@ -143,6 +143,25 @@ def run() -> None:
         repeated = pos.checkout(payload, [payment], held_name)
         assert repeated.get("already_submitted"), "Checkout idempotency did not engage."
 
+        # Phase 3, 2026-10-09: the customer screen's e-receipt is ERPNext's own
+        # share link, which printview's own key check accepts for this receipt.
+        from urllib.parse import parse_qs, urlparse
+
+        from frappe.www.printview import validate_key
+
+        link = pos.receipt_link(checked_out["doctype"], checked_out["name"])
+        query = parse_qs(urlparse(link["url"]).query)
+        assert query.get("name") == [checked_out["name"]] and query.get("key"), link["url"]
+        receipt = frappe.get_doc(checked_out["doctype"], checked_out["name"])
+        assert validate_key(query["key"][0], receipt) is None, "The share key does not open the receipt."
+        assert validate_key("not-the-key", receipt) is False, "Any key opens the receipt."
+        assert link["qr_svg"].startswith("<svg"), "No QR was drawn."
+        # One key per receipt while it is valid, not a new row per call.
+        assert pos.receipt_link(checked_out["doctype"], checked_out["name"])["url"] == link["url"], "A second call made a second key."
+        # The code faces the queue: a receipt carrying a VAT number gets none.
+        frappe.db.set_value(checked_out["doctype"], checked_out["name"], "tax_id", "300000000000003", update_modified=False)
+        assert pos.receipt_link(checked_out["doctype"], checked_out["name"])["url"] == "", "A VAT receipt got a public code."
+
         returned = pos.create_return(checked_out["doctype"], checked_out["name"])
         return_doc = frappe.get_doc(returned["doctype"], returned["name"])
         assert return_doc.docstatus == 0 and return_doc.return_against == checked_out["name"]
@@ -273,6 +292,7 @@ def run() -> None:
             "submitted": True,
             "idempotent_checkout": True,
             "return_draft": True,
+            "receipt_link_opens": True,
             "discount_reaches_rate": discount_checked,
             "other_group_sells": other_group_checked,
             "exact_discount_kept": exact_discount,

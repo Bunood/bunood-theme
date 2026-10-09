@@ -215,7 +215,8 @@
 		"AND js 140750 -> 142100 (measured 141,805) for charts (team R5): Arabic month labels, token colours resolved, a one-period line drawn as a bar, and each chart a named group whose selected point is read out.",
 		"INTEGRATION team 2026-10-03, fixed-asset workbench: new route bundle bnd-asset-workbench, asset_workbench_js_gzip 4900 (measured 4,643); report_landing_js measured 2,375 of 2,500 with its card.",
 		"2026-10-09 counter redesign («المنصة», owner-approved canvas FoSizh8R1SDnEtaUhdJbgK): the bnd-pos route bundle carries the whole new counter — pad, scan grammar, payment beside the bill, held/receipts views, dialogs. Route-scoped (loaded only on /desk/bnd-pos), never the Desk payload. pos_js_gzip 12550 -> 26500 (measured 24,842), pos_css_gzip 6200 -> 8400 (measured 7,890).",
-		"2026-10-09 POS phase 2 (shift close with a blind count, return by receipt): two more views in the same route bundle — count, result and close; lines, condition, reason and refund. Route-scoped (loaded only on /desk/bnd-pos). pos_js_gzip 26500 -> 33500 (measured 32,816 after the review fixes), pos_css_gzip 8400 -> 9100 (measured 8,880)."
+		"2026-10-09 POS phase 2 (shift close with a blind count, return by receipt): two more views in the same route bundle — count, result and close; lines, condition, reason and refund. Route-scoped (loaded only on /desk/bnd-pos). pos_js_gzip 26500 -> 33500 (measured 32,816 after the review fixes), pos_css_gzip 8400 -> 9100 (measured 8,880).",
+		"2026-10-09 POS phase 3 (the customer screen): the counter's second window — sale, payment and thanks with the e-receipt QR — rendered by the same route bundle from what the counter sends over a BroadcastChannel. Route-scoped (loaded only on /desk/bnd-pos). pos_js_gzip 33500 -> 38000 (measured 37,414 after the review fixes), pos_css_gzip 9100 -> 10000 (measured 9,870). Two tokens join _tokens.scss (--bnd-qr-ground, --bnd-z-customer-screen), so every token-carrying bundle re-hashes; the Desk CSS gains two custom properties."
 	],
 	"ceiling": {
 		"home_css_gzip": 5000,
@@ -226,8 +227,8 @@
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,
 		"studio_css_gzip": 6800,
-		"pos_css_gzip": 9100,
-		"pos_js_gzip": 33500,
+		"pos_css_gzip": 10000,
+		"pos_js_gzip": 38000,
 		"web_css_gzip": 4450,
 		"banking_js_gzip": 5300,
 		"finance_close_js_gzip": 4100,

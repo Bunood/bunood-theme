@@ -2200,6 +2200,368 @@ html[data-theme] .bnd-pos {
 	}
 }
 
+// ── The customer screen (bnd-pos?display=…) ─────────────────────────────────
+// The counter's second window on the customer-facing monitor (approved board
+// «شاشة العميل»: sale, pay, thanks). It covers the desk like the counter does
+// and reads at a distance: figures scale with the monitor, not the desk.
+html[data-theme] .bnd-pos-display {
+	--bnd-pos-display-total: clamp(2.5rem, 5.2vw, 4.5rem);
+	--bnd-pos-display-due: clamp(3.5rem, 9vw, 8rem);
+	--bnd-pos-display-hero: clamp(2rem, 4.4vw, 3.75rem);
+	--bnd-pos-display-line: clamp(1rem, 1.7vw, 1.5rem);
+
+	position: fixed;
+	inset: 0;
+	z-index: var(--bnd-z-customer-screen);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	background: var(--bnd-pane);
+	color: var(--bnd-ink);
+
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+
+	bdi {
+		unicode-bidi: isolate;
+		font-variant-numeric: var(--bnd-numeric);
+	}
+
+	&[data-still] {
+		cursor: none;
+	}
+
+	.bnd-pos-display__head {
+		display: flex;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		flex: none;
+		min-block-size: 4rem;
+		padding-inline: var(--bnd-sp-6);
+		background: var(--bnd-brand-deep);
+		color: var(--bnd-on-deep);
+	}
+
+	.bnd-pos-display__logo {
+		display: grid;
+		place-items: center;
+		inline-size: 2.5rem;
+		block-size: 2.5rem;
+		border-radius: var(--bnd-radius-lg);
+		background: var(--bnd-on-deep);
+		color: var(--bnd-brand-deep);
+		font-size: var(--bnd-text-lg);
+		font-weight: var(--bnd-weight-semibold);
+		object-fit: contain;
+	}
+
+	.bnd-pos-display__store {
+		font-size: var(--bnd-text-lg);
+	}
+
+	.bnd-pos-display__greeting {
+		margin-inline-start: auto;
+		font-size: var(--bnd-text-md);
+	}
+
+	.bnd-pos-display__main {
+		display: flex;
+		flex: 1;
+		min-block-size: 0;
+	}
+
+	.bnd-pos-display__sale {
+		display: flex;
+		flex: 1;
+		gap: var(--bnd-sp-4);
+		min-inline-size: 0;
+		padding: var(--bnd-sp-5) var(--bnd-sp-6);
+	}
+
+	.bnd-pos-display__bill {
+		display: flex;
+		flex-direction: column;
+		flex: 1;
+		gap: var(--bnd-sp-3);
+		min-inline-size: 0;
+	}
+
+	// The newest lines stay in view: the list grows from its end, and the
+	// oldest scroll out of sight at the start.
+	.bnd-pos-display__lines {
+		display: flex;
+		flex-direction: column;
+		justify-content: flex-end;
+		flex: 1;
+		min-block-size: 0;
+		overflow: hidden;
+		padding-inline: var(--bnd-sp-4);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-xl);
+		background: var(--bnd-surface);
+	}
+
+	.bnd-pos-display__line {
+		display: flex;
+		align-items: center;
+		gap: var(--bnd-sp-3);
+		flex: none;
+		min-block-size: 3.25rem;
+		margin-inline: calc(-1 * var(--bnd-sp-4));
+		padding-inline: var(--bnd-sp-4);
+		border-block-end: var(--bnd-line) solid var(--bnd-border);
+		font-size: var(--bnd-pos-display-line);
+
+		&[data-last] {
+			background: color-mix(in srgb, var(--bnd-good) var(--bnd-pos-wash), var(--bnd-surface));
+		}
+	}
+
+	.bnd-pos-display__qty {
+		min-inline-size: 3rem;
+		color: var(--bnd-ink-muted);
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-pos-display__name {
+		flex: 1;
+		min-inline-size: 0;
+		overflow: hidden;
+		font-weight: var(--bnd-weight-semibold);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.bnd-pos-display__off {
+		color: var(--bnd-good);
+		font-weight: var(--bnd-weight-medium);
+	}
+
+	.bnd-pos-display__amount {
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-pos-display__total {
+		display: flex;
+		align-items: flex-end;
+		gap: var(--bnd-sp-4);
+		padding: var(--bnd-sp-3) var(--bnd-sp-5);
+		border-radius: var(--bnd-radius-xl);
+		background: var(--bnd-brand-deep);
+		color: var(--bnd-on-deep);
+	}
+
+	.bnd-pos-display__total-side {
+		display: grid;
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-pos-display__total-main {
+		display: grid;
+		justify-items: end;
+		margin-inline-start: auto;
+		line-height: 1.05;
+
+		bdi {
+			font-size: var(--bnd-pos-display-total);
+			font-weight: var(--bnd-weight-semibold);
+		}
+	}
+
+	.bnd-pos-display__side {
+		display: flex;
+		flex-direction: column;
+		flex: 0 0 clamp(15rem, 27vw, 24rem);
+		gap: var(--bnd-sp-3);
+	}
+
+	.bnd-pos-display__card {
+		display: grid;
+		gap: var(--bnd-sp-2);
+		padding: var(--bnd-sp-4);
+		border: var(--bnd-line) solid var(--bnd-border);
+		border-radius: var(--bnd-radius-xl);
+		background: var(--bnd-surface);
+	}
+
+	.bnd-pos-display__card--soft {
+		flex: 1;
+		align-content: center;
+		justify-items: center;
+		border-style: dashed;
+		background: transparent;
+		text-align: center;
+	}
+
+	.bnd-pos-display__muted {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+	}
+
+	.bnd-pos-display__last-name {
+		font-size: var(--bnd-text-xl);
+		line-height: var(--bnd-leading-tight);
+	}
+
+	.bnd-pos-display__last-price {
+		font-size: var(--bnd-text-2xl);
+		font-weight: var(--bnd-weight-semibold);
+		text-align: end;
+	}
+
+	.bnd-pos-display__center {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+		gap: var(--bnd-sp-3);
+		padding: var(--bnd-sp-5);
+		text-align: center;
+	}
+
+	.bnd-pos-display__label {
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-xl);
+	}
+
+	.bnd-pos-display__due {
+		font-size: var(--bnd-pos-display-due);
+		font-weight: var(--bnd-weight-semibold);
+		line-height: 1;
+	}
+
+	.bnd-pos-display__hero {
+		color: var(--bnd-good);
+		font-size: var(--bnd-pos-display-hero);
+		line-height: var(--bnd-leading-tight);
+	}
+
+	.bnd-pos-display__tenders {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: var(--bnd-sp-3);
+		margin-block-start: var(--bnd-sp-4);
+	}
+
+	.bnd-pos-display__tender {
+		display: grid;
+		gap: var(--bnd-sp-1);
+		inline-size: min(100%, 19rem);
+		padding: var(--bnd-sp-4);
+		border: var(--bnd-line) solid var(--bnd-border-strong);
+		border-radius: var(--bnd-radius-xl);
+		background: var(--bnd-surface);
+		text-align: start;
+
+		strong {
+			font-size: var(--bnd-text-xl);
+		}
+
+		bdi {
+			font-size: var(--bnd-text-2xl);
+			font-weight: var(--bnd-weight-semibold);
+		}
+
+		&[data-tone="card"] {
+			border: 2px solid var(--bnd-status-blue);
+
+			strong {
+				color: var(--bnd-status-blue);
+			}
+		}
+
+		&[data-tone="cash"] strong {
+			color: var(--bnd-good);
+		}
+	}
+
+	.bnd-pos-display__thanks {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		gap: var(--bnd-sp-6);
+		padding: var(--bnd-sp-5) clamp(var(--bnd-sp-5), 5vw, 4rem);
+	}
+
+	.bnd-pos-display__thanks-text {
+		display: grid;
+		flex: 1;
+		gap: var(--bnd-sp-2);
+	}
+
+	.bnd-pos-display__change {
+		font-size: var(--bnd-pos-display-due);
+		font-weight: var(--bnd-weight-semibold);
+		line-height: 1;
+		text-align: start;
+	}
+
+	.bnd-pos-display__receipt {
+		flex: 0 0 clamp(15rem, 30vw, 22rem);
+		justify-items: center;
+		text-align: center;
+	}
+
+	// A QR reads only dark on light, whatever the theme's mode.
+	.bnd-pos-display__qr {
+		inline-size: 100%;
+		max-inline-size: 15rem;
+		aspect-ratio: 1;
+		padding: var(--bnd-sp-2);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-qr-ground);
+		image-rendering: pixelated;
+	}
+
+	.bnd-pos-display__full {
+		position: absolute;
+		inset-block-end: var(--bnd-sp-3);
+		inset-inline-end: var(--bnd-sp-3);
+		min-block-size: 2.25rem;
+		padding-inline: var(--bnd-sp-3);
+		border: var(--bnd-line) solid var(--bnd-border-strong);
+		border-radius: var(--bnd-radius-md);
+		background: var(--bnd-surface);
+		color: var(--bnd-ink);
+		font: inherit;
+		font-size: var(--bnd-text-sm);
+		cursor: pointer;
+	}
+
+	&[data-still] .bnd-pos-display__full {
+		visibility: hidden;
+	}
+}
+
+html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
+	background: var(--bnd-brand-deep-tile);
+	box-shadow: inset 0 0 0 2px var(--bnd-good);
+}
+
+@include bnd-until(lg) {
+	html[data-theme] .bnd-pos-display {
+		.bnd-pos-display__sale,
+		.bnd-pos-display__thanks {
+			flex-direction: column;
+			align-items: stretch;
+		}
+
+		.bnd-pos-display__side {
+			flex: none;
+			flex-direction: row;
+		}
+
+		.bnd-pos-display__card {
+			flex: 1;
+		}
+	}
+}
+
 @include bnd-until(xl) {
 	html[data-theme] .bnd-pos {
 		--bnd-pos-bill-w: 26rem;
