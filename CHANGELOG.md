@@ -24,6 +24,38 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.53.0] — 2026-10-09 — the POS counter «المنصة», released with the simple invoice
+
+The owner asked for one release once the POS was done: this is v0.52.0 (the simple
+invoice) with the new POS counter merged onto it (`feat/pos-counter`, built in a parallel
+session from the approved «المنصة» design).
+
+- **The counter (`/desk/bnd-pos`).** The bill and a fixed number pad beside the catalogue,
+  payment beside the bill so the bill stays in view; one input that scans, searches and
+  takes commands; touch tiles by group with stock on hand; the shortcut strip (F1 help,
+  F2 scan, F3 customer, F6 hold, F7 held, F8 card, F9 pay, F10 exact cash, Alt+R return).
+  About 240 Arabic entries under the "Bunood POS" context; the bnd-pos bundle ceiling is
+  raised for it.
+- **Money path, fixed before the tag** (adversarial review of the POS engine changes):
+  - A line discount reaches the rate by ERPNext's own steps, so ERPNext keeps the
+    percentage (a half-cent tie such as 12.25 at 10% had it zeroed, which let a discount
+    pass Item.max_discount); the item's maximum discount is enforced when the cart is
+    built.
+  - A line sold in another unit carries that unit's conversion factor (a box of twelve
+    moved one stock unit before).
+  - Items of every item group of the POS Profile sell, not only the first group's.
+  - The VAT estimate shows only the profile's own template, as ERPNext charges.
+- **Known, not changed here:** a matching pricing rule replaces a cashier's discount (as in
+  native ERPNext); ERPNext's set_pos_fields can switch a sale to the customer's default
+  price list and currency; a code that is also a barcode takes the barcode path.
+
+Checks: guarded build; 298/298 interface tests; tests/pos-workbench.test.cjs 18/18;
+tests/test_pos_workbench.py 13/13; tools/pos-backend-acceptance.py on the rc lab, rolled
+back (held and resumed, submitted, idempotent checkout, return draft, discount kept
+exactly, maximum discount enforced, a box moves twelve, other group sells). Payload
+against v0.52.0: POS JS +13.4 KB and CSS +1.9 KB gzip (route-scoped); everything else
+byte-identical.
+
 ## [0.52.0] — 2026-10-09 — the simple invoice as the owner asked
 
 An integration minor on v0.51.1, not a roadmap completion claim. The owner reviewed the
