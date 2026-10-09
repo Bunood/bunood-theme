@@ -55,7 +55,7 @@ test('simple invoices leave stock to setup and offer a branch only when there is
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
   assert.doesNotMatch(source, /bnd-bill-stock-settings/);
-  assert.doesNotMatch(source, /frm\.fields_dict\.update_stock/, 'no Update Stock switch on the simple screen');
+  assert.doesNotMatch(source, /bindControl\([^;]*fields_dict\.update_stock/, 'no Update Stock switch on the simple screen');
   assert.match(source, /frappe\.boot\?\.bnd_branches/);
   assert.match(source, /this\.branchField\.hidden = branches\.length < 2 \|\| status === "None"/);
   assert.match(source, /hidden_due_to_dependency: 0 \}, this\.doc, this\.frm\.perm/);
@@ -79,7 +79,38 @@ test('branch choices follow the company and a new bill starts in its branch ware
     assert.deepEqual(sets,[],'a branch warehouse already on the bill is kept');
     sets.length=0;w.doc.__islocal=0;w.doc.set_warehouse='';w.applyBranchDefault();await Promise.resolve();
     assert.deepEqual(sets,[],'a saved bill is never re-pointed');
+    // A draft that already names a warehouse, on the bill or on a line (made from an order or a
+    // delivery), keeps it: the branch default only fills an empty draft.
+    sets.length=0;w.doc.__islocal=1;w.doc.set_warehouse='Transit - A';w.applyBranchDefault();await Promise.resolve();
+    assert.deepEqual(sets,[],'a warehouse outside the branches is kept');
+    sets.length=0;w.doc.set_warehouse='';w.doc.items=[{item_code:'1010',warehouse:'Transit - A'}];w.applyBranchDefault();await Promise.resolve();
+    assert.deepEqual(sets,[],'a line warehouse is kept');
+    // ZATCA's branch configuration reads the invoice's branch: it follows the choice.
+    sets.length=0;w.doc.items=[];w.frm.fields_dict.branch={get_status:()=>'Write'};
+    w.applyBranchDefault();await Promise.resolve();await Promise.resolve();
+    assert.deepEqual(sets,[['set_warehouse','Stores - A'],['branch','Main']]);
+    sets.length=0;w.doc.set_warehouse='Olaya - A';w.doc.branch='Main';
+    await w.chooseBranch('Olaya');
+    assert.deepEqual(sets,[['branch','Olaya']],'the same warehouse, another branch: only the branch moves');
   } finally {context.frappe.boot=previousBoot;context.frappe.perm=previousPerm;}
+});
+test('a stock business moves stock with an invoice made directly, never with a mapped one, a return or a till sale', async () => {
+  const {BillWorkbench}=context.window.bunood_theme.sales_bill;
+  const previousBoot=context.frappe.boot;
+  try {
+    const sets=[];
+    const make=(doc)=>{const w=Object.create(BillWorkbench.prototype);w.frm={doctype:'Sales Invoice',fields_dict:{update_stock:{}},set_value:(field,value)=>{sets.push([field,value]);w.doc[field]=value;}};w.doc={__islocal:1,docstatus:0,update_stock:0,items:[],...doc};w.change=fn=>Promise.resolve(fn());return w;};
+    context.frappe.boot={bnd_business_type:'Stock'};
+    const direct=make({});direct.applyStockDefault();direct.applyStockDefault();
+    assert.deepEqual(sets,[['update_stock',1]],'a direct invoice moves stock, once');
+    sets.length=0;
+    for (const doc of [{items:[{item_code:'A',dn_detail:'x'}]},{items:[{item_code:'A',delivery_note:'DN-1'}]},{items:[{item_code:'A',purchase_receipt:'PR-1'}]},{items:[{item_code:'A',so_detail:'x'}]},{is_return:1},{return_against:'SINV-1'},{is_pos:1},{__islocal:0},{docstatus:1}])
+      make(doc).applyStockDefault();
+    assert.deepEqual(sets,[],'mapped drafts, returns, till sales and saved invoices are left as ERPNext makes them');
+    context.frappe.boot={bnd_business_type:'Service'};make({}).applyStockDefault();
+    context.frappe.boot={};make({}).applyStockDefault();
+    assert.deepEqual(sets,[],'a service business, or a site that has not chosen, never turns stock on');
+  } finally {context.frappe.boot=previousBoot;}
 });
 test('spreadsheet keyboard flow commits a cell and advances through the direct-entry sheet', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
@@ -296,18 +327,25 @@ test('a purchase bill makes a new item from native Item fields and puts it on th
     const [method,{doc:item}]=calls[0];
     assert.equal(method,'frappe.client.insert');
     assert.equal(item.item_code,'1013');assert.equal(item.is_stock_item,1);
-    assert.equal(item.standard_rate,5,'the selling price becomes the native selling price-list price');
+    assert.equal(item.standard_rate,undefined,'no standard_rate: a missing Item Price right would abort the whole item');
     assert.equal(item.valuation_rate,3);
     assert.equal(item.opening_stock,undefined,'the stock arrives through the bill, never twice');
     assert.deepEqual(item.barcodes,[{barcode:'628100',uom:'Nos'}]);
     assert.deepEqual(item.item_defaults,[{company:'A',default_warehouse:'Stores - A',default_price_list:'Standard Selling'}]);
     assert.equal(calls[1][1].doc.doctype,'Item Price');assert.equal(calls[1][1].doc.price_list,'Standard Buying');assert.equal(calls[1][1].doc.price_list_rate,3);
+    assert.equal(calls[2][1].doc.doctype,'Item Price');assert.equal(calls[2][1].doc.price_list,'Standard Selling');assert.equal(calls[2][1].doc.price_list_rate,5);
     assert.ok(dialog.hidden);assert.deepEqual(JSON.parse(JSON.stringify(added)),[['1013',{qty:10,rate:3}]]);
     calls.length=0;added.length=0;
     await w.saveQuickItem({item_code:'1014',item_name:'Visit',item_group:'Services',stock_uom:'Nos',barcode:'',buying_rate:0,selling_rate:0,qty:0},{hide(){},disable_primary_action(){},enable_primary_action(){}},false,{});
     const plain=calls[0][1].doc;
     for(const field of ['standard_rate','valuation_rate','opening_stock'])assert.equal(plain[field],undefined,field);
-    assert.equal(plain.is_stock_item,0);assert.equal(calls.length,1,'no purchase price, no Item Price');
+    assert.equal(plain.is_stock_item,0);assert.equal(calls.length,1,'no prices, no Item Price');
+    // A refused price list leaves the item made and on the bill.
+    calls.length=0;added.length=0;const alerts=[];context.frappe.show_alert=alert=>alerts.push(alert.indicator);
+    context.frappe.call=async ({method,args})=>{calls.push([method,args]);if(args.doc?.doctype==='Item Price')throw Error('not permitted');return {message:{name:'1016',item_name:'Tea'}};};
+    await w.saveQuickItem({item_code:'1016',item_name:'Tea',item_group:'Products',stock_uom:'Nos',barcode:'',buying_rate:2,selling_rate:4,qty:1},{hide(){},disable_primary_action(){},enable_primary_action(){}},true,{selling_price_list:'Standard Selling'});
+    assert.equal(calls.length,3);assert.deepEqual(alerts,['orange','orange','green']);
+    assert.deepEqual(JSON.parse(JSON.stringify(added)),[['1016',{qty:1,rate:2}]]);
     await assert.rejects(()=>w.saveQuickItem({item_code:'1015',item_name:'Box',item_group:'Products',stock_uom:'Nos',buying_rate:-1,selling_rate:2,qty:1},dialog,true,{}),/zero or more/);
   } finally {context.frappe.call=previous.call;context.frappe.show_alert=previous.alert;context.frappe.msgprint=previous.msg;}
 });
@@ -316,8 +354,8 @@ test('new items are made on purchase bills only', async () => {
   const {profiles,BillWorkbench}=context.window.bunood_theme.sales_bill;
   assert.equal(profiles['Purchase Invoice'].newItem,true);
   assert.ok(!profiles['Sales Invoice'].newItem,'a sales bill makes no items');
-  assert.match(source,/if \(this\.profile\.newItem\) \{\n\t+this\.newItemButton = button\(__\("New item"\)/);
-  assert.match(source,/F4: \(\) => this\.profile\.newItem && this\.newItem\(\)/);
+  assert.match(source,/if \(this\.profile\.newItem && \(frappe\.boot\.user\.can_create \|\| \[\]\)\.includes\("Item"\)\) \{\n\t+this\.newItemButton = button\(__\("New item"\)/, 'no New item button for a reader who cannot make one');
+  assert.match(source,/F4: \(\) => this\.newItemButton && this\.newItem\(\)/);
   const w=Object.create(BillWorkbench.prototype);let calls=0;
   const previousCall=context.frappe.call;context.frappe.call=async()=>{calls++;return {message:{}};};
   try {
@@ -330,17 +368,19 @@ test('the scan box places a barcode through ERPNext\'s scanner, accepts a typed 
   const previous={call:context.frappe.call,db:context.frappe.db,erpnext:context.window.erpnext,boot:context.frappe.boot};
   try {
     const placed=[];
-    context.window.erpnext={utils:{BarcodeScanner:class{constructor(options){this.frm=options.frm;}update_table(data){placed.push([this.scan_barcode_field.value,JSON.parse(JSON.stringify(data))]);return Promise.resolve({});}}}};
+    // ERPNext sets has_items on a saved invoice and then waits on a dialog for every scan: the
+    // scanner must always see it cleared, or the box freezes after the first save.
+    context.window.erpnext={utils:{BarcodeScanner:class{constructor(options){this.frm=options.frm;}update_table(data){assert.equal(this.frm.has_items,false,'never the confirmation dialog');placed.push([this.scan_barcode_field.value,JSON.parse(JSON.stringify(data))]);this.frm.has_items=true;return Promise.resolve({});}}}};
     context.frappe.call=async ({args})=>({message:args.search_value==='628100'?{item_code:'1013',barcode:'628100',uom:'Box'}:{}});
-    context.frappe.db={get_value:async (_doctype,filters)=>({message:filters.name==='1010'?{name:'1010'}:{}})};
+    context.frappe.db={get_value:async (_doctype,filters,fields)=>({message:filters.name==='1010'?{name:'1010',has_batch_no:1,has_serial_no:0,asked:fields}:{}})};
     context.frappe.boot={user:{can_create:['Item']}};
     const w=Object.create(BillWorkbench.prototype), messages=[];let focus=0,ensured=0;
-    Object.assign(w,{frm:{doctype:'Purchase Invoice'},profile:{newItem:true},doc:{docstatus:0,company:'A',set_warehouse:'S'},scanInput:{value:'',focus(){focus++;},select(){}},active:()=>true,change:fn=>Promise.resolve(fn()),ensureEntryRow:async()=>{ensured++;},message:(text,error,action)=>messages.push([text,error,action])});
+    Object.assign(w,{frm:{doctype:'Purchase Invoice',has_items:true},profile:{newItem:true},doc:{docstatus:0,company:'A',set_warehouse:'S'},scanInput:{value:'',focus(){focus++;},select(){}},active:()=>true,change:fn=>Promise.resolve(fn()),ensureEntryRow:async()=>{ensured++;},message:(text,error,action)=>messages.push([text,error,action])});
     await w.scanCode(' 628100 ');
     assert.deepEqual(placed,[['',{item_code:'1013',barcode:'628100',uom:'Box'}]]);
     assert.equal(ensured,1);assert.equal(w.scanInput.value,'');
     await w.scanCode('1010');
-    assert.equal(placed[1][1].item_code,'1010','a typed item code is placed as well');
+    assert.deepEqual(placed[1][1],{item_code:'1010',has_batch_no:1,has_serial_no:0},'a typed item code is placed with the batch and serial flags the scanner reads');
     await w.scanCode('999');
     const last=messages.at(-1);assert.equal(last[1],true);assert.equal(last[2].label,'Add it as a new item');
     assert.equal(placed.length,2,'an unknown code places nothing');
@@ -764,7 +804,7 @@ test('print is a visible operational action beside payment and disabled commits 
   assert.match(source, /this\.paymentButton = this\.action\(commitActions, __\("Record payment"\)/);
   assert.match(source, /this\.saveButton = this\.action\(documentActions, __\("Save draft"\), "F9", "save"/);
   assert.match(source, /F2: \(\) => this\.focusScan\(\)/);
-  assert.match(source, /F4: \(\) => this\.profile\.newItem && this\.newItem\(\)/);
+  assert.match(source, /F4: \(\) => this\.newItemButton && this\.newItem\(\)/);
   assert.match(source, /F9: \(\) => this\.save\(\)/);
   assert.doesNotMatch(source, /F4: \(\) => this\.removeDocument\(\)/, 'F4 no longer deletes the invoice');
   assert.match(source, /if \(\(this\.doc\.__islocal \|\| this\.frm\.is_dirty\(\)\) && !await this\.save\(\)\) return;[\s\S]*?this\.frm\.print_doc\(\)/, 'a draft prints as it stands, unsubmitted');

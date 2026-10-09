@@ -10496,6 +10496,8 @@
 		return [changed, roundMoney(due - changed, precision)];
 	};
 	const fieldStatus = (frm, name) => frm.fields_dict[name]?.get_status?.() || "None";
+	// The line fields that say a draft was made from another document.
+	const MAPPED_LINE_FIELDS = ["dn_detail", "delivery_note", "so_detail", "sales_order", "pr_detail", "purchase_receipt", "po_detail", "purchase_order"];
 	function rowFieldStatus(frm, row, name) {
 		const grid = frm.fields_dict.items.grid;
 		if (!grid.is_editable()) return "Read";
@@ -11178,6 +11180,12 @@
 				const source = frm.fields_dict[name];
 				if (source && fieldStatus(frm, name) !== "None") this.bindControl(extraEssentials, source, this.doc);
 			}
+			// No branch to choose (fewer than two): the warehouse itself stays reachable
+			// here, for a business that moves stock. Its native dependency on
+			// update_stock would hide it before the stock default below applies.
+			const movesStock = frappe.boot?.bnd_business_type === "Stock" || Number(this.doc.update_stock) === 1;
+			if (movesStock && this.branches().length < 2 && frm.fields_dict.set_warehouse)
+				this.bindControl(extraEssentials, frm.fields_dict.set_warehouse, this.doc, false, () => this.warehouseStatus());
 			if (frm.doctype === "Sales Invoice") {
 				const invoiceNumber = node("div", "frappe-control bnd-bill-static-field bnd-bill-invoice-number", null, extraEssentials);
 				invoiceNumber.dataset.fieldname = "bnd_invoice_number";
@@ -11213,7 +11221,7 @@
 			node("kbd", "bnd-bill-scan-key", "F2", scan).setAttribute("aria-hidden", "true");
 			const search = node("div", "bnd-bill-search bnd-bill-draft-only", null, items);
 			this.addLineButton = button(__("Add line"), search, () => this.addBlankLine(true), true);
-			if (this.profile.newItem) {
+			if (this.profile.newItem && (frappe.boot.user.can_create || []).includes("Item")) {
 				this.newItemButton = button(__("New item"), search, () => this.newItem());
 				node("kbd", "bnd-bill-search-key", "F4", this.newItemButton).setAttribute("aria-hidden", "true");
 			}
@@ -11254,7 +11262,7 @@
 				else this.fullInvoice();
 			});
 			this.root.addEventListener("keydown", e => this.shortcut(e, true), true);
-			this.setMode(true); this.render(); this.applyDefaultTax(); this.loadVatChoices(); this.applyBranchDefault();
+			this.setMode(true); this.render(); this.applyDefaultTax(); this.loadVatChoices(); this.applyStockDefault(); this.applyBranchDefault();
 			frappe.after_ajax(() => {
 				if (this.active() && this.doc.__islocal && !this.doc[this.profile.party] &&
 					!this.root.contains(document.activeElement)) this.partyControl?.set_focus();
@@ -11302,7 +11310,7 @@
 			const status = this.warehouseStatus();
 			this.branchField.hidden = branches.length < 2 || status === "None";
 			if (this.branchField.hidden) return;
-			const current = branches.find(row => row.warehouse === this.doc.set_warehouse);
+			const current = this.currentBranch(branches);
 			const options = branches.map(row => [row.name, __(row.label || row.name)]);
 			if (!current && this.doc.set_warehouse) options.push(["", this.doc.set_warehouse]);
 			const signature = JSON.stringify(options);
@@ -11317,23 +11325,46 @@
 			this.branchSelect.value = current ? current.name : "";
 			this.branchSelect.disabled = status !== "Write" || Number(this.doc.docstatus) !== 0;
 		}
+		currentBranch(branches = this.branches()) {
+			const here = branches.filter(row => row.warehouse === this.doc.set_warehouse);
+			return here.find(row => row.name === this.doc.branch) || here[0];
+		}
 		async chooseBranch(name) {
 			const branch = this.branches().find(row => row.name === name);
 			if (!branch || this.warehouseStatus() !== "Write") { this.renderBranch(); return; }
 			try { window.localStorage?.setItem(this.branchKey(), branch.name); } catch (_) { /* per-viewer convenience only */ }
-			if (branch.warehouse === this.doc.set_warehouse) return;
-			try { await this.change(() => this.frm.set_value("set_warehouse", branch.warehouse)); }
+			try { await this.change(() => this.setBranch(branch)); }
 			catch (_) { this.renderBranch(); }
 		}
+		async setBranch(branch) {
+			// The branch's warehouse, and the branch itself where the invoice has the
+			// field: ZATCA's branch configuration reads it.
+			if (branch.warehouse !== this.doc.set_warehouse) await this.frm.set_value("set_warehouse", branch.warehouse);
+			if (this.frm.fields_dict.branch && fieldStatus(this.frm, "branch") === "Write" && this.doc.branch !== branch.name)
+				await this.frm.set_value("branch", branch.name);
+		}
 		applyBranchDefault() {
-			// A new draft starts in the user's last branch, or the only one, so the
-			// warehouse is never a question on this screen.
+			// A new, empty draft starts in the user's last branch, or the only one, so
+			// the warehouse is never a question on this screen. A draft that already
+			// names a warehouse (made from an order or a delivery, say) keeps it.
 			if (!this.doc.__islocal || Number(this.doc.docstatus) !== 0 || this.warehouseStatus() !== "Write") return;
 			const branches = this.branches();
-			if (!branches.length || branches.some(row => row.warehouse === this.doc.set_warehouse)) return;
+			if (!branches.length || this.doc.set_warehouse || (this.doc.items || []).some(row => row.item_code && row.warehouse)) return;
 			const remembered = this.rememberedBranch();
 			const branch = branches.find(row => row.name === remembered) || branches[0];
-			this.change(() => this.frm.set_value("set_warehouse", branch.warehouse)).catch(() => {});
+			this.change(() => this.setBranch(branch)).catch(() => {});
+		}
+		applyStockDefault() {
+			// A stock business's invoice made directly moves stock (Bunood Business's
+			// setup). One made from a delivery, a receipt or an order, a return and a
+			// till sale are left as ERPNext makes them: their stock moves elsewhere.
+			const doc = this.doc;
+			if (frappe.boot?.bnd_business_type !== "Stock" || !doc.__islocal || doc.__bnd_stock_default) return;
+			if (Number(doc.docstatus) !== 0 || Number(doc.update_stock) === 1 || !this.frm.fields_dict.update_stock) return;
+			if (Number(doc.is_return) || doc.return_against || Number(doc.is_pos)) return;
+			if ((doc.items || []).some(row => MAPPED_LINE_FIELDS.some(field => row[field]))) return;
+			doc.__bnd_stock_default = 1;
+			this.change(() => this.frm.set_value("update_stock", 1)).catch(() => {});
 		}
 		currentWarehouse() {
 			return this.doc.set_warehouse || (this.doc.items || []).find(row => row.warehouse)?.warehouse || "";
@@ -11345,7 +11376,7 @@
 		shortcut(e, local = false) {
 			if (!this.simple || (!local && !this.active()) || e.target?.closest?.(".modal")) return;
 			// F2 scan · F4 new item · F9 save: the cashier's three, as on the shortcut strip.
-			const keys = { F2: () => this.focusScan(), F3: () => this.partyControl?.set_focus(), F4: () => this.profile.newItem && this.newItem(), F7: () => this.payment(), F9: () => this.save(), F10: () => this.discountButton.click(), F11: () => this.restore() };
+			const keys = { F2: () => this.focusScan(), F3: () => this.partyControl?.set_focus(), F4: () => this.newItemButton && this.newItem(), F7: () => this.payment(), F9: () => this.save(), F10: () => this.discountButton.click(), F11: () => this.restore() };
 			const save = (e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s";
 			const findItem = e.altKey && e.key.toLowerCase() === "i";
 			if (!keys[e.key] && !save && !findItem) return;
@@ -11924,9 +11955,10 @@
 			const buyingList = this.doc.buying_price_list || defaults.buying_price_list;
 			const code = String(values.item_code || "").trim();
 			const barcode = String(values.barcode || "").trim();
-			// Native Item fields only. ERPNext adds the selling price to the selling price
-			// list (standard_rate) on insert; the stock arrives through this bill's own
-			// line when it is submitted, so no opening stock is recorded twice.
+			// Native Item fields only. The prices go to their lists afterwards, each on its
+			// own: a reader without the Item Price right still gets the item (ERPNext's
+			// standard_rate would abort the whole insert). The stock arrives through this
+			// bill's own line when it is submitted, so no opening stock is recorded twice.
 			const doc = {
 				doctype: "Item",
 				...(code ? { item_code: code } : {}),
@@ -11934,7 +11966,6 @@
 				item_group: values.item_group,
 				stock_uom: uom,
 				is_stock_item: stockItem ? 1 : 0,
-				...(selling > 0 ? { standard_rate: selling } : {}),
 				...(buying > 0 ? { valuation_rate: buying } : {}),
 				barcodes: barcode ? [{ barcode, uom }] : [],
 				item_defaults: company ? [{ company, ...(warehouse ? { default_warehouse: warehouse } : {}), ...(sellingList ? { default_price_list: sellingList } : {}) }] : [],
@@ -11948,11 +11979,15 @@
 			} catch (_) { /* Frappe shows the server's reason; the dialog keeps the values. */ }
 			finally { this.savingItem = false; dialog.enable_primary_action(); }
 			if (!item?.name) return;
-			if (buying > 0 && buyingList) {
+			for (const [rate, list, failed] of [
+				[buying, buyingList, __("The item was saved, but its purchase price was not added to the price list.")],
+				[selling, sellingList, __("The item was saved, but its selling price was not added to the price list.")],
+			]) {
+				if (!(rate > 0 && list)) continue;
 				try {
-					await frappe.call({ method: "frappe.client.insert", args: { doc: { doctype: "Item Price", item_code: item.name, price_list: buyingList, price_list_rate: buying, uom } } });
+					await frappe.call({ method: "frappe.client.insert", args: { doc: { doctype: "Item Price", item_code: item.name, price_list: list, price_list_rate: rate, uom } } });
 				} catch (_) {
-					frappe.show_alert({ message: __("The item was saved, but its purchase price was not added to the price list."), indicator: "orange" });
+					frappe.show_alert({ message: failed, indicator: "orange" });
 				}
 			}
 			dialog.hide();
@@ -11988,8 +12023,8 @@
 				data = response.message || {};
 				if (!data.item_code) {
 					// No barcode, serial or batch: an item code typed by hand.
-					const found = await frappe.db.get_value("Item", { name: value, disabled: 0 }, "name");
-					if (found?.message?.name) data = { item_code: found.message.name };
+					const found = (await frappe.db.get_value("Item", { name: value, disabled: 0 }, ["name", "has_batch_no", "has_serial_no"]))?.message;
+					if (found?.name) data = { item_code: found.name, has_batch_no: found.has_batch_no, has_serial_no: found.has_serial_no };
 				}
 			} catch (_) { data = {}; }
 			if (!this.active()) return;
@@ -12007,6 +12042,10 @@
 				const scanner = new Scanner({ frm: this.frm });
 				// The scan box is ours; the scanner only places the item on the lines.
 				scanner.scan_barcode_field = { value: "", set_value: () => Promise.resolve() };
+				// ERPNext marks a saved invoice has_items and then routes every scan through a
+				// confirmation dialog whose promise this screen never sees settle; the box
+				// would freeze after the first save. The scan only places or raises a line.
+				this.frm.has_items = false;
 				return scanner.update_table(data);
 			}
 			const entry = this.entryControl();

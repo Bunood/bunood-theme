@@ -2683,6 +2683,7 @@ The invoice is paid. Both receipts are available in Payment Entry and the Genera
 The invoice is posted. How would you like to share it with the customer?,رُحّلت الفاتورة. كيف تريد مشاركتها مع العميل؟,
 The item was not removed. Review the full invoice.,لم يُحذف الصنف. راجع الفاتورة الكاملة.,
 "The item was saved, but its purchase price was not added to the price list.",حُفظ الصنف، لكن لم يُضف سعر الشراء إلى قائمة الأسعار.,
+"The item was saved, but its selling price was not added to the price list.",حُفظ الصنف، لكن لم يُضف سعر البيع إلى قائمة الأسعار.,
 The journal work queue could not be loaded,تعذر تحميل قائمة عمل القيود اليومية,
 The journal workbench bundle is not registered. Rebuild the theme assets.,حزمة مساحة عمل القيود اليومية غير مسجلة. أعد بناء ملفات السمة.,
 The journal workbench failed to load. Check the browser console.,تعذر تحميل مساحة عمل القيود اليومية. تحقق من وحدة تحكم المتصفح.,

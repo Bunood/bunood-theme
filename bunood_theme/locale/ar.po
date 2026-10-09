@@ -15847,6 +15847,11 @@ msgstr "حُفظ الصنف، لكن لم يُضف سعر الشراء إلى ق
 
 #. src: simple invoice, Arabic proposal 2026-10-09
 #, fuzzy
+msgid "The item was saved, but its selling price was not added to the price list."
+msgstr "حُفظ الصنف، لكن لم يُضف سعر البيع إلى قائمة الأسعار."
+
+#. src: simple invoice, Arabic proposal 2026-10-09
+#, fuzzy
 msgid "Item saved: {0}"
 msgstr "حُفظ الصنف: {0}"
 
