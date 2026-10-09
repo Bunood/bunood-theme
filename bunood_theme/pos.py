@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import io
 import json
+from contextlib import contextmanager
 from decimal import Decimal, InvalidOperation
 from typing import Any
 from urllib.parse import urlencode
@@ -206,7 +207,9 @@ COUNTER_DEFAULTS: dict[str, Any] = {
     "unknown_barcode": "offer",
     "reason_threshold": 0,
     "held_on_close": "carry",
+    "bnpl": {},
 }
+BNPL_PROVIDERS = {"tabby": "Tabby", "tamara": "Tamara"}
 CASH_NOTES = (1, 5, 10, 20, 50, 100, 200, 500)
 # GS1 keeps 20-29 and 02 for in-store numbers: any other prefix would read
 # ordinary product barcodes (628… in Saudi Arabia) as scale labels.
@@ -239,6 +242,7 @@ def _counter_label(key: str) -> str:
         "unknown_barcode": _("Unknown barcodes"),
         "reason_threshold": _("Difference that needs a reason"),
         "held_on_close": _("Held sales at closing"),
+        "bnpl": _("Buy now, pay later"),
     }.get(key, key)
 
 
@@ -295,6 +299,28 @@ def _clean_counter(values: Any, strict: bool) -> dict[str, Any]:
                 clean[key] = sorted(set(value))
             else:
                 bad(key)
+        elif key == "bnpl":
+            clean_map: dict[str, dict[str, Any]] = {}
+            ok = isinstance(value, dict) and len(value) <= 10
+            for mode, entry in (value.items() if ok else []):
+                provider = (entry or {}).get("provider") if isinstance(entry, dict) else None
+                installments = (entry or {}).get("installments") if isinstance(entry, dict) else None
+                if (
+                    not isinstance(mode, str)
+                    or len(mode) > 140
+                    or provider not in BNPL_PROVIDERS
+                    or not isinstance(installments, int)
+                    or isinstance(installments, bool)
+                    or not 2 <= installments <= 12
+                    or (strict and not frappe.db.exists("Mode of Payment", mode))
+                ):
+                    ok = False
+                    break
+                clean_map[mode] = {"provider": provider, "installments": installments}
+            if ok:
+                clean[key] = clean_map
+            else:
+                bad(key)
         elif key == "scale_prefix":
             text = str(value or "")
             if text == "" or text in STORE_PREFIXES:
@@ -325,7 +351,7 @@ def drop_counter_settings(doc, method=None) -> None:
 
 def _counter_settings(profile_name: str) -> dict[str, Any]:
     stored = frappe.defaults.get_defaults_for(COUNTER_SETTINGS_PARENT).get(profile_name)
-    settings = {key: (list(value) if isinstance(value, list) else value) for key, value in COUNTER_DEFAULTS.items()}
+    settings = {key: (list(value) if isinstance(value, list) else dict(value) if isinstance(value, dict) else value) for key, value in COUNTER_DEFAULTS.items()}
     if isinstance(stored, str) and stored:
         try:
             settings.update(_clean_counter(json.loads(stored), strict=False))
@@ -349,12 +375,29 @@ def _profile_payload(profile) -> dict[str, Any]:
         "allow_discount_change": bool(profile.allow_discount_change),
         "allow_rate_change": bool(profile.allow_rate_change),
         "allow_partial_payment": bool(profile.allow_partial_payment),
+        # The counter rounds its own estimate the same way while offline.
+        "disable_rounded_total": bool(profile.disable_rounded_total),
+        "rounding": _rounding_rule(profile),
         "print_format": profile.print_format or "POS Invoice",
         "print_receipt_on_order_complete": bool(profile.print_receipt_on_order_complete),
         "payments": _payment_methods(profile),
         "taxes": _profile_taxes(profile),
         "counter": _counter_settings(profile.name),
         "can_edit": bool(frappe.has_permission("POS Profile", "write", profile)),
+    }
+
+
+def _rounding_rule(profile) -> dict[str, Any]:
+    """How ERPNext will round this counter's totals (round_based_on_smallest_currency_fraction):
+    the counter repeats it while offline, so what it collects is what posts.
+    A new invoice takes its rounding switch from Global Defaults, as a sale will."""
+    probe = frappe.new_doc(_invoice_type())
+    currency = profile.currency or frappe.get_cached_value("Company", profile.company, "default_currency")
+    return {
+        "disabled": bool(cint(probe.is_rounded_total_disabled())),
+        "fraction": flt(frappe.db.get_value("Currency", currency, "smallest_currency_fraction_value", cache=True)),
+        "method": frappe.get_system_settings("rounding_method") or "Banker's Rounding (legacy)",
+        "precision": cint(probe.precision("rounded_total")) or 2,
     }
 
 
@@ -779,6 +822,22 @@ def _apply_payments(doc, profile, values: Any) -> None:
         frappe.throw(_("Enter a payment amount."))
     if not profile.allow_partial_payment and paid < total:
         frappe.throw(_("Payment must cover the full sale total."))
+    # The rest of a sale stays on account only for a named customer; the counter
+    # said so, but only the server can make it so (a sale sent from a device
+    # kept offline, or any direct call, never passed through the counter's check).
+    if paid < total and (not doc.customer or doc.customer == profile.customer):
+        frappe.throw(_("The rest can stay on account only for a named customer."))
+
+    bnpl = _counter_settings(profile.name)["bnpl"]
+    orders = []
+    for mode, amount in amounts.items():
+        if amount > 0 and mode in bnpl:
+            provider = BNPL_PROVIDERS[bnpl[mode]["provider"]]
+            if not references.get(mode):
+                frappe.throw(_("Order number required from: {0}").format(provider))
+            orders.append(_("Order with {0}: {1}").format(provider, references[mode]))
+    if orders:
+        doc.remarks = " · ".join(filter(None, [doc.get("remarks"), *orders]))
 
     existing = {row.mode_of_payment: row for row in (doc.get("payments") or [])}
     for row in doc.get("payments") or []:
@@ -804,8 +863,22 @@ def _apply_payments(doc, profile, values: Any) -> None:
 
 
 @frappe.whitelist(methods=["POST"])
-def checkout(payload: Any, payments: Any, draft_name: str | None = None) -> dict[str, Any]:
-    """Submit one native invoice; repeating a submitted draft is idempotent."""
+def checkout(payload: Any, payments: Any, draft_name: str | None = None, client_id: str = "") -> dict[str, Any]:
+    """Submit one native invoice; repeating a submitted draft, or the same
+    ``client_id``, answers with the invoice already made."""
+    if client_id:
+        sale_id = _offline_id(client_id)
+        with _sale_lock(sale_id):
+            name, status = _posted_sale(_invoice_type(), sale_id, by_remarks=False)
+            if name and status == 1:
+                return {**_summary(frappe.get_doc(_invoice_type(), name)), "already_submitted": True}
+            result = _checkout(payload, payments, draft_name)
+            _remember_sale(sale_id, result["name"])
+            return result
+    return _checkout(payload, payments, draft_name)
+
+
+def _checkout(payload: Any, payments: Any, draft_name: str | None = None) -> dict[str, Any]:
     data = _cart(payload)
     invoice_type = _invoice_type()
     if draft_name and frappe.db.exists(invoice_type, draft_name):
@@ -1643,6 +1716,203 @@ def save_settings(pos_profile: str, native: Any = None, counter: Any = None, mod
     if changed:
         profile.add_comment("Comment", _("Counter settings changed: {0}").format(", ".join(changed)))
     return {**settings_context(profile.name), "changed": changed}
+
+
+# ── Selling through a lost connection ──────────────────────────────────────
+#
+# The counter keeps a copy of the catalogue on the device and, while the
+# connection is down, keeps each sale there too under its own id. When the
+# connection returns it sends them one by one. The server prices each again
+# (ERPNext's prices, taxes and validation, as for any sale) and submits it with
+# the payments the counter took; a sale it would not submit as it stands is
+# kept as a held draft marked for review, so nothing posts at a price or with a
+# payment the server would refuse. The id is written in the invoice's remarks,
+# so a sale sent twice is found and not posted again.
+
+MAX_OFFLINE_ITEMS = 5000
+OFFLINE_MARK = "bnd-offline:"
+SALE_MEMORY = 30 * 24 * 3600
+
+
+def _sale_key(sale_id: str) -> str:
+    return f"bnd-sale:{frappe.session.user}:{sale_id}"
+
+
+def _in_request() -> bool:
+    return bool(getattr(frappe.local, "request", None))
+
+
+@contextmanager
+def _sale_lock(sale_id: str):
+    """Two windows, or a retry while the first request still runs, wait for
+    each other instead of both posting. In a web request the lock is held until
+    the commit (or the rollback): released earlier, a second request could read
+    before the first one's invoice exists for it."""
+    lock = frappe.cache.lock(f"{frappe.local.site}:bnd-sale-lock:{sale_id}", timeout=120, blocking_timeout=60)
+    if not lock.acquire():
+        frappe.throw(_("This sale is being sent from another window. Try again in a moment."))
+    released = False
+
+    def release() -> None:
+        nonlocal released
+        if released:
+            return
+        released = True
+        try:
+            lock.release()
+        except Exception:
+            pass
+
+    try:
+        yield
+    except BaseException:
+        release()
+        raise
+    if _in_request():
+        frappe.db.after_commit.add(release)
+        frappe.db.after_rollback.add(release)
+    else:
+        release()
+
+
+def _posted_sale(doctype: str, sale_id: str, by_remarks: bool) -> tuple[str | None, int | None]:
+    """The invoice already made for this sale id, if any. The remembered name is
+    read with a row lock, so a commit still in flight is waited for, not missed."""
+    name = frappe.cache.get_value(_sale_key(sale_id))
+    if name:
+        status = frappe.db.get_value(doctype, name, "docstatus", for_update=True)
+        if status is not None and cint(status) < 2:
+            return name, cint(status)
+    if by_remarks:
+        rows = frappe.get_all(
+            doctype,
+            filters={"owner": frappe.session.user, "remarks": ["like", f"%{OFFLINE_MARK}{sale_id}%"], "docstatus": ["<", 2]},
+            fields=["name", "docstatus"],
+            limit_page_length=1,
+        )
+        if rows:
+            return rows[0].name, cint(rows[0].docstatus)
+    return None, None
+
+
+def _remember_sale(sale_id: str, name: str) -> None:
+    """Only once the invoice is committed: a rolled-back one's name can be given to
+    another sale, and must never answer for this one."""
+
+    def remember() -> None:
+        frappe.cache.set_value(_sale_key(sale_id), name, expires_in_sec=SALE_MEMORY)
+
+    if _in_request():
+        frappe.db.after_commit.add(remember)
+    else:
+        remember()
+
+
+def _offline_id(value: str) -> str:
+    text = str(value or "").strip()
+    if not (8 <= len(text) <= 64) or not text.replace("-", "").isalnum() or not text.isascii():
+        frappe.throw(_("The POS request is not valid."))
+    return text
+
+
+@frappe.whitelist(methods=["GET"])
+def offline_catalog(pos_profile: str) -> dict[str, Any]:
+    """The profile's sellable catalogue, priced by ERPNext, with every barcode."""
+    profile = _profile(pos_profile)
+    items: list[dict[str, Any]] = []
+    start = 0
+    while len(items) < MAX_OFFLINE_ITEMS:
+        rows = get_items(profile.name, start=start, page_length=MAX_PAGE_LENGTH)["items"]
+        items.extend(rows)
+        start += len(rows)
+        if len(rows) < MAX_PAGE_LENGTH:
+            break
+    items = items[:MAX_OFFLINE_ITEMS]
+    codes = [row["item_code"] for row in items] or [""]
+    groups = dict(frappe.get_all("Item", filters={"name": ["in", codes]}, fields=["name", "item_group"], as_list=True))
+    barcodes: dict[str, list[dict[str, str]]] = {}
+    for row in frappe.get_all("Item Barcode", filters={"parent": ["in", codes], "parenttype": "Item"}, fields=["parent", "barcode", "uom"]):
+        barcodes.setdefault(row.parent, []).append({"barcode": row.barcode, "uom": row.uom or ""})
+    for row in items:
+        row["item_group"] = groups.get(row["item_code"], "")
+        # A barcode of another unit is left out: its price is not in this row.
+        row["barcodes"] = [entry["barcode"] for entry in barcodes.get(row["item_code"], []) if entry["uom"] in ("", row.get("uom"))]
+    return {
+        "profile": profile.name,
+        "items": items,
+        "truncated": len(items) >= MAX_OFFLINE_ITEMS,
+        "generated_at": str(now_datetime()),
+    }
+
+
+@frappe.whitelist(methods=["POST"])
+def sync_offline_sale(
+    offline_id: str, sold_at: str, payload: Any, payments: Any, collected_total: Any = None
+) -> dict[str, Any]:
+    """Post one sale the counter kept while offline. Sending it again is safe.
+
+    Everything is decided before anything is written: the server prices the
+    sale; if the payments it took do not settle that price exactly as collected
+    (a price that changed, a rule the counter could not see), the sale is kept
+    as a held draft for review with what was collected, and nothing posts."""
+    offline_id = _offline_id(offline_id)
+    sold_at = str(sold_at or "")[:32]
+    invoice_type = _invoice_type()
+    with _sale_lock(offline_id):
+        name, status = _posted_sale(invoice_type, offline_id, by_remarks=True)
+        if name:
+            return {"name": name, "status": "submitted" if status == 1 else "review", "already": True}
+        data = _cart(payload)
+        tendered = _json(payments, [])
+        note = f"{_('Sold offline at {0}').format(sold_at)} · {OFFLINE_MARK}{offline_id}"
+        doc, profile = _new_or_held(data)
+        reason = ""
+        try:
+            _apply_payments(doc, profile, tendered)
+        except frappe.ValidationError as error:
+            reason = frappe.utils.strip_html(str(error))[:200]
+        if not reason and collected_total not in (None, ""):
+            total = flt(doc.rounded_total or doc.grand_total, doc.precision("grand_total"))
+            collected = _number(collected_total, _("Total"))
+            if abs(total - collected) >= 0.005:
+                reason = _("Total now: {0} · Collected: {1}").format(total, collected)
+        if reason:
+            # A fresh draft without payments: the cashier records what was collected when completing it.
+            doc, profile = _new_or_held(data)
+            collected_text = ", ".join(
+                f"{_(str(row.get('mode_of_payment') or ''))} {flt(row.get('amount'))}" for row in tendered if isinstance(row, dict)
+            )
+            doc.remarks = f"{note} · {_('Collected: {0}').format(collected_text)} · {_('Needs review: {0}').format(reason)}"
+            if _can_hold(invoice_type):
+                doc.set(HELD_FIELD, 1)
+            doc.insert()
+            _remember_sale(offline_id, doc.name)
+            return {**_summary(doc), "status": "review", "message": reason, "already": False}
+        doc.remarks = " · ".join(filter(None, [note, doc.get("remarks")]))
+        doc.set(HELD_FIELD, 0)
+        doc.insert()
+        doc.check_permission("submit")
+        doc.submit()
+        _remember_sale(offline_id, doc.name)
+        return {**_summary(doc), "status": "submitted", "already": False}
+
+
+@frappe.whitelist(methods=["POST"])
+def offline_sale_state(offline_ids: Any) -> dict[str, Any]:
+    """Where each kept sale stands: posted, waiting for review, or gone (cancelled or deleted)."""
+    ids = _json(offline_ids, [])
+    if not isinstance(ids, list) or len(ids) > 200:
+        frappe.throw(_("The POS request is not valid."))
+    invoice_type = _invoice_type()
+    states: dict[str, Any] = {}
+    for raw in ids:
+        sale_id = _offline_id(raw)
+        name = frappe.cache.get_value(_sale_key(sale_id))
+        status = frappe.db.get_value(invoice_type, name, "docstatus") if name else None
+        if status is None:
+            name, status = _posted_sale(invoice_type, sale_id, by_remarks=True)
+        states[sale_id] = {"name": name, "docstatus": None if status is None else cint(status)}
+    return states
 
 
 # ── The customer's e-receipt ───────────────────────────────────────────────

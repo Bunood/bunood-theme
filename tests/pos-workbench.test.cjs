@@ -346,7 +346,7 @@ test("the counter keeps the screen in step and asks for a receipt link only whil
 
 // Phase 4, 2026-10-10: the settings page.
 test("the settings page saves through the server and the counter takes the result at once", () => {
-	assert.match(fn("openSettings"), /if \(!state\.profile\?\.can_edit\) return;/);
+	assert.match(fn("openSettings"), /if \(!state\.profile\?\.can_edit \|\| needsConnection\(\)\) return;/);
 	assert.match(js, /state\.profile\?\.can_edit \? h\("button", \{ type: "button", role: "menuitem", onclick: \(\) => \{ state\.menuOpen = false; renderBar\(\); openSettings\(\); \} \}/);
 	assert.match(fn("openSettings"), /api\("settings_context", \{ pos_profile: settings\.profile \}, \{ type: "GET", silent: true \}\)/);
 	const save = fn("saveSettings");
@@ -372,7 +372,70 @@ test("a profile that never opened the settings behaves as before", () => {
 	// Supermarket mode: this device's own choice first, the profile's otherwise.
 	assert.match(fn("fbarOn"), /return typeof prefs\.fbar === "boolean" \? prefs\.fbar : Boolean\(counter\("fbar"\)\);/);
 	assert.match(fn("addItem"), /isWeighed \|\| item\.serial_no \|\| counter\("merge_scans"\) === false \? -1/);
-	assert.match(fn("renderAlert"), /const offer = counter\("unknown_barcode"\) !== "alert";/);
+	assert.match(fn("renderAlert"), /const offer = counter\("unknown_barcode"\) !== "alert" && !offline\.on;/);
 	assert.match(js, /const canReturn = state\.context\?\.capabilities\?\.can_create_invoice && counter\("returns"\) !== false;/);
 	assert.match(scss, /&\[data-tiles="s"\] \{\s+--bnd-pos-tile-h: 5rem;/);
+});
+
+// Phase 5, 2026-10-10: selling through a lost connection.
+test("offline, the counter sells from the device's catalogue and keeps the sale there", () => {
+	assert.match(js, /if \(navigator\.onLine === false\) return Promise\.reject\(\{ status: 0, message: "" \}\);/);
+	assert.match(js, /if \(error && error\.status === 0\) window\.dispatchEvent\(new CustomEvent\("bnd-pos-network"\)\);/);
+	assert.match(fn("loadItems"), /if \(offline\.on\) \{\s+state\.items = offlineList\(\);/);
+	assert.match(fn("scan"), /if \(offline\.on\) return offlineFind\(term\);/);
+	assert.match(fn("serverTotal"), /if \(offline\.on\) return offlineDue\(\);/);
+	// Paid in full, never a held sale, then kept on the device under its own id.
+	const complete = fn("complete");
+	assert.match(complete, /if \(state\.draft\) \{\s+state\.payErr = __\("A held sale is completed with the connection\."/);
+	assert.match(complete, /\} else if \(sum \+ 0\.001 < total\) \{\s+state\.payErr = __\("Without a connection a sale is paid in full\."/);
+	assert.match(complete, /await keepSale\(payments, total\);/);
+	assert.ok(complete.indexOf("await keepSale(") < complete.indexOf('api("checkout"'), "kept before any checkout call");
+	assert.match(fn("keepSale"), /await saveSale\(sale\);/);
+});
+
+test("the kept sales are sent once, and only after the server answers", () => {
+	const sync = fn("syncQueue");
+	assert.match(sync, /api\("sync_offline_sale", \{\s+offline_id: sale\.id,/);
+	// Dropped from the device only after the server answered; a network failure stops the run.
+	assert.ok(sync.lastIndexOf("await dropSale(sale.id);") > sync.indexOf('api("sync_offline_sale"'));
+	// A sale held for review on the server is never sent again, only looked up.
+	assert.match(sync, /for \(const sale of mine\.filter\(\(item\) => item\.status !== "review"\)\) \{/);
+	assert.match(sync, /api\("offline_sale_state", \{ offline_ids: JSON\.stringify\(reviewing\.map\(\(sale\) => sale\.id\)\) \}/);
+	// The same id travels with a checkout, so a lost answer is not a second sale.
+	assert.match(fn("complete"), /client_id: state\.saleId,/);
+	assert.match(fn("complete"), /if \(error\?\.status === 0 && !state\.draft && sum \+ 0\.001 >= total\) \{\s+await keepSale\(payments, total\);/);
+	assert.match(fn("cartChanged"), /state\.saleId = "";/);
+	assert.match(sync, /if \(error\?\.status === 0\) break;/);
+	// A shift with sales still on the device does not close.
+	assert.match(fn("closeShift"), /const waiting = queueFor\(opening\.pos_profile\)\.length;\s+if \(waiting && state\.context\?\.opening_entry\) \{/);
+	for (const name of ["hold", "toggleHeld", "showList", "openCustomer", "openSettings"]) assert.match(fn(name), /needsConnection\(\)/, name);
+	// The provisional receipt is escaped text, never markup.
+	const escapeHtml = new Function(`${js.slice(js.indexOf("\n\tfunction escapeHtml("), js.indexOf("\n\t}\n", js.indexOf("\n\tfunction escapeHtml(")) + 3)}\nreturn escapeHtml;`)();
+	assert.equal(escapeHtml(`<img src=x onerror="a">&'`), "&lt;img src=x onerror=&quot;a&quot;&gt;&amp;&#39;");
+	assert.match(fn("printProvisional"), /\$\{escapeHtml\(line\.name\)\}/);
+});
+
+// Phase 5 review: offline, the counter must round exactly as ERPNext will, or what it
+// collects is not what posts. Expected values are Frappe's own round_based_on_smallest_
+// currency_fraction run in the lab for each System Settings method and fraction.
+test("offline totals round exactly as ERPNext rounds them", () => {
+	const lift = (name) => {
+		const start = js.indexOf("\n\tfunction " + name + "(");
+		return js.slice(start, js.indexOf("\n\t}\n", start) + 3);
+	};
+	const roundLikeERPNext = new Function(lift("frappeRounded") + lift("roundLikeERPNext") + "\nreturn roundLikeERPNext;")();
+	const expected = [["Banker's Rounding (legacy)", 0, 12.5, 12.0], ["Banker's Rounding (legacy)", 0, 13.5, 14.0], ["Banker's Rounding (legacy)", 0, 0.5, 0.0], ["Banker's Rounding (legacy)", 0, 74.73, 75.0], ["Banker's Rounding (legacy)", 0, 118.86, 119.0], ["Banker's Rounding (legacy)", 0, 2.675, 3.0], ["Banker's Rounding (legacy)", 0, 33.63, 34.0], ["Banker's Rounding (legacy)", 0, 56.87, 57.0], ["Banker's Rounding (legacy)", 0, 87.43, 87.0], ["Banker's Rounding (legacy)", 0, 99.995, 100.0], ["Banker's Rounding (legacy)", 0, 7.125, 7.0], ["Banker's Rounding (legacy)", 0.05, 12.5, 12.5], ["Banker's Rounding (legacy)", 0.05, 13.5, 13.5], ["Banker's Rounding (legacy)", 0.05, 0.5, 0.5], ["Banker's Rounding (legacy)", 0.05, 74.73, 74.75], ["Banker's Rounding (legacy)", 0.05, 118.86, 118.85], ["Banker's Rounding (legacy)", 0.05, 2.675, 2.7], ["Banker's Rounding (legacy)", 0.05, 33.63, 33.65], ["Banker's Rounding (legacy)", 0.05, 56.87, 56.85], ["Banker's Rounding (legacy)", 0.05, 87.43, 87.45], ["Banker's Rounding (legacy)", 0.05, 99.995, 100.0], ["Banker's Rounding (legacy)", 0.05, 7.125, 7.15], ["Banker's Rounding (legacy)", 0.25, 12.5, 12.5], ["Banker's Rounding (legacy)", 0.25, 13.5, 13.5], ["Banker's Rounding (legacy)", 0.25, 0.5, 0.5], ["Banker's Rounding (legacy)", 0.25, 74.73, 74.75], ["Banker's Rounding (legacy)", 0.25, 118.86, 118.75], ["Banker's Rounding (legacy)", 0.25, 2.675, 2.75], ["Banker's Rounding (legacy)", 0.25, 33.63, 33.75], ["Banker's Rounding (legacy)", 0.25, 56.87, 56.75], ["Banker's Rounding (legacy)", 0.25, 87.43, 87.5], ["Banker's Rounding (legacy)", 0.25, 99.995, 100.0], ["Banker's Rounding (legacy)", 0.25, 7.125, 7.25], ["Banker's Rounding (legacy)", 0.5, 12.5, 12.5], ["Banker's Rounding (legacy)", 0.5, 13.5, 13.5], ["Banker's Rounding (legacy)", 0.5, 0.5, 0.5], ["Banker's Rounding (legacy)", 0.5, 74.73, 74.5], ["Banker's Rounding (legacy)", 0.5, 118.86, 119.0], ["Banker's Rounding (legacy)", 0.5, 2.675, 2.5], ["Banker's Rounding (legacy)", 0.5, 33.63, 33.5], ["Banker's Rounding (legacy)", 0.5, 56.87, 57.0], ["Banker's Rounding (legacy)", 0.5, 87.43, 87.5], ["Banker's Rounding (legacy)", 0.5, 99.995, 100.0], ["Banker's Rounding (legacy)", 0.5, 7.125, 7.0], ["Banker's Rounding", 0, 12.5, 12.0], ["Banker's Rounding", 0, 13.5, 14.0], ["Banker's Rounding", 0, 0.5, 0.0], ["Banker's Rounding", 0, 74.73, 75.0], ["Banker's Rounding", 0, 118.86, 119.0], ["Banker's Rounding", 0, 2.675, 3.0], ["Banker's Rounding", 0, 33.63, 34.0], ["Banker's Rounding", 0, 56.87, 57.0], ["Banker's Rounding", 0, 87.43, 87.0], ["Banker's Rounding", 0, 99.995, 100.0], ["Banker's Rounding", 0, 7.125, 7.0], ["Banker's Rounding", 0.05, 12.5, 12.5], ["Banker's Rounding", 0.05, 13.5, 13.5], ["Banker's Rounding", 0.05, 0.5, 0.5], ["Banker's Rounding", 0.05, 74.73, 74.75], ["Banker's Rounding", 0.05, 118.86, 118.85], ["Banker's Rounding", 0.05, 2.675, 2.66], ["Banker's Rounding", 0.05, 33.63, 33.65], ["Banker's Rounding", 0.05, 56.87, 56.85], ["Banker's Rounding", 0.05, 87.43, 87.45], ["Banker's Rounding", 0.05, 99.995, 100.0], ["Banker's Rounding", 0.05, 7.125, 7.1], ["Banker's Rounding", 0.25, 12.5, 12.5], ["Banker's Rounding", 0.25, 13.5, 13.5], ["Banker's Rounding", 0.25, 0.5, 0.5], ["Banker's Rounding", 0.25, 74.73, 74.75], ["Banker's Rounding", 0.25, 118.86, 118.75], ["Banker's Rounding", 0.25, 2.675, 2.74], ["Banker's Rounding", 0.25, 33.63, 33.75], ["Banker's Rounding", 0.25, 56.87, 56.75], ["Banker's Rounding", 0.25, 87.43, 87.5], ["Banker's Rounding", 0.25, 99.995, 100.0], ["Banker's Rounding", 0.25, 7.125, 7.0], ["Banker's Rounding", 0.5, 12.5, 12.5], ["Banker's Rounding", 0.5, 13.5, 13.5], ["Banker's Rounding", 0.5, 0.5, 0.5], ["Banker's Rounding", 0.5, 74.73, 74.5], ["Banker's Rounding", 0.5, 118.86, 119.0], ["Banker's Rounding", 0.5, 2.675, 2.5], ["Banker's Rounding", 0.5, 33.63, 33.5], ["Banker's Rounding", 0.5, 56.87, 57.0], ["Banker's Rounding", 0.5, 87.43, 87.5], ["Banker's Rounding", 0.5, 99.995, 100.0], ["Banker's Rounding", 0.5, 7.125, 7.0], ["Commercial Rounding", 0, 12.5, 13.0], ["Commercial Rounding", 0, 13.5, 14.0], ["Commercial Rounding", 0, 0.5, 1.0], ["Commercial Rounding", 0, 74.73, 75.0], ["Commercial Rounding", 0, 118.86, 119.0], ["Commercial Rounding", 0, 2.675, 3.0], ["Commercial Rounding", 0, 33.63, 34.0], ["Commercial Rounding", 0, 56.87, 57.0], ["Commercial Rounding", 0, 87.43, 87.0], ["Commercial Rounding", 0, 99.995, 100.0], ["Commercial Rounding", 0, 7.125, 7.0], ["Commercial Rounding", 0.05, 12.5, 12.5], ["Commercial Rounding", 0.05, 13.5, 13.5], ["Commercial Rounding", 0.05, 0.5, 0.5], ["Commercial Rounding", 0.05, 74.73, 74.75], ["Commercial Rounding", 0.05, 118.86, 118.85], ["Commercial Rounding", 0.05, 2.675, 2.7], ["Commercial Rounding", 0.05, 33.63, 33.65], ["Commercial Rounding", 0.05, 56.87, 56.85], ["Commercial Rounding", 0.05, 87.43, 87.45], ["Commercial Rounding", 0.05, 99.995, 100.0], ["Commercial Rounding", 0.05, 7.125, 7.15], ["Commercial Rounding", 0.25, 12.5, 12.5], ["Commercial Rounding", 0.25, 13.5, 13.5], ["Commercial Rounding", 0.25, 0.5, 0.5], ["Commercial Rounding", 0.25, 74.73, 74.75], ["Commercial Rounding", 0.25, 118.86, 118.75], ["Commercial Rounding", 0.25, 2.675, 2.75], ["Commercial Rounding", 0.25, 33.63, 33.75], ["Commercial Rounding", 0.25, 56.87, 56.75], ["Commercial Rounding", 0.25, 87.43, 87.5], ["Commercial Rounding", 0.25, 99.995, 100.0], ["Commercial Rounding", 0.25, 7.125, 7.25], ["Commercial Rounding", 0.5, 12.5, 12.5], ["Commercial Rounding", 0.5, 13.5, 13.5], ["Commercial Rounding", 0.5, 0.5, 0.5], ["Commercial Rounding", 0.5, 74.73, 74.5], ["Commercial Rounding", 0.5, 118.86, 119.0], ["Commercial Rounding", 0.5, 2.675, 2.5], ["Commercial Rounding", 0.5, 33.63, 33.5], ["Commercial Rounding", 0.5, 56.87, 57.0], ["Commercial Rounding", 0.5, 87.43, 87.5], ["Commercial Rounding", 0.5, 99.995, 100.0], ["Commercial Rounding", 0.5, 7.125, 7.0]];
+	for (const [method, fraction, value, want] of expected) {
+		assert.equal(roundLikeERPNext(value, { method, fraction, precision: 2 }), want, method + " / " + fraction + " / " + value);
+	}
+});
+
+// Phase 6, 2026-10-10: Tabby and Tamara at the counter.
+test("a Tabby or Tamara payment carries its order number and shows its payments", () => {
+	assert.match(fn("methodTone"), /if \(row && bnplOf\(row\.mode_of_payment\)\) return "bnpl";/);
+	assert.match(fn("complete"), /const unreferenced = payments\.find\(\(row\) => Number\(row\.amount\) > 0 && bnplOf\(row\.mode_of_payment\) && !String\(row\.reference_no \|\| ""\)\.trim\(\)\);/);
+	assert.ok(fn("complete").indexOf("const unreferenced") < fn("complete").indexOf('api("checkout"'), "checked before checkout");
+	assert.match(fn("displayState"), /bnpl: bnplOf\(row\.mode_of_payment\),/);
+	assert.match(fn("settingsRow"), /h\("option", \{ value: "tabby", selected: map\[mode\]\?\.provider === "tabby" \}, "Tabby"\)/);
+	assert.match(scss, /\[data-tone="bnpl"\] \.bnd-pos__swatch \{/);
 });

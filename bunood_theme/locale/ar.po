@@ -18844,3 +18844,274 @@ msgstr "أكمل الفواتير المعلّقة قبل إغلاق الورد�
 #, fuzzy
 msgid "The POS Profile changed after these settings were opened. Open them again."
 msgstr "تغيّر ملف نقطة البيع بعد فتح هذه الإعدادات. افتحها من جديد."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A held sale is completed with the connection."
+msgstr "الفاتورة المعلّقة تُكمل عند وجود الاتصال."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Without a connection a sale is paid in full."
+msgstr "بدون اتصال تُدفع الفاتورة كاملة."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Connection lost — selling continues on this device"
+msgstr "انقطع الاتصال — البيع مستمر على هذا الجهاز"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Connection back — sending the sales kept on this device"
+msgstr "عاد الاتصال — جارٍ إرسال المبيعات المحفوظة على هذا الجهاز"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The sale could not be kept on this device. Nothing was recorded."
+msgstr "تعذّر حفظ البيع على هذا الجهاز، ولم يُسجَّل شيء."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sale kept on this device until the connection returns"
+msgstr "حُفظ البيع على هذا الجهاز حتى يعود الاتصال"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No connection — selling continues on this device; the sales are sent when it returns."
+msgstr "لا يوجد اتصال — البيع مستمر على هذا الجهاز، وتُرسل المبيعات عند عودته."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sending the sales kept on this device…"
+msgstr "جارٍ إرسال المبيعات المحفوظة على هذا الجهاز…"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sales kept on this device are waiting to be sent."
+msgstr "مبيعات محفوظة على هذا الجهاز بانتظار الإرسال."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Catalogue saved"
+msgstr "حُفظت قائمة الأصناف"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No catalogue on this device yet: items can be added once the connection returns."
+msgstr "لا توجد قائمة أصناف على هذا الجهاز بعد، ويمكن إضافة الأصناف عند عودة الاتصال."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Send now"
+msgstr "أرسل الآن"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This needs the connection. Selling continues meanwhile."
+msgstr "هذا يحتاج الاتصال، والبيع مستمر في الأثناء."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Provisional receipt"
+msgstr "إيصال مؤقت"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sold without a connection. The tax invoice follows when this device is back online."
+msgstr "بيع دون اتصال. تصدر الفاتورة الضريبية عند عودة هذا الجهاز للاتصال."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "No connection — selling continues"
+msgstr "لا يوجد اتصال — البيع مستمر"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sale kept on this device"
+msgstr "حُفظ البيع على هذا الجهاز"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Sent to ERPNext when the connection returns."
+msgstr "يُرسل إلى ERPNext عند عودة الاتصال."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "The rest can stay on account only for a named customer."
+msgstr "لا يبقى الباقي على الحساب إلا لعميل مسمّى."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Sold offline at {0}"
+msgstr "بيع دون اتصال في {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Needs review: {0}"
+msgstr "يحتاج مراجعة: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Send or resolve the sales kept on this device first. Waiting: {0}"
+msgstr "أرسل المبيعات المحفوظة على هذا الجهاز أو عالجها أولًا. بانتظار الإرسال: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Sales kept on this device will post into the next shift. Waiting: {0}"
+msgstr "المبيعات المحفوظة على هذا الجهاز ستُسجَّل في الوردية التالية. بانتظار الإرسال: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The server did not take this sale."
+msgstr "لم يقبل الخادم هذا البيع."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Sales sent from this device: {0}"
+msgstr "مبيعات أُرسلت من هذا الجهاز: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Sales held for review: {0}"
+msgstr "مبيعات عُلّقت للمراجعة: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This sale will not reach ERPNext. Print its provisional receipt first if you need a paper record. Discard it?"
+msgstr "لن يصل هذا البيع إلى ERPNext. اطبع إيصاله المؤقت أولًا إن احتجت سجلًا ورقيًا. هل تتجاهله؟"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Waiting: {0}"
+msgstr "بانتظار الإرسال: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Needs review"
+msgstr "يحتاج مراجعة"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Not sent"
+msgstr "لم يُرسل"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Discard"
+msgstr "تجاهل"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Waiting to send: {0}"
+msgstr "بانتظار الإرسال: {0}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "This sale is being sent from another window. Try again in a moment."
+msgstr "هذا البيع يُرسل من نافذة أخرى. حاول بعد قليل."
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Total now: {0} · Collected: {1}"
+msgstr "الإجمالي الآن: {0} · المحصَّل: {1}"
+
+#. src: pos phase 5 — selling through a lost connection, 2026-10-10
+#, fuzzy
+msgid "Collected: {0}"
+msgstr "المحصَّل: {0}"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Enter the order number from: {0}"
+msgstr "أدخل رقم الطلب من: {0}"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Buy now, pay later"
+msgstr "اشترِ الآن وادفع لاحقًا"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A payment method that is Tabby or Tamara asks for the order number from the provider's app, and shows the customer the payments it splits into."
+msgstr "طريقة الدفع التي هي تابي أو تمارا تطلب رقم الطلب من تطبيق المزوّد، وتعرض للعميل الدفعات التي تُقسَّم عليها."
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Not buy-now-pay-later"
+msgstr "ليست اشترِ الآن وادفع لاحقًا"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Number of payments"
+msgstr "عدد الدفعات"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "payments"
+msgstr "دفعات"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Add a card or other payment method first."
+msgstr "أضف طريقة دفع بالبطاقة أو غيرها أولًا."
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Payments: {0} ×"
+msgstr "الدفعات: {0} ×"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Order number from the app (required)"
+msgstr "رقم الطلب من التطبيق (مطلوب)"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Approve the payment in the app on your phone"
+msgstr "وافق على الدفع من التطبيق في جوالك"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Buy now, pay later"
+msgstr "اشترِ الآن وادفع لاحقًا"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Order number required from: {0}"
+msgstr "رقم الطلب مطلوب من: {0}"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Order with {0}: {1}"
+msgstr "طلب لدى {0}: {1}"

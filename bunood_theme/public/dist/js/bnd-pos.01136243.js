@@ -89,6 +89,7 @@
 	}
 
 	function api(method, args, options) {
+		if (navigator.onLine === false) return Promise.reject({ status: 0, message: "" });
 		return frappe.call({
 			method: METHOD + method,
 			args: args || {},
@@ -97,7 +98,10 @@
 			type: options?.type,
 			// The shift close and the return show the server's refusal in place.
 			silent: Boolean(options?.silent),
-		}).then((response) => response.message);
+		}).then((response) => response.message, (error) => {
+			if (error && error.status === 0) window.dispatchEvent(new CustomEvent("bnd-pos-network"));
+			throw error;
+		});
 	}
 
 	function messageOf(error, fallback) {
@@ -145,6 +149,92 @@
 		if (!match || !scalePrefix || match[1] !== scalePrefix) return null;
 		const grams = parseInt(match[3], 10);
 		return grams > 0 ? { barcode: match[2], qty: grams / 1000 } : null;
+	}
+
+	// ── The device's own store, for selling through a lost connection ───────
+	// IndexedDB: the catalogue a counter last downloaded ("catalog", one record
+	// per user and POS Profile) and the sales kept while offline ("queue").
+	const OFFLINE_DB = "bnd-pos-offline";
+
+	function offlineDb() {
+		if (!window.indexedDB) return Promise.reject(new Error("IndexedDB is unavailable"));
+		return new Promise((resolve, reject) => {
+			const request = window.indexedDB.open(OFFLINE_DB, 1);
+			request.onupgradeneeded = () => {
+				const db = request.result;
+				if (!db.objectStoreNames.contains("catalog")) db.createObjectStore("catalog", { keyPath: "key" });
+				if (!db.objectStoreNames.contains("queue")) db.createObjectStore("queue", { keyPath: "id" });
+			};
+			request.onsuccess = () => resolve(request.result);
+			request.onerror = () => reject(request.error);
+		});
+	}
+
+	// One transaction; resolves with the request's result once the transaction commits.
+	function offlineStore(name, mode, work) {
+		return offlineDb().then((db) => new Promise((resolve, reject) => {
+			const tx = db.transaction(name, mode);
+			const request = work(tx.objectStore(name));
+			tx.oncomplete = () => {
+				db.close();
+				resolve(request ? request.result : undefined);
+			};
+			tx.onerror = () => {
+				db.close();
+				reject(tx.error);
+			};
+			tx.onabort = () => {
+				db.close();
+				reject(tx.error);
+			};
+		}));
+	}
+
+	// frappe.utils.data.rounded() for each System Settings rounding method.
+	function frappeRounded(num, precision, method) {
+		const multiplier = 10 ** precision;
+		if (method === "Commercial Rounding") {
+			if (num === 0) return 0;
+			return (Math.sign(num) * Math.round(Math.abs(num) * multiplier + 1e-9)) / multiplier;
+		}
+		if (method === "Banker's Rounding") {
+			if (num === 0) return 0;
+			const sign = num < 0 ? -1 : 1;
+			let value = Number((Math.abs(num) * multiplier).toFixed(12));
+			if (value === 0) return 0;
+			const floor = Math.floor(value);
+			const epsilon = 2 ** (Math.log2(value) - 52);
+			value = epsilon < 0.5 && Math.abs(value - floor - 0.5) < epsilon ? (floor % 2 === 0 ? floor : floor + 1) : Math.round(value);
+			return (sign * value) / multiplier;
+		}
+		// "Banker's Rounding (legacy)", Frappe's default.
+		let value = Number((precision ? num * multiplier : num).toFixed(8));
+		const floor = Math.floor(value);
+		const decimal = value - floor;
+		if (!precision && decimal === 0.5) value = floor % 2 === 0 ? floor : floor + 1;
+		else value = decimal === 0.5 ? floor + 1 : Math.round(value);
+		return precision ? value / multiplier : value;
+	}
+
+	// ERPNext's rounded total: to the currency's smallest fraction, or by the method.
+	function roundLikeERPNext(value, rule) {
+		const precision = Number(rule?.precision ?? 2);
+		const method = rule?.method || "Banker's Rounding (legacy)";
+		const fraction = Number(rule?.fraction || 0);
+		let total = Number(value || 0);
+		if (fraction) {
+			const multiplier = 10 ** precision;
+			const rest = frappeRounded(((total * multiplier) % (fraction * multiplier)) / multiplier, precision, method);
+			total = rest > fraction / 2 ? total + fraction - rest : total - rest;
+		} else {
+			total = frappeRounded(total, 0, method);
+		}
+		return frappeRounded(total, precision, method);
+	}
+
+	// Text for a provisional receipt printed while offline: escaped, never markup.
+	function escapeHtml(text) {
+		return String(text ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 	}
 
 	function render(container, page) {
@@ -207,6 +297,7 @@
 			close: null,
 			ret: null,
 			settings: null,
+			saleId: "",
 		};
 
 		const root = h("section", { class: "bnd-pos", "aria-label": __("Point of sale", null, "Bunood POS") });
@@ -295,15 +386,21 @@
 					exact: true,
 				};
 			}
+			const rounded = (estimate) => {
+				const rule = state.profile?.rounding;
+				if (!offline.on || !rule || rule.disabled) return estimate;
+				const total = roundLikeERPNext(estimate.total, rule);
+				return { ...estimate, total, rounding: round(total - estimate.total) };
+			};
 			const taxes = (state.profile?.taxes || []).filter((row) => row.charge_type === "On Net Total");
 			const rate = taxes.reduce((sum, row) => sum + Number(row.rate || 0), 0) / 100;
 			const included = taxes.length > 0 && taxes.every((row) => row.included);
 			if (included) {
 				const net = round(subtotal / (1 + rate));
-				return { net, vat: round(subtotal - net), total: subtotal, rounding: 0, exact: false };
+				return rounded({ net, vat: round(subtotal - net), total: subtotal, rounding: 0, exact: false });
 			}
 			const vat = round(subtotal * rate);
-			return { net: subtotal, vat, total: round(subtotal + vat), rounding: 0, exact: false };
+			return rounded({ net: subtotal, vat, total: round(subtotal + vat), rounding: 0, exact: false });
 		}
 
 		// ── Flash and focus ──────────────────────────────────────────────────
@@ -337,6 +434,13 @@
 			root.toggleAttribute("data-fbar", fbarOn());
 			root.setAttribute("data-tiles", counter("tiles") || "m");
 			connectDisplay();
+			offline.on = navigator.onLine === false;
+			root.toggleAttribute("data-offline", offline.on);
+			loadCatalog().then(() => { renderOfflineStrip(); refreshCatalog(); });
+			loadQueue().then(syncQueue);
+			navigator.storage?.persist?.().catch?.(() => {});
+			clearInterval(offline.refresh);
+			offline.refresh = setInterval(refreshCatalog, 30 * 60 * 1000);
 			resetSale({ silent: true });
 			renderBar();
 			if (!state.profile) {
@@ -460,7 +564,23 @@
 
 		function closeShift() {
 			const opening = state.context?.opening_entry || state.context?.stale_opening_entry;
-			if (!opening) return;
+			if (!opening || needsConnection()) return;
+			// The sales kept on this device belong to this shift's money: send them, and
+			// complete the ones held for review, first. An out-of-date shift cannot send
+			// them (ERPNext takes POS sales into today's shift only): they post into the next.
+			const waiting = queueFor(opening.pos_profile).length;
+			if (waiting && state.context?.opening_entry) {
+				flash("err", __("Send or resolve the sales kept on this device first. Waiting: {0}", [waiting]));
+				syncQueue();
+				return;
+			}
+			if (waiting && !state.context?.closeConfirmed) {
+				frappe.confirm(__("Sales kept on this device will post into the next shift. Waiting: {0}", [waiting]), () => {
+					state.context.closeConfirmed = true;
+					closeShift();
+				});
+				return;
+			}
 			state.heldOpen = false;
 			renderHeldPopover();
 			state.menuOpen = false;
@@ -725,6 +845,14 @@
 
 		async function loadItems(append) {
 			if (!state.profile || !state.context?.opening_entry) return;
+			if (offline.on) {
+				state.items = offlineList();
+				state.more = false;
+				state.itemsLoading = false;
+				renderGrid();
+				renderStatus();
+				return;
+			}
 			const serial = ++state.itemsSerial;
 			state.itemsLoading = true;
 			renderStatus();
@@ -812,6 +940,7 @@
 			if (label) qty = label.qty;
 			setQuery("");
 			const find = async (term) => {
+				if (offline.on) return offlineFind(term);
 				const result = await api("get_items", {
 					pos_profile: state.profile.name, start: 0, page_length: 20, search_term: term,
 				}, { type: "GET" });
@@ -930,6 +1059,7 @@
 		let previewTimer = 0;
 		function cartChanged() {
 			state.rev += 1;
+			state.saleId = "";
 			state.preview = null;
 			renderBill();
 			renderPad();
@@ -940,6 +1070,7 @@
 		}
 
 		async function previewSale() {
+			if (offline.on) return null;
 			const rev = state.rev;
 			if (!state.lines.some((line) => line.qty > 0)) return null;
 			state.previewing = true;
@@ -961,6 +1092,7 @@
 		}
 
 		async function serverTotal() {
+			if (offline.on) return offlineDue();
 			if (state.preview && state.preview.rev === state.rev) return state.preview;
 			clearTimeout(previewTimer);
 			return previewSale();
@@ -980,6 +1112,7 @@
 			state.payErr = "";
 			state.done = null;
 			state.draft = "";
+			state.saleId = "";
 			state.mult = null;
 			state.unknown = "";
 			state.customer = state.profile?.customer || "";
@@ -1002,7 +1135,13 @@
 		function cardMethod() {
 			return methods().find((row) => row.type === "Bank") || methods().find((row) => row.type !== "Cash") || null;
 		}
+		// A buy-now-pay-later method: Tabby or Tamara, and its number of payments.
+		function bnplOf(mode) {
+			const entry = counter("bnpl")?.[mode];
+			return entry ? { ...entry, name: { tabby: "Tabby", tamara: "Tamara" }[entry.provider] || entry.provider } : null;
+		}
 		function methodTone(row) {
+			if (row && bnplOf(row.mode_of_payment)) return "bnpl";
 			return row?.type === "Cash" ? "cash" : row?.type === "Bank" ? "card" : "other";
 		}
 		function isWalkIn() {
@@ -1089,6 +1228,12 @@
 				payments = [{ mode_of_payment: fallback.mode_of_payment, amount: total }];
 			}
 			const sum = round(payments.reduce((acc, row) => acc + Number(row.amount || 0), 0));
+			const unreferenced = payments.find((row) => Number(row.amount) > 0 && bnplOf(row.mode_of_payment) && !String(row.reference_no || "").trim());
+			if (unreferenced) {
+				state.payErr = __("Enter the order number from: {0}", [bnplOf(unreferenced.mode_of_payment).name]);
+				renderPanel();
+				return;
+			}
 			if (sum + 0.001 < total) {
 				if (!state.profile.allow_partial_payment) {
 					state.payErr = __("Short of the total by: {0}", [money(total - sum)]);
@@ -1101,6 +1246,25 @@
 					return;
 				}
 			}
+			state.saleId = state.saleId || newSaleId();
+			if (offline.on) {
+				if (state.draft) {
+					state.payErr = __("A held sale is completed with the connection.", null, "Bunood POS");
+				} else if (sum + 0.001 < total) {
+					state.payErr = __("Without a connection a sale is paid in full.", null, "Bunood POS");
+				} else {
+					// Busy before the first wait: a double tap must not keep the sale twice.
+					state.busy = true;
+					try {
+						await keepSale(payments, total);
+					} finally {
+						state.busy = false;
+					}
+					return;
+				}
+				renderPanel();
+				return;
+			}
 			state.busy = true;
 			renderPad();
 			try {
@@ -1108,6 +1272,7 @@
 					payload: JSON.stringify(payload()),
 					payments: JSON.stringify(payments),
 					draft_name: state.draft || undefined,
+					client_id: state.saleId,
 				}, { freeze: true, message: __("Completing the sale…", null, "Bunood POS") });
 				state.done = { ...result, payments };
 				state.screen = "done";
@@ -1117,6 +1282,13 @@
 				flash("ok", __("Sale complete: {0}", [result.name]));
 				if (state.profile.print_receipt_on_order_complete) printReceipt(result.doctype, result.name);
 			} catch (error) {
+				// No answer: the sale may or may not have reached ERPNext. It is kept on this
+				// device under the same id, and the server answers the send with the invoice
+				// it already made, if any; nothing is charged twice.
+				if (error?.status === 0 && !state.draft && sum + 0.001 >= total) {
+					await keepSale(payments, total);
+					return;
+				}
 				state.payErr = messageOf(error, __("The sale was not submitted.", null, "Bunood POS"));
 				if (state.screen !== "pay") {
 					frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: state.payErr, indicator: "red" });
@@ -1162,6 +1334,7 @@
 		}
 
 		async function hold() {
+			if (needsConnection()) return;
 			if (!canHold()) { flash("err", __("Holding sales is not set up on this site yet.", null, "Bunood POS")); return; }
 			if (!state.lines.some((line) => line.qty > 0) || state.screen !== "sale") { flash("err", __("Nothing to hold", null, "Bunood POS")); return; }
 			try {
@@ -1230,6 +1403,7 @@
 		// ── Customer ─────────────────────────────────────────────────────────
 		let customerTimer = 0;
 		function openCustomer() {
+			if (needsConnection()) return;
 			if (state.screen === "done") return;
 			state.overlay = { kind: "customer", term: "", rows: null };
 			renderLayer();
@@ -1544,7 +1718,8 @@
 			}
 			if ((event.ctrlKey || event.metaKey) && event.code === "KeyP" && state.screen === "done" && state.done) {
 				event.preventDefault();
-				printReceipt(state.done.doctype, state.done.name);
+				if (state.done.offline) printProvisional(state.done.sale);
+				else printReceipt(state.done.doctype, state.done.name);
 				return;
 			}
 			if (state.view !== "sale") return;
@@ -1637,6 +1812,7 @@
 			focusOmni();
 		}
 		function toggleHeld() {
+			if (needsConnection()) return;
 			if (!canHold()) { flash("err", __("Holding sales is not set up on this site yet.", null, "Bunood POS")); return; }
 			state.heldOpen = !state.heldOpen;
 			if (state.heldOpen) refreshHeld();
@@ -1652,6 +1828,280 @@
 			if (document.fullscreenElement) document.exitFullscreen?.();
 			else document.documentElement.requestFullscreen?.().catch(() => {});
 		}
+
+		// ── Selling through a lost connection ────────────────────────────────
+		// The catalogue the counter last downloaded stays on this device, and a
+		// sale completed without a connection is kept here under its own id and
+		// sent when the connection returns (pos.sync_offline_sale prices it again
+		// and posts it, or keeps it as a held draft for review).
+		const offline = { on: false, catalog: null, queue: [], syncing: false, heartbeat: 0, refresh: 0 };
+		const offlineStrip = h("div", { class: "bnd-pos__offline", role: "status", hidden: true });
+		root.insertBefore(offlineStrip, body);
+
+		function catalogKey() {
+			return `${frappe.session.user}::${state.profile?.name || ""}`;
+		}
+
+		async function loadCatalog() {
+			try {
+				offline.catalog = (await offlineStore("catalog", "readonly", (store) => store.get(catalogKey()))) || null;
+			} catch (_error) {
+				offline.catalog = null;
+			}
+		}
+
+		async function refreshCatalog() {
+			if (offline.on || !state.profile || !state.context?.opening_entry) return;
+			try {
+				const result = await api("offline_catalog", { pos_profile: state.profile.name }, { type: "GET", silent: true });
+				offline.catalog = { key: catalogKey(), items: result?.items || [], at: result?.generated_at || "", truncated: Boolean(result?.truncated) };
+				await offlineStore("catalog", "readwrite", (store) => store.put(offline.catalog));
+			} catch (_error) { /* the last copy stays */ }
+			renderOfflineStrip();
+		}
+
+		async function loadQueue() {
+			try {
+				const rows = (await offlineStore("queue", "readonly", (store) => store.getAll())) || [];
+				offline.queue = rows.filter((row) => row.user === frappe.session.user).sort((a, b) => String(a.sold_at).localeCompare(String(b.sold_at)));
+			} catch (_error) {
+				offline.queue = [];
+			}
+			renderBar();
+			renderOfflineStrip();
+		}
+
+		function queueFor(profile) {
+			return offline.queue.filter((sale) => sale.profile === profile);
+		}
+
+		// The cached catalogue answers what get_items answers online.
+		function offlineFind(term) {
+			const items = offline.catalog?.items || [];
+			const text = String(term || "").trim();
+			if (!text) return [];
+			const exact = items.filter((row) => row.item_code === text || (row.barcodes || []).includes(text));
+			if (exact.length || /^\d+$/.test(text)) return exact;
+			const lower = text.toLowerCase();
+			const named = items.filter((row) => String(row.item_name || "").toLowerCase().includes(lower) || String(row.item_code).toLowerCase().includes(lower));
+			return named.length === 1 ? named : [];
+		}
+
+		function offlineList() {
+			const lower = textQuery().toLowerCase();
+			return (offline.catalog?.items || []).filter((row) => !lower
+				|| String(row.item_name || "").toLowerCase().includes(lower)
+				|| String(row.item_code).toLowerCase().includes(lower)
+				|| (row.barcodes || []).includes(lower));
+		}
+
+		function setOnline(on) {
+			const wasOffline = offline.on;
+			offline.on = !on;
+			root.toggleAttribute("data-offline", offline.on);
+			clearInterval(offline.heartbeat);
+			if (offline.on) {
+				// Ask the server, not the browser, whether the connection is back.
+				offline.heartbeat = setInterval(async () => {
+					try {
+						const response = await fetch("/api/method/ping", { cache: "no-store", credentials: "same-origin" });
+						if (response.ok) setOnline(true);
+					} catch (_error) { /* still offline */ }
+				}, 8000);
+			}
+			renderBar();
+			renderOfflineStrip();
+			if (offline.on && !wasOffline) {
+				flash("err", __("Connection lost — selling continues on this device", null, "Bunood POS"));
+				if (state.view === "sale") loadItems(false);
+			} else if (!offline.on && wasOffline) {
+				flash("ok", __("Connection back — sending the sales kept on this device", null, "Bunood POS"));
+				syncQueue();
+				refreshCatalog();
+				if (state.view === "sale") loadItems(false);
+			}
+		}
+
+		// What a sale is due while offline: the counter's estimate, rounded as ERPNext rounds.
+		function offlineDue() {
+			const t = totals();
+			return { net_total: t.net, total_taxes_and_charges: t.vat, grand_total: round(t.total - t.rounding), rounded_total: t.total, rev: state.rev, offline: true };
+		}
+
+		function newSaleId() {
+			return window.crypto?.randomUUID?.() || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+		}
+
+		function saveSale(sale) {
+			return offlineStore("queue", "readwrite", (store) => store.put(sale));
+		}
+
+		function dropSale(id) {
+			return offlineStore("queue", "readwrite", (store) => store.delete(id));
+		}
+
+		async function keepSale(payments, total) {
+			const sum = round(payments.reduce((acc, row) => acc + Number(row.amount || 0), 0));
+			const cash = cashMethod();
+			const change = cash && payments.some((row) => row.mode_of_payment === cash.mode_of_payment) ? Math.max(round(sum - total), 0) : 0;
+			const id = state.saleId || newSaleId();
+			const amounts = shownAmounts();
+			const sale = {
+				id,
+				user: frappe.session.user,
+				profile: state.profile.name,
+				sold_at: frappe.datetime.now_datetime(),
+				payload: payload(),
+				payments,
+				total,
+				paid: sum,
+				change,
+				status: "queued",
+				customer: state.customerName || state.customer,
+				lines: state.lines.filter((line) => line.qty > 0).map((line) => ({ name: line.item_name, qty: qtyText(line), amount: amounts[state.lines.indexOf(line)] })),
+			};
+			try {
+				await saveSale(sale);
+			} catch (error) {
+				state.payErr = __("The sale could not be kept on this device. Nothing was recorded.", null, "Bunood POS");
+				renderPanel();
+				return;
+			}
+			offline.queue = offline.queue.filter((other) => other.id !== sale.id).concat([sale]);
+			state.done = { offline: true, name: id, sale, rounded_total: total, grand_total: total, paid_amount: sum, change_amount: change, payments };
+			state.screen = "done";
+			frappe.utils?.play_sound?.("submit");
+			flash("ok", __("Sale kept on this device until the connection returns", null, "Bunood POS"));
+			renderSaleParts();
+			renderBar();
+			renderOfflineStrip();
+			if (state.profile.print_receipt_on_order_complete) printProvisional(sale);
+		}
+
+		// A request that hangs counts as no connection: the loop ends and can run again.
+		function withinTime(promise) {
+			return Promise.race([promise, new Promise((_resolve, reject) => setTimeout(() => reject({ status: 0, message: "" }), 45000))]);
+		}
+
+		async function syncQueue() {
+			if (offline.syncing || offline.on || !state.profile || !state.context?.opening_entry) return;
+			offline.syncing = true;
+			renderOfflineStrip();
+			let sent = 0;
+			let review = 0;
+			try {
+				const mine = queueFor(state.profile.name);
+				// Sales already on the server for review: dropped once someone completed,
+				// cancelled or deleted them; never sent again.
+				const reviewing = mine.filter((sale) => sale.status === "review");
+				if (reviewing.length) {
+					const states = await withinTime(api("offline_sale_state", { offline_ids: JSON.stringify(reviewing.map((sale) => sale.id)) }, { silent: true }));
+					for (const sale of reviewing) {
+						const known = states?.[sale.id];
+						if (!known || known.docstatus === null || known.docstatus >= 1) await dropSale(sale.id);
+					}
+				}
+				for (const sale of mine.filter((item) => item.status !== "review")) {
+					try {
+						const result = await withinTime(api("sync_offline_sale", {
+							offline_id: sale.id,
+							sold_at: sale.sold_at,
+							payload: JSON.stringify(sale.payload),
+							payments: JSON.stringify(sale.payments),
+							collected_total: sale.total,
+						}, { silent: true }));
+						if (result?.status === "review") {
+							review += 1;
+							await saveSale({ ...sale, status: "review", invoice: result.name, error: result.message || "" });
+						} else {
+							sent += 1;
+							await dropSale(sale.id);
+						}
+					} catch (error) {
+						if (error?.status === 0) break;
+						await saveSale({ ...sale, status: "failed", error: messageOf(error, __("The server did not take this sale.", null, "Bunood POS")) }).catch(() => {});
+					}
+				}
+			} catch (_error) {
+				/* the next run tries again */
+			} finally {
+				offline.syncing = false;
+				await loadQueue();
+			}
+			if (sent) flash("ok", __("Sales sent from this device: {0}", [sent]));
+			if (review) {
+				flash("err", __("Sales held for review: {0}", [review]));
+				refreshHeld();
+			}
+		}
+
+		function discardSale(sale) {
+			frappe.confirm(__("This sale will not reach ERPNext. Print its provisional receipt first if you need a paper record. Discard it?", null, "Bunood POS"), async () => {
+				await dropSale(sale.id).catch(() => {});
+				await loadQueue();
+			});
+		}
+
+		function renderOfflineStrip() {
+			const waiting = state.profile ? queueFor(state.profile.name) : [];
+			const failed = waiting.filter((sale) => sale.status === "failed");
+			const reviewing = waiting.filter((sale) => sale.status === "review");
+			offlineStrip.hidden = !offline.on && !waiting.length;
+			if (offlineStrip.hidden) {
+				fill(offlineStrip);
+				return;
+			}
+			const at = offline.catalog?.at && frappe.datetime?.str_to_user ? frappe.datetime.str_to_user(offline.catalog.at) : "";
+			offlineStrip.toggleAttribute("data-online", !offline.on);
+			fill(offlineStrip,
+				svg("alert", 16),
+				h("span", null, offline.on
+					? __("No connection — selling continues on this device; the sales are sent when it returns.", null, "Bunood POS")
+					: offline.syncing ? __("Sending the sales kept on this device…", null, "Bunood POS") : __("Sales kept on this device are waiting to be sent.", null, "Bunood POS")),
+				waiting.length ? h("b", null, __("Waiting: {0}", [waiting.length])) : null,
+				offline.on && at ? h("span", { class: "bnd-pos__muted" }, __("Catalogue saved", null, "Bunood POS"), " ", ltr(at)) : null,
+				offline.on && !offline.catalog?.items?.length ? h("b", null, __("No catalogue on this device yet: items can be added once the connection returns.", null, "Bunood POS")) : null,
+				!offline.on && !offline.syncing ? h("button", { type: "button", class: "bnd-pos__ghost", onclick: syncQueue }, __("Send now", null, "Bunood POS")) : null,
+				failed.concat(reviewing).slice(0, 3).map((sale) => h("span", { class: "bnd-pos__offline-sale" },
+					h("b", null, sale.status === "review" ? __("Needs review", null, "Bunood POS") : __("Not sent", null, "Bunood POS")),
+					" ", ltr(money(sale.total)), sale.error ? ` — ${sale.error}` : "",
+					sale.status === "review" && sale.invoice
+						? h("button", { type: "button", class: "bnd-pos__link", onclick: () => frappe.set_route("Form", state.context.invoice_type, sale.invoice) }, __("Open", null, "Bunood POS"))
+						: [h("button", { type: "button", class: "bnd-pos__link", onclick: () => printProvisional(sale) }, __("Print", null, "Bunood POS")),
+							h("button", { type: "button", class: "bnd-pos__link", onclick: () => discardSale(sale) }, __("Discard", null, "Bunood POS"))])));
+		}
+
+		// Things that need the server say so instead of failing.
+		function needsConnection() {
+			if (!offline.on) return false;
+			flash("err", __("This needs the connection. Selling continues meanwhile.", null, "Bunood POS"));
+			return true;
+		}
+
+		// A provisional receipt from this device: honest that the invoice follows.
+		function printProvisional(sale) {
+			const view = window.open("", "_blank", "width=420,height=640");
+			if (!view) return;
+			const rows = (sale.lines || []).map((line) => `<tr><td>${escapeHtml(line.qty)}</td><td>${escapeHtml(line.name)}</td><td class="n">${escapeHtml(money(line.amount))}</td></tr>`).join("");
+			const dir = frappe.utils?.is_rtl?.() ? "rtl" : "ltr";
+			view.document.write(`<!doctype html><html dir="${dir}"><head><meta charset="utf-8"><title>${escapeHtml(__("Provisional receipt", null, "Bunood POS"))}</title>
+<style>body{font-family:system-ui,sans-serif;margin:16px;font-size:13px}h1{font-size:16px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin:10px 0}td{padding:3px 0;border-bottom:1px solid #ddd}.n{text-align:end;white-space:nowrap}p{margin:4px 0}</style></head><body>
+<h1>${escapeHtml(state.profile?.company || "")}</h1>
+<p><b>${escapeHtml(__("Provisional receipt", null, "Bunood POS"))}</b> · ${escapeHtml(sale.sold_at)}</p>
+<p>${escapeHtml(__("Sold without a connection. The tax invoice follows when this device is back online.", null, "Bunood POS"))}</p>
+<table>${rows}</table>
+<p>${escapeHtml(__("Total", null, "Bunood POS"))}: <b>${escapeHtml(money(sale.total))}</b></p>
+<p>${escapeHtml(__("Paid", null, "Bunood POS"))}: ${escapeHtml(money(sale.paid))} · ${escapeHtml(__("Change for the customer", null, "Bunood POS"))}: ${escapeHtml(money(sale.change))}</p>
+<p>${escapeHtml(__("Reference", null, "Bunood POS"))}: ${escapeHtml(sale.id)}</p>
+</body></html>`);
+			view.document.close();
+			view.focus();
+			view.print();
+		}
+
+		window.addEventListener("online", () => setOnline(true));
+		window.addEventListener("offline", () => setOnline(false));
+		window.addEventListener("bnd-pos-network", () => setOnline(false));
 
 		// ── The customer screen ──────────────────────────────────────────────
 		// A second window on the terminal's customer-facing monitor, in the same
@@ -1728,6 +2178,7 @@
 						mode_of_payment: row.mode_of_payment,
 						amount: Number(row.amount),
 						tone: methodTone(methods().find((method) => method.mode_of_payment === row.mode_of_payment)),
+						bnpl: bnplOf(row.mode_of_payment),
 					})),
 				};
 			}
@@ -1826,6 +2277,7 @@
 				{ name: __("Payment", null, "Bunood POS"), intro: __("The payment methods on this counter and the quick cash buttons.", null, "Bunood POS"), rows: [
 					{ kind: "payments", label: __("Payment methods", null, "Bunood POS"), desc: __("Touch to add or remove. A method needs its account for this company before it can be added.", null, "Bunood POS"), modes },
 					{ kind: "default", label: __("Default payment method", null, "Bunood POS"), desc: __("ERPNext's default for this POS Profile.", null, "Bunood POS"), options: chosen },
+					{ kind: "bnpl", label: __("Buy now, pay later", null, "Bunood POS"), desc: __("A payment method that is Tabby or Tamara asks for the order number from the provider's app, and shows the customer the payments it splits into.", null, "Bunood POS"), modes: (settings?.native?.payments || []).map((row) => row.mode_of_payment).filter((mode) => (modes.find((item) => item.mode_of_payment === mode)?.type || "") !== "Cash") },
 					T("counter", "cash_exact", __("Exact amount button", null, "Bunood POS"), __("The first quick cash button pays the total exactly.", null, "Bunood POS")),
 					{ kind: "notes", source: "counter", key: "cash_notes", label: __("Suggested cash notes", null, "Bunood POS"), desc: __("Payment offers the fewest of each note that covers the total.", null, "Bunood POS"), notes: settings?.ctx?.cash_notes || [] },
 					S("native", "allow_partial_payment", __("Credit sales", null, "Bunood POS"), __("The rest of a sale on a named customer's account.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]),
@@ -1849,7 +2301,7 @@
 		}
 
 		async function openSettings() {
-			if (!state.profile?.can_edit) return;
+			if (!state.profile?.can_edit || needsConnection()) return;
 			state.heldOpen = false;
 			renderHeldPopover();
 			const settings = { ctx: null, native: null, counter: null, section: 0, busy: false, error: "", dirty: false, profile: state.profile.name };
@@ -2053,6 +2505,37 @@
 					disabled: !editable,
 					onclick: () => changeSetting("native", "payments", chosen.map((other) => ({ ...other, default: other.mode_of_payment === item.mode_of_payment }))),
 				}, __(item.mode_of_payment))));
+			} else if (row.kind === "bnpl") {
+				const map = settings.counter.bnpl || {};
+				const set = (mode, entry) => {
+					const next = { ...map };
+					if (entry) next[mode] = entry;
+					else delete next[mode];
+					changeSetting("counter", "bnpl", next);
+				};
+				control = row.modes.length ? h("div", { class: "bnd-pos__bnpl" }, row.modes.map((mode) => h("div", { class: "bnd-pos__bnpl-row" },
+					h("strong", null, __(mode)),
+					h("select", {
+						class: "bnd-pos__select bnd-pos__select--small",
+						"aria-label": __(mode),
+						disabled: !editable,
+						onchange: (event) => set(mode, event.target.value ? { provider: event.target.value, installments: map[mode]?.installments || 4 } : null),
+					}, h("option", { value: "", selected: !map[mode] }, __("Not buy-now-pay-later", null, "Bunood POS")),
+					h("option", { value: "tabby", selected: map[mode]?.provider === "tabby" }, "Tabby"),
+					h("option", { value: "tamara", selected: map[mode]?.provider === "tamara" }, "Tamara")),
+					map[mode] ? h("label", { class: "bnd-pos__number" },
+						h("input", {
+							type: "text",
+							inputmode: "numeric",
+							dir: "ltr",
+							name: `setting-bnpl-${mode}`,
+							"aria-label": __("Number of payments", null, "Bunood POS"),
+							value: String(map[mode].installments),
+							disabled: !editable,
+							onchange: (event) => set(mode, { ...map[mode], installments: Math.min(Math.max(parseInt(latinDigits(event.target.value), 10) || 4, 2), 12) }),
+						}),
+						h("span", null, __("payments", null, "Bunood POS"))) : null)))
+					: h("span", { class: "bnd-pos__muted" }, __("Add a card or other payment method first.", null, "Bunood POS"));
 			} else if (row.kind === "notes") {
 				const notes = value || [];
 				control = h("div", { class: "bnd-pos__chipset" }, row.notes.map((note) => {
@@ -2124,7 +2607,7 @@
 		}
 
 		function showList(view, returnHint) {
-			if (state.view === "gate") return;
+			if (state.view === "gate" || needsConnection()) return;
 			state.view = view;
 			state.returnHint = Boolean(returnHint);
 			state.heldOpen = false;
@@ -2149,7 +2632,8 @@
 
 		function renderBar() {
 			const ctx = state.context;
-			const online = navigator.onLine;
+			const online = !offline.on && navigator.onLine !== false;
+			const waiting = state.profile ? queueFor(state.profile.name).length : 0;
 			const locked = state.view === "gate" || ((state.view === "close" || state.view === "settings") && !ctx?.opening_entry);
 			const tab = (view, label, count) => h("button", {
 				type: "button",
@@ -2173,7 +2657,8 @@
 					canHold() ? tab("held", __("Held", null, "Bunood POS"), (state.held || []).length) : null,
 					tab("receipts", __("Receipts and returns", null, "Bunood POS"))),
 				h("span", { class: "bnd-pos__spacer" }),
-				h("span", { class: "bnd-pos__pill", "data-tone": online ? "good" : "warn" }, h("span", { class: "bnd-pos__dot" }), online ? __("Connected", null, "Bunood POS") : __("No connection — selling paused", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__pill", "data-tone": online ? "good" : "warn" }, h("span", { class: "bnd-pos__dot" }), online ? __("Connected", null, "Bunood POS") : __("No connection — selling continues", null, "Bunood POS")),
+				waiting ? h("span", { class: "bnd-pos__pill", "data-tone": "warn" }, __("Waiting to send: {0}", [waiting])) : null,
 				opening ? h("span", { class: "bnd-pos__pill" }, __("Shift", null, "Bunood POS"), " ", since ? ltr(since) : null, " · ", opening.pos_profile) : null,
 				h("span", { class: "bnd-pos__user" }, frappe.user_info?.(frappe.session?.user)?.fullname || frappe.session?.user || ""),
 				counter("customer_screen") === false ? null : h("button", {
@@ -2329,7 +2814,7 @@
 				renderMult();
 				return;
 			}
-			const offer = counter("unknown_barcode") !== "alert";
+			const offer = counter("unknown_barcode") !== "alert" && !offline.on;
 			const canItem = offer && frappe.model?.can_create?.("Item");
 			alertBox.hidden = false;
 			fill(alertBox, 
@@ -2421,6 +2906,20 @@
 			const done = state.screen === "done";
 			panel.hidden = !(paying || done);
 			if (!paying && !done) { fill(panel); return; }
+			if (done && state.done?.offline) {
+				const result = state.done;
+				fill(panel, h("div", { class: "bnd-pos__done" },
+					h("div", { class: "bnd-pos__done-main", "data-offline": "1" },
+						h("span", { class: "bnd-pos__done-mark" }, svg("check", 38)),
+						h("strong", { class: "bnd-pos__done-title" }, __("Sale kept on this device", null, "Bunood POS")),
+						h("span", null, Number(result.change_amount) > 0 ? __("Change for the customer", null, "Bunood POS") : __("No change", null, "Bunood POS")),
+						h("strong", { class: "bnd-pos__done-change" }, ltr(money(result.change_amount))),
+						h("span", { class: "bnd-pos__muted" }, __("Sent to ERPNext when the connection returns.", null, "Bunood POS"))),
+					h("div", { class: "bnd-pos__done-actions" },
+						h("button", { type: "button", class: "bnd-pos__ghost bnd-pos__ghost--tall", onclick: () => printProvisional(result.sale) }, svg("printer", 18), __("Provisional receipt", null, "Bunood POS"), " ", key("Ctrl+P")),
+						h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", onclick: () => resetSale() }, __("New sale", null, "Bunood POS"), " ", key("Enter")))));
+				return;
+			}
 			if (done) {
 				const result = state.done || {};
 				const change = Number(result.change_amount || 0);
@@ -2463,14 +2962,17 @@
 						onclick: () => { state.psel = index; state.payFresh = true; state.payBuf = ""; renderPanel(); focusOmni(); },
 					},
 					h("span", { class: "bnd-pos__swatch" }),
-					h("span", { class: "bnd-pos__tender-text" }, h("strong", null, __(row.mode_of_payment)), h("span", null, tone === "cash" ? __("Into the drawer", null, "Bunood POS") : tone === "card" ? __("Sent to the card terminal", null, "Bunood POS") : __("Other tender", null, "Bunood POS"))),
+					h("span", { class: "bnd-pos__tender-text" }, h("strong", null, __(row.mode_of_payment)), h("span", null, tone === "bnpl"
+						? [__("Payments: {0} ×", [bnplOf(row.mode_of_payment).installments]), " ", ltr(money(round(Number(row.amount || 0) / bnplOf(row.mode_of_payment).installments)))]
+						: tone === "cash" ? __("Into the drawer", null, "Bunood POS") : tone === "card" ? __("Sent to the card terminal", null, "Bunood POS") : __("Other tender", null, "Bunood POS"))),
 					h("strong", { class: "bnd-pos__tender-amount" }, ltr(money(row.amount)))),
 					tone !== "cash" ? h("input", {
 						class: "bnd-pos__ref",
 						type: "text",
 						dir: "ltr",
 						value: row.reference_no || "",
-						placeholder: __("Reference (optional)", null, "Bunood POS"),
+						placeholder: tone === "bnpl" ? __("Order number from the app (required)", null, "Bunood POS") : __("Reference (optional)", null, "Bunood POS"),
+						"data-required": tone === "bnpl" ? "1" : null,
 						"aria-label": __("Payment reference for {0}", [__(row.mode_of_payment)]),
 						oninput: (event) => { row.reference_no = event.target.value; },
 					}) : null,
@@ -3038,7 +3540,8 @@
 					tenders.length ? h("div", { class: "bnd-pos-display__tenders" }, tenders.map((row) => h("div", { class: "bnd-pos-display__tender", "data-tone": row.tone },
 						h("strong", null, __(row.mode_of_payment)),
 						h("bdi", { dir: "ltr" }, money(row.amount)),
-						h("span", { class: "bnd-pos-display__muted" }, row.tone === "card" ? __("Tap your card or phone on the terminal", null, "Bunood POS") : row.tone === "cash" ? __("Received", null, "Bunood POS") : "")))) : null,
+						row.bnpl ? h("span", null, __("Payments: {0} ×", [Number(row.bnpl.installments)]), " ", h("bdi", { dir: "ltr" }, money(Number(row.amount) / Number(row.bnpl.installments)))) : null,
+						h("span", { class: "bnd-pos-display__muted" }, row.bnpl ? __("Approve the payment in the app on your phone", null, "Bunood POS") : row.tone === "card" ? __("Tap your card or phone on the terminal", null, "Bunood POS") : row.tone === "cash" ? __("Received", null, "Bunood POS") : "")))) : null,
 					rest > 0.004 && tenders.length ? h("span", { class: "bnd-pos-display__label" }, __("Remaining", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(rest))) : null,
 					rest < -0.004 ? h("span", { class: "bnd-pos-display__label" }, __("Your change", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(-rest))) : null));
 			} else if (s.mode === "thanks") {

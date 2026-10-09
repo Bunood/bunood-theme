@@ -1449,6 +1449,28 @@ html[data-theme] .bnd-pos [data-tone=cash] .bnd-pos__swatch {
 html[data-theme] .bnd-pos [data-tone=card] .bnd-pos__swatch {
   background: var(--bnd-status-blue);
 }
+html[data-theme] .bnd-pos [data-tone=bnpl] .bnd-pos__swatch {
+  background: var(--bnd-cat-5);
+}
+html[data-theme] .bnd-pos .bnd-pos__ref[data-required] {
+  border-color: var(--bnd-warn);
+}
+html[data-theme] .bnd-pos .bnd-pos__bnpl {
+  display: grid;
+  gap: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-pos .bnd-pos__bnpl-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-pos .bnd-pos__bnpl-row strong {
+  min-inline-size: 8rem;
+}
+html[data-theme] .bnd-pos .bnd-pos__select--small {
+  min-inline-size: 12rem;
+}
 html[data-theme] .bnd-pos .bnd-pos__tenders {
   display: grid;
   align-content: start;
@@ -2090,6 +2112,29 @@ html[data-theme] .bnd-pos .bnd-pos__issued {
 html[data-theme] .bnd-pos .bnd-pos__closed {
   justify-items: center;
   text-align: center;
+}
+html[data-theme] .bnd-pos .bnd-pos__offline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2) var(--bnd-sp-3);
+  flex: none;
+  padding: var(--bnd-sp-2) var(--bnd-sp-4);
+  background: color-mix(in srgb, var(--bnd-warn) 18%, var(--bnd-surface));
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+}
+html[data-theme] .bnd-pos .bnd-pos__offline svg {
+  color: var(--bnd-warn);
+}
+html[data-theme] .bnd-pos .bnd-pos__offline[data-online] {
+  background: color-mix(in srgb, var(--bnd-status-blue) 10%, var(--bnd-surface));
+}
+html[data-theme] .bnd-pos .bnd-pos__offline[data-online] svg {
+  color: var(--bnd-status-blue);
+}
+html[data-theme] .bnd-pos .bnd-pos__done-main[data-offline] {
+  background: color-mix(in srgb, var(--bnd-warn) 10%, var(--bnd-surface));
 }
 html[data-theme] .bnd-pos .bnd-pos__settings {
   display: grid;
