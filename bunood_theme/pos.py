@@ -207,7 +207,9 @@ COUNTER_DEFAULTS: dict[str, Any] = {
     "unknown_barcode": "offer",
     "reason_threshold": 0,
     "held_on_close": "carry",
+    "bnpl": {},
 }
+BNPL_PROVIDERS = {"tabby": "Tabby", "tamara": "Tamara"}
 CASH_NOTES = (1, 5, 10, 20, 50, 100, 200, 500)
 # GS1 keeps 20-29 and 02 for in-store numbers: any other prefix would read
 # ordinary product barcodes (628… in Saudi Arabia) as scale labels.
@@ -240,6 +242,7 @@ def _counter_label(key: str) -> str:
         "unknown_barcode": _("Unknown barcodes"),
         "reason_threshold": _("Difference that needs a reason"),
         "held_on_close": _("Held sales at closing"),
+        "bnpl": _("Buy now, pay later"),
     }.get(key, key)
 
 
@@ -296,6 +299,28 @@ def _clean_counter(values: Any, strict: bool) -> dict[str, Any]:
                 clean[key] = sorted(set(value))
             else:
                 bad(key)
+        elif key == "bnpl":
+            clean_map: dict[str, dict[str, Any]] = {}
+            ok = isinstance(value, dict) and len(value) <= 10
+            for mode, entry in (value.items() if ok else []):
+                provider = (entry or {}).get("provider") if isinstance(entry, dict) else None
+                installments = (entry or {}).get("installments") if isinstance(entry, dict) else None
+                if (
+                    not isinstance(mode, str)
+                    or len(mode) > 140
+                    or provider not in BNPL_PROVIDERS
+                    or not isinstance(installments, int)
+                    or isinstance(installments, bool)
+                    or not 2 <= installments <= 12
+                    or (strict and not frappe.db.exists("Mode of Payment", mode))
+                ):
+                    ok = False
+                    break
+                clean_map[mode] = {"provider": provider, "installments": installments}
+            if ok:
+                clean[key] = clean_map
+            else:
+                bad(key)
         elif key == "scale_prefix":
             text = str(value or "")
             if text == "" or text in STORE_PREFIXES:
@@ -326,7 +351,7 @@ def drop_counter_settings(doc, method=None) -> None:
 
 def _counter_settings(profile_name: str) -> dict[str, Any]:
     stored = frappe.defaults.get_defaults_for(COUNTER_SETTINGS_PARENT).get(profile_name)
-    settings = {key: (list(value) if isinstance(value, list) else value) for key, value in COUNTER_DEFAULTS.items()}
+    settings = {key: (list(value) if isinstance(value, list) else dict(value) if isinstance(value, dict) else value) for key, value in COUNTER_DEFAULTS.items()}
     if isinstance(stored, str) and stored:
         try:
             settings.update(_clean_counter(json.loads(stored), strict=False))
@@ -802,6 +827,17 @@ def _apply_payments(doc, profile, values: Any) -> None:
     # kept offline, or any direct call, never passed through the counter's check).
     if paid < total and (not doc.customer or doc.customer == profile.customer):
         frappe.throw(_("The rest can stay on account only for a named customer."))
+
+    bnpl = _counter_settings(profile.name)["bnpl"]
+    orders = []
+    for mode, amount in amounts.items():
+        if amount > 0 and mode in bnpl:
+            provider = BNPL_PROVIDERS[bnpl[mode]["provider"]]
+            if not references.get(mode):
+                frappe.throw(_("Order number required from: {0}").format(provider))
+            orders.append(_("Order with {0}: {1}").format(provider, references[mode]))
+    if orders:
+        doc.remarks = " · ".join(filter(None, [doc.get("remarks"), *orders]))
 
     existing = {row.mode_of_payment: row for row in (doc.get("payments") or [])}
     for row in doc.get("payments") or []:
@@ -1852,7 +1888,7 @@ def sync_offline_sale(
             doc.insert()
             _remember_sale(offline_id, doc.name)
             return {**_summary(doc), "status": "review", "message": reason, "already": False}
-        doc.remarks = note
+        doc.remarks = " · ".join(filter(None, [note, doc.get("remarks")]))
         doc.set(HELD_FIELD, 0)
         doc.insert()
         doc.check_permission("submit")

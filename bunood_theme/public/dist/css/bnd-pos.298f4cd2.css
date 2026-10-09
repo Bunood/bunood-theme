@@ -1449,6 +1449,28 @@ html[data-theme] .bnd-pos [data-tone=cash] .bnd-pos__swatch {
 html[data-theme] .bnd-pos [data-tone=card] .bnd-pos__swatch {
   background: var(--bnd-status-blue);
 }
+html[data-theme] .bnd-pos [data-tone=bnpl] .bnd-pos__swatch {
+  background: var(--bnd-cat-5);
+}
+html[data-theme] .bnd-pos .bnd-pos__ref[data-required] {
+  border-color: var(--bnd-warn);
+}
+html[data-theme] .bnd-pos .bnd-pos__bnpl {
+  display: grid;
+  gap: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-pos .bnd-pos__bnpl-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2);
+}
+html[data-theme] .bnd-pos .bnd-pos__bnpl-row strong {
+  min-inline-size: 8rem;
+}
+html[data-theme] .bnd-pos .bnd-pos__select--small {
+  min-inline-size: 12rem;
+}
 html[data-theme] .bnd-pos .bnd-pos__tenders {
   display: grid;
   align-content: start;

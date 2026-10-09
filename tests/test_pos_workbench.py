@@ -162,7 +162,7 @@ class POSWorkbenchContractTests(unittest.TestCase):
             "fbar": False, "tiles": "m", "customer_screen": True, "receipt_qr": True, "max_discount": 0,
             "returns": True, "new_item": True, "cash_exact": True, "cash_notes": [10, 50, 100, 200, 500],
             "merge_scans": True, "scale_prefix": "21", "unknown_barcode": "offer",
-            "reason_threshold": 0, "held_on_close": "carry",
+            "reason_threshold": 0, "held_on_close": "carry", "bnpl": {},
         })
 
     def test_settings_are_saved_only_with_write_access_and_kept_off_the_boot(self):
@@ -217,6 +217,17 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn("with _sale_lock(sale_id):", checkout)
         self.assertIn("if name and status == 1:", checkout)
         self.assertIn('_remember_sale(sale_id, result["name"])', checkout)
+
+    def test_a_tabby_or_tamara_payment_needs_its_order_number(self):
+        payments = self.body("_apply_payments")
+        self.assertIn('bnpl = _counter_settings(profile.name)["bnpl"]', payments)
+        self.assertIn('frappe.throw(_("Order number required from: {0}").format(provider))', payments)
+        self.assertLess(payments.index("Order number required from"), payments.index("row.amount = 0"))
+        self.assertIn('BNPL_PROVIDERS = {"tabby": "Tabby", "tamara": "Tamara"}', self.source)
+        # Only Tabby or Tamara, 2 to 12 payments, and a real Mode of Payment on save.
+        clean = self.body("_clean_counter")
+        self.assertIn("not 2 <= installments <= 12", clean)
+        self.assertIn('(strict and not frappe.db.exists("Mode of Payment", mode))', clean)
 
     def test_a_walk_in_sale_never_leaves_a_remainder_on_account(self):
         payments = self.body("_apply_payments")

@@ -19042,3 +19042,76 @@ msgstr "الإجمالي الآن: {0} · المحصَّل: {1}"
 #, fuzzy
 msgid "Collected: {0}"
 msgstr "المحصَّل: {0}"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Enter the order number from: {0}"
+msgstr "أدخل رقم الطلب من: {0}"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Buy now, pay later"
+msgstr "اشترِ الآن وادفع لاحقًا"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A payment method that is Tabby or Tamara asks for the order number from the provider's app, and shows the customer the payments it splits into."
+msgstr "طريقة الدفع التي هي تابي أو تمارا تطلب رقم الطلب من تطبيق المزوّد، وتعرض للعميل الدفعات التي تُقسَّم عليها."
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Not buy-now-pay-later"
+msgstr "ليست اشترِ الآن وادفع لاحقًا"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Number of payments"
+msgstr "عدد الدفعات"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "payments"
+msgstr "دفعات"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Add a card or other payment method first."
+msgstr "أضف طريقة دفع بالبطاقة أو غيرها أولًا."
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Payments: {0} ×"
+msgstr "الدفعات: {0} ×"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Order number from the app (required)"
+msgstr "رقم الطلب من التطبيق (مطلوب)"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Approve the payment in the app on your phone"
+msgstr "وافق على الدفع من التطبيق في جوالك"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Buy now, pay later"
+msgstr "اشترِ الآن وادفع لاحقًا"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Order number required from: {0}"
+msgstr "رقم الطلب مطلوب من: {0}"
+
+#. src: pos phase 6 — Tabby and Tamara at the counter, 2026-10-10
+#, fuzzy
+msgid "Order with {0}: {1}"
+msgstr "طلب لدى {0}: {1}"

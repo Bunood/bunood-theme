@@ -86,6 +86,7 @@ A named look for the whole desk — one card writes every kit below.,مظهر م
 A native Data Import is required.,استيراد البيانات المدمج مطلوب.,
 A native posting restriction covers this period. Reconciliations and approval still require review.,يوجد قيد ترحيل أصلي يغطي هذه الفترة. ولا تزال التسويات والموافقة بحاجة إلى مراجعة.,
 A negative payable total is a net debit. Review supplier balances before acting.,إجمالي الذمم الدائنة السالب يمثل رصيداً مديناً صافياً. راجع أرصدة الموردين قبل اتخاذ إجراء.,
+"A payment method that is Tabby or Tamara asks for the order number from the provider's app, and shows the customer the payments it splits into.",طريقة الدفع التي هي تابي أو تمارا تطلب رقم الطلب من تطبيق المزوّد، وتعرض للعميل الدفعات التي تُقسَّم عليها.,Bunood POS
 A permitted query failed or a bounded result was truncated. No clean-register conclusion was inferred.,تعذّر أحد الاستعلامات المسموح بها أو اقتُطعت نتيجة محدودة، فلم يُستنتج أن السجل سليم.,
 A preset for the five containers below — where the chrome lives.,إعداد مسبق للحاويات الخمس أدناه — أين يعيش الإطار.,
 A raised fill and no boundary — the panel separates by tone.,تعبئة مرتفعة دون حدّ — تنفصل اللوحة بالدرجة اللونية.,
@@ -140,6 +141,7 @@ Action Count,عدد المهام,
 Action count,عدد المهام,
 Active Link Style,نمط الرابط النشط,
 Active link,الرابط النشط,
+Add a card or other payment method first.,أضف طريقة دفع بالبطاقة أو غيرها أولًا.,Bunood POS
 "Add a line first, then scan again.",أضف صفًا أولًا ثم امسح مرة أخرى.,
 Add an item first,أضف صنفًا أولًا,Bunood POS
 Add at least one dataset before submitting this migration packet.,أضف مجموعة بيانات واحدة على الأقل قبل تقديم حزمة الترحيل.,
@@ -240,6 +242,7 @@ Approval,موافقة,
 Approvals,الموافقات,
 Approvals Only,الموافقات فقط,
 Approvals only,الموافقات فقط,
+Approve the payment in the app on your phone,وافق على الدفع من التطبيق في جوالك,Bunood POS
 Approved,المعتمد,
 Approved History,السجل التاريخي المعتمد,
 Approved control totals,الإجماليات الرقابية المعتمدة,
@@ -421,6 +424,8 @@ Bunood summarizes evidence. ERPNext remains the accounting system of record.,ت�
 Busiest day,أكثر الأيام,
 Business identity and duplicate policy,هوية العمل وسياسة التكرار,
 Business owner,مالك المنشأة,
+"Buy now, pay later",اشترِ الآن وادفع لاحقًا,
+"Buy now, pay later",اشترِ الآن وادفع لاحقًا,Bunood POS
 Buying,المشتريات,
 "By ERPNext's rounding for the currency, or none.",حسب تقريب ERPNext للعملة، أو بدون.,Bunood POS
 "By mobile, name or VAT number",بالجوال أو الاسم أو الرقم الضريبي,Bunood POS
@@ -993,6 +998,7 @@ Enter a payment amount.,أدخل مبلغ الدفع.,
 Enter a price before discount first.,أدخل السعر قبل الخصم أولاً.,
 Enter the Network transaction reference number.,أدخل الرقم المرجعي لعملية الشبكة.,
 Enter the lowercase SHA-256 receipt digest from the prior rehearsal.,أدخل بصمة إيصال SHA-256 بأحرف صغيرة من التجربة السابقة.,
+Enter the order number from: {0},أدخل رقم الطلب من: {0},
 Enter the paid and received amounts in their native currencies.,أدخل المبلغ المدفوع والمبلغ المستلم بعملتيهما الأصليتين.,
 Enter the physical quantity and valuation for every counted item.,أدخل الكمية الفعلية والتقييم لكل صنف تم جرده.,
 "Enter the two-letter ISO country code, such as SA for Saudi Arabia—not a numeric code. Search for the country first to avoid a duplicate.",أدخل رمز الدولة المكوّن من حرفين وفق معيار ISO، مثل SA للسعودية، وليس رقماً. ابحث عن الدولة أولاً لتجنّب تكرارها.,
@@ -1817,6 +1823,7 @@ Not allocated to an invoice,غير موزع على فاتورة,
 Not allowed,ممنوع,Bunood POS
 Not assessed,لم يُقيَّم,
 Not available,غير متاح,
+Not buy-now-pay-later,ليست اشترِ الآن وادفع لاحقًا,Bunood POS
 Not done,غير منجز,
 Not evaluated,لم يُقيّم,
 Not in the shipped preset table — the card and the server disagree.,ليس في جدول الأنماط المُرسَل — البطاقة والخادم غير متفقين.,
@@ -1851,6 +1858,7 @@ Now scan the item — quantity {0},امسح الصنف الآن — الكمية
 Number,الرقم,Bunood POS
 Number Card Metric,مقياس بطاقة الأرقام,
 Number cards,بطاقات الأرقام,
+Number of payments,عدد الدفعات,Bunood POS
 Number pad,لوحة الأرقام,Bunood POS
 Observed,مرصود,
 Observed carrying value,القيمة الدفترية المرصودة,
@@ -1960,6 +1968,9 @@ Optional.,اختياري.,
 "Optional. Dark mode is selected, not inverted; leave empty to reuse the light value.",اختياري. الوضع الداكن يُختار ولا يُعكس؛ اتركه فارغًا لإعادة استخدام قيمة الوضع الفاتح.,
 "Optional. What the desk's surfaces are mixed from. Empty means the brand, which is how every desk looked before this existed — set a neutral for a grey desk under a coloured brand.",اختياري. ما تُمزج منه أسطح المكتب. تركه فارغًا يعني لون العلامة التجارية، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة.,
 Or see {0}.,أو اطّلع على {0}.,
+Order number from the app (required),رقم الطلب من التطبيق (مطلوب),Bunood POS
+Order number required from: {0},رقم الطلب مطلوب من: {0},
+Order with {0}: {1},طلب لدى {0}: {1},
 Order: {0},الترتيب: {0},
 "Ordered, delivered and billed quantities for every item",الكميات المطلوبة والمسلَّمة والمفوترة لكل صنف,
 Orders,أوامر البيع,
@@ -2083,6 +2094,7 @@ Payment reference for {0},مرجع الدفع لـ {0},
 Payment reference: {0},مرجع الدفع: {0},
 Payment status,حالة السداد,
 Payments taken this shift,المقبوض في هذه الوردية,Bunood POS
+Payments: {0} ×,الدفعات: {0} ×,
 Payroll,الرواتب,
 Pending ZATCA result,بانتظار نتيجة زاتكا,
 Pending controls,الضوابط المعلقة,
@@ -3661,6 +3673,7 @@ operations,التشغيل والدعم,
 output,المخرجات,
 parties,العملاء والموردون,
 payments,المدفوعات,
+payments,دفعات,Bunood POS
 quantity 5 for the chosen line,الكمية 5 للسطر المحدد,Bunood POS
 reconciled,تمت التسوية,
 reports,تقارير,

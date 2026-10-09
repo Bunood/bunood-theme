@@ -1135,7 +1135,13 @@
 		function cardMethod() {
 			return methods().find((row) => row.type === "Bank") || methods().find((row) => row.type !== "Cash") || null;
 		}
+		// A buy-now-pay-later method: Tabby or Tamara, and its number of payments.
+		function bnplOf(mode) {
+			const entry = counter("bnpl")?.[mode];
+			return entry ? { ...entry, name: { tabby: "Tabby", tamara: "Tamara" }[entry.provider] || entry.provider } : null;
+		}
 		function methodTone(row) {
+			if (row && bnplOf(row.mode_of_payment)) return "bnpl";
 			return row?.type === "Cash" ? "cash" : row?.type === "Bank" ? "card" : "other";
 		}
 		function isWalkIn() {
@@ -1222,6 +1228,12 @@
 				payments = [{ mode_of_payment: fallback.mode_of_payment, amount: total }];
 			}
 			const sum = round(payments.reduce((acc, row) => acc + Number(row.amount || 0), 0));
+			const unreferenced = payments.find((row) => Number(row.amount) > 0 && bnplOf(row.mode_of_payment) && !String(row.reference_no || "").trim());
+			if (unreferenced) {
+				state.payErr = __("Enter the order number from: {0}", [bnplOf(unreferenced.mode_of_payment).name]);
+				renderPanel();
+				return;
+			}
 			if (sum + 0.001 < total) {
 				if (!state.profile.allow_partial_payment) {
 					state.payErr = __("Short of the total by: {0}", [money(total - sum)]);
@@ -2166,6 +2178,7 @@
 						mode_of_payment: row.mode_of_payment,
 						amount: Number(row.amount),
 						tone: methodTone(methods().find((method) => method.mode_of_payment === row.mode_of_payment)),
+						bnpl: bnplOf(row.mode_of_payment),
 					})),
 				};
 			}
@@ -2264,6 +2277,7 @@
 				{ name: __("Payment", null, "Bunood POS"), intro: __("The payment methods on this counter and the quick cash buttons.", null, "Bunood POS"), rows: [
 					{ kind: "payments", label: __("Payment methods", null, "Bunood POS"), desc: __("Touch to add or remove. A method needs its account for this company before it can be added.", null, "Bunood POS"), modes },
 					{ kind: "default", label: __("Default payment method", null, "Bunood POS"), desc: __("ERPNext's default for this POS Profile.", null, "Bunood POS"), options: chosen },
+					{ kind: "bnpl", label: __("Buy now, pay later", null, "Bunood POS"), desc: __("A payment method that is Tabby or Tamara asks for the order number from the provider's app, and shows the customer the payments it splits into.", null, "Bunood POS"), modes: (settings?.native?.payments || []).map((row) => row.mode_of_payment).filter((mode) => (modes.find((item) => item.mode_of_payment === mode)?.type || "") !== "Cash") },
 					T("counter", "cash_exact", __("Exact amount button", null, "Bunood POS"), __("The first quick cash button pays the total exactly.", null, "Bunood POS")),
 					{ kind: "notes", source: "counter", key: "cash_notes", label: __("Suggested cash notes", null, "Bunood POS"), desc: __("Payment offers the fewest of each note that covers the total.", null, "Bunood POS"), notes: settings?.ctx?.cash_notes || [] },
 					S("native", "allow_partial_payment", __("Credit sales", null, "Bunood POS"), __("The rest of a sale on a named customer's account.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]),
@@ -2491,6 +2505,37 @@
 					disabled: !editable,
 					onclick: () => changeSetting("native", "payments", chosen.map((other) => ({ ...other, default: other.mode_of_payment === item.mode_of_payment }))),
 				}, __(item.mode_of_payment))));
+			} else if (row.kind === "bnpl") {
+				const map = settings.counter.bnpl || {};
+				const set = (mode, entry) => {
+					const next = { ...map };
+					if (entry) next[mode] = entry;
+					else delete next[mode];
+					changeSetting("counter", "bnpl", next);
+				};
+				control = row.modes.length ? h("div", { class: "bnd-pos__bnpl" }, row.modes.map((mode) => h("div", { class: "bnd-pos__bnpl-row" },
+					h("strong", null, __(mode)),
+					h("select", {
+						class: "bnd-pos__select bnd-pos__select--small",
+						"aria-label": __(mode),
+						disabled: !editable,
+						onchange: (event) => set(mode, event.target.value ? { provider: event.target.value, installments: map[mode]?.installments || 4 } : null),
+					}, h("option", { value: "", selected: !map[mode] }, __("Not buy-now-pay-later", null, "Bunood POS")),
+					h("option", { value: "tabby", selected: map[mode]?.provider === "tabby" }, "Tabby"),
+					h("option", { value: "tamara", selected: map[mode]?.provider === "tamara" }, "Tamara")),
+					map[mode] ? h("label", { class: "bnd-pos__number" },
+						h("input", {
+							type: "text",
+							inputmode: "numeric",
+							dir: "ltr",
+							name: `setting-bnpl-${mode}`,
+							"aria-label": __("Number of payments", null, "Bunood POS"),
+							value: String(map[mode].installments),
+							disabled: !editable,
+							onchange: (event) => set(mode, { ...map[mode], installments: Math.min(Math.max(parseInt(latinDigits(event.target.value), 10) || 4, 2), 12) }),
+						}),
+						h("span", null, __("payments", null, "Bunood POS"))) : null)))
+					: h("span", { class: "bnd-pos__muted" }, __("Add a card or other payment method first.", null, "Bunood POS"));
 			} else if (row.kind === "notes") {
 				const notes = value || [];
 				control = h("div", { class: "bnd-pos__chipset" }, row.notes.map((note) => {
@@ -2917,14 +2962,17 @@
 						onclick: () => { state.psel = index; state.payFresh = true; state.payBuf = ""; renderPanel(); focusOmni(); },
 					},
 					h("span", { class: "bnd-pos__swatch" }),
-					h("span", { class: "bnd-pos__tender-text" }, h("strong", null, __(row.mode_of_payment)), h("span", null, tone === "cash" ? __("Into the drawer", null, "Bunood POS") : tone === "card" ? __("Sent to the card terminal", null, "Bunood POS") : __("Other tender", null, "Bunood POS"))),
+					h("span", { class: "bnd-pos__tender-text" }, h("strong", null, __(row.mode_of_payment)), h("span", null, tone === "bnpl"
+						? [__("Payments: {0} ×", [bnplOf(row.mode_of_payment).installments]), " ", ltr(money(round(Number(row.amount || 0) / bnplOf(row.mode_of_payment).installments)))]
+						: tone === "cash" ? __("Into the drawer", null, "Bunood POS") : tone === "card" ? __("Sent to the card terminal", null, "Bunood POS") : __("Other tender", null, "Bunood POS"))),
 					h("strong", { class: "bnd-pos__tender-amount" }, ltr(money(row.amount)))),
 					tone !== "cash" ? h("input", {
 						class: "bnd-pos__ref",
 						type: "text",
 						dir: "ltr",
 						value: row.reference_no || "",
-						placeholder: __("Reference (optional)", null, "Bunood POS"),
+						placeholder: tone === "bnpl" ? __("Order number from the app (required)", null, "Bunood POS") : __("Reference (optional)", null, "Bunood POS"),
+						"data-required": tone === "bnpl" ? "1" : null,
 						"aria-label": __("Payment reference for {0}", [__(row.mode_of_payment)]),
 						oninput: (event) => { row.reference_no = event.target.value; },
 					}) : null,
@@ -3492,7 +3540,8 @@
 					tenders.length ? h("div", { class: "bnd-pos-display__tenders" }, tenders.map((row) => h("div", { class: "bnd-pos-display__tender", "data-tone": row.tone },
 						h("strong", null, __(row.mode_of_payment)),
 						h("bdi", { dir: "ltr" }, money(row.amount)),
-						h("span", { class: "bnd-pos-display__muted" }, row.tone === "card" ? __("Tap your card or phone on the terminal", null, "Bunood POS") : row.tone === "cash" ? __("Received", null, "Bunood POS") : "")))) : null,
+						row.bnpl ? h("span", null, __("Payments: {0} ×", [Number(row.bnpl.installments)]), " ", h("bdi", { dir: "ltr" }, money(Number(row.amount) / Number(row.bnpl.installments)))) : null,
+						h("span", { class: "bnd-pos-display__muted" }, row.bnpl ? __("Approve the payment in the app on your phone", null, "Bunood POS") : row.tone === "card" ? __("Tap your card or phone on the terminal", null, "Bunood POS") : row.tone === "cash" ? __("Received", null, "Bunood POS") : "")))) : null,
 					rest > 0.004 && tenders.length ? h("span", { class: "bnd-pos-display__label" }, __("Remaining", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(rest))) : null,
 					rest < -0.004 ? h("span", { class: "bnd-pos-display__label" }, __("Your change", null, "Bunood POS"), " ", h("bdi", { dir: "ltr" }, money(-rest))) : null));
 			} else if (s.mode === "thanks") {

@@ -429,3 +429,13 @@ test("offline totals round exactly as ERPNext rounds them", () => {
 		assert.equal(roundLikeERPNext(value, { method, fraction, precision: 2 }), want, method + " / " + fraction + " / " + value);
 	}
 });
+
+// Phase 6, 2026-10-10: Tabby and Tamara at the counter.
+test("a Tabby or Tamara payment carries its order number and shows its payments", () => {
+	assert.match(fn("methodTone"), /if \(row && bnplOf\(row\.mode_of_payment\)\) return "bnpl";/);
+	assert.match(fn("complete"), /const unreferenced = payments\.find\(\(row\) => Number\(row\.amount\) > 0 && bnplOf\(row\.mode_of_payment\) && !String\(row\.reference_no \|\| ""\)\.trim\(\)\);/);
+	assert.ok(fn("complete").indexOf("const unreferenced") < fn("complete").indexOf('api("checkout"'), "checked before checkout");
+	assert.match(fn("displayState"), /bnpl: bnplOf\(row\.mode_of_payment\),/);
+	assert.match(fn("settingsRow"), /h\("option", \{ value: "tabby", selected: map\[mode\]\?\.provider === "tabby" \}, "Tabby"\)/);
+	assert.match(scss, /\[data-tone="bnpl"\] \.bnd-pos__swatch \{/);
+});

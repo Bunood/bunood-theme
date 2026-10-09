@@ -320,6 +320,20 @@ def run() -> None:
         pos.rename_counter_settings(None, "after_rename", "bnd-acceptance-old", "bnd-acceptance-new")
         moved = frappe.defaults.get_defaults_for(pos.COUNTER_SETTINGS_PARENT)
         assert moved.get("bnd-acceptance-new") == '{"tiles": "l"}' and not moved.get("bnd-acceptance-old"), moved
+        # Phase 6: a payment method marked Tabby or Tamara needs the order number
+        # from the provider's app; the invoice's remarks keep it.
+        card = next((row["mode_of_payment"] for row in methods if row.get("type") != "Cash"), None)
+        bnpl_checked = None
+        if card:
+            pos.save_settings(profile_name, None, json.dumps({"bnpl": {card: {"provider": "tabby", "installments": 4}}}))
+            assert refused(lambda: pos.save_settings(profile_name, None, json.dumps({"bnpl": {card: {"provider": "klarna", "installments": 4}}})), "Invalid value for the counter setting: {0}")
+            tabby_row = [{"mode_of_payment": card, "amount": due_now}]
+            assert refused(lambda: pos.checkout(payload, tabby_row), "Order number required from: {0}")
+            tabby_sale = pos.checkout(payload, [{**tabby_row[0], "reference_no": "TBY-ACCEPTANCE-1"}])
+            remarks = frappe.db.get_value(tabby_sale["doctype"], tabby_sale["name"], "remarks") or ""
+            assert "TBY-ACCEPTANCE-1" in remarks and "Tabby" in remarks, remarks
+            bnpl_checked = True
+
         # Back to the defaults for the checks that follow (a 10% discount among them).
         restored = pos.save_settings(profile_name, None, json.dumps(pos.COUNTER_DEFAULTS))
         assert restored["counter"] == pos.COUNTER_DEFAULTS, restored["counter"]
@@ -402,6 +416,7 @@ def run() -> None:
             "walk_in_credit_refused": walk_in_credit_refused,
             "offline_sale_posted_once": True,
             "offline_short_sale_held_for_review": True,
+            "tabby_needs_its_order_number": bnpl_checked,
             "settings_saved": True,
             "discount_ceiling_refused": ceiling_refused,
             "returns_switched_off": returns_refused,

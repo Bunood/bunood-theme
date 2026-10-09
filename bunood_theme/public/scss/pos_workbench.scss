@@ -1303,6 +1303,34 @@ html[data-theme] .bnd-pos {
 		background: var(--bnd-status-blue);
 	}
 
+	[data-tone="bnpl"] .bnd-pos__swatch {
+		background: var(--bnd-cat-5);
+	}
+
+	.bnd-pos__ref[data-required] {
+		border-color: var(--bnd-warn);
+	}
+
+	.bnd-pos__bnpl {
+		display: grid;
+		gap: var(--bnd-sp-2);
+	}
+
+	.bnd-pos__bnpl-row {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: var(--bnd-sp-2);
+
+		strong {
+			min-inline-size: 8rem;
+		}
+	}
+
+	.bnd-pos__select--small {
+		min-inline-size: 12rem;
+	}
+
 	.bnd-pos__tenders {
 		display: grid;
 		align-content: start;
