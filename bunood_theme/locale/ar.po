@@ -19336,3 +19336,15 @@ msgstr "تبيع من شاشتها الخاصة، لا من هذه الشاشة.
 #, fuzzy
 msgid "Open: {0}"
 msgstr "افتح: {0}"
+
+#. src: pos — straight to the restaurant cashier, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Your points of sale are on another screen"
+msgstr "نقاط البيع الخاصة بك في شاشة أخرى"
+
+#. src: pos — straight to the restaurant cashier, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This counter is for supermarkets and shops."
+msgstr "هذه الشاشة للسوبرماركت والمحلات."

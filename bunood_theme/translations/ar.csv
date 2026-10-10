@@ -3289,6 +3289,7 @@ This cart has too many lines. Start a second sale.,تحتوي هذه السلة 
 This company's items,أصناف هذه الشركة,Bunood POS
 "This company's: stock in one of its warehouses or an item default for it (not the site's default company's, which ERPNext adds to every new item); an item with neither for any company shows everywhere. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice. Item groups narrow either.",أصناف الشركة: لها رصيد في أحد مخازنها أو إعداد افتراضي لها (غير إعداد الشركة الافتراضية للموقع، الذي يضيفه ERPNext لكل صنف جديد)؛ والصنف الذي ليس له ذلك عند أي شركة يظهر في كل مكان. أصناف المخزن: لها حركة مخزون هنا أو هذا مخزنها الافتراضي، كما في الفاتورة المبسطة. ومجموعات الأصناف تضيّق أيًّا منهما.,Bunood POS
 This counter is closed,نقطة البيع هذه مغلقة,Bunood POS
+This counter is for supermarkets and shops.,هذه الشاشة للسوبرماركت والمحلات.,Bunood POS
 This counter takes no returns. Return from the invoice form.,نقطة البيع هذه لا تستقبل المرتجعات. أرجع من نموذج الفاتورة.,
 "This dataset uses a different native load path, not Data Import.",تستخدم مجموعة البيانات هذه مسار تحميل أصليًا مختلفًا، وليس استيراد البيانات.,
 This desk is {0}.,هذا المكتب هو {0}.,
@@ -3655,6 +3656,7 @@ Your most-used entries rise to the top. Stored per user on the server — follow
 Your operating workspaces,مساحات عملك التشغيلية,
 Your own width ({0}) is overriding this on your desk.,عرضك الخاص ({0}) يتجاوز هذا الإعداد على مكتبك.,
 Your own {0} ({1}) is overriding this on your desk.,تفضيلك الخاص لخيار {0} ({1}) يتجاوز هذا الإعداد على مكتبك.,
+Your points of sale are on another screen,نقاط البيع الخاصة بك في شاشة أخرى,Bunood POS
 Your profile is in the pane — place it in a bar first,ملفك الشخصي داخل اللوحة — ضعه في شريط أولًا,
 Your receipt on your phone,إيصالك على جوالك,Bunood POS
 Your shift is open on it. Sell and close it there.,ورديتك مفتوحة عليها. بِع منها وأغلقها من هناك.,Bunood POS

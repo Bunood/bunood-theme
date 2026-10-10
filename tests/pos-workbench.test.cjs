@@ -484,8 +484,21 @@ test("a point of sale another front end owns sends the cashier there instead of 
 	assert.match(fn("renderReserved"), /target\.route \? h\("a", \{ class: "bnd-pos__primary bnd-pos__primary--tall", href: target\.route \}/);
 	assert.match(fn("renderReserved"), /const others = shift \? \[\] : \(ctx\.profiles \|\| \[\]\);/);
 	// No way into selling on it: the sale view falls back to the notice, the bar loses its tabs and menu.
-	assert.match(fn("showSale"), /if \(state\.profile\?\.reserved_for\) \{\s*renderReserved\(\);\s*return;/);
+	assert.match(fn("showSale"), /if \(state\.profile\.reserved_for\) \{\s*renderReserved\(\);\s*return;/);
 	assert.match(fn("renderBar"), /reserved \? null : h\("nav", \{ class: "bnd-pos__tabs"/);
 	assert.match(fn("renderBar"), /reserved \? null : h\("span", \{ class: "bnd-pos__menu-wrap" \}/);
 	assert.match(fn("openSettings"), /state\.profile\?\.reserved_for \|\| needsConnection\(\)/);
+});
+
+// Owner, 2026-10-10: «المنصة» is for supermarkets and shops; a restaurant cashier goes to the restaurant cashier.
+test("a cashier whose till is another front end's goes straight to its screen, once", () => {
+	const init = fn("initialize");
+	assert.match(init, /if \(shift && goElsewhere\(state\.profile\.reserved_for\.route\)\) return;/);
+	assert.match(init, /if \(!state\.profile && \(state\.context\.elsewhere \|\| \[\]\)\.length\) \{\s*renderElsewhere\(state\.context\.elsewhere\);/);
+	const go = fn("goElsewhere");
+	assert.match(go, /if \(!route \|\| !route\.startsWith\("\/"\) \|\| route\.startsWith\("\/\/"\)\) return false;/);
+	assert.match(go, /if \(Date\.now\(\) - last < 15000\) return false;/);
+	assert.match(go, /window\.location\.replace\(route\);/);
+	assert.match(fn("renderElsewhere"), /if \(targets\.length === 1 && goElsewhere\(targets\[0\]\.route\)\) return;/);
+	assert.match(fn("showSale"), /if \(!state\.profile\) return;/);
 });

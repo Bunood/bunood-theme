@@ -119,6 +119,11 @@ def _reserved_profiles() -> dict[str, dict[str, str]]:
 
 def _available_profiles() -> list[dict[str, Any]]:
     reserved = _reserved_profiles()
+    return [row for row in _usable_profiles() if row["name"] not in reserved]
+
+
+def _usable_profiles() -> list[dict[str, Any]]:
+    """Every enabled POS Profile this user may sell on, whichever front end owns it."""
     allowed = frappe.get_list(
         "POS Profile",
         filters={"disabled": 0},
@@ -128,8 +133,6 @@ def _available_profiles() -> list[dict[str, Any]]:
     )
     result = []
     for row in allowed:
-        if row.name in reserved:
-            continue
         profile = frappe.get_cached_doc("POS Profile", row.name)
         assigned = [item.user for item in (profile.get("applicable_for_users") or []) if item.user]
         if assigned and frappe.session.user not in assigned:
@@ -651,7 +654,14 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
     """Return the permission-filtered data needed for the POS first paint."""
     _require("POS Profile", "read")
     invoice_type = _invoice_type()
-    profiles = _available_profiles()
+    reserved = _reserved_profiles()
+    usable = _usable_profiles()
+    profiles = [row for row in usable if row["name"] not in reserved]
+    # The screens that sell on the user's other tills (the restaurant cashier): the counter
+    # sends the user there when it has nothing of its own to offer.
+    elsewhere = list(
+        {reserved[row["name"]]["route"]: reserved[row["name"]] for row in usable if reserved.get(row["name"], {}).get("route")}.values()
+    )
     entries = _open_entries()
     stale_entries = _stale_entries()
     # A cashier can operate only the register already open for that user.  A
@@ -671,7 +681,7 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
         selected_doc = _profile(selected)
         profile_data = _profile_payload(selected_doc)
         # Asked for by name, or holding the user's shift: the counter points to its own screen.
-        profile_data["reserved_for"] = _reserved_profiles().get(selected)
+        profile_data["reserved_for"] = reserved.get(selected)
         from erpnext.accounts.doctype.pos_profile.pos_profile import get_item_groups
 
         groups = get_item_groups(selected) or []
@@ -687,6 +697,7 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
             (row for row in stale_entries if row.pos_profile == selected), None
         ),
         "capabilities": _capabilities(invoice_type),
+        "elsewhere": elsewhere,
         "online_only": True,
         "engine": "ERPNext POS",
     }

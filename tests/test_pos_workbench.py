@@ -235,8 +235,12 @@ class POSWorkbenchContractTests(unittest.TestCase):
 
     def test_a_point_of_sale_another_front_end_owns_is_not_the_counter_s(self):
         # Owner, 2026-10-10: one engine, separate screens (the restaurant cashier).
-        self.assertIn("if row.name in reserved:\n            continue", self.body("_available_profiles"))
-        self.assertIn('profile_data["reserved_for"] = _reserved_profiles().get(selected)', self.body("get_context"))
+        self.assertIn('return [row for row in _usable_profiles() if row["name"] not in reserved]', self.body("_available_profiles"))
+        context = self.body("get_context")
+        self.assertIn('profiles = [row for row in usable if row["name"] not in reserved]', context)
+        self.assertIn('profile_data["reserved_for"] = reserved.get(selected)', context)
+        # The screens of the user's other tills, for the counter to send the user there.
+        self.assertIn('"elsewhere": elsewhere,', context)
         self.assertIn('frappe.get_hooks("bunood_pos_reserved_profiles")', self.body("_reserved_profiles"))
         self.assertIn('if not route.startswith("/") or route.startswith("//")', self.body("_clean_reserved"))
 
