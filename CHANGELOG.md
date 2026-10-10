@@ -24,6 +24,16 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.5] — 2026-10-10 — an item placed in the main branch belongs to it
+
+bunood_business v0.9.0's item form places an item in a branch and its warehouse (an item default
+marked `bnd_chosen`). The sales bill's item search (`api.warehouse_items`) and the counter's company
+rule (`pos._company_items`) read a default naming the site's default warehouse, with nothing else on
+it, as ERPNext's own row (added to every new item) and skipped it, so an item placed in the MAIN
+branch on purpose did not show there until it had stock. A row carrying the mark now counts;
+ERPNext's own row still does not, and a site without the field reads exactly as before. Server
+only: the payload row repeats v0.57.4's.
+
 ## [0.57.4] — 2026-10-10 — prices per channel at the point of sale
 
 An installed app can name the selling price list a POS sale is priced from, for example a delivery
