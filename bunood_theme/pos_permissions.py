@@ -87,20 +87,37 @@ def _seed_standard_permissions(doctype: str) -> bool:
     """Copy the doctype's standard DocPerms into Custom DocPerm when needed.
 
     No custom row yet: ``setup_custom_perms`` copies the standard rows, so the
-    operator row is added to them instead of replacing them.  Only operator
-    rows: the state an earlier version of this module left behind by inserting
-    without that copy, so the standard rows are copied back.  Rows of any
-    other role mean the doctype was customised on purpose and stay as they are.
+    operator row is added to them instead of replacing them.  Custom rows, but
+    none of the doctype's standard roles: the state an earlier version of this
+    module left behind by inserting without that copy, possibly with another
+    app's row added since (``add_permission`` copies nothing once a custom row
+    exists, so bunood_engineering's Engineering Office Manager row sits beside
+    the operator's on Sales Invoice and Customer).  The missing standard rows
+    are copied in, each once, and the other rows stay.  A custom row of any
+    standard role means the doctype was set by hand, and it stays as it is.
+    A doctype an administrator emptied of every standard role on purpose looks
+    the same as the broken state and is re-seeded: this runs only from
+    ``setup.ensure_pos_retail``, by hand.
     """
-    from frappe.permissions import copy_perms, setup_custom_perms
+    from frappe.permissions import setup_custom_perms
 
-    roles = set(frappe.get_all("Custom DocPerm", filters={"parent": doctype}, pluck="role"))
-    if not roles:
+    custom = frappe.get_all("Custom DocPerm", filters={"parent": doctype}, fields=["role", "permlevel", "if_owner"])
+    if not custom:
         return bool(setup_custom_perms(doctype))
-    if roles == {POS_OPERATOR_ROLE}:
-        copy_perms(doctype)
-        return True
-    return False
+    standard = frappe.get_all("DocPerm", filters={"parent": doctype}, fields="*")
+    if {row.role for row in standard} & {row.role for row in custom}:
+        return False
+    present = {(row.role, int(row.permlevel or 0), int(row.if_owner or 0)) for row in custom}
+    seeded = False
+    for row in standard:
+        if (row.role, int(row.permlevel or 0), int(row.if_owner or 0)) in present:
+            continue
+        # As frappe.permissions.copy_perms does, one row at a time.
+        perm = frappe.new_doc("Custom DocPerm")
+        perm.update(row)
+        perm.insert(ignore_permissions=True)
+        seeded = True
+    return seeded
 
 
 def _permission_values(doctype: str, required: frozenset[str], owner_only: bool) -> dict[str, object]:

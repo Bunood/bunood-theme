@@ -163,6 +163,44 @@ class TestPOSOperatorPermissions(IntegrationTestCase):
         self.assertEqual((again["seeded"], again["created"]), ([], []))
         self.assertEqual({doctype: _rows("Custom DocPerm", doctype) for doctype in DOCTYPES}, before)
 
+    def test_a_rerun_also_repairs_a_doctype_another_app_added_its_role_to(self):
+        # Review 2026-10-10: bunood_engineering's add_permission adds its own row beside the
+        # operator's (it copies nothing once a custom row exists); that doctype is still broken.
+        doctypes = ("Sales Invoice", "Customer")
+        self.fresh(*doctypes)
+        _ensure_role()
+        office = "Bunood Test Office Role"
+        if not frappe.db.exists("Role", office):
+            frappe.get_doc({"doctype": "Role", "role_name": office}).insert(ignore_permissions=True)
+        for doctype in doctypes:
+            required, owner_only = POS_OPERATOR_PERMISSIONS[doctype]
+            frappe.get_doc(_permission_values(doctype, required, owner_only)).insert(ignore_permissions=True)
+            frappe.get_doc(
+                {
+                    "doctype": "Custom DocPerm",
+                    "parent": doctype,
+                    "parenttype": "DocType",
+                    "parentfield": "permissions",
+                    "role": office,
+                    "permlevel": 0,
+                    "read": 1,
+                }
+            ).insert(ignore_permissions=True)
+        frappe.clear_cache()
+
+        result = ensure_pos_operator_permissions()
+        for doctype in doctypes:
+            custom = _rows("Custom DocPerm", doctype)
+            self.assertLessEqual(_rows("DocPerm", doctype), custom, doctype)
+            self.assertIn(office, {row[0] for row in custom}, doctype)
+            keys = [row[:3] for row in custom]
+            self.assertEqual(len(keys), len(set(keys)), doctype)
+        self.assertLessEqual(set(doctypes), set(result["seeded"]))
+        accounts = self.user("Accounts User")
+        self.assertTrue(all(self.can(accounts, "Sales Invoice", "read", "create", "submit").values()))
+        sales = self.user("Sales User")
+        self.assertTrue(all(self.can(sales, "Customer", "read", "create", "write").values()))
+
     def test_a_doctype_customised_for_another_role_is_left_as_it_is(self):
         self.fresh("POS Profile")
         frappe.get_doc(
