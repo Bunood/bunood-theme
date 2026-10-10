@@ -88,6 +88,7 @@ A native posting restriction covers this period. Reconciliations and approval st
 A negative payable total is a net debit. Review supplier balances before acting.,إجمالي الذمم الدائنة السالب يمثل رصيداً مديناً صافياً. راجع أرصدة الموردين قبل اتخاذ إجراء.,
 "A payment method that is Tabby or Tamara asks for the order number from the provider's app, and shows the customer the payments it splits into.",طريقة الدفع التي هي تابي أو تمارا تطلب رقم الطلب من تطبيق المزوّد، وتعرض للعميل الدفعات التي تُقسَّم عليها.,Bunood POS
 A permitted query failed or a bounded result was truncated. No clean-register conclusion was inferred.,تعذّر أحد الاستعلامات المسموح بها أو اقتُطعت نتيجة محدودة، فلم يُستنتج أن السجل سليم.,
+"A point of sale belongs to one company. To sell for another company, make a point of sale for it.",نقطة البيع تتبع شركة واحدة. للبيع لشركة أخرى أنشئ لها نقطة بيع.,Bunood POS
 A preset for the five containers below — where the chrome lives.,إعداد مسبق للحاويات الخمس أدناه — أين يعيش الإطار.,
 A raised fill and no boundary — the panel separates by tone.,تعبئة مرتفعة دون حدّ — تنفصل اللوحة بالدرجة اللونية.,
 "A record's anatomy: sections, fields, line items, tabs, sidebar, activity, header, stage path, pinned foot.",تشريح السجل: الأقسام والحقول والبنود والتبويبات والشريط الجانبي والنشاط والرأس ومسار المراحل والذيل المثبّت.,
@@ -144,6 +145,7 @@ Active link,الرابط النشط,
 Add a card or other payment method first.,أضف طريقة دفع بالبطاقة أو غيرها أولًا.,Bunood POS
 "Add a line first, then scan again.",أضف صفًا أولًا ثم امسح مرة أخرى.,
 Add an item first,أضف صنفًا أولًا,Bunood POS
+Add an item group,إضافة مجموعة أصناف,Bunood POS
 Add at least one dataset before submitting this migration packet.,أضف مجموعة بيانات واحدة على الأقل قبل تقديم حزمة الترحيل.,
 Add at least one item before continuing.,أضف صنفاً واحداً على الأقل قبل المتابعة.,
 Add at least one item to the cart.,أضف صنفاً واحداً على الأقل إلى السلة.,
@@ -371,6 +373,7 @@ Box,كرتون,Bunood POS unit
 Boxed,مربَّعات,
 Boxed Classic,الكلاسيكي المؤطَّر,
 Branch,الفرع,
+Branch,الفرع,Bunood POS
 Brand Color,لون الهوية,
 Brand Color (Dark Mode),لون الهوية (الوضع الداكن),
 Brand Ink,حبر العلامة,
@@ -531,6 +534,7 @@ Choose at least one item to return.,اختر صنفًا واحدًا على ال
 "Choose currency, price list, tax and any document-level discount.",اختر العملة وقائمة الأسعار والضريبة وأي خصم على مستوى المستند.,
 Choose exactly one default payment method.,اختر طريقة دفع افتراضية واحدة فقط.,
 Choose how to share this submitted invoice with the customer.,اختر طريقة مشاركة هذه الفاتورة المعتمدة مع العميل.,
+Choose one of this company's warehouses: {0},اختر مخزنًا من مخازن هذه الشركة: {0},
 "Choose receive, pay or transfer and the payment method.",اختر قبضًا أو دفعًا أو تحويلًا، ثم حدّد طريقة الدفع.,
 Choose the boundary to see draft entries and supporting evidence. Posting stays in the native Journal Entry.,حدد نطاق الفترة لعرض القيود المسودة والمستندات المؤيدة. يبقى الترحيل في شاشة القيد اليومي الأصلية.,
 "Choose the company, warehouse and exact posting time for this physical count.",اختر الشركة والمستودع ووقت الترحيل الدقيق لهذا الجرد الفعلي.,
@@ -569,6 +573,8 @@ Close and VAT,الإقفال والضريبة,
 Close customer and preview panel,إغلاق لوحة العميل والمعاينة,
 Close notifications,إغلاق الإخطارات,
 Close path,مسار الإقفال,
+Close the open shifts first: {0},أغلق الورديات المفتوحة أولًا: {0},
+Close the open shifts on this point of sale before changing its warehouse: {0},أغلق الورديات المفتوحة في نقطة البيع قبل تغيير مخزنها: {0},
 Close the shift,إغلاق الوردية,Bunood POS
 Close the shift and print the report,إغلاق الوردية وطباعة التقرير,Bunood POS
 Closed,الإغلاق,Bunood POS
@@ -601,6 +607,7 @@ Commitment,الالتزام,
 Committed total,إجمالي الالتزام,
 Compact,المضغوط,
 Compact 13,مضغوط 13,
+Company,الشركة,Bunood POS
 Company VAT registration,الرقم الضريبي للمنشأة,
 Company and bank account are required,الشركة والحساب البنكي مطلوبان,
 Company bank account,حساب الشركة البنكي,
@@ -1022,12 +1029,14 @@ Every cart line needs an item.,يجب أن يحتوي كل سطر في السل�
 Every crumb,كل عنصر,
 Every crumb is a soft pill; the current page is the filled one.,كل عنصر كبسولة ناعمة؛ والصفحة الحالية هي المعبأة.,
 Every filter control takes a hairline at rest. The default — and the only resting treatment any reference product gives a filter control.,يأخذ كلّ عنصر تصفية خطًّا شعريًّا في حالة السكون. الافتراضي — وهو المعالجة الوحيدة التي يمنحها أيّ منتج مرجعي لعنصر تصفية ساكن.,
+Every item group,كل مجموعات الأصناف,Bunood POS
 "Every kit that can stand down does. The side pane, status bar and charts cannot — they mount chrome, or ship no Original — so they take their quietest setting.",كل طقم يستطيع التنحّي يفعل. اللوحة الجانبية وشريط الحالة والرسوم البيانية لا تستطيع — فهي تركّب عناصر واجهة، أو لا تقدّم خيار «الأصلي» — لذا تأخذ أهدأ إعداد لها.,
 Every line remains a native account row with its original dimensions and validation.,يبقى كل سطر صف حساب أصليًا بأبعاده وقواعد التحقق الخاصة به.,
 Every native Data Import dataset needs a submitted successful rehearsal before reconciliation: {0},تحتاج كل مجموعة بيانات استيراد مدمجة إلى تجربة ناجحة مقدّمة قبل التسوية: {0},
 "Every non-zero variance needs an owner, cause, corrective action and rerun reference.",يحتاج كل فرق غير صفري إلى مسؤول وسبب وإجراء تصحيحي ومرجع لإعادة التشغيل.,
 "Every point-of-sale invoice with its cashier, profile and payments",كل فاتورة نقاط بيع بكاشيرها وملفها ومدفوعاتها,
 "Every posting in the books — debits, credits and the running balance",كل ترحيلة في الدفاتر — المدين والدائن والرصيد الجاري,
+"Every sale takes its stock from here, and the counter shows its quantities.",كل بيعة تأخذ مخزونها من هنا، ونقطة البيع تعرض كمياته.,Bunood POS
 "Every section a washed, rounded panel — friendly, and continuous with the desk.",كل قسم لوح مغسول مُدوَّر الحواف — ودود ومتَّصل بصرياً مع سطح المكتب.,
 Every setting this look names is applied. Change any one of them and this reads Custom.,كل إعداد يسمّيه هذا المظهر مُطبَّق. غيّر أيًّا منها وسيصبح «مخصّص».,
 Every source snapshot hash must be a lowercase SHA-256 value.,يجب أن تكون بصمة كل لقطة مصدر قيمة SHA-256 بأحرف صغيرة.,
@@ -1421,7 +1430,9 @@ Item code,رمز الصنف,
 Item code,كود الصنف,Bunood POS
 Item condition,حالة الصنف,Bunood POS
 Item group,مجموعة الأصناف,
+Item group not found: {0},مجموعة الأصناف غير موجودة: {0},
 Item groups,مجموعات الأصناف,Bunood POS
+Item groups on this counter,مجموعات الأصناف في نقطة البيع,Bunood POS
 Item name,اسم الصنف,
 Item name,اسم الصنف,Bunood POS
 Item pictures on the tiles,صور الأصناف على البطاقات,Bunood POS
@@ -1436,7 +1447,10 @@ Item-wise Sales Register,تقرير المبيعات حسب الصنف,
 Items,الأصناف,
 Items before discount,الأصناف قبل الخصم,
 Items could not be loaded.,تعذّر تحميل الأصناف.,Bunood POS
+Items out of stock in this warehouse,الأصناف غير المتوفرة في هذا المخزن,Bunood POS
 Items requiring attention,بنود تحتاج إلى الانتباه,
+Items shown,الأصناف المعروضة,
+Items shown,الأصناف المعروضة,Bunood POS
 "Items that have not sold for a while, by territory",أصناف لم تُبَع منذ مدة، حسب منطقة البيع,
 Items total,إجمالي الأصناف,
 "Items, barcodes and UOM",الأصناف والباركود ووحدات القياس,
@@ -1840,6 +1854,7 @@ Not rounded,بدون تقريب,Bunood POS
 Not sent,لم يُرسل,Bunood POS
 Not set,غير محدد,
 Not shown anywhere: {0},لا يُعرض في أي مكان: {0},
+Not sold at this point of sale: {0},لا يُباع في نقطة البيع هذه: {0},
 Not-applicable controls,الضوابط غير المنطبقة,
 Not-applicable reason,سبب عدم الانطباق,
 Note,ورقة,Bunood POS
@@ -2167,6 +2182,7 @@ Price before discount,السعر قبل الخصم,
 Price includes VAT,السعر شامل الضريبة,
 Price includes VAT ({0}%),السعر شامل الضريبة ({0}%),
 Price list,قائمة الأسعار,
+Price list,قائمة الأسعار,Bunood POS
 Price: {0} — {1},السعر: {0} — {1},
 Prices and quantity are optional: leave them at 0 if you do not need them. The quantity and the purchase price go on this bill.,الأسعار والكمية اختيارية — اتركها 0 إن لم تحتجها. تُضاف الكمية وسعر الشراء إلى هذه الفاتورة.,
 Prices and validity,الأسعار وفترات الصلاحية,
@@ -2399,6 +2415,7 @@ Remaining,المتبقي,
 Remaining,المتبقي,Bunood POS
 Remaining — on the customer's account,المتبقي — دين على العميل,Bunood POS
 Remove,إزالة,
+Remove the item group: {0},إزالة مجموعة الأصناف: {0},
 Remove this item from the invoice? Item: {0},هل تريد إزالة هذا الصنف من الفاتورة؟ الصنف: {0},
 Remove this payment,حذف طريقة الدفع هذه,Bunood POS
 Removed: {0},حُذف: {0},
@@ -2834,6 +2851,7 @@ Shown as a reader whose device is set to light sees it. Readers on dark devices 
 Shown as every reader sees it.,معروضة كما يراها كل قارئ.,
 "Shown in the sidebar, the browser tab, the sign-in page, the website navbar and email headers. Printed documents use the Company record's name instead.",يظهر في الشريط الجانبي وتبويب المتصفح وصفحة الدخول وشريط الموقع وترويسات البريد. تستخدم المستندات المطبوعة اسم سجل الشركة بدلاً منه.,
 Shown on the login page.,يظهر في صفحة تسجيل الدخول.,
+"Shown with their quantity, or left out of the catalogue. Services always show.",تظهر بكميتها، أو تُخفى من القائمة. الخدمات تظهر دائمًا.,Bunood POS
 "Shown with their stock, or left out of the catalogue.",تظهر مع رصيدها، أو تُستبعد من القائمة.,Bunood POS
 Side Pane,اللوحة الجانبية,
 Side Pane End,نهاية اللوحة الجانبية,
@@ -2952,6 +2970,7 @@ Stock will be updated when the invoice is submitted.,سيُحدّث المخزو
 Stock: every document as Frappe draws it. The legibility repairs still apply.,الأصل: كل مستند كما يرسمه فرابي. إصلاحات المقروئية تبقى سارية.,
 "Stock: the card is the page's own colour, pinned near the top.",الأصلي: البطاقة بلون الصفحة نفسه، مثبّتة قرب الأعلى.,
 Stock: the message as Frappe composes it. The legibility repairs still apply.,الوضع الأصلي: الرسالة كما يُنشئها فرابيه، مع الإبقاء على إصلاحات الوضوح.,
+Store and stock,المتجر والمخزون,Bunood POS
 Strings,النصوص,
 Strings per request. Smaller batches survive flaky networks; larger ones are cheaper per call.,عدد النصوص في الطلب الواحد. الدفعات الأصغر تنجو من الشبكات المتقلبة؛ والأكبر أرخص لكل نداء.,
 Striped,مُقلَّم,
@@ -3076,6 +3095,7 @@ The business role expected to own this review domain. Authorization to submit do
 "The card becomes an object — its own fill, a hairline edge, centred.",تصبح البطاقة عنصرًا قائمًا بذاته — بتعبئتها الخاصّة وحدّ رفيع، في المنتصف.,
 The chart surface's grid.,شبكة سطح المخططات.,
 The close evidence could not be loaded,تعذر تحميل أدلة الإقفال,
+"The company and warehouse this counter sells from, and the items it shows. Quantities are the warehouse's.",الشركة والمخزن اللذان تبيع منهما نقطة البيع، والأصناف التي تعرضها. الكميات كميات هذا المخزن.,Bunood POS
 "The company's name, logo, favicon and tagline as the desk shows them.",اسم الشركة وشعارها وأيقونتها وسطرها التعريفي كما يعرضها المكتب.,
 The composer shows the real desk beside every decision and writes through the same settings as the cards below.,يعرض المؤلّف المكتب الحقيقي بجانب كل قرار ويكتب عبر الإعدادات نفسها التي تكتبها البطاقات أدناه.,
 The count could not be checked.,تعذّر فحص العد.,Bunood POS
@@ -3133,6 +3153,7 @@ The invoice's default,الافتراضي للفاتورة,Bunood POS
 The item was not removed. Review the full invoice.,لم يُحذف الصنف. راجع الفاتورة الكاملة.,
 "The item was saved, but its purchase price was not added to the price list.",حُفظ الصنف، لكن لم يُضف سعر الشراء إلى قائمة الأسعار.,
 "The item was saved, but its selling price was not added to the price list.",حُفظ الصنف، لكن لم يُضف سعر البيع إلى قائمة الأسعار.,
+"The items' quantities, and the stock of every sale on this shift, come from this warehouse.",كميات الأصناف، ومخزون كل بيعة في هذه الوردية، من هذا المخزن.,Bunood POS
 The journal work queue could not be loaded,تعذر تحميل قائمة عمل القيود اليومية,
 The journal workbench bundle is not registered. Rebuild the theme assets.,حزمة مساحة عمل القيود اليومية غير مسجلة. أعد بناء ملفات السمة.,
 The journal workbench failed to load. Check the browser console.,تعذر تحميل مساحة عمل القيود اليومية. تحقق من وحدة تحكم المتصفح.,
@@ -3248,6 +3269,7 @@ Theme exported (downloaded and copied). The logo and favicon are files on this s
 There is no open POS shift to close.,لا توجد وردية نقطة بيع مفتوحة لإغلاقها.,
 There is no rejected-goods warehouse for damaged items.,لا يوجد مستودع للبضاعة المرفوضة لاستقبال الأصناف التالفة.,
 "These are evidence stages, not completion badges. Not evaluated remains different from complete.",هذه مراحل للأدلة وليست شارات اكتمال. تظل حالة «لم يُقيّم» مختلفة عن «مكتمل».,
+These groups and the groups under them. None chosen: every group.,هذه المجموعات وما تحتها. بلا اختيار: كل المجموعات.,Bunood POS
 "These observations do not approve launch, accounting or compliance.",هذه الملاحظات لا تمثل اعتمادًا للإطلاق أو المحاسبة أو الامتثال.,
 "These routes retain native permissions, validation, posting and audit history.",تحافظ هذه المسارات على الصلاحيات والتحقق والترحيل وسجل التدقيق الأصلي.,
 They are not counted above. Consolidate them into Sales Invoices before filing.,لم تُحتسب أعلاه. وحّدها في فواتير مبيعات قبل التقديم.,
@@ -3262,6 +3284,8 @@ This Year,هذا العام,
 This bank account is unavailable for the selected company,هذا الحساب البنكي غير متاح للشركة المحددة,
 This barcode belongs to more than one item,هذا الباركود لأكثر من صنف — اختر الصنف,Bunood POS
 This cart has too many lines. Start a second sale.,تحتوي هذه السلة على أسطر كثيرة جداً. ابدأ عملية بيع ثانية.,
+This company's items,أصناف هذه الشركة,Bunood POS
+"This company's: an item with an item default for the company or stock in one of its warehouses, or with neither for any company. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice; services keep to the company.",أصناف الشركة: صنف له إعداد افتراضي للشركة أو رصيد في أحد مخازنها، أو ليس له ذلك عند أي شركة. أصناف المخزن: له حركة مخزون هنا أو هذا مخزنه الافتراضي، كما في الفاتورة المبسطة؛ والخدمات تبقى للشركة.,Bunood POS
 This counter is closed,نقطة البيع هذه مغلقة,Bunood POS
 This counter takes no returns. Return from the invoice form.,نقطة البيع هذه لا تستقبل المرتجعات. أرجع من نموذج الفاتورة.,
 "This dataset uses a different native load path, not Data Import.",تستخدم مجموعة البيانات هذه مسار تحميل أصليًا مختلفًا، وليس استيراد البيانات.,
@@ -3315,6 +3339,7 @@ This shift,هذه الوردية,Bunood POS
 This shift is out of date,هذه الوردية قديمة,Bunood POS
 This unit has no conversion factor. Item: {0} · Unit: {1},لا يوجد معامل تحويل لهذه الوحدة. الصنف: {0} · الوحدة: {1},
 This view does not declare the boundary reconciled. Qualified preparer and reviewer evidence remains required.,لا يعلن هذا العرض أن النطاق مطابَق، وتبقى إثباتات المُعِدّ والمراجع المؤهلَين مطلوبة.,
+This warehouse's items,أصناف هذا المخزن,Bunood POS
 Three lines,ثلاثة أسطر,
 "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look.",صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات.,
 Time,الوقت,Bunood POS
@@ -3496,6 +3521,7 @@ Walk-in customer,عميل نقدي,
 Walk-in customer,عميل نقدي,Bunood POS
 Walk-in sales without a VAT number only: anyone in the queue can scan it.,للعميل النقدي بلا رقم ضريبي فقط، لأن أي شخص في الطابور يستطيع مسحه.,Bunood POS
 Warehouse,المستودع,
+Warehouse,المخزن,Bunood POS
 Warehouse is a default. Stock moves only when Update Stock is on.,المستودع قيمة افتراضية. لا يتحرّك المخزون إلا عند تفعيل تحديث المخزون.,
 Warehouse linked automatically,مستودع مرتبط تلقائياً,
 "Warehouse, stock and valuation",المستودع والمخزون والتقييم,

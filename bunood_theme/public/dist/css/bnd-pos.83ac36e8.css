@@ -559,6 +559,70 @@ html[data-theme] .bnd-pos .bnd-pos__brand {
   color: var(--bnd-brand-deep);
   font-weight: var(--bnd-weight-semibold);
 }
+html[data-theme] .bnd-pos .bnd-pos__store {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bnd-sp-2);
+  min-inline-size: 0;
+  max-inline-size: 16rem;
+  margin-inline-end: var(--bnd-sp-3);
+  padding-inline: var(--bnd-sp-2);
+  border-inline-start: var(--bnd-line) solid var(--bnd-brand-deep-tile);
+  color: var(--bnd-on-deep);
+}
+html[data-theme] .bnd-pos .bnd-pos__store-text {
+  display: grid;
+  min-inline-size: 0;
+  line-height: 1.2;
+}
+html[data-theme] .bnd-pos .bnd-pos__store-text small,
+html[data-theme] .bnd-pos .bnd-pos__store-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+html[data-theme] .bnd-pos .bnd-pos__store-text small {
+  font-size: var(--bnd-text-xs);
+  opacity: 0.8;
+}
+html[data-theme] .bnd-pos .bnd-pos__store-text strong {
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__facts {
+  display: grid;
+  gap: var(--bnd-sp-2);
+  margin: 0;
+}
+html[data-theme] .bnd-pos .bnd-pos__facts div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--bnd-sp-3);
+}
+html[data-theme] .bnd-pos .bnd-pos__facts dt {
+  color: var(--bnd-ink-muted);
+  font-weight: var(--bnd-weight-normal);
+}
+html[data-theme] .bnd-pos .bnd-pos__facts dd {
+  margin: 0;
+  font-weight: var(--bnd-weight-semibold);
+  text-align: end;
+}
+html[data-theme] .bnd-pos .bnd-pos__gate-company {
+  margin-block-start: var(--bnd-sp-2);
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-weight: var(--bnd-weight-semibold);
+}
+html[data-theme] .bnd-pos .bnd-pos__setting-stack {
+  display: grid;
+  gap: var(--bnd-sp-2);
+  justify-items: start;
+  max-inline-size: 28rem;
+}
+html[data-theme] .bnd-pos .bnd-pos__setting-value {
+  font-size: var(--bnd-text-md);
+}
 html[data-theme] .bnd-pos .bnd-pos__tabs {
   display: flex;
   gap: var(--bnd-sp-1);
@@ -2813,6 +2877,15 @@ html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
   }
 }
 @media (width < 992px) {
+  html[data-theme] .bnd-pos .bnd-pos__store {
+    max-inline-size: 9rem;
+    margin-inline-end: var(--bnd-sp-1);
+  }
+  html[data-theme] .bnd-pos .bnd-pos__store-text small,
+  html[data-theme] .bnd-pos .bnd-pos__pill-extra,
+  html[data-theme] .bnd-pos .bnd-pos__pill[data-tone=good] .bnd-pos__pill-text {
+    display: none;
+  }
   html[data-theme] .bnd-pos .bnd-pos__sale {
     flex-direction: column;
     overflow: auto;
@@ -2876,6 +2949,9 @@ html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
   }
 }
 @media (width < 768px) {
+  html[data-theme] .bnd-pos .bnd-pos__store-text {
+    display: none;
+  }
   html[data-theme] .bnd-pos .bnd-pos__pill,
   html[data-theme] .bnd-pos .bnd-pos__customer .bnd-pos__key {
     display: none;

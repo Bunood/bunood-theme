@@ -439,3 +439,30 @@ test("a Tabby or Tamara payment carries its order number and shows its payments"
 	assert.match(fn("settingsRow"), /h\("option", \{ value: "tabby", selected: map\[mode\]\?\.provider === "tabby" \}, "Tabby"\)/);
 	assert.match(scss, /\[data-tone="bnpl"\] \.bnd-pos__swatch \{/);
 });
+
+// 2026-10-10 (owner): each point of sale shows, and keeps to, its company, warehouse and items.
+test("the counter says which company, branch and warehouse it sells from", () => {
+	assert.match(fn("storeBadge"), /h\("small", null, store\.company\), h\("strong", null, place\)/);
+	assert.match(fn("renderBar"), /storeBadge\(\),/);
+	assert.match(fn("storeFacts"), /fact\(__\("Warehouse", null, "Bunood POS"\), store\.warehouse_name\)/);
+	assert.match(js, /companies\.size > 1 && row\.company !== profiles\[index - 1\]\?\.company/);
+	assert.match(scss, /\.bnd-pos__store \{/);
+});
+
+test("the catalogue pages where the server says, and a code sold elsewhere is not an unknown code", () => {
+	assert.match(fn("loadItems"), /start: append \? state\.itemsNext : 0,/);
+	assert.match(fn("loadItems"), /state\.more = typeof result\?\.more === "boolean" \? result\.more : rows\.length === PAGE_SIZE;/);
+	assert.match(js, /hits\.elsewhere = !hits\.length && Boolean\(result\?\.elsewhere\);/);
+	assert.ok(js.indexOf("} else if (hits.elsewhere) {") < js.indexOf("state.unknown = lookup;"), "a code sold elsewhere is never offered for linking");
+});
+
+test("the settings page opens on the store: warehouse, item groups, stock and the company's items", () => {
+	const sections = fn("settingsSections");
+	assert.ok(sections.indexOf('"Store and stock"') > 0 && sections.indexOf('"Store and stock"') < sections.indexOf('"The screen"'));
+	assert.match(sections, /kind: "warehouse", source: "native", key: "warehouse"/);
+	assert.match(sections, /kind: "groups", source: "native", key: "item_groups"/);
+	assert.match(sections, /S\("counter", "item_scope", __\("Items shown", null, "Bunood POS"\)/);
+	assert.match(sections, /\["company", __\("This company's items", null, "Bunood POS"\)\], \["warehouse", __\("This warehouse's items", null, "Bunood POS"\)\], \["all", __\("All items", null, "Bunood POS"\)\]/);
+	assert.match(fn("settingsRow"), /disabled: !editable \|\| locked,/);
+	assert.match(fn("saveSettings"), /if \(scope\) \{\s*loadItems\(false\);\s*refreshCatalog\(\);/);
+});

@@ -19155,3 +19155,152 @@ msgstr "متوفر: {0}"
 #, fuzzy
 msgid "Payment method"
 msgstr "طريقة الدفع"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The items' quantities, and the stock of every sale on this shift, come from this warehouse."
+msgstr "كميات الأصناف، ومخزون كل بيعة في هذه الوردية، من هذا المخزن."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Company"
+msgstr "الشركة"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Branch"
+msgstr "الفرع"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Warehouse"
+msgstr "المخزن"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Price list"
+msgstr "قائمة الأسعار"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Not sold at this point of sale: {0}"
+msgstr "لا يُباع في نقطة البيع هذه: {0}"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Store and stock"
+msgstr "المتجر والمخزون"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "The company and warehouse this counter sells from, and the items it shows. Quantities are the warehouse's."
+msgstr "الشركة والمخزن اللذان تبيع منهما نقطة البيع، والأصناف التي تعرضها. الكميات كميات هذا المخزن."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "A point of sale belongs to one company. To sell for another company, make a point of sale for it."
+msgstr "نقطة البيع تتبع شركة واحدة. للبيع لشركة أخرى أنشئ لها نقطة بيع."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Every sale takes its stock from here, and the counter shows its quantities."
+msgstr "كل بيعة تأخذ مخزونها من هنا، ونقطة البيع تعرض كمياته."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Item groups on this counter"
+msgstr "مجموعات الأصناف في نقطة البيع"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "These groups and the groups under them. None chosen: every group."
+msgstr "هذه المجموعات وما تحتها. بلا اختيار: كل المجموعات."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Items out of stock in this warehouse"
+msgstr "الأصناف غير المتوفرة في هذا المخزن"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Shown with their quantity, or left out of the catalogue. Services always show."
+msgstr "تظهر بكميتها، أو تُخفى من القائمة. الخدمات تظهر دائمًا."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Close the open shifts first: {0}"
+msgstr "أغلق الورديات المفتوحة أولًا: {0}"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Remove the item group: {0}"
+msgstr "إزالة مجموعة الأصناف: {0}"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Every item group"
+msgstr "كل مجموعات الأصناف"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Add an item group"
+msgstr "إضافة مجموعة أصناف"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Choose one of this company's warehouses: {0}"
+msgstr "اختر مخزنًا من مخازن هذه الشركة: {0}"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Close the open shifts on this point of sale before changing its warehouse: {0}"
+msgstr "أغلق الورديات المفتوحة في نقطة البيع قبل تغيير مخزنها: {0}"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Item group not found: {0}"
+msgstr "مجموعة الأصناف غير موجودة: {0}"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Items shown"
+msgstr "الأصناف المعروضة"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This company's: an item with an item default for the company or stock in one of its warehouses, or with neither for any company. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice; services keep to the company."
+msgstr "أصناف الشركة: صنف له إعداد افتراضي للشركة أو رصيد في أحد مخازنها، أو ليس له ذلك عند أي شركة. أصناف المخزن: له حركة مخزون هنا أو هذا مخزنه الافتراضي، كما في الفاتورة المبسطة؛ والخدمات تبقى للشركة."
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This company's items"
+msgstr "أصناف هذه الشركة"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This warehouse's items"
+msgstr "أصناف هذا المخزن"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgid "Items shown"
+msgstr "الأصناف المعروضة"
