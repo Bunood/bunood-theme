@@ -135,7 +135,12 @@ after_migrate = ["bunood_theme.setup.after_migrate", "bunood_theme.screen_instal
 
 # Native report execution/export remains authoritative. These scoped adapters
 # preserve team report presentation without replacing global framework classes.
-extend_doctype_class = {"Report": ["bunood_theme.report_compat.ReportCompatibility"]}
+extend_doctype_class = {
+    "Report": ["bunood_theme.report_compat.ReportCompatibility"],
+    # A POS sale keeps a channel's price list (hook bunood_pos_price_list); without one, nothing changes.
+    "Sales Invoice": ["bunood_theme.pos_price_list.ChannelPriceList"],
+    "POS Invoice": ["bunood_theme.pos_price_list.ChannelPriceList"],
+}
 override_whitelisted_methods = {
     "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
     "frappe.desk.query_report.run": "bunood_theme.report_compat.run",

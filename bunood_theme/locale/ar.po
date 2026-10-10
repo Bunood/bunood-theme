@@ -19191,6 +19191,16 @@ msgstr "قائمة الأسعار"
 msgid "Not sold at this point of sale: {0}"
 msgstr "لا يُباع في نقطة البيع هذه: {0}"
 
+#. src: pos channel price list, 2026-10-10
+#, fuzzy
+msgid "This sale's price list is not an enabled selling price list: {0}"
+msgstr "قائمة أسعار هذا البيع ليست قائمة بيع مفعّلة: {0}"
+
+#. src: pos channel price list, 2026-10-10
+#, fuzzy
+msgid "This sale's price list is not in the POS Profile's currency: {0}"
+msgstr "قائمة أسعار هذا البيع ليست بعملة ملف نقطة البيع: {0}"
+
 #. src: pos store — company, warehouse and items, 2026-10-10
 #, fuzzy
 msgctxt "Bunood POS"

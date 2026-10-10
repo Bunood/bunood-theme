@@ -3334,6 +3334,8 @@ This rehearsal has no failed rows to download.,لا تحتوي هذه التجر
 This report is not installed on this site,هذا التقرير غير مثبت في هذا الموقع,
 This sale is being sent from another window. Try again in a moment.,هذا البيع يُرسل من نافذة أخرى. حاول بعد قليل.,
 This sale will not reach ERPNext. Print its provisional receipt first if you need a paper record. Discard it?,لن يصل هذا البيع إلى ERPNext. اطبع إيصاله المؤقت أولًا إن احتجت سجلًا ورقيًا. هل تتجاهله؟,Bunood POS
+This sale's price list is not an enabled selling price list: {0},قائمة أسعار هذا البيع ليست قائمة بيع مفعّلة: {0},
+This sale's price list is not in the POS Profile's currency: {0},قائمة أسعار هذا البيع ليست بعملة ملف نقطة البيع: {0},
 This shift,هذه الوردية,
 This shift,هذه الوردية,Bunood POS
 This shift is out of date,هذه الوردية قديمة,Bunood POS

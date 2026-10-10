@@ -21,6 +21,8 @@ from frappe import _
 from frappe.rate_limiter import rate_limit
 from frappe.utils import cint, date_diff, flt, get_url, getdate, now_datetime, nowdate, nowtime
 
+from bunood_theme.pos_price_list import channel_price_list
+
 
 MAX_CART_LINES = 200
 MAX_PAGE_LENGTH = 60
@@ -809,19 +811,19 @@ class NotSoldHere(frappe.ValidationError):
     """An item outside this counter's items (its item_scope setting)."""
 
 
-def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dict[str, Any]:
+def _catalog_match(profile, item_code: str, uom: str | None, price_list: str) -> dict[str, Any] | None:
     from erpnext.selling.page.point_of_sale.point_of_sale import get_items as native_get_items
 
     result = native_get_items(
         0,
         20,
-        profile.selling_price_list,
+        price_list,
         _catalog_root(),
         profile.name,
         item_code,
     ) or {"items": []}
     rows = result.get("items") or []
-    item = next(
+    return next(
         (
             row
             for row in rows
@@ -829,6 +831,15 @@ def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dic
         ),
         None,
     ) or next((row for row in rows if row.get("item_code") == item_code), None)
+
+
+def _native_catalog_item(
+    profile, item_code: str, uom: str | None = None, price_list: str | None = None
+) -> dict[str, Any]:
+    item = _catalog_match(profile, item_code, uom, price_list or profile.selling_price_list)
+    if item and price_list and item.get("price_list_rate") in (None, ""):
+        # A channel's list prices only what differs; the rest keep the profile's price.
+        item = _catalog_match(profile, item_code, uom, profile.selling_price_list) or item
     if not item:
         frappe.throw(_("Item unavailable in this POS Profile: {0}").format(item_code))
     # A sale made offline from the device's copy is kept for review instead (sync_offline_sale).
@@ -855,6 +866,8 @@ def _apply_cart(doc, data: dict[str, Any], profile) -> None:
     if doc.doctype == "Sales Invoice":
         doc.is_created_using_pos = 1
     doc.set("items", [])
+    # Asked of the document, as at every validation (pos_price_list.ChannelPriceList).
+    price_list = channel_price_list(profile, doc)
 
     for raw in data.get("items") or []:
         if not isinstance(raw, dict):
@@ -865,7 +878,7 @@ def _apply_cart(doc, data: dict[str, Any], profile) -> None:
         qty = _number(raw.get("qty"), _("Quantity"))
         if qty <= 0:
             frappe.throw(_("Quantity must be greater than zero."))
-        authoritative = _native_catalog_item(profile, item_code, raw.get("uom"))
+        authoritative = _native_catalog_item(profile, item_code, raw.get("uom"), price_list)
         rate = authoritative.get("price_list_rate")
         if rate in (None, ""):
             frappe.throw(_("Selling price missing for item: {0}").format(item_code))
@@ -1002,8 +1015,31 @@ def _summary(doc) -> dict[str, Any]:
 @frappe.whitelist(methods=["POST"])
 def preview_cart(payload: Any) -> dict[str, Any]:
     data = _cart(payload)
-    doc, _profile_doc = _new_or_held(data)
+    doc, _profile_doc = _new_or_held(data, _previewed_draft(data))
     return _summary(doc)
+
+
+def _previewed_draft(data: dict[str, Any]) -> str | None:
+    """A resumed held sale is previewed on the draft itself, unsaved, as its checkout
+    prices it: an app's price list may follow the draft (pos_price_list). Only this
+    cashier's own held draft on this profile; anything else previews as a new sale."""
+    name = str(data.get("draft") or "")
+    invoice_type = _invoice_type()
+    if not name or not frappe.get_meta(invoice_type).has_field(HELD_FIELD):
+        return None
+    row = frappe.db.get_value(
+        invoice_type, name, ["docstatus", "is_pos", "owner", "pos_profile", HELD_FIELD], as_dict=True
+    )
+    if (
+        row
+        and row.docstatus == 0
+        and cint(row.is_pos)
+        and cint(row.get(HELD_FIELD))
+        and row.owner == frappe.session.user
+        and row.pos_profile == str(data.get("pos_profile") or "")
+    ):
+        return name
+    return None
 
 
 @frappe.whitelist(methods=["POST"])
