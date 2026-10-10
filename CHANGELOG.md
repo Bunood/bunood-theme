@@ -24,6 +24,42 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.2] — 2026-10-10 — the POS Operator role keeps every other role's access, and an operator-only cashier opens and closes a shift
+
+Two defects in the Bunood POS Operator setup (PR #22, found while pinning bunood_dining and
+reproduced on a disposable site at v0.55.0):
+
+- **The operator role took six POS doctypes from every other role.** Its Custom DocPerm rows
+  were inserted without the doctype's standard rows, and once a doctype has a Custom DocPerm row
+  Frappe reads its permissions from those rows alone: System Manager, Sales Manager, Accounts
+  User and Sales User lost POS Profile, POS Invoice, Sales Invoice, Customer and the shift
+  entries. The standard rows are now copied in first (`setup_custom_perms`, as Role Permission
+  Manager does). A doctype the old setup broke is repaired when the setup runs again: one whose
+  custom rows include none of its standard roles, even with another app's row added since
+  (bunood_engineering adds Engineering Office Manager to Sales Invoice and Customer); only the
+  missing standard rows are copied in. A doctype with a custom row of one of its standard roles
+  was set by hand and is left as it is.
+- **An operator-only cashier could not open a shift.** The operator's shift and invoice rights
+  are owner-only, which Frappe refuses when no document is named. The counter's capabilities now
+  ask about the user's own records, and `open_shift` / `close_shift` check submit against the
+  entry just made (before the closing's note and before submit; a refusal rolls it all back).
+
+Not in this release: a migrate patch. Sites where `ensure_pos_retail` already ran keep the broken
+rows until it runs again there, with the owner's approval (`bench --site <site> execute
+bunood_theme.pos_permissions.ensure_pos_operator_permissions`). Read-only check: for each of the
+six doctypes (POS Profile, POS Invoice, Sales Invoice, Customer, POS Opening Entry, POS Closing
+Entry), it is affected when it has Custom DocPerm rows and none of them is of one of its standard
+DocPerm roles. The official releases never ran this setup on migrate (it is held in
+ensure_pos_retail); earlier snapshot and capability builds did.
+
+Built on v0.57.1 (the bill's items follow the counter's rule).
+
+Checks: the PR's six site tests (rolled back) and 40 static tests on v0.57.0; on the merged tree
+the guarded build (bundles byte-identical to v0.57.1), 507/507 interface and counter tests,
+tests/test_pos_workbench.py and tools/pos-backend-acceptance.py (rollback) on the lab; an
+adversarial review before the merge, whose one code finding (the mixed broken state left
+unrepaired) is fixed here with a site test that fails on the PR's rule.
+
 ## [0.57.1] — 2026-10-10 — the bill's items follow the counter's rule
 
 - ERPNext's automatic item default (the site's default warehouse, added to every new item) no
