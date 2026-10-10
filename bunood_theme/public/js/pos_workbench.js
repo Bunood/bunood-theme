@@ -435,7 +435,14 @@
 			state.gateProfile = state.profile?.name || "";
 			if (state.profile?.reserved_for) {
 				resetSale({ silent: true });
+				// The user's shift is on that till: straight to its screen.
+				const shift = state.context.opening_entry || state.context.stale_opening_entry;
+				if (shift && goElsewhere(state.profile.reserved_for.route)) return;
 				renderReserved();
+				return;
+			}
+			if (!state.profile && (state.context.elsewhere || []).length) {
+				renderElsewhere(state.context.elsewhere);
 				return;
 			}
 			root.toggleAttribute("data-fbar", fbarOn());
@@ -486,6 +493,32 @@
 						others.map((row) => h("button", { type: "button", class: "bnd-pos__choice", onclick: () => initialize(row.name) },
 							h("strong", null, row.name),
 							h("span", { class: "bnd-pos__muted" }, [row.branch ? __(row.branch) : "", row.warehouse_name || row.warehouse || ""].filter(Boolean).join(" · "))))) : null)));
+		}
+
+		// Straight to the screen that sells on the user's till, once: a screen that sent the user
+		// back here within a few seconds gets the notice instead, never a loop.
+		function goElsewhere(route) {
+			if (!route || !route.startsWith("/") || route.startsWith("//")) return false;
+			let last = 0;
+			try {
+				last = Number(window.sessionStorage.getItem("bnd-pos-elsewhere") || 0);
+				window.sessionStorage.setItem("bnd-pos-elsewhere", String(Date.now()));
+			} catch (_error) { /* no session storage: go anyway */ }
+			if (Date.now() - last < 15000) return false;
+			window.location.replace(route);
+			return true;
+		}
+
+		// No till of this counter's, only another front end's (the restaurant cashier's).
+		function renderElsewhere(targets) {
+			if (targets.length === 1 && goElsewhere(targets[0].route)) return;
+			state.view = "gate";
+			renderBar();
+			fill(body, h("div", { class: "bnd-pos__gate" },
+				h("div", { class: "bnd-pos__gate-card bnd-pos__reserved" },
+					h("h2", null, __("Your points of sale are on another screen", null, "Bunood POS")),
+					h("p", { class: "bnd-pos__muted" }, __("This counter is for supermarkets and shops.", null, "Bunood POS")),
+					targets.map((target) => h("a", { class: "bnd-pos__primary bnd-pos__primary--tall", href: target.route }, __("Open: {0}", [target.title || target.route]))))));
 		}
 
 		function failure(title, detail) {
@@ -2724,8 +2757,9 @@
 
 		// ── Rendering ────────────────────────────────────────────────────────
 		function showSale() {
+			if (!state.profile) return;
 			// Never on a till another front end owns: its notice instead.
-			if (state.profile?.reserved_for) {
+			if (state.profile.reserved_for) {
 				renderReserved();
 				return;
 			}
@@ -2775,7 +2809,7 @@
 				onclick: () => unsavedGuard(() => (view === "sale" ? showSale() : showList(view))),
 			}, label, count ? h("span", { class: "bnd-pos__count", dir: "ltr" }, String(count)) : null);
 			// A till another front end owns: no tabs, menu or customer screen from this counter.
-			const reserved = Boolean(state.profile?.reserved_for);
+			const reserved = !state.profile || Boolean(state.profile.reserved_for);
 			const opening = ctx?.opening_entry;
 			const since = opening?.period_start_date ? frappe.datetime?.str_to_user?.(opening.period_start_date)?.split(" ").pop()?.slice(0, 5) : "";
 			const menu = state.menuOpen ? h("div", { class: "bnd-pos__menu", role: "menu" },

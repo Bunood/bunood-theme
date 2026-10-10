@@ -548,6 +548,8 @@ def run() -> None:
             asked = pos.get_context(profile_name)
             assert asked["profile"]["name"] == profile_name, asked["profile"]["name"]
             assert asked["profile"]["reserved_for"] == reserved[profile_name], asked["profile"].get("reserved_for")
+            # Its screen is offered, for the counter to send the user there.
+            assert reserved[profile_name] in asked["elsewhere"], asked["elsewhere"]
         # Without the stand-in, whatever the installed apps reserve: nothing on a retail lab, the
         # restaurant cashier's own title and route on a till Bunood Dining owns (found on the
         # dining lab, whose only till is the restaurant's).
