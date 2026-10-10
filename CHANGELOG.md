@@ -24,6 +24,19 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.3] — 2026-10-10 — the seller's seal on tax invoices and quotations
+
+The company's authorised signature, its signatory's name and its stamp now close the tax
+invoice, the simplified invoice and the quotation (A4), above their signature lines. They are
+set on bunood_business's Organization screen (v0.8.0), which adds the three Company fields
+(`bnd_signature`, `bnd_signatory`, `bnd_company_stamp`); a site without them, or a company that
+has set neither image, prints exactly as before.
+
+Both images are private files, so `seal_row` inlines them with `bunood_print_image_src`, as the
+letter head inlines its logo (an isolated PDF header has no session to fetch a private file).
+The row rides `bnd-p-sigs`; only the images' sizes are inline, as the QR's are. Print templates
+only: no CSS or JS changed, and the payload row repeats v0.57.2's.
+
 ## [0.57.2] — 2026-10-10 — the POS Operator role keeps every other role's access, and an operator-only cashier opens and closes a shift
 
 Two defects in the Bunood POS Operator setup (PR #22, found while pinning bunood_dining and

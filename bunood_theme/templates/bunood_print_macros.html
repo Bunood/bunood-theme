@@ -247,6 +247,35 @@
 </table>
 {%- endmacro %}
 
+{#- The seller's seal: the company's authorised signature, its signatory and its stamp, set on the
+    Organization screen (bunood_business: Company.bnd_signature, bnd_signatory, bnd_company_stamp),
+    above the signature lines of a tax invoice or a quotation. Both images are PRIVATE files, so
+    they are inlined as data: URIs (bunood_print_image_src) the way the letter head's logo is. A
+    company with neither prints nothing; a bilingual caption follows `lang` ("ar", "en", or both).
+    It rides the signature row's own class (bnd-p-sigs: full width, centred, the muted ink); only
+    the images' sizes are inline, as the QR's are: wkhtmltopdf and Chrome both honour them. -#}
+{% macro seal_row(doc, lang="") -%}
+{%- set _c = frappe.get_doc("Company", doc.company) if doc.get("company") and frappe.db.exists("Company", doc.company) else None -%}
+{%- set _sig = (_c.get("bnd_signature") if _c else "") or "" -%}
+{%- set _stamp = (_c.get("bnd_company_stamp") if _c else "") or "" -%}
+{%- if _sig or _stamp -%}
+{%- set _sig_src = (bunood_print_image_src(_sig) if bunood_print_image_src is defined else _sig) if _sig else "" -%}
+{%- set _stamp_src = (bunood_print_image_src(_stamp) if bunood_print_image_src is defined else _stamp) if _stamp else "" -%}
+{%- set _who = (_c.get("bnd_signatory") if _c else "") or "" -%}
+{%- set _caption = "المفوّض بالتوقيع" if lang == "ar" else ("Authorised signatory" if lang == "en" else "المفوّض بالتوقيع / Authorised signatory") -%}
+{%- if _sig_src or _stamp_src -%}
+<table class="bnd-p-sigs bnd-p-seal"><tr>
+  <td>
+    {% if _sig_src %}<img src="{{ _sig_src | e }}" alt="" style="max-height:64px;max-width:200px"><br>{% endif %}
+    {% if _who %}<strong>{{ _who | e }}</strong><br>{% endif %}
+    {{ _caption }}
+  </td>
+  <td>{% if _stamp_src %}<img src="{{ _stamp_src | e }}" alt="" style="max-height:104px;max-width:104px">{% endif %}</td>
+</tr></table>
+{%- endif -%}
+{%- endif -%}
+{%- endmacro %}
+
 {#- Signatures row (vouchers / A4). With no explicit labels the count follows
     `print_signatures` (Two lines / Three lines / None); a format that passes
     its own labels keeps them untouched — an explicit argument outranks a
