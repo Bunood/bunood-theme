@@ -1909,14 +1909,40 @@ def bill_item_defaults(company: str | None = None) -> dict:
     }
 
 
+def warehouse_items(warehouse: str) -> set[str]:
+    """The items that belong to a warehouse: stock records there (a Bin), or an item default that
+    names it. ERPNext's own default does not count: it adds one to every new item
+    (Item.update_defaults_from_item_group), naming the site's default warehouse and nothing else,
+    so counted it would put every item in that warehouse. The same reading as the counter's
+    company rule (pos._company_items)."""
+    held = set(frappe.get_all("Bin", filters={"warehouse": warehouse}, pluck="item_code"))
+    automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")
+    details = [
+        field.fieldname
+        for field in frappe.get_meta("Item Default").fields
+        if field.fieldtype == "Link" and field.fieldname not in ("company", "default_warehouse")
+    ]
+    for row in frappe.get_all(
+        "Item Default",
+        filters={"parenttype": "Item", "default_warehouse": warehouse},
+        fields=["parent", *details],
+    ):
+        if warehouse == automatic and not any(row.get(field) for field in details):
+            continue
+        held.add(row.parent)
+    return held
+
+
 @frappe.whitelist()
 def bill_item_query(doctype, txt, searchfield, start, page_len, filters):
     """The simple bill's item search, for a bill that moves stock: ERPNext's own item_query, kept
     to the items of the branch's warehouse (owner, 2026-10-10: «the items of the branch and its
     warehouse, not everything»). An item belongs to the warehouse when it has stock records
-    there (a Bin) or names it as its default; a service, which no warehouse holds, is always
-    offered. Each stocked item shows what the warehouse holds. Without a warehouse it is ERPNext's
-    search unchanged."""
+    there (a Bin) or an item default that names it (warehouse_items: ERPNext's automatic default
+    does not count). A service, which no warehouse holds, is offered when it is the bill's
+    company's or no company's (the counter's company rule, pos._company_items), so another
+    company's services never show. Each stocked item shows what the warehouse holds. Without a
+    warehouse it is ERPNext's search unchanged."""
     import json
 
     from erpnext.controllers.queries import item_query
@@ -1924,14 +1950,20 @@ def bill_item_query(doctype, txt, searchfield, start, page_len, filters):
 
     filters = json.loads(filters) if isinstance(filters, str) else dict(filters or {})
     warehouse = filters.pop("bnd_warehouse", None)
+    company = filters.pop("bnd_company", None)
     if not warehouse or not frappe.db.exists("Warehouse", warehouse):
         return item_query(doctype, txt, searchfield, start, page_len, filters)
     start, page_len = cint(start), cint(page_len) or 20
-    held = set(frappe.get_all("Bin", filters={"warehouse": warehouse}, pluck="item_code"))
-    held |= set(frappe.get_all("Item Default", filters={"parenttype": "Item", "default_warehouse": warehouse}, pluck="parent"))
+    held = warehouse_items(warehouse)
+    services = frappe.get_all("Item", filters={"is_stock_item": 0, "disabled": 0}, pluck="name")
+    if company and services:
+        from bunood_theme.pos import _company_items
+
+        services = sorted(_company_items(company, services))
     want = start + page_len
     rows = list(item_query(doctype, txt, searchfield, 0, want, {**filters, "name": ["in", sorted(held)]})) if held else []
-    rows += list(item_query(doctype, txt, searchfield, 0, want, {**filters, "is_stock_item": 0}))
+    if services:
+        rows += list(item_query(doctype, txt, searchfield, 0, want, {**filters, "name": ["in", services]}))
     seen, page = set(), []
     for row in rows:
         if row[0] in seen:
