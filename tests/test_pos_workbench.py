@@ -75,7 +75,11 @@ class POSWorkbenchContractTests(unittest.TestCase):
         # ERPNext's own form adds the opening float client-side; the server must too.
         self.assertIn("row.expected_amount = flt(flt(row.expected_amount) + row.opening_amount", draft)
         close = self.body("close_shift")
-        self.assertIn('_require("POS Closing Entry", "submit")', close)
+        # Submit is checked against the closing itself: the operator's right is
+        # owner-only, and Frappe refuses that without a document (2026-10-10).
+        self.assertNotIn('_require("POS Closing Entry", "submit")', close)
+        self.assertLess(close.index("closing.insert()"), close.index('_require("POS Closing Entry", "submit", closing)'))
+        self.assertLess(close.index('_require("POS Closing Entry", "submit", closing)'), close.index('closing.add_comment("Comment"'))
         self.assertLess(close.index("Give the reason for the difference"), close.index("closing.insert()"))
         # The reason is written before submit: ERPNext commits inside on_submit.
         self.assertLess(close.index('closing.add_comment("Comment"'), close.index("closing.submit()"))
@@ -93,6 +97,19 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('"POS Closing Entry"', unclosed)
         self.assertIn('"pos_opening_entry": ["in", [row.name for row in rows]], "docstatus": 1', unclosed)
         self.assertIn("return [row for row in rows if row.name not in closed]", unclosed)
+
+    def test_a_shift_is_submitted_on_the_cashiers_own_entry(self):
+        # The operator's submit is owner-only; asked without a document Frappe
+        # refuses it, and an operator-only cashier could not open a shift.
+        opening = self.body("open_shift")
+        self.assertNotIn('_require("POS Opening Entry", "submit")', opening)
+        check = '_require("POS Opening Entry", "submit", opening)'
+        self.assertLess(opening.index("opening.insert()"), opening.index(check))
+        self.assertLess(opening.index(check), opening.index("opening.submit()"))
+        capabilities = self.body("_capabilities")
+        for doctype in ("POS Opening Entry", "POS Closing Entry"):
+            self.assertIn(f'_can_on_own("{doctype}", "submit")', capabilities)
+        self.assertIn('_can_on_own(invoice_type, "submit")', capabilities)
 
     def test_a_return_never_exceeds_what_is_left_or_what_was_paid(self):
         partial = self.body("_partial_return")

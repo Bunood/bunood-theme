@@ -43,6 +43,24 @@ def _require(doctype: str, ptype: str, doc=None) -> None:
     frappe.has_permission(doctype, ptype=ptype, doc=doc, throw=True)
 
 
+def _can_on_own(doctype: str, ptype: str) -> bool:
+    """Whether the user may ``ptype`` a ``doctype`` record of their own.
+
+    Without a document Frappe answers for records in general, and refuses
+    every right granted only on the user's own records (if_owner) except
+    create. The cashier's shifts and receipts are always their own, so a
+    capability asks about those; the action itself is checked against the
+    document once it exists.
+    """
+    if frappe.has_permission(doctype, ptype=ptype):
+        return True
+    if ptype == "submit" and not frappe.get_meta(doctype).is_submittable:
+        return False
+    from frappe.permissions import get_role_permissions
+
+    return bool(get_role_permissions(doctype, is_owner=True).get("if_owner", {}).get(ptype))
+
+
 def _invoice_type() -> str:
     value = frappe.db.get_single_value("POS Settings", "invoice_type") or "POS Invoice"
     return value if value in INVOICE_TYPES else "POS Invoice"
@@ -570,16 +588,16 @@ def _capabilities(invoice_type: str) -> dict[str, bool]:
     return {
         "can_hold": _can_hold(invoice_type),
         "can_create_invoice": bool(frappe.has_permission(invoice_type, ptype="create")),
-        "can_submit_invoice": bool(frappe.has_permission(invoice_type, ptype="submit")),
-        "can_print_invoice": bool(frappe.has_permission(invoice_type, ptype="print")),
+        "can_submit_invoice": _can_on_own(invoice_type, "submit"),
+        "can_print_invoice": _can_on_own(invoice_type, "print"),
         "can_create_customer": bool(frappe.has_permission("Customer", ptype="create")),
         "can_open_shift": bool(
             frappe.has_permission("POS Opening Entry", ptype="create")
-            and frappe.has_permission("POS Opening Entry", ptype="submit")
+            and _can_on_own("POS Opening Entry", "submit")
         ),
         "can_close_shift": bool(
             frappe.has_permission("POS Closing Entry", ptype="create")
-            and frappe.has_permission("POS Closing Entry", ptype="submit")
+            and _can_on_own("POS Closing Entry", "submit")
         ),
     }
 
@@ -633,7 +651,6 @@ def open_shift(pos_profile: str, balances: Any = None) -> dict[str, Any]:
     """Submit a native POS Opening Entry for the current cashier."""
     profile = _profile(pos_profile)
     _require("POS Opening Entry", "create")
-    _require("POS Opening Entry", "submit")
     existing = _open_entry(profile.name, required=False)
     if existing:
         return existing
@@ -680,6 +697,9 @@ def open_shift(pos_profile: str, balances: Any = None) -> dict[str, Any]:
         }
     )
     opening.insert()
+    # Against the entry itself: a cashier may submit only their own shift, and
+    # an owner-only right is refused when no document is named.
+    _require("POS Opening Entry", "submit", opening)
     opening.submit()
     return {
         "name": opening.name,
@@ -1435,7 +1455,6 @@ def close_shift(pos_profile: str, counted: Any, reason: str = "") -> dict[str, A
     """Submit ERPNext's POS Closing Entry with the counted amounts."""
     profile, opening = _current_opening(pos_profile)
     _require("POS Closing Entry", "create")
-    _require("POS Closing Entry", "submit")
     settings = _counter_settings(profile.name)
     # Only today's shift: an out-of-date one cannot complete a held sale, and
     # blocking it would keep the counter from ever opening again.
@@ -1448,6 +1467,9 @@ def close_shift(pos_profile: str, counted: Any, reason: str = "") -> dict[str, A
     if _needs_reason(rows, settings["reason_threshold"]) and not reason:
         frappe.throw(_("Give the reason for the difference before closing the shift."))
     closing.insert()
+    # Against the closing itself, as for the opening, and before the note:
+    # nothing is written for a shift this user may not close.
+    _require("POS Closing Entry", "submit", closing)
     # Before submit: ERPNext commits inside the closing's on_submit, so a note
     # written after it could be lost while the closing stands.
     if reason:

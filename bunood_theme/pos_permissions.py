@@ -14,6 +14,12 @@ shift records are creator-only; company, warehouse, customer, and profile scope
 continues to come from User Permissions and the POS Profile. Existing
 administrator extensions are never removed; the acceptance
 matrix is responsible for detecting excessive grants.
+
+Once a doctype has any Custom DocPerm row, Frappe reads its permissions from
+those rows alone. The doctype's standard rows are therefore copied in before
+the operator row is added, as Role Permission Manager and
+``frappe.permissions.add_permission`` do; otherwise every other role (System
+Manager, Sales Manager, Accounts User...) would lose the doctype.
 """
 
 from __future__ import annotations
@@ -77,6 +83,26 @@ def _ensure_role() -> bool:
     return True
 
 
+def _seed_standard_permissions(doctype: str) -> bool:
+    """Copy the doctype's standard DocPerms into Custom DocPerm when needed.
+
+    No custom row yet: ``setup_custom_perms`` copies the standard rows, so the
+    operator row is added to them instead of replacing them.  Only operator
+    rows: the state an earlier version of this module left behind by inserting
+    without that copy, so the standard rows are copied back.  Rows of any
+    other role mean the doctype was customised on purpose and stay as they are.
+    """
+    from frappe.permissions import copy_perms, setup_custom_perms
+
+    roles = set(frappe.get_all("Custom DocPerm", filters={"parent": doctype}, pluck="role"))
+    if not roles:
+        return bool(setup_custom_perms(doctype))
+    if roles == {POS_OPERATOR_ROLE}:
+        copy_perms(doctype)
+        return True
+    return False
+
+
 def _permission_values(doctype: str, required: frozenset[str], owner_only: bool) -> dict[str, object]:
     values: dict[str, object] = {
         "doctype": "Custom DocPerm",
@@ -95,11 +121,13 @@ def ensure_pos_operator_permissions() -> dict[str, object]:
     Missing required rights on an existing managed row are repaired.  Extra
     administrator-added rights are preserved rather than silently revoked; the
     V1 permission acceptance gate must report them for an explicit decision.
+    Standard rows are copied in first (see ``_seed_standard_permissions``).
     """
     required_doctypes = ("Role", "Custom DocPerm")
     if any(not frappe.db.exists("DocType", name) for name in required_doctypes):
         return {
             "role_created": False,
+            "seeded": [],
             "created": [],
             "repaired": [],
             "scope_repaired": [],
@@ -107,6 +135,7 @@ def ensure_pos_operator_permissions() -> dict[str, object]:
         }
 
     role_created = _ensure_role()
+    seeded: list[str] = []
     created: list[str] = []
     repaired: list[str] = []
     scope_repaired: list[str] = []
@@ -116,6 +145,8 @@ def ensure_pos_operator_permissions() -> dict[str, object]:
         if not frappe.db.exists("DocType", doctype):
             skipped.append(doctype)
             continue
+        if _seed_standard_permissions(doctype):
+            seeded.append(doctype)
         filters = {
             "parent": doctype,
             "role": POS_OPERATOR_ROLE,
@@ -151,10 +182,11 @@ def ensure_pos_operator_permissions() -> dict[str, object]:
             frappe.db.set_value("Custom DocPerm", name, missing, update_modified=False)
             repaired.append(doctype)
 
-    if role_created or created or repaired or scope_repaired:
+    if role_created or seeded or created or repaired or scope_repaired:
         frappe.clear_cache()
     return {
         "role_created": role_created,
+        "seeded": seeded,
         "created": created,
         "repaired": repaired,
         "scope_repaired": scope_repaired,
