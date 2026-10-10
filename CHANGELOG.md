@@ -24,6 +24,16 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.1] — 2026-10-10 — the bill's items follow the counter's rule
+
+- ERPNext's automatic item default (the site's default warehouse, added to every new item) no
+  longer puts every item in that warehouse: an item belongs to a warehouse by its stock records
+  there or by a default set on purpose (`api.warehouse_items`).
+- A service shows on the bill when it is the bill's company's or no company's, as at the counter.
+
+Checks: 107/107 bill tests; rc lab, rolled back: an unstocked new item is not offered, an
+automatic-shaped default does not count, a deliberate one does.
+
 ## [0.57.0] — 2026-10-10 — each point of sale sells its own company's items, from its own warehouse
 
 The owner could not tell which stock a counter sold from, and a counter showed every company's
