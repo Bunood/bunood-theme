@@ -362,12 +362,47 @@ def run() -> None:
             assert not scanned["items"] and scanned["elsewhere"], scanned
             assert refused(
                 lambda: pos.preview_cart({**payload, "items": [{"item_code": loose, "qty": 1}]}),
-                "Not one of this company's items: {0}",
+                "Not sold at this point of sale: {0}",
             ), "Another company's item was priced at this counter."
-            pos.save_settings(profile_name, None, json.dumps({"company_items": False}))
+            pos.save_settings(profile_name, None, json.dumps({"item_scope": "all"}))
             assert loose in [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
-            pos.save_settings(profile_name, None, json.dumps({"company_items": True}))
+            pos.save_settings(profile_name, None, json.dumps({"item_scope": "company"}))
             company_checked = True
+        assert refused(lambda: pos.save_settings(profile_name, None, json.dumps({"item_scope": "branch"})), "Invalid value for the counter setting: {0}")
+        # This warehouse's items, the simple invoice's rule: a stocked item with no stock record
+        # here and another default warehouse (so made inside this rollback) leaves the counter.
+        stocked = next(
+            (
+                row["item_code"]
+                for row in catalogue
+                if row["item_code"] not in (item["item_code"], loose)
+                and frappe.db.get_value("Item", row["item_code"], "is_stock_item")
+            ),
+            None,
+        )
+        warehouse_checked = None
+        if stocked:
+            frappe.db.sql("delete from `tabBin` where item_code = %s and warehouse = %s", (stocked, profile["warehouse"]))
+            frappe.db.sql(
+                "update `tabItem Default` set default_warehouse = null where parent = %s and default_warehouse = %s",
+                (stocked, profile["warehouse"]),
+            )
+            pos.save_settings(profile_name, None, json.dumps({"item_scope": "warehouse"}))
+            here = pos.get_items(profile_name, page_length=60)["items"]
+            assert stocked not in [row["item_code"] for row in here], "An item this warehouse never held is on its counter."
+            for row in here:
+                code = row["item_code"]
+                held = frappe.db.exists("Bin", {"item_code": code, "warehouse": profile["warehouse"]}) or frappe.db.exists(
+                    "Item Default", {"parent": code, "parenttype": "Item", "default_warehouse": profile["warehouse"]}
+                )
+                assert held or not frappe.db.get_value("Item", code, "is_stock_item"), code
+            assert refused(
+                lambda: pos.preview_cart({**payload, "items": [{"item_code": stocked, "qty": 1}]}),
+                "Not sold at this point of sale: {0}",
+            ), "An item this warehouse never held was priced at its counter."
+            pos.save_settings(profile_name, None, json.dumps({"item_scope": "company"}))
+            assert stocked in [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
+            warehouse_checked = True
         # Paging past the filter: the pages join up without a gap or a repeat.
         first = pos.get_items(profile_name, page_length=3)
         second = pos.get_items(profile_name, start=first["next_start"], page_length=3)
@@ -507,6 +542,7 @@ def run() -> None:
             "offline_short_sale_held_for_review": True,
             "tabby_needs_its_order_number": bnpl_checked,
             "company_items_only": company_checked,
+            "warehouse_items_only": warehouse_checked,
             "warehouse_waits_for_open_shifts": warehouse_waits,
             "item_groups_saved": True,
             "settings_saved": True,

@@ -154,7 +154,7 @@ class POSWorkbenchContractTests(unittest.TestCase):
 
     def test_counter_defaults_are_the_counter_before_the_settings_page(self):
         # A profile that never opened the page keeps exactly the old behaviour,
-        # except company_items (owner, 2026-10-10): each company sells its own items.
+        # except item_scope (owner, 2026-10-10): each company sells its own items.
         assignment = next(
             node for node in self.tree.body
             if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "COUNTER_DEFAULTS"
@@ -163,17 +163,24 @@ class POSWorkbenchContractTests(unittest.TestCase):
             "fbar": False, "tiles": "m", "customer_screen": True, "receipt_qr": True, "max_discount": 0,
             "returns": True, "new_item": True, "cash_exact": True, "cash_notes": [10, 50, 100, 200, 500],
             "merge_scans": True, "scale_prefix": "21", "unknown_barcode": "offer",
-            "reason_threshold": 0, "held_on_close": "carry", "bnpl": {}, "company_items": True,
+            "reason_threshold": 0, "held_on_close": "carry", "bnpl": {}, "item_scope": "company",
         })
 
     def test_a_counter_keeps_to_its_company_items_in_the_catalogue_and_at_checkout(self):
         items = self.body("get_items")
-        self.assertIn('own = _counter_settings(profile.name)["company_items"]', items)
-        self.assertIn("kept = _company_items(profile.company, [row[\"item_code\"] for row in page]) if own else None", items)
+        self.assertIn('scope = _counter_settings(profile.name)["item_scope"]', items)
+        self.assertIn("kept = _scoped_items(profile, [row[\"item_code\"] for row in page], scope)", items)
         self.assertIn('"elsewhere": bool(known) and not items,', items)
         # Checkout, held drafts and offline sales all price their lines through this.
         native = self.body("_native_catalog_item")
-        self.assertIn('if _counter_settings(profile.name)["company_items"] and item_code not in _company_items(profile.company, [item_code]):', native)
+        self.assertIn("kept = _scoped_items(profile, [item_code])", native)
+        self.assertIn("if kept is not None and item_code not in kept:", native)
+        # The warehouse scope is the simple bill's rule; services keep to the company.
+        scoped = self.body("_scoped_items")
+        self.assertIn('frappe.get_all("Bin", filters={"warehouse": profile.warehouse, "item_code": ["in", codes]}, pluck="item_code")', scoped)
+        self.assertIn('"default_warehouse": profile.warehouse', scoped)
+        self.assertIn("return held | (services & own)", scoped)
+        self.assertIn('ITEM_SCOPES = ("company", "warehouse", "all")', self.source)
         owners = self.body("_company_items")
         self.assertIn('"Item Default"', owners)
         self.assertIn('frappe.get_all("Bin"', owners)

@@ -209,7 +209,7 @@ COUNTER_DEFAULTS: dict[str, Any] = {
     "reason_threshold": 0,
     "held_on_close": "carry",
     "bnpl": {},
-    "company_items": True,
+    "item_scope": "company",
 }
 BNPL_PROVIDERS = {"tabby": "Tabby", "tamara": "Tamara"}
 CASH_NOTES = (1, 5, 10, 20, 50, 100, 200, 500)
@@ -240,7 +240,7 @@ def _counter_label(key: str) -> str:
         "cash_exact": _("Exact cash button"),
         "cash_notes": _("Suggested cash notes"),
         "merge_scans": _("Merge repeated scans"),
-        "company_items": _("Only this company's items"),
+        "item_scope": _("Items shown"),
         "scale_prefix": _("Scale label prefix"),
         "unknown_barcode": _("Unknown barcodes"),
         "reason_threshold": _("Difference that needs a reason"),
@@ -278,6 +278,11 @@ def _clean_counter(values: Any, strict: bool) -> dict[str, Any]:
                 bad(key)
         elif key == "unknown_barcode":
             if value in ("offer", "alert"):
+                clean[key] = value
+            else:
+                bad(key)
+        elif key == "item_scope":
+            if value in ITEM_SCOPES:
                 clean[key] = value
             else:
                 bad(key)
@@ -428,6 +433,7 @@ def _catalog_root() -> str:
 # only, unless its settings say otherwise.
 
 MAX_SCOPE_ROUNDS = 10
+ITEM_SCOPES = ("company", "warehouse", "all")
 
 
 def _company_items(company: str, codes: list[str]) -> set[str]:
@@ -448,6 +454,33 @@ def _company_items(company: str, codes: list[str]) -> set[str]:
     for row in bins:
         owners.setdefault(row.item_code, set()).add(companies.get(row.warehouse))
     return {code for code in codes if not owners.get(code) or company in owners[code]}
+
+
+def _scoped_items(profile, codes: list[str], scope: str | None = None) -> set[str] | None:
+    """The items among ``codes`` this counter sells, by its item_scope setting (None: every one).
+    "company": the company's items (_company_items). "warehouse": the simple bill's rule
+    (api.bill_item_query): stock records in the counter's warehouse, or that warehouse as the
+    item's default; a service, which no warehouse holds, keeps to the company rule here, so
+    another company's services never show."""
+    scope = scope or _counter_settings(profile.name)["item_scope"]
+    if scope == "all":
+        return None
+    own = _company_items(profile.company, codes)
+    if scope != "warehouse":
+        return own
+    codes = [code for code in dict.fromkeys(codes) if code]
+    if not codes:
+        return set()
+    held = set(frappe.get_all("Bin", filters={"warehouse": profile.warehouse, "item_code": ["in", codes]}, pluck="item_code"))
+    held |= set(
+        frappe.get_all(
+            "Item Default",
+            filters={"parenttype": "Item", "default_warehouse": profile.warehouse, "parent": ["in", codes]},
+            pluck="parent",
+        )
+    )
+    services = set(frappe.get_all("Item", filters={"name": ["in", codes], "is_stock_item": 0}, pluck="name"))
+    return held | (services & own)
 
 
 def _branches(warehouses: list[str]) -> dict[str, str]:
@@ -633,7 +666,7 @@ def get_items(
     search_term: str = "",
 ) -> dict[str, Any]:
     """Delegate catalogue search, barcode resolution, pricing and stock to ERPNext,
-    then keep the profile's company's items only (when the counter is set so).
+    then keep to the counter's items (its item_scope setting).
     ERPNext pages before that filter, so ``next_start`` says where the next page
     starts and ``more`` whether there is one. A scanned code of an item this
     counter does not sell answers ``elsewhere``, not an unknown code."""
@@ -645,13 +678,13 @@ def get_items(
     term = (search_term or "").strip()[:140]
     size = min(max(cint(page_length), 1), MAX_PAGE_LENGTH)
     offset = max(cint(start), 0)
-    own = _counter_settings(profile.name)["company_items"]
+    scope = _counter_settings(profile.name)["item_scope"]
     known, resolved = _known_item(term) if term else (None, False)
     items: list[dict[str, Any]] = []
     more = False
     for round_number in range(MAX_SCOPE_ROUNDS):
         page = (native_get_items(offset, size, profile.selling_price_list, group, profile.name, term) or {}).get("items") or []
-        kept = _company_items(profile.company, [row["item_code"] for row in page]) if own else None
+        kept = _scoped_items(profile, [row["item_code"] for row in page], scope)
         taken = 0
         for row in page:
             taken += 1
@@ -738,8 +771,9 @@ def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dic
     ) or next((row for row in rows if row.get("item_code") == item_code), None)
     if not item:
         frappe.throw(_("Item unavailable in this POS Profile: {0}").format(item_code))
-    if _counter_settings(profile.name)["company_items"] and item_code not in _company_items(profile.company, [item_code]):
-        frappe.throw(_("Not one of this company's items: {0}").format(item_code))
+    kept = _scoped_items(profile, [item_code])
+    if kept is not None and item_code not in kept:
+        frappe.throw(_("Not sold at this point of sale: {0}").format(item_code))
     return item
 
 

@@ -2290,8 +2290,8 @@
 					{ kind: "warehouse", source: "native", key: "warehouse", label: __("Warehouse", null, "Bunood POS"), desc: __("Every sale takes its stock from here, and the counter shows its quantities.", null, "Bunood POS"), options: store.warehouses || [], shifts: store.open_shifts || [] },
 					{ kind: "groups", source: "native", key: "item_groups", label: __("Item groups on this counter", null, "Bunood POS"), desc: __("These groups and the groups under them. None chosen: every group.", null, "Bunood POS"), groups: store.groups || [] },
 					S("native", "hide_unavailable_items", __("Items out of stock in this warehouse", null, "Bunood POS"), __("Shown with their quantity, or left out of the catalogue. Services always show.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
-					(store.companies || 0) > 1 ? T("counter", "company_items", __("Only this company's items", null, "Bunood POS"), __("An item is this company's when it has stock in one of its warehouses or an item default for it. An item with neither for any company shows at every counter.", null, "Bunood POS")) : null,
-				].filter(Boolean) },
+					S("counter", "item_scope", __("Items shown", null, "Bunood POS"), __("This company's: an item with an item default for the company or stock in one of its warehouses, or with neither for any company. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice; services keep to the company.", null, "Bunood POS"), [["company", __("This company's items", null, "Bunood POS")], ["warehouse", __("This warehouse's items", null, "Bunood POS")], ["all", __("All items", null, "Bunood POS")]]),
+				] },
 				{ name: __("The screen", null, "Bunood POS"), intro: __("How the sale screen looks for whoever works this counter.", null, "Bunood POS"), rows: [
 					T("counter", "fbar", __("Supermarket mode", null, "Bunood POS"), __("A bar of function keys under the screen, to touch or press. Each device can still switch it from the counter's menu.", null, "Bunood POS")),
 					T("native", "hide_images", __("Item pictures on the tiles", null, "Bunood POS"), __("Without pictures the catalogue is faster and clearer when most items are scanned.", null, "Bunood POS"), true),
@@ -2413,7 +2413,7 @@
 			for (const [field, value] of Object.entries(settings.counter)) {
 				if (JSON.stringify(value) !== JSON.stringify(settings.ctx.counter[field])) counterChanges[field] = value;
 			}
-			const scope = ["warehouse", "item_groups", "hide_unavailable_items"].some((field) => field in native) || "company_items" in counterChanges;
+			const scope = ["warehouse", "item_groups", "hide_unavailable_items"].some((field) => field in native) || "item_scope" in counterChanges;
 			settings.busy = true;
 			settings.error = "";
 			renderSettingsView();
