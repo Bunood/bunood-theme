@@ -205,7 +205,8 @@ class POSWorkbenchContractTests(unittest.TestCase):
         owners = self.body("_company_items")
         # ERPNext adds the site's default company's item default to every new item.
         self.assertIn('automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")', owners)
-        self.assertIn("if automatic and row.default_warehouse == automatic and not any(row.get(field) for field in details):", owners)
+        # A row of that shape chosen on purpose (bunood_business marks it bnd_chosen) still counts.
+        self.assertIn('if automatic and row.default_warehouse == automatic and not row.get("bnd_chosen") and not any(row.get(field) for field in details):', owners)
         self.assertNotIn("get_global_default", owners)
         # A sale kept for review keeps its own items sellable when completed.
         self.assertIn('frappe.flags.bnd_pos_review_items = _review_items(invoice_type, draft_name or str(data.get("draft") or ""))', self.body("_new_or_held"))
