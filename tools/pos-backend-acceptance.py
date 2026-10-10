@@ -266,10 +266,16 @@ def run() -> None:
         from_queue = pos.sync_offline_sale(client_id, "2026-10-10 09:03", json.dumps(payload), json.dumps(cash_row), str(due_now))
         assert from_queue["already"] and from_queue["name"] == first_try["name"], from_queue
         if customer == profile.get("customer"):
+            # A walk-in sale paid in part is refused either way: with credit sales off for
+            # not covering the total, with them on for leaving the rest on a walk-in.
+            # (refused() fails on any other message, so the expected one is chosen first;
+            # found on the dining lab, whose profile has credit sales off.)
             assert refused(
                 lambda: pos.checkout(payload, [{"mode_of_payment": first_mode, "amount": 0.01}]),
-                "The rest can stay on account only for a named customer.",
-            ) or profile.get("allow_partial_payment") is False
+                "The rest can stay on account only for a named customer."
+                if profile.get("allow_partial_payment")
+                else "Payment must cover the full sale total.",
+            ), "A walk-in sale was completed with part of it unpaid."
 
         # Phase 4, 2026-10-10: the settings page. Only the counter's own settings
         # here: a POS Profile save would leave its cached document behind the rollback.
