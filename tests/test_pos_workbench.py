@@ -372,8 +372,32 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertNotIn("get_parent_item_group", self.source)
         self.assertIn('return get_root_of("Item Group")', self.source)
         self.assertIn("group = item_group or _catalog_root()", self.source)
-        native = self.source.split("def _native_catalog_item", 1)[1].split("\ndef ", 1)[0]
+        native = self.source.split("def _catalog_match", 1)[1].split("\ndef ", 1)[0]
         self.assertIn("_catalog_root(),", native)
+
+    def test_a_channel_price_list_prices_the_sale_and_stays_on_the_invoice(self):
+        channel = (ROOT / "bunood_theme" / "pos_price_list.py").read_text(encoding="utf-8")
+        # Opt-in: an app's hook names the list, asked of the document, never of the payload.
+        self.assertIn('PRICE_LIST_HOOK = "bunood_pos_price_list"', channel)
+        self.assertIn("chosen = frappe.get_attr(method)(doc=doc, profile=profile)", channel)
+        self.assertIn('if doc is None or cint(doc.get("is_return")):', channel)
+        self.assertIn("if not found or not found.enabled or not found.selling:", channel)
+        self.assertIn('if found.currency != frappe.db.get_value("Price List", profile.get("selling_price_list"), "currency"):', channel)
+        # Every line is priced from it; an item it has no price for keeps the profile's.
+        apply_cart = self.body("_apply_cart")
+        self.assertIn("price_list = channel_price_list(profile, doc)", apply_cart)
+        self.assertIn('authoritative = _native_catalog_item(profile, item_code, raw.get("uom"), price_list)', apply_cart)
+        self.assertLess(apply_cart.index("price_list = channel_price_list(profile, doc)"), apply_cart.index("for raw in"))
+        native = self.body("_native_catalog_item")
+        self.assertIn("item = _catalog_match(profile, item_code, uom, price_list or profile.selling_price_list)", native)
+        self.assertIn('if item and price_list and item.get("price_list_rate") in (None, ""):', native)
+        self.assertIn("item = _catalog_match(profile, item_code, uom, profile.selling_price_list) or item", native)
+        # The invoice names it at every validation, before pricing rules read it.
+        self.assertIn("profile = super().set_pos_fields(for_validate)", channel)
+        self.assertIn("self.selling_price_list = chosen", channel)
+        hooks = (ROOT / "bunood_theme" / "hooks.py").read_text(encoding="utf-8")
+        for doctype in ("Sales Invoice", "POS Invoice"):
+            self.assertIn(f'"{doctype}": ["bunood_theme.pos_price_list.ChannelPriceList"]', hooks)
 
     def test_vat_rows_reach_the_counter_for_display_only(self):
         taxes = self.source.split("def _profile_taxes", 1)[1].split("\ndef ", 1)[0]
