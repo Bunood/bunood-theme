@@ -51,16 +51,76 @@ test('shared workbench keeps the party strip on one aligned row and items spread
   assert.match(css, /\.bnd-bill-layout \{[^}]*grid-template-columns: minmax\(0,1fr\)/);
   assert.doesNotMatch(css, /\.bnd-bill-rail \{/);
 });
-test('simple invoices leave stock to setup and offer a branch only when there is a choice', () => {
+test('the context bar names where the bill sells from: the branch and its warehouse, or the company', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
   assert.doesNotMatch(source, /bnd-bill-stock-settings/);
   assert.doesNotMatch(source, /bindControl\([^;]*fields_dict\.update_stock/, 'no Update Stock switch on the simple screen');
+  assert.doesNotMatch(source, /bnd-bill-branch-select/, 'the branch select gave way to its chip');
   assert.match(source, /frappe\.boot\?\.bnd_branches/);
-  assert.match(source, /this\.branchField\.hidden = branches\.length < 2 \|\| status === "None"/);
+  assert.match(source, /this\.chips\.branch = this\.chip\(context, "store", __\("Branch"\)/);
+  assert.match(source, /else this\.chips\.company = this\.chip\(context, "building-2", __\("Company"\)\)/);
   assert.match(source, /hidden_due_to_dependency: 0 \}, this\.doc, this\.frm\.perm/);
   assert.match(source, /this\.frm\.set_value\("set_warehouse", branch\.warehouse\)/);
   assert.doesNotMatch(css, /\.bnd-bill-stock-settings/);
+  assert.match(css, /\.bnd-bill-chip:focus-visible \{/);
+});
+function contextBench(boot, doc) {
+  const {BillWorkbench}=context.window.bunood_theme.sales_bill;
+  context.frappe.boot=boot;
+  context.frappe.perm={get_field_display_status:()=>'Write'};
+  const chip=()=>({value:{textContent:''},chip:{disabled:false,setAttribute(){},removeAttribute(){},focus(){}},wrap:{hidden:false}});
+  const w=Object.create(BillWorkbench.prototype), sets=[];
+  w.frm={doctype:'Sales Invoice',perm:[],fields_dict:{set_warehouse:{df:{fieldname:'set_warehouse'}},bunood_settlement_method:{df:{options:'Cash\nOn Credit'},get_status:()=>'Write'}},
+    set_value:(field,value)=>{sets.push([field,value]);w.doc[field]=value;return Promise.resolve();}};
+  w.profile={paymentMethod:'bunood_settlement_method',priceList:'selling_price_list'};
+  w.doc={company:'A',docstatus:0,items:[],...doc};
+  w.chips={branch:chip(),warehouse:chip(),payment:chip(),currency:chip(),priceList:chip()};
+  w.change=fn=>Promise.resolve(fn());w.active=()=>true;
+  return {w,sets};
+}
+test('the chips show the branch, its warehouse and the settlement, and a warehouse tied to a branch takes it along', async () => {
+  const previous={boot:context.frappe.boot,perm:context.frappe.perm};
+  try {
+    const branches=[{name:'Main',warehouse:'Stores - A',company:'A'},{name:'Olaya',warehouse:'Olaya - A',company:'A'}];
+    const {w,sets}=contextBench({bnd_business_type:'Stock',bnd_branches:branches},{set_warehouse:'Olaya - A',update_stock:1,bunood_settlement_method:'Cash',currency:'SAR',selling_price_list:'Standard Selling'});
+    w.renderContext();
+    assert.deepEqual([w.chips.branch.value.textContent,w.chips.warehouse.value.textContent,w.chips.payment.value.textContent,w.chips.currency.value.textContent,w.chips.priceList.value.textContent],
+      ['Olaya','Olaya - A','Cash','SAR','Standard Selling']);
+    assert.equal(w.chips.warehouse.wrap.hidden,false);
+    await w.chooseWarehouse('Stores - A');
+    assert.deepEqual(sets,[['set_warehouse','Stores - A']]);
+    w.renderContext();
+    assert.equal(w.chips.branch.value.textContent,'Main','the branch follows its warehouse');
+    w.doc.docstatus=1;w.renderContext();
+    assert.equal(w.chips.branch.chip.disabled,true,'a submitted bill shows its branch, unchangeable');
+    const service=contextBench({bnd_business_type:'Service',bnd_branches:branches},{update_stock:0,set_warehouse:''});
+    service.w.renderContext();
+    assert.equal(service.w.chips.warehouse.wrap.hidden,true,'a service business has no warehouse to choose');
+  } finally {context.frappe.boot=previous.boot;context.frappe.perm=previous.perm;}
+});
+test('the item search keeps to the branch warehouse on a stock bill, and stays ERPNext\'s otherwise', () => {
+  const previous={boot:context.frappe.boot,perm:context.frappe.perm};
+  try {
+    const native=()=>({query:'erpnext.controllers.queries.item_query',filters:{is_sales_item:1,customer:'C',has_variants:0}});
+    const {w}=contextBench({bnd_business_type:'Stock',bnd_branches:[]},{update_stock:1,set_warehouse:'Stores - A'});
+    w.simple=true;
+    const scoped=w.itemQuery(()=>native)();
+    assert.equal(scoped.query,'bunood_theme.api.bill_item_query');
+    assert.deepEqual(JSON.parse(JSON.stringify(scoped.filters)),{is_sales_item:1,customer:'C',has_variants:0,bnd_warehouse:'Stores - A'});
+    w.simple=false;
+    assert.equal(w.itemQuery(()=>native)().query,'erpnext.controllers.queries.item_query','the Advanced form keeps ERPNext\'s search');
+    w.simple=true;w.doc.set_warehouse='';
+    assert.equal(w.itemQuery(()=>native)().query,'erpnext.controllers.queries.item_query','no warehouse, no scope');
+    const service=contextBench({bnd_business_type:'Service'},{update_stock:0,set_warehouse:'Stores - A'});
+    service.w.simple=true;
+    assert.equal(service.w.itemQuery(()=>native)().query,'erpnext.controllers.queries.item_query','a bill that moves no stock searches every item');
+    w.frm.doctype='Purchase Invoice';
+    assert.equal(w.itemQuery(()=>native),native,'only the sales bill is scoped');
+    // ERPNext sets its search after the first lines exist: a line reads it when the reader types.
+    w.frm.doctype='Sales Invoice';w.doc.set_warehouse='Stores - A';let late;const lazyLine=w.itemQuery(()=>late);
+    late=native;assert.equal(lazyLine().query,'bunood_theme.api.bill_item_query');
+  } finally {context.frappe.boot=previous.boot;context.frappe.perm=previous.perm;}
 });
 test('branch choices follow the company and a new bill starts in its branch warehouse', async () => {
   const {BillWorkbench}=context.window.bunood_theme.sales_bill;

@@ -19115,3 +19115,43 @@ msgstr "رقم الطلب مطلوب من: {0}"
 #, fuzzy
 msgid "Order with {0}: {1}"
 msgstr "طلب لدى {0}: {1}"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Invoice context"
+msgstr "سياق الفاتورة"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Price List"
+msgstr "قائمة الأسعار"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Choose a branch"
+msgstr "اختر الفرع"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "By item"
+msgstr "حسب الصنف"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Nothing to choose here."
+msgstr "لا يوجد ما يُختار هنا."
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Warehouse linked automatically"
+msgstr "مستودع مرتبط تلقائياً"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Available: {0}"
+msgstr "متوفر: {0}"
+
+#. src: simple invoice context bar, owner mock 2026-10-10
+#, fuzzy
+msgid "Payment method"
+msgstr "طريقة الدفع"

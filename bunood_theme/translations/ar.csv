@@ -294,6 +294,7 @@ Authority confirmed,تم تأكيد الصلاحية,
 Auto Repeat,التكرار التلقائي,
 Auto Repeat creates native documents on a schedule. Review whether generated entries remain drafts or submit automatically.,ينشئ التكرار التلقائي مستندات أصلية وفق جدول. راجع ما إذا كانت القيود الناتجة تبقى مسودات أو تُرحّل تلقائيًا.,
 Automatic,تلقائي,
+Available: {0},متوفر: {0},
 Average invoice,متوسط الفاتورة,
 Average order value,متوسط قيمة أمر البيع,
 Awaiting response,بانتظار الرد,
@@ -428,6 +429,7 @@ Business owner,مالك المنشأة,
 "Buy now, pay later",اشترِ الآن وادفع لاحقًا,Bunood POS
 Buying,المشتريات,
 "By ERPNext's rounding for the currency, or none.",حسب تقريب ERPNext للعملة، أو بدون.,Bunood POS
+By item,حسب الصنف,
 "By mobile, name or VAT number",بالجوال أو الاسم أو الرقم الضريبي,Bunood POS
 By weight,بالوزن,Bunood POS
 CRM,إدارة علاقات العملاء,
@@ -505,6 +507,7 @@ Chevron,سهم زاوي,
 Chevron and arrow mirror automatically in right-to-left languages.,السهم الزاوي والسهم ينعكسان تلقائيًا في اللغات التي تُكتب من اليمين إلى اليسار.,
 Chip,شريحة,
 Choose a bank account,اختر حسابًا بنكيًا,
+Choose a branch,اختر الفرع,
 "Choose a company and dates, then review the evidence. No books are changed here.",اختر الشركة والتواريخ ثم راجع المستندات المؤيدة. لا تتغير الدفاتر في هذه الخطوة.,
 Choose a company and period first,اختر الشركة والفترة أولًا,
 Choose a customer,اختيار عميل,Bunood POS
@@ -1381,6 +1384,7 @@ Invoice,الفاتورة,Bunood POS
 Invoice Counter,عدّاد الفواتير,
 Invoice ZATCA details,تفاصيل زاتكا للفاتورة,
 Invoice actions,إجراءات الفاتورة,
+Invoice context,سياق الفاتورة,
 Invoice delivery is not ready.,إرسال الفاتورة غير جاهز.,
 Invoice delivery status is unavailable. Try again shortly.,حالة إرسال الفاتورة غير متاحة. أعد المحاولة بعد قليل.,
 Invoice details,تفاصيل الفاتورة,
@@ -1844,6 +1848,7 @@ Nothing found,لا نتائج,
 Nothing here yet,لا شيء هنا بعد,
 Nothing in this period,لا شيء في هذه الفترة,
 Nothing returned yet,لم يُرجع منه شيء,Bunood POS
+Nothing to choose here.,لا يوجد ما يُختار هنا.,
 Nothing to export yet,لا بيانات للتصدير بعد,
 Nothing to hold,لا شيء لتعليقه,Bunood POS
 Nothing to show,لا شيء يُعرض,
@@ -2082,6 +2087,7 @@ Payment and type,السداد والنوع,
 Payment details are not valid.,تفاصيل الدفع غير صالحة.,
 Payment drafts,مسودات سندات القبض والدفع,
 Payment evidence,مرجع الدفع,
+Payment method,طريقة الدفع,
 Payment method,طريقة الدفع,Bunood POS
 Payment method unavailable in this POS Profile: {0},طريقة الدفع غير متاحة في ملف نقطة البيع هذا: {0},
 Payment methods,طرق الدفع,
@@ -2156,6 +2162,7 @@ Previous,السابق,
 Previous receipt,سجل القرار السابق,
 Previous shift needs closing,تحتاج الوردية السابقة إلى إغلاق,
 Price,السعر,Bunood POS
+Price List,قائمة الأسعار,
 Price before discount,السعر قبل الخصم,
 Price includes VAT,السعر شامل الضريبة,
 Price includes VAT ({0}%),السعر شامل الضريبة ({0}%),
@@ -3490,6 +3497,7 @@ Walk-in customer,عميل نقدي,Bunood POS
 Walk-in sales without a VAT number only: anyone in the queue can scan it.,للعميل النقدي بلا رقم ضريبي فقط، لأن أي شخص في الطابور يستطيع مسحه.,Bunood POS
 Warehouse,المستودع,
 Warehouse is a default. Stock moves only when Update Stock is on.,المستودع قيمة افتراضية. لا يتحرّك المخزون إلا عند تفعيل تحديث المخزون.,
+Warehouse linked automatically,مستودع مرتبط تلقائياً,
 "Warehouse, stock and valuation",المستودع والمخزون والتقييم,
 Warehouses,المستودعات,
 Warns when the scheduler is paused — the quiet failure behind most 'why did nothing run' tickets. System Managers only.,ينبه عندما يتوقف المجدول — العطل الصامت وراء معظم تذاكر «لماذا لم يعمل شيء». لمديري النظام فقط.,

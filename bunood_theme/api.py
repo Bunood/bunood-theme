@@ -1907,3 +1907,46 @@ def bill_item_defaults(company: str | None = None) -> dict:
         "selling_price_list": frappe.db.get_single_value("Selling Settings", "selling_price_list"),
         "buying_price_list": frappe.db.get_single_value("Buying Settings", "buying_price_list"),
     }
+
+
+@frappe.whitelist()
+def bill_item_query(doctype, txt, searchfield, start, page_len, filters):
+    """The simple bill's item search, for a bill that moves stock: ERPNext's own item_query, kept
+    to the items of the branch's warehouse (owner, 2026-10-10: «the items of the branch and its
+    warehouse, not everything»). An item belongs to the warehouse when it has stock records
+    there (a Bin) or names it as its default; a service, which no warehouse holds, is always
+    offered. Each stocked item shows what the warehouse holds. Without a warehouse it is ERPNext's
+    search unchanged."""
+    import json
+
+    from erpnext.controllers.queries import item_query
+    from frappe.utils import cint, flt
+
+    filters = json.loads(filters) if isinstance(filters, str) else dict(filters or {})
+    warehouse = filters.pop("bnd_warehouse", None)
+    if not warehouse or not frappe.db.exists("Warehouse", warehouse):
+        return item_query(doctype, txt, searchfield, start, page_len, filters)
+    start, page_len = cint(start), cint(page_len) or 20
+    held = set(frappe.get_all("Bin", filters={"warehouse": warehouse}, pluck="item_code"))
+    held |= set(frappe.get_all("Item Default", filters={"parenttype": "Item", "default_warehouse": warehouse}, pluck="parent"))
+    want = start + page_len
+    rows = list(item_query(doctype, txt, searchfield, 0, want, {**filters, "name": ["in", sorted(held)]})) if held else []
+    rows += list(item_query(doctype, txt, searchfield, 0, want, {**filters, "is_stock_item": 0}))
+    seen, page = set(), []
+    for row in rows:
+        if row[0] in seen:
+            continue
+        seen.add(row[0])
+        page.append(list(row))
+    page = page[start:want]
+    stocked = [row[0] for row in page if row[0] in held]
+    qty = {
+        bin.item_code: flt(bin.actual_qty)
+        for bin in frappe.get_all(
+            "Bin", filters={"warehouse": warehouse, "item_code": ["in", stocked or [""]]}, fields=["item_code", "actual_qty"]
+        )
+    }
+    for row in page:
+        if row[0] in held:
+            row.append(_("Available: {0}").format(frappe.format(qty.get(row[0], 0), {"fieldtype": "Float"})))
+    return page

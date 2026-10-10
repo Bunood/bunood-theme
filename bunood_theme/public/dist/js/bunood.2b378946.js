@@ -11138,6 +11138,29 @@
 			this.discountButton = this.action(documentActions, __("Discount"), "F10", "percent", () => this.openDetails("discount_amount"));
 			this.restoreButton = this.action(utilityActions, __("Reload"), "F11", "rotate-ccw", () => this.restore());
 			this.searchButton = this.action(utilityActions, __("Find item"), "Alt+I", "search", () => this.focusItemEntry());
+			// The context bar (owner's mock, 2026-10-10): where the bill sells from (the
+			// branch, or the company when it has none, and the warehouse the branch is tied
+			// to), how it is settled, its currency and its price list, one chip each.
+			const context = this.contextBar = node("div", "bnd-bill-context");
+			intro.after(context);
+			context.setAttribute("role", "group");
+			context.setAttribute("aria-label", __("Invoice context"));
+			this.chips = {};
+			if (this.branches().length) this.chips.branch = this.chip(context, "store", __("Branch"), () => this.branchMenu());
+			else this.chips.company = this.chip(context, "building-2", __("Company"));
+			if (frm.fields_dict.set_warehouse) this.chips.warehouse = this.chip(context, "warehouse", __("Warehouse"), () => this.warehouseMenu());
+			const settlement = this.profile.paymentMethod && frm.fields_dict[this.profile.paymentMethod];
+			// «طريقة الدفع», as the owner names it, whatever the settlement field is called.
+			if (settlement) this.chips.payment = this.chip(context, "wallet", __("Payment method"), () => this.paymentMenu());
+			if (frm.fields_dict.currency) this.chips.currency = this.chip(context, "badge-dollar-sign", __("Currency"), () => this.openDetails("currency"));
+			if (frm.fields_dict[this.profile.priceList]) this.chips.priceList = this.chip(context, "tag", __("Price List"), () => this.openDetails(this.profile.priceList));
+			const keys = node("div", "bnd-bill-context-keys", null, context);
+			keys.setAttribute("aria-hidden", "true");
+			for (const [key, label] of [["F2", __("Barcode")], ...(this.profile.newItem ? [["F4", __("New item")]] : []), ["F9", __("Save")]]) {
+				const hint = node("span", "", null, keys);
+				node("kbd", "", key, hint);
+				node("span", "", label, hint);
+			}
 			this.status = node("p", "bnd-bill-status", "", this.root);
 			this.status.setAttribute("role", "status");
 			this.revertButton = button(__("Revert invalid edits"), this.root, () => { for (const key of this.invalid.keys()) this.pending.delete(key); this.invalid.clear(); this.render(); this.message(__("Changes stay in this invoice when you close this view.")); });
@@ -11162,21 +11185,12 @@
 				this.newPartyButton.setAttribute("aria-label", label);
 				this.newPartyButton.title = label;
 			}
-			const primaryFields = ["posting_date", ...(this.profile.paymentMethod ? [this.profile.paymentMethod] : []), ...(frm.doctype === "Purchase Invoice" ? ["bill_no"] : [])];
+			// The payment method has its chip in the context bar.
+			const primaryFields = ["posting_date", ...(frm.doctype === "Purchase Invoice" ? ["bill_no"] : [])];
 			for (const name of primaryFields) {
 				const source = frm.fields_dict[name];
 				if (source && fieldStatus(frm, name) !== "None") this.bindControl(essentials, source, this.doc);
 			}
-			// Branch: offered only when the company has more than one; each branch is
-			// tied to its warehouse (frappe.boot.bnd_branches), so choosing one is the
-			// whole stock decision on this screen.
-			this.branchField = node("div", "frappe-control bnd-bill-branch", null, essentials);
-			this.branchField.hidden = true;
-			const branchLabel = node("label", "control-label", __("Branch"), this.branchField);
-			this.branchSelect = node("select", "form-control bnd-bill-branch-select", null, this.branchField);
-			this.branchSelect.id = `bnd-bill-branch-${++controlId}`;
-			branchLabel.htmlFor = this.branchSelect.id;
-			this.branchSelect.addEventListener("change", () => this.chooseBranch(this.branchSelect.value));
 			const moreToggle = this.detailsToggle = button(__("Additional details"), essentials, () => this.openDetails());
 			moreToggle.classList.add("bnd-bill-more-toggle");
 			moreToggle.setAttribute("aria-expanded", "false");
@@ -11195,12 +11209,6 @@
 				const source = frm.fields_dict[name];
 				if (source && fieldStatus(frm, name) !== "None") this.bindControl(extraEssentials, source, this.doc);
 			}
-			// No branch to choose (fewer than two): the warehouse itself stays reachable
-			// here, for a business that moves stock. Its native dependency on
-			// update_stock would hide it before the stock default below applies.
-			const movesStock = frappe.boot?.bnd_business_type === "Stock" || Number(this.doc.update_stock) === 1;
-			if (movesStock && this.branches().length < 2 && frm.fields_dict.set_warehouse)
-				this.bindControl(extraEssentials, frm.fields_dict.set_warehouse, this.doc, false, () => this.warehouseStatus());
 			if (frm.doctype === "Sales Invoice") {
 				const invoiceNumber = node("div", "frappe-control bnd-bill-static-field bnd-bill-invoice-number", null, extraEssentials);
 				invoiceNumber.dataset.fieldname = "bnd_invoice_number";
@@ -11319,26 +11327,164 @@
 		rememberedBranch() {
 			try { return window.localStorage?.getItem(this.branchKey()) || ""; } catch (_) { return ""; }
 		}
-		renderBranch() {
-			if (!this.branchField) return;
-			const branches = this.branches();
-			const status = this.warehouseStatus();
-			this.branchField.hidden = branches.length < 2 || status === "None";
-			if (this.branchField.hidden) return;
-			const current = this.currentBranch(branches);
-			const options = branches.map(row => [row.name, __(row.label || row.name)]);
-			if (!current && this.doc.set_warehouse) options.push(["", this.doc.set_warehouse]);
-			const signature = JSON.stringify(options);
-			if (this.branchSelect.dataset.options !== signature) {
-				this.branchSelect.replaceChildren();
-				for (const [value, label] of options) {
-					const option = node("option", "", label, this.branchSelect);
-					option.value = value;
-				}
-				this.branchSelect.dataset.options = signature;
+		renderBranch() { this.renderContext(); }
+		stockBill() {
+			return frappe.boot?.bnd_business_type === "Stock" || Number(this.doc.update_stock) === 1;
+		}
+		chip(parent, icon, label, open = null) {
+			const wrap = node("div", "bnd-bill-chip-wrap", null, parent);
+			const chip = node("button", "bnd-bill-chip", null, wrap);
+			chip.type = "button";
+			const tile = node("span", "bnd-bill-chip-icon", null, chip);
+			tile.innerHTML = frappe.utils.icon(icon, "sm");
+			tile.setAttribute("aria-hidden", "true");
+			const text = node("span", "bnd-bill-chip-text", null, chip);
+			node("span", "bnd-bill-chip-label", label, text);
+			const value = node("strong", "bnd-bill-chip-value", "", text);
+			const entry = { wrap, chip, value, icon, label, open };
+			if (open) {
+				const caret = node("span", "bnd-bill-chip-caret", null, chip);
+				caret.innerHTML = frappe.utils.icon("chevron-down", "xs");
+				caret.setAttribute("aria-hidden", "true");
+				chip.setAttribute("aria-haspopup", "listbox");
+				chip.setAttribute("aria-expanded", "false");
+				chip.addEventListener("click", () => (this.chipMenu?.entry === entry ? this.closeChipMenu(true) : open()));
+			} else chip.classList.add("bnd-bill-chip-static");
+			return entry;
+		}
+		renderContext() {
+			const doc = this.doc, chips = this.chips || {};
+			const draft = Number(doc.docstatus) === 0;
+			const branch = this.currentBranch();
+			if (chips.branch) {
+				chips.branch.value.textContent = branch ? __(branch.name) : __("Choose a branch");
+				chips.branch.chip.disabled = !draft || this.warehouseStatus() !== "Write";
 			}
-			this.branchSelect.value = current ? current.name : "";
-			this.branchSelect.disabled = status !== "Write" || Number(this.doc.docstatus) !== 0;
+			if (chips.company) chips.company.value.textContent = doc.company || "";
+			if (chips.warehouse) {
+				chips.warehouse.wrap.hidden = !this.stockBill();
+				chips.warehouse.value.textContent = doc.set_warehouse || __("By item");
+				chips.warehouse.chip.disabled = !draft || this.warehouseStatus() !== "Write";
+			}
+			const settlement = this.profile.paymentMethod;
+			if (chips.payment) {
+				chips.payment.value.textContent = __(doc[settlement] || "") || "—";
+				chips.payment.chip.disabled = !draft || fieldStatus(this.frm, settlement) !== "Write";
+			}
+			if (chips.currency) chips.currency.value.textContent = doc.currency || "";
+			if (chips.priceList) chips.priceList.value.textContent = __(doc[this.profile.priceList] || "") || "—";
+		}
+		openChipMenu(entry, items, pick) {
+			this.closeChipMenu();
+			const menu = node("div", "bnd-bill-chip-menu", null, entry.wrap);
+			menu.id = `bnd-bill-chip-menu-${++controlId}`;
+			menu.setAttribute("role", "listbox");
+			menu.setAttribute("aria-label", entry.label);
+			node("p", "bnd-bill-chip-menu-title", entry.label, menu).setAttribute("aria-hidden", "true");
+			for (const item of items) {
+				const option = button("", menu, () => { this.closeChipMenu(true); void pick(item.value); });
+				option.classList.add("bnd-bill-chip-option");
+				option.setAttribute("role", "option");
+				option.setAttribute("aria-selected", String(!!item.current));
+				const tile = node("span", "bnd-bill-chip-option-icon", null, option);
+				tile.innerHTML = frappe.utils.icon(entry.icon, "sm");
+				tile.setAttribute("aria-hidden", "true");
+				const text = node("span", "bnd-bill-chip-option-text", null, option);
+				node("strong", "", item.label, text);
+				if (item.hint) node("span", "", item.hint, text);
+				if (item.current) {
+					const tick = node("span", "bnd-bill-chip-option-tick", null, option);
+					tick.innerHTML = frappe.utils.icon("check", "sm");
+					tick.setAttribute("aria-hidden", "true");
+				}
+			}
+			if (!items.length) node("p", "bnd-bill-hint", __("Nothing to choose here."), menu);
+			entry.chip.setAttribute("aria-expanded", "true");
+			entry.chip.setAttribute("aria-controls", menu.id);
+			menu.addEventListener("keydown", e => {
+				const options = [...menu.querySelectorAll(".bnd-bill-chip-option")];
+				const at = options.indexOf(document.activeElement);
+				if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); this.closeChipMenu(true); }
+				else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+					e.preventDefault();
+					const next = options[(at + (e.key === "ArrowDown" ? 1 : -1) + options.length) % options.length];
+					next?.focus();
+				}
+			});
+			this.chipOutside = e => { if (!entry.wrap.contains(e.target)) this.closeChipMenu(); };
+			document.addEventListener("pointerdown", this.chipOutside, true);
+			this.chipMenu = { menu, entry };
+			(menu.querySelector('[aria-selected="true"]') || menu.querySelector(".bnd-bill-chip-option"))?.focus();
+		}
+		closeChipMenu(focus = false) {
+			if (!this.chipMenu) return;
+			const { menu, entry } = this.chipMenu;
+			this.chipMenu = null;
+			menu.remove();
+			entry.chip.setAttribute("aria-expanded", "false");
+			entry.chip.removeAttribute("aria-controls");
+			document.removeEventListener("pointerdown", this.chipOutside, true);
+			if (focus) entry.chip.focus({ preventScroll: true });
+		}
+		branchMenu() {
+			const current = this.currentBranch();
+			this.openChipMenu(this.chips.branch, this.branches().map(row => ({
+				value: row.name,
+				label: __(row.name),
+				hint: __("Warehouse linked automatically"),
+				current: row === current,
+			})), name => this.chooseBranch(name));
+		}
+		async warehouseMenu() {
+			const company = this.doc.company;
+			this.warehouses = this.warehouses || {};
+			if (!this.warehouses[company]) {
+				try {
+					this.warehouses[company] = await frappe.db.get_list("Warehouse", {
+						filters: { company, is_group: 0, disabled: 0 }, fields: ["name"], order_by: "name asc", limit: 200,
+					});
+				} catch (_) { this.warehouses[company] = []; }
+			}
+			if (!this.active()) return;
+			const tied = Object.fromEntries(this.branches().map(row => [row.warehouse, row.name]));
+			this.openChipMenu(this.chips.warehouse, this.warehouses[company].map(row => ({
+				value: row.name,
+				label: row.name,
+				hint: tied[row.name] ? __(tied[row.name]) : "",
+				current: row.name === this.doc.set_warehouse,
+			})), name => this.chooseWarehouse(name));
+		}
+		async chooseWarehouse(name) {
+			if (this.warehouseStatus() !== "Write" || name === this.doc.set_warehouse) return;
+			// A warehouse tied to a branch takes its branch along; any other leaves the branch.
+			const branch = this.branches().find(row => row.warehouse === name);
+			try { await this.change(() => (branch ? this.setBranch(branch) : this.frm.set_value("set_warehouse", name))); }
+			catch (_) { this.renderContext(); }
+		}
+		paymentMenu() {
+			const field = this.profile.paymentMethod;
+			const df = this.frm.fields_dict[field]?.df;
+			const options = String(df?.options || "").split("\n").map(value => value.trim()).filter(Boolean);
+			this.openChipMenu(this.chips.payment, options.map(value => ({
+				value, label: __(value), current: value === this.doc[field],
+			})), value => this.change(() => this.frm.set_value(field, value)).catch(() => this.renderContext()));
+		}
+		itemQuery(current) {
+			// The simple bill searches the items of its branch's warehouse (owner,
+			// 2026-10-10): ERPNext's own item search, with the warehouse added as a
+			// filter (bunood_theme.api.bill_item_query), on a bill that moves stock.
+			// The Advanced form keeps ERPNext's search untouched. ERPNext's search is
+			// read when the reader types, not when the line is drawn: ERPNext sets it
+			// after the bill's first lines exist, and a line that read it then searched
+			// every item, sales or not.
+			if (this.frm.doctype !== "Sales Invoice") return current();
+			return (doc, cdt, cdn) => {
+				const native = current();
+				const base = typeof native === "function" ? native(doc, cdt, cdn) : native;
+				const warehouse = this.simple && this.stockBill() && this.currentWarehouse();
+				if (!warehouse || base?.query !== "erpnext.controllers.queries.item_query") return base;
+				return { ...base, query: "bunood_theme.api.bill_item_query", filters: { ...(base.filters || {}), bnd_warehouse: warehouse } };
+			};
 		}
 		currentBranch(branches = this.branches()) {
 			const here = branches.filter(row => row.warehouse === this.doc.set_warehouse);
@@ -11481,6 +11627,7 @@
 		dispose() {
 			if (this.closed) return;
 			this.closed = true;
+			this.closeChipMenu();
 			this.scrollHost?.removeEventListener("scroll", this.handleBillScroll);
 			if (instances.get(this.frm) === this) this.setMode(false); else this.syncSelectionGuard();
 			for (const timer of this.editTimers.values()) clearTimeout(timer);
@@ -12190,7 +12337,7 @@
 					const itemDf = frappe.meta.get_docfield(row.doctype, "item_code", row.name) || grid.get_docfield("item_code");
 					if (itemDf) this.bindControl(info, {
 						df: { ...itemDf, label: __("Item"), placeholder: __("Description or search items") },
-						get_query: grid.get_field("item_code")?.get_query,
+						get_query: this.itemQuery(() => grid.get_field("item_code")?.get_query),
 					}, row, true);
 					const itemMeta = node("bdi", "bnd-bill-hint bnd-bill-item-meta", "", info);
 				for (const name of this.profile.lineFields) {
