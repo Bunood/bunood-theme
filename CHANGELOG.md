@@ -24,6 +24,25 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.6] — 2026-10-11 — the restaurant's tills stay the restaurant's; its line on the receipt
+
+**A point of sale another front end owns is not the retail counter's (PR #27).** The owner asked that the restaurant stay
+a screen of its own: one engine, separate screens, each with its own name and design.
+- **Hook.** An installed app names the POS Profiles it owns with `bunood_pos_reserved_profiles`: each method returns
+  `{pos_profile: {"title": …, "route": …}}`, and the route must be a site-relative path. Bunood Dining reserves its
+  outlets' tills for «كاشير المطعم» (`/dining_pos`).
+- **The counter.** The retail counter «المنصة» neither lists nor defaults to a reserved till. Asked for one by name, or
+  finding the user's open shift on one, it shows «نقطة البيع هذه خاصة بـ: …» with a link to that screen instead of selling.
+- **Unchanged.** The server endpoints stay open, so the owning front end sells through the same bridge. With no app
+  that declares the hook, nothing changes.
+- **Test fix.** The company-items test is pinned to the rule v0.57.5 left it with; it had failed on the line since 9fbf306.
+
+**The restaurant line under the thermal receipt header (PR #26, moved from #21).** `thermal_head` prints «محلي · طاولة 7»
+or «سفري · رقم الاستلام #214» when the invoice carries `custom_bunood_order_type`, which Bunood Dining stamps. The order
+type's Arabic title comes from Dining Order Type. Every other receipt is unchanged.
+
+**Payload.** The counter's notice adds a few hundred bytes to the POS bundle; the row below records it.
+
 ## [0.57.5] — 2026-10-10 — an item placed in the main branch belongs to it
 
 bunood_business v0.9.0's item form places an item in a branch and its warehouse (an item default
