@@ -107,7 +107,7 @@ test('the item search keeps to the branch warehouse on a stock bill, and stays E
     w.simple=true;
     const scoped=w.itemQuery(()=>native)();
     assert.equal(scoped.query,'bunood_theme.api.bill_item_query');
-    assert.deepEqual(JSON.parse(JSON.stringify(scoped.filters)),{is_sales_item:1,customer:'C',has_variants:0,bnd_warehouse:'Stores - A'});
+    assert.deepEqual(JSON.parse(JSON.stringify(scoped.filters)),{is_sales_item:1,customer:'C',has_variants:0,bnd_warehouse:'Stores - A',bnd_company:'A'},'the bill\'s company keeps another company\'s services out');
     w.simple=false;
     assert.equal(w.itemQuery(()=>native)().query,'erpnext.controllers.queries.item_query','the Advanced form keeps ERPNext\'s search');
     w.simple=true;w.doc.set_warehouse='';

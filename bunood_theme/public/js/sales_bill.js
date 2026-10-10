@@ -1057,7 +1057,7 @@
 				const base = typeof native === "function" ? native(doc, cdt, cdn) : native;
 				const warehouse = this.simple && this.stockBill() && this.currentWarehouse();
 				if (!warehouse || base?.query !== "erpnext.controllers.queries.item_query") return base;
-				return { ...base, query: "bunood_theme.api.bill_item_query", filters: { ...(base.filters || {}), bnd_warehouse: warehouse } };
+				return { ...base, query: "bunood_theme.api.bill_item_query", filters: { ...(base.filters || {}), bnd_warehouse: warehouse, bnd_company: this.doc.company } };
 			};
 		}
 		currentBranch(branches = this.branches()) {
