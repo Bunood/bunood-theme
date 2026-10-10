@@ -1,0 +1,183 @@
+"""Actual-site checks for the Bunood POS Operator role.
+
+Two defects found on 2026-10-10 (dining lab): the operator rows were inserted
+without the doctype's standard rows, so every other role lost the six POS
+doctypes; and the bridge asked for owner-only submit without a document, so an
+operator-only cashier could not open a shift. Everything here is rolled back.
+"""
+
+import uuid
+
+import frappe
+from frappe.tests import IntegrationTestCase
+
+from bunood_theme.pos_permissions import (
+    POS_OPERATOR_PERMISSIONS,
+    POS_OPERATOR_ROLE,
+    STANDARD_RIGHTS,
+    _ensure_role,
+    _permission_values,
+    ensure_pos_operator_permissions,
+)
+
+DOCTYPES = tuple(POS_OPERATOR_PERMISSIONS)
+
+
+def _rows(table: str, doctype: str) -> set[tuple]:
+    rows = frappe.get_all(
+        table, filters={"parent": doctype}, fields=["role", "permlevel", "if_owner", *STANDARD_RIGHTS]
+    )
+    return {
+        (row.role, int(row.permlevel or 0), int(row.if_owner or 0), *(int(row.get(r) or 0) for r in STANDARD_RIGHTS))
+        for row in rows
+    }
+
+
+class TestPOSOperatorPermissions(IntegrationTestCase):
+    def setUp(self):
+        super().setUp()
+        self.previous_user = frappe.session.user
+        frappe.set_user("Administrator")
+        self.savepoint = "pos_perms_" + uuid.uuid4().hex
+        frappe.db.savepoint(self.savepoint)
+
+    def tearDown(self):
+        frappe.set_user("Administrator")
+        frappe.db.rollback(save_point=self.savepoint)
+        # Meta read while the rolled-back rows existed must not outlive them.
+        frappe.clear_cache()
+        frappe.set_user(self.previous_user)
+        super().tearDown()
+
+    # ── fixtures ──────────────────────────────────────────────────────────
+
+    def fresh(self, *doctypes):
+        """These doctypes as on a site where nothing has customised them."""
+        frappe.db.delete("Custom DocPerm", {"parent": ("in", doctypes)})
+        frappe.clear_cache()
+
+    def user(self, *roles) -> str:
+        email = f"pos-perms-{uuid.uuid4().hex[:12]}@example.com"
+        frappe.get_doc(
+            {
+                "doctype": "User",
+                "email": email,
+                "first_name": "POS permissions",
+                "send_welcome_email": 0,
+                "user_type": "System User",
+                "roles": [{"role": role} for role in roles],
+            }
+        ).insert(ignore_permissions=True)
+        return email
+
+    def can(self, user: str, doctype: str, *rights: str) -> dict[str, bool]:
+        frappe.local.role_permissions = {}
+        return {right: bool(frappe.has_permission(doctype, ptype=right, user=user)) for right in rights}
+
+    def profile_for(self, user: str) -> str:
+        company = frappe.db.get_value("Company", {}, "name", order_by="creation asc")
+        self.assertTrue(company, "The test site needs a company (setup wizard).")
+        company = frappe.get_doc("Company", company)
+        cash = company.default_cash_account or frappe.db.get_value(
+            "Account", {"company": company.name, "account_type": "Cash", "is_group": 0}
+        )
+        mode = frappe.get_doc("Mode of Payment", "Cash")
+        if not any(row.company == company.name for row in mode.accounts):
+            mode.append("accounts", {"company": company.name, "default_account": cash})
+            mode.save(ignore_permissions=True)
+        profile = frappe.get_doc(
+            {
+                "doctype": "POS Profile",
+                "__newname": f"POS permissions {uuid.uuid4().hex[:8]}",
+                "company": company.name,
+                "warehouse": frappe.db.get_value(
+                    "Warehouse", {"company": company.name, "is_group": 0, "disabled": 0}
+                ),
+                "currency": company.default_currency,
+                "selling_price_list": frappe.db.get_value("Price List", {"selling": 1, "enabled": 1}),
+                "write_off_account": company.write_off_account
+                or frappe.db.get_value("Account", {"company": company.name, "is_group": 0, "root_type": "Expense"}),
+                "write_off_cost_center": company.cost_center,
+                "payments": [{"mode_of_payment": "Cash", "default": 1}],
+                "applicable_for_users": [{"user": user, "default": 1}],
+            }
+        ).insert(ignore_permissions=True)
+        return profile.name
+
+    # ── the operator rows sit beside the standard rows ───────────────────
+
+    def test_operator_rows_are_added_beside_the_standard_rows(self):
+        self.fresh(*DOCTYPES)
+        result = ensure_pos_operator_permissions()
+
+        for doctype in DOCTYPES:
+            custom = _rows("Custom DocPerm", doctype)
+            self.assertLessEqual(_rows("DocPerm", doctype), custom, doctype)
+            self.assertIn(POS_OPERATOR_ROLE, {row[0] for row in custom}, doctype)
+        self.assertEqual(set(result["seeded"]), set(DOCTYPES))
+        self.assertEqual(set(result["created"]), set(DOCTYPES))
+
+        # The roles that lost these doctypes on the dining lab keep them.
+        manager = self.user("System Manager")
+        for doctype in ("POS Opening Entry", "POS Closing Entry"):
+            self.assertEqual(
+                self.can(manager, doctype, "read", "create", "submit"),
+                {"read": True, "create": True, "submit": True},
+                doctype,
+            )
+        sales_manager = self.user("Sales Manager")
+        self.assertTrue(all(self.can(sales_manager, "POS Opening Entry", "read", "submit").values()))
+        accounts = self.user("Accounts User")
+        self.assertTrue(all(self.can(accounts, "Sales Invoice", "read", "create", "submit").values()))
+        self.assertTrue(all(self.can(accounts, "POS Invoice", "read", "create", "submit").values()))
+        self.assertTrue(self.can(accounts, "POS Profile", "read")["read"])
+        sales = self.user("Sales User")
+        self.assertTrue(all(self.can(sales, "Customer", "read", "create", "write").values()))
+
+    def test_a_rerun_restores_the_standard_rows_an_earlier_version_dropped(self):
+        self.fresh(*DOCTYPES)
+        _ensure_role()
+        # What v0.55.0 left behind: the operator row alone on each doctype.
+        for doctype, (required, owner_only) in POS_OPERATOR_PERMISSIONS.items():
+            frappe.get_doc(_permission_values(doctype, required, owner_only)).insert(ignore_permissions=True)
+        frappe.clear_cache()
+        manager = self.user("System Manager")
+        self.assertEqual(
+            self.can(manager, "POS Opening Entry", "read", "submit"), {"read": False, "submit": False}
+        )
+
+        result = ensure_pos_operator_permissions()
+        for doctype in DOCTYPES:
+            custom = _rows("Custom DocPerm", doctype)
+            self.assertLessEqual(_rows("DocPerm", doctype), custom, doctype)
+            self.assertEqual(sum(row[0] == POS_OPERATOR_ROLE for row in custom), 1, doctype)
+        self.assertTrue(all(self.can(manager, "POS Opening Entry", "read", "create", "submit").values()))
+        self.assertEqual(set(result["seeded"]), set(DOCTYPES))
+        self.assertEqual(result["created"], [])
+
+        # Settled: a further run copies nothing again.
+        before = {doctype: _rows("Custom DocPerm", doctype) for doctype in DOCTYPES}
+        again = ensure_pos_operator_permissions()
+        self.assertEqual((again["seeded"], again["created"]), ([], []))
+        self.assertEqual({doctype: _rows("Custom DocPerm", doctype) for doctype in DOCTYPES}, before)
+
+    def test_a_doctype_customised_for_another_role_is_left_as_it_is(self):
+        self.fresh("POS Profile")
+        frappe.get_doc(
+            {
+                "doctype": "Custom DocPerm",
+                "parent": "POS Profile",
+                "parenttype": "DocType",
+                "parentfield": "permissions",
+                "role": "Accounts Manager",
+                "permlevel": 0,
+                "read": 1,
+                "write": 1,
+            }
+        ).insert(ignore_permissions=True)
+
+        result = ensure_pos_operator_permissions()
+        roles = {row[0] for row in _rows("Custom DocPerm", "POS Profile")}
+        # Accounts User's standard row stays out: that was the customiser's choice.
+        self.assertEqual(roles, {"Accounts Manager", POS_OPERATOR_ROLE})
+        self.assertNotIn("POS Profile", result["seeded"])
