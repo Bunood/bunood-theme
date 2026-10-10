@@ -548,7 +548,10 @@ def run() -> None:
             asked = pos.get_context(profile_name)
             assert asked["profile"]["name"] == profile_name, asked["profile"]["name"]
             assert asked["profile"]["reserved_for"] == reserved[profile_name], asked["profile"].get("reserved_for")
-        assert pos.get_context(profile_name)["profile"]["reserved_for"] is None
+        # Without the stand-in, whatever the installed apps reserve: nothing on a retail lab, the
+        # restaurant cashier's own title and route on a till Bunood Dining owns (found on the
+        # dining lab, whose only till is the restaurant's).
+        assert pos.get_context(profile_name)["profile"]["reserved_for"] == pos._reserved_profiles().get(profile_name)
         reserved_checked = True
 
         # Back to the defaults for the checks that follow (a 10% discount among them).
