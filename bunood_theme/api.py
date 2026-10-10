@@ -1913,7 +1913,8 @@ def warehouse_items(warehouse: str) -> set[str]:
     """The items that belong to a warehouse: stock records there (a Bin), or an item default that
     names it. ERPNext's own default does not count: it adds one to every new item
     (Item.update_defaults_from_item_group), naming the site's default warehouse and nothing else,
-    so counted it would put every item in that warehouse. The same reading as the counter's
+    so counted it would put every item in that warehouse; a row of that shape that was CHOSEN
+    (bunood_business's item form marks it bnd_chosen) counts. The same reading as the counter's
     company rule (pos._company_items)."""
     held = set(frappe.get_all("Bin", filters={"warehouse": warehouse}, pluck="item_code"))
     automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")
@@ -1922,12 +1923,13 @@ def warehouse_items(warehouse: str) -> set[str]:
         for field in frappe.get_meta("Item Default").fields
         if field.fieldtype == "Link" and field.fieldname not in ("company", "default_warehouse")
     ]
+    chosen = ["bnd_chosen"] if frappe.get_meta("Item Default").has_field("bnd_chosen") else []
     for row in frappe.get_all(
         "Item Default",
         filters={"parenttype": "Item", "default_warehouse": warehouse},
-        fields=["parent", *details],
+        fields=["parent", *details, *chosen],
     ):
-        if warehouse == automatic and not any(row.get(field) for field in details):
+        if warehouse == automatic and not row.get("bnd_chosen") and not any(row.get(field) for field in details):
             continue
         held.add(row.parent)
     return held

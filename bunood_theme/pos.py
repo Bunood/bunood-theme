@@ -463,19 +463,23 @@ def _company_items(company: str, codes: list[str]) -> set[str]:
     company. ERPNext's own item default does not count: it adds one to every new
     item (Item.update_defaults_from_item_group), whoever's item it is, naming the
     site's default warehouse and nothing else; read by that shape, the rule is
-    the same for every user (a user's own default company plays no part)."""
+    the same for every user (a user's own default company plays no part). A row
+    of that shape that was CHOSEN (bunood_business's item form marks it
+    bnd_chosen) counts: a branch selling from the site's default warehouse is a
+    branch like any other."""
     codes = [code for code in dict.fromkeys(codes) if code]
     if not codes:
         return set()
     automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")
     details = [field.fieldname for field in frappe.get_meta("Item Default").fields if field.fieldtype == "Link" and field.fieldname not in ("company", "default_warehouse")]
+    chosen = ["bnd_chosen"] if frappe.get_meta("Item Default").has_field("bnd_chosen") else []
     owners: dict[str, set[str]] = {}
     for row in frappe.get_all(
         "Item Default",
         filters={"parenttype": "Item", "parent": ["in", codes]},
-        fields=["parent", "company", "default_warehouse", *details],
+        fields=["parent", "company", "default_warehouse", *details, *chosen],
     ):
-        if automatic and row.default_warehouse == automatic and not any(row.get(field) for field in details):
+        if automatic and row.default_warehouse == automatic and not row.get("bnd_chosen") and not any(row.get(field) for field in details):
             continue
         if row.company:
             owners.setdefault(row.parent, set()).add(row.company)
