@@ -525,6 +525,26 @@ def run() -> None:
         put_back = pos.save_settings(profile_name, json.dumps({"item_groups": before_groups}), None, narrowed["modified"])
         assert put_back["native"]["item_groups"] == before_groups, put_back["native"]["item_groups"]
 
+        # 2026-10-10 (owner): the restaurant cashier is its own screen. A profile another front
+        # end reserves (hook bunood_pos_reserved_profiles) is neither listed nor chosen by
+        # default; asked for by name, or holding the user's shift, it comes back marked so the
+        # counter points to that screen. Only site paths are kept as routes.
+        from unittest.mock import patch as mock_patch
+
+        assert pos._clean_reserved(
+            {profile_name: {"title": "X", "route": "javascript:alert(1)"}, 7: {}, "Y": "not a dict"}
+        ) == {profile_name: {"title": "X", "route": ""}}
+        assert pos._clean_reserved({"P": {"title": "T", "route": "/dining_pos"}})["P"]["route"] == "/dining_pos"
+        assert pos._clean_reserved({"P": {"route": "//elsewhere.example"}})["P"]["route"] == ""
+        reserved = {profile_name: {"title": "Bunood Acceptance Cashier", "route": "/dining_pos"}}
+        with mock_patch.object(pos, "_reserved_profiles", return_value=reserved):
+            assert profile_name not in [row["name"] for row in pos._available_profiles()], "A reserved profile is listed."
+            asked = pos.get_context(profile_name)
+            assert asked["profile"]["name"] == profile_name, asked["profile"]["name"]
+            assert asked["profile"]["reserved_for"] == reserved[profile_name], asked["profile"].get("reserved_for")
+        assert pos.get_context(profile_name)["profile"]["reserved_for"] is None
+        reserved_checked = True
+
         # Back to the defaults for the checks that follow (a 10% discount among them).
         restored = pos.save_settings(profile_name, None, json.dumps(pos.COUNTER_DEFAULTS))
         assert restored["counter"] == pos.COUNTER_DEFAULTS, restored["counter"]
@@ -608,6 +628,7 @@ def run() -> None:
             "offline_sale_posted_once": True,
             "offline_short_sale_held_for_review": True,
             "tabby_needs_its_order_number": bnpl_checked,
+            "reserved_profile_points_elsewhere": reserved_checked,
             "company_items_only": company_checked,
             "automatic_default_ignored": automatic_checked,
             "review_draft_completed": review_checked,

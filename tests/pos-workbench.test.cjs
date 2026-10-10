@@ -346,7 +346,7 @@ test("the counter keeps the screen in step and asks for a receipt link only whil
 
 // Phase 4, 2026-10-10: the settings page.
 test("the settings page saves through the server and the counter takes the result at once", () => {
-	assert.match(fn("openSettings"), /if \(!state\.profile\?\.can_edit \|\| needsConnection\(\)\) return;/);
+	assert.match(fn("openSettings"), /if \(!state\.profile\?\.can_edit \|\| state\.profile\?\.reserved_for \|\| needsConnection\(\)\) return;/);
 	assert.match(js, /state\.profile\?\.can_edit \? h\("button", \{ type: "button", role: "menuitem", onclick: \(\) => \{ state\.menuOpen = false; renderBar\(\); openSettings\(\); \} \}/);
 	assert.match(fn("openSettings"), /api\("settings_context", \{ pos_profile: settings\.profile \}, \{ type: "GET", silent: true \}\)/);
 	const save = fn("saveSettings");
@@ -475,4 +475,17 @@ test("the settings page opens on the store: warehouse, item groups, stock and th
 	assert.match(sections, /\["company", __\("This company's items", null, "Bunood POS"\)\], \["warehouse", __\("This warehouse's items", null, "Bunood POS"\)\], \["all", __\("All items", null, "Bunood POS"\)\]/);
 	assert.match(fn("settingsRow"), /disabled: !editable \|\| locked,/);
 	assert.match(fn("saveSettings"), /if \(scope\) \{\s*loadItems\(false\);\s*refreshCatalog\(\);/);
+});
+
+// 2026-10-10 (owner): the restaurant cashier is its own screen; the counter does not sell on its till.
+test("a point of sale another front end owns sends the cashier there instead of selling", () => {
+	const init = fn("initialize");
+	assert.ok(init.indexOf("if (state.profile?.reserved_for) {") > 0 && init.indexOf("if (state.profile?.reserved_for) {") < init.indexOf("renderGate();"));
+	assert.match(fn("renderReserved"), /target\.route \? h\("a", \{ class: "bnd-pos__primary bnd-pos__primary--tall", href: target\.route \}/);
+	assert.match(fn("renderReserved"), /const others = shift \? \[\] : \(ctx\.profiles \|\| \[\]\);/);
+	// No way into selling on it: the sale view falls back to the notice, the bar loses its tabs and menu.
+	assert.match(fn("showSale"), /if \(state\.profile\?\.reserved_for\) \{\s*renderReserved\(\);\s*return;/);
+	assert.match(fn("renderBar"), /reserved \? null : h\("nav", \{ class: "bnd-pos__tabs"/);
+	assert.match(fn("renderBar"), /reserved \? null : h\("span", \{ class: "bnd-pos__menu-wrap" \}/);
+	assert.match(fn("openSettings"), /state\.profile\?\.reserved_for \|\| needsConnection\(\)/);
 });

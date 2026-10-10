@@ -233,6 +233,13 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn("for index, row in enumerate(profile.item_groups, 1):", save)
         self.assertIn("for index, row in enumerate(profile.payments, 1):", save)
 
+    def test_a_point_of_sale_another_front_end_owns_is_not_the_counter_s(self):
+        # Owner, 2026-10-10: one engine, separate screens (the restaurant cashier).
+        self.assertIn("if row.name in reserved:\n            continue", self.body("_available_profiles"))
+        self.assertIn('profile_data["reserved_for"] = _reserved_profiles().get(selected)', self.body("get_context"))
+        self.assertIn('frappe.get_hooks("bunood_pos_reserved_profiles")', self.body("_reserved_profiles"))
+        self.assertIn('if not route.startswith("/") or route.startswith("//")', self.body("_clean_reserved"))
+
     def test_settings_are_saved_only_with_write_access_and_kept_off_the_boot(self):
         save = self.body("save_settings")
         self.assertLess(save.index('profile.check_permission("write")'), save.index("profile.save()"))
