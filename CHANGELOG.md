@@ -24,6 +24,22 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.7] — 2026-10-11 — the POS acceptance runs to the end on a restaurant's till
+
+Tools only: `tools/pos-backend-acceptance.py`, the rollback-only acceptance of the native POS flow. Nothing a site
+runs changes.
+
+- **A walk-in sale paid in part (PR #28).** The check expects the refusal the profile's credit-sales switch calls for:
+  «Payment must cover the full sale total.» with it off, and «The rest can stay on account only for a named
+  customer.» with it on. Before, the run stopped on any profile with credit sales off. That happened on v0.57.2 too,
+  and was found on the restaurant lab.
+- **A till an installed app really reserves (PR #29).** After its stand-in, the reserved-tills step compares
+  `reserved_for` with the site's own hook (`pos._reserved_profiles()`). Before, it assumed none, so on a site with
+  Bunood Dining it stopped on the restaurant's till. The retail steps still run on such a till, because they exercise
+  the engine the restaurant cashier sells through, and everything is rolled back.
+
+Payload: no CSS or JS changed, and the row repeats v0.57.6's.
+
 ## [0.57.6] — 2026-10-11 — the restaurant's tills stay the restaurant's; its line on the receipt
 
 **A point of sale another front end owns is not the retail counter's (PR #27).** The owner asked that the restaurant stay
