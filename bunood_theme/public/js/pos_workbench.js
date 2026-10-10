@@ -964,15 +964,16 @@
 				}, { type: "GET" });
 				const rows = result?.items || [];
 				const exact = rows.filter((row) => [row.barcode, row.item_code, row.serial_no, row.batch_no].includes(term));
-				const hits = exact.length ? exact : (rows.length === 1 && !/^\d+$/.test(term) ? rows : []);
-				// Another company's item, or another group's: linking the code again would fail.
-				hits.elsewhere = !hits.length && Boolean(result?.elsewhere);
-				return hits;
+				// The code names an item this counter does not sell: never a neighbour in its
+				// place, and never offered for linking (the code would move to another item).
+				if (!exact.length && result?.elsewhere) return Object.assign([], { elsewhere: true });
+				return exact.length ? exact : (rows.length === 1 && !/^\d+$/.test(term) ? rows : []);
 			};
 			try {
 				let hits = await find(lookup);
 				if (label && !hits.length) {
 					const whole = await find(code);
+					if (!whole.length && whole.elsewhere) hits = whole;
 					if (whole.length) {
 						hits = whole;
 						label = null;
@@ -995,8 +996,13 @@
 					};
 					renderPalette();
 				} else if (hits.elsewhere) {
+					state.unknown = "";
+					state.unknownLabel = "";
+					state.mult = null;
 					frappe.utils?.play_sound?.("error");
 					flash("err", __("Not sold at this point of sale: {0}", [code]));
+					renderAlert();
+					renderMult();
 				} else {
 					// A label links its item's 5-digit code; the label itself is read again after.
 					state.unknown = lookup;
@@ -1470,11 +1476,21 @@
 		}
 
 		// ── Unknown barcode: link it, or make a new item ─────────────────────
-		async function addBarcode(itemCode, code) {
+		// An item made here (made) is this counter's too: an item default for its company and
+		// warehouse (ERPNext gave it only the site's default company's, which proves nothing).
+		async function addBarcode(itemCode, code, made) {
 			const doc = await frappe.xcall("frappe.client.get", { doctype: "Item", name: itemCode });
-			if ((doc.barcodes || []).some((row) => row.barcode === code)) return;
-			doc.barcodes = (doc.barcodes || []).concat([{ doctype: "Item Barcode", barcode: code }]);
-			await frappe.xcall("frappe.client.save", { doc });
+			let changed = false;
+			if (code && !(doc.barcodes || []).some((row) => row.barcode === code)) {
+				doc.barcodes = (doc.barcodes || []).concat([{ doctype: "Item Barcode", barcode: code }]);
+				changed = true;
+			}
+			const store = state.profile?.store;
+			if (made && store?.company && !(doc.item_defaults || []).some((row) => row.company === store.company)) {
+				doc.item_defaults = (doc.item_defaults || []).concat([{ doctype: "Item Default", company: store.company, default_warehouse: store.warehouse }]);
+				changed = true;
+			}
+			if (changed) await frappe.xcall("frappe.client.save", { doc });
 		}
 		function openLink() {
 			state.overlay = { kind: "link", code: state.unknown, term: "", rows: null, sel: 0 };
@@ -1520,7 +1536,7 @@
 			const labelled = state.unknownLabel;
 			frappe.ui.form.make_quick_entry("Item", async (doc) => {
 				try {
-					if (code) await addBarcode(doc.name, code);
+					await addBarcode(doc.name, code, true);
 					state.unknown = "";
 					state.unknownLabel = "";
 					renderAlert();
@@ -2290,7 +2306,7 @@
 					{ kind: "warehouse", source: "native", key: "warehouse", label: __("Warehouse", null, "Bunood POS"), desc: __("Every sale takes its stock from here, and the counter shows its quantities.", null, "Bunood POS"), options: store.warehouses || [], shifts: store.open_shifts || [] },
 					{ kind: "groups", source: "native", key: "item_groups", label: __("Item groups on this counter", null, "Bunood POS"), desc: __("These groups and the groups under them. None chosen: every group.", null, "Bunood POS"), groups: store.groups || [] },
 					S("native", "hide_unavailable_items", __("Items out of stock in this warehouse", null, "Bunood POS"), __("Shown with their quantity, or left out of the catalogue. Services always show.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
-					S("counter", "item_scope", __("Items shown", null, "Bunood POS"), __("This company's: an item with an item default for the company or stock in one of its warehouses, or with neither for any company. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice; services keep to the company.", null, "Bunood POS"), [["company", __("This company's items", null, "Bunood POS")], ["warehouse", __("This warehouse's items", null, "Bunood POS")], ["all", __("All items", null, "Bunood POS")]]),
+					S("counter", "item_scope", __("Items shown", null, "Bunood POS"), __("This company's: stock in one of its warehouses or an item default for it (not the site's default company's, which ERPNext adds to every new item); an item with neither for any company shows everywhere. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice. Item groups narrow either.", null, "Bunood POS"), [["company", __("This company's items", null, "Bunood POS")], ["warehouse", __("This warehouse's items", null, "Bunood POS")], ["all", __("All items", null, "Bunood POS")]]),
 				] },
 				{ name: __("The screen", null, "Bunood POS"), intro: __("How the sale screen looks for whoever works this counter.", null, "Bunood POS"), rows: [
 					T("counter", "fbar", __("Supermarket mode", null, "Bunood POS"), __("A bar of function keys under the screen, to touch or press. Each device can still switch it from the counter's menu.", null, "Bunood POS")),

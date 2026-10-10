@@ -3285,7 +3285,7 @@ This bank account is unavailable for the selected company,هذا الحساب ا
 This barcode belongs to more than one item,هذا الباركود لأكثر من صنف — اختر الصنف,Bunood POS
 This cart has too many lines. Start a second sale.,تحتوي هذه السلة على أسطر كثيرة جداً. ابدأ عملية بيع ثانية.,
 This company's items,أصناف هذه الشركة,Bunood POS
-"This company's: an item with an item default for the company or stock in one of its warehouses, or with neither for any company. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice; services keep to the company.",أصناف الشركة: صنف له إعداد افتراضي للشركة أو رصيد في أحد مخازنها، أو ليس له ذلك عند أي شركة. أصناف المخزن: له حركة مخزون هنا أو هذا مخزنه الافتراضي، كما في الفاتورة المبسطة؛ والخدمات تبقى للشركة.,Bunood POS
+"This company's: stock in one of its warehouses or an item default for it (not the site's default company's, which ERPNext adds to every new item); an item with neither for any company shows everywhere. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice. Item groups narrow either.",أصناف الشركة: لها رصيد في أحد مخازنها أو إعداد افتراضي لها (غير إعداد الشركة الافتراضية للموقع، الذي يضيفه ERPNext لكل صنف جديد)؛ والصنف الذي ليس له ذلك عند أي شركة يظهر في كل مكان. أصناف المخزن: لها حركة مخزون هنا أو هذا مخزنها الافتراضي، كما في الفاتورة المبسطة. ومجموعات الأصناف تضيّق أيًّا منهما.,Bunood POS
 This counter is closed,نقطة البيع هذه مغلقة,Bunood POS
 This counter takes no returns. Return from the invoice form.,نقطة البيع هذه لا تستقبل المرتجعات. أرجع من نموذج الفاتورة.,
 "This dataset uses a different native load path, not Data Import.",تستخدم مجموعة البيانات هذه مسار تحميل أصليًا مختلفًا، وليس استيراد البيانات.,

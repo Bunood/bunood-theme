@@ -19285,12 +19285,6 @@ msgstr "الأصناف المعروضة"
 #. src: pos store — company, warehouse and items, 2026-10-10
 #, fuzzy
 msgctxt "Bunood POS"
-msgid "This company's: an item with an item default for the company or stock in one of its warehouses, or with neither for any company. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice; services keep to the company."
-msgstr "أصناف الشركة: صنف له إعداد افتراضي للشركة أو رصيد في أحد مخازنها، أو ليس له ذلك عند أي شركة. أصناف المخزن: له حركة مخزون هنا أو هذا مخزنه الافتراضي، كما في الفاتورة المبسطة؛ والخدمات تبقى للشركة."
-
-#. src: pos store — company, warehouse and items, 2026-10-10
-#, fuzzy
-msgctxt "Bunood POS"
 msgid "This company's items"
 msgstr "أصناف هذه الشركة"
 
@@ -19304,3 +19298,9 @@ msgstr "أصناف هذا المخزن"
 #, fuzzy
 msgid "Items shown"
 msgstr "الأصناف المعروضة"
+
+#. src: pos store — company, warehouse and items, 2026-10-10
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "This company's: stock in one of its warehouses or an item default for it (not the site's default company's, which ERPNext adds to every new item); an item with neither for any company shows everywhere. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice. Item groups narrow either."
+msgstr "أصناف الشركة: لها رصيد في أحد مخازنها أو إعداد افتراضي لها (غير إعداد الشركة الافتراضية للموقع، الذي يضيفه ERPNext لكل صنف جديد)؛ والصنف الذي ليس له ذلك عند أي شركة يظهر في كل مكان. أصناف المخزن: لها حركة مخزون هنا أو هذا مخزنها الافتراضي، كما في الفاتورة المبسطة. ومجموعات الأصناف تضيّق أيًّا منهما."
