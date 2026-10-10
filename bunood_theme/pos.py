@@ -1015,8 +1015,31 @@ def _summary(doc) -> dict[str, Any]:
 @frappe.whitelist(methods=["POST"])
 def preview_cart(payload: Any) -> dict[str, Any]:
     data = _cart(payload)
-    doc, _profile_doc = _new_or_held(data)
+    doc, _profile_doc = _new_or_held(data, _previewed_draft(data))
     return _summary(doc)
+
+
+def _previewed_draft(data: dict[str, Any]) -> str | None:
+    """A resumed held sale is previewed on the draft itself, unsaved, as its checkout
+    prices it: an app's price list may follow the draft (pos_price_list). Only this
+    cashier's own held draft on this profile; anything else previews as a new sale."""
+    name = str(data.get("draft") or "")
+    invoice_type = _invoice_type()
+    if not name or not frappe.get_meta(invoice_type).has_field(HELD_FIELD):
+        return None
+    row = frappe.db.get_value(
+        invoice_type, name, ["docstatus", "is_pos", "owner", "pos_profile", HELD_FIELD], as_dict=True
+    )
+    if (
+        row
+        and row.docstatus == 0
+        and cint(row.is_pos)
+        and cint(row.get(HELD_FIELD))
+        and row.owner == frappe.session.user
+        and row.pos_profile == str(data.get("pos_profile") or "")
+    ):
+        return name
+    return None
 
 
 @frappe.whitelist(methods=["POST"])

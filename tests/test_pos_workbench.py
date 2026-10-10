@@ -398,6 +398,12 @@ class POSWorkbenchContractTests(unittest.TestCase):
         hooks = (ROOT / "bunood_theme" / "hooks.py").read_text(encoding="utf-8")
         for doctype in ("Sales Invoice", "POS Invoice"):
             self.assertIn(f'"{doctype}": ["bunood_theme.pos_price_list.ChannelPriceList"]', hooks)
+        # Review 2026-10-10: a resumed held sale is previewed on its draft, as its checkout prices it.
+        self.assertIn("doc, _profile_doc = _new_or_held(data, _previewed_draft(data))", self.body("preview_cart"))
+        previewed = self.body("_previewed_draft")
+        self.assertIn("and row.owner == frappe.session.user", previewed)
+        self.assertIn('and row.pos_profile == str(data.get("pos_profile") or "")', previewed)
+        self.assertIn("and cint(row.get(HELD_FIELD))", previewed)
 
     def test_vat_rows_reach_the_counter_for_display_only(self):
         taxes = self.source.split("def _profile_taxes", 1)[1].split("\ndef ", 1)[0]
