@@ -334,6 +334,95 @@ def run() -> None:
             assert "TBY-ACCEPTANCE-1" in remarks and "Tabby" in remarks, remarks
             bnpl_checked = True
 
+        # 2026-10-10: a counter sells its own company's items, from its own warehouse.
+        # An item with an item default for another company only is that company's:
+        # one is made so inside this rollback (the row alone, no second company).
+        loose = next(
+            (
+                row["item_code"]
+                for row in catalogue
+                if row["item_code"] != item["item_code"]
+                and not frappe.db.exists("Item Default", {"parent": row["item_code"], "parenttype": "Item"})
+                and not frappe.db.exists("Bin", {"item_code": row["item_code"]})
+            ),
+            None,
+        )
+        company_checked = None
+        if loose:
+            frappe.db.sql(
+                """insert into `tabItem Default` (name, parent, parenttype, parentfield, idx, company,
+                creation, modified, owner, modified_by, docstatus)
+                values (%s, %s, 'Item', 'item_defaults', 99, 'Bunood Acceptance Other Company',
+                now(), now(), 'Administrator', 'Administrator', 0)""",
+                (frappe.generate_hash(length=10), loose),
+            )
+            listed = [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
+            assert loose not in listed, "Another company's item is on this counter."
+            scanned = pos.get_items(profile_name, search_term=loose)
+            assert not scanned["items"] and scanned["elsewhere"], scanned
+            assert refused(
+                lambda: pos.preview_cart({**payload, "items": [{"item_code": loose, "qty": 1}]}),
+                "Not one of this company's items: {0}",
+            ), "Another company's item was priced at this counter."
+            pos.save_settings(profile_name, None, json.dumps({"company_items": False}))
+            assert loose in [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
+            pos.save_settings(profile_name, None, json.dumps({"company_items": True}))
+            company_checked = True
+        # Paging past the filter: the pages join up without a gap or a repeat.
+        first = pos.get_items(profile_name, page_length=3)
+        second = pos.get_items(profile_name, start=first["next_start"], page_length=3)
+        whole = [row["item_code"] for row in pos.get_items(profile_name, page_length=6)["items"]]
+        assert [row["item_code"] for row in first["items"] + second["items"]] == whole[: len(first["items"]) + len(second["items"])], (first, second, whole)
+
+        # The warehouse: one of the company's, and never under an open shift.
+        store = pos.settings_context(profile_name)
+        assert store["native"]["warehouse"] == profile["warehouse"], store["native"]["warehouse"]
+        assert context["opening_entry"]["name"] in store["store"]["open_shifts"], store["store"]["open_shifts"]
+        other_warehouse = next((row["name"] for row in store["store"]["warehouses"] if row["name"] != profile["warehouse"]), None)
+        warehouse_waits = None
+        if other_warehouse:
+            warehouse_waits = refused(
+                lambda: pos.save_settings(profile_name, json.dumps({"warehouse": other_warehouse}), None, store["modified"]),
+                "Close the open shifts on this point of sale before changing its warehouse: {0}",
+            )
+            assert warehouse_waits, "The warehouse changed under an open shift."
+        assert refused(
+            lambda: pos.save_settings(profile_name, json.dumps({"warehouse": "Bunood Acceptance No Warehouse"}), None, store["modified"]),
+            "Choose one of this company's warehouses: {0}",
+        )
+        # A group warehouse, and another company's (a row made inside this rollback), are refused
+        # for what they are: under the open shift, a later guard would refuse them for another reason.
+        frappe.db.sql(
+            """insert into `tabWarehouse` (name, warehouse_name, company, is_group, disabled, lft, rgt,
+            creation, modified, owner, modified_by, docstatus)
+            values ('Bunood Acceptance Other Warehouse', 'Bunood Acceptance Other Warehouse',
+            'Bunood Acceptance Other Company', 0, 0, 0, 0, now(), now(), 'Administrator', 'Administrator', 0)"""
+        )
+        for foreign in filter(None, [
+            "Bunood Acceptance Other Warehouse",
+            frappe.db.get_value("Warehouse", {"company": profile["company"], "is_group": 1}, "name"),
+        ]):
+            assert refused(
+                lambda: pos.save_settings(profile_name, json.dumps({"warehouse": foreign}), None, store["modified"]),
+                "Choose one of this company's warehouses: {0}",
+            ), f"A warehouse that is not one of the company's was accepted: {foreign}"
+        # The item groups: saved on the profile, and the catalogue follows them.
+        own_group = frappe.db.get_value("Item", item["item_code"], "item_group")
+        before_groups = store["native"]["item_groups"]
+        assert refused(
+            lambda: pos.save_settings(profile_name, json.dumps({"item_groups": ["Bunood Acceptance No Group"]}), None, store["modified"]),
+            "Item group not found: {0}",
+        )
+        narrowed = pos.save_settings(profile_name, json.dumps({"item_groups": [own_group]}), None, store["modified"])
+        assert narrowed["native"]["item_groups"] == [own_group], narrowed["native"]["item_groups"]
+        from erpnext.accounts.doctype.pos_profile.pos_profile import get_child_nodes
+
+        allowed = {row.name for row in get_child_nodes("Item Group", own_group)} | {own_group}
+        shown = pos.get_items(profile_name, page_length=60)["items"]
+        assert shown and all(frappe.db.get_value("Item", row["item_code"], "item_group") in allowed for row in shown), shown
+        put_back = pos.save_settings(profile_name, json.dumps({"item_groups": before_groups}), None, narrowed["modified"])
+        assert put_back["native"]["item_groups"] == before_groups, put_back["native"]["item_groups"]
+
         # Back to the defaults for the checks that follow (a 10% discount among them).
         restored = pos.save_settings(profile_name, None, json.dumps(pos.COUNTER_DEFAULTS))
         assert restored["counter"] == pos.COUNTER_DEFAULTS, restored["counter"]
@@ -417,6 +506,9 @@ def run() -> None:
             "offline_sale_posted_once": True,
             "offline_short_sale_held_for_review": True,
             "tabby_needs_its_order_number": bnpl_checked,
+            "company_items_only": company_checked,
+            "warehouse_waits_for_open_shifts": warehouse_waits,
+            "item_groups_saved": True,
             "settings_saved": True,
             "discount_ceiling_refused": ceiling_refused,
             "returns_switched_off": returns_refused,

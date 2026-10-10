@@ -30,6 +30,7 @@
 		undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
 		alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
 		monitor: '<rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/>',
+		store: '<path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/>',
 	};
 
 	function h(tag, props, ...kids) {
@@ -266,6 +267,7 @@
 			customerTaxId: "",
 			draft: "",
 			items: [],
+			itemsNext: 0,
 			more: false,
 			group: "",
 			itemsSerial: 0,
@@ -490,14 +492,18 @@
 					h("button", { type: "button", "aria-label": __("More {0}", [value]), onclick: () => { counts[index] += 1; renderGate(); } }, "+")),
 				h("span", { class: "bnd-pos__muted" }, ltr(num(value * counts[index], 2)))));
 			const profiles = (ctx.profiles || []);
+			const companies = new Set(profiles.map((row) => row.company));
 			const chooser = profiles.length > 1 ? h("div", { class: "bnd-pos__gate-profiles" },
 				h("strong", null, __("Point of sale", null, "Bunood POS")),
-				profiles.map((row) => h("button", {
-					type: "button",
-					class: "bnd-pos__choice",
-					"aria-pressed": String(row.name === profile.name),
-					onclick: () => { state.opening = null; initialize(row.name); },
-				}, h("strong", null, row.name), h("span", { class: "bnd-pos__muted" }, row.warehouse || "")))) : null;
+				profiles.map((row, index) => [
+					companies.size > 1 && row.company !== profiles[index - 1]?.company ? h("span", { class: "bnd-pos__gate-company" }, row.company) : null,
+					h("button", {
+						type: "button",
+						class: "bnd-pos__choice",
+						"aria-pressed": String(row.name === profile.name),
+						onclick: () => { state.opening = null; initialize(row.name); },
+					}, h("strong", null, row.name), h("span", { class: "bnd-pos__muted" }, [row.branch ? __(row.branch) : "", row.warehouse_name || row.warehouse || ""].filter(Boolean).join(" · "))),
+				])) : null;
 			const canOpen = ctx.capabilities?.can_open_shift;
 			fill(body, h("div", { class: "bnd-pos__gate" },
 				h("div", { class: "bnd-pos__gate-card bnd-pos__gate-card--wide" },
@@ -511,11 +517,22 @@
 							h("div", { class: "bnd-pos__gate-total" }, h("span", null, __("Total", null, "Bunood POS")), h("strong", null, ltr(money(cashTotal))))),
 						h("div", { class: "bnd-pos__gate-side" },
 							chooser,
-							h("p", { class: "bnd-pos__muted" }, __("The warehouse, price list and payment methods come from this point of sale.", null, "Bunood POS")),
+							storeFacts(profile),
+							h("p", { class: "bnd-pos__muted" }, __("The items' quantities, and the stock of every sale on this shift, come from this warehouse.", null, "Bunood POS")),
 							canOpen
 								? h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", onclick: () => openShift(cashMethod, cashTotal) }, __("Open the shift and start selling", null, "Bunood POS"))
 								: h("p", { class: "bnd-pos__warn" }, __("You do not have permission to open a POS shift.", null, "Bunood POS"))))))
 			);
+		}
+
+		function storeFacts(profile) {
+			const store = profile.store || {};
+			const fact = (label, value) => (value ? h("div", null, h("dt", null, label), h("dd", null, value)) : null);
+			return h("dl", { class: "bnd-pos__facts" },
+				fact(__("Company", null, "Bunood POS"), store.company),
+				fact(__("Branch", null, "Bunood POS"), store.branch ? __(store.branch) : ""),
+				fact(__("Warehouse", null, "Bunood POS"), store.warehouse_name),
+				fact(__("Price list", null, "Bunood POS"), profile.selling_price_list ? __(profile.selling_price_list) : ""));
 		}
 
 		async function openShift(cashMethod, cashTotal) {
@@ -859,7 +876,7 @@
 			try {
 				const result = await api("get_items", {
 					pos_profile: state.profile.name,
-					start: append ? state.items.length : 0,
+					start: append ? state.itemsNext : 0,
 					page_length: PAGE_SIZE,
 					item_group: state.group || undefined,
 					search_term: textQuery(),
@@ -867,7 +884,8 @@
 				if (serial !== state.itemsSerial) return;
 				const rows = result?.items || [];
 				state.items = append ? state.items.concat(rows) : rows;
-				state.more = rows.length === PAGE_SIZE;
+				state.itemsNext = Number(result?.next_start ?? state.items.length);
+				state.more = typeof result?.more === "boolean" ? result.more : rows.length === PAGE_SIZE;
 			} catch (error) {
 				if (serial !== state.itemsSerial) return;
 				state.items = append ? state.items : [];
@@ -946,7 +964,10 @@
 				}, { type: "GET" });
 				const rows = result?.items || [];
 				const exact = rows.filter((row) => [row.barcode, row.item_code, row.serial_no, row.batch_no].includes(term));
-				return exact.length ? exact : (rows.length === 1 && !/^\d+$/.test(term) ? rows : []);
+				const hits = exact.length ? exact : (rows.length === 1 && !/^\d+$/.test(term) ? rows : []);
+				// Another company's item, or another group's: linking the code again would fail.
+				hits.elsewhere = !hits.length && Boolean(result?.elsewhere);
+				return hits;
 			};
 			try {
 				let hits = await find(lookup);
@@ -973,6 +994,9 @@
 						})),
 					};
 					renderPalette();
+				} else if (hits.elsewhere) {
+					frappe.utils?.play_sound?.("error");
+					flash("err", __("Not sold at this point of sale: {0}", [code]));
 				} else {
 					// A label links its item's 5-digit code; the label itself is read again after.
 					state.unknown = lookup;
@@ -2259,12 +2283,19 @@
 			const chosen = (settings?.native?.payments || []).map((row) => row.mode_of_payment);
 			const T = (source, key, label, desc, invert) => ({ kind: "toggle", source, key, label, desc, invert });
 			const S = (source, key, label, desc, options) => ({ kind: "options", source, key, label, desc, options });
+			const store = settings?.ctx?.store || {};
 			return [
+				{ name: __("Store and stock", null, "Bunood POS"), intro: __("The company and warehouse this counter sells from, and the items it shows. Quantities are the warehouse's.", null, "Bunood POS"), rows: [
+					{ kind: "company", label: __("Company", null, "Bunood POS"), desc: __("A point of sale belongs to one company. To sell for another company, make a point of sale for it.", null, "Bunood POS") },
+					{ kind: "warehouse", source: "native", key: "warehouse", label: __("Warehouse", null, "Bunood POS"), desc: __("Every sale takes its stock from here, and the counter shows its quantities.", null, "Bunood POS"), options: store.warehouses || [], shifts: store.open_shifts || [] },
+					{ kind: "groups", source: "native", key: "item_groups", label: __("Item groups on this counter", null, "Bunood POS"), desc: __("These groups and the groups under them. None chosen: every group.", null, "Bunood POS"), groups: store.groups || [] },
+					S("native", "hide_unavailable_items", __("Items out of stock in this warehouse", null, "Bunood POS"), __("Shown with their quantity, or left out of the catalogue. Services always show.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
+					(store.companies || 0) > 1 ? T("counter", "company_items", __("Only this company's items", null, "Bunood POS"), __("An item is this company's when it has stock in one of its warehouses or an item default for it. An item with neither for any company shows at every counter.", null, "Bunood POS")) : null,
+				].filter(Boolean) },
 				{ name: __("The screen", null, "Bunood POS"), intro: __("How the sale screen looks for whoever works this counter.", null, "Bunood POS"), rows: [
 					T("counter", "fbar", __("Supermarket mode", null, "Bunood POS"), __("A bar of function keys under the screen, to touch or press. Each device can still switch it from the counter's menu.", null, "Bunood POS")),
 					T("native", "hide_images", __("Item pictures on the tiles", null, "Bunood POS"), __("Without pictures the catalogue is faster and clearer when most items are scanned.", null, "Bunood POS"), true),
 					S("counter", "tiles", __("Item tile size", null, "Bunood POS"), __("Small shows more items; large is easier to touch.", null, "Bunood POS"), [["s", __("Small", null, "Bunood POS")], ["m", __("Medium", null, "Bunood POS")], ["l", __("Large", null, "Bunood POS")]]),
-					S("native", "hide_unavailable_items", __("Out-of-stock items", null, "Bunood POS"), __("Shown with their stock, or left out of the catalogue.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
 					T("counter", "customer_screen", __("Customer screen", null, "Bunood POS"), __("The screen button on the counter's bar opens the customer-facing window.", null, "Bunood POS")),
 				] },
 				{ name: __("Keypad and permissions", null, "Bunood POS"), intro: __("What the cashier can change from the pad and the scan field.", null, "Bunood POS"), rows: [
@@ -2382,6 +2413,7 @@
 			for (const [field, value] of Object.entries(settings.counter)) {
 				if (JSON.stringify(value) !== JSON.stringify(settings.ctx.counter[field])) counterChanges[field] = value;
 			}
+			const scope = ["warehouse", "item_groups", "hide_unavailable_items"].some((field) => field in native) || "company_items" in counterChanges;
 			settings.busy = true;
 			settings.error = "";
 			renderSettingsView();
@@ -2404,6 +2436,10 @@
 						state.profile = fresh.profile;
 						root.toggleAttribute("data-fbar", fbarOn());
 						root.setAttribute("data-tiles", counter("tiles") || "m");
+						if (scope) {
+							loadItems(false);
+							refreshCatalog();
+						}
 					}
 				} catch (_error) {
 					flash("info", __("Saved. Reopen the counter to apply the settings.", null, "Bunood POS"));
@@ -2422,7 +2458,38 @@
 			const editable = Boolean(settings.ctx.can_edit) && !settings.busy;
 			const value = row.source ? settings[row.source][row.key] : null;
 			let control = null;
-			if (row.kind === "toggle") {
+			if (row.kind === "company") {
+				control = h("strong", { class: "bnd-pos__setting-value" }, settings.ctx.company);
+			} else if (row.kind === "warehouse") {
+				// A shift's sales come from one warehouse: the server refuses a change under an open shift.
+				const locked = row.shifts.length > 0;
+				control = h("div", { class: "bnd-pos__setting-stack" },
+					h("select", {
+						class: "bnd-pos__select",
+						"aria-label": row.label,
+						disabled: !editable || locked,
+						onchange: (event) => changeSetting("native", "warehouse", event.target.value),
+					}, row.options.map((option) => h("option", { value: option.name, selected: option.name === value }, option.branch ? `${option.label} · ${__(option.branch)}` : option.label))),
+					locked ? h("small", { class: "bnd-pos__muted" }, __("Close the open shifts first: {0}", [row.shifts.join(", ")])) : null);
+			} else if (row.kind === "groups") {
+				const chosen = value || [];
+				const left = row.groups.filter((group) => !chosen.includes(group.name));
+				control = h("div", { class: "bnd-pos__setting-stack" },
+					h("div", { class: "bnd-pos__chipset" }, chosen.length ? chosen.map((name) => h("button", {
+						type: "button",
+						class: "bnd-pos__opt-chip",
+						"aria-pressed": "true",
+						"aria-label": __("Remove the item group: {0}", [__(name)]),
+						disabled: !editable,
+						onclick: () => changeSetting("native", "item_groups", chosen.filter((other) => other !== name)),
+					}, __(name), " ×")) : h("span", { class: "bnd-pos__muted" }, __("Every item group", null, "Bunood POS"))),
+					editable && left.length ? h("select", {
+						class: "bnd-pos__select",
+						"aria-label": __("Add an item group", null, "Bunood POS"),
+						onchange: (event) => { if (event.target.value) changeSetting("native", "item_groups", chosen.concat([event.target.value])); },
+					}, h("option", { value: "", selected: true }, __("Add an item group", null, "Bunood POS")),
+					left.map((group) => h("option", { value: group.name }, group.is_group ? `${__(group.name)} …` : __(group.name)))) : null);
+			} else if (row.kind === "toggle") {
 				const on = row.invert ? !value : Boolean(value);
 				control = h("button", {
 					type: "button",
@@ -2567,7 +2634,7 @@
 			if (!settings || state.view !== "settings") return;
 			const head = h("div", { class: "bnd-pos__list-head" },
 				h("h2", null, __("Point of sale settings", null, "Bunood POS")),
-				h("span", { class: "bnd-pos__muted" }, settings.profile, settings.ctx?.warehouse ? ` · ${settings.ctx.warehouse}` : "", " — ", __("saved in the POS Profile, for everyone who sells on it", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__muted" }, settings.profile, settings.ctx?.company ? ` · ${settings.ctx.company}` : "", " — ", __("saved in the POS Profile, for everyone who sells on it", null, "Bunood POS")),
 				h("span", { class: "bnd-pos__spacer" }),
 				settings.ctx ? h("span", { class: "bnd-pos__tag", "data-tone": settings.dirty ? "warn" : null }, settings.dirty ? __("Unsaved changes", null, "Bunood POS") : __("All saved", null, "Bunood POS")) : null,
 				h("button", { type: "button", class: "bnd-pos__ghost", onclick: leaveSettings }, __("Back", null, "Bunood POS"), " ", key("Esc")),
@@ -2651,15 +2718,16 @@
 				state.profile?.can_edit ? h("button", { type: "button", role: "menuitem", onclick: () => { state.menuOpen = false; renderBar(); openSettings(); } }, __("Point of sale settings", null, "Bunood POS")) : null,
 				h("button", { type: "button", role: "menuitem", onclick: () => { state.menuOpen = false; renderBar(); openHelp(); } }, __("Shortcuts", null, "Bunood POS"))) : null;
 			fill(bar, 
-				h("span", { class: "bnd-pos__brand", "aria-hidden": "true" }, frappe.boot?.sysdefaults?.company?.slice?.(0, 1) || "B"),
+				h("span", { class: "bnd-pos__brand", "aria-hidden": "true" }, (state.profile?.company || frappe.boot?.sysdefaults?.company || "B").slice(0, 1)),
+				storeBadge(),
 				h("nav", { class: "bnd-pos__tabs", "aria-label": __("POS views", null, "Bunood POS") },
 					tab("sale", __("Sale", null, "Bunood POS")),
 					canHold() ? tab("held", __("Held", null, "Bunood POS"), (state.held || []).length) : null,
 					tab("receipts", __("Receipts and returns", null, "Bunood POS"))),
 				h("span", { class: "bnd-pos__spacer" }),
-				h("span", { class: "bnd-pos__pill", "data-tone": online ? "good" : "warn" }, h("span", { class: "bnd-pos__dot" }), online ? __("Connected", null, "Bunood POS") : __("No connection — selling continues", null, "Bunood POS")),
+				h("span", { class: "bnd-pos__pill", "data-tone": online ? "good" : "warn", title: online ? __("Connected", null, "Bunood POS") : null }, h("span", { class: "bnd-pos__dot" }), h("span", { class: "bnd-pos__pill-text" }, online ? __("Connected", null, "Bunood POS") : __("No connection — selling continues", null, "Bunood POS"))),
 				waiting ? h("span", { class: "bnd-pos__pill", "data-tone": "warn" }, __("Waiting to send: {0}", [waiting])) : null,
-				opening ? h("span", { class: "bnd-pos__pill" }, __("Shift", null, "Bunood POS"), " ", since ? ltr(since) : null, " · ", opening.pos_profile) : null,
+				opening ? h("span", { class: "bnd-pos__pill" }, __("Shift", null, "Bunood POS"), " ", since ? ltr(since) : null, h("span", { class: "bnd-pos__pill-extra" }, " · ", opening.pos_profile)) : null,
 				h("span", { class: "bnd-pos__user" }, frappe.user_info?.(frappe.session?.user)?.fullname || frappe.session?.user || ""),
 				counter("customer_screen") === false ? null : h("button", {
 					type: "button",
@@ -2674,6 +2742,16 @@
 					menu),
 				h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Leave the counter", null, "Bunood POS"), onclick: () => unsavedGuard(() => frappe.set_route("")) }, svg("exit", 18)),
 			);
+		}
+
+		// Which company and warehouse this counter sells from, always in sight.
+		function storeBadge() {
+			const store = state.profile?.store;
+			if (!store) return null;
+			const place = store.branch ? `${__(store.branch)} · ${store.warehouse_name}` : store.warehouse_name;
+			return h("span", { class: "bnd-pos__store", title: `${store.company} · ${store.warehouse}` },
+				svg("store", 16),
+				h("span", { class: "bnd-pos__store-text" }, h("small", null, store.company), h("strong", null, place)));
 		}
 
 		function renderBill() {

@@ -263,6 +263,83 @@ html[data-theme] .bnd-pos {
 		font-weight: var(--bnd-weight-semibold);
 	}
 
+	// Where this counter sells from: company over branch and warehouse.
+	.bnd-pos__store {
+		display: inline-flex;
+		align-items: center;
+		gap: var(--bnd-sp-2);
+		min-inline-size: 0;
+		max-inline-size: 16rem;
+		margin-inline-end: var(--bnd-sp-3);
+		padding-inline: var(--bnd-sp-2);
+		border-inline-start: var(--bnd-line) solid var(--bnd-brand-deep-tile);
+		color: var(--bnd-on-deep);
+	}
+
+	.bnd-pos__store-text {
+		display: grid;
+		min-inline-size: 0;
+		line-height: 1.2;
+
+		small,
+		strong {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
+
+		small {
+			font-size: var(--bnd-text-xs);
+			opacity: 0.8;
+		}
+
+		strong {
+			font-size: var(--bnd-text-sm);
+			font-weight: var(--bnd-weight-semibold);
+		}
+	}
+
+	.bnd-pos__facts {
+		display: grid;
+		gap: var(--bnd-sp-2);
+		margin: 0;
+
+		div {
+			display: flex;
+			justify-content: space-between;
+			gap: var(--bnd-sp-3);
+		}
+
+		dt {
+			color: var(--bnd-ink-muted);
+			font-weight: var(--bnd-weight-normal);
+		}
+
+		dd {
+			margin: 0;
+			font-weight: var(--bnd-weight-semibold);
+			text-align: end;
+		}
+	}
+
+	.bnd-pos__gate-company {
+		margin-block-start: var(--bnd-sp-2);
+		color: var(--bnd-ink-muted);
+		font-size: var(--bnd-text-sm);
+		font-weight: var(--bnd-weight-semibold);
+	}
+
+	.bnd-pos__setting-stack {
+		display: grid;
+		gap: var(--bnd-sp-2);
+		justify-items: start;
+		max-inline-size: 28rem;
+	}
+
+	.bnd-pos__setting-value {
+		font-size: var(--bnd-text-md);
+	}
+
 	.bnd-pos__tabs {
 		display: flex;
 		gap: var(--bnd-sp-1);
@@ -2913,6 +2990,18 @@ html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
 
 @include bnd-until(lg) {
 	html[data-theme] .bnd-pos {
+		// The tabs keep their room: the store badge keeps the branch and warehouse (its title has all).
+		.bnd-pos__store {
+			max-inline-size: 9rem;
+			margin-inline-end: var(--bnd-sp-1);
+		}
+
+		.bnd-pos__store-text small,
+		.bnd-pos__pill-extra,
+		.bnd-pos__pill[data-tone="good"] .bnd-pos__pill-text {
+			display: none;
+		}
+
 		.bnd-pos__sale {
 			flex-direction: column;
 			overflow: auto;
@@ -2996,6 +3085,11 @@ html[data-theme] .bnd-pos .bnd-pos__screen-btn[data-on] {
 
 @include bnd-until(md) {
 	html[data-theme] .bnd-pos {
+		// A phone keeps the mark; the opening screen and the settings say where in full.
+		.bnd-pos__store-text {
+			display: none;
+		}
+
 		.bnd-pos__pill,
 		.bnd-pos__customer .bnd-pos__key {
 			display: none;

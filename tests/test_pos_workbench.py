@@ -153,7 +153,8 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('"company_logo": frappe.get_cached_value("Company", profile.company, "company_logo")', self.source)
 
     def test_counter_defaults_are_the_counter_before_the_settings_page(self):
-        # A profile that never opened the page keeps exactly the old behaviour.
+        # A profile that never opened the page keeps exactly the old behaviour,
+        # except company_items (owner, 2026-10-10): each company sells its own items.
         assignment = next(
             node for node in self.tree.body
             if isinstance(node, ast.AnnAssign) and getattr(node.target, "id", "") == "COUNTER_DEFAULTS"
@@ -162,8 +163,32 @@ class POSWorkbenchContractTests(unittest.TestCase):
             "fbar": False, "tiles": "m", "customer_screen": True, "receipt_qr": True, "max_discount": 0,
             "returns": True, "new_item": True, "cash_exact": True, "cash_notes": [10, 50, 100, 200, 500],
             "merge_scans": True, "scale_prefix": "21", "unknown_barcode": "offer",
-            "reason_threshold": 0, "held_on_close": "carry", "bnpl": {},
+            "reason_threshold": 0, "held_on_close": "carry", "bnpl": {}, "company_items": True,
         })
+
+    def test_a_counter_keeps_to_its_company_items_in_the_catalogue_and_at_checkout(self):
+        items = self.body("get_items")
+        self.assertIn('own = _counter_settings(profile.name)["company_items"]', items)
+        self.assertIn("kept = _company_items(profile.company, [row[\"item_code\"] for row in page]) if own else None", items)
+        self.assertIn('"elsewhere": bool(known) and not items,', items)
+        # Checkout, held drafts and offline sales all price their lines through this.
+        native = self.body("_native_catalog_item")
+        self.assertIn('if _counter_settings(profile.name)["company_items"] and item_code not in _company_items(profile.company, [item_code]):', native)
+        owners = self.body("_company_items")
+        self.assertIn('"Item Default"', owners)
+        self.assertIn('frappe.get_all("Bin"', owners)
+        self.assertIn("return {code for code in codes if not owners.get(code) or company in owners[code]}", owners)
+        self.assertIn('start = page["next_start"]', self.body("offline_catalog"))
+
+    def test_the_warehouse_is_the_company_s_and_waits_for_open_shifts(self):
+        save = self.body("save_settings")
+        self.assertIn("found.company != profile.company or cint(found.is_group) or cint(found.disabled)", save)
+        self.assertIn("shifts = _profile_open_shifts(profile.name)", save)
+        self.assertLess(save.index("shifts = _profile_open_shifts(profile.name)"), save.index("profile.warehouse = warehouse"))
+        self.assertIn('frappe.throw(_("Item group not found: {0}").format(missing))', save)
+        # Kept rows are renumbered, or the table reloads in another order.
+        self.assertIn("for index, row in enumerate(profile.item_groups, 1):", save)
+        self.assertIn("for index, row in enumerate(profile.payments, 1):", save)
 
     def test_settings_are_saved_only_with_write_access_and_kept_off_the_boot(self):
         save = self.body("save_settings")
