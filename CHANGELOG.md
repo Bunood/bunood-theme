@@ -24,6 +24,27 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.8] — 2026-10-10 — a restaurant cashier who opens «المنصة» goes straight to the restaurant cashier
+
+«المنصة» is the point of sale for supermarkets and shops; restaurants sell from their own app,
+«كاشير المطعم» (owner, 2026-10-10). The owner clicked «نقطة البيع» while their shift was open on
+the restaurant's till and stopped on the notice «نقطة البيع هذه خاصة بـ: كاشير المطعم»: a dead
+end (PR #30).
+
+- The user's shift is on a till another front end owns: the counter goes straight to that till's
+  screen.
+- No till of the counter's own, only another front end's: `get_context` returns `elsewhere` (the
+  screens of the user's other tills, from `bunood_pos_reserved_profiles`), and the counter goes
+  straight there, or lists them when there are several («هذه الشاشة للسوبرماركت والمحلات»).
+- Once only: a screen that sends the user back within 15 seconds gets the notice, never a
+  redirect loop (Bunood Dining's `/dining_pos` never sends anyone back). A route must be a path on
+  this site. Without a till of its own the counter offers no way into selling.
+- Supermarket and shop counters are unchanged.
+
+Checks on the merged tree: the guarded build; the interface and counter tests;
+tests/test_pos_workbench.py; tools/pos-backend-acceptance.py (rollback) on the lab; lab browser
+runs of the three cases and of the supermarket counter.
+
 ## [0.57.7] — 2026-10-11 — the POS acceptance runs to the end on a restaurant's till
 
 Tools only: `tools/pos-backend-acceptance.py`, the rollback-only acceptance of the native POS flow. Nothing a site
