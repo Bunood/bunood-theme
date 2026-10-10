@@ -335,27 +335,37 @@ def run() -> None:
             bnpl_checked = True
 
         # 2026-10-10: a counter sells its own company's items, from its own warehouse.
-        # An item with an item default for another company only is that company's:
-        # one is made so inside this rollback (the row alone, no second company).
-        loose = next(
-            (
-                row["item_code"]
-                for row in catalogue
-                if row["item_code"] != item["item_code"]
-                and not frappe.db.exists("Item Default", {"parent": row["item_code"], "parenttype": "Item"})
-                and not frappe.db.exists("Bin", {"item_code": row["item_code"]})
-            ),
-            None,
+        # Inside this rollback, catalogue items are made another company's or everyone's
+        # (their own stock records and item defaults removed first, so each case holds on
+        # any data), with no second company: rows alone.
+        other_company = "Bunood Acceptance Other Company"
+        frappe.db.sql(
+            """insert into `tabWarehouse` (name, warehouse_name, company, is_group, disabled, lft, rgt,
+            creation, modified, owner, modified_by, docstatus)
+            values ('Bunood Acceptance Other Store', 'Bunood Acceptance Other Store', %s, 0, 0, 0, 0,
+            now(), now(), 'Administrator', 'Administrator', 0)""",
+            (other_company,),
         )
-        company_checked = None
-        if loose:
+
+        def strip(code):
+            frappe.db.sql("delete from `tabBin` where item_code = %s", (code,))
+            frappe.db.sql("delete from `tabItem Default` where parent = %s and parenttype = 'Item'", (code,))
+
+        def item_default(code, company):
             frappe.db.sql(
                 """insert into `tabItem Default` (name, parent, parenttype, parentfield, idx, company,
                 creation, modified, owner, modified_by, docstatus)
-                values (%s, %s, 'Item', 'item_defaults', 99, 'Bunood Acceptance Other Company',
-                now(), now(), 'Administrator', 'Administrator', 0)""",
-                (frappe.generate_hash(length=10), loose),
+                values (%s, %s, 'Item', 'item_defaults', 99, %s, now(), now(), 'Administrator', 'Administrator', 0)""",
+                (frappe.generate_hash(length=10), code, company),
             )
+
+        not_sold = frappe._("Not sold at this point of sale: {0}").split("{0}")[0].strip()
+        spare = [row["item_code"] for row in priced if row["item_code"] != item["item_code"]]
+        loose = spare[0] if spare else None
+        company_checked = None
+        if loose:
+            strip(loose)
+            item_default(loose, other_company)
             listed = [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
             assert loose not in listed, "Another company's item is on this counter."
             scanned = pos.get_items(profile_name, search_term=loose)
@@ -364,10 +374,42 @@ def run() -> None:
                 lambda: pos.preview_cart({**payload, "items": [{"item_code": loose, "qty": 1}]}),
                 "Not sold at this point of sale: {0}",
             ), "Another company's item was priced at this counter."
+            # A neighbour found by its name does not hide that the code itself is sold elsewhere.
+            if len(spare) > 1:
+                frappe.db.set_value("Item", spare[1], "item_name", f"{loose} neighbour", update_modified=False)
+                near = pos.get_items(profile_name, search_term=loose)
+                assert spare[1] in [row["item_code"] for row in near["items"]] and near["elsewhere"], near
+            # Sold offline before the counter's items changed: kept for review, never lost.
+            offline_id = f"acceptance-{frappe.generate_hash(length=12)}"
+            used_sale_ids.append(offline_id)
+            kept_sale = pos.sync_offline_sale(
+                offline_id, "2026-10-10 09:05", json.dumps({**payload, "items": [{"item_code": loose, "qty": 1}]}),
+                json.dumps(cash_row), str(due_now),
+            )
+            kept_remarks = frappe.db.get_value(kept_sale["doctype"], kept_sale["name"], "remarks") or ""
+            assert kept_sale["status"] == "review" and not_sold in kept_remarks, (kept_sale, kept_remarks)
             pos.save_settings(profile_name, None, json.dumps({"item_scope": "all"}))
             assert loose in [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
             pos.save_settings(profile_name, None, json.dumps({"item_scope": "company"}))
             company_checked = True
+        # ERPNext gives every new item an item default for the site's default company: that
+        # row alone hands the item to no one; stock in a company's warehouse does.
+        default_company = frappe.defaults.get_global_default("company")
+        automatic_checked = None
+        if default_company and len(spare) > 2:
+            shared = spare[2]
+            strip(shared)
+            item_default(shared, default_company)
+            assert pos._company_items(other_company, [shared]) == {shared}, "The automatic item default made the item the default company's."
+            frappe.db.sql(
+                """insert into `tabBin` (name, item_code, warehouse, actual_qty, creation, modified, owner, modified_by, docstatus)
+                values (%s, %s, 'Bunood Acceptance Other Store', 1, now(), now(), 'Administrator', 'Administrator', 0)""",
+                (frappe.generate_hash(length=10), shared),
+            )
+            assert pos._company_items(other_company, [shared]) == {shared}
+            if profile["company"] != other_company:
+                assert not pos._company_items(profile["company"], [shared]), "Stock in another company's warehouse did not make the item that company's."
+            automatic_checked = True
         assert refused(lambda: pos.save_settings(profile_name, None, json.dumps({"item_scope": "branch"})), "Invalid value for the counter setting: {0}")
         # This warehouse's items, the simple invoice's rule: a stocked item with no stock record
         # here and another default warehouse (so made inside this rollback) leaves the counter.
@@ -375,7 +417,7 @@ def run() -> None:
             (
                 row["item_code"]
                 for row in catalogue
-                if row["item_code"] not in (item["item_code"], loose)
+                if row["item_code"] not in [item["item_code"], *spare[:3]]
                 and frappe.db.get_value("Item", row["item_code"], "is_stock_item")
             ),
             None,
@@ -403,11 +445,19 @@ def run() -> None:
             pos.save_settings(profile_name, None, json.dumps({"item_scope": "company"}))
             assert stocked in [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
             warehouse_checked = True
-        # Paging past the filter: the pages join up without a gap or a repeat.
-        first = pos.get_items(profile_name, page_length=3)
-        second = pos.get_items(profile_name, start=first["next_start"], page_length=3)
-        whole = [row["item_code"] for row in pos.get_items(profile_name, page_length=6)["items"]]
-        assert [row["item_code"] for row in first["items"] + second["items"]] == whole[: len(first["items"]) + len(second["items"])], (first, second, whole)
+        # Paging past the filter, with hidden items among the rows: page by page, the counter
+        # walks the same catalogue one large page shows, without a gap, a repeat or a last
+        # empty page announced as more.
+        whole = [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
+        walked, start = [], 0
+        for _step in range(60):
+            page = pos.get_items(profile_name, start=start, page_length=3)
+            walked += [row["item_code"] for row in page["items"]]
+            start = page["next_start"]
+            assert page["items"] or not _step, "More items were announced and none came."
+            if not page["more"]:
+                break
+        assert walked[: len(whole)] == whole and len(walked) == len(set(walked)), (walked, whole)
 
         # The warehouse: one of the company's, and never under an open shift.
         store = pos.settings_context(profile_name)
@@ -542,6 +592,7 @@ def run() -> None:
             "offline_short_sale_held_for_review": True,
             "tabby_needs_its_order_number": bnpl_checked,
             "company_items_only": company_checked,
+            "automatic_default_ignored": automatic_checked,
             "warehouse_items_only": warehouse_checked,
             "warehouse_waits_for_open_shifts": warehouse_waits,
             "item_groups_saved": True,

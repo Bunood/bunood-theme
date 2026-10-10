@@ -170,10 +170,14 @@ class POSWorkbenchContractTests(unittest.TestCase):
         items = self.body("get_items")
         self.assertIn('scope = _counter_settings(profile.name)["item_scope"]', items)
         self.assertIn("kept = _scoped_items(profile, [row[\"item_code\"] for row in page], scope)", items)
-        self.assertIn('"elsewhere": bool(known) and not items,', items)
+        # Review 2026-10-10: elsewhere whenever the named item is not one this counter sells.
+        self.assertIn('and known not in {row["item_code"] for row in items}', items)
+        self.assertIn("and not _sold_here(profile, known, scope),", items)
+        # "more" only when a row the counter sells is waiting past the page.
+        self.assertIn("native_get_items(offset, size + 1,", items)
+        self.assertIn("if sold and len(items) == size:", items)
         # Checkout, held drafts and offline sales all price their lines through this.
         native = self.body("_native_catalog_item")
-        self.assertIn("kept = _scoped_items(profile, [item_code])", native)
         self.assertIn("if kept is not None and item_code not in kept:", native)
         # The warehouse scope is the simple bill's rule; services keep to the company.
         scoped = self.body("_scoped_items")
@@ -182,6 +186,16 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn("return held | (services & own)", scoped)
         self.assertIn('ITEM_SCOPES = ("company", "warehouse", "all")', self.source)
         owners = self.body("_company_items")
+        # ERPNext adds the site's default company's item default to every new item.
+        self.assertIn('automatic = frappe.defaults.get_global_default("company")', owners)
+        self.assertIn("if row.company and row.company != automatic:", owners)
+        # A sale made offline is kept for review when the counter's items changed since.
+        sync = self.body("sync_offline_sale")
+        self.assertIn("except NotSoldHere as error:", sync)
+        self.assertLess(sync.index("except NotSoldHere as error:"), sync.index("_apply_payments(doc, profile, tendered)"))
+        self.assertIn("frappe.flags.bnd_pos_any_item = True", sync)
+        self.assertIn("kept = None if frappe.flags.bnd_pos_any_item else _scoped_items(profile, [item_code])", native)
+        self.assertIn("if start >= MAX_OFFLINE_SCAN:", self.body("offline_catalog"))
         self.assertIn('"Item Default"', owners)
         self.assertIn('frappe.get_all("Bin"', owners)
         self.assertIn("return {code for code in codes if not owners.get(code) or company in owners[code]}", owners)

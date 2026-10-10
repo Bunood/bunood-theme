@@ -438,22 +438,49 @@ ITEM_SCOPES = ("company", "warehouse", "all")
 
 def _company_items(company: str, codes: list[str]) -> set[str]:
     """The items among ``codes`` that belong to ``company``. An item is a
-    company's when it has an item default for it or stock (a Bin) in one of its
-    warehouses; an item with neither for any company belongs to every company."""
+    company's when it has stock records (a Bin) in one of its warehouses, or an
+    item default for it; an item with neither for any company belongs to every
+    company. The site's default company's item default does not count: ERPNext
+    adds it to every new item (Item.update_defaults_from_item_group), whoever's
+    item it is, so it would hand every item to that company."""
     codes = [code for code in dict.fromkeys(codes) if code]
     if not codes:
         return set()
+    automatic = frappe.defaults.get_global_default("company")
     owners: dict[str, set[str]] = {}
     for row in frappe.get_all(
         "Item Default", filters={"parenttype": "Item", "parent": ["in", codes]}, fields=["parent", "company"]
     ):
-        owners.setdefault(row.parent, set()).add(row.company)
+        if row.company and row.company != automatic:
+            owners.setdefault(row.parent, set()).add(row.company)
     bins = frappe.get_all("Bin", filters={"item_code": ["in", codes]}, fields=["item_code", "warehouse"], distinct=True)
     places = list({row.warehouse for row in bins})
     companies = dict(frappe.get_all("Warehouse", filters={"name": ["in", places]}, fields=["name", "company"], as_list=True)) if places else {}
     for row in bins:
-        owners.setdefault(row.item_code, set()).add(companies.get(row.warehouse))
+        if companies.get(row.warehouse):
+            owners.setdefault(row.item_code, set()).add(companies[row.warehouse])
     return {code for code in codes if not owners.get(code) or company in owners[code]}
+
+
+def _sold_here(profile, item_code: str, scope: str) -> bool:
+    """Whether this counter sells the item at all: ERPNext's own POS conditions,
+    the profile's item groups and stock rule, and the counter's items."""
+    from erpnext.accounts.doctype.pos_profile.pos_profile import get_item_groups
+
+    item = frappe.db.get_value(
+        "Item", item_code, ["disabled", "has_variants", "is_sales_item", "is_fixed_asset", "item_group", "is_stock_item"], as_dict=True
+    )
+    if not item or item.disabled or item.has_variants or not item.is_sales_item or item.is_fixed_asset:
+        return False
+    kept = _scoped_items(profile, [item_code], scope)
+    if kept is not None and item_code not in kept:
+        return False
+    groups = get_item_groups(profile.name)
+    if groups and item.item_group not in groups:
+        return False
+    if cint(profile.hide_unavailable_items) and item.is_stock_item:
+        return flt(frappe.db.get_value("Bin", {"item_code": item_code, "warehouse": profile.warehouse}, "actual_qty")) > 0
+    return True
 
 
 def _scoped_items(profile, codes: list[str], scope: str | None = None) -> set[str] | None:
@@ -488,10 +515,10 @@ def _branches(warehouses: list[str]) -> dict[str, str]:
     names = [name for name in warehouses if name]
     if not names or not frappe.get_meta("Branch").has_field("bnd_warehouse"):
         return {}
-    return {
-        row.bnd_warehouse: row.name
-        for row in frappe.get_all("Branch", filters={"bnd_warehouse": ["in", names]}, fields=["name", "bnd_warehouse"], order_by="creation asc")
-    }
+    found: dict[str, str] = {}
+    for row in frappe.get_all("Branch", filters={"bnd_warehouse": ["in", names]}, fields=["name", "bnd_warehouse"], order_by="creation asc, name asc"):
+        found.setdefault(row.bnd_warehouse, row.name)
+    return found
 
 
 def _store(profile) -> dict[str, Any]:
@@ -513,7 +540,7 @@ def _known_item(term: str) -> tuple[str | None, bool]:
     found = (search_for_serial_or_batch_or_barcode_number(term) or {}).get("item_code")
     if found:
         return found, True
-    return (term if frappe.db.exists("Item", term) else None), False
+    return frappe.db.get_value("Item", term, "name"), False
 
 
 def _profile_open_shifts(profile_name: str) -> list[str]:
@@ -683,28 +710,31 @@ def get_items(
     items: list[dict[str, Any]] = []
     more = False
     for round_number in range(MAX_SCOPE_ROUNDS):
-        page = (native_get_items(offset, size, profile.selling_price_list, group, profile.name, term) or {}).get("items") or []
+        # One row past the page: "more" only when a row the counter sells is waiting.
+        page = (native_get_items(offset, size + 1, profile.selling_price_list, group, profile.name, term) or {}).get("items") or []
         kept = _scoped_items(profile, [row["item_code"] for row in page], scope)
         taken = 0
         for row in page:
+            sold = kept is None or row["item_code"] in kept
+            if sold and len(items) == size:
+                more = not resolved
+                break
             taken += 1
-            if kept is None or row["item_code"] in kept:
+            if sold:
                 items.append(row)
-                if len(items) == size:
-                    break
         offset += taken
-        if resolved or len(page) < size:
-            more = not resolved and taken < len(page)
+        if more or resolved or len(page) <= size:
             break
-        if len(items) == size or round_number == MAX_SCOPE_ROUNDS - 1:
+        if round_number == MAX_SCOPE_ROUNDS - 1:
             more = True
-            break
     return {
         "items": items,
         "item_group": group,
         "next_start": offset,
         "more": more,
-        "elsewhere": bool(known) and not items,
+        "elsewhere": bool(known)
+        and known not in {row["item_code"] for row in items}
+        and not _sold_here(profile, known, scope),
     }
 
 
@@ -749,6 +779,10 @@ def _number(value: Any, label: str) -> float:
     return float(number)
 
 
+class NotSoldHere(frappe.ValidationError):
+    """An item outside this counter's items (its item_scope setting)."""
+
+
 def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dict[str, Any]:
     from erpnext.selling.page.point_of_sale.point_of_sale import get_items as native_get_items
 
@@ -771,9 +805,10 @@ def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dic
     ) or next((row for row in rows if row.get("item_code") == item_code), None)
     if not item:
         frappe.throw(_("Item unavailable in this POS Profile: {0}").format(item_code))
-    kept = _scoped_items(profile, [item_code])
+    # A sale made offline from the device's copy is kept for review instead (sync_offline_sale).
+    kept = None if frappe.flags.bnd_pos_any_item else _scoped_items(profile, [item_code])
     if kept is not None and item_code not in kept:
-        frappe.throw(_("Not sold at this point of sale: {0}").format(item_code))
+        frappe.throw(_("Not sold at this point of sale: {0}").format(item_code), NotSoldHere)
     return item
 
 
@@ -1754,7 +1789,7 @@ def _payment_modes(company: str, keep: list[str] | None = None) -> list[dict[str
 def _store_choices(profile) -> dict[str, Any]:
     """What the settings page offers: the company's own warehouses (the one in
     use always among them) and the item tree."""
-    warehouses = frappe.get_list(
+    warehouses = frappe.get_all(
         "Warehouse",
         filters={"company": profile.company, "is_group": 0, "disabled": 0},
         fields=["name", "warehouse_name"],
@@ -1765,7 +1800,7 @@ def _store_choices(profile) -> dict[str, Any]:
         warehouses.append(frappe._dict(name=profile.warehouse, warehouse_name=_store(profile)["warehouse_name"]))
     branches = _branches([row.name for row in warehouses])
     chosen = [row.item_group for row in profile.get("item_groups") or []]
-    groups = frappe.get_list("Item Group", fields=["name", "is_group"], order_by="lft asc", limit_page_length=1000)
+    groups = frappe.get_all("Item Group", fields=["name", "is_group"], order_by="lft asc", limit_page_length=1000)
     known = {row.name for row in groups}
     groups += [frappe._dict(name=name, is_group=0) for name in chosen if name not in known]
     return {
@@ -1834,8 +1869,6 @@ def save_settings(pos_profile: str, native: Any = None, counter: Any = None, mod
         found = frappe.db.get_value("Warehouse", warehouse, ["company", "is_group", "disabled"], as_dict=True) if warehouse else None
         if not found or found.company != profile.company or cint(found.is_group) or cint(found.disabled):
             frappe.throw(_("Choose one of this company's warehouses: {0}").format(profile.company))
-        if not frappe.has_permission("Warehouse", "read", warehouse):
-            frappe.throw(_("Choose one of this company's warehouses: {0}").format(profile.company), frappe.PermissionError)
         # A shift's sales come from one warehouse; the change waits for every open shift to close.
         shifts = _profile_open_shifts(profile.name)
         if shifts:
@@ -1938,6 +1971,9 @@ def save_settings(pos_profile: str, native: Any = None, counter: Any = None, mod
 # so a sale sent twice is found and not posted again.
 
 MAX_OFFLINE_ITEMS = 5000
+# ERPNext prices every row it pages before the counter keeps its own: past this many
+# rows read, the copy stops (truncated), so one request never prices the whole table.
+MAX_OFFLINE_SCAN = 10000
 OFFLINE_MARK = "bnd-offline:"
 SALE_MEMORY = 30 * 24 * 3600
 
@@ -2029,12 +2065,17 @@ def offline_catalog(pos_profile: str) -> dict[str, Any]:
     profile = _profile(pos_profile)
     items: list[dict[str, Any]] = []
     start = 0
+    truncated = False
     while len(items) < MAX_OFFLINE_ITEMS:
         page = get_items(profile.name, start=start, page_length=MAX_PAGE_LENGTH)
         items.extend(page["items"])
         start = page["next_start"]
         if not page["more"]:
             break
+        if start >= MAX_OFFLINE_SCAN:
+            truncated = True
+            break
+    truncated = truncated or len(items) >= MAX_OFFLINE_ITEMS
     items = items[:MAX_OFFLINE_ITEMS]
     codes = [row["item_code"] for row in items] or [""]
     groups = dict(frappe.get_all("Item", filters={"name": ["in", codes]}, fields=["name", "item_group"], as_list=True))
@@ -2048,7 +2089,7 @@ def offline_catalog(pos_profile: str) -> dict[str, Any]:
     return {
         "profile": profile.name,
         "items": items,
-        "truncated": len(items) >= MAX_OFFLINE_ITEMS,
+        "truncated": truncated,
         "generated_at": str(now_datetime()),
     }
 
@@ -2073,12 +2114,20 @@ def sync_offline_sale(
         data = _cart(payload)
         tendered = _json(payments, [])
         note = f"{_('Sold offline at {0}').format(sold_at)} · {OFFLINE_MARK}{offline_id}"
-        doc, profile = _new_or_held(data)
         reason = ""
+        mark = len(frappe.local.message_log)
         try:
-            _apply_payments(doc, profile, tendered)
-        except frappe.ValidationError as error:
+            doc, profile = _new_or_held(data)
+        except NotSoldHere as error:
+            # The counter's items changed after the device copied the catalogue: the sale
+            # happened, so it is kept for review, never lost.
             reason = frappe.utils.strip_html(str(error))[:200]
+            del frappe.local.message_log[mark:]
+        if not reason:
+            try:
+                _apply_payments(doc, profile, tendered)
+            except frappe.ValidationError as error:
+                reason = frappe.utils.strip_html(str(error))[:200]
         if not reason and collected_total not in (None, ""):
             total = flt(doc.rounded_total or doc.grand_total, doc.precision("grand_total"))
             collected = _number(collected_total, _("Total"))
@@ -2086,7 +2135,11 @@ def sync_offline_sale(
                 reason = _("Total now: {0} · Collected: {1}").format(total, collected)
         if reason:
             # A fresh draft without payments: the cashier records what was collected when completing it.
-            doc, profile = _new_or_held(data)
+            frappe.flags.bnd_pos_any_item = True
+            try:
+                doc, profile = _new_or_held(data)
+            finally:
+                frappe.flags.bnd_pos_any_item = False
             collected_text = ", ".join(
                 f"{_(str(row.get('mode_of_payment') or ''))} {flt(row.get('amount'))}" for row in tendered if isinstance(row, dict)
             )

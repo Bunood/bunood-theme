@@ -452,7 +452,13 @@ test("the counter says which company, branch and warehouse it sells from", () =>
 test("the catalogue pages where the server says, and a code sold elsewhere is not an unknown code", () => {
 	assert.match(fn("loadItems"), /start: append \? state\.itemsNext : 0,/);
 	assert.match(fn("loadItems"), /state\.more = typeof result\?\.more === "boolean" \? result\.more : rows\.length === PAGE_SIZE;/);
-	assert.match(js, /hits\.elsewhere = !hits\.length && Boolean\(result\?\.elsewhere\);/);
+	assert.match(js, /if \(!exact\.length && result\?\.elsewhere\) return Object\.assign\(\[\], \{ elsewhere: true \}\);/);
+	assert.match(js, /if \(!whole\.length && whole\.elsewhere\) hits = whole;/);
+	// A refused scan leaves no pending quantity or older unknown code behind.
+	assert.match(js, /\} else if \(hits\.elsewhere\) \{\s*state\.unknown = "";\s*state\.unknownLabel = "";\s*state\.mult = null;/);
+	// An item made at the counter is the counter's company's, in its warehouse.
+	assert.match(fn("addBarcode"), /company: store\.company, default_warehouse: store\.warehouse/);
+	assert.match(fn("newItem"), /await addBarcode\(doc\.name, code, true\);/);
 	assert.ok(js.indexOf("} else if (hits.elsewhere) {") < js.indexOf("state.unknown = lookup;"), "a code sold elsewhere is never offered for linking");
 });
 
