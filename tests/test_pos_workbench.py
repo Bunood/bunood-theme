@@ -187,14 +187,18 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('ITEM_SCOPES = ("company", "warehouse", "all")', self.source)
         owners = self.body("_company_items")
         # ERPNext adds the site's default company's item default to every new item.
-        self.assertIn('automatic = frappe.defaults.get_global_default("company")', owners)
-        self.assertIn("if row.company and row.company != automatic:", owners)
+        self.assertIn('automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")', owners)
+        self.assertIn("if automatic and row.default_warehouse == automatic and not any(row.get(field) for field in details):", owners)
+        self.assertNotIn("get_global_default", owners)
+        # A sale kept for review keeps its own items sellable when completed.
+        self.assertIn('frappe.flags.bnd_pos_review_items = _review_items(invoice_type, draft_name or str(data.get("draft") or ""))', self.body("_new_or_held"))
+        self.assertIn("if not remarks or OFFLINE_MARK not in remarks:", self.body("_review_items"))
         # A sale made offline is kept for review when the counter's items changed since.
         sync = self.body("sync_offline_sale")
         self.assertIn("except NotSoldHere as error:", sync)
         self.assertLess(sync.index("except NotSoldHere as error:"), sync.index("_apply_payments(doc, profile, tendered)"))
         self.assertIn("frappe.flags.bnd_pos_any_item = True", sync)
-        self.assertIn("kept = None if frappe.flags.bnd_pos_any_item else _scoped_items(profile, [item_code])", native)
+        self.assertIn("lifted = frappe.flags.bnd_pos_any_item or item_code in (frappe.flags.bnd_pos_review_items or ())", native)
         self.assertIn("if start >= MAX_OFFLINE_SCAN:", self.body("offline_catalog"))
         self.assertIn('"Item Default"', owners)
         self.assertIn('frappe.get_all("Bin"', owners)

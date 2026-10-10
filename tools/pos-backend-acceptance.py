@@ -351,18 +351,19 @@ def run() -> None:
             frappe.db.sql("delete from `tabBin` where item_code = %s", (code,))
             frappe.db.sql("delete from `tabItem Default` where parent = %s and parenttype = 'Item'", (code,))
 
-        def item_default(code, company):
+        def item_default(code, company, warehouse=None):
             frappe.db.sql(
-                """insert into `tabItem Default` (name, parent, parenttype, parentfield, idx, company,
+                """insert into `tabItem Default` (name, parent, parenttype, parentfield, idx, company, default_warehouse,
                 creation, modified, owner, modified_by, docstatus)
-                values (%s, %s, 'Item', 'item_defaults', 99, %s, now(), now(), 'Administrator', 'Administrator', 0)""",
-                (frappe.generate_hash(length=10), code, company),
+                values (%s, %s, 'Item', 'item_defaults', 99, %s, %s, now(), now(), 'Administrator', 'Administrator', 0)""",
+                (frappe.generate_hash(length=10), code, company, warehouse),
             )
 
         not_sold = frappe._("Not sold at this point of sale: {0}").split("{0}")[0].strip()
         spare = [row["item_code"] for row in priced if row["item_code"] != item["item_code"]]
         loose = spare[0] if spare else None
         company_checked = None
+        review_checked = None
         if loose:
             strip(loose)
             item_default(loose, other_company)
@@ -388,19 +389,35 @@ def run() -> None:
             )
             kept_remarks = frappe.db.get_value(kept_sale["doctype"], kept_sale["name"], "remarks") or ""
             assert kept_sale["status"] == "review" and not_sold in kept_remarks, (kept_sale, kept_remarks)
+            # That held draft completes at the counter, its own items still sellable; once
+            # submitted, nothing is exempt any more.
+            if pos._can_hold(context["invoice_type"]):
+                frappe.db.set_value("Item", loose, "is_stock_item", 0, update_modified=False)
+                frappe.clear_cache(doctype="Item")
+                review_cart = {**payload, "items": [{"item_code": loose, "qty": 1}], "draft": kept_sale["name"]}
+                review_total = pos.preview_cart(review_cart)
+                review_due = flt(review_total.get("rounded_total") or review_total.get("grand_total"))
+                completed = pos.checkout(review_cart, [{"mode_of_payment": cash_row[0]["mode_of_payment"], "amount": review_due}], kept_sale["name"])
+                assert completed["docstatus"] == 1 and completed["name"] == kept_sale["name"], completed
+                assert refused(lambda: pos.preview_cart(review_cart), "Not sold at this point of sale: {0}")
+                review_checked = True
             pos.save_settings(profile_name, None, json.dumps({"item_scope": "all"}))
             assert loose in [row["item_code"] for row in pos.get_items(profile_name, page_length=60)["items"]]
             pos.save_settings(profile_name, None, json.dumps({"item_scope": "company"}))
             company_checked = True
-        # ERPNext gives every new item an item default for the site's default company: that
-        # row alone hands the item to no one; stock in a company's warehouse does.
-        default_company = frappe.defaults.get_global_default("company")
+        # ERPNext's own item default on a new item (the site's default warehouse and nothing
+        # else) hands the item to no one, whoever asks; a deliberate one, or stock in a
+        # company's warehouse, does.
+        site_warehouse = frappe.db.get_single_value("Stock Settings", "default_warehouse")
         automatic_checked = None
-        if default_company and len(spare) > 2:
+        if site_warehouse and len(spare) > 2:
             shared = spare[2]
             strip(shared)
-            item_default(shared, default_company)
-            assert pos._company_items(other_company, [shared]) == {shared}, "The automatic item default made the item the default company's."
+            item_default(shared, frappe.db.get_value("Warehouse", site_warehouse, "company"), site_warehouse)
+            assert pos._company_items(other_company, [shared]) == {shared}, "ERPNext's own item default made the item its company's."
+            frappe.db.sql("update `tabItem Default` set default_price_list = %s where parent = %s", (profile.get("selling_price_list"), shared))
+            assert not pos._company_items(other_company, [shared]), "A deliberate item default did not make the item its company's."
+            frappe.db.sql("update `tabItem Default` set default_price_list = null where parent = %s", (shared,))
             frappe.db.sql(
                 """insert into `tabBin` (name, item_code, warehouse, actual_qty, creation, modified, owner, modified_by, docstatus)
                 values (%s, %s, 'Bunood Acceptance Other Store', 1, now(), now(), 'Administrator', 'Administrator', 0)""",
@@ -593,6 +610,7 @@ def run() -> None:
             "tabby_needs_its_order_number": bnpl_checked,
             "company_items_only": company_checked,
             "automatic_default_ignored": automatic_checked,
+            "review_draft_completed": review_checked,
             "warehouse_items_only": warehouse_checked,
             "warehouse_waits_for_open_shifts": warehouse_waits,
             "item_groups_saved": True,
@@ -619,6 +637,8 @@ def run() -> None:
             frappe.cache.delete_value(pos._sale_key(sale_id))
         if context.get("profile"):
             frappe.clear_document_cache("POS Profile", context["profile"]["name"])
+        # Items read through the document cache during the run carry rolled-back values.
+        frappe.clear_cache(doctype="Item")
 
 
 run()

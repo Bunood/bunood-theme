@@ -440,18 +440,24 @@ def _company_items(company: str, codes: list[str]) -> set[str]:
     """The items among ``codes`` that belong to ``company``. An item is a
     company's when it has stock records (a Bin) in one of its warehouses, or an
     item default for it; an item with neither for any company belongs to every
-    company. The site's default company's item default does not count: ERPNext
-    adds it to every new item (Item.update_defaults_from_item_group), whoever's
-    item it is, so it would hand every item to that company."""
+    company. ERPNext's own item default does not count: it adds one to every new
+    item (Item.update_defaults_from_item_group), whoever's item it is, naming the
+    site's default warehouse and nothing else; read by that shape, the rule is
+    the same for every user (a user's own default company plays no part)."""
     codes = [code for code in dict.fromkeys(codes) if code]
     if not codes:
         return set()
-    automatic = frappe.defaults.get_global_default("company")
+    automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")
+    details = [field.fieldname for field in frappe.get_meta("Item Default").fields if field.fieldtype == "Link" and field.fieldname not in ("company", "default_warehouse")]
     owners: dict[str, set[str]] = {}
     for row in frappe.get_all(
-        "Item Default", filters={"parenttype": "Item", "parent": ["in", codes]}, fields=["parent", "company"]
+        "Item Default",
+        filters={"parenttype": "Item", "parent": ["in", codes]},
+        fields=["parent", "company", "default_warehouse", *details],
     ):
-        if row.company and row.company != automatic:
+        if automatic and row.default_warehouse == automatic and not any(row.get(field) for field in details):
+            continue
+        if row.company:
             owners.setdefault(row.parent, set()).add(row.company)
     bins = frappe.get_all("Bin", filters={"item_code": ["in", codes]}, fields=["item_code", "warehouse"], distinct=True)
     places = list({row.warehouse for row in bins})
@@ -806,7 +812,8 @@ def _native_catalog_item(profile, item_code: str, uom: str | None = None) -> dic
     if not item:
         frappe.throw(_("Item unavailable in this POS Profile: {0}").format(item_code))
     # A sale made offline from the device's copy is kept for review instead (sync_offline_sale).
-    kept = None if frappe.flags.bnd_pos_any_item else _scoped_items(profile, [item_code])
+    lifted = frappe.flags.bnd_pos_any_item or item_code in (frappe.flags.bnd_pos_review_items or ())
+    kept = None if lifted else _scoped_items(profile, [item_code])
     if kept is not None and item_code not in kept:
         frappe.throw(_("Not sold at this point of sale: {0}").format(item_code), NotSoldHere)
     return item
@@ -919,8 +926,25 @@ def _new_or_held(data: dict[str, Any], draft_name: str | None = None):
     else:
         _require(invoice_type, "create")
         doc = frappe.new_doc(invoice_type)
-    _apply_cart(doc, data, profile)
+    frappe.flags.bnd_pos_review_items = _review_items(invoice_type, draft_name or str(data.get("draft") or ""))
+    try:
+        _apply_cart(doc, data, profile)
+    finally:
+        frappe.flags.bnd_pos_review_items = None
     return doc, profile
+
+
+def _review_items(invoice_type: str, draft_name: str) -> set[str]:
+    """The items of a sale made offline and kept for review (this cashier's held
+    draft marked as sent from a device): the sale happened, so they stay sellable
+    when it is completed, even after the counter's items changed. A line added
+    since is checked as any other."""
+    if not draft_name:
+        return set()
+    remarks = frappe.db.get_value(invoice_type, {"name": draft_name, "docstatus": 0, "owner": frappe.session.user}, "remarks")
+    if not remarks or OFFLINE_MARK not in remarks:
+        return set()
+    return set(frappe.get_all(f"{invoice_type} Item", filters={"parent": draft_name, "parenttype": invoice_type}, pluck="item_code"))
 
 
 def _summary(doc) -> dict[str, Any]:
@@ -1786,10 +1810,20 @@ def _payment_modes(company: str, keep: list[str] | None = None) -> list[dict[str
     ]
 
 
-def _store_choices(profile) -> dict[str, Any]:
+def _store_choices(profile, can_edit: bool) -> dict[str, Any]:
     """What the settings page offers: the company's own warehouses (the one in
-    use always among them) and the item tree."""
-    warehouses = frappe.get_all(
+    use always among them) and the item tree. Its editors see them all (the
+    profile is theirs to set, as ERPNext's own form allows); anyone else what
+    their own permissions show."""
+    fetch = frappe.get_all if can_edit else frappe.get_list
+
+    def listed(doctype: str, **kwargs) -> list:
+        try:
+            return fetch(doctype, **kwargs)
+        except frappe.PermissionError:
+            return []
+
+    warehouses = listed(
         "Warehouse",
         filters={"company": profile.company, "is_group": 0, "disabled": 0},
         fields=["name", "warehouse_name"],
@@ -1800,7 +1834,7 @@ def _store_choices(profile) -> dict[str, Any]:
         warehouses.append(frappe._dict(name=profile.warehouse, warehouse_name=_store(profile)["warehouse_name"]))
     branches = _branches([row.name for row in warehouses])
     chosen = [row.item_group for row in profile.get("item_groups") or []]
-    groups = frappe.get_all("Item Group", fields=["name", "is_group"], order_by="lft asc", limit_page_length=1000)
+    groups = listed("Item Group", fields=["name", "is_group"], order_by="lft asc", limit_page_length=1000)
     known = {row.name for row in groups}
     groups += [frappe._dict(name=name, is_group=0) for name in chosen if name not in known]
     return {
@@ -1817,12 +1851,13 @@ def _store_choices(profile) -> dict[str, Any]:
 def settings_context(pos_profile: str) -> dict[str, Any]:
     profile = _settings_profile(pos_profile)
     invoice_type = _invoice_type()
+    can_edit = bool(frappe.has_permission("POS Profile", "write", profile))
     return {
         "profile": profile.name,
         "company": profile.company,
         "warehouse": profile.warehouse,
-        "can_edit": bool(frappe.has_permission("POS Profile", "write", profile)),
-        "store": _store_choices(profile),
+        "can_edit": can_edit,
+        "store": _store_choices(profile, can_edit),
         "native": {
             **{field: bool(cint(profile.get(field))) for field in NATIVE_FLAGS},
             "warehouse": profile.warehouse or "",
