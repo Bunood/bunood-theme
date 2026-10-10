@@ -874,17 +874,26 @@
 			state.itemsLoading = true;
 			renderStatus();
 			try {
-				const result = await api("get_items", {
-					pos_profile: state.profile.name,
-					start: append ? state.itemsNext : 0,
-					page_length: PAGE_SIZE,
-					item_group: state.group || undefined,
-					search_term: textQuery(),
-				}, { type: "GET" });
-				if (serial !== state.itemsSerial) return;
-				const rows = result?.items || [];
+				// A page the server read through without an item this counter sells comes back
+				// empty: read on a few times rather than answer "More items" with nothing.
+				let result = null;
+				let rows = [];
+				let next = append ? state.itemsNext : 0;
+				for (let tries = 0; tries < 5; tries += 1) {
+					result = await api("get_items", {
+						pos_profile: state.profile.name,
+						start: next,
+						page_length: PAGE_SIZE,
+						item_group: state.group || undefined,
+						search_term: textQuery(),
+					}, { type: "GET" });
+					if (serial !== state.itemsSerial) return;
+					rows = result?.items || [];
+					next = Number(result?.next_start ?? next + rows.length);
+					if (rows.length || result?.more !== true) break;
+				}
 				state.items = append ? state.items.concat(rows) : rows;
-				state.itemsNext = Number(result?.next_start ?? state.items.length);
+				state.itemsNext = next;
 				state.more = typeof result?.more === "boolean" ? result.more : rows.length === PAGE_SIZE;
 			} catch (error) {
 				if (serial !== state.itemsSerial) return;
@@ -1073,6 +1082,7 @@
 		function payload() {
 			return {
 				pos_profile: state.profile.name,
+				draft: state.draft || undefined,
 				customer: state.customer || state.profile.customer,
 				items: state.lines.filter((line) => line.qty > 0).map((line) => ({
 					item_code: line.item_code,
@@ -1476,8 +1486,8 @@
 		}
 
 		// ── Unknown barcode: link it, or make a new item ─────────────────────
-		// An item made here (made) is this counter's too: an item default for its company and
-		// warehouse (ERPNext gave it only the site's default company's, which proves nothing).
+		// An item made here (made) is this counter's: its company's item default names this
+		// counter's warehouse (ERPNext's own row names the site's default one, and proves nothing).
 		async function addBarcode(itemCode, code, made) {
 			const doc = await frappe.xcall("frappe.client.get", { doctype: "Item", name: itemCode });
 			let changed = false;
@@ -1486,8 +1496,12 @@
 				changed = true;
 			}
 			const store = state.profile?.store;
-			if (made && store?.company && !(doc.item_defaults || []).some((row) => row.company === store.company)) {
+			const own = made && store?.company ? (doc.item_defaults || []).find((row) => row.company === store.company) : null;
+			if (made && store?.company && !own) {
 				doc.item_defaults = (doc.item_defaults || []).concat([{ doctype: "Item Default", company: store.company, default_warehouse: store.warehouse }]);
+				changed = true;
+			} else if (own && own.default_warehouse !== store.warehouse) {
+				own.default_warehouse = store.warehouse;
 				changed = true;
 			}
 			if (changed) await frappe.xcall("frappe.client.save", { doc });
