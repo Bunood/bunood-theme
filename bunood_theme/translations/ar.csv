@@ -1424,6 +1424,7 @@ Invoicing,الفوترة,
 Isolation proof,إثبات العزل,
 Issue the credit note,إصدار إشعار دائن,Bunood POS
 Issuing the credit note…,جارٍ إصدار الإشعار الدائن…,Bunood POS
+"It sells from its own screen, not from this counter.",تبيع من شاشتها الخاصة، لا من هذه الشاشة.,Bunood POS
 Item,الصنف,
 Item,الصنف,Bunood POS
 Item code,رمز الصنف,
@@ -1968,6 +1969,7 @@ Open this rehearsal on the same isolated site and database that produced it.,ا�
 Open this rehearsal on the same isolated site and database that started it.,افتح هذه التجربة على الموقع وقاعدة البيانات المعزولين نفسيهما اللذين بدأت عليهما.,
 Open transaction ageing,أعمار المعاملات المفتوحة,
 Open transactions,المعاملات المفتوحة,
+Open: {0},افتح: {0},
 Opening Balance,الرصيد الافتتاحي,
 Opening Invoice Creation Tool,أداة إنشاء الفواتير الافتتاحية,
 Opening Only,أرصدة افتتاحية فقط,
@@ -3320,6 +3322,7 @@ This point of sale does not allow discounts,نقطة البيع هذه لا تس
 This point of sale does not allow price changes,نقطة البيع هذه لا تسمح بتعديل السعر,Bunood POS
 This point of sale has no card method,لا توجد طريقة دفع بالبطاقة في نقطة البيع هذه,Bunood POS
 This point of sale has no cash method,لا توجد طريقة دفع نقدي في نقطة البيع هذه,Bunood POS
+This point of sale is for: {0},نقطة البيع هذه خاصة بـ: {0},
 This preview is only available for submitted Sandbox invoices.,هذه المعاينة متاحة فقط للفواتير المعتمدة في البيئة التجريبية.,
 This proposal has no text to accept.,هذا المقترح لا نص فيه ليُقبل.,
 This receipt belongs to another company.,هذا الإيصال لشركة أخرى.,
@@ -3654,6 +3657,7 @@ Your own width ({0}) is overriding this on your desk.,عرضك الخاص ({0}) 
 Your own {0} ({1}) is overriding this on your desk.,تفضيلك الخاص لخيار {0} ({1}) يتجاوز هذا الإعداد على مكتبك.,
 Your profile is in the pane — place it in a bar first,ملفك الشخصي داخل اللوحة — ضعه في شريط أولًا,
 Your receipt on your phone,إيصالك على جوالك,Bunood POS
+Your shift is open on it. Sell and close it there.,ورديتك مفتوحة عليها. بِع منها وأغلقها من هناك.,Bunood POS
 ZATCA,هيئة الزكاة والضريبة والجمارك,
 ZATCA QR,رمز ZATCA,
 ZATCA accepted this invoice with warnings.,قبلت هيئة الزكاة والضريبة والجمارك هذه الفاتورة مع تحذيرات.,

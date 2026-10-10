@@ -433,6 +433,11 @@
 			}
 			state.profile = state.context.profile;
 			state.gateProfile = state.profile?.name || "";
+			if (state.profile?.reserved_for) {
+				resetSale({ silent: true });
+				renderReserved();
+				return;
+			}
 			root.toggleAttribute("data-fbar", fbarOn());
 			root.setAttribute("data-tiles", counter("tiles") || "m");
 			connectDisplay();
@@ -456,6 +461,31 @@
 			showSale();
 			loadItems(false);
 			refreshHeld();
+		}
+
+		// A POS Profile another front end owns (the restaurant cashier, through the hook
+		// bunood_pos_reserved_profiles): this counter does not sell on it, and points there.
+		function renderReserved() {
+			state.view = "gate";
+			const ctx = state.context;
+			const target = state.profile.reserved_for || {};
+			const title = target.title || state.profile.name;
+			// The user's shift is on it: no other point of sale opens until that shift closes.
+			const shift = ctx.opening_entry || ctx.stale_opening_entry;
+			const others = shift ? [] : (ctx.profiles || []);
+			renderBar();
+			fill(body, h("div", { class: "bnd-pos__gate" },
+				h("div", { class: "bnd-pos__gate-card bnd-pos__reserved" },
+					h("h2", null, __("This point of sale is for: {0}", [title])),
+					h("p", { class: "bnd-pos__muted" }, shift
+						? __("Your shift is open on it. Sell and close it there.", null, "Bunood POS")
+						: __("It sells from its own screen, not from this counter.", null, "Bunood POS")),
+					target.route ? h("a", { class: "bnd-pos__primary bnd-pos__primary--tall", href: target.route }, __("Open: {0}", [title])) : null,
+					others.length ? h("div", { class: "bnd-pos__gate-profiles" },
+						h("strong", null, __("Point of sale", null, "Bunood POS")),
+						others.map((row) => h("button", { type: "button", class: "bnd-pos__choice", onclick: () => initialize(row.name) },
+							h("strong", null, row.name),
+							h("span", { class: "bnd-pos__muted" }, [row.branch ? __(row.branch) : "", row.warehouse_name || row.warehouse || ""].filter(Boolean).join(" · "))))) : null)));
 		}
 
 		function failure(title, detail) {
@@ -2362,7 +2392,7 @@
 		}
 
 		async function openSettings() {
-			if (!state.profile?.can_edit || needsConnection()) return;
+			if (!state.profile?.can_edit || state.profile?.reserved_for || needsConnection()) return;
 			state.heldOpen = false;
 			renderHeldPopover();
 			const settings = { ctx: null, native: null, counter: null, section: 0, busy: false, error: "", dirty: false, profile: state.profile.name };
@@ -2694,6 +2724,11 @@
 
 		// ── Rendering ────────────────────────────────────────────────────────
 		function showSale() {
+			// Never on a till another front end owns: its notice instead.
+			if (state.profile?.reserved_for) {
+				renderReserved();
+				return;
+			}
 			state.view = "sale";
 			fill(body, saleLayout);
 			renderBar();
@@ -2739,6 +2774,8 @@
 				disabled: locked && view !== "sale",
 				onclick: () => unsavedGuard(() => (view === "sale" ? showSale() : showList(view))),
 			}, label, count ? h("span", { class: "bnd-pos__count", dir: "ltr" }, String(count)) : null);
+			// A till another front end owns: no tabs, menu or customer screen from this counter.
+			const reserved = Boolean(state.profile?.reserved_for);
 			const opening = ctx?.opening_entry;
 			const since = opening?.period_start_date ? frappe.datetime?.str_to_user?.(opening.period_start_date)?.split(" ").pop()?.slice(0, 5) : "";
 			const menu = state.menuOpen ? h("div", { class: "bnd-pos__menu", role: "menu" },
@@ -2750,7 +2787,7 @@
 			fill(bar, 
 				h("span", { class: "bnd-pos__brand", "aria-hidden": "true" }, (state.profile?.company || frappe.boot?.sysdefaults?.company || "B").slice(0, 1)),
 				storeBadge(),
-				h("nav", { class: "bnd-pos__tabs", "aria-label": __("POS views", null, "Bunood POS") },
+				reserved ? null : h("nav", { class: "bnd-pos__tabs", "aria-label": __("POS views", null, "Bunood POS") },
 					tab("sale", __("Sale", null, "Bunood POS")),
 					canHold() ? tab("held", __("Held", null, "Bunood POS"), (state.held || []).length) : null,
 					tab("receipts", __("Receipts and returns", null, "Bunood POS"))),
@@ -2759,7 +2796,7 @@
 				waiting ? h("span", { class: "bnd-pos__pill", "data-tone": "warn" }, __("Waiting to send: {0}", [waiting])) : null,
 				opening ? h("span", { class: "bnd-pos__pill" }, __("Shift", null, "Bunood POS"), " ", since ? ltr(since) : null, h("span", { class: "bnd-pos__pill-extra" }, " · ", opening.pos_profile)) : null,
 				h("span", { class: "bnd-pos__user" }, frappe.user_info?.(frappe.session?.user)?.fullname || frappe.session?.user || ""),
-				counter("customer_screen") === false ? null : h("button", {
+				reserved || counter("customer_screen") === false ? null : h("button", {
 					type: "button",
 					class: "bnd-pos__icon-btn bnd-pos__screen-btn",
 					"data-on": display.connected ? "1" : null,
@@ -2767,7 +2804,7 @@
 					title: display.connected ? __("Customer screen: connected", null, "Bunood POS") : __("Open the customer screen", null, "Bunood POS"),
 					onclick: openDisplay,
 				}, svg("monitor", 18)),
-				h("span", { class: "bnd-pos__menu-wrap" },
+				reserved ? null : h("span", { class: "bnd-pos__menu-wrap" },
 					h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Counter settings", null, "Bunood POS"), "aria-expanded": String(state.menuOpen), onclick: () => { state.menuOpen = !state.menuOpen; renderBar(); } }, svg("settings", 18)),
 					menu),
 				h("button", { type: "button", class: "bnd-pos__icon-btn", "aria-label": __("Leave the counter", null, "Bunood POS"), onclick: () => unsavedGuard(() => frappe.set_route("")) }, svg("exit", 18)),

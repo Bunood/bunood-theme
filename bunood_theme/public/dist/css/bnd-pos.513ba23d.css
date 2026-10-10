@@ -608,6 +608,11 @@ html[data-theme] .bnd-pos .bnd-pos__facts dd {
   font-weight: var(--bnd-weight-semibold);
   text-align: end;
 }
+html[data-theme] .bnd-pos .bnd-pos__reserved {
+  display: grid;
+  gap: var(--bnd-sp-3);
+  justify-items: start;
+}
 html[data-theme] .bnd-pos .bnd-pos__gate-company {
   margin-block-start: var(--bnd-sp-2);
   color: var(--bnd-ink-muted);

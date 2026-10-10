@@ -82,7 +82,43 @@ def _profile(name: str):
     return doc
 
 
+# ── Points of sale another front end owns ──────────────────────────────────
+#
+# One engine, separate screens (owner, 2026-10-10: the restaurant cashier is
+# its own screen, never merged into the counter). An app declares the POS
+# Profiles its own front end sells on with the hook bunood_pos_reserved_profiles:
+# each method returns {pos_profile: {"title": str, "route": str}}. The counter
+# neither lists nor defaults to them, and asked for one (or holding the user's
+# shift on one) it points to that screen instead of selling. The endpoints stay
+# open to them: the other front end sells through this same bridge.
+
+
+def _clean_reserved(found: Any) -> dict[str, dict[str, str]]:
+    """Profile names to {"title", "route"}; a route that is not a path on this site is dropped."""
+    clean: dict[str, dict[str, str]] = {}
+    for name, target in (found.items() if isinstance(found, dict) else []):
+        if not isinstance(name, str) or not name or not isinstance(target, dict):
+            continue
+        route = str(target.get("route") or "")
+        if not route.startswith("/") or route.startswith("//") or "\\" in route:
+            route = ""
+        clean[name] = {"title": str(target.get("title") or "")[:140], "route": route[:200]}
+    return clean
+
+
+def _reserved_profiles() -> dict[str, dict[str, str]]:
+    reserved: dict[str, dict[str, str]] = {}
+    for method in frappe.get_hooks("bunood_pos_reserved_profiles") or []:
+        try:
+            reserved.update(_clean_reserved(frappe.get_attr(method)()))
+        except Exception:
+            # Another app's failure must not take the counter down with it.
+            frappe.log_error(title="bunood_pos_reserved_profiles", message=frappe.get_traceback())
+    return reserved
+
+
 def _available_profiles() -> list[dict[str, Any]]:
+    reserved = _reserved_profiles()
     allowed = frappe.get_list(
         "POS Profile",
         filters={"disabled": 0},
@@ -92,6 +128,8 @@ def _available_profiles() -> list[dict[str, Any]]:
     )
     result = []
     for row in allowed:
+        if row.name in reserved:
+            continue
         profile = frappe.get_cached_doc("POS Profile", row.name)
         assigned = [item.user for item in (profile.get("applicable_for_users") or []) if item.user]
         if assigned and frappe.session.user not in assigned:
@@ -632,6 +670,8 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
     if selected:
         selected_doc = _profile(selected)
         profile_data = _profile_payload(selected_doc)
+        # Asked for by name, or holding the user's shift: the counter points to its own screen.
+        profile_data["reserved_for"] = _reserved_profiles().get(selected)
         from erpnext.accounts.doctype.pos_profile.pos_profile import get_item_groups
 
         groups = get_item_groups(selected) or []

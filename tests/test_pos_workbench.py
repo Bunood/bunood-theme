@@ -205,7 +205,8 @@ class POSWorkbenchContractTests(unittest.TestCase):
         owners = self.body("_company_items")
         # ERPNext adds the site's default company's item default to every new item.
         self.assertIn('automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")', owners)
-        self.assertIn("if automatic and row.default_warehouse == automatic and not any(row.get(field) for field in details):", owners)
+        # A row of that shape chosen on purpose (bunood_business marks it bnd_chosen) still counts.
+        self.assertIn('if automatic and row.default_warehouse == automatic and not row.get("bnd_chosen") and not any(row.get(field) for field in details):', owners)
         self.assertNotIn("get_global_default", owners)
         # A sale kept for review keeps its own items sellable when completed.
         self.assertIn('frappe.flags.bnd_pos_review_items = _review_items(invoice_type, draft_name or str(data.get("draft") or ""))', self.body("_new_or_held"))
@@ -231,6 +232,13 @@ class POSWorkbenchContractTests(unittest.TestCase):
         # Kept rows are renumbered, or the table reloads in another order.
         self.assertIn("for index, row in enumerate(profile.item_groups, 1):", save)
         self.assertIn("for index, row in enumerate(profile.payments, 1):", save)
+
+    def test_a_point_of_sale_another_front_end_owns_is_not_the_counter_s(self):
+        # Owner, 2026-10-10: one engine, separate screens (the restaurant cashier).
+        self.assertIn("if row.name in reserved:\n            continue", self.body("_available_profiles"))
+        self.assertIn('profile_data["reserved_for"] = _reserved_profiles().get(selected)', self.body("get_context"))
+        self.assertIn('frappe.get_hooks("bunood_pos_reserved_profiles")', self.body("_reserved_profiles"))
+        self.assertIn('if not route.startswith("/") or route.startswith("//")', self.body("_clean_reserved"))
 
     def test_settings_are_saved_only_with_write_access_and_kept_off_the_boot(self):
         save = self.body("save_settings")
