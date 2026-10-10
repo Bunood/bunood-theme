@@ -24,6 +24,28 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.56.0] — 2026-10-10 — the simple invoice names its branch and keeps to its items
+
+The owner's mock: the simple sales invoice shows where it sells from and offers only that
+place's items.
+
+- **A context bar** under the header: the branch (its menu lists the company's branches, each
+  with its warehouse linked automatically), or the company when it has no branches; the
+  warehouse (one tied to a branch brings the branch along); the payment method; the currency and
+  the price list. F2 / F4 / F9 close the row. The branch select and the warehouse field it
+  replaces are gone.
+- **The item search keeps to the branch's warehouse** on a bill that moves stock: ERPNext's own
+  item search, limited to the items with stock records in that warehouse or that name it as their
+  default, plus services, each stocked item showing what the warehouse holds
+  (`bunood_theme.api.bill_item_query`). The Advanced form and a service business search every
+  item, as ERPNext does.
+- **Fixed:** a bill line read ERPNext's item search before ERPNext set it, so the simple bill
+  searched every item (sales or not); it now reads it when the reader types.
+
+Checks: 107/107 bill tests (three new, each failing on v0.55.0), 300/300 interface tests, the
+guarded build. Payload: the desk JS ceiling moves from 188,000 to 190,000 gzip bytes for the bar
+(measured 189,651); everything else unchanged.
+
 ## [0.55.0] — 2026-10-10 — the POS counter sells through a lost connection, and takes Tabby and Tamara
 
 The last two phases of the «المنصة» counter the owner ordered, each through an adversarial
