@@ -24,6 +24,31 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.4] — 2026-10-10 — prices per channel at the point of sale
+
+An installed app can name the selling price list a POS sale is priced from, for example a delivery
+app priced above dine-in (PR #24). Bunood Dining v0.3.0 is the first app to do so. A site without
+such an app sells exactly as before.
+
+- **Hook `bunood_pos_price_list`.** Each method is called as `method(doc=<invoice>, profile=<POS
+  Profile>)` and returns a Price List name, or None for the profile's list. The last installed app
+  that answers wins. The answer must follow from the document, never from the payload: the held
+  sale, its checkout, every validation and an offline sync each ask again.
+- **Lines** are priced from that list. An item it has no price for keeps the profile's price
+  (`_native_catalog_item`).
+- **The invoice records the list.** ERPNext's `set_pos_fields` writes the customer's, the customer
+  group's or the profile's list on every validation, before pricing rules read it.
+  `pos_price_list.ChannelPriceList` (`extend_doctype_class` on Sales Invoice and POS Invoice) puts
+  the channel's list back in that same step, so the channel's pricing rules apply and the
+  profile's do not.
+- **Refused:** a disabled list, a list not for selling, or a list in another currency than the
+  profile's. Returns keep ERPNext's behaviour.
+- **A resumed held sale is previewed on its draft,** unsaved, as checkout prices it
+  (`_previewed_draft`). This was found by the adversarial review: the counter asked for 92 where
+  checkout charged 104.
+
+Python and translations only: no CSS or JS changed, and the payload row repeats v0.57.3's.
+
 ## [0.57.3] — 2026-10-10 — the seller's seal on tax invoices and quotations
 
 The company's authorised signature, its signatory's name and its stamp now close the tax
