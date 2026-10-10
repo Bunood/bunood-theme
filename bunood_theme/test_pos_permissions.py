@@ -7,10 +7,12 @@ operator-only cashier could not open a shift. Everything here is rolled back.
 """
 
 import uuid
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from bunood_theme import pos
 from bunood_theme.pos_permissions import (
     POS_OPERATOR_PERMISSIONS,
     POS_OPERATOR_ROLE,
@@ -181,3 +183,65 @@ class TestPOSOperatorPermissions(IntegrationTestCase):
         # Accounts User's standard row stays out: that was the customiser's choice.
         self.assertEqual(roles, {"Accounts Manager", POS_OPERATOR_ROLE})
         self.assertNotIn("POS Profile", result["seeded"])
+
+    # ── an operator-only cashier runs their own shift ────────────────────
+
+    def test_an_operator_only_cashier_opens_and_closes_their_own_shift(self):
+        ensure_pos_operator_permissions()
+        operator = self.user(POS_OPERATOR_ROLE)
+        profile = self.profile_for(operator)
+        frappe.set_user(operator)
+        frappe.local.role_permissions = {}
+
+        # Why the bridge cannot ask without a document: Frappe refuses an
+        # owner-only right there, and that was the refusal the cashier saw.
+        self.assertFalse(frappe.has_permission("POS Opening Entry", ptype="submit"))
+        capabilities = pos.get_context(profile)["capabilities"]
+        for capability in ("can_open_shift", "can_close_shift", "can_submit_invoice", "can_print_invoice"):
+            self.assertTrue(capabilities[capability], capability)
+
+        opened = pos.open_shift(profile, [{"mode_of_payment": "Cash", "opening_amount": 50}])
+        opening = frappe.get_doc("POS Opening Entry", opened["name"])
+        self.assertEqual((opening.docstatus, opening.owner, opening.user), (1, operator, operator))
+
+        # ERPNext's closing commits outside tests; refuse any commit here so a
+        # change in that path fails this test instead of leaving a closed shift.
+        with patch.object(frappe.db, "commit", side_effect=AssertionError("close_shift committed")):
+            closed = pos.close_shift(profile, [{"mode_of_payment": "Cash", "amount": 50}])
+        closing = frappe.get_doc("POS Closing Entry", closed["name"])
+        self.assertEqual((closing.docstatus, closing.owner), (1, operator))
+
+    def test_a_cashier_still_cannot_submit_a_shift_that_is_not_theirs(self):
+        ensure_pos_operator_permissions()
+        operator = self.user(POS_OPERATOR_ROLE)
+        profile = self.profile_for(operator)
+        company = frappe.db.get_value("POS Profile", profile, "company")
+        # Drafted by someone else (Administrator) for this cashier.
+        opening = frappe.get_doc(
+            {
+                "doctype": "POS Opening Entry",
+                "period_start_date": frappe.utils.now_datetime(),
+                "posting_date": frappe.utils.nowdate(),
+                "user": operator,
+                "pos_profile": profile,
+                "company": company,
+                "balance_details": [{"mode_of_payment": "Cash", "opening_amount": 0}],
+            }
+        ).insert(ignore_permissions=True)
+
+        frappe.set_user(operator)
+        frappe.local.role_permissions = {}
+        self.assertFalse(frappe.has_permission("POS Opening Entry", ptype="submit", doc=opening))
+        with self.assertRaises(frappe.PermissionError):
+            pos._require("POS Opening Entry", "submit", opening)
+
+    def test_a_role_without_shift_rights_is_not_offered_the_shift(self):
+        ensure_pos_operator_permissions()
+        accounts = self.user("Accounts User")
+        frappe.set_user(accounts)
+        frappe.local.role_permissions = {}
+        capabilities = pos._capabilities("Sales Invoice")
+        self.assertFalse(capabilities["can_open_shift"])
+        self.assertFalse(capabilities["can_close_shift"])
+        # A right that is not owner-only is answered as before.
+        self.assertTrue(capabilities["can_submit_invoice"])
