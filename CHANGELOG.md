@@ -24,6 +24,50 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.0] — 2026-10-10 — each point of sale sells its own company's items, from its own warehouse
+
+The owner could not tell which stock a counter sold from, and a counter showed every company's
+items. A POS Profile already belongs to one company and sells from one warehouse (ERPNext
+requires both); the counter now says so, keeps to it, and lets the profile's editors change it.
+Built on v0.56.0, whose simple invoice keeps its item search to the branch's warehouse: the
+counter offers that same rule.
+
+- **Always in sight.** The counter's bar shows the company and, under it, the branch and
+  warehouse it sells from; opening a shift lists company, branch, warehouse and price list, and
+  the point-of-sale chooser groups the profiles by company. On a tablet the bar keeps the branch
+  and warehouse; on a phone, the mark (the opening screen and the settings say it in full).
+- **Items shown** (a counter setting): *this company's items* (the default) — an Item has no
+  company in ERPNext, so an item is a company's when it has stock in one of its warehouses or an
+  item default for it (not ERPNext's own row on a new item, which names the site's default
+  warehouse and nothing else), and an item with neither for any company is everyone's; an item
+  made at the counter is the counter's company's, in its warehouse; *this warehouse's items* —
+  the simple invoice's rule (stock records there, or that warehouse as the item's default), with
+  services kept to the company; or *all items*, ERPNext's catalogue as it is. The catalogue, the device's offline copy, checkout, held sales and sales sent after a lost
+  connection all keep to it; a sale made offline whose item the counter no longer sells becomes a
+  held draft for review, never lost, and completes at the counter. A scanned code of an item this counter does not sell says so
+  instead of offering to link the code to another item. Single-company sites see no change.
+- **Settings → Store and stock**, the page's first section: the company (read-only: a point of
+  sale belongs to one company), the warehouse (the company's own; refused while any shift on the
+  profile is open), the item groups the counter shows (none: every group), items out of stock in
+  the warehouse (shown with their quantity, or hidden), and the items shown. The catalogue is
+  read again after a change.
+- Saving the payment methods or the item groups keeps the order chosen (kept rows were reloaded
+  in their old order).
+
+Two adversarial reviews before the merge found sixteen defects (ERPNext's own item default on
+every new item taken as ownership, then read through the asking user's defaults, among them);
+all are fixed in this release.
+
+Known: an offline sale refused for another reason (an item since disabled or moved out of the
+profile's groups, a price removed) is still marked failed on the device, as before; changing
+Stock Settings' default warehouse makes the item defaults ERPNext wrote under the old one count.
+
+Checks on the merged tree: guarded build (v0.56.0's own bundles byte-identical); 507/507
+interface and counter tests; tests/test_pos_workbench.py; tools/pos-backend-acceptance.py
+(rollback) on the lab, its cases built on any data, with a sabotage for each guard (fourteen,
+all caught); a lab browser run of the bar at four widths, the settings section and a code sold
+elsewhere.
+
 ## [0.56.0] — 2026-10-10 — the simple invoice names its branch and keeps to its items
 
 The owner's mock: the simple sales invoice shows where it sells from and offers only that
