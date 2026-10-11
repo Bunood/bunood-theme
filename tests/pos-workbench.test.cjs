@@ -490,15 +490,10 @@ test("a point of sale another front end owns sends the cashier there instead of 
 	assert.match(fn("openSettings"), /state\.profile\?\.reserved_for \|\| needsConnection\(\)/);
 });
 
-// Owner, 2026-10-10: «المنصة» is for supermarkets and shops; a restaurant cashier goes to the restaurant cashier.
-test("a cashier whose till is another front end's goes straight to its screen, once", () => {
-	const init = fn("initialize");
-	assert.match(init, /if \(shift && goElsewhere\(state\.profile\.reserved_for\.route\)\) return;/);
-	assert.match(init, /if \(!state\.profile && \(state\.context\.elsewhere \|\| \[\]\)\.length\) \{\s*renderElsewhere\(state\.context\.elsewhere\);/);
-	const go = fn("goElsewhere");
-	assert.match(go, /if \(!route \|\| !route\.startsWith\("\/"\) \|\| route\.startsWith\("\/\/"\)\) return false;/);
-	assert.match(go, /if \(Date\.now\(\) - last < 15000\) return false;/);
-	assert.match(go, /window\.location\.replace\(route\);/);
-	assert.match(fn("renderElsewhere"), /if \(targets\.length === 1 && goElsewhere\(targets\[0\]\.route\)\) return;/);
+// Owner, 2026-10-10/11: «نقطة البيع» opens the point of sale, never the restaurant's screen.
+test("the counter never sends the cashier to another screen; a shift there is named on the gate", () => {
+	assert.doesNotMatch(js, /location\.replace|goElsewhere|renderElsewhere/);
+	assert.match(fn("renderGate"), /const elsewhere = ctx\.shift_elsewhere;/);
+	assert.match(fn("renderGate"), /elsewhere\s*\? h\("p", \{ class: "bnd-pos__warn" \}, __\("Your shift is open on another screen: \{0\}"/);
 	assert.match(fn("showSale"), /if \(!state\.profile\) return;/);
 });

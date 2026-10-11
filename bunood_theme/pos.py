@@ -657,13 +657,22 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
     reserved = _reserved_profiles()
     usable = _usable_profiles()
     profiles = [row for row in usable if row["name"] not in reserved]
-    # The screens that sell on the user's other tills (the restaurant cashier): the counter
-    # sends the user there when it has nothing of its own to offer.
-    elsewhere = list(
-        {reserved[row["name"]]["route"]: reserved[row["name"]] for row in usable if reserved.get(row["name"], {}).get("route")}.values()
-    )
-    entries = _open_entries()
-    stale_entries = _stale_entries()
+    # One engine, separate screens (owner, 2026-10-10: «نقطة البيع» opens the point of sale,
+    # never the restaurant's): each screen follows only the shifts on its own tills, the
+    # counter the unreserved ones, another front end the ones it reserves. ERPNext keeps one
+    # open shift per cashier (POS Opening Entry.check_user_already_assigned), so a shift on
+    # another screen's till is named for the counter to say so, never followed.
+
+    def screen_of(name: str) -> str:
+        return (reserved.get(name) or {}).get("route") or ("reserved" if name in reserved else "")
+
+    asked = screen_of(pos_profile) if pos_profile else ""
+    today = getdate(nowdate())
+    unclosed = _unclosed_entries()
+    own = [row for row in unclosed if screen_of(row.pos_profile) == asked]
+    entries = [row for row in own if getdate(row.period_start_date) == today]
+    stale_entries = [row for row in own if getdate(row.period_start_date) != today]
+    other = next((row for row in unclosed if screen_of(row.pos_profile) != asked), None)
     # A cashier can operate only the register already open for that user.  A
     # route/query parameter must never switch the screen to a second profile
     # while a current or stale register still needs to be closed.
@@ -697,7 +706,10 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
             (row for row in stale_entries if row.pos_profile == selected), None
         ),
         "capabilities": _capabilities(invoice_type),
-        "elsewhere": elsewhere,
+        "shift_elsewhere": {
+            "pos_profile": other.pos_profile,
+            "title": (reserved.get(other.pos_profile) or {}).get("title") or "",
+        } if other else None,
         "online_only": True,
         "engine": "ERPNext POS",
     }

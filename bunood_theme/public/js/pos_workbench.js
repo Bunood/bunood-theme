@@ -435,14 +435,7 @@
 			state.gateProfile = state.profile?.name || "";
 			if (state.profile?.reserved_for) {
 				resetSale({ silent: true });
-				// The user's shift is on that till: straight to its screen.
-				const shift = state.context.opening_entry || state.context.stale_opening_entry;
-				if (shift && goElsewhere(state.profile.reserved_for.route)) return;
 				renderReserved();
-				return;
-			}
-			if (!state.profile && (state.context.elsewhere || []).length) {
-				renderElsewhere(state.context.elsewhere);
 				return;
 			}
 			root.toggleAttribute("data-fbar", fbarOn());
@@ -495,32 +488,6 @@
 							h("span", { class: "bnd-pos__muted" }, [row.branch ? __(row.branch) : "", row.warehouse_name || row.warehouse || ""].filter(Boolean).join(" · "))))) : null)));
 		}
 
-		// Straight to the screen that sells on the user's till, once: a screen that sent the user
-		// back here within a few seconds gets the notice instead, never a loop.
-		function goElsewhere(route) {
-			if (!route || !route.startsWith("/") || route.startsWith("//")) return false;
-			let last = 0;
-			try {
-				last = Number(window.sessionStorage.getItem("bnd-pos-elsewhere") || 0);
-				window.sessionStorage.setItem("bnd-pos-elsewhere", String(Date.now()));
-			} catch (_error) { /* no session storage: go anyway */ }
-			if (Date.now() - last < 15000) return false;
-			window.location.replace(route);
-			return true;
-		}
-
-		// No till of this counter's, only another front end's (the restaurant cashier's).
-		function renderElsewhere(targets) {
-			if (targets.length === 1 && goElsewhere(targets[0].route)) return;
-			state.view = "gate";
-			renderBar();
-			fill(body, h("div", { class: "bnd-pos__gate" },
-				h("div", { class: "bnd-pos__gate-card bnd-pos__reserved" },
-					h("h2", null, __("Your points of sale are on another screen", null, "Bunood POS")),
-					h("p", { class: "bnd-pos__muted" }, __("This counter is for supermarkets and shops.", null, "Bunood POS")),
-					targets.map((target) => h("a", { class: "bnd-pos__primary bnd-pos__primary--tall", href: target.route }, __("Open: {0}", [target.title || target.route]))))));
-		}
-
 		function failure(title, detail) {
 			return h("div", { class: "bnd-pos__failure", role: "alert" }, svg("alert", 22), h("strong", null, title), detail ? h("span", null, detail) : null);
 		}
@@ -568,6 +535,9 @@
 					}, h("strong", null, row.name), h("span", { class: "bnd-pos__muted" }, [row.branch ? __(row.branch) : "", row.warehouse_name || row.warehouse || ""].filter(Boolean).join(" · "))),
 				])) : null;
 			const canOpen = ctx.capabilities?.can_open_shift;
+			// A shift open on another screen's till (the restaurant cashier's): ERPNext keeps one
+			// open shift per cashier, so this one opens after that one closes there. Named, not followed.
+			const elsewhere = ctx.shift_elsewhere;
 			fill(body, h("div", { class: "bnd-pos__gate" },
 				h("div", { class: "bnd-pos__gate-card bnd-pos__gate-card--wide" },
 					h("div", { class: "bnd-pos__gate-head" },
@@ -582,7 +552,9 @@
 							chooser,
 							storeFacts(profile),
 							h("p", { class: "bnd-pos__muted" }, __("The items' quantities, and the stock of every sale on this shift, come from this warehouse.", null, "Bunood POS")),
-							canOpen
+							elsewhere
+								? h("p", { class: "bnd-pos__warn" }, __("Your shift is open on another screen: {0}", [elsewhere.title || elsewhere.pos_profile]), " ", __("Close it there before opening a shift here.", null, "Bunood POS"))
+								: canOpen
 								? h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", onclick: () => openShift(cashMethod, cashTotal) }, __("Open the shift and start selling", null, "Bunood POS"))
 								: h("p", { class: "bnd-pos__warn" }, __("You do not have permission to open a POS shift.", null, "Bunood POS"))))))
 			);

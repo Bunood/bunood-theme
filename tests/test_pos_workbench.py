@@ -239,8 +239,10 @@ class POSWorkbenchContractTests(unittest.TestCase):
         context = self.body("get_context")
         self.assertIn('profiles = [row for row in usable if row["name"] not in reserved]', context)
         self.assertIn('profile_data["reserved_for"] = reserved.get(selected)', context)
-        # The screens of the user's other tills, for the counter to send the user there.
-        self.assertIn('"elsewhere": elsewhere,', context)
+        # Each screen follows only the shifts on its own tills; another screen's is named.
+        self.assertIn("own = [row for row in unclosed if screen_of(row.pos_profile) == asked]", context)
+        self.assertIn('"shift_elsewhere": {', context)
+        self.assertNotIn('"elsewhere": elsewhere', context)
         self.assertIn('frappe.get_hooks("bunood_pos_reserved_profiles")', self.body("_reserved_profiles"))
         self.assertIn('if not route.startswith("/") or route.startswith("//")', self.body("_clean_reserved"))
 
