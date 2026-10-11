@@ -37,6 +37,10 @@ def run() -> None:
 
     try:
         context = pos.get_context()
+        # On a till another screen owns (the dining lab's only till), the counter does not
+        # follow its shift: ask for it by name, as that screen does; the engine is the same.
+        if not context.get("opening_entry") and not context.get("stale_opening_entry") and context.get("shift_elsewhere"):
+            context = pos.get_context(context["shift_elsewhere"]["pos_profile"])
         stale_detected = bool(context.get("stale_opening_entry"))
         if not context.get("opening_entry") and context.get("stale_opening_entry"):
             # Temporarily make the configured register current so the native
@@ -548,8 +552,12 @@ def run() -> None:
             asked = pos.get_context(profile_name)
             assert asked["profile"]["name"] == profile_name, asked["profile"]["name"]
             assert asked["profile"]["reserved_for"] == reserved[profile_name], asked["profile"].get("reserved_for")
-            # Its screen is offered, for the counter to send the user there.
-            assert reserved[profile_name] in asked["elsewhere"], asked["elsewhere"]
+            # Asked by name (as the restaurant cashier asks), its own shift is followed.
+            assert (asked.get("opening_entry") or {}).get("pos_profile") == profile_name, asked.get("opening_entry")
+            # The counter (no name) never follows a shift on that till: it names it instead.
+            retail = pos.get_context()
+            assert not retail["profile"] or retail["profile"]["name"] != profile_name, retail["profile"]
+            assert (retail["shift_elsewhere"] or {}).get("pos_profile") == profile_name, retail["shift_elsewhere"]
         # Without the stand-in, whatever the installed apps reserve: nothing on a retail lab, the
         # restaurant cashier's own title and route on a till Bunood Dining owns (found on the
         # dining lab, whose only till is the restaurant's).

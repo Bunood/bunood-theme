@@ -19337,14 +19337,13 @@ msgstr "تبيع من شاشتها الخاصة، لا من هذه الشاشة.
 msgid "Open: {0}"
 msgstr "افتح: {0}"
 
-#. src: pos — straight to the restaurant cashier, 2026-10-10
+#. src: pos — a shift on another screen is named, not followed, 2026-10-10
 #, fuzzy
-msgctxt "Bunood POS"
-msgid "Your points of sale are on another screen"
-msgstr "نقاط البيع الخاصة بك في شاشة أخرى"
+msgid "Your shift is open on another screen: {0}"
+msgstr "ورديتك مفتوحة في شاشة أخرى: {0}"
 
-#. src: pos — straight to the restaurant cashier, 2026-10-10
+#. src: pos — a shift on another screen is named, not followed, 2026-10-10
 #, fuzzy
 msgctxt "Bunood POS"
-msgid "This counter is for supermarkets and shops."
-msgstr "هذه الشاشة للسوبرماركت والمحلات."
+msgid "Close it there before opening a shift here."
+msgstr "أغلقها هناك قبل فتح وردية هنا."
