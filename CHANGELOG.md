@@ -24,6 +24,29 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.57.9] — 2026-10-11 — «نقطة البيع» opens the point of sale, never the restaurant cashier
+
+The owner, after v0.57.8: «مازالت نقطه البيع تفتح لي كاشير المطعم ... صاحب السوبر ماركت بنفتح له
+فقط نقاط البيع بينما المطعم بنفتح له المطاعم ... اريد ان لا يكون فيها تضارب». The point of sale
+(«المنصة», for supermarkets and shops) and the restaurant cashier each open on their own; neither
+sends the cashier to the other (PR #31, reversing v0.57.8's redirect).
+
+- Each screen follows only the shifts on its own tills: the counter the tills no other front end
+  reserves; the restaurant cashier, asking for its till by name, its own. A shift open on another
+  screen's till is named (`shift_elsewhere`), never followed.
+- The counter no longer redirects anywhere. ERPNext keeps one open shift per cashier, so a cashier
+  whose shift is open at the restaurant cashier sees the counter's own shift screen with «ورديتك
+  مفتوحة في شاشة أخرى: كاشير المطعم. أغلقها هناك قبل فتح وردية هنا.» in place of the open button.
+  A supermarket owner and a restaurant are different cashiers and never see it.
+- tools/pos-backend-acceptance.py asks for a till another screen owns by name when the counter
+  does not follow its shift, so it still runs on a restaurant's till.
+
+Checks on the merged tree: the guarded build; the interface and counter tests;
+tests/test_pos_workbench.py; the acceptance (rollback) on the lab as it is, with the till reserved
+for the whole run, and with credit sales off; lab browser runs of the counter's gate with a
+restaurant shift and of the supermarket counter. The restaurant session read every Bunood Dining
+caller of get_context: each asks for its till by name, and none reads the removed `elsewhere`.
+
 ## [0.57.8] — 2026-10-10 — a restaurant cashier who opens «المنصة» goes straight to the restaurant cashier
 
 «المنصة» is the point of sale for supermarkets and shops; restaurants sell from their own app,
