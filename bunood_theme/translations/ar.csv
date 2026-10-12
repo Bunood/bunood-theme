@@ -204,6 +204,7 @@ Allocate invoices,تخصيص الفواتير,
 Allocated,المخصص,
 Allocation,التخصيص,
 Allowed,مسموح,Bunood POS
+Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. One setting for the whole system.,مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. إعداد واحد للنظام كله.,Bunood POS
 Alternate views,العروض البديلة,
 Alternating fill — the easiest row-tracking on wide tables.,تعبئة متناوبة — أسهل تتبع للصفوف في الجداول العريضة.,
 Always Dark,داكن دائمًا,
@@ -284,6 +285,8 @@ Assign the implementation lead before submitting.,عيّن مسؤول التنف
 Assign the rollback owner before submitting.,عيّن مسؤول التراجع قبل التقديم.,
 Assign the security and privacy reviewer before submitting.,عيّن مراجع الأمن والخصوصية قبل التقديم.,
 Assigned after saving,يُحدّد بعد الحفظ,
+At each sale,مع كل بيعة,Bunood POS
+"At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. It changes once every open shift is closed, and for every counter.",مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. يتغير بعد إغلاق كل الورديات المفتوحة، ولكل نقاط البيع.,Bunood POS
 At least one reconciliation control must be applicable.,يجب أن يكون ضابط تسوية واحد على الأقل منطبقًا.,
 At the start of the bottom strip.,في بداية الشريط السفلي.,
 "At the start of the top bar, beside the page.",في بداية الشريط العلوي، إلى جوار الصفحة.,
@@ -501,6 +504,7 @@ Change for the customer,الباقي للعميل,Bunood POS
 Change the filter or search by invoice number.,غيّر التصفية أو ابحث برقم الفاتورة.,Bunood POS
 Change to return,الباقي للعميل,
 Changed,مُغيَّر,
+Changed by a stock manager,يغيّره مدير المخزون,Bunood POS
 Changed their mind,غيّر رأيه,Bunood POS
 Changes apply as you click — there is nothing to save.,التغييرات تسري وأنت تنقر — لا شيء يحتاج حفظًا.,
 Changes apply on the palette's next open — press Ctrl+K to try it.,التغييرات تسري عند فتح اللوحة القادم — اضغط Ctrl+K لتجربتها.,
@@ -1938,6 +1942,7 @@ One-way SHA-256 of the native target record name. Open the permissioned Data Imp
 Only a System Manager can manage translations.,لا يدير الترجمات إلا مدير النظام.,
 Only a held draft can be changed.,لا يمكن تعديل إلا مسودة معلّقة.,
 Only a receipt you completed can be shared.,لا يُشارك إلا إيصال أتممته أنت.,
+Only a stock manager can change how the counters use stock.,تغيير طريقة استخدام نقاط البيع للمخزون لمدير المخزون فقط.,
 Only an accounts manager can link payment methods to accounts.,ربط طرق الدفع بالحسابات لمدير الحسابات فقط.,
 Only customer sales and POS invoices can be delivered here.,يمكن تسليم فواتير مبيعات العملاء ونقاط البيع فقط هنا.,
 "Only non-group Stock accounts for this warehouse's company appear here. Create the account as type Stock first, then return and select it. Leave blank to use the parent warehouse or company default.",تظهر هنا فقط حسابات المخزون غير المجمّعة التابعة لشركة هذا المستودع. أنشئ الحساب بنوع «مخزون» أولاً، ثم عُد لاختياره. اترك الحقل فارغاً لاستخدام حساب المستودع الأب أو إعداد الشركة الافتراضي.,
@@ -2761,6 +2766,8 @@ Select the migration packet this correction supersedes.,حدد حزمة التر
 Select the rollback method before submitting.,اختر طريقة التراجع قبل التقديم.,
 Selection,التحديد,
 "Self-hosted, one face per site, fetched once and cached forever. System uses whatever the device ships, which differs per platform.",مستضاف ذاتيًا، خط واحد لكل موقع، يُجلب مرة واحدة ويُخزن مؤقتًا للأبد. «النظام» يستخدم ما يشحنه الجهاز، وهو يختلف من منصة إلى أخرى.,
+Selling an item that ran out,بيع صنف نفدت كميته,
+Selling an item that ran out,بيع صنف نفدت كميته,Bunood POS
 Selling price,سعر البيع,
 Selling price missing for item: {0},سعر البيع غير موجود للصنف: {0},
 "Selling value against buying cost, and the margin between them",قيمة البيع مقابل كلفة الشراء، والهامش بينهما,
@@ -3003,6 +3010,8 @@ Stock and warehouse,المخزون والمستودع,
 Stock below reorder,مخزون دون حد إعادة الطلب,
 Stock control,إدارة المخزون,
 Stock is not updated by this invoice.,هذه الفاتورة لا تحدّث المخزون.,
+Stock leaves the warehouse,خروج المخزون من المستودع,
+Stock leaves the warehouse,خروج المخزون من المستودع,Bunood POS
 Stock movement,حركة المخزون,
 Stock movement steps,خطوات حركة المخزون,
 Stock will be updated when the invoice is submitted.,سيُحدّث المخزون عند اعتماد الفاتورة.,
@@ -3616,6 +3625,7 @@ WhatsApp,واتساب,
 When a sale completes.,عند إتمام البيع.,Bunood POS
 When an icon is missing,عند غياب الأيقونة,
 When something arrives,عندما يصل شيء,
+When the shift closes,عند إغلاق الوردية,Bunood POS
 "Where every component lives, on one board — and the overview of the desk.",أين يعيش كل مكوّن، على لوحة واحدة — ونظرة عامة على المكتب.,
 Where is it leaving from?,من أي مستودع ستخرج الأصناف؟,
 Where the Appearance button lives. It opens the dialog the avatar menu's Appearance entry opens; Off removes the button.,موضع زر المظهر. يفتح الحوار الذي يفتحه مدخل «المظهر» في قائمة الصورة الشخصية؛ «معطَّل» يزيل الزر.,

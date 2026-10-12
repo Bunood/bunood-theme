@@ -1935,6 +1935,38 @@ def warehouse_items(warehouse: str) -> set[str]:
     return held
 
 
+def unplaced_items() -> set[str]:
+    """Stock items no warehouse holds yet: no stock record (Bin) anywhere and no item default a
+    person chose (ERPNext's automatic one does not count, as in warehouse_items). Such an item
+    belongs to no branch until its first stock arrives, so every branch's bill offers it at once
+    (owner, 2026-10-12: «an item added is there straight away»), as the counter's company rule
+    shows an item with neither everywhere (pos._company_items)."""
+    fresh = frappe.db.sql_list(
+        """select i.name from `tabItem` i
+        where i.disabled = 0 and i.is_stock_item = 1 and i.has_variants = 0
+        and not exists (select 1 from `tabBin` b where b.item_code = i.name)"""
+    )
+    if not fresh:
+        return set()
+    automatic = frappe.db.get_single_value("Stock Settings", "default_warehouse")
+    details = [
+        field.fieldname
+        for field in frappe.get_meta("Item Default").fields
+        if field.fieldtype == "Link" and field.fieldname not in ("company", "default_warehouse")
+    ]
+    chosen = ["bnd_chosen"] if frappe.get_meta("Item Default").has_field("bnd_chosen") else []
+    placed = {
+        row.parent
+        for row in frappe.get_all(
+            "Item Default",
+            filters={"parenttype": "Item", "parent": ["in", fresh], "default_warehouse": ["is", "set"]},
+            fields=["parent", "default_warehouse", *details, *chosen],
+        )
+        if row.default_warehouse != automatic or row.get("bnd_chosen") or any(row.get(field) for field in details)
+    }
+    return set(fresh) - placed
+
+
 @frappe.whitelist()
 def bill_item_query(doctype, txt, searchfield, start, page_len, filters):
     """The simple bill's item search, for a bill that moves stock: ERPNext's own item_query, kept
@@ -1956,7 +1988,7 @@ def bill_item_query(doctype, txt, searchfield, start, page_len, filters):
     if not warehouse or not frappe.db.exists("Warehouse", warehouse):
         return item_query(doctype, txt, searchfield, start, page_len, filters)
     start, page_len = cint(start), cint(page_len) or 20
-    held = warehouse_items(warehouse)
+    held = warehouse_items(warehouse) | unplaced_items()
     services = frappe.get_all("Item", filters={"is_stock_item": 0, "disabled": 0}, pluck="name")
     if company and services:
         from bunood_theme.pos import _company_items

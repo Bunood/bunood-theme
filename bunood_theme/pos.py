@@ -1994,6 +1994,8 @@ def settings_context(pos_profile: str) -> dict[str, Any]:
             ],
         },
         "counter": _counter_settings(profile.name),
+        "stock": _stock_settings(),
+        "stock_can_edit": _stock_can_edit(),
         "defaults": COUNTER_DEFAULTS,
         "cash_notes": list(CASH_NOTES),
         "modes": _payment_modes(profile.company, [row.mode_of_payment for row in profile.get("payments") or []]),
@@ -2004,8 +2006,51 @@ def settings_context(pos_profile: str) -> dict[str, Any]:
     }
 
 
+def _stock_settings() -> dict[str, bool]:
+    """The two site-wide stock choices the counter follows (owner, 2026-10-12).
+
+    - ``moves_at_sale``: a sale is a submitted Sales Invoice that moves the stock at
+      once (``POS Settings.invoice_type``); otherwise ERPNext's POS Invoice, whose
+      stock moves only when the shift closes and its invoices are consolidated.
+    - ``allow_negative_stock``: an item that ran out may still be sold
+      (``Stock Settings.allow_negative_stock``); otherwise ERPNext refuses the sale.
+    """
+    return {
+        "moves_at_sale": _invoice_type() == "Sales Invoice",
+        "allow_negative_stock": bool(cint(frappe.db.get_single_value("Stock Settings", "allow_negative_stock"))),
+    }
+
+
+def _stock_can_edit() -> bool:
+    return bool(frappe.has_permission("POS Settings", "write") and frappe.has_permission("Stock Settings", "write"))
+
+
+def _save_stock_settings(stock: dict[str, Any]) -> list[str]:
+    """Write the site-wide stock choices through ERPNext's own settings, which
+    validate them: the invoice type waits for every open shift to close."""
+    changed: list[str] = []
+    if not stock:
+        return changed
+    if not _stock_can_edit():
+        frappe.throw(_("Only a stock manager can change how the counters use stock."), frappe.PermissionError)
+    current = _stock_settings()
+    if "moves_at_sale" in stock and bool(stock["moves_at_sale"]) != current["moves_at_sale"]:
+        settings = frappe.get_single("POS Settings")
+        settings.invoice_type = "Sales Invoice" if stock["moves_at_sale"] else "POS Invoice"
+        settings.save()
+        changed.append(_("Stock leaves the warehouse"))
+    if "allow_negative_stock" in stock and bool(stock["allow_negative_stock"]) != current["allow_negative_stock"]:
+        settings = frappe.get_single("Stock Settings")
+        settings.allow_negative_stock = 1 if stock["allow_negative_stock"] else 0
+        settings.save()
+        changed.append(_("Selling an item that ran out"))
+    return changed
+
+
 @frappe.whitelist(methods=["POST"])
-def save_settings(pos_profile: str, native: Any = None, counter: Any = None, modified: str = "") -> dict[str, Any]:
+def save_settings(
+    pos_profile: str, native: Any = None, counter: Any = None, modified: str = "", stock: Any = None
+) -> dict[str, Any]:
     """Save the page: native choices on the POS Profile (ERPNext validates and
     versions it), the counter's own as one value. A comment on the profile says
     what changed and who changed it. ``counter`` carries only the keys the page
@@ -2113,6 +2158,11 @@ def save_settings(pos_profile: str, native: Any = None, counter: Any = None, mod
             # would cache the old value again, so drop it once more after the commit.
             frappe.db.after_commit.add(_drop_counter_cache)
             changed += [_counter_label(key) for key in after if after[key] != before[key]]
+
+    stock = _json(stock, {})
+    if not isinstance(stock, dict) or not set(stock) <= {"moves_at_sale", "allow_negative_stock"}:
+        frappe.throw(_("The settings are not valid."))
+    changed += _save_stock_settings(stock)
 
     if changed:
         profile.add_comment("Comment", _("Counter settings changed: {0}").format(", ".join(changed)))

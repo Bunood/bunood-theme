@@ -19597,3 +19597,60 @@ msgstr "معاينة فقط: لم تُحفظ الفاتورة ولم تُعتم�
 #, fuzzy
 msgid "Back to the bill"
 msgstr "العودة إلى الفاتورة"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Stock leaves the warehouse"
+msgstr "خروج المخزون من المستودع"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. It changes once every open shift is closed, and for every counter."
+msgstr "مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. يتغير بعد إغلاق كل الورديات المفتوحة، ولكل نقاط البيع."
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "At each sale"
+msgstr "مع كل بيعة"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "When the shift closes"
+msgstr "عند إغلاق الوردية"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Selling an item that ran out"
+msgstr "بيع صنف نفدت كميته"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. One setting for the whole system."
+msgstr "مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. إعداد واحد للنظام كله."
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Stock leaves the warehouse"
+msgstr "خروج المخزون من المستودع"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Selling an item that ran out"
+msgstr "بيع صنف نفدت كميته"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Only a stock manager can change how the counters use stock."
+msgstr "تغيير طريقة استخدام نقاط البيع للمخزون لمدير المخزون فقط."
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Changed by a stock manager"
+msgstr "يغيّره مدير المخزون"

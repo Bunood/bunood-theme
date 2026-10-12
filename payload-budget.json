@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-10-12: the counter's settings gain the two site-wide stock choices (stock leaves at each sale or at closing; selling an item that ran out) and the grid reads again when the counter's tab comes back. POS JS measures 53,062 gzip bytes; ceiling 53,000 -> 53,200.",
 		"2026-10-12: the sales invoice owner review (v0.58.0) adds the checkout dialog (network, cash with change, bank transfer, cash and network, on credit, each posted as submitted ERPNext Payment Entries), the line VAT split that mirrors ERPNext's item-wise tax, the print-format choice beside the date, and «عرض», a read-only preview of an unsaved draft. Desk JS measures 195,151 gzip bytes (+5,311 over v0.57.9); ceiling 190,000 -> 195,700.",
 		"2026-10-07: complete the team invoice party/date and stock-settings strips, full-width item canvas and total surface from 2108af3. Desk CSS is 40,165 gzip bytes; ceiling 39,900 -> 40,300 for this scoped composition. JavaScript is unchanged.",
 		"2026-10-07: restore missing demo1 invoice/stock composition with tenant tokens, functioning detail disclosure and mobile heading contrast. Desk CSS measures 39,895 gzip bytes; finite CSS ceiling moves from 39,500 to 39,900. JavaScript ceiling is unchanged.",
@@ -233,7 +234,7 @@
 		"report_landing_js_gzip": 2500,
 		"studio_css_gzip": 6800,
 		"pos_css_gzip": 11000,
-		"pos_js_gzip": 53000,
+		"pos_js_gzip": 53200,
 		"web_css_gzip": 4450,
 		"banking_js_gzip": 5300,
 		"finance_close_js_gzip": 4100,

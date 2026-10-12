@@ -360,7 +360,12 @@ test("the settings page saves through the server and the counter takes the resul
 	const sections = fn("settingsSections");
 	assert.doesNotMatch(js, /price_prefix/, "price labels are not part of this phase");
 	// Only the counter keys this page changed, and the profile version it read.
-	assert.match(save, /counter: JSON\.stringify\(counterChanges\),\s+modified: settings\.ctx\.modified,/);
+	assert.match(save, /counter: JSON\.stringify\(counterChanges\),\s+stock: JSON\.stringify\(stockChanges\),\s+modified: settings\.ctx\.modified,/);
+	// The two site-wide stock choices (owner, 2026-10-12), editable only with the right to change them.
+	assert.match(sections, /S\("stock", "moves_at_sale",[\s\S]*?locked: !settings\?\.ctx\?\.stock_can_edit \}/);
+	assert.match(sections, /S\("stock", "allow_negative_stock",[\s\S]*?locked: !settings\?\.ctx\?\.stock_can_edit \}/);
+	assert.ok(server.includes('"moves_at_sale": _invoice_type() == "Sales Invoice"'));
+	assert.ok(server.includes('settings.invoice_type = "Sales Invoice" if stock["moves_at_sale"] else "POS Invoice"'));
 	for (const name of ["renderBar", "leaveSettings"]) assert.match(fn(name), /unsavedGuard\(/, name);
 	for (const key of ["fbar", "tiles", "customer_screen", "max_discount", "returns", "new_item", "cash_exact", "cash_notes", "merge_scans", "scale_prefix", "unknown_barcode", "receipt_qr", "reason_threshold", "held_on_close"]) {
 		assert.ok(sections.includes(`"${key}"`), key);

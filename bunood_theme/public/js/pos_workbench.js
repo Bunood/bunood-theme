@@ -1881,6 +1881,15 @@
 		window.addEventListener("keydown", onKey, true);
 		window.addEventListener("online", () => renderBar());
 		window.addEventListener("offline", () => renderBar());
+		// An item added elsewhere (another tab, another person) is on the grid when the cashier
+		// comes back to the counter, without reloading the page (owner, 2026-10-12). Read again
+		// at most every few seconds, and only on the sale screen with a connection.
+		let itemsReadAt = 0;
+		document.addEventListener("visibilitychange", () => {
+			if (document.visibilityState !== "visible" || offline.on || state.view !== "sale" || Date.now() - itemsReadAt < 5000) return;
+			itemsReadAt = Date.now();
+			loadItems(false);
+		});
 
 		function toggleKeyboard() {
 			prefs.keyboard = !prefs.keyboard;
@@ -2355,6 +2364,9 @@
 					{ kind: "warehouse", source: "native", key: "warehouse", label: __("Warehouse", null, "Bunood POS"), desc: __("Every sale takes its stock from here, and the counter shows its quantities.", null, "Bunood POS"), options: store.warehouses || [], shifts: store.open_shifts || [] },
 					{ kind: "groups", source: "native", key: "item_groups", label: __("Item groups on this counter", null, "Bunood POS"), desc: __("These groups and the groups under them. None chosen: every group.", null, "Bunood POS"), groups: store.groups || [] },
 					S("native", "hide_unavailable_items", __("Items out of stock in this warehouse", null, "Bunood POS"), __("Shown with their quantity, or left out of the catalogue. Services always show.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
+					// Site-wide, through ERPNext's own settings (owner, 2026-10-12): every counter follows them.
+					{ ...S("stock", "moves_at_sale", __("Stock leaves the warehouse", null, "Bunood POS"), __("At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. It changes once every open shift is closed, and for every counter.", null, "Bunood POS"), [[true, __("At each sale", null, "Bunood POS")], [false, __("When the shift closes", null, "Bunood POS")]]), locked: !settings?.ctx?.stock_can_edit },
+					{ ...S("stock", "allow_negative_stock", __("Selling an item that ran out", null, "Bunood POS"), __("Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. One setting for the whole system.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]), locked: !settings?.ctx?.stock_can_edit },
 					S("counter", "item_scope", __("Items shown", null, "Bunood POS"), __("This company's: stock in one of its warehouses or an item default for it (not the site's default company's, which ERPNext adds to every new item); an item with neither for any company shows everywhere. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice. Item groups narrow either.", null, "Bunood POS"), [["company", __("This company's items", null, "Bunood POS")], ["warehouse", __("This warehouse's items", null, "Bunood POS")], ["all", __("All items", null, "Bunood POS")]]),
 				] },
 				{ name: __("The screen", null, "Bunood POS"), intro: __("How the sale screen looks for whoever works this counter.", null, "Bunood POS"), rows: [
@@ -2423,6 +2435,7 @@
 			settings.ctx = ctx;
 			settings.native = JSON.parse(JSON.stringify(ctx.native));
 			settings.counter = JSON.parse(JSON.stringify(ctx.counter));
+			settings.stock = JSON.parse(JSON.stringify(ctx.stock || {}));
 			settings.dirty = false;
 		}
 
@@ -2450,7 +2463,8 @@
 			const settings = state.settings;
 			if (!settings?.ctx?.can_edit || settings.busy) return;
 			settings[source][key] = value;
-			settings.dirty = JSON.stringify(settings.native) !== JSON.stringify(settings.ctx.native) || JSON.stringify(settings.counter) !== JSON.stringify(settings.ctx.counter);
+			settings.dirty = JSON.stringify(settings.native) !== JSON.stringify(settings.ctx.native) || JSON.stringify(settings.counter) !== JSON.stringify(settings.ctx.counter)
+				|| JSON.stringify(settings.stock) !== JSON.stringify(settings.ctx.stock || {});
 			settings.error = "";
 			if (!quiet) {
 				renderSettingsView();
@@ -2478,6 +2492,10 @@
 			for (const [field, value] of Object.entries(settings.counter)) {
 				if (JSON.stringify(value) !== JSON.stringify(settings.ctx.counter[field])) counterChanges[field] = value;
 			}
+			const stockChanges = {};
+			for (const [field, value] of Object.entries(settings.stock || {})) {
+				if (value !== settings.ctx.stock?.[field]) stockChanges[field] = value;
+			}
 			const scope = ["warehouse", "item_groups", "hide_unavailable_items"].some((field) => field in native) || "item_scope" in counterChanges;
 			settings.busy = true;
 			settings.error = "";
@@ -2487,6 +2505,7 @@
 					pos_profile: settings.profile,
 					native: JSON.stringify(native),
 					counter: JSON.stringify(counterChanges),
+					stock: JSON.stringify(stockChanges),
 					modified: settings.ctx.modified,
 				}, { silent: true, freeze: true, message: __("Saving the settings…", null, "Bunood POS") });
 				if (state.settings !== settings) return;
@@ -2570,9 +2589,10 @@
 					type: "button",
 					role: "radio",
 					"aria-checked": String(option === value),
-					disabled: !editable,
+					disabled: !editable || Boolean(row.locked),
 					onclick: () => changeSetting(row.source, row.key, option),
 				}, label)));
+				if (row.locked) control = h("div", { class: "bnd-pos__setting-stack" }, control, h("small", { class: "bnd-pos__muted" }, __("Changed by a stock manager", null, "Bunood POS")));
 			} else if (row.kind === "number") {
 				control = h("label", { class: "bnd-pos__number" },
 					h("input", {
