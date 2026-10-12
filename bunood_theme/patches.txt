@@ -160,6 +160,10 @@ bunood_theme.patches.v0_49_0.retire_rail_button
 # chose is kept. The glyph itself comes from brand.py's RIYAL_FACE_CSS and print.scss.
 bunood_theme.patches.v0_48_6.saudi_riyal_symbol
 
+# v0.58.0, THE OWNER (2026-10-12): «نبيع بالهللة». No whole-riyal rounding on new documents
+# and active POS profiles (the setup held since v0.46.12, approved).
+bunood_theme.patches.v0_58_0.exact_halala_totals
+
 # LAST, AND IT STAYS: whatever the translations above could not map, this makes
 # legal. It had drifted to third-from-last (audit finding c-8) — a Select a
 # later patch writes must still be healed by it.
