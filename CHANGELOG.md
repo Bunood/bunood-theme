@@ -24,6 +24,59 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.58.0] — 2026-10-12 — the owner's review: the sales invoice, the points of sale, printing, the halala
+
+The owner, 2026-10-12: «الخصم في فاتوره المبيعات غير مضبوط ... اريد ان تراجع فاتوره المبيعات لانها
+الاساس ما اريد اي اغلاط فيها»; «نقاط البيع ما تاخذ من المخزون»; «نبيع بالهللة» (PR #33, with
+the POS session's #32).
+
+**The sales invoice**
+- One column each: the price, its discount, the price after discount, the line's VAT and its
+  total after VAT. The price is typed first and ERPNext's own price_list_rate trigger works the
+  price after discount, which follows it. The discount went wrong because the price was locked
+  (Selling Settings `editable_price_list_rate`): an item without a list price took no discount.
+- The line VAT mirrors ERPNext's item-wise split (`set_item_wise_tax`, error diffusion, the last
+  line takes the cent), prices that include VAT taxed on their unrounded net, so the lines add up
+  to the posted tax rows.
+- One «السعر شامل الضريبة» box replaces the three-way choice; there is no exempt choice.
+- The checkout on «حفظ» and «طباعة»: Network (the default), cash with the change worked out,
+  bank transfer, cash and network, or on credit, each a submitted native Payment Entry
+  (`payments.post_invoice_payment`). An accounts manager links the ways of paying to the
+  company's accounts from the dialog (`setup_invoice_payment_methods`; a transfer never goes to
+  a card-clearing account). F7 receives all or part of what is owed. The amount the cashier saw
+  is checked on the server, and the invoice row is locked, so two receipts never both post. The
+  invoice says how it was paid only once it is paid.
+- The customer, the date and the print format on one row; the format starts on the document
+  type's default and drives every print and download (ZATCA Phase 2 keeps its own). The buttons
+  read «حفظ», «طباعة» and «عرض»; «عرض» shows an unsaved draft as it stands
+  (`frappe.www.printview.get_html_and_style`).
+- The bill's new-item dialog asks no code: Bunood Business numbers the item.
+
+**Printing.** A4 invoices printed "—" for every line's VAT on ERPNext v16: `bunood_item_vat_map`
+reads the v16 `item_wise_tax_details` table (and the old JSON, and a draft's VAT rows).
+
+**The points of sale and stock**
+- Sites upgraded to v16 sell as POS Invoices, whose stock moves only when the shift closes. The
+  counter's settings gain «خروج المخزون من المستودع» (POS Settings `invoice_type`) and «بيع صنف
+  نفدت كميته» (Stock Settings `allow_negative_stock`): site-wide, through ERPNext's own settings,
+  for whoever may write both, and the invoice type waits for every open shift to close.
+- An offline sale resent after a switch is found under either invoice type (`_posted_sale`).
+- A partial return from a POS Invoice sale goes through (#32).
+- A new item is offered at once: one no warehouse holds yet on every branch's bill (one placed
+  for a company, on that company's), and the counter reads its grid again when its tab returns.
+
+**The halala.** `v0_58_0.exact_halala_totals`: Global Defaults and every active POS profile stop
+rounding the total to the riyal (the setup held since v0.46.12, approved). Submitted documents
+keep their totals.
+
+Desk JS +5,843 gzip bytes (ceiling 195,700), POS JS +651 (ceiling 53,200), recorded.
+
+Checks: the interface suite (301), the counter (37), test_pos_workbench, test_invoice_delivery,
+test_payment_setup_contract; the guarded build; the POS acceptance (rollback) with Sales Invoice;
+lab browser runs of the columns, the VAT box, the checkout (Network 104; 50 cash + 65 network) and
+its ledger, a partial receipt, a stale amount refused, the draft preview, print formats, the POS
+settings save, and the halala totals. One adversarial release review; its findings fixed (200f48b).
+
 ## [0.57.9] — 2026-10-11 — «نقطة البيع» opens the point of sale, never the restaurant cashier
 
 The owner, after v0.57.8: «مازالت نقطه البيع تفتح لي كاشير المطعم ... صاحب السوبر ماركت بنفتح له
