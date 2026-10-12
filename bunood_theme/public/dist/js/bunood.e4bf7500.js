@@ -12247,12 +12247,12 @@
 			if (!this.active()) return;
 			const groups = defaults.item_groups || [];
 			const stockItem = Number(defaults.is_stock_item ?? 1) === 1;
-			const byCode = defaults.naming !== "Naming Series";
 			const dialog = this.itemDialog = new frappe.ui.Dialog({
 				title: __("New item"),
 				fields: [
-					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), reqd: byCode ? 1 : 0, default: prefill.item_code || (byCode ? defaults.next_code || "" : "") },
-					{ fieldtype: "Column Break" },
+					// No code to type (owner, 2026-10-12): Bunood Business numbers a new item
+					// (Item.before_insert); a code scanned into the bill still goes with it.
+					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), hidden: 1, default: prefill.item_code || "" },
 					{ fieldname: "item_name", fieldtype: "Data", label: __("Item name"), reqd: 1, placeholder: __("For example: a can of juice") },
 					{ fieldtype: "Section Break", hide_border: 1 },
 					{ fieldname: "barcode", fieldtype: "Data", label: __("Barcode"), default: prefill.barcode || "" },
@@ -12295,7 +12295,7 @@
 				else dialog.get_primary_btn().trigger("click");
 			}, true);
 			dialog.show();
-			setTimeout(() => dialog.fields_dict[dialog.get_value("item_code") ? "item_name" : "item_code"]?.set_focus?.(), 200);
+			setTimeout(() => dialog.fields_dict.item_name?.set_focus?.(), 200);
 		}
 		async saveQuickItem(values, dialog, stockItem, defaults) {
 			if (this.savingItem) return;
