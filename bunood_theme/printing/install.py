@@ -38,8 +38,7 @@ DEFAULT_QUOTATION_FORMAT = "بنود - عرض سعر (A4)"
 DEFAULT_PAYMENT_FORMAT = "بونود - سند قبض-صرف"
 CUSTOMER_STATEMENT_FORMAT = "بنود - كشف حساب عميل"
 CREDIT_SALE = "On Credit"
-MIXED_PAYMENT = "Mixed Payment"
-SETTLEMENT_METHODS = (CREDIT_SALE, "Cash", "Network", MIXED_PAYMENT)
+from bunood_theme.payments import SETTLEMENT_METHODS  # noqa: E402  (one list: the checkout's)
 # Company has tax_id for VAT but nothing for the commercial registration;
 # this app adds the dedicated field so the letter head has one to read.
 # (Merged from the parallel session, 2026-08-26.)

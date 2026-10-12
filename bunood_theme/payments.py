@@ -125,14 +125,35 @@ def setup_invoice_payment_methods(company: str) -> dict[str, dict[str, object]]:
     )
     transfer_mode = _mode(PAYING_MODES[SETTLE_TRANSFER][0][0], "Bank")
     if not _mapped_account(transfer_mode, company):
-        bank = company_doc.default_bank_account
-        if not (bank and frappe.db.exists("Account", {"name": bank, "company": company, "is_group": 0, "account_type": "Bank"})):
-            bank = frappe.db.get_value(
-                "Account",
-                {"company": company, "is_group": 0, "account_type": "Bank", "name": ["!=", network_account]},
-                "name",
-                order_by="lft asc",
+        # The company's own bank account, never a card-clearing one: the POS setup may
+        # have made the clearing account the company's default bank account
+        # (_ensure_default_bank_account), and a transfer posted there would mix with
+        # the card settlements.
+        clearing = {network_account} | {
+            account
+            for account in frappe.get_all(
+                "Mode of Payment Account",
+                filters={"parent": ["in", [NETWORK_MODE, CARD_MODE]], "company": company},
+                pluck="default_account",
             )
+            if account
+        }
+        candidates = [company_doc.default_bank_account] + frappe.get_all(
+            "Account",
+            filters={"company": company, "is_group": 0, "account_type": "Bank"},
+            pluck="name",
+            order_by="lft asc",
+        )
+        bank = next(
+            (
+                name
+                for name in candidates
+                if name
+                and name not in clearing
+                and frappe.db.exists("Account", {"name": name, "company": company, "is_group": 0, "account_type": "Bank"})
+            ),
+            None,
+        )
         # Without a bank account of its own the company cannot take a transfer yet.
         if bank:
             _set_mapping(transfer_mode, company, bank)
@@ -147,11 +168,18 @@ def post_invoice_payment(
     reference_no: str = "",
     reference_date: str | None = None,
     at_invoice_checkout: bool = False,
+    amount: object = None,
+    expected_outstanding: object = None,
 ) -> dict[str, object]:
-    """Receive a submitted sales invoice's whole outstanding amount, as the cashier chose.
+    """Receive a submitted sales invoice's outstanding amount, or ``amount`` of it, as the cashier chose.
 
     Network, Cash and Bank Transfer post one native Payment Entry; Mixed Payment
-    posts two, the cash amount given and the rest by Network. Orchestration only:
+    posts two, the cash amount given and the rest by Network.
+    - ``expected_outstanding`` is the amount the cashier saw: when the invoice now
+      owes something else (an advance allocated, a price the server set), nothing
+      posts and the cashier is asked again.
+    - The invoice row is locked first, so two receipts sent at once never both post.
+    Orchestration only:
     ERPNext's own ``get_payment_entry`` mapper builds each document and the
     standard Payment Entry controller validates, submits, writes the Payment
     Ledger and posts the GL. Bunood owns no payment table, ledger rule or
@@ -174,10 +202,19 @@ def post_invoice_payment(
         frappe.throw(_("Use the native POS payment rows to split a POS invoice."))
 
     precision = sales_invoice.precision("outstanding_amount") or 2
-    zero = Decimal("0").quantize(Decimal("1").scaleb(-precision))
-    outstanding = _money(sales_invoice.outstanding_amount, precision)
+    # A locking read: a second receipt for this invoice waits here for the first to
+    # commit, then reads what is left (REPEATABLE READ alone would read the old figure).
+    locked = frappe.db.get_value("Sales Invoice", sales_invoice.name, "outstanding_amount", for_update=True)
+    outstanding = _money(locked, precision)
     if outstanding <= 0:
         frappe.throw(_("This invoice has no outstanding amount to receive."))
+    if expected_outstanding not in (None, "") and _money(expected_outstanding, precision) != outstanding:
+        frappe.throw(
+            _("The invoice now owes {0} {1}. Open the payment again.").format(str(outstanding), sales_invoice.currency)
+        )
+    receive = outstanding if amount in (None, "") else _money(amount, precision)
+    if receive <= 0 or receive > outstanding:
+        frappe.throw(_("Receive an amount above zero and no more than the invoice owes."))
     if _eligible_early_payment_discount(sales_invoice):
         frappe.throw(
             _(
@@ -187,12 +224,12 @@ def post_invoice_payment(
 
     if method == SETTLE_MIXED:
         cash = _money(cash_amount, precision)
-        network = outstanding - cash
+        network = receive - cash
         if cash <= 0 or network <= 0:
             frappe.throw(_("A mixed payment needs a Cash amount and a Network amount above zero."))
         parts = ((SETTLE_CASH, cash), (SETTLE_NETWORK, network))
     else:
-        parts = ((method, outstanding),)
+        parts = ((method, receive),)
 
     accounts = {}
     for part, _amount in parts:
@@ -240,9 +277,10 @@ def post_invoice_payment(
         )
 
     sales_invoice.reload()
-    if _money(sales_invoice.outstanding_amount, precision) != zero:
-        frappe.throw(_("The payment did not fully settle the invoice."))
-    if sales_invoice.meta.has_field("bunood_settlement_method") and sales_invoice.get(
+    left = _money(sales_invoice.outstanding_amount, precision)
+    if left != outstanding - receive:
+        frappe.throw(_("The payment did not settle the amount received."))
+    if left == 0 and sales_invoice.meta.has_field("bunood_settlement_method") and sales_invoice.get(
         "bunood_settlement_method"
     ) != method:
         # The field allows changes after submit: it now says how the invoice was paid.
@@ -275,8 +313,7 @@ def post_mixed_invoice_payment(
     ):
         frappe.throw(
             _("Cash and Network must total the outstanding amount of {0} {1}.").format(
-                frappe.format_value(sales_invoice.outstanding_amount, {"fieldtype": "Currency"}),
-                sales_invoice.currency,
+                str(_money(sales_invoice.outstanding_amount, precision)), sales_invoice.currency
             )
         )
     return post_invoice_payment(

@@ -229,8 +229,10 @@ test('invoice workbench creates items in its own dialog and keeps the settlement
   assert.match(source, /window\.cur_frm\.set_value\("mode_of_payment", preferred\)/);
   assert.match(setup, /"fieldname": "bunood_settlement_method"/);
   assert.match(setup, /"fieldtype": "Select"/);
-  assert.match(setup, /MIXED_PAYMENT = "Mixed Payment"/);
-  assert.match(setup, /SETTLEMENT_METHODS = \(CREDIT_SALE, "Cash", "Network", MIXED_PAYMENT\)/);
+  // One list of settlement choices, the checkout's (the release review: a held setup that
+  // wrote its own four would drop Bank Transfer).
+  assert.match(setup, /from bunood_theme\.payments import SETTLEMENT_METHODS/);
+  assert.match(fs.readFileSync('bunood_theme/payments.py', 'utf8'), /SETTLEMENT_METHODS = \(ON_CREDIT, SETTLE_NETWORK, SETTLE_CASH, SETTLE_TRANSFER, SETTLE_MIXED\)/);
   assert.match(setup, /"default": CREDIT_SALE/);
 });
 test('one title per screen: the document band hides while the Simple bill owns the page', () => {
@@ -272,9 +274,16 @@ test('every checkout payment posts through the native Payment Entry endpoint, su
   assert.match(source, /strong\.dir = "ltr";\s*strong\.textContent = money\(amount\)/);
   assert.match(source, /const money = value => this\.format\(value, \{ fieldtype: "Currency", options: currency \}\)/);
   assert.match(source, /dialog\.show\(\);[\s\S]*?requestAnimationFrame\(async \(\) => \{/);
-  // Network first: a new draft starts on it, and the checkout preselects it.
-  assert.match(source, /applySettlementDefault\(\) \{[\s\S]*?this\.frm\.set_value\(field, NETWORK_PAYMENT\)/);
+  // Network first: the chip and the checkout open on it, and the invoice's own field says
+  // On Credit until a payment is recorded (the release review: it never says paid when it was not).
+  assert.match(source, /checkoutDefault\(\) \{[\s\S]*?return value && \(value !== CREDIT_SALE \|\| this\.settlementChosen\) \? value : NETWORK_PAYMENT;/);
+  assert.doesNotMatch(source, /applySettlementDefault/);
+  assert.match(source, /if \(field && this\.doc\[field\] !== CREDIT_SALE && fieldStatus\(this\.frm, field\) === "Write"\) \{\s*await this\.queue\.run\(\(\) => this\.frm\.set_value\(field, CREDIT_SALE\)\);/);
   assert.match(source, /usable\.find\(choice => choice\.value === NETWORK_PAYMENT\)/);
+  // The amount the cashier saw goes with the payment; a later receipt may take part of it.
+  assert.match(source, /expected_outstanding: due, \.\.\.\(receiving \? \{ amount \} : \{\}\),/);
+  assert.match(source, /amount: checkout\.amount \?\? "", expected_outstanding: checkout\.expected_outstanding \?\? "",/);
+  assert.match(source, /this\.promptCheckout\(\{ allowCredit: false, receiving: true \}\)/);
   assert.doesNotMatch(source, /textContent = frappe\.format\(/);
   assert.doesNotMatch(source, /set_value\("mode_of_payment", MIXED_PAYMENT\)/);
 });
@@ -839,7 +848,7 @@ test('purchase invoices use the same native workbench contract', () => {
 });
 test('the default bill workbench stays inline while the explicit split action uses a bounded dialog', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
-  assert.match(source,/async promptCheckout\(\{ allowCredit = true \} = \{\}\)[\s\S]*?new frappe\.ui\.Dialog/);
+  assert.match(source,/async promptCheckout\(\{ allowCredit = true, receiving = false \} = \{\}\)[\s\S]*?new frappe\.ui\.Dialog/);
   for (const action of ['frm.savesubmit()','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','erpnext?.utils?.BarcodeScanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 });
 test('both invoice profiles default line discounts to native currency amounts', () => {
@@ -1604,6 +1613,23 @@ test('a line VAT split adds up to the tax row, as ERPNext splits it over the ite
     const included = lineTaxes({ doc: { items: priced, taxes: [inclusive] }, cscript: {} });
     assert.equal(included.get('c').tax, 15);
     assert.equal(included.get('c').total, 115);
+
+    // A price that includes VAT goes through the engine too: it taxes the unrounded net,
+    // so two lines of 10.00 at 15% carry 1.30 and 1.31 of a 2.61 row, not 1.30 twice
+    // (the release review), and each line's total stays what the customer pays.
+    const tens = [
+      { name: 'd', doctype: 'Sales Invoice Item', item_code: 'D', amount: 10, net_amount: 8.70, _unrounded_net_amount: 10 / 1.15 },
+      { name: 'e', doctype: 'Sales Invoice Item', item_code: 'E', amount: 10, net_amount: 8.70, _unrounded_net_amount: 10 / 1.15 },
+    ];
+    const inclusiveEngine = {
+      _load_item_tax_rate: () => ({}),
+      get_current_tax_amount: (item, tax) => [item.net_amount, (tax.rate / 100) * (item._unrounded_net_amount ?? item.net_amount)],
+    };
+    const split = lineTaxes({ doc: { items: tens, taxes: [{ ...inclusive, tax_amount_after_discount_amount: 2.61 }] }, cscript: inclusiveEngine });
+    assert.equal(split.get('d').tax, 1.30);
+    assert.equal(split.get('e').tax, 1.31);
+    assert.equal(split.get('d').total, 10);
+    assert.equal(split.get('e').total, 10);
 
     // Without taxes the total is the amount; without the engine there is no split.
     assert.equal(lineTaxes({ doc: { items: priced, taxes: [] } }).get('c').total, 115);

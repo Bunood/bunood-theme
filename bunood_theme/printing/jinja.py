@@ -288,6 +288,10 @@ def bunood_item_vat_map(doc):
         vat_rows = {row.get("name") for row in doc.get("taxes") or [] if _is_vat_row(row)}
         codes = {row.get("name"): row.get("item_code") for row in doc.get("items") or []}
         details = [d for d in doc.get("item_wise_tax_details") or [] if d.get("tax_row") in vat_rows]
+        # The stored split answers only while it covers every line: a draft edited since
+        # its last save (the bill's «عرض») holds rows for its old lines.
+        if details and not {name for name in codes if codes[name]} <= {d.get("item_row") for d in details}:
+            details = []
         for detail in details:
             rate, amount = frappe.utils.flt(detail.get("rate")), frappe.utils.flt(detail.get("amount"))
             add(detail.get("item_row"), rate, amount)

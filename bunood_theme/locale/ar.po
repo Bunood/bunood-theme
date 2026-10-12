@@ -19525,11 +19525,6 @@ msgstr "لا يوجد حساب مربوط لهذه الشركة في طرق ال
 
 #. src: sales invoice owner review, Arabic proposal 2026-10-12
 #, fuzzy
-msgid "The payment did not fully settle the invoice."
-msgstr "الدفعة لم تسدّد الفاتورة بالكامل."
-
-#. src: sales invoice owner review, Arabic proposal 2026-10-12
-#, fuzzy
 msgid "Choose a company first."
 msgstr "اختر الشركة أولاً."
 
@@ -19659,3 +19654,23 @@ msgstr "يغيّره مدير المخزون"
 #, fuzzy
 msgid "Close every open shift first, the restaurant cashier's included: {0}"
 msgstr "أغلق كل الورديات المفتوحة أولاً، ومنها وردية كاشير المطعم: {0}"
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "Amount received now"
+msgstr "المبلغ المستلم الآن"
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "Receive an amount above zero and no more than the invoice owes."
+msgstr "أدخل مبلغاً أكبر من صفر ولا يزيد عمّا على الفاتورة."
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "The invoice now owes {0} {1}. Open the payment again."
+msgstr "المستحق على الفاتورة الآن {0} {1}. افتح الدفع من جديد."
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "The payment did not settle the amount received."
+msgstr "الدفعة لم تسدّد المبلغ المستلم."

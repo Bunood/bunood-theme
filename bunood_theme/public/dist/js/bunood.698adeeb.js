@@ -10614,21 +10614,28 @@
 	}
 	// Each line's VAT and its total after VAT. Presentation only: the native tax
 	// rows stay the figures that post, and the lines always add up to them.
-	// - A price that includes VAT: the line's VAT is what its amount holds above
-	//   its net, and its total is what the customer pays for it.
-	// - Otherwise, as ERPNext's server splits a tax row over the items
+	// - The VAT, as ERPNext's server splits a tax row over the items
 	//   (taxes_and_totals.set_item_wise_tax): the engine's own amount for each
 	//   item, rounded on the running total, and the last line takes the cent that
 	//   keeps the lines equal to the row (adjust_rounding_in_item_wise_tax_details).
-	// Null when the engine cannot say; the screen then shows no split.
+	//   The engine taxes an inclusive price on its unrounded net, so the lines'
+	//   VAT adds up to the posted row even where each line's amount minus its
+	//   rounded net would not (two lines of 10.00 at 15%: 1.30 and 1.31, not 1.30 twice).
+	// - The total: what the customer pays for the line when the price includes
+	//   VAT, else its net plus its VAT.
+	// Null when the engine cannot say for a price VAT is added to; the screen then
+	// shows no split.
 	function lineTaxes(frm) {
 		const doc = frm.doc, engine = frm.cscript;
 		const items = (doc.items || []).filter(row => row.item_code);
 		const all = doc.taxes || [];
 		const taxes = all.filter(tax => tax.category !== "Valuation");
 		const headerDiscount = Number(doc.discount_amount || 0) !== 0;
+		// A price that includes VAT: the line's total is what the customer pays for it.
+		const inclusive = taxes.length > 0 && !headerDiscount && taxes.every(tax => Number(tax.included_in_print_rate));
 		const lines = new Map();
-		if (!taxes.length || (!headerDiscount && taxes.every(tax => Number(tax.included_in_print_rate)))) {
+		const engineReady = typeof engine?.get_current_tax_amount === "function" && typeof engine?._load_item_tax_rate === "function";
+		if (!taxes.length || (inclusive && !engineReady)) {
 			for (const row of items) {
 				const places = fieldPrecision(row, "amount");
 				const total = roundMoney(headerDiscount ? row.net_amount : row.amount, places);
@@ -10636,7 +10643,7 @@
 			}
 			return lines;
 		}
-		if (typeof engine?.get_current_tax_amount !== "function" || typeof engine?._load_item_tax_rate !== "function") return null;
+		if (!engineReady) return null;
 		// The engine reads the previous row's figures for the current item from the
 		// tax rows themselves; they are put back as they were afterwards.
 		const saved = all.map(tax => [tax.tax_amount_for_current_item, tax.grand_total_for_current_item]);
@@ -10674,7 +10681,7 @@
 		}
 		for (const row of items) {
 			const line = lines.get(row.name);
-			line.total = roundMoney(Number(row.net_amount || 0) + line.tax, fieldPrecision(row, "amount"));
+			line.total = roundMoney(inclusive ? row.amount : Number(row.net_amount || 0) + line.tax, fieldPrecision(row, "amount"));
 		}
 		return lines;
 	}
@@ -11435,7 +11442,7 @@
 				else this.fullInvoice();
 			});
 			this.root.addEventListener("keydown", e => this.shortcut(e, true), true);
-			this.setMode(true); this.render(); this.applyDefaultTax(); this.loadVatChoices(); this.applyStockDefault(); this.applyBranchDefault(); this.applySettlementDefault();
+			this.setMode(true); this.render(); this.applyDefaultTax(); this.loadVatChoices(); this.applyStockDefault(); this.applyBranchDefault();
 			frappe.after_ajax(() => {
 				if (this.active() && this.doc.__islocal && !this.doc[this.profile.party] &&
 					!this.root.contains(document.activeElement)) this.partyControl?.set_focus();
@@ -11518,7 +11525,7 @@
 			}
 			const settlement = this.profile.paymentMethod;
 			if (chips.payment) {
-				chips.payment.value.textContent = __(doc[settlement] || "") || "—";
+				chips.payment.value.textContent = __(this.checkoutDefault()) || "—";
 				chips.payment.chip.disabled = !draft || fieldStatus(this.frm, settlement) !== "Write";
 			}
 			if (chips.currency) chips.currency.value.textContent = doc.currency || "";
@@ -11616,8 +11623,11 @@
 			const df = this.frm.fields_dict[field]?.df;
 			const options = String(df?.options || "").split("\n").map(value => value.trim()).filter(Boolean);
 			this.openChipMenu(this.chips.payment, options.map(value => ({
-				value, label: __(value), current: value === this.doc[field],
-			})), value => this.change(() => this.frm.set_value(field, value)).catch(() => this.renderContext()));
+				value, label: __(value), current: value === this.checkoutDefault(),
+			})), value => {
+				this.settlementChosen = true;
+				return this.change(() => this.frm.set_value(field, value)).catch(() => this.renderContext());
+			});
 		}
 		itemQuery(current) {
 			// The simple bill searches the items of its branch's warehouse (owner,
@@ -11677,15 +11687,13 @@
 			doc.__bnd_stock_default = 1;
 			this.change(() => this.frm.set_value("update_stock", 1)).catch(() => {});
 		}
-		applySettlementDefault() {
-			// Network is how a bill is usually paid (owner, 2026-10-12): a new draft
-			// starts on it, and the checkout still asks when the bill is submitted.
-			const field = this.profile.paymentMethod, doc = this.doc;
-			if (!field || !doc.__islocal || Number(doc.docstatus) !== 0 || doc.__bnd_settlement_default) return;
-			if (fieldStatus(this.frm, field) !== "Write" || (doc[field] && doc[field] !== CREDIT_SALE)) return;
-			if (!String(this.frm.fields_dict[field]?.df?.options || "").split("\n").includes(NETWORK_PAYMENT)) return;
-			doc.__bnd_settlement_default = 1;
-			this.change(() => this.frm.set_value(field, NETWORK_PAYMENT)).catch(() => {});
+		checkoutDefault() {
+			// How the checkout opens (owner, 2026-10-12): Network, unless the reader chose
+			// otherwise on the chip. The invoice's own field stays ERPNext's default (On
+			// Credit) until a payment is recorded, so it never says paid when it was not.
+			const field = this.profile.paymentMethod;
+			const value = field ? this.doc[field] : "";
+			return value && (value !== CREDIT_SALE || this.settlementChosen) ? value : NETWORK_PAYMENT;
 		}
 		renderPrintFormat(parent) {
 			let formats = [];
@@ -12250,9 +12258,9 @@
 			const dialog = this.itemDialog = new frappe.ui.Dialog({
 				title: __("New item"),
 				fields: [
-					// No code to type (owner, 2026-10-12): Bunood Business numbers a new item
-					// (Item.before_insert); a code scanned into the bill still goes with it.
-					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), hidden: 1, default: prefill.item_code || "" },
+					// No code to type (owner, 2026-10-12): the next number, as Bunood Business's
+					// Item.before_insert gives one; a code scanned into the bill still goes with it.
+					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), hidden: 1, default: prefill.item_code || defaults.next_code || "" },
 					{ fieldname: "item_name", fieldtype: "Data", label: __("Item name"), reqd: 1, placeholder: __("For example: a can of juice") },
 					{ fieldtype: "Section Break", hide_border: 1 },
 					{ fieldname: "barcode", fieldtype: "Data", label: __("Barcode"), default: prefill.barcode || "" },
@@ -12705,8 +12713,10 @@
 				if (!checkout) { this.message(__("Nothing was submitted. The bill is as you left it.")); return; }
 				if (!this.active()) return;
 				const createPayment = settlementCreatesPayment(checkout.method);
-				if (checkout.method && this.doc[field] !== checkout.method && fieldStatus(this.frm, field) === "Write") {
-					await this.queue.run(() => this.frm.set_value(field, checkout.method));
+				// Submitted unpaid, the invoice says On Credit; the payment, once posted,
+				// writes how it was paid (payments.post_invoice_payment).
+				if (field && this.doc[field] !== CREDIT_SALE && fieldStatus(this.frm, field) === "Write") {
+					await this.queue.run(() => this.frm.set_value(field, CREDIT_SALE));
 				}
 				if (this.doc.__islocal || this.frm.is_dirty()) {
 					this.message(__("Saving invoice…"));
@@ -12750,7 +12760,7 @@
 			const reload = () => this.frm.reload_doc().then(() => { this.syncDocument(); this.render(); });
 			if (this.frm.is_dirty()) frappe.confirm(__("Discard unsaved changes and reload this document?"), reload); else reload();
 		}
-		async promptCheckout({ allowCredit = true } = {}) {
+		async promptCheckout({ allowCredit = true, receiving = false } = {}) {
 			// The checkout (owner, 2026-10-12): how the bill is paid is asked when it is
 			// submitted, Network first, and each choice says what it needs. Nothing is
 			// committed until the reader confirms; closing the dialog changes nothing.
@@ -12773,7 +12783,7 @@
 				{ value: MIXED_PAYMENT, label: __("Cash and network"), hint: __("Part in cash, the rest by network"), icon: "split" },
 				...(allowCredit ? [{ value: CREDIT_SALE, label: __("On Credit"), hint: __("The customer owes the invoice"), icon: "calendar-clock" }] : []),
 			].map(choice => ({ ...choice, ready: choice.value === CREDIT_SALE || !ready || !!ready[choice.value]?.ready }));
-			const current = settlementValue(this.doc);
+			const current = this.checkoutDefault();
 			const usable = choices.filter(choice => choice.ready);
 			// An accounts manager can link the ways of paying from the dialog itself.
 			const canLink = !!frappe.user?.has_role?.(["Accounts Manager", "System Manager"]);
@@ -12789,6 +12799,8 @@
 					fields: [
 						{ fieldname: "methods", fieldtype: "HTML" },
 						{ fieldtype: "Section Break", fieldname: "amounts_section" },
+						// A later receipt may take part of what is owed; the checkout takes it all.
+						...(receiving ? [{ fieldname: "amount_now", fieldtype: "Currency", label: __("Amount received now"), options: currency, non_negative: 1 }] : []),
 						{ fieldname: "received_amount", fieldtype: "Currency", label: __("Amount received"), options: currency, non_negative: 1 },
 						{ fieldname: "cash_amount", fieldtype: "Currency", label: __("Cash amount"), options: currency, non_negative: 1 },
 						{ fieldtype: "Column Break" },
@@ -12867,21 +12879,28 @@
 				summary.setAttribute("role", "status");
 				summary.setAttribute("aria-live", "polite");
 				const show = (name, visible) => dialog.set_df_property(name, "hidden", visible ? 0 : 1);
+				const target = () => receiving ? roundMoney(dialog.get_value("amount_now"), precision) : due;
 				function read() {
+					const amount = target();
 					const received = roundMoney(dialog.get_value("received_amount"), precision);
 					const cash = roundMoney(dialog.get_value("cash_amount"), precision);
 					const reference = String(dialog.get_value("reference_no") || "").trim();
-					const value = { method, reference_no: reference, reference_date: dialog.get_value("reference_date") || "" };
+					const value = {
+						method, reference_no: reference, reference_date: dialog.get_value("reference_date") || "",
+						// What the cashier saw owed: the server refuses when the invoice now owes otherwise.
+						expected_outstanding: due, ...(receiving ? { amount } : {}),
+					};
 					if (!choices.find(choice => choice.value === method)?.ready) return { error: __("Choose a way of paying that is linked to an account.") };
+					if (!(amount > 0) || amount > due) return { error: __("Receive an amount above zero and no more than the invoice owes.") };
 					if (method === CASH_PAYMENT) {
-						if (received < due) return { error: __("The amount received is less than the amount due.") };
-						return { value, change: roundMoney(received - due, precision) };
+						if (received < amount) return { error: __("The amount received is less than the amount due.") };
+						return { value, change: roundMoney(received - amount, precision), amount };
 					}
 					if (method === MIXED_PAYMENT) {
-						if (!(cash > 0) || cash >= due) return { error: __("Enter a cash amount above zero and below the amount due; the rest is paid by network.") };
-						return { value: { ...value, cash_amount: cash }, network: roundMoney(due - cash, precision) };
+						if (!(cash > 0) || cash >= amount) return { error: __("Enter a cash amount above zero and below the amount due; the rest is paid by network.") };
+						return { value: { ...value, cash_amount: cash }, network: roundMoney(amount - cash, precision), amount };
 					}
-					return { value };
+					return { value, amount };
 				}
 				const update = () => {
 					const outcome = read();
@@ -12897,7 +12916,7 @@
 					else if (method === CASH_PAYMENT) line(__("Change to return"), outcome.change, "is-strong");
 					else if (method === MIXED_PAYMENT) { line(__("Cash"), outcome.value.cash_amount); line(__("Network"), outcome.network, "is-strong"); }
 					else if (method === CREDIT_SALE) node("p", "bnd-bill-hint", __("No payment is recorded now. The invoice stays due from the customer."), summary);
-					else line(method === TRANSFER_PAYMENT ? __("Transferred") : __("Paid by network"), due, "is-strong");
+					else line(method === TRANSFER_PAYMENT ? __("Transferred") : __("Paid by network"), outcome.amount, "is-strong");
 				};
 				function choose(value) {
 					method = value;
@@ -12915,10 +12934,11 @@
 						? __("Transfer number (optional)") : __("Card slip number (optional)"));
 					update();
 				}
-				for (const name of ["received_amount", "cash_amount"]) dialog.fields_dict[name].$input?.on("input change", () => requestAnimationFrame(update));
+				for (const name of ["received_amount", "cash_amount", ...(receiving ? ["amount_now"] : [])]) dialog.fields_dict[name].$input?.on("input change", () => requestAnimationFrame(update));
 				dialog.show();
 				// Defaults settle during show: the cash received starts at the amount due.
 				requestAnimationFrame(async () => {
+					if (receiving) await dialog.set_value("amount_now", due);
 					await dialog.set_value("received_amount", due);
 					await dialog.set_value("cash_amount", roundMoney(due / 2, precision));
 					choose(method);
@@ -12934,6 +12954,7 @@
 					invoice: this.frm.doc.name, method: checkout.method,
 					cash_amount: checkout.cash_amount ?? "", reference_no: checkout.reference_no || "",
 					reference_date: checkout.reference_date || "", at_invoice_checkout: atInvoiceCheckout ? 1 : 0,
+					amount: checkout.amount ?? "", expected_outstanding: checkout.expected_outstanding ?? "",
 				},
 				freeze: true,
 				freeze_message: __("Recording payment…"),
@@ -12949,7 +12970,7 @@
 			try {
 				// An early-payment discount belongs to ERPNext's own Payment Entry flow.
 				if (!this.profile.paymentMethod || this.frm.cscript?.has_discount_in_schedule?.()) return await makePaymentEntry(this.frm);
-				const checkout = await this.promptCheckout({ allowCredit: false });
+				const checkout = await this.promptCheckout({ allowCredit: false, receiving: true });
 				if (checkout?.method) return await this.postPayment(checkout);
 			}
 			catch (error) { this.message(error.message, true); }
