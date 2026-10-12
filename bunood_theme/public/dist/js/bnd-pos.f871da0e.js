@@ -2365,8 +2365,8 @@
 					{ kind: "groups", source: "native", key: "item_groups", label: __("Item groups on this counter", null, "Bunood POS"), desc: __("These groups and the groups under them. None chosen: every group.", null, "Bunood POS"), groups: store.groups || [] },
 					S("native", "hide_unavailable_items", __("Items out of stock in this warehouse", null, "Bunood POS"), __("Shown with their quantity, or left out of the catalogue. Services always show.", null, "Bunood POS"), [[false, __("Shown", null, "Bunood POS")], [true, __("Hidden", null, "Bunood POS")]]),
 					// Site-wide, through ERPNext's own settings (owner, 2026-10-12): every counter follows them.
-					{ ...S("stock", "moves_at_sale", __("Stock leaves the warehouse", null, "Bunood POS"), __("At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. It changes once every open shift is closed, and for every counter.", null, "Bunood POS"), [[true, __("At each sale", null, "Bunood POS")], [false, __("When the shift closes", null, "Bunood POS")]]), locked: !settings?.ctx?.stock_can_edit },
-					{ ...S("stock", "allow_negative_stock", __("Selling an item that ran out", null, "Bunood POS"), __("Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. One setting for the whole system.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]), locked: !settings?.ctx?.stock_can_edit },
+					{ ...S("stock", "moves_at_sale", __("Stock leaves the warehouse", null, "Bunood POS"), __("At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. For every counter on the site, the restaurant cashier included; it changes once every open shift is closed.", null, "Bunood POS"), [[true, __("At each sale", null, "Bunood POS")], [false, __("When the shift closes", null, "Bunood POS")]]), locked: !settings?.ctx?.stock_can_edit, shifts: settings?.ctx?.stock_open_shifts || [] },
+					{ ...S("stock", "allow_negative_stock", __("Selling an item that ran out", null, "Bunood POS"), __("Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. For the whole site, not this counter alone: invoices and stock entries follow it too.", null, "Bunood POS"), [[false, __("Not allowed", null, "Bunood POS")], [true, __("Allowed", null, "Bunood POS")]]), locked: !settings?.ctx?.stock_can_edit },
 					S("counter", "item_scope", __("Items shown", null, "Bunood POS"), __("This company's: stock in one of its warehouses or an item default for it (not the site's default company's, which ERPNext adds to every new item); an item with neither for any company shows everywhere. This warehouse's: stock records here or this warehouse as the item's default, as in the simple invoice. Item groups narrow either.", null, "Bunood POS"), [["company", __("This company's items", null, "Bunood POS")], ["warehouse", __("This warehouse's items", null, "Bunood POS")], ["all", __("All items", null, "Bunood POS")]]),
 				] },
 				{ name: __("The screen", null, "Bunood POS"), intro: __("How the sale screen looks for whoever works this counter.", null, "Bunood POS"), rows: [
@@ -2589,10 +2589,12 @@
 					type: "button",
 					role: "radio",
 					"aria-checked": String(option === value),
-					disabled: !editable || Boolean(row.locked),
+					disabled: !editable || Boolean(row.locked) || Boolean(row.shifts?.length),
 					onclick: () => changeSetting(row.source, row.key, option),
 				}, label)));
-				if (row.locked) control = h("div", { class: "bnd-pos__setting-stack" }, control, h("small", { class: "bnd-pos__muted" }, __("Changed by a stock manager", null, "Bunood POS")));
+				const held = row.locked ? __("Changed by a stock manager", null, "Bunood POS")
+					: row.shifts?.length ? __("Close the open shifts first: {0}", [row.shifts.join(", ")]) : "";
+				if (held) control = h("div", { class: "bnd-pos__setting-stack" }, control, h("small", { class: "bnd-pos__muted" }, held));
 			} else if (row.kind === "number") {
 				control = h("label", { class: "bnd-pos__number" },
 					h("input", {

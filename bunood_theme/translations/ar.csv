@@ -204,7 +204,7 @@ Allocate invoices,تخصيص الفواتير,
 Allocated,المخصص,
 Allocation,التخصيص,
 Allowed,مسموح,Bunood POS
-Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. One setting for the whole system.,مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. إعداد واحد للنظام كله.,Bunood POS
+"Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. For the whole site, not this counter alone: invoices and stock entries follow it too.",مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. لكل الموقع لا لنقطة البيع وحدها: الفواتير وحركات المخزون تتبعه أيضاً.,Bunood POS
 Alternate views,العروض البديلة,
 Alternating fill — the easiest row-tracking on wide tables.,تعبئة متناوبة — أسهل تتبع للصفوف في الجداول العريضة.,
 Always Dark,داكن دائمًا,
@@ -286,7 +286,7 @@ Assign the rollback owner before submitting.,عيّن مسؤول التراجع 
 Assign the security and privacy reviewer before submitting.,عيّن مراجع الأمن والخصوصية قبل التقديم.,
 Assigned after saving,يُحدّد بعد الحفظ,
 At each sale,مع كل بيعة,Bunood POS
-"At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. It changes once every open shift is closed, and for every counter.",مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. يتغير بعد إغلاق كل الورديات المفتوحة، ولكل نقاط البيع.,Bunood POS
+"At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. For every counter on the site, the restaurant cashier included; it changes once every open shift is closed.",مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. لكل نقاط البيع في الموقع ومنها كاشير المطعم، ويتغير بعد إغلاق كل الورديات المفتوحة.,Bunood POS
 At least one reconciliation control must be applicable.,يجب أن يكون ضابط تسوية واحد على الأقل منطبقًا.,
 At the start of the bottom strip.,في بداية الشريط السفلي.,
 "At the start of the top bar, beside the page.",في بداية الشريط العلوي، إلى جوار الصفحة.,
@@ -590,6 +590,7 @@ Clock,الساعة,
 Close,إغلاق,Bunood POS
 Close and VAT,الإقفال والضريبة,
 Close customer and preview panel,إغلاق لوحة العميل والمعاينة,
+"Close every open shift first, the restaurant cashier's included: {0}",أغلق كل الورديات المفتوحة أولاً، ومنها وردية كاشير المطعم: {0},
 Close it there before opening a shift here.,أغلقها هناك قبل فتح وردية هنا.,Bunood POS
 Close notifications,إغلاق الإخطارات,
 Close path,مسار الإقفال,

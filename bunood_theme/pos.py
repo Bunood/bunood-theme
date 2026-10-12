@@ -1996,6 +1996,7 @@ def settings_context(pos_profile: str) -> dict[str, Any]:
         "counter": _counter_settings(profile.name),
         "stock": _stock_settings(),
         "stock_can_edit": _stock_can_edit(),
+        "stock_open_shifts": _site_open_shifts(),
         "defaults": COUNTER_DEFAULTS,
         "cash_notes": list(CASH_NOTES),
         "modes": _payment_modes(profile.company, [row.mode_of_payment for row in profile.get("payments") or []]),
@@ -2025,6 +2026,20 @@ def _stock_can_edit() -> bool:
     return bool(frappe.has_permission("POS Settings", "write") and frappe.has_permission("Stock Settings", "write"))
 
 
+def _site_open_shifts() -> list[str]:
+    """Every shift on the site not closed yet, any till's and any user's (the restaurant
+    cashier's included). The invoice type changes only with none: a shift that sold
+    under both types would close and consolidate only part of its sales."""
+    # permissions: names only, to say which shifts hold the change; no one's figures.
+    return frappe.get_all(
+        "POS Opening Entry",
+        filters={"docstatus": 1, "pos_closing_entry": ["in", ["", None]]},
+        pluck="name",
+        order_by="period_start_date asc",
+        limit_page_length=20,
+    )
+
+
 def _save_stock_settings(stock: dict[str, Any]) -> list[str]:
     """Write the site-wide stock choices through ERPNext's own settings, which
     validate them: the invoice type waits for every open shift to close."""
@@ -2035,6 +2050,9 @@ def _save_stock_settings(stock: dict[str, Any]) -> list[str]:
         frappe.throw(_("Only a stock manager can change how the counters use stock."), frappe.PermissionError)
     current = _stock_settings()
     if "moves_at_sale" in stock and bool(stock["moves_at_sale"]) != current["moves_at_sale"]:
+        shifts = _site_open_shifts()
+        if shifts:
+            frappe.throw(_("Close every open shift first, the restaurant cashier's included: {0}").format(", ".join(shifts)))
         settings = frappe.get_single("POS Settings")
         settings.invoice_type = "Sales Invoice" if stock["moves_at_sale"] else "POS Invoice"
         settings.save()
@@ -2231,21 +2249,27 @@ def _sale_lock(sale_id: str):
 
 def _posted_sale(doctype: str, sale_id: str, by_remarks: bool) -> tuple[str | None, int | None]:
     """The invoice already made for this sale id, if any. The remembered name is
-    read with a row lock, so a commit still in flight is waited for, not missed."""
+    read with a row lock, so a commit still in flight is waited for, not missed.
+    Both invoice types are asked, ``doctype`` first: a sale sent before the counters
+    switched type (POS Settings.invoice_type) and sent again after it is still found,
+    never posted twice."""
+    kinds = [doctype, *sorted(INVOICE_TYPES - {doctype})]
     name = frappe.cache.get_value(_sale_key(sale_id))
     if name:
-        status = frappe.db.get_value(doctype, name, "docstatus", for_update=True)
-        if status is not None and cint(status) < 2:
-            return name, cint(status)
+        for kind in kinds:
+            status = frappe.db.get_value(kind, name, "docstatus", for_update=True)
+            if status is not None and cint(status) < 2:
+                return name, cint(status)
     if by_remarks:
-        rows = frappe.get_all(
-            doctype,
-            filters={"owner": frappe.session.user, "remarks": ["like", f"%{OFFLINE_MARK}{sale_id}%"], "docstatus": ["<", 2]},
-            fields=["name", "docstatus"],
-            limit_page_length=1,
-        )
-        if rows:
-            return rows[0].name, cint(rows[0].docstatus)
+        for kind in kinds:
+            rows = frappe.get_all(
+                kind,
+                filters={"owner": frappe.session.user, "remarks": ["like", f"%{OFFLINE_MARK}{sale_id}%"], "docstatus": ["<", 2]},
+                fields=["name", "docstatus"],
+                limit_page_length=1,
+            )
+            if rows:
+                return rows[0].name, cint(rows[0].docstatus)
     return None, None
 
 

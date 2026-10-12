@@ -19607,8 +19607,8 @@ msgstr "خروج المخزون من المستودع"
 #. src: owner 2026-10-12, POS stock
 #, fuzzy
 msgctxt "Bunood POS"
-msgid "At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. It changes once every open shift is closed, and for every counter."
-msgstr "مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. يتغير بعد إغلاق كل الورديات المفتوحة، ولكل نقاط البيع."
+msgid "At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. For every counter on the site, the restaurant cashier included; it changes once every open shift is closed."
+msgstr "مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. لكل نقاط البيع في الموقع ومنها كاشير المطعم، ويتغير بعد إغلاق كل الورديات المفتوحة."
 
 #. src: owner 2026-10-12, POS stock
 #, fuzzy
@@ -19631,8 +19631,8 @@ msgstr "بيع صنف نفدت كميته"
 #. src: owner 2026-10-12, POS stock
 #, fuzzy
 msgctxt "Bunood POS"
-msgid "Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. One setting for the whole system."
-msgstr "مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. إعداد واحد للنظام كله."
+msgid "Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. For the whole site, not this counter alone: invoices and stock entries follow it too."
+msgstr "مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. لكل الموقع لا لنقطة البيع وحدها: الفواتير وحركات المخزون تتبعه أيضاً."
 
 #. src: owner 2026-10-12, POS stock
 #, fuzzy
@@ -19654,3 +19654,8 @@ msgstr "تغيير طريقة استخدام نقاط البيع للمخزون 
 msgctxt "Bunood POS"
 msgid "Changed by a stock manager"
 msgstr "يغيّره مدير المخزون"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Close every open shift first, the restaurant cashier's included: {0}"
+msgstr "أغلق كل الورديات المفتوحة أولاً، ومنها وردية كاشير المطعم: {0}"
