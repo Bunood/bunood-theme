@@ -26,6 +26,25 @@ CARD_MODE = "Credit Card"
 NETWORK_ACCOUNT_NAME = "Network Card Clearing"
 NETWORK_ACCOUNT_NUMBER = "1210"
 
+# How a sales invoice is settled at checkout: the values of its
+# ``bunood_settlement_method``. On Credit records no payment.
+ON_CREDIT = "On Credit"
+SETTLE_CASH = "Cash"
+SETTLE_NETWORK = "Network"
+SETTLE_TRANSFER = "Bank Transfer"
+SETTLE_MIXED = "Mixed Payment"
+SETTLEMENT_METHODS = (ON_CREDIT, SETTLE_NETWORK, SETTLE_CASH, SETTLE_TRANSFER, SETTLE_MIXED)
+#: The Mode of Payment each single way of paying posts through, in order of
+#: preference, and the company default account it falls back to: ERPNext's own
+#: fallback when a mode has no account for the company (get_default_bank_cash_account).
+#: A transfer has none: the company default bank account may be the card-clearing
+#: one (``_ensure_default_bank_account``), so a transfer needs its own link.
+PAYING_MODES = {
+    SETTLE_CASH: ((CASH_MODE,), "default_cash_account"),
+    SETTLE_NETWORK: ((NETWORK_MODE, CARD_MODE), "default_bank_account"),
+    SETTLE_TRANSFER: (("Bank Transfer", "Wire Transfer"), None),
+}
+
 
 def _money(value: object, precision: int) -> Decimal:
     """Return a user amount rounded exactly like the document currency."""
@@ -49,21 +68,94 @@ def _eligible_early_payment_discount(invoice) -> bool:
     )
 
 
+def _paying_account(method: str, company: str) -> tuple[str | None, str | None]:
+    """The Mode of Payment and account a single way of paying posts to, or ``(None, None)``.
+
+    The first enabled mode in ``PAYING_MODES`` is taken, with its account for the
+    company, else the company's default cash or bank account, as ERPNext's own
+    Payment Entry mapper falls back.
+    """
+    names, fallback = PAYING_MODES[method]
+    for name in names:
+        if not frappe.db.get_value("Mode of Payment", name, "enabled"):
+            continue
+        account = frappe.db.get_value(
+            "Mode of Payment Account", {"parent": name, "company": company}, "default_account"
+        ) or (fallback and frappe.get_cached_value("Company", company, fallback))
+        if account:
+            return name, account
+    return None, None
+
+
+@frappe.whitelist(methods=["GET"])
+def invoice_payment_methods(company: str) -> dict[str, dict[str, object]]:
+    """Which ways of paying a sales invoice of ``company`` can record now, for the checkout dialog."""
+    frappe.has_permission("Sales Invoice", ptype="create", throw=True)
+    if not company or not frappe.db.exists("Company", company):
+        frappe.throw(_("Choose a company first."))
+    methods: dict[str, dict[str, object]] = {}
+    for method in PAYING_MODES:
+        mode, account = _paying_account(method, company)
+        methods[method] = {"mode_of_payment": mode or "", "ready": bool(account)}
+    cash, network = (_paying_account(m, company)[1] for m in (SETTLE_CASH, SETTLE_NETWORK))
+    methods[SETTLE_MIXED] = {"mode_of_payment": "", "ready": bool(cash and network and cash != network)}
+    return methods
+
+
+@frappe.whitelist(methods=["POST"])
+def setup_invoice_payment_methods(company: str) -> dict[str, dict[str, object]]:
+    """Link the checkout's ways of paying to ``company``'s accounts, at an accounts manager's request.
+
+    Cash takes the company's cash account; Network a dedicated card-clearing
+    account (made under the Bank group when missing, as the POS setup makes it);
+    Bank Transfer the company's own bank account. A link already made is kept,
+    and nothing posts here. Answers what the checkout can now record.
+    """
+    if not {"Accounts Manager", "System Manager"}.intersection(frappe.get_roles()):
+        frappe.throw(_("Only an accounts manager can link payment methods to accounts."), frappe.PermissionError)
+    frappe.has_permission("Company", doc=company, throw=True)
+    company_doc = frappe.get_doc("Company", company)
+
+    cash_mode = _mode(CASH_MODE, "Cash")
+    cash_account = _mapped_account(cash_mode, company) or _cash_account(company_doc)
+    _set_mapping(cash_mode, company, cash_account)
+    network_mode = _mode(NETWORK_MODE, "Bank")
+    network_account = _set_safe_clearing_mapping(
+        network_mode, company_doc, cash_account, _network_account(company_doc)
+    )
+    transfer_mode = _mode(PAYING_MODES[SETTLE_TRANSFER][0][0], "Bank")
+    if not _mapped_account(transfer_mode, company):
+        bank = company_doc.default_bank_account
+        if not (bank and frappe.db.exists("Account", {"name": bank, "company": company, "is_group": 0, "account_type": "Bank"})):
+            bank = frappe.db.get_value(
+                "Account",
+                {"company": company, "is_group": 0, "account_type": "Bank", "name": ["!=", network_account]},
+                "name",
+                order_by="lft asc",
+            )
+        # Without a bank account of its own the company cannot take a transfer yet.
+        if bank:
+            _set_mapping(transfer_mode, company, bank)
+    return invoice_payment_methods(company)
+
+
 @frappe.whitelist()
-def post_mixed_invoice_payment(
+def post_invoice_payment(
     invoice: str,
-    cash_amount: object,
-    network_amount: object,
-    network_reference_no: str,
+    method: str,
+    cash_amount: object = None,
+    reference_no: str = "",
     reference_date: str | None = None,
     at_invoice_checkout: bool = False,
 ) -> dict[str, object]:
-    """Post one mixed receipt through two native Payment Entries.
+    """Receive a submitted sales invoice's whole outstanding amount, as the cashier chose.
 
-    This function is orchestration only. ERPNext's own ``get_payment_entry``
-    mapper creates each document and the standard Payment Entry controller
-    validates, submits, writes the Payment Ledger and posts the GL. Bunood does
-    not own a payment table, ledger rule or cancellation path.
+    Network, Cash and Bank Transfer post one native Payment Entry; Mixed Payment
+    posts two, the cash amount given and the rest by Network. Orchestration only:
+    ERPNext's own ``get_payment_entry`` mapper builds each document and the
+    standard Payment Entry controller validates, submits, writes the Payment
+    Ledger and posts the GL. Bunood owns no payment table, ledger rule or
+    cancellation path.
     """
     from erpnext.accounts.doctype.payment_entry.payment_entry import get_payment_entry
 
@@ -72,6 +164,8 @@ def post_mixed_invoice_payment(
     frappe.has_permission("Payment Entry", ptype="create", throw=True)
     frappe.has_permission("Payment Entry", ptype="submit", throw=True)
 
+    if method not in (*PAYING_MODES, SETTLE_MIXED):
+        frappe.throw(_("Choose how the invoice is paid."))
     if sales_invoice.docstatus != 1:
         frappe.throw(_("Submit the Sales Invoice before recording payment."))
     if sales_invoice.is_return:
@@ -80,25 +174,10 @@ def post_mixed_invoice_payment(
         frappe.throw(_("Use the native POS payment rows to split a POS invoice."))
 
     precision = sales_invoice.precision("outstanding_amount") or 2
+    zero = Decimal("0").quantize(Decimal("1").scaleb(-precision))
     outstanding = _money(sales_invoice.outstanding_amount, precision)
-    cash = _money(cash_amount, precision)
-    network = _money(network_amount, precision)
     if outstanding <= 0:
         frappe.throw(_("This invoice has no outstanding amount to receive."))
-    if cash <= 0 or network <= 0:
-        frappe.throw(_("A mixed payment needs a Cash amount and a Network amount above zero."))
-    if cash + network != outstanding:
-        frappe.throw(
-            _("Cash and Network must total the outstanding amount of {0} {1}.").format(
-                frappe.format_value(float(outstanding), {"fieldtype": "Currency"}),
-                sales_invoice.currency,
-            )
-        )
-
-    network_reference_no = (network_reference_no or "").strip()
-    if not network_reference_no:
-        frappe.throw(_("Enter the Network transaction reference number."))
-    payment_date = getdate(reference_date or nowdate())
     if _eligible_early_payment_discount(sales_invoice):
         frappe.throw(
             _(
@@ -106,33 +185,46 @@ def post_mixed_invoice_payment(
             )
         )
 
-    accounts = {
-        CASH_MODE: _mapped_account(frappe.get_doc("Mode of Payment", CASH_MODE), sales_invoice.company),
-        NETWORK_MODE: _mapped_account(
-            frappe.get_doc("Mode of Payment", NETWORK_MODE), sales_invoice.company
-        ),
-    }
-    if not accounts[CASH_MODE] or not accounts[NETWORK_MODE]:
-        frappe.throw(_("Cash and Network must both have a default account for this company."))
-    if accounts[CASH_MODE] == accounts[NETWORK_MODE]:
+    if method == SETTLE_MIXED:
+        cash = _money(cash_amount, precision)
+        network = outstanding - cash
+        if cash <= 0 or network <= 0:
+            frappe.throw(_("A mixed payment needs a Cash amount and a Network amount above zero."))
+        parts = ((SETTLE_CASH, cash), (SETTLE_NETWORK, network))
+    else:
+        parts = ((method, outstanding),)
+
+    accounts = {}
+    for part, _amount in parts:
+        mode, account = _paying_account(part, sales_invoice.company)
+        if not account:
+            frappe.throw(
+                _("No account is linked for this company. Way of paying: {0}").format(_(part))
+            )
+        accounts[part] = (mode, account)
+    if method == SETTLE_MIXED and accounts[SETTLE_CASH][1] == accounts[SETTLE_NETWORK][1]:
         frappe.throw(_("Cash and Network must post to different accounts."))
 
+    payment_date = getdate(reference_date or nowdate())
+    # A bank account needs a transaction reference (ERPNext refuses the entry
+    # without one): the card slip's or the transfer's number, else the invoice's.
+    reference = (reference_no or "").strip() or sales_invoice.name
+    origin = INVOICE_CHECKOUT_ORIGIN if sbool(at_invoice_checkout) else SEPARATE_RECEIPT_ORIGIN
+
     entries = []
-    for mode, amount in ((CASH_MODE, cash), (NETWORK_MODE, network)):
+    for part, amount in parts:
+        mode, account = accounts[part]
         payment = get_payment_entry(
             "Sales Invoice",
             sales_invoice.name,
             party_amount=float(amount),
-            bank_account=accounts[mode],
+            bank_account=account,
             reference_date=payment_date,
         )
         payment.mode_of_payment = mode
-        payment.set(
-            PAYMENT_ORIGIN_FIELD,
-            INVOICE_CHECKOUT_ORIGIN if sbool(at_invoice_checkout) else SEPARATE_RECEIPT_ORIGIN,
-        )
-        if mode == NETWORK_MODE:
-            payment.reference_no = network_reference_no
+        payment.set(PAYMENT_ORIGIN_FIELD, origin)
+        if part != SETTLE_CASH:
+            payment.reference_no = reference
             payment.reference_date = payment_date
         payment.insert()
         payment.submit()
@@ -142,16 +234,19 @@ def post_mixed_invoice_payment(
                 "name": payment.name,
                 "mode_of_payment": payment.mode_of_payment,
                 "amount": float(amount),
-                "account": accounts[mode],
+                "account": account,
                 "docstatus": payment.docstatus,
             }
         )
 
     sales_invoice.reload()
-    if _money(sales_invoice.outstanding_amount, precision) != Decimal("0").quantize(
-        Decimal("1").scaleb(-precision)
-    ):
-        frappe.throw(_("The mixed payment did not fully settle the invoice."))
+    if _money(sales_invoice.outstanding_amount, precision) != zero:
+        frappe.throw(_("The payment did not fully settle the invoice."))
+    if sales_invoice.meta.has_field("bunood_settlement_method") and sales_invoice.get(
+        "bunood_settlement_method"
+    ) != method:
+        # The field allows changes after submit: it now says how the invoice was paid.
+        sales_invoice.db_set("bunood_settlement_method", method)
 
     return {
         "invoice": sales_invoice.name,
@@ -160,6 +255,38 @@ def post_mixed_invoice_payment(
         "entries": entries,
         "engine": "ERPNext Payment Entry",
     }
+
+
+@frappe.whitelist()
+def post_mixed_invoice_payment(
+    invoice: str,
+    cash_amount: object,
+    network_amount: object,
+    network_reference_no: str = "",
+    reference_date: str | None = None,
+    at_invoice_checkout: bool = False,
+) -> dict[str, object]:
+    """Earlier clients' split receipt: Cash and Network must total the outstanding amount."""
+    sales_invoice = frappe.get_doc("Sales Invoice", invoice)
+    sales_invoice.check_permission("read")
+    precision = sales_invoice.precision("outstanding_amount") or 2
+    if _money(cash_amount, precision) + _money(network_amount, precision) != _money(
+        sales_invoice.outstanding_amount, precision
+    ):
+        frappe.throw(
+            _("Cash and Network must total the outstanding amount of {0} {1}.").format(
+                frappe.format_value(sales_invoice.outstanding_amount, {"fieldtype": "Currency"}),
+                sales_invoice.currency,
+            )
+        )
+    return post_invoice_payment(
+        invoice,
+        SETTLE_MIXED,
+        cash_amount=cash_amount,
+        reference_no=network_reference_no,
+        reference_date=reference_date,
+        at_invoice_checkout=at_invoice_checkout,
+    )
 
 
 def _enabled_pos_companies() -> list[str]:

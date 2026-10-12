@@ -247,8 +247,9 @@ test('invoice sheet increments matching products and derives payment creation fr
   assert.match(source, /name === "item_code" && doc\.item_code === value[\s\S]*?mergeDuplicateItem\(doc\)[\s\S]*?this\.pending\.get\(key\) !== raw/);
   assert.doesNotMatch(source, /async duplicateItem\(row\)/);
   assert.doesNotMatch(source, /button\(__\("Add one"\), view\.actions/);
-  assert.match(source, /const settlement = settlementValue\(this\.doc\);[\s\S]*?const createPayment = settlementCreatesPayment\(settlement\)/);
-  assert.match(source, /await submitConfirmed\(this\.frm\);[\s\S]*?if \(mixedAmounts\) await this\.postMixedPayment\(mixedAmounts, true\);[\s\S]*?else await makePaymentEntry\(this\.frm, true\)/);
+  // The checkout is asked before anything is committed, and its choice decides the payment.
+  assert.match(source, /const checkout = field \? await this\.promptCheckout\(\) : \{ method: null \};[\s\S]*?const createPayment = settlementCreatesPayment\(checkout\.method\)[\s\S]*?await saveDraft\(this\.frm\)/);
+  assert.match(source, /await submitConfirmed\(this\.frm\);[\s\S]*?try \{ await this\.postPayment\(checkout, true\); \}/);
 });
 test('credit is not passed to Payment Entry as a fake mode of payment', () => {
   const {settlementCreatesPayment, mixedPaymentSelected, receiptMethod} = context.window.bunood_theme.sales_bill;
@@ -261,20 +262,20 @@ test('credit is not passed to Payment Entry as a fake mode of payment', () => {
   assert.equal(mixedPaymentSelected('Mixed Payment'), true);
   assert.equal(receiptMethod('Mixed Payment'), '', 'workflow choice is never sent as a Mode of Payment');
 });
-test('mixed settlement posts through the native Payment Entry endpoint and exposes both receipts', () => {
+test('every checkout payment posts through the native Payment Entry endpoint, submitted', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
-  assert.match(source, /method: "bunood_theme\.payments\.post_mixed_invoice_payment"/);
+  assert.match(source, /method: "bunood_theme\.payments\.post_invoice_payment"/);
+  assert.match(source, /method: "bunood_theme\.payments\.invoice_payment_methods", type: "GET"/);
   assert.match(source, /at_invoice_checkout: atInvoiceCheckout \? 1 : 0/);
-  assert.match(source, /if \(amounts\) return await this\.postMixedPayment\(amounts\);/);
-  assert.match(source, /network_reference_no/);
+  assert.match(source, /if \(checkout\?\.method\) return await this\.postPayment\(checkout\);/);
   assert.match(source, /await this\.frm\.reload_doc\(\)/);
-  assert.match(source, /frappe\.set_route\("Form", "Payment Entry", entry\.name\)/);
-  assert.match(source, /Two original ERPNext Payment Entries will be posted and linked to this invoice\./);
-  assert.match(source, /value\.textContent = this\.format\(balance, \{ fieldtype: "Currency"/);
-  assert.match(source, /value\.dir = "ltr"/);
-  assert.match(source, /node\("small", "", this\.format\(entry\.amount, \{ fieldtype: "Currency"/);
-  assert.match(source, /dialog\.show\(\);[\s\S]*?requestAnimationFrame\(update\)/);
-  assert.doesNotMatch(source, /textContent = frappe\.format\(balance/);
+  assert.match(source, /strong\.dir = "ltr";\s*strong\.textContent = money\(amount\)/);
+  assert.match(source, /const money = value => this\.format\(value, \{ fieldtype: "Currency", options: currency \}\)/);
+  assert.match(source, /dialog\.show\(\);[\s\S]*?requestAnimationFrame\(async \(\) => \{/);
+  // Network first: a new draft starts on it, and the checkout preselects it.
+  assert.match(source, /applySettlementDefault\(\) \{[\s\S]*?this\.frm\.set_value\(field, NETWORK_PAYMENT\)/);
+  assert.match(source, /usable\.find\(choice => choice\.value === NETWORK_PAYMENT\)/);
+  assert.doesNotMatch(source, /textContent = frappe\.format\(/);
   assert.doesNotMatch(source, /set_value\("mode_of_payment", MIXED_PAYMENT\)/);
 });
 test('mixed payment amounts automatically preserve the invoice total', () => {
@@ -286,11 +287,12 @@ test('mixed payment amounts automatically preserve the invoice total', () => {
   assert.deepEqual(Array.from(balancedPaymentPair(0.1, 0.3, 2)), [0.1, 0.2]);
 });
 
-test('mixed payment resolves values before the dialog hide cancellation callback', () => {
+test('the checkout resolves its choice before the dialog hide cancellation callback', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
-  const action = source.match(/primary_action:\s*values\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onhide:/)?.[1] || '';
-  assert.ok(action.indexOf('finish({ cash_amount: cash') >= 0, 'mixed action must resolve entered values');
-  assert.ok(action.indexOf('finish({ cash_amount: cash') < action.indexOf('dialog.hide()'), 'values must resolve before onhide can cancel');
+  const checkout = source.slice(source.indexOf('async promptCheckout('));
+  const action = checkout.match(/primary_action:\s*\(\)\s*=>\s*\{([\s\S]*?)\n\s*\},\n\s*onhide: \(\) => finish\(null\)/)?.[1] || '';
+  assert.ok(action.indexOf('finish(outcome.value)') >= 0, 'the checkout must resolve the chosen way of paying');
+  assert.ok(action.indexOf('finish(outcome.value)') < action.indexOf('dialog.hide()'), 'values must resolve before onhide can cancel');
 });
 test('the simple invoice offers no way into ZATCA settings or the naming series', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
@@ -837,7 +839,7 @@ test('purchase invoices use the same native workbench contract', () => {
 });
 test('the default bill workbench stays inline while the explicit split action uses a bounded dialog', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
-  assert.match(source,/async promptMixedPayment\(\)[\s\S]*?new frappe\.ui\.Dialog/);
+  assert.match(source,/async promptCheckout\(\{ allowCredit = true \} = \{\}\)[\s\S]*?new frappe\.ui\.Dialog/);
   for (const action of ['frm.savesubmit()','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','erpnext?.utils?.BarcodeScanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 });
 test('both invoice profiles default line discounts to native currency amounts', () => {
@@ -852,36 +854,55 @@ test('both invoice profiles default line discounts to native currency amounts', 
   assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /discount_amount: \(\) => __\("Discount Amount"\)/);
 });
 
-test('invoice sheet presents unit price before discount inputs', () => {
+test('a sales line reads price, discount, price after discount, VAT, then total after VAT', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
-  assert.equal((source.match(/lineFields: \["qty", "rate", "price_list_rate", "discount_amount", "warehouse"\]/g) || []).length, 2);
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  const {profiles} = context.window.bunood_theme.sales_bill;
+  assert.deepEqual(Array.from(profiles['Sales Invoice'].lineFields), ['qty', 'price_list_rate', 'discount_amount', 'rate']);
+  assert.equal(profiles['Sales Invoice'].taxColumns, true);
+  assert.equal(profiles['Sales Invoice'].priceFirst, true);
+  assert.deepEqual(Array.from(profiles['Purchase Invoice'].lineFields), ['qty', 'rate', 'price_list_rate', 'discount_amount', 'warehouse']);
+  assert.match(source, /\[__\("Line VAT"\), "bnd-bill-head-money"\], \[__\("Line total after VAT"\), "bnd-bill-head-money"\]/);
+  assert.match(source, /rate: \(\) => __\("Price after discount"\)/);
+  assert.match(css, /\.bnd-bill-line-vat \{\s*grid-column: 7;/);
+  // The price after discount follows a price that can be typed.
+  assert.match(source, /return own === "Write" && this\.priceStatus\(row\) === "Write" \? "Read" : own;/);
+  assert.match(source, /frappe\.perm\.get_field_display_status\(\{ \.\.\.df, read_only: 0 \}, row, this\.frm\.perm\)/);
 });
 
 test('print is a visible operational action beside payment and disabled commits remain legible', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
-  assert.match(source, /this\.printButton = this\.action\(commitActions, __\("Print"\)/);
+  // One word per button (owner, 2026-10-12); the full meaning stays in the accessible name.
+  assert.match(source, /this\.submitButton = this\.action\(commitActions, __\("Save bill"\)[\s\S]*?this\.submitButton\.setAttribute\("aria-label", __\("Save and submit"\)\)/);
+  assert.match(source, /this\.previewButton = this\.action\(commitActions, __\("View bill"\), null, "eye", \(\) => this\.preview\(\)\)/);
+  assert.doesNotMatch(source, /this\.printButton = /, 'no second print button beside «طباعة»');
   assert.match(source, /this\.paymentButton = this\.action\(commitActions, __\("Record payment"\)/);
   assert.match(source, /this\.saveButton = this\.action\(documentActions, __\("Save draft"\), "F9", "save"/);
   assert.match(source, /F2: \(\) => this\.focusScan\(\)/);
   assert.match(source, /F4: \(\) => this\.newItemButton && this\.newItem\(\)/);
   assert.match(source, /F9: \(\) => this\.save\(\)/);
   assert.doesNotMatch(source, /F4: \(\) => this\.removeDocument\(\)/, 'F4 no longer deletes the invoice');
-  assert.match(source, /if \(\(this\.doc\.__islocal \|\| this\.frm\.is_dirty\(\)\) && !await this\.save\(\)\) return;[\s\S]*?this\.frm\.print_doc\(\)/, 'a draft prints as it stands, unsubmitted');
-  assert.match(source, /this\.printButton\.hidden = !nativeActions\.showPrint && !showSubmit/);
+  // «عرض» shows a draft as it stands, unsaved, in the format chosen beside the date.
+  assert.match(source, /async preview\(\) \{[\s\S]*?try \{ await this\.flush\(\); \}[\s\S]*?previewDraft\(this\.frm, this\.printFormat\);/);
+  assert.doesNotMatch(source.slice(source.indexOf('async preview() {'), source.indexOf('restore() {')), /this\.save\(\)|saveDraft/, 'viewing never saves');
+  assert.match(source, /method: "frappe\.www\.printview\.get_html_and_style",[\s\S]*?args: \{ doc: \{ \.\.\.frm\.doc, name: __\("Draft"\), items: \(frm\.doc\.items \|\| \[\]\)\.filter\(row => row\.item_code\) \}/);
+  assert.match(source, /void printCustomerInvoice\(this\.frm, this\.printFormat\)/);
+  assert.match(source, /this\.previewButton\.hidden = !nativeActions\.showPrint && !draft/);
   assert.doesNotMatch(source, /this\.saveButton = this\.action\(commitActions/);
-  assert.match(source, /this\.submitPrintButton = this\.action\(commitActions, __\("Save, submit and print"\)/);
+  assert.match(source, /this\.submitPrintButton = this\.action\(commitActions, __\("Print bill"\)[\s\S]*?this\.submitPrintButton\.setAttribute\("aria-label", __\("Save, submit and print"\)\)/);
   assert.match(source, /this\.submitPrintButton\.hidden = !showSubmit/);
   assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-action-submit-print \{[\s\S]*?border-color: var\(--bnd-brand-solid\)/);
   assert.match(css, /\.bnd-bill-action-submit-print \.bnd-bill-action-label,[\s\S]*?display: none/);
   assert.match(css, /\.bnd-bill-toolbar \.bnd-bill-action-save:disabled[\s\S]*?opacity:\s*1/);
 });
 
-test('mixed allocation has a dedicated status layout', () => {
+test('the checkout has a dedicated summary layout', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
-  assert.match(source, /remaining\.classList\.add\("bnd-mixed-payment-balance"\)/);
-  assert.match(css, /\.bnd-mixed-payment-balance[\s\S]*?gap:\s*var\(--bnd-sp-4\)/);
+  assert.match(source, /summary\.classList\.add\("bnd-checkout-summary"\)/);
+  assert.match(css, /\.bnd-checkout-summary-row \{[\s\S]*?gap:\s*var\(--bnd-sp-4\)/);
+  assert.match(css, /\.bnd-checkout-method\.is-selected \{/);
 });
 test('nonzero discount without a positive finite base is rejected before native mutation', async () => {
   const {setLineValue} = context.window.bunood_theme.sales_bill;
@@ -938,7 +959,7 @@ test('queued discount checks editability at execution and clearing zero still de
   let cleared=false;
   await setLineValue(row,'discount_amount',0,async value=>{assert.equal(value,0);cleared=true;},()=>{throw Error('unneeded status read');});
   assert.equal(cleared,true); assert.equal(row.rate,100);
-  assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /setLineValue\(doc, name, value, nativeSet, \(\) => rowFieldStatus\(frm, doc, "price_list_rate"\)\)/);
+  assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /setLineValue\(doc, name, value, nativeSet, \(\) => this\.priceStatus\(doc\)\)/);
 });
 test('valid pricing edits delegate unchanged to the native setter, without calculating a second price', async () => {
   const {setLineValue} = context.window.bunood_theme.sales_bill;
@@ -1119,13 +1140,13 @@ test('VAT-inclusive pricing changes only native VAT rows', async () => {
     assert.equal(vat.included_in_print_rate,0);
   } finally { context.frappe.model=previousModel; }
 });
-test('simple invoices offer three clear VAT price modes while Advanced retains native detail', () => {
+test('simple invoices offer one "price includes VAT" box, no exempt, while Advanced retains native detail', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
   const css=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
-  assert.match(source,/role", "radiogroup"/);
-  assert.match(source,/__\("VAT added to price"\)/);
+  assert.match(source,/this\.vatInclusiveInput\.type = "checkbox";/);
+  assert.match(source,/this\.selectVatTreatment\(this\.vatInclusiveInput\.checked \? VAT_INCLUDED : VAT_STANDARD\)\);/);
   assert.match(source,/__\("Price includes VAT"\)/);
-  assert.match(source,/__\("VAT exempt \(0%\)"\)/);
+  assert.doesNotMatch(source,/this\.selectVatTreatment\(VAT_EXEMPT\)/, 'no exempt choice on the simple screen');
   assert.match(source,/"included_in_print_rate"/);
   assert.match(source,/bunood_theme\.vat\.get_vat_treatments/);
   assert.match(source,/tax_category: frm => scheduleVatNormalization\(frm, "tax_category"\)/);
@@ -1133,7 +1154,7 @@ test('simple invoices offer three clear VAT price modes while Advanced retains n
   assert.match(source,/exempt_from_sales_tax\(frm\)/);
   assert.match(source,/"apply_discount_on", "additional_discount_percentage", "discount_amount",\n/);
   assert.doesNotMatch(source,/"discount_amount", "taxes_and_charges"/);
-  assert.match(css,/\.bnd-vat-treatment-options > button\.is-selected/);
+  assert.match(css,/\.bnd-vat-inclusive-box:has\(input:checked\)/);
 });
 
 test('discount totals appear only for applied line or invoice discounts', () => {
@@ -1426,7 +1447,7 @@ test('inline error growth does not bottom-align neighboring invoice controls', (
 });
 test('spreadsheet rows use a full-width control track without an internal scroller', () => {
   const scss=fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss','utf8');
-  assert.match(scss,/--bnd-bill-grid:\s*2rem minmax\(9rem,2\.5fr\) repeat\(4,minmax\(3rem,\.8fr\)\) minmax\(6rem,1fr\) minmax\(5rem,1fr\) 4\.5rem/);
+  assert.match(scss,/--bnd-bill-grid:\s*2rem minmax\(9rem,2\.2fr\) repeat\(4,minmax\(4\.5rem,1fr\)\) minmax\(5\.5rem,1fr\) minmax\(6\.5rem,1\.2fr\) 4\.5rem/);
   assert.match(scss,/\.bnd-bill-line-head,[\s\S]*?grid-template-columns:\s*var\(--bnd-bill-grid\)/);
   assert.match(scss,/\.bnd-bill-line-head \{[\s\S]*?position: static/);
   assert.match(scss,/\.bnd-bill-lines \{[\s\S]*?max-block-size: none;[\s\S]*?overflow: visible/);
@@ -1548,4 +1569,44 @@ test('embedded Fast Sale controllers cannot acquire invoice presentation', () =>
   scope.frappe.get_route=()=>['bunood-fast-sale'];
   assert.equal(visible(),false);
   assert.match(source,/function open\(frm\)[\s\S]*?if \(!visibleInvoiceForm\(frm\)\) return/);
+});
+
+test('a line VAT split adds up to the tax row, as ERPNext splits it over the items', () => {
+  const { lineTaxes } = context.window.bunood_theme.sales_bill;
+  const previousMeta = context.frappe.meta;
+  context.frappe.meta = { get_docfield: () => ({ fieldtype: 'Currency' }), get_field_precision: () => 2 };
+  try {
+    // VAT added to the price, 15% on two lines of 0.37: each line alone rounds to 0.06,
+    // but the tax row is 0.11; rounding on the running total gives 0.06 and 0.05.
+    const vat = { name: 'tax-1', doctype: 'Sales Taxes and Charges', charge_type: 'On Net Total', rate: 15, included_in_print_rate: 0, tax_amount_after_discount_amount: 0.11 };
+    const items = [
+      { name: 'a', doctype: 'Sales Invoice Item', item_code: 'A', net_amount: 0.37, amount: 0.37 },
+      { name: 'b', doctype: 'Sales Invoice Item', item_code: 'B', net_amount: 0.37, amount: 0.37 },
+      { name: 'blank', doctype: 'Sales Invoice Item', item_code: '' },
+    ];
+    const engine = {
+      _load_item_tax_rate: () => ({}),
+      get_current_tax_amount: (item, tax) => [item.net_amount, (tax.rate / 100) * item.net_amount],
+    };
+    const lines = lineTaxes({ doc: { items, taxes: [vat] }, cscript: engine });
+    assert.equal(lines.get('a').tax, 0.06);
+    assert.equal(lines.get('b').tax, 0.05, 'the lines add up to the tax row');
+    assert.equal(lines.get('a').total, 0.43);
+    assert.equal(lines.has('blank'), false);
+    assert.equal(vat.tax_amount_for_current_item, undefined, 'the engine scratch figures are put back');
+    // A tax row the engine settled a cent apart (a discount on the grand total): the last line takes it.
+    const settled = lineTaxes({ doc: { items, taxes: [{ ...vat, tax_amount_after_discount_amount: 0.12 }] }, cscript: engine });
+    assert.equal(settled.get('b').tax, 0.06);
+
+    // A price that includes VAT: the line total is what the customer pays.
+    const inclusive = { ...vat, included_in_print_rate: 1, tax_amount_after_discount_amount: 15 };
+    const priced = [{ name: 'c', doctype: 'Sales Invoice Item', item_code: 'C', net_amount: 100, amount: 115 }];
+    const included = lineTaxes({ doc: { items: priced, taxes: [inclusive] }, cscript: {} });
+    assert.equal(included.get('c').tax, 15);
+    assert.equal(included.get('c').total, 115);
+
+    // Without taxes the total is the amount; without the engine there is no split.
+    assert.equal(lineTaxes({ doc: { items: priced, taxes: [] } }).get('c').total, 115);
+    assert.equal(lineTaxes({ doc: { items, taxes: [vat] }, cscript: {} }), null);
+  } finally { context.frappe.meta = previousMeta; }
 });
