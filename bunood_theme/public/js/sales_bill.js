@@ -8,13 +8,24 @@
 	const printPreviews = new Map();
 	const CREDIT_SALE = "On Credit";
 	const MIXED_PAYMENT = "Mixed Payment";
+	const NETWORK_PAYMENT = "Network";
+	const CASH_PAYMENT = "Cash";
+	const TRANSFER_PAYMENT = "Bank Transfer";
 	let errorId = 0;
 	let controlId = 0;
 	const PROFILES = {
 		"Sales Invoice": {
 			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
 			paymentMethod: "bunood_settlement_method",
-			lineFields: ["qty", "rate", "price_list_rate", "discount_amount", "warehouse"],
+			// One column each, in the order the owner reads a line (2026-10-12): the
+			// price, its discount, the price after it, the line's VAT and the line's
+			// total after VAT. The warehouse comes from the branch chip.
+			lineFields: ["qty", "price_list_rate", "discount_amount", "rate"],
+			lineLabels: { discount_amount: () => __("Discount"), rate: () => __("Price after discount") },
+			taxColumns: true,
+			// The price is typed here and the price after discount follows it, so the
+			// three always agree (ERPNext's own price_list_rate trigger works the rate).
+			priceFirst: true,
 			context: ["tax_id", "company", "posting_date", "due_date", "currency", "selling_price_list", "set_warehouse", "amended_from"],
 			options: ["posting_date", "due_date", "update_stock", "set_warehouse", "currency", "selling_price_list", "payment_terms_template", "po_no"],
 		},
@@ -168,6 +179,85 @@
 	}
 	function showSummary(name, doc) {
 		return name === "net_total" || name === "total_taxes_and_charges" || !!doc?.[name];
+	}
+	const lineLabel = (profile, name) => (profile?.lineLabels?.[name] || LINE_LABELS[name])?.() || __(name);
+	function fieldPrecision(row, field, fallback = 2) {
+		const df = frappe.meta.get_docfield(row.doctype, field, row.parent || row.name);
+		const places = df ? frappe.meta.get_field_precision(df, row) : NaN;
+		return Number.isInteger(places) ? places : fallback;
+	}
+	// Each line's VAT and its total after VAT. Presentation only: the native tax
+	// rows stay the figures that post, and the lines always add up to them.
+	// - The VAT, as ERPNext's server splits a tax row over the items
+	//   (taxes_and_totals.set_item_wise_tax): the engine's own amount for each
+	//   item, rounded on the running total, and the last line takes the cent that
+	//   keeps the lines equal to the row (adjust_rounding_in_item_wise_tax_details).
+	//   The engine taxes an inclusive price on its unrounded net, so the lines'
+	//   VAT adds up to the posted row even where each line's amount minus its
+	//   rounded net would not (two lines of 10.00 at 15%: 1.30 and 1.31, not 1.30 twice).
+	// - The total: what the customer pays for the line when the price includes
+	//   VAT, else its net plus its VAT.
+	// Null when the engine cannot say for a price VAT is added to; the screen then
+	// shows no split.
+	function lineTaxes(frm) {
+		const doc = frm.doc, engine = frm.cscript;
+		const items = (doc.items || []).filter(row => row.item_code);
+		const all = doc.taxes || [];
+		const taxes = all.filter(tax => tax.category !== "Valuation");
+		const headerDiscount = Number(doc.discount_amount || 0) !== 0;
+		// A price that includes VAT: the line's total is what the customer pays for it.
+		const inclusive = taxes.length > 0 && !headerDiscount && taxes.every(tax => Number(tax.included_in_print_rate));
+		const lines = new Map();
+		const engineReady = typeof engine?.get_current_tax_amount === "function" && typeof engine?._load_item_tax_rate === "function";
+		if (!taxes.length || (inclusive && !engineReady)) {
+			for (const row of items) {
+				const places = fieldPrecision(row, "amount");
+				const total = roundMoney(headerDiscount ? row.net_amount : row.amount, places);
+				lines.set(row.name, { tax: taxes.length ? roundMoney(total - Number(row.net_amount || 0), places) : 0, total });
+			}
+			return lines;
+		}
+		if (!engineReady) return null;
+		// The engine reads the previous row's figures for the current item from the
+		// tax rows themselves; they are put back as they were afterwards.
+		const saved = all.map(tax => [tax.tax_amount_for_current_item, tax.grand_total_for_current_item]);
+		const raw = new Map(all.map(tax => [tax, []]));
+		try {
+			for (const row of items) {
+				const view = { ...row, _unrounded_net_amount: row._unrounded_net_amount ?? null };
+				const taxMap = engine._load_item_tax_rate(row.item_tax_rate);
+				all.forEach((tax, index) => {
+					let [, current] = engine.get_current_tax_amount(view, tax, taxMap);
+					if (frappe.flags?.round_row_wise_tax) current = roundMoney(current, fieldPrecision(tax, "tax_amount"));
+					tax.tax_amount_for_current_item = current;
+					const signed = tax.category === "Valuation" ? 0 : current * (tax.add_deduct_tax === "Deduct" ? -1 : 1);
+					tax.grand_total_for_current_item = (index ? all[index - 1].grand_total_for_current_item : Number(row.net_amount || 0)) + signed;
+					raw.get(tax).push(signed);
+				});
+			}
+		} catch (_) { return null; }
+		finally { all.forEach((tax, index) => { [tax.tax_amount_for_current_item, tax.grand_total_for_current_item] = saved[index]; }); }
+		for (const row of items) lines.set(row.name, { tax: 0, total: 0 });
+		for (const tax of taxes) {
+			const places = fieldPrecision(tax, "tax_amount");
+			let running = 0, posted = 0;
+			const shares = raw.get(tax).map(value => {
+				running += value;
+				const next = roundMoney(running, places);
+				const share = roundMoney(next - posted, places);
+				posted = next;
+				return share;
+			});
+			const expected = roundMoney(Number(tax.tax_amount_after_discount_amount || 0) * (tax.add_deduct_tax === "Deduct" ? -1 : 1), places);
+			const gap = roundMoney(expected - posted, places);
+			if (shares.length && Math.abs(gap) <= 0.5) shares[shares.length - 1] = roundMoney(shares.at(-1) + gap, places);
+			items.forEach((row, index) => { lines.get(row.name).tax = roundMoney(lines.get(row.name).tax + shares[index], places); });
+		}
+		for (const row of items) {
+			const line = lines.get(row.name);
+			line.total = roundMoney(inclusive ? row.amount : Number(row.net_amount || 0) + line.tax, fieldPrecision(row, "amount"));
+		}
+		return lines;
 	}
 	const RATE_BASED_CHARGE_TYPES = new Set(["On Net Total", "On Previous Row Amount", "On Previous Row Total", "On Item Quantity"]);
 	const isVatRow = row => /\bvat\b|value added|ضريبة/i.test(`${row?.description || ""} ${row?.account_head || ""}`);
@@ -545,8 +635,8 @@
 		button(__("WhatsApp"), actions, () => { dialog.hide(); void openInvoiceWhatsApp(frm, readiness); });
 		button(__("Later"), actions, () => dialog.hide());
 	}
-	function previewInvoice(doctype, name, sandbox = true, autoPrint = false) {
-		const key = `${doctype}:${name}`;
+	function previewInvoice(doctype, name, sandbox = true, autoPrint = false, printFormat = "") {
+		const key = `${doctype}:${name}:${printFormat}`;
 		if (printPreviews.has(key)) { printPreviews.get(key).show(); return; }
 		const origin = document.activeElement;
 		let active = true, ready = false;
@@ -566,6 +656,7 @@
 			secondary_action() {
 				if (!ready) return;
 				const query = new URLSearchParams({ doctype, name });
+				if (!sandbox && printFormat) query.set("print_format", printFormat);
 				// An attachment is downloaded only after this explicit action, without a blank tab.
 				const method = sandbox ? "download_sandbox_invoice" : "download_customer_invoice";
 				window.location.assign(`/api/method/bunood_theme.invoice_delivery.${method}?${query}`);
@@ -592,7 +683,8 @@
 			if (autoPrint && !sandbox) { frame.contentWindow.focus(); frame.contentWindow.print(); }
 		};
 		const method = sandbox ? "preview_sandbox_invoice" : "preview_customer_invoice";
-		void frappe.call({ method: `bunood_theme.invoice_delivery.${method}`, type: "GET", args: { doctype, name } })
+		const args = { doctype, name, ...(!sandbox && printFormat ? { print_format: printFormat } : {}) };
+		void frappe.call({ method: `bunood_theme.invoice_delivery.${method}`, type: "GET", args })
 			.then(response => {
 				if (!active) return;
 				if (!response.message?.html) throw new Error("Empty print preview");
@@ -601,7 +693,52 @@
 			}).catch(() => { if (active) status.textContent = __("Invoice print preview is unavailable. Try again shortly."); });
 	}
 	api.invoice_print_preview = previewInvoice;
-	async function printCustomerInvoice(frm) {
+	// A draft as it stands, unsaved, in a print format: Frappe's own print-view
+	// rendering of an unsaved document (frappe.www.printview.get_html_and_style),
+	// shown read-only. It carries the word "Draft" where the number will be.
+	function previewDraft(frm, printFormat = "") {
+		const origin = document.activeElement;
+		let active = true;
+		const frame = document.createElement("iframe");
+		frame.title = __("Print preview");
+		frame.className = "bnd-invoice-print-preview";
+		frame.setAttribute("sandbox", "allow-same-origin");
+		frame.style.inlineSize = "100%";
+		frame.style.blockSize = "65vh";
+		frame.style.border = "0";
+		frame.hidden = true;
+		const dialog = new frappe.ui.Dialog({
+			title: __("Bill preview"), size: "extra-large", fields: [],
+			primary_action_label: __("Back to the bill"),
+			primary_action() { dialog.hide(); },
+			onhide() { active = false; frame.remove(); if (origin?.isConnected) origin.focus(); },
+		});
+		dialog.$wrapper?.addClass("bnd-bill-preview-dialog");
+		dialog.$wrapper?.on("hidden.bs.modal", () => dialog.$wrapper.remove());
+		const body = dialog.$body?.[0] || dialog.body;
+		node("p", "bnd-bill-hint bnd-bill-preview-note", __("A preview only: the bill is not saved or submitted."), body);
+		const status = node("p", "bnd-invoice-print-status", __("Loading print preview..."), body);
+		status.setAttribute("role", "status");
+		dialog.show();
+		const rtl = !!frappe.utils?.is_rtl?.();
+		void frappe.call({
+			method: "frappe.www.printview.get_html_and_style",
+			// The ready row waiting for an item is the screen's, not the bill's.
+			args: { doc: { ...frm.doc, name: __("Draft"), items: (frm.doc.items || []).filter(row => row.item_code) },
+				...(printFormat ? { print_format: printFormat } : {}) },
+		}).then(response => {
+			if (!active) return;
+			const out = response?.message || {};
+			if (!out.html) throw new Error("Empty print preview");
+			const css = frappe.assets?.bundled_asset?.("print.bundle.css", rtl);
+			frame.onload = () => { if (active) { frame.hidden = false; status.remove(); } };
+			frame.srcdoc = `<!doctype html><html dir="${rtl ? "rtl" : "ltr"}" lang="${frappe.boot?.lang || ""}"><head><meta charset="utf-8">` +
+				`<style>${out.style || ""}</style>${css ? `<link href="${css}" rel="stylesheet">` : ""}</head>` +
+				`<body><div class="print-format print-format-preview">${out.html}</div></body></html>`;
+			body.append(frame);
+		}).catch(() => { if (active) status.textContent = __("Invoice print preview is unavailable. Try again shortly."); });
+	}
+	async function printCustomerInvoice(frm, printFormat = "") {
 		if (!submittedCustomerInvoice(frm)) return frm.print_doc();
 		let readiness;
 		try { readiness = await deliveryStatus(frm.doc); }
@@ -614,7 +751,11 @@
 			}
 			return;
 		}
-		previewInvoice(frm.doctype, frm.doc.name, false);
+		// A ZATCA Phase 2 invoice prints only in Phase 2's own format (the server holds to it).
+		if (readiness.regulated && printFormat && printFormat !== readiness.format) {
+			frappe.show_alert({ message: __("A ZATCA invoice prints in the ZATCA format."), indicator: "blue" });
+		}
+		previewInvoice(frm.doctype, frm.doc.name, false, false, printFormat);
 	}
 	class BillWorkbench {
 		constructor(frm) {
@@ -680,10 +821,15 @@
 			this.saveButton = this.action(documentActions, __("Save draft"), "F9", "save", () => this.save());
 			this.saveButton.classList.add("bnd-bill-action-draft");
 			this.saveButton.dataset.bndAction = "save";
-			this.submitButton = this.action(commitActions, __("Save and submit"), null, "circle-check", () => this.submit(), true);
+			// One word on each of the three (owner, 2026-10-12): «حفظ» saves and submits,
+			// «طباعة» saves, submits and prints, «عرض» shows the bill before either. The
+			// full meaning stays in each button's accessible name and tooltip.
+			this.submitButton = this.action(commitActions, __("Save bill"), null, "circle-check", () => this.submit(), true);
 			this.submitButton.classList.add("bnd-bill-action-save");
 			this.submitButton.dataset.bndAction = "submit";
-			this.submitPrintButton = this.action(commitActions, __("Save, submit and print"), null, "printer", () => this.submitAndPrint());
+			this.submitButton.setAttribute("aria-label", __("Save and submit"));
+			this.submitButton.setAttribute("title", __("Save and submit"));
+			this.submitPrintButton = this.action(commitActions, __("Print bill"), null, "printer", () => this.submitAndPrint());
 			this.submitPrintButton.classList.add("bnd-bill-action-submit-print");
 			this.submitPrintButton.dataset.bndAction = "submit-print";
 			this.submitPrintButton.setAttribute("aria-label", __("Save, submit and print"));
@@ -695,13 +841,14 @@
 			this.partyButton = this.action(documentActions, __(this.profile.partyDoctype), "F3", "user", () => this.partyControl?.set_focus());
 			this.deleteButton = this.action(documentActions, __("Delete"), null, "delete", () => this.removeDocument());
 			this.deleteButton.classList.add("bnd-bill-action-danger");
-			// Printing is an operational action, not a maintenance tool. A draft is
-			// saved and printed as it stands, without submitting it, so a customer can
-			// review it first; a submitted invoice keeps Frappe's native print route.
-			this.printButton = this.action(commitActions, __("Print"), null, "printer", () => this.print());
-			this.printButton.classList.add("bnd-bill-action-print");
-			this.printButton.setAttribute("aria-label", __("Print"));
-			this.printButton.setAttribute("title", __("Print"));
+			// «عرض» shows the bill in the chosen print format before anything is saved: a
+			// draft as it stands, unsaved; a submitted bill in its delivery preview,
+			// which prints and downloads it.
+			this.previewButton = this.action(commitActions, __("View bill"), null, "eye", () => this.preview());
+			this.previewButton.classList.add("bnd-bill-action-print", "bnd-bill-action-preview");
+			this.previewButton.dataset.bndAction = "preview";
+			this.previewButton.setAttribute("aria-label", __("View the bill before printing or saving"));
+			this.previewButton.setAttribute("title", __("View the bill before printing or saving"));
 			this.sendButton = this.action(documentActions, __("Send invoice to customer"), null, "send", () => showInvoiceDelivery(this.frm));
 			this.sendButton.classList.add("bnd-bill-action-send");
 			this.duplicateButton = this.action(documentActions, __("Duplicate"), null, "copy", () => this.duplicateDocument());
@@ -765,6 +912,9 @@
 				const source = frm.fields_dict[name];
 				if (source && fieldStatus(frm, name) !== "None") this.bindControl(essentials, source, this.doc);
 			}
+			// The customer, the date, then how the document prints, on one row (owner,
+			// 2026-10-12). It starts on the organisation's default print format.
+			this.renderPrintFormat(essentials);
 			const moreToggle = this.detailsToggle = button(__("Additional details"), essentials, () => this.openDetails());
 			moreToggle.classList.add("bnd-bill-more-toggle");
 			moreToggle.setAttribute("aria-expanded", "false");
@@ -826,28 +976,35 @@
 			this.lineHead = node("div", "bnd-bill-line-head", null, this.lines);
 			const rowHead = node("span", "bnd-bill-head-row", "#", this.lineHead);
 			rowHead.setAttribute("aria-label", __("Row"));
-			for (const label of [
-				__("Item"),
-				...this.profile.lineFields.map(name => LINE_LABELS[name]?.() || __(name)),
-				__("Amount"),
-				__("Actions"),
-			]) node("span", "", label, this.lineHead);
+			for (const [label, cls] of [
+				[__("Item"), ""],
+				...this.profile.lineFields.map(name => [lineLabel(this.profile, name), ""]),
+				...(this.profile.taxColumns
+					? [[__("Line VAT"), "bnd-bill-head-money"], [__("Line total after VAT"), "bnd-bill-head-money"]]
+					: [[__("Amount"), "bnd-bill-head-money"]]),
+				[__("Actions"), ""],
+			]) node("span", cls, label, this.lineHead);
 			items.append(this.lines, search);
 			this.amountSummary = node("section", "bnd-bill-amount-summary", null, items);
 			this.amountSummary.setAttribute("aria-label", __("Bill total"));
 			this.amountSummary.setAttribute("aria-live", "polite");
 			const amountSummaryHead = node("header", "bnd-bill-amount-summary-head", null, this.amountSummary);
 			node("h3", "", __("Bill total"), amountSummaryHead);
-			this.vatChoice = node("fieldset", "bnd-vat-treatment bnd-bill-draft-only", null, amountSummaryHead);
-			node("legend", "", __("VAT treatment"), this.vatChoice);
-			const vatOptions = node("div", "bnd-vat-treatment-options", null, this.vatChoice);
-			vatOptions.setAttribute("role", "radiogroup");
-			vatOptions.setAttribute("aria-label", __("VAT treatment"));
-			this.vatStandardButton = button(__("VAT added to price"), vatOptions, () => this.selectVatTreatment(VAT_STANDARD));
-			this.vatIncludedButton = button(__("Price includes VAT"), vatOptions, () => this.selectVatTreatment(VAT_INCLUDED));
-			this.vatExemptButton = button(__("VAT exempt (0%)"), vatOptions, () => this.selectVatTreatment(VAT_EXEMPT));
-			for (const choice of [this.vatStandardButton, this.vatIncludedButton, this.vatExemptButton]) choice.setAttribute("role", "radio");
+			// One box (owner, 2026-10-12): ticked, the prices include VAT; clear, VAT is
+			// added to them. There is no exempt choice on this screen.
+			this.vatChoice = node("div", "bnd-vat-inclusive bnd-bill-draft-only", null, amountSummaryHead);
+			const vatBox = node("label", "bnd-vat-inclusive-box", null, this.vatChoice);
+			this.vatInclusiveInput = node("input", "", null, vatBox);
+			this.vatInclusiveInput.type = "checkbox";
+			this.vatInclusiveText = node("span", "", __("Price includes VAT"), vatBox);
+			this.vatInclusiveInput.addEventListener("change", () =>
+				this.selectVatTreatment(this.vatInclusiveInput.checked ? VAT_INCLUDED : VAT_STANDARD));
 			this.vatChoiceStatus = node("small", "bnd-vat-treatment-status", __("Loading VAT choices…"), this.vatChoice);
+			this.vatChoiceStatus.id = `bnd-vat-status-${++controlId}`;
+			this.vatInclusiveInput.setAttribute("aria-describedby", this.vatChoiceStatus.id);
+			this.vatApplyButton = button(__("Apply VAT"), this.vatChoice, () =>
+				this.selectVatTreatment(this.vatInclusiveInput.checked ? VAT_INCLUDED : VAT_STANDARD));
+			this.vatApplyButton.hidden = true;
 			this.amountBreakdown = node("dl", "bnd-bill-amount-breakdown", null, this.amountSummary);
 			this.amountGrand = node("div", "bnd-bill-amount-grand", null, this.amountSummary);
 			let popupWasOpen = false;
@@ -942,7 +1099,7 @@
 			}
 			const settlement = this.profile.paymentMethod;
 			if (chips.payment) {
-				chips.payment.value.textContent = __(doc[settlement] || "") || "—";
+				chips.payment.value.textContent = __(this.checkoutDefault()) || "—";
 				chips.payment.chip.disabled = !draft || fieldStatus(this.frm, settlement) !== "Write";
 			}
 			if (chips.currency) chips.currency.value.textContent = doc.currency || "";
@@ -1040,8 +1197,11 @@
 			const df = this.frm.fields_dict[field]?.df;
 			const options = String(df?.options || "").split("\n").map(value => value.trim()).filter(Boolean);
 			this.openChipMenu(this.chips.payment, options.map(value => ({
-				value, label: __(value), current: value === this.doc[field],
-			})), value => this.change(() => this.frm.set_value(field, value)).catch(() => this.renderContext()));
+				value, label: __(value), current: value === this.checkoutDefault(),
+			})), value => {
+				this.settlementChosen = true;
+				return this.change(() => this.frm.set_value(field, value)).catch(() => this.renderContext());
+			});
 		}
 		itemQuery(current) {
 			// The simple bill searches the items of its branch's warehouse (owner,
@@ -1100,6 +1260,30 @@
 			if ((doc.items || []).some(row => MAPPED_LINE_FIELDS.some(field => row[field]))) return;
 			doc.__bnd_stock_default = 1;
 			this.change(() => this.frm.set_value("update_stock", 1)).catch(() => {});
+		}
+		checkoutDefault() {
+			// How the checkout opens (owner, 2026-10-12): Network, unless the reader chose
+			// otherwise on the chip. The invoice's own field stays ERPNext's default (On
+			// Credit) until a payment is recorded, so it never says paid when it was not.
+			const field = this.profile.paymentMethod;
+			const value = field ? this.doc[field] : "";
+			return value && (value !== CREDIT_SALE || this.settlementChosen) ? value : NETWORK_PAYMENT;
+		}
+		renderPrintFormat(parent) {
+			let formats = [];
+			try { formats = frappe.meta.get_print_formats(this.frm.doctype) || []; } catch (_) { return; }
+			if (!formats.length) return;
+			// The organisation's default (the doctype's own default_print_format),
+			// else Bunood's format, else the first the site has.
+			const preferred = [this.frm.meta?.default_print_format, `Bunood ${this.frm.doctype} (A4)`];
+			const field = node("div", "frappe-control bnd-bill-print-format", null, parent);
+			field.dataset.fieldname = "bnd_print_format";
+			const label = node("label", "control-label", __("Print format"), field);
+			const select = this.printFormatSelect = node("select", "form-control bnd-bill-print-select", null, field);
+			select.id = label.htmlFor = `bnd-bill-print-${++controlId}`;
+			for (const name of formats) node("option", "", __(name), select).value = name;
+			select.value = this.printFormat = preferred.find(name => name && formats.includes(name)) || formats[0];
+			select.addEventListener("change", () => { this.printFormat = select.value; });
 		}
 		currentWarehouse() {
 			return this.doc.set_warehouse || (this.doc.items || []).find(row => row.warehouse)?.warehouse || "";
@@ -1227,9 +1411,7 @@
 			if (this.addLineButton) this.addLineButton.disabled = busy || !canAdd(this.frm);
 			for (const action of [this.saveButton, this.submitButton, this.submitPrintButton, this.sendButton, this.newButton, this.advancedButton, this.scanButton, this.newPartyButton]) if (action) action.disabled = busy;
 			if (this.scanInput) this.scanInput.disabled = locked;
-			for (const [profileName, action] of [[VAT_STANDARD, this.vatStandardButton], [VAT_STANDARD, this.vatIncludedButton], [VAT_EXEMPT, this.vatExemptButton]]) {
-				if (action) action.disabled = busy || Number(this.doc.docstatus) !== 0 || !vatPartyReady(this.frm) || this.vatProfilesLoading || !this.vatProfiles?.[profileName];
-			}
+			if (this.vatInclusiveInput) this.vatInclusiveInput.disabled = busy || !this.vatChoiceReady();
 			for (const { remove, duplicate } of this.rowViews.values()) {
 				if (remove) remove.disabled = busy;
 				if (duplicate) duplicate.disabled = busy;
@@ -1312,6 +1494,26 @@
 			if (described.length) input.setAttribute("aria-describedby", described.join(" ")); else input.removeAttribute("aria-describedby");
 			wrapper.classList.toggle("bnd-bill-invalid", visible);
 		}
+		priceStatus(row) {
+			// ERPNext locks a line's price unless Selling Settings let it be edited. This
+			// screen types the price first and works the rest from it, so it opens the
+			// price under the same permission and document-state rules; the price after
+			// discount was always editable, so no one gains a power they lacked.
+			if (!this.profile?.priceFirst) return rowFieldStatus(this.frm, row, "price_list_rate");
+			const grid = this.frm.fields_dict.items.grid;
+			if (!grid.is_editable()) return "Read";
+			const df = frappe.meta.get_docfield(row.doctype, "price_list_rate", row.name) || grid.get_docfield("price_list_rate");
+			return df ? frappe.perm.get_field_display_status({ ...df, read_only: 0 }, row, this.frm.perm) : "None";
+		}
+		lineStatus(row, name) {
+			if (!this.profile?.priceFirst || !["price_list_rate", "rate"].includes(name)) return undefined;
+			if (name === "price_list_rate") return () => this.priceStatus(row);
+			// The price after discount follows the price whenever the price can be typed.
+			return () => {
+				const own = rowFieldStatus(this.frm, row, "rate");
+				return own === "Write" && this.priceStatus(row) === "Write" ? "Read" : own;
+			};
+		}
 		bindControl(parent, source, doc, rowField, statusOverride) {
 			const frm = this.frm, name = source.df.fieldname;
 			const allowed = () => statusOverride ? statusOverride() : rowField
@@ -1346,7 +1548,7 @@
 				if (this.pending.get(key) !== raw) return;
 					if (allowed() !== "Write") throw Error(__("This field is not editable. Use the full invoice."));
 					if (rowField && !frm.doc.items.some(r => r.name === doc.name)) throw Error(__("This item is no longer on the invoice."));
-					await setLineValue(doc, name, value, nativeSet, () => rowFieldStatus(frm, doc, "price_list_rate"));
+					await setLineValue(doc, name, value, nativeSet, () => this.priceStatus(doc));
 					if (rowField && name === "item_code" && doc.item_code === value) {
 						await frappe.after_ajax();
 						completedItem = !!doc.item_code;
@@ -1519,27 +1721,27 @@
 			}
 			const treatment = vatTreatment(this.doc, this.vatProfiles);
 			const standardRate = Number(this.vatProfiles?.standard?.rate);
-			this.vatStandardButton.textContent = Number.isFinite(standardRate) && standardRate > 0
-				? __("VAT added to price ({0}%)", [standardRate]) : __("VAT added to price");
-			this.vatIncludedButton.textContent = Number.isFinite(standardRate) && standardRate > 0
+			this.vatInclusiveText.textContent = Number.isFinite(standardRate) && standardRate > 0
 				? __("Price includes VAT ({0}%)", [standardRate]) : __("Price includes VAT");
-			for (const [name, profileName, choice] of [
-				[VAT_STANDARD, VAT_STANDARD, this.vatStandardButton],
-				[VAT_INCLUDED, VAT_STANDARD, this.vatIncludedButton],
-				[VAT_EXEMPT, VAT_EXEMPT, this.vatExemptButton],
-			]) {
-				const selected = treatment === name;
-				choice.setAttribute("aria-checked", String(selected));
-				choice.classList.toggle("is-selected", selected);
-				choice.disabled = Number(this.doc.docstatus) !== 0 || !vatPartyReady(this.frm) || this.vatProfilesLoading || !this.vatProfiles?.[profileName];
-			}
+			this.vatInclusiveInput.checked = treatment === VAT_INCLUDED;
+			this.vatInclusiveInput.disabled = !!this.queue.count || !!this.saving || !this.vatChoiceReady();
 			this.vatChoiceStatus.textContent = !vatPartyReady(this.frm)
 				? vatPartyPrompt(this.frm)
 				: this.vatProfilesLoading
 				? __("Loading VAT choices…")
-				: this.vatProfilesError || !this.vatProfiles?.standard || !this.vatProfiles?.exempt
-					? __("VAT setup is incomplete. Configure a standard and exempt tax rule, or use Advanced.")
-					: __("Uses ERPNext's configured tax category, template, and inclusive-price setting.");
+				: this.vatProfilesError || !this.vatProfiles?.standard
+					? __("VAT setup is incomplete. Configure a standard tax rule, or use Advanced.")
+					: treatment === VAT_EXEMPT || !treatment
+						? __("This invoice has no VAT yet.")
+						: "";
+			this.vatChoiceStatus.hidden = !this.vatChoiceStatus.textContent;
+			// An invoice drafted without VAT (an older draft, or Advanced) gets it
+			// back here: the box then says how the prices read.
+			this.vatApplyButton.hidden = !(this.vatChoiceReady() && (treatment === VAT_EXEMPT || !treatment));
+			this.vatApplyButton.disabled = !!this.queue.count || !!this.saving;
+		}
+		vatChoiceReady() {
+			return Number(this.doc.docstatus) === 0 && vatPartyReady(this.frm) && !this.vatProfilesLoading && !!this.vatProfiles?.standard;
 		}
 		removeItem(row) {
 			if (this.queue.count || this.saving) return;
@@ -1627,12 +1829,12 @@
 			if (!this.active()) return;
 			const groups = defaults.item_groups || [];
 			const stockItem = Number(defaults.is_stock_item ?? 1) === 1;
-			const byCode = defaults.naming !== "Naming Series";
 			const dialog = this.itemDialog = new frappe.ui.Dialog({
 				title: __("New item"),
 				fields: [
-					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), reqd: byCode ? 1 : 0, default: prefill.item_code || (byCode ? defaults.next_code || "" : "") },
-					{ fieldtype: "Column Break" },
+					// No code to type (owner, 2026-10-12): the next number, as Bunood Business's
+					// Item.before_insert gives one; a code scanned into the bill still goes with it.
+					{ fieldname: "item_code", fieldtype: "Data", label: __("Item code"), hidden: 1, default: prefill.item_code || defaults.next_code || "" },
 					{ fieldname: "item_name", fieldtype: "Data", label: __("Item name"), reqd: 1, placeholder: __("For example: a can of juice") },
 					{ fieldtype: "Section Break", hide_border: 1 },
 					{ fieldname: "barcode", fieldtype: "Data", label: __("Barcode"), default: prefill.barcode || "" },
@@ -1675,7 +1877,7 @@
 				else dialog.get_primary_btn().trigger("click");
 			}, true);
 			dialog.show();
-			setTimeout(() => dialog.fields_dict[dialog.get_value("item_code") ? "item_name" : "item_code"]?.set_focus?.(), 200);
+			setTimeout(() => dialog.fields_dict.item_name?.set_focus?.(), 200);
 		}
 		async saveQuickItem(values, dialog, stockItem, defaults) {
 			if (this.savingItem) return;
@@ -1891,6 +2093,7 @@
 				node("strong", "", __("Your bill starts here"), empty);
 				node("p", "", __("Add your first item. Prices and taxes follow your invoice settings."), empty);
 			}
+			const lineTotals = this.profile.taxColumns ? lineTaxes(frm) : null;
 			for (const row of rows) {
 				let view = this.rowViews.get(row.name);
 				const grid = frm.fields_dict.items.grid;
@@ -1918,12 +2121,14 @@
 					const cell = node("div", `bnd-bill-cell bnd-bill-cell-${name}`, null, body);
 					const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
 					if (df) this.bindControl(cell, {
-						df: { ...df, label: LINE_LABELS[name]?.() || __(df.label) },
+						df: { ...df, label: (this.profile.lineLabels?.[name] || LINE_LABELS[name])?.() || __(df.label),
+							...(this.profile.priceFirst && name === "price_list_rate" ? { read_only: 0 } : {}) },
 						get_query: grid.get_field(name)?.get_query,
-					}, row, true);
+					}, row, true, this.lineStatus(row, name));
 				}
+				const vat = this.profile.taxColumns ? node("div", "bnd-bill-line-vat", null, body) : null;
 				const amount = node("div", "bnd-bill-line-total", null, body);
-					view = { line, toggle, toggleIndex, toggleTitle, toggleAmount, body, rowNumber, info, itemName, itemMeta, amount };
+					view = { line, toggle, toggleIndex, toggleTitle, toggleAmount, body, rowNumber, info, itemName, itemMeta, vat, amount };
 					this.rowViews.set(row.name, view);
 				}
 				const { info, amount } = view;
@@ -1938,11 +2143,25 @@
 				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" · ");
 				view.toggle.setAttribute("aria-label", `${__("Item")} ${position}: ${row.item_name || row.item_code || __("New line")}`);
 				amount.replaceChildren();
+				view.vat?.replaceChildren();
 				view.toggleAmount.replaceChildren();
 				const df = frappe.meta.get_docfield(row.doctype, "amount", row.name) || grid.get_docfield("amount");
 				if (df && frappe.perm.get_field_display_status(df, row, frm.perm) !== "None") {
-					node("span", "bnd-bill-hint", __("Amount"), amount); this.money(amount, row.amount, df, row);
-					this.money(view.toggleAmount, row.amount, df, row);
+					if (!this.profile.taxColumns) {
+						node("span", "bnd-bill-hint", __("Amount"), amount); this.money(amount, row.amount, df, row);
+						this.money(view.toggleAmount, row.amount, df, row);
+					} else if (row.item_code) {
+						// Without the engine's split (lineTotals null) a dash says so; the
+						// bill's totals below are always the engine's own.
+						const split = lineTotals?.get(row.name);
+						node("span", "bnd-bill-hint", __("Line VAT"), view.vat);
+						node("span", "bnd-bill-hint", __("Line total after VAT"), amount);
+						if (split) {
+							this.money(view.vat, split.tax, df, row);
+							this.money(amount, split.total, df, row);
+							this.money(view.toggleAmount, split.total, df, row);
+						} else for (const cell of [view.vat, amount]) node("span", "bnd-bill-line-unknown", "—", cell);
+					}
 				}
 				if (!view.actions) {
 					view.actions = node("div", "bnd-bill-line-actions", null, view.body);
@@ -1975,7 +2194,7 @@
 			this.duplicateButton.hidden = !nativeActions.showDuplicate;
 			this.cancelButton.hidden = !nativeActions.showCancel;
 			this.paymentButton.hidden = !nativeActions.showRecordPayment;
-			this.printButton.hidden = !nativeActions.showPrint && !showSubmit; this.discountButton.hidden = !draft;
+			this.previewButton.hidden = !nativeActions.showPrint && !draft; this.discountButton.hidden = !draft;
 			this.sendButton.hidden = this.frm.doctype !== "Sales Invoice" || !submittedCustomerInvoice(frm);
 			this.busy();
 		}
@@ -2062,10 +2281,17 @@
 				if (missing) { this.message(missing.message, true); return; }
 				const taxIssue = taxConfigurationIssue(this.doc);
 				if (taxIssue) { this.showTaxIssue(taxIssue); return; }
-				const settlement = settlementValue(this.doc);
-				const createPayment = settlementCreatesPayment(settlement);
-				const mixedAmounts = mixedPaymentSelected(settlement) ? await this.promptMixedPayment() : null;
-				if (mixedPaymentSelected(settlement) && !mixedAmounts) return;
+				// How the bill is paid is asked before anything is committed.
+				const field = this.profile.paymentMethod;
+				const checkout = field ? await this.promptCheckout() : { method: null };
+				if (!checkout) { this.message(__("Nothing was submitted. The bill is as you left it.")); return; }
+				if (!this.active()) return;
+				const createPayment = settlementCreatesPayment(checkout.method);
+				// Submitted unpaid, the invoice says On Credit; the payment, once posted,
+				// writes how it was paid (payments.post_invoice_payment).
+				if (field && this.doc[field] !== CREDIT_SALE && fieldStatus(this.frm, field) === "Write") {
+					await this.queue.run(() => this.frm.set_value(field, CREDIT_SALE));
+				}
 				if (this.doc.__islocal || this.frm.is_dirty()) {
 					this.message(__("Saving invoice…"));
 					const local = this.doc.__islocal ? this.doc.name : "";
@@ -2077,10 +2303,7 @@
 				submitted = Number(this.frm.doc.docstatus) === 1;
 				if (createPayment && Number(this.frm.doc.docstatus) === 1) {
 					this.message(__("Recording payment…"));
-					try {
-						if (mixedAmounts) await this.postMixedPayment(mixedAmounts, true);
-						else await makePaymentEntry(this.frm, true);
-					}
+					try { await this.postPayment(checkout, true); }
 					catch (error) {
 						paymentFailed = true;
 						this.message(__("Invoice submitted, but payment could not be recorded: {0}", [error.message]), true);
@@ -2088,7 +2311,7 @@
 				}
 			} catch (e) { this.message(e.message || __("The document was not submitted. Review the highlighted fields."), true); }
 			finally { this.saving = false; this.render(); this.busy(); if (missing && this.active()) missing.control?.set_focus(); }
-			if (submitted && printAfter) void printCustomerInvoice(this.frm);
+			if (submitted && printAfter) void printCustomerInvoice(this.frm, this.printFormat);
 			if (submitted && !printAfter && !paymentFailed && this.frm.doctype === "Sales Invoice") showInvoiceDelivery(this.frm, true);
 			return submitted;
 		}
@@ -2097,144 +2320,232 @@
 		removeDocument() { if (!this.doc.__islocal && Number(this.doc.docstatus) === 0) this.frm.savetrash(); }
 		duplicateDocument() { if (!this.doc.__islocal) return this.frm.copy_doc(); }
 		cancelDocument() { if (Number(this.doc.docstatus) === 1) return this.frm.savecancel(); }
-		async print() {
+		async preview() {
 			if (this.saving || this.closing) return;
-			if (Number(this.doc.docstatus) === 0) {
-				// Preview before commitment: save the draft as it stands and open
-				// Frappe's print view; nothing is submitted.
-				if ((this.doc.__islocal || this.frm.is_dirty()) && !await this.save()) return;
-				if (this.active()) this.frm.print_doc();
-				return;
-			}
-			void printCustomerInvoice(this.frm);
+			// A submitted bill opens its delivery preview, which prints and downloads it.
+			if (Number(this.doc.docstatus) !== 0) { void printCustomerInvoice(this.frm, this.printFormat); return; }
+			// A draft is shown as it stands: edits still being typed reach the document, nothing is saved.
+			try { await this.flush(); } catch (_) { /* The inline errors say what to correct. */ }
+			if (!this.active()) return;
+			if (this.invalid.size) { this.message(__("Correct the highlighted value before saving."), true); this.focusInvalid(); return; }
+			previewDraft(this.frm, this.printFormat);
 		}
 		restore() {
 			const reload = () => this.frm.reload_doc().then(() => { this.syncDocument(); this.render(); });
 			if (this.frm.is_dirty()) frappe.confirm(__("Discard unsaved changes and reload this document?"), reload); else reload();
 		}
-		async promptMixedPayment() {
+		async promptCheckout({ allowCredit = true, receiving = false } = {}) {
+			// The checkout (owner, 2026-10-12): how the bill is paid is asked when it is
+			// submitted, Network first, and each choice says what it needs. Nothing is
+			// committed until the reader confirms; closing the dialog changes nothing.
 			const precision = Number(frappe.boot?.sysdefaults?.currency_precision) || 2;
-			const currentOutstanding = Number(this.doc.outstanding_amount);
-			const amountDue = roundMoney(currentOutstanding > 0 ? currentOutstanding : this.doc[totalField(this.frm)], precision);
-			if (amountDue <= 0) throw Error(__("This invoice has no outstanding amount to receive."));
-			const cashDefault = roundMoney(amountDue / 2, precision);
-			const networkDefault = roundMoney(amountDue - cashDefault, precision);
+			const currency = this.doc.currency;
+			const outstanding = Number(this.doc.outstanding_amount);
+			const due = roundMoney(Number(this.doc.docstatus) === 1 || outstanding > 0 ? outstanding : this.doc[totalField(this.frm)], precision);
+			if (!(due > 0)) {
+				if (Number(this.doc.docstatus) === 1) throw Error(__("This invoice has no outstanding amount to receive."));
+				return { method: null };
+			}
+			let ready = null;
+			try {
+				ready = (await frappe.call({ method: "bunood_theme.payments.invoice_payment_methods", type: "GET", args: { company: this.doc.company } })).message || null;
+			} catch (_) { ready = null; /* The server still refuses a way it cannot post. */ }
+			const choices = [
+				{ value: NETWORK_PAYMENT, label: __("Network"), hint: __("Mada or credit card"), icon: "credit-card" },
+				{ value: CASH_PAYMENT, label: __("Cash"), hint: __("Works out the change"), icon: "banknote" },
+				{ value: TRANSFER_PAYMENT, label: __("Bank Transfer"), hint: __("To the organisation's account"), icon: "landmark" },
+				{ value: MIXED_PAYMENT, label: __("Cash and network"), hint: __("Part in cash, the rest by network"), icon: "split" },
+				...(allowCredit ? [{ value: CREDIT_SALE, label: __("On Credit"), hint: __("The customer owes the invoice"), icon: "calendar-clock" }] : []),
+			].map(choice => ({ ...choice, ready: choice.value === CREDIT_SALE || !ready || !!ready[choice.value]?.ready }));
+			const current = this.checkoutDefault();
+			const usable = choices.filter(choice => choice.ready);
+			// An accounts manager can link the ways of paying from the dialog itself.
+			const canLink = !!frappe.user?.has_role?.(["Accounts Manager", "System Manager"]);
+			if (!usable.length && !canLink) throw Error(__("No way of paying is linked to an account for this company. Link one in Mode of Payment."));
+			let method = (usable.find(choice => choice.value === current) || usable.find(choice => choice.value === NETWORK_PAYMENT) || usable[0] || choices[0]).value;
+			const money = value => this.format(value, { fieldtype: "Currency", options: currency });
 
 			return new Promise(resolve => {
 				let settled = false;
 				const finish = value => { if (!settled) { settled = true; resolve(value); } };
 				const dialog = new frappe.ui.Dialog({
-					title: __("Split payment"),
+					title: Number(this.doc.docstatus) === 1 ? __("Receive payment") : __("Checkout"),
 					fields: [
-						{ fieldname: "total", label: __("Amount due"), fieldtype: "Currency", options: this.doc.currency, read_only: 1, default: amountDue },
+						{ fieldname: "methods", fieldtype: "HTML" },
+						{ fieldtype: "Section Break", fieldname: "amounts_section" },
+						// A later receipt may take part of what is owed; the checkout takes it all.
+						...(receiving ? [{ fieldname: "amount_now", fieldtype: "Currency", label: __("Amount received now"), options: currency, non_negative: 1 }] : []),
+						{ fieldname: "received_amount", fieldtype: "Currency", label: __("Amount received"), options: currency, non_negative: 1 },
+						{ fieldname: "cash_amount", fieldtype: "Currency", label: __("Cash amount"), options: currency, non_negative: 1 },
 						{ fieldtype: "Column Break" },
-						{ fieldname: "remaining", fieldtype: "HTML" },
+						{ fieldname: "reference_no", fieldtype: "Data", label: __("Reference number (optional)") },
+						{ fieldname: "reference_date", fieldtype: "Date", label: __("Transfer date"), default: frappe.datetime.get_today() },
 						{ fieldtype: "Section Break" },
-						{ fieldname: "cash_amount", label: __("Cash amount"), fieldtype: "Currency", options: this.doc.currency, reqd: 1, non_negative: 1, default: cashDefault },
-						{ fieldtype: "Column Break" },
-						{ fieldname: "network_amount", label: __("Network amount"), fieldtype: "Currency", options: this.doc.currency, reqd: 1, non_negative: 1, default: networkDefault },
-						{ fieldtype: "Section Break" },
-						{ fieldname: "network_reference_no", label: __("Network reference number"), fieldtype: "Data", reqd: 1 },
-						{ fieldtype: "Column Break" },
-						{ fieldname: "reference_date", label: __("Reference date"), fieldtype: "Date", reqd: 1, default: frappe.datetime.get_today() },
-						{ fieldtype: "Section Break" },
-						{ fieldname: "native_note", fieldtype: "HTML" },
+						{ fieldname: "summary", fieldtype: "HTML" },
 					],
-					primary_action_label: __("Submit invoice and record payments"),
-					primary_action: values => {
-						const cash = roundMoney(values.cash_amount, precision);
-						const network = roundMoney(values.network_amount, precision);
-						if (cash <= 0 || network <= 0) {
-							frappe.msgprint(__("A mixed payment needs a Cash amount and a Network amount above zero."));
-							return;
-						}
-						if (roundMoney(cash + network, precision) !== amountDue) {
-							frappe.msgprint(__("Cash and Network must total the amount due."));
-							return;
-						}
-						// Resolve before hide: Dialog.onhide fires synchronously and is the
-						// cancellation path. Hiding first used to settle this Promise with
-						// null, so Save and submit silently stopped at a clean draft.
-						finish({ cash_amount: cash, network_amount: network, network_reference_no: values.network_reference_no, reference_date: values.reference_date });
+					primary_action_label: Number(this.doc.docstatus) === 1 ? __("Record payment") : __("Submit invoice"),
+					primary_action: () => {
+						const outcome = read();
+						if (outcome.error) { frappe.msgprint(outcome.error); return; }
+						// Resolve before hide: Dialog.onhide is the cancellation path.
+						finish(outcome.value);
 						dialog.hide();
 					},
 					onhide: () => finish(null),
 				});
-				dialog.$wrapper?.addClass("bnd-mixed-payment-dialog");
-				const remaining = dialog.fields_dict.remaining.$wrapper[0];
-				remaining.classList.add("bnd-mixed-payment-balance");
-				remaining.setAttribute("role", "status");
-				remaining.setAttribute("aria-live", "polite");
-				const note = dialog.fields_dict.native_note.$wrapper[0];
-				node("p", "bnd-bill-hint", __("Two original ERPNext Payment Entries will be posted and linked to this invoice."), note);
-				const update = () => {
-					const cash = roundMoney(dialog.get_value("cash_amount"), precision);
-					const network = roundMoney(dialog.get_value("network_amount"), precision);
-					const balance = roundMoney(amountDue - cash - network, precision);
-					remaining.replaceChildren();
-					const label = node("span", "", balance === 0 ? __("Fully allocated") : __("Remaining"), remaining);
-					const value = node("strong", balance === 0 ? "is-balanced" : "is-unbalanced", null, remaining);
-					value.dir = "ltr";
-					value.textContent = this.format(balance, { fieldtype: "Currency", options: this.doc.currency });
-				};
-				let balancing = false;
-				const rebalance = async source => {
-					if (balancing) return;
-					balancing = true;
+				dialog.$wrapper?.addClass("bnd-checkout-dialog");
+				dialog.$wrapper?.on("hidden.bs.modal", () => dialog.$wrapper.remove());
+				const body = dialog.fields_dict.methods.$wrapper[0];
+				const head = node("div", "bnd-checkout-due", null, body);
+				node("span", "", __("Amount due"), head);
+				this.money(node("strong", "", null, head), due, { fieldtype: "Currency", options: currency, fieldname: "grand_total" });
+				const group = node("div", "bnd-checkout-methods", null, body);
+				group.setAttribute("role", "radiogroup");
+				group.setAttribute("aria-label", __("Payment method"));
+				const tiles = choices.map(choice => {
+					const tile = button("", group, () => choose(choice.value));
+					tile.classList.add("bnd-checkout-method");
+					tile.setAttribute("role", "radio");
+					tile.dataset.method = choice.value;
+					tile.disabled = !choice.ready;
+					const icon = node("span", "bnd-checkout-method-icon", null, tile);
+					icon.innerHTML = frappe.utils.icon(choice.icon, "md");
+					icon.setAttribute("aria-hidden", "true");
+					node("strong", "", choice.label, tile);
+					node("small", "", choice.ready ? choice.hint : __("Not linked to an account"), tile);
+					return tile;
+				});
+				const linkRow = node("div", "bnd-checkout-link", null, body);
+				linkRow.hidden = true;
+				node("span", "bnd-bill-hint", __("Some ways of paying are not linked to the company's accounts yet."), linkRow);
+				const linkButton = button(__("Link payment methods to accounts"), linkRow, async () => {
+					linkButton.disabled = true;
 					try {
-						const target = source === "cash_amount" ? "network_amount" : "cash_amount";
-						const [changed, remainder] = balancedPaymentPair(dialog.get_value(source), amountDue, precision);
-						if (roundMoney(dialog.get_value(source), precision) !== changed) await dialog.set_value(source, changed);
-						await dialog.set_value(target, remainder);
-						update();
-					} finally { balancing = false; }
+						const response = await frappe.call({ method: "bunood_theme.payments.setup_invoice_payment_methods", args: { company: this.doc.company }, freeze: true });
+						refresh(response.message);
+					} catch (_) { /* Frappe shows the server's reason. */ }
+					finally { linkButton.disabled = false; }
+				});
+				const refresh = next => {
+					ready = next || ready;
+					for (const choice of choices) choice.ready = choice.value === CREDIT_SALE || !ready || !!ready[choice.value]?.ready;
+					tiles.forEach((tile, index) => {
+						tile.disabled = !choices[index].ready;
+						tile.querySelector("small").textContent = choices[index].ready ? choices[index].hint : __("Not linked to an account");
+					});
+					linkRow.hidden = !canLink || choices.every(choice => choice.ready);
+					if (!choices.find(choice => choice.value === method)?.ready) {
+						const next = choices.find(choice => choice.ready && choice.value === NETWORK_PAYMENT) || choices.find(choice => choice.ready);
+						if (next) choose(next.value);
+					}
 				};
-				for (const name of ["cash_amount", "network_amount"]) {
-					dialog.fields_dict[name].$input?.on("input change", () => void rebalance(name));
+				group.addEventListener("keydown", e => {
+					if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+					e.preventDefault();
+					const live = tiles.filter(tile => !tile.disabled);
+					const rtl = getComputedStyle(group).direction === "rtl";
+					const step = e.key === "ArrowDown" || e.key === (rtl ? "ArrowLeft" : "ArrowRight") ? 1 : -1;
+					const next = live[(live.indexOf(document.activeElement) + step + live.length) % live.length];
+					if (next) { choose(next.dataset.method); next.focus(); }
+				});
+				const summary = dialog.fields_dict.summary.$wrapper[0];
+				summary.classList.add("bnd-checkout-summary");
+				summary.setAttribute("role", "status");
+				summary.setAttribute("aria-live", "polite");
+				const show = (name, visible) => dialog.set_df_property(name, "hidden", visible ? 0 : 1);
+				const target = () => receiving ? roundMoney(dialog.get_value("amount_now"), precision) : due;
+				function read() {
+					const amount = target();
+					const received = roundMoney(dialog.get_value("received_amount"), precision);
+					const cash = roundMoney(dialog.get_value("cash_amount"), precision);
+					const reference = String(dialog.get_value("reference_no") || "").trim();
+					const value = {
+						method, reference_no: reference, reference_date: dialog.get_value("reference_date") || "",
+						// What the cashier saw owed: the server refuses when the invoice now owes otherwise.
+						expected_outstanding: due, ...(receiving ? { amount } : {}),
+					};
+					if (!choices.find(choice => choice.value === method)?.ready) return { error: __("Choose a way of paying that is linked to an account.") };
+					if (!(amount > 0) || amount > due) return { error: __("Receive an amount above zero and no more than the invoice owes.") };
+					if (method === CASH_PAYMENT) {
+						if (received < amount) return { error: __("The amount received is less than the amount due.") };
+						return { value, change: roundMoney(received - amount, precision), amount };
+					}
+					if (method === MIXED_PAYMENT) {
+						if (!(cash > 0) || cash >= amount) return { error: __("Enter a cash amount above zero and below the amount due; the rest is paid by network.") };
+						return { value: { ...value, cash_amount: cash }, network: roundMoney(amount - cash, precision), amount };
+					}
+					return { value, amount };
 				}
+				const update = () => {
+					const outcome = read();
+					summary.replaceChildren();
+					const line = (label, amount, tone = "") => {
+						const row = node("div", `bnd-checkout-summary-row ${tone}`.trim(), null, summary);
+						node("span", "", label, row);
+						const strong = node("strong", "", null, row);
+						strong.dir = "ltr";
+						strong.textContent = money(amount);
+					};
+					if (outcome.error) node("p", "bnd-checkout-summary-error", outcome.error, summary);
+					else if (method === CASH_PAYMENT) line(__("Change to return"), outcome.change, "is-strong");
+					else if (method === MIXED_PAYMENT) { line(__("Cash"), outcome.value.cash_amount); line(__("Network"), outcome.network, "is-strong"); }
+					else if (method === CREDIT_SALE) node("p", "bnd-bill-hint", __("No payment is recorded now. The invoice stays due from the customer."), summary);
+					else line(method === TRANSFER_PAYMENT ? __("Transferred") : __("Paid by network"), outcome.amount, "is-strong");
+				};
+				function choose(value) {
+					method = value;
+					for (const tile of tiles) {
+						const selected = tile.dataset.method === value;
+						tile.classList.toggle("is-selected", selected);
+						tile.setAttribute("aria-checked", String(selected));
+						tile.tabIndex = selected ? 0 : -1;
+					}
+					show("received_amount", value === CASH_PAYMENT);
+					show("cash_amount", value === MIXED_PAYMENT);
+					show("reference_no", [NETWORK_PAYMENT, TRANSFER_PAYMENT, MIXED_PAYMENT].includes(value));
+					show("reference_date", value === TRANSFER_PAYMENT);
+					dialog.set_df_property("reference_no", "label", value === TRANSFER_PAYMENT
+						? __("Transfer number (optional)") : __("Card slip number (optional)"));
+					update();
+				}
+				for (const name of ["received_amount", "cash_amount", ...(receiving ? ["amount_now"] : [])]) dialog.fields_dict[name].$input?.on("input change", () => requestAnimationFrame(update));
 				dialog.show();
-				// Dialog defaults settle during show; calculate from their native values on the next paint.
-				requestAnimationFrame(update);
+				// Defaults settle during show: the cash received starts at the amount due.
+				requestAnimationFrame(async () => {
+					if (receiving) await dialog.set_value("amount_now", due);
+					await dialog.set_value("received_amount", due);
+					await dialog.set_value("cash_amount", roundMoney(due / 2, precision));
+					choose(method);
+					refresh(null);
+					tiles.find(tile => tile.dataset.method === method)?.focus();
+				});
 			});
 		}
-		async postMixedPayment(values, atInvoiceCheckout = false) {
+		async postPayment(checkout, atInvoiceCheckout = false) {
 			const response = await frappe.call({
-				method: "bunood_theme.payments.post_mixed_invoice_payment",
-				args: { invoice: this.frm.doc.name, ...values,
-					at_invoice_checkout: atInvoiceCheckout ? 1 : 0 },
+				method: "bunood_theme.payments.post_invoice_payment",
+				args: {
+					invoice: this.frm.doc.name, method: checkout.method,
+					cash_amount: checkout.cash_amount ?? "", reference_no: checkout.reference_no || "",
+					reference_date: checkout.reference_date || "", at_invoice_checkout: atInvoiceCheckout ? 1 : 0,
+					amount: checkout.amount ?? "", expected_outstanding: checkout.expected_outstanding ?? "",
+				},
 				freeze: true,
-				freeze_message: __("Recording Cash and Network payments…"),
+				freeze_message: __("Recording payment…"),
 			});
-			if (response.exc || !response.message?.entries?.length) throw Error(__("Could not record the mixed payment."));
+			if (response.exc || !response.message?.entries?.length) throw Error(__("Could not record the payment."));
 			await this.frm.reload_doc();
-			this.showMixedPaymentResult(response.message);
-			return response.message;
-		}
-		showMixedPaymentResult(result) {
-			const dialog = new frappe.ui.Dialog({
-				title: __("Payment recorded"),
-				primary_action_label: __("Done"),
-				primary_action: () => dialog.hide(),
-			});
-			const body = node("div", "bnd-mixed-payment-result", null, dialog.$body[0]);
-			node("p", "", __("The invoice is paid. Both receipts are available in Payment Entry and the General Ledger."), body);
-			for (const entry of result.entries) {
-				const row = node("div", "bnd-mixed-payment-result-row", null, body);
-				const copy = node("div", "", null, row);
-				node("strong", "", __(entry.mode_of_payment), copy);
-				node("small", "", this.format(entry.amount, { fieldtype: "Currency", options: result.currency }), copy);
-				button(entry.name, row, () => { dialog.hide(); frappe.set_route("Form", "Payment Entry", entry.name); });
-			}
-			dialog.show();
+			const result = response.message;
+			const parts = result.entries.map(entry => `${__(entry.mode_of_payment)} ${this.format(entry.amount, { fieldtype: "Currency", options: result.currency })}`);
+			frappe.show_alert({ message: __("Payment recorded: {0}", [parts.join(" · ")]), indicator: "green" }, 8);
+			return result;
 		}
 		async payment() {
 			try {
-				if (mixedPaymentSelected(settlementValue(this.doc))) {
-					const amounts = await this.promptMixedPayment();
-					if (amounts) return await this.postMixedPayment(amounts);
-					return;
-				}
-				return await makePaymentEntry(this.frm);
+				// An early-payment discount belongs to ERPNext's own Payment Entry flow.
+				if (!this.profile.paymentMethod || this.frm.cscript?.has_discount_in_schedule?.()) return await makePaymentEntry(this.frm);
+				const checkout = await this.promptCheckout({ allowCredit: false, receiving: true });
+				if (checkout?.method) return await this.postPayment(checkout);
 			}
 			catch (error) { this.message(error.message, true); }
 		}
@@ -2296,7 +2607,7 @@
 			on_submit(frm) { setTimeout(() => showInvoiceDelivery(frm, true), 0); },
 		});
 	}
-	api.sales_bill = { open, newInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
+	api.sales_bill = { open, newInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, lineTaxes, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
 		// Let native refresh_fields finish on the next turn, but do not wait for

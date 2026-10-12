@@ -293,7 +293,9 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('not text.replace("-", "").isalnum() or not text.isascii()', self.body("_offline_id"))
         self.assertIn("with _sale_lock(offline_id):", sync)
         self.assertLess(sync.index("_posted_sale(invoice_type, offline_id, by_remarks=True)"), sync.index("_new_or_held(data)"))
-        self.assertIn('status = frappe.db.get_value(doctype, name, "docstatus", for_update=True)', self.body("_posted_sale"))
+        self.assertIn('status = frappe.db.get_value(kind, name, "docstatus", for_update=True)', self.body("_posted_sale"))
+        # Both invoice types are asked: a sale resent after the counters switched type is still found.
+        self.assertIn("kinds = [doctype, *sorted(INVOICE_TYPES - {doctype})]", self.body("_posted_sale"))
         # Decided before anything is written (review 2026-10-10: a savepoint retry let a
         # rolled-back attempt's after-commit work run); a total that moved goes to review.
         self.assertNotIn("savepoint", sync)

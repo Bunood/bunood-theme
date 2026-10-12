@@ -19347,3 +19347,330 @@ msgstr "ورديتك مفتوحة في شاشة أخرى: {0}"
 msgctxt "Bunood POS"
 msgid "Close it there before opening a shift here."
 msgstr "أغلقها هناك قبل فتح وردية هنا."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Price after discount"
+msgstr "السعر بعد الخصم"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Line VAT"
+msgstr "الضريبة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Line total after VAT"
+msgstr "الإجمالي بعد الضريبة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Print format"
+msgstr "شكل الطباعة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "VAT setup is incomplete. Configure a standard tax rule, or use Advanced."
+msgstr "إعداد الضريبة غير مكتمل. اضبط قاعدة الضريبة القياسية، أو استخدم النموذج المتقدم."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "This invoice has no VAT yet."
+msgstr "لا ضريبة على هذه الفاتورة بعد."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Apply VAT"
+msgstr "تطبيق الضريبة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "A ZATCA invoice prints in the ZATCA format."
+msgstr "فاتورة زاتكا تُطبع بنموذج زاتكا."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Nothing was submitted. The bill is as you left it."
+msgstr "لم يُعتمد شيء، والفاتورة كما تركتها."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Mada or credit card"
+msgstr "مدى أو بطاقة ائتمانية"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Works out the change"
+msgstr "يحسب الباقي للعميل"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "To the organisation's account"
+msgstr "إلى حساب المنشأة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Cash and network"
+msgstr "نقد وشبكة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Part in cash, the rest by network"
+msgstr "جزء نقداً والباقي شبكة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "The customer owes the invoice"
+msgstr "تبقى الفاتورة مستحقة على العميل"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "No way of paying is linked to an account for this company. Link one in Mode of Payment."
+msgstr "لا توجد طريقة دفع مربوطة بحساب لهذه الشركة. اربط واحدة في طرق الدفع."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Receive payment"
+msgstr "استلام الدفعة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Amount received"
+msgstr "المبلغ المستلم"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Reference number (optional)"
+msgstr "رقم المرجع (اختياري)"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Transfer date"
+msgstr "تاريخ التحويل"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Submit invoice"
+msgstr "اعتماد الفاتورة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Not linked to an account"
+msgstr "غير مربوطة بحساب"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "The amount received is less than the amount due."
+msgstr "المبلغ المستلم أقل من المبلغ المستحق."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Enter a cash amount above zero and below the amount due; the rest is paid by network."
+msgstr "أدخل مبلغاً نقدياً أكبر من صفر وأقل من المستحق، والباقي يُدفع شبكة."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Change to return"
+msgstr "الباقي للعميل"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "No payment is recorded now. The invoice stays due from the customer."
+msgstr "لا تُسجَّل دفعة الآن، وتبقى الفاتورة مستحقة على العميل."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Transferred"
+msgstr "المبلغ المحوَّل"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Paid by network"
+msgstr "المدفوع شبكة"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Transfer number (optional)"
+msgstr "رقم الحوالة (اختياري)"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Card slip number (optional)"
+msgstr "رقم إيصال الشبكة (اختياري)"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Could not record the payment."
+msgstr "تعذّر تسجيل الدفعة."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Payment recorded: {0}"
+msgstr "سُجّلت الدفعة: {0}"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Bank Transfer"
+msgstr "تحويل بنكي"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Choose how the invoice is paid."
+msgstr "اختر طريقة دفع الفاتورة."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "No account is linked for this company. Way of paying: {0}"
+msgstr "لا يوجد حساب مربوط لهذه الشركة في طرق الدفع. طريقة الدفع: {0}"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Choose a company first."
+msgstr "اختر الشركة أولاً."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12 (upstream says the same)
+#, fuzzy
+msgid "Cash"
+msgstr "نقد"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Some ways of paying are not linked to the company's accounts yet."
+msgstr "بعض طرق الدفع غير مربوطة بحسابات المنشأة بعد."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Link payment methods to accounts"
+msgstr "ربط طرق الدفع بالحسابات"
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Choose a way of paying that is linked to an account."
+msgstr "اختر طريقة دفع مربوطة بحساب."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Only an accounts manager can link payment methods to accounts."
+msgstr "ربط طرق الدفع بالحسابات لمدير الحسابات فقط."
+
+#. src: sales invoice owner review, Arabic proposal 2026-10-12
+#, fuzzy
+msgid "Checkout"
+msgstr "الدفع"
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "Save bill"
+msgstr "حفظ"
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "Print bill"
+msgstr "طباعة"
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "View bill"
+msgstr "عرض"
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "View the bill before printing or saving"
+msgstr "عرض الفاتورة قبل الطباعة أو الحفظ"
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "Bill preview"
+msgstr "معاينة الفاتورة"
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "A preview only: the bill is not saved or submitted."
+msgstr "معاينة فقط: لم تُحفظ الفاتورة ولم تُعتمد."
+
+#. src: owner 2026-10-12, one word per bill button
+#, fuzzy
+msgid "Back to the bill"
+msgstr "العودة إلى الفاتورة"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Stock leaves the warehouse"
+msgstr "خروج المخزون من المستودع"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "At each sale, as a sales invoice; or when the shift closes, as ERPNext's POS invoices. For every counter on the site, the restaurant cashier included; it changes once every open shift is closed."
+msgstr "مع كل بيعة كفاتورة مبيعات، أو عند إغلاق الوردية كفواتير نقاط بيع. لكل نقاط البيع في الموقع ومنها كاشير المطعم، ويتغير بعد إغلاق كل الورديات المفتوحة."
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "At each sale"
+msgstr "مع كل بيعة"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "When the shift closes"
+msgstr "عند إغلاق الوردية"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Selling an item that ran out"
+msgstr "بيع صنف نفدت كميته"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Allowed: the sale goes through and the quantity goes below zero. Not allowed: the sale is refused. For the whole site, not this counter alone: invoices and stock entries follow it too."
+msgstr "مسموح: تتم البيعة وتنزل الكمية تحت الصفر. غير مسموح: تُرفض البيعة. لكل الموقع لا لنقطة البيع وحدها: الفواتير وحركات المخزون تتبعه أيضاً."
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Stock leaves the warehouse"
+msgstr "خروج المخزون من المستودع"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Selling an item that ran out"
+msgstr "بيع صنف نفدت كميته"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Only a stock manager can change how the counters use stock."
+msgstr "تغيير طريقة استخدام نقاط البيع للمخزون لمدير المخزون فقط."
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Changed by a stock manager"
+msgstr "يغيّره مدير المخزون"
+
+#. src: owner 2026-10-12, POS stock
+#, fuzzy
+msgid "Close every open shift first, the restaurant cashier's included: {0}"
+msgstr "أغلق كل الورديات المفتوحة أولاً، ومنها وردية كاشير المطعم: {0}"
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "Amount received now"
+msgstr "المبلغ المستلم الآن"
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "Receive an amount above zero and no more than the invoice owes."
+msgstr "أدخل مبلغاً أكبر من صفر ولا يزيد عمّا على الفاتورة."
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "The invoice now owes {0} {1}. Open the payment again."
+msgstr "المستحق على الفاتورة الآن {0} {1}. افتح الدفع من جديد."
+
+#. src: release review 2026-10-12
+#, fuzzy
+msgid "The payment did not settle the amount received."
+msgstr "الدفعة لم تسدّد المبلغ المستلم."

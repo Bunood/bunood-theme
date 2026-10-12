@@ -52,12 +52,29 @@ def send_invoice_email(doctype: str, name: str, recipient: str, subject: str, me
     return {"communication": result["name"]}
 
 
-def _invoice_pdf(doc, context: dict, *, as_pdf: bool = True):
+def _format_for(doc, context: dict, print_format: str | None = None) -> str:
+    """The print format a delivery renders.
+
+    A ZATCA Phase 2 invoice prints only in Phase 2's own format. Any other takes
+    the one the reader chose on the invoice, else the document type's default
+    (the organisation's choice, a native Property Setter), else Bunood's own.
+    """
+    if context["regulated"]:
+        return context["format"]
+    for name in (print_format, frappe.get_meta(doc.doctype).default_print_format):
+        if name == "Standard":
+            return name
+        if name and frappe.db.exists("Print Format", {"name": name, "doc_type": doc.doctype, "disabled": 0}):
+            return name
+    return context["format"]
+
+
+def _invoice_pdf(doc, context: dict, *, as_pdf: bool = True, print_format: str | None = None):
     previous = getattr(frappe.flags, "bnd_zatca_delivery_print", False)
     frappe.flags.bnd_zatca_delivery_print = True
     try:
         return frappe.get_print(
-            doc.doctype, doc.name, context["format"], doc=doc,
+            doc.doctype, doc.name, _format_for(doc, context, print_format), doc=doc,
             as_pdf=as_pdf,
         )
     finally:
@@ -65,13 +82,13 @@ def _invoice_pdf(doc, context: dict, *, as_pdf: bool = True):
 
 
 @frappe.whitelist(methods=["GET"])
-def download_customer_invoice(doctype: str, name: str, file_type: str = "pdf"):
+def download_customer_invoice(doctype: str, name: str, file_type: str = "pdf", print_format: str | None = None):
     """Authenticated download for manual WhatsApp handoff; never a public URL."""
     doc = _invoice(doctype, name)
     doc.check_permission("print")
     context = require_ready(doc)
     if file_type == "pdf":
-        content, extension = _invoice_pdf(doc, context), "pdf"
+        content, extension = _invoice_pdf(doc, context, print_format=print_format), "pdf"
     elif file_type == "xml" and context["regulated"]:
         content, extension = context["xml"], "xml"
     else:
@@ -97,12 +114,12 @@ def download_sandbox_invoice(doctype: str, name: str):
 
 
 @frappe.whitelist(methods=["GET"])
-def preview_customer_invoice(doctype: str, name: str):
+def preview_customer_invoice(doctype: str, name: str, print_format: str | None = None):
     """Preview a ready customer invoice under the same native delivery policy."""
     doc = _invoice(doctype, name)
     doc.check_permission("print")
     context = require_ready(doc)
-    return {"html": _preview_html(_invoice_pdf(doc, context, as_pdf=False))}
+    return {"html": _preview_html(_invoice_pdf(doc, context, as_pdf=False, print_format=print_format))}
 
 
 @frappe.whitelist(methods=["GET"])
