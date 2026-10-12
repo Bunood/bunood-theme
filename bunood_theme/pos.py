@@ -1742,6 +1742,16 @@ def _apply_refund(doc, source, profile, refund: str, lock: bool = False) -> None
             "amount": total,
         },
     )
+    if doc.doctype == "POS Invoice":
+        # ERPNext recomputes the paid amount from the payment rows on a Sales Invoice only
+        # (taxes_and_totals.calculate_outstanding_amount). A POS Invoice return keeps what
+        # make_return_doc set, the whole of the original payment (500 tendered for 167), and
+        # ERPNext's validate_pos then refuses every partial return. It is what this refund pays.
+        paid = flt(sum(flt(row.amount) for row in doc.payments), doc.precision("paid_amount"))
+        doc.paid_amount = paid
+        doc.base_paid_amount = flt(paid * flt(doc.conversion_rate or 1), doc.precision("base_paid_amount"))
+        doc.change_amount = 0
+        doc.base_change_amount = 0
     doc.run_method("calculate_taxes_and_totals")
 
 

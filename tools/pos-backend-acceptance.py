@@ -223,9 +223,13 @@ def run() -> None:
         assert over_refused, "More than the returnable quantity was accepted."
         walk_in_credit_refused = None
         if customer == profile.get("customer"):
+            # Refused either way: a POS Invoice receipt takes no credit at all, a Sales Invoice
+            # one only on a named customer.
             walk_in_credit_refused = refused(
                 lambda: pos.preview_return(profile_name, sold["doctype"], sold["name"], one, "__credit__"),
-                "Credit can stay only on a named customer's account.",
+                "Credit on account is available for Sales Invoice receipts only."
+                if sold["doctype"] == "POS Invoice"
+                else "Credit can stay only on a named customer's account.",
             )
             assert walk_in_credit_refused, "Credit was left on the walk-in customer's account."
         after_close = pos.preview_close(profile_name, zero_count)

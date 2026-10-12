@@ -246,6 +246,14 @@ class POSWorkbenchContractTests(unittest.TestCase):
         self.assertIn('frappe.get_hooks("bunood_pos_reserved_profiles")', self.body("_reserved_profiles"))
         self.assertIn('if not route.startswith("/") or route.startswith("//")', self.body("_clean_reserved"))
 
+    def test_a_pos_invoice_return_is_paid_what_its_refund_pays(self):
+        # ERPNext recomputes the paid amount from the rows on a Sales Invoice only; a POS
+        # Invoice return kept the whole original payment and validate_pos refused it.
+        refund = self.body("_apply_refund")
+        self.assertIn('if doc.doctype == "POS Invoice":', refund)
+        self.assertIn("paid = flt(sum(flt(row.amount) for row in doc.payments), doc.precision(\"paid_amount\"))", refund)
+        self.assertLess(refund.index("doc.paid_amount = paid"), refund.rindex('doc.run_method("calculate_taxes_and_totals")'))
+
     def test_settings_are_saved_only_with_write_access_and_kept_off_the_boot(self):
         save = self.body("save_settings")
         self.assertLess(save.index('profile.check_permission("write")'), save.index("profile.save()"))
