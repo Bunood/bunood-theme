@@ -267,9 +267,35 @@ def bunood_vat_totals(doc):
 
 
 def bunood_item_vat_map(doc):
-    """Per-line VAT {item_code: {"rate": r, "amount": a}} from item_wise_tax_detail."""
+    """Per-line VAT ``{key: {"rate": r, "amount": a}}``, keyed by item code and by item row name.
+
+    ERPNext v16 keeps each line's share of a tax row in the ``item_wise_tax_details``
+    table (item_row, tax_row, rate, amount in company currency); the JSON each tax
+    row carried before (``item_wise_tax_detail``) is no longer filled, and reading it
+    alone printed "—" for every line's VAT. That JSON is still read for a document
+    saved before the table existed.
+    """
     result = {}
+
+    def add(key, rate, amount):
+        if not key:
+            return
+        entry = result.setdefault(key, {"rate": 0, "amount": 0})
+        entry["rate"] = rate
+        entry["amount"] += amount or 0
+
     try:
+        vat_rows = {row.get("name") for row in doc.get("taxes") or [] if _is_vat_row(row)}
+        codes = {row.get("name"): row.get("item_code") for row in doc.get("items") or []}
+        details = [d for d in doc.get("item_wise_tax_details") or [] if d.get("tax_row") in vat_rows]
+        for detail in details:
+            rate, amount = frappe.utils.flt(detail.get("rate")), frappe.utils.flt(detail.get("amount"))
+            add(detail.get("item_row"), rate, amount)
+            code = codes.get(detail.get("item_row"))
+            if code and code != detail.get("item_row"):
+                add(code, rate, amount)
+        if details:
+            return result
         for tax_row in doc.get("taxes") or []:
             if not _is_vat_row(tax_row) or not tax_row.get("item_wise_tax_detail"):
                 continue
@@ -278,9 +304,22 @@ def bunood_item_vat_map(doc):
                 detail = json.loads(detail)
             for item_code, pair in (detail or {}).items():
                 rate, amount = (pair[0], pair[1]) if isinstance(pair, (list, tuple)) else (pair, 0)
-                entry = result.setdefault(item_code, {"rate": 0, "amount": 0})
-                entry["rate"] = rate
-                entry["amount"] += amount or 0
+                add(item_code, rate, amount)
+        if result:
+            return result
+        # An unsaved draft (the bill's «عرض» preview) has no split yet: each line takes
+        # its VAT row's rate, or its item's own rate for that account, on its net amount.
+        for item in doc.get("items") or []:
+            overrides = item.get("item_tax_rate") or "{}"
+            overrides = json.loads(overrides) if isinstance(overrides, str) else overrides
+            for tax_row in doc.get("taxes") or []:
+                if tax_row.get("name") not in vat_rows or tax_row.get("charge_type") != "On Net Total":
+                    continue
+                rate = frappe.utils.flt((overrides or {}).get(tax_row.get("account_head"), tax_row.get("rate")))
+                amount = frappe.utils.flt(item.get("net_amount")) * rate / 100
+                add(item.get("name"), rate, amount)
+                if item.get("item_code") and item.get("item_code") != item.get("name"):
+                    add(item.get("item_code"), rate, amount)
     except Exception:
         frappe.log_error(title="bunood_theme: item_vat_map failed"[:140])
     return result
