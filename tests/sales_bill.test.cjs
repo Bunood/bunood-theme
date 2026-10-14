@@ -858,7 +858,7 @@ test('purchase invoices use the same native workbench contract', () => {
 test('the default bill workbench stays inline while the explicit split action uses a bounded dialog', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
   assert.match(source,/async promptCheckout\(\{ allowCredit = true, receiving = false \} = \{\}\)[\s\S]*?new frappe\.ui\.Dialog/);
-  for (const action of ['frm.savesubmit()','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','erpnext?.utils?.BarcodeScanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  for (const action of ['frm.savesubmit(null, null,','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','erpnext?.utils?.BarcodeScanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 });
 test('both invoice profiles default line discounts to native currency amounts', () => {
   const {profiles} = context.window.bunood_theme.sales_bill;
@@ -901,7 +901,7 @@ test('a sales line reads code, item, unit, quantity, price, discount, before VAT
 
 test('the bill foot adds up whether prices include VAT or not', () => {
   const {billFooter} = context.window.bunood_theme.sales_bill;
-  const vat = (included) => [{ category: 'Total', included_in_print_rate: included ? 1 : 0 }];
+  const vat = (included) => [{ category: 'Total', description: 'VAT 15%', included_in_print_rate: included ? 1 : 0 }];
   // Prices without VAT: 2 × 50 less 5 a unit = 90, a 10 discount on the bill, VAT 15% of 80.
   const plain = billFooter({ total: 90, discount_amount: 10, grand_total: 92, total_taxes_and_charges: 12, taxes: vat(false),
     items: [{ item_code: 'A', qty: 2, discount_amount: 5 }] });
@@ -916,6 +916,22 @@ test('the bill foot adds up whether prices include VAT or not', () => {
   const off = billFooter({ total: 46, grand_total: 46, total_taxes_and_charges: 6, taxes: vat(true), items: [{ item_code: 'A', qty: 2, discount_amount: 2 }] });
   assert.equal(off.gross, 50); assert.equal(off.discount, 4); assert.equal(off.gross - off.discount, off.total);
   assert.equal(billFooter({ items: [], taxes: [] }).total, 0);
+  // Review 2026-10-14: a shipping charge beside a VAT-inclusive price is no discount.
+  const shipped = billFooter({ total: 115, grand_total: 125, total_taxes_and_charges: 25,
+    taxes: [...vat(true), { category: 'Total', description: 'Shipping', charge_type: 'Actual', tax_amount_after_discount_amount: 10 }],
+    items: [{ item_code: 'A', qty: 1 }] });
+  assert.equal(shipped.inclusive, true); assert.equal(shipped.discount, 0); assert.equal(shipped.gross, 115);
+});
+test('a refused submit settles, so the bill and its muted alerts are released', async () => {
+  const {submitConfirmed} = context.window.bunood_theme.sales_bill;
+  const nativeConfirm = context.frappe.confirm;
+  try {
+    context.frappe.confirm = (message, yes) => yes();
+    const refused = { docname: 'ACC-SINV-1', savesubmit: (btn, callback, onError) => { onError(); return new Promise(() => {}); } };
+    await assert.rejects(submitConfirmed(refused), /not submitted/);
+    const accepted = { docname: 'ACC-SINV-2', savesubmit: async () => 'ok' };
+    assert.equal(await submitConfirmed(accepted), 'ok');
+  } finally { context.frappe.confirm = nativeConfirm; }
 });
 
 test('a bill is never refused for its due date', () => {

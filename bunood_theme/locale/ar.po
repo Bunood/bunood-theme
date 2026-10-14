@@ -19881,3 +19881,13 @@ msgstr "الذهاب إلى الوردية: {0}"
 #, fuzzy
 msgid "Point of sale"
 msgstr "نقطة البيع"
+
+#. src: release review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "The invoice was not submitted. Read the message, then try again."
+msgstr "لم تُعتمد الفاتورة. اقرأ الرسالة ثم حاول مرة أخرى."
+
+#. src: release review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "This invoice gathers a shift's point-of-sale sales and is never cancelled: a ZATCA requirement. Record a counting difference with a journal entry, and goods or money given back with a return."
+msgstr "هذه الفاتورة تجمع مبيعات وردية نقطة البيع ولا تُلغى، وهذا من اشتراطات هيئة الزكاة والضريبة والجمارك. سجّل فرق العدّ بقيد يومية، وما يُرجع من بضاعة أو مال بمرتجع."

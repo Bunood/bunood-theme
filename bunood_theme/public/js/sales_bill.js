@@ -101,7 +101,12 @@
 	function billFooter(doc, precision = 2) {
 		const items = (doc?.items || []).filter(row => row.item_code);
 		const taxes = (doc?.taxes || []).filter(tax => tax.category !== "Valuation");
-		const inclusive = taxes.length > 0 && taxes.every(tax => Number(tax.included_in_print_rate));
+		// Whether the prices include VAT is the VAT rows' choice; another charge (shipping, say)
+		// comes on top either way and is no discount.
+		const vatRows = taxes.filter(tax => isVatRow(tax));
+		const inclusive = vatRows.length > 0 && vatRows.every(tax => Number(tax.included_in_print_rate));
+		const charges = taxes.filter(tax => !isVatRow(tax)).reduce((sum, tax) =>
+			sum + Number(tax.tax_amount_after_discount_amount || 0) * (tax.add_deduct_tax === "Deduct" ? -1 : 1), 0);
 		const lineDiscount = items.reduce((sum, row) => {
 			const perUnit = Number(row.discount_amount || 0), qty = Number(row.qty || 0);
 			return Number.isFinite(perUnit) && perUnit > 0 && Number.isFinite(qty) ? sum + qty * perUnit : sum;
@@ -110,7 +115,7 @@
 		const vat = roundMoney(doc?.total_taxes_and_charges, precision);
 		const before = roundMoney(total - vat, precision);
 		const gross = roundMoney(Number(doc?.total || 0) + lineDiscount, precision);
-		const discount = roundMoney(gross - (inclusive ? total : before), precision);
+		const discount = roundMoney(gross - (inclusive ? total - charges : before), precision);
 		const qty = items.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
 		return { inclusive, gross, discount, before, vat, total, count: items.length, qty: roundMoney(qty, 3) };
 	}
@@ -548,7 +553,12 @@
 		// workbench action the user's confirmation. Only the exact native submit
 		// prompt is accepted; every other confirmation still uses Frappe normally.
 		const nativeConfirm = frappe.confirm;
-		if (typeof nativeConfirm !== "function") return Promise.resolve(frm.savesubmit());
+		// Frappe's savesubmit promise settles only on success; a refusal (a credit limit, stock that
+		// ran out, ZATCA's checks) reaches its on_error, which rejects here, so the bill never hangs.
+		const submit = () => new Promise((resolve, reject) => {
+			Promise.resolve(frm.savesubmit(null, null, () => reject(Error(__("The invoice was not submitted. Read the message, then try again."))))).then(resolve, reject);
+		});
+		if (typeof nativeConfirm !== "function") return submit();
 		const expectedPrompt = __("Permanently Submit {0}?", [frm.docname]);
 		let accepted = false;
 		frappe.confirm = function (message, yes, no) {
@@ -558,7 +568,7 @@
 			}
 			return nativeConfirm.apply(this, arguments);
 		};
-		try { return Promise.resolve(frm.savesubmit()); }
+		try { return submit(); }
 		finally { frappe.confirm = nativeConfirm; }
 	}
 	function node(tag, cls, text, parent) {
