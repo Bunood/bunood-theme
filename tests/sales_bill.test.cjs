@@ -250,8 +250,8 @@ test('invoice sheet increments matching products and derives payment creation fr
   assert.doesNotMatch(source, /async duplicateItem\(row\)/);
   assert.doesNotMatch(source, /button\(__\("Add one"\), view\.actions/);
   // The checkout is asked before anything is committed, and its choice decides the payment.
-  assert.match(source, /const checkout = field \? await this\.promptCheckout\(\) : \{ method: null \};[\s\S]*?const createPayment = settlementCreatesPayment\(checkout\.method\)[\s\S]*?await saveDraft\(this\.frm\)/);
-  assert.match(source, /await submitConfirmed\(this\.frm\);[\s\S]*?try \{ await this\.postPayment\(checkout, true\); \}/);
+  assert.match(source, /checkout = field \? await this\.promptCheckout\(\) : \{ method: null \};[\s\S]*?const createPayment = settlementCreatesPayment\(checkout\.method\)[\s\S]*?await quietly\(this\.frm, async \(\) => \{[\s\S]*?await saveDraft\(this\.frm\)/);
+  assert.match(source, /await submitConfirmed\(this\.frm\);[\s\S]*?try \{ payment = await this\.postPayment\(checkout, true, \{ quiet: true \}\); \}/);
 });
 test('credit is not passed to Payment Entry as a fake mode of payment', () => {
   const {settlementCreatesPayment, mixedPaymentSelected, receiptMethod} = context.window.bunood_theme.sales_bill;
@@ -643,11 +643,20 @@ test('Save and Submit follows its own native new-document rename into Submit', a
       w.closed=true;
     };
     w.frm.savesubmit=async()=>{submits++;w.frm.doc.docstatus=1;};
+    const opened=[], alerts=[];
+    Object.assign(context.frappe,{new_doc:async doctype=>{opened.push(doctype);},show_alert:(message)=>{alerts.push(message);},format:value=>String(value)});
+    context.DOMParser=class{parseFromString(text){return {body:{textContent:text}};}};
     await w.submit();
     assert.equal(submits,1,'the native Submit call must follow the successful native Save rename');
     assert.equal(w.frm.doc.docstatus,1);
+    // The counter moves on (owner, 2026-10-14): a new bill, and one message naming the saved one.
+    assert.deepEqual(opened,['Sales Invoice']);
+    assert.equal(alerts.length,1);
+    assert.match(alerts[0].message,/Bill saved: ACC-SINV-TEST/);
+    assert.match(alerts[0].body,/data-action="bnd_open"/);
   } finally {
     context.frappe.ui=previousUi; context.frappe.model=previousModel; context.window.cur_frm=previousCurrent;
+    delete context.frappe.new_doc; delete context.frappe.show_alert; delete context.frappe.format; delete context.DOMParser;
   }
 });
 
@@ -849,7 +858,7 @@ test('purchase invoices use the same native workbench contract', () => {
 test('the default bill workbench stays inline while the explicit split action uses a bounded dialog', () => {
   const source=fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8');
   assert.match(source,/async promptCheckout\(\{ allowCredit = true, receiving = false \} = \{\}\)[\s\S]*?new frappe\.ui\.Dialog/);
-  for (const action of ['frm.savesubmit()','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','erpnext?.utils?.BarcodeScanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
+  for (const action of ['frm.savesubmit(null, null,','frm.savetrash()','frm.print_doc()','makePaymentEntry(this.frm)','erpnext?.utils?.BarcodeScanner']) assert.match(source,new RegExp(action.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')));
 });
 test('both invoice profiles default line discounts to native currency amounts', () => {
   const {profiles} = context.window.bunood_theme.sales_bill;
@@ -858,25 +867,156 @@ test('both invoice profiles default line discounts to native currency amounts', 
     assert.ok(profiles[type].lineFields.indexOf('price_list_rate') < profiles[type].lineFields.indexOf('discount_amount'));
     assert.ok(profiles[type].lineFields.includes('discount_amount'), type);
     assert.ok(!profiles[type].lineFields.includes('discount_percentage'), type);
-    assert.ok(profiles[type].lineFields.includes('rate'));
   }
+  assert.ok(profiles['Purchase Invoice'].lineFields.includes('rate'));
+  // The sales line shows its amount before VAT instead of a price after discount (owner, 2026-10-14).
+  assert.ok(!profiles['Sales Invoice'].lineFields.includes('rate'));
   assert.match(fs.readFileSync('bunood_theme/public/js/sales_bill.js','utf8'), /discount_amount: \(\) => __\("Discount Amount"\)/);
 });
 
-test('a sales line reads price, discount, price after discount, VAT, then total after VAT', () => {
+test('a sales line reads code, item, unit, quantity, price, discount, before VAT, VAT and total', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
   const {profiles} = context.window.bunood_theme.sales_bill;
-  assert.deepEqual(Array.from(profiles['Sales Invoice'].lineFields), ['qty', 'price_list_rate', 'discount_amount', 'rate']);
+  assert.deepEqual(Array.from(profiles['Sales Invoice'].lineFields), ['qty', 'price_list_rate', 'discount_amount']);
   assert.equal(profiles['Sales Invoice'].taxColumns, true);
+  assert.equal(profiles['Sales Invoice'].codeColumn, true);
   assert.equal(profiles['Sales Invoice'].priceFirst, true);
+  assert.equal(profiles['Purchase Invoice'].codeColumn, undefined);
   assert.deepEqual(Array.from(profiles['Purchase Invoice'].lineFields), ['qty', 'rate', 'price_list_rate', 'discount_amount', 'warehouse']);
-  assert.match(source, /\[__\("Line VAT"\), "bnd-bill-head-money"\], \[__\("Line total after VAT"\), "bnd-bill-head-money"\]/);
-  assert.match(source, /rate: \(\) => __\("Price after discount"\)/);
-  assert.match(css, /\.bnd-bill-line-vat \{\s*grid-column: 7;/);
-  // The price after discount follows a price that can be typed.
-  assert.match(source, /return own === "Write" && this\.priceStatus\(row\) === "Write" \? "Read" : own;/);
+  assert.match(source, /\[__\("Code"\), ""\], \[__\("Item"\), ""\], \[__\("Unit"\), ""\], \.\.\.fieldHeads,\s*\[__\("Before VAT"\), "bnd-bill-head-money"\], \[__\("Line VAT"\), "bnd-bill-head-money"\],\s*\[__\("Total"\), "bnd-bill-head-money"\], \[__\("Delete"\), ""\]/);
+  assert.match(source, /price_list_rate: \(\) => __\("Price"\), discount_amount: \(\) => __\("Discount"\)/);
+  // Each column has its place on the coded grid: eleven tracks, eleven cells.
+  const grid = css.match(/\.bnd-bill-lines-coded \{\s*--bnd-bill-grid: ([^;]+);/)[1];
+  assert.equal(grid.replace(/repeat\(3,[^)]+\)\)/, 'a b c').split(/\s+(?![^(]*\))/).length, 11);
+  for (const [cell, column] of [['line-code', 2], ['item', 3], ['line-uom', 4], ['cell-qty', 5], ['cell-price_list_rate', 6], ['cell-discount_amount', 7], ['line-before', 8], ['line-vat', 9], ['line-total', 10], ['line-actions', 11]]) {
+    assert.match(css, new RegExp(`\\.bnd-bill-lines-coded \\.bnd-bill-${cell} \\{ grid-column: ${column}; \\}`), cell);
+  }
+  // Before VAT is what the line's total keeps after its VAT, so a line always adds up.
+  assert.match(source, /this\.money\(view\.before, roundMoney\(split\.total - split\.tax, fieldPrecision\(row, "amount"\)\), df, row\)/);
+  // The code box rides in the last empty row; the price is typed first.
+  assert.match(source, /const readyRow = coded && draft \? \[\.\.\.rows\]\.reverse\(\)\.find\(row => !row\.item_code\) \|\| null : null;/);
   assert.match(source, /frappe\.perm\.get_field_display_status\(\{ \.\.\.df, read_only: 0 \}, row, this\.frm\.perm\)/);
+});
+
+test('the bill foot adds up whether prices include VAT or not', () => {
+  const {billFooter} = context.window.bunood_theme.sales_bill;
+  const vat = (included) => [{ category: 'Total', description: 'VAT 15%', included_in_print_rate: included ? 1 : 0 }];
+  // Prices without VAT: 2 × 50 less 5 a unit = 90, a 10 discount on the bill, VAT 15% of 80.
+  const plain = billFooter({ total: 90, discount_amount: 10, grand_total: 92, total_taxes_and_charges: 12, taxes: vat(false),
+    items: [{ item_code: 'A', qty: 2, discount_amount: 5 }] });
+  assert.deepEqual(JSON.parse(JSON.stringify(plain)), { inclusive: false, gross: 100, discount: 20, before: 80, vat: 12, total: 92, count: 1, qty: 2 });
+  assert.equal(plain.gross - plain.discount, plain.before);
+  assert.equal(plain.before + plain.vat, plain.total);
+  // Prices with VAT: two lines of 10.00, the engine's 2.61 of VAT, nothing discounted.
+  const included = billFooter({ total: 20, grand_total: 20, total_taxes_and_charges: 2.61, taxes: vat(true),
+    items: [{ item_code: 'A', qty: 1 }, { item_code: 'B', qty: 1 }, { item_code: '', qty: 1 }] });
+  assert.deepEqual(JSON.parse(JSON.stringify(included)), { inclusive: true, gross: 20, discount: 0, before: 17.39, vat: 2.61, total: 20, count: 2, qty: 2 });
+  // With VAT in the prices the discount comes off the total due.
+  const off = billFooter({ total: 46, grand_total: 46, total_taxes_and_charges: 6, taxes: vat(true), items: [{ item_code: 'A', qty: 2, discount_amount: 2 }] });
+  assert.equal(off.gross, 50); assert.equal(off.discount, 4); assert.equal(off.gross - off.discount, off.total);
+  assert.equal(billFooter({ items: [], taxes: [] }).total, 0);
+  // Review 2026-10-14: a shipping charge beside a VAT-inclusive price is no discount.
+  const shipped = billFooter({ total: 115, grand_total: 125, total_taxes_and_charges: 25,
+    taxes: [...vat(true), { category: 'Total', description: 'Shipping', charge_type: 'Actual', tax_amount_after_discount_amount: 10 }],
+    items: [{ item_code: 'A', qty: 1 }] });
+  assert.equal(shipped.inclusive, true); assert.equal(shipped.discount, 0); assert.equal(shipped.gross, 115);
+});
+test('a refused submit settles, so the bill and its muted alerts are released', async () => {
+  const {submitConfirmed} = context.window.bunood_theme.sales_bill;
+  const nativeConfirm = context.frappe.confirm;
+  try {
+    context.frappe.confirm = (message, yes) => yes();
+    const refused = { docname: 'ACC-SINV-1', savesubmit: (btn, callback, onError) => { onError(); return new Promise(() => {}); } };
+    await assert.rejects(submitConfirmed(refused), /not submitted/);
+    const accepted = { docname: 'ACC-SINV-2', savesubmit: async () => 'ok' };
+    assert.equal(await submitConfirmed(accepted), 'ok');
+  } finally { context.frappe.confirm = nativeConfirm; }
+});
+
+test('a bill is never refused for its due date', () => {
+  const {fillDueDate} = context.window.bunood_theme.sales_bill;
+  const frm = (doc) => ({ doc: { doctype: 'Sales Invoice', docstatus: 0, posting_date: '2026-10-14', ...doc }, refresh_field() {}, dirty() { this.dirtied = true; } });
+  let f = frm({});
+  assert.equal(fillDueDate(f), true); assert.equal(f.doc.due_date, '2026-10-14');
+  f = frm({ due_date: '2026-10-01', __islocal: 0 });
+  assert.equal(fillDueDate(f), true); assert.equal(f.doc.due_date, '2026-10-14'); assert.equal(f.dirtied, true);
+  f = frm({ due_date: '2026-11-13' });
+  assert.equal(fillDueDate(f), false); assert.equal(f.doc.due_date, '2026-11-13');
+  f = frm({ payment_schedule: [{ due_date: '2026-11-01' }, { due_date: '2026-12-01' }] });
+  assert.equal(fillDueDate(f), true); assert.equal(f.doc.due_date, '2026-12-01');
+  for (const doc of [{ is_return: 1 }, { is_pos: 1 }, { docstatus: 1 }, { doctype: 'Sales Order' }]) {
+    f = frm(doc); assert.equal(fillDueDate(f), false); assert.equal(f.doc.due_date, undefined);
+  }
+  f = frm({ doctype: 'Purchase Invoice', bill_date: '2026-10-10', posting_date: '2026-10-14' });
+  assert.equal(fillDueDate(f), true); assert.equal(f.doc.due_date, '2026-10-10');
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /fillDueDate\(frm\);\s*if \(typeof frappe\.ui\?\.form\?\.check_mandatory === "function"/);
+  assert.match(source, /frappe\.ui\.form\.on\("Sales Invoice", \{\s*validate: frm => \{ fillDueDate\(frm\); \},/);
+});
+
+test('the checkout holds back the save and submit alerts and nothing else', async () => {
+  const {quietly} = context.window.bunood_theme.sales_bill;
+  const shown = [], native = (message) => { shown.push(typeof message === 'string' ? message : message.message); };
+  context.frappe.show_alert = native; context.frappe.toast = native;
+  const frm = {};
+  try {
+    await quietly(frm, async () => {
+      context.frappe.show_alert({ message: 'Saved', indicator: 'green' });
+      context.frappe.show_alert({ message: 'Submitted', indicator: 'green' });
+      context.frappe.show_alert('Stock is low');
+      frm.show_success_action();
+    });
+    assert.deepEqual(shown, ['Stock is low']);
+    assert.equal(context.frappe.show_alert, native);
+    assert.equal(context.frappe.toast, native);
+    assert.equal(Object.prototype.hasOwnProperty.call(frm, 'show_success_action'), false);
+    await assert.rejects(quietly(frm, async () => { throw new Error('refused'); }), /refused/);
+    assert.equal(context.frappe.show_alert, native);
+  } finally { delete context.frappe.show_alert; delete context.frappe.toast; }
+});
+
+test('a sales invoice is never cancelled; a purchase bill asks one plain question, never through «إلغاء الكل»', async () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  // ZATCA's rule (owner, 2026-10-14): no cancel on a sales invoice, in the bill or in Frappe's toolbar.
+  assert.match(source, /this\.cancelButton\.hidden = !nativeActions\.showCancel \|\| neverCancelled\(frm\.doctype\);/);
+  assert.match(source, /frm\.toolbar\.can_cancel = \(\) => false;/);
+  const {BillWorkbench} = context.window.bunood_theme.sales_bill;
+  const w = Object.create(BillWorkbench.prototype), told = [];
+  Object.assign(w, { frm: { doctype: 'Sales Invoice', doc: { docstatus: 1, name: 'ACC-SINV-1' } }, doc: { docstatus: 1 } });
+  context.frappe.msgprint = (message) => { told.push(message); };
+  context.frappe.call = () => { throw new Error('nothing is asked of the server'); };
+  try {
+    await w.cancelDocument();
+    assert.equal(told.length, 1);
+    assert.match(told[0].message, /never cancelled once it is submitted/);
+  } finally { delete context.frappe.msgprint; delete context.frappe.call; }
+  assert.match(source, /this\.cancelButton = this\.action\(documentActions, __\("Cancel the invoice"\)/);
+  assert.match(source, /frappe\.desk\.form\.linked_with\.get_submitted_linked_docs/);
+  assert.match(source, /secondary_action_label: __\("Keep the invoice"\)/);
+  // Confirmed once, Frappe's own steps run without their second prompt or the Cancel All dialog.
+  assert.match(source, /frappe\.desk\.form\.linked_with\.cancel_all_linked_docs[\s\S]*?frm\._cancel\(null, null, null, true\);/);
+  assert.match(source, /frm\.savecancel = function \(\.\.\.args\) \{[\s\S]*?workbench\.cancelDocument\(\) : nativeCancel\.apply\(this, args\)/);
+});
+
+test('«جديد» and «الفواتير» sit beside «حفظ» and «طباعة», and a bill with lines is not dropped silently', async () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  assert.match(source, /this\.newButton = this\.action\(commitActions, __\("New"\)/);
+  assert.match(source, /this\.listButton = this\.action\(commitActions, __\("Invoices"\)/);
+  const {BillWorkbench} = context.window.bunood_theme.sales_bill;
+  const w = Object.create(BillWorkbench.prototype);
+  const opened = [], asked = [];
+  Object.assign(w, { frm: { doctype: 'Sales Invoice', is_dirty: () => true }, doc: { docstatus: 0, __islocal: 1, items: [{ item_code: 'A' }] },
+    queue: { count: 0 }, active: () => true });
+  context.frappe.new_doc = (doctype) => { opened.push(doctype); };
+  context.frappe.confirm = (message, yes) => { asked.push(message); yes(); };
+  try {
+    w.newDocument();
+    assert.equal(asked.length, 1); assert.deepEqual(opened, ['Sales Invoice']);
+    w.doc.items = [{ item_code: '' }];
+    w.newDocument();
+    assert.equal(asked.length, 1, 'an empty bill starts over without asking'); assert.equal(opened.length, 2);
+  } finally { delete context.frappe.new_doc; delete context.frappe.confirm; }
 });
 
 test('print is a visible operational action beside payment and disabled commits remain legible', () => {

@@ -499,6 +499,8 @@ test("a point of sale another front end owns sends the cashier there instead of 
 test("the counter never sends the cashier to another screen; a shift there is named on the gate", () => {
 	assert.doesNotMatch(js, /location\.replace|goElsewhere|renderElsewhere/);
 	assert.match(fn("renderGate"), /const elsewhere = ctx\.shift_elsewhere;/);
-	assert.match(fn("renderGate"), /elsewhere\s*\? h\("p", \{ class: "bnd-pos__warn" \}, __\("Your shift is open on another screen: \{0\}"/);
+	assert.match(fn("renderGate"), /elsewhere\s*\? h\("div", \{ class: "bnd-pos__elsewhere" \},\s*h\("p", \{ class: "bnd-pos__warn" \}, __\("Your shift is open on another screen: \{0\}"/);
+	// Owner, 2026-10-14: and the way there, which the cashier presses; nothing moves by itself.
+	assert.match(fn("renderGate"), /onclick: \(\) => window\.location\.assign\(elsewhere\.route\)/);
 	assert.match(fn("showSale"), /if \(!state\.profile\) return;/);
 });

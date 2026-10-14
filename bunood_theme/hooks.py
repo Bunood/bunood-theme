@@ -176,6 +176,16 @@ doc_events = {
         "after_rename": "bunood_theme.pos.rename_counter_settings",
         "on_trash": "bunood_theme.pos.drop_counter_settings",
     },
+    # A sales invoice is never cancelled, nor deleted once issued (owner, 2026-10-14: ZATCA's
+    # rule, for every company, not only those on Phase 2). invoice_rules.py says why.
+    "Sales Invoice": {
+        "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
+        "on_trash": "bunood_theme.invoice_rules.refuse_delete",
+    },
+    "POS Invoice": {
+        "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
+        "on_trash": "bunood_theme.invoice_rules.refuse_delete",
+    },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
     # Invoice would switch every new invoice to exact-halala totals (no

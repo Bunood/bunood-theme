@@ -553,7 +553,13 @@
 							storeFacts(profile),
 							h("p", { class: "bnd-pos__muted" }, __("The items' quantities, and the stock of every sale on this shift, come from this warehouse.", null, "Bunood POS")),
 							elsewhere
-								? h("p", { class: "bnd-pos__warn" }, __("Your shift is open on another screen: {0}", [elsewhere.title || elsewhere.pos_profile]), " ", __("Close it there before opening a shift here.", null, "Bunood POS"))
+								? h("div", { class: "bnd-pos__elsewhere" },
+									h("p", { class: "bnd-pos__warn" }, __("Your shift is open on another screen: {0}", [elsewhere.title || elsewhere.pos_profile]), " ", __("Close it there before opening a shift here.", null, "Bunood POS"),
+										elsewhere.period_start_date ? ` ${__("Opened on: {0}", [frappe.datetime?.str_to_user ? frappe.datetime.str_to_user(elsewhere.period_start_date) : elsewhere.period_start_date], "Bunood POS")}` : ""),
+									// Pressed, never automatic (owner, 2026-10-11: the counter never sends the
+									// cashier anywhere by itself); the other screen closes its own shift.
+									elsewhere.route ? h("button", { type: "button", class: "bnd-pos__ghost bnd-pos__ghost--tall", onclick: () => window.location.assign(elsewhere.route) },
+										__("Go to the shift: {0}", [elsewhere.title || elsewhere.pos_profile], "Bunood POS")) : null)
 								: canOpen
 								? h("button", { type: "button", class: "bnd-pos__primary bnd-pos__primary--tall", onclick: () => openShift(cashMethod, cashTotal) }, __("Open the shift and start selling", null, "Bunood POS"))
 								: h("p", { class: "bnd-pos__warn" }, __("You do not have permission to open a POS shift.", null, "Bunood POS"))))))
