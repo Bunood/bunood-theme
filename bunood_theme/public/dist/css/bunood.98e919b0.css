@@ -11077,6 +11077,259 @@ html[data-theme] .bnd-delivery-simple-active .std-form-layout > .form-layout {
     max-inline-size: 9rem;
   }
 }
+.bnd-bill-lines-coded {
+  --bnd-bill-grid: 2rem minmax(6.5rem,1fr) minmax(9rem,2fr) minmax(4.5rem,.7fr) minmax(3.5rem,.6fr) minmax(5.5rem,1fr) minmax(5rem,.9fr) minmax(5.5rem,1fr) minmax(5rem,.9fr) minmax(6rem,1.1fr) 3.5rem;
+}
+
+.bnd-bill-lines-coded .bnd-bill-line-code {
+  grid-column: 2;
+}
+
+.bnd-bill-lines-coded .bnd-bill-item {
+  grid-column: 3;
+}
+
+.bnd-bill-lines-coded .bnd-bill-line-uom {
+  grid-column: 4;
+}
+
+.bnd-bill-lines-coded .bnd-bill-cell-qty {
+  grid-column: 5;
+}
+
+.bnd-bill-lines-coded .bnd-bill-cell-price_list_rate {
+  grid-column: 6;
+}
+
+.bnd-bill-lines-coded .bnd-bill-cell-discount_amount {
+  grid-column: 7;
+}
+
+.bnd-bill-lines-coded .bnd-bill-line-before {
+  grid-column: 8;
+}
+
+.bnd-bill-lines-coded .bnd-bill-line-vat {
+  grid-column: 9;
+}
+
+.bnd-bill-lines-coded .bnd-bill-line-total {
+  grid-column: 10;
+}
+
+.bnd-bill-lines-coded .bnd-bill-line-actions {
+  grid-column: 11;
+}
+
+.bnd-bill-line-code,
+.bnd-bill-line-uom {
+  display: flex;
+  align-items: center;
+  min-inline-size: 0;
+}
+
+.bnd-bill-line-before {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.bnd-bill-line-before > .bnd-bill-hint {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.bnd-bill-code-input {
+  inline-size: 100%;
+  font-size: var(--bnd-text-sm);
+  border-color: color-mix(in srgb, var(--bnd-brand-solid) 45%, var(--bnd-border));
+}
+
+.bnd-bill-code-input:focus {
+  border-color: var(--bnd-brand-solid);
+}
+
+.bnd-bill-code-text {
+  min-inline-size: 0;
+  overflow: hidden;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-xs);
+  font-variant-numeric: var(--bnd-numeric);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bnd-bill-uom-select {
+  inline-size: 100%;
+  block-size: var(--bnd-control-h);
+  min-block-size: var(--bnd-control-h);
+  padding-block: 0;
+  font-size: var(--bnd-text-sm);
+}
+
+.bnd-bill-uom-text {
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+}
+
+.bnd-bill-foot-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-4);
+  margin: 0;
+  color: var(--bnd-ink-muted);
+  font-size: var(--bnd-text-sm);
+  font-variant-numeric: var(--bnd-numeric);
+}
+
+.bnd-bill-amount-breakdown.bnd-bill-foot {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.bnd-bill-amount-breakdown.bnd-bill-foot > .bnd-bill-foot-card {
+  padding: var(--bnd-sp-2) var(--bnd-sp-3);
+}
+
+.bnd-bill-foot-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bnd-sp-1);
+}
+
+.bnd-bill-amount-breakdown.bnd-bill-foot dt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bnd-sp-2);
+  min-block-size: var(--bnd-sp-5);
+  font-size: var(--bnd-text-xs);
+  line-height: var(--bnd-leading-tight);
+}
+
+.bnd-bill-amount-breakdown.bnd-bill-foot dd {
+  margin: 0;
+  font-size: var(--bnd-text-md);
+}
+
+.bnd-bill-foot-card.bnd-bill-foot-total {
+  color: var(--bnd-on-deep);
+  background: var(--bnd-brand-deep);
+}
+
+.bnd-bill-foot-card.bnd-bill-foot-total :is(dt, dd) {
+  color: inherit;
+}
+
+.bnd-bill-amount-breakdown.bnd-bill-foot .bnd-bill-foot-total dd {
+  font-size: var(--bnd-text-lg);
+}
+
+.bnd-bill-foot-extra {
+  grid-column: span 2;
+}
+
+.bnd-bill-foot-action {
+  flex: none;
+  min-block-size: 0;
+  padding: 0 var(--bnd-sp-1);
+  color: var(--bnd-brand-ink);
+  font-size: var(--bnd-text-xs);
+  line-height: var(--bnd-leading-tight);
+}
+
+.bnd-bill-amount-grand[hidden] {
+  display: none;
+}
+
+.bnd-bill-saved-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bnd-sp-2);
+  margin-block-start: var(--bnd-sp-2);
+}
+
+.bnd-bill-cancel-links {
+  margin-block: var(--bnd-sp-2);
+  padding-inline-start: var(--bnd-sp-5);
+}
+
+.bnd-bill-lines-coded .bnd-bill-item[data-item-ready=true] .frappe-control .control-value {
+  display: none;
+}
+
+@container (width < 960px) {
+  .bnd-bill-lines-coded {
+    --bnd-bill-grid: 1.5rem minmax(5rem,.8fr) minmax(7rem,1.6fr) minmax(4rem,.6fr) minmax(3rem,.5fr) minmax(6rem,1fr) minmax(5rem,.8fr) minmax(6rem,1fr) minmax(5rem,.8fr) minmax(6rem,1fr) 3rem;
+  }
+  .bnd-bill-amount-breakdown.bnd-bill-foot {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .bnd-bill-foot-card.bnd-bill-foot-total {
+    grid-column: 1/-1;
+  }
+}
+@container (width < 460px) {
+  .bnd-bill-amount-breakdown.bnd-bill-foot {
+    grid-template-columns: 1fr;
+  }
+}
+@media (width < 768px) {
+  .bnd-bill-lines-coded .bnd-bill-line-body > * {
+    grid-column: auto;
+  }
+  .bnd-bill-lines-coded .bnd-bill-line-code,
+  .bnd-bill-lines-coded .bnd-bill-item {
+    grid-column: 1/-1;
+  }
+  .bnd-bill-lines-coded .bnd-bill-line-actions {
+    grid-column: 1/-1;
+  }
+  .bnd-bill-lines-coded .bnd-bill-line-before {
+    justify-content: flex-start;
+    gap: var(--bnd-sp-2);
+  }
+  .bnd-bill-line-before > .bnd-bill-hint {
+    position: static;
+    display: block;
+    inline-size: auto;
+    block-size: auto;
+    margin-block-end: var(--bnd-sp-1);
+    overflow: visible;
+    clip-path: none;
+  }
+  .bnd-bill-foot-extra {
+    grid-column: auto;
+  }
+}
+.bnd-bill-lines-coded .bnd-bill-cell .control-value {
+  font-size: var(--bnd-text-sm);
+}
+
+html[data-theme][data-bnd-own~=salesbill] .bnd-bill-simple-active .layout-side-section {
+  display: none;
+}
+
+.bnd-invoice-send-dialog .modal-dialog {
+  max-inline-size: 40rem;
+}
+
+.bnd-invoice-send-dialog .frappe-control[data-fieldtype=Button] .btn {
+  inline-size: 100%;
+  min-block-size: var(--bnd-control-h);
+  color: var(--bnd-on-brand);
+  background: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+  font-weight: 650;
+}
+
+.bnd-invoice-send-dialog .frappe-control[data-fieldtype=Button] .btn:hover {
+  filter: brightness(0.95);
+}
+
 @media (width >= 576px) {
   html[data-theme] .bnd-bill-toolbar > .bnd-bill-action,
   html[data-theme] .bnd-bill-action-group-commit > .bnd-bill-action {
