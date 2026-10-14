@@ -17,12 +17,14 @@
 		"Sales Invoice": {
 			party: "customer", partyDoctype: "Customer", title: "Sales bill", priceList: "selling_price_list",
 			paymentMethod: "bunood_settlement_method",
-			// One column each, in the order the owner reads a line (2026-10-12): the
-			// price, its discount, the price after it, the line's VAT and the line's
-			// total after VAT. The warehouse comes from the branch chip.
-			lineFields: ["qty", "price_list_rate", "discount_amount", "rate"],
-			lineLabels: { discount_amount: () => __("Discount"), rate: () => __("Price after discount") },
+			// The owner's sample sheet (2026-10-14): the code (a scanner types into the
+			// ready row's), the item, its unit, the quantity, the price, its discount,
+			// then the line before VAT, its VAT and its total, each line adding up. The
+			// warehouse comes from the branch chip.
+			lineFields: ["qty", "price_list_rate", "discount_amount"],
+			lineLabels: { price_list_rate: () => __("Price"), discount_amount: () => __("Discount") },
 			taxColumns: true,
+			codeColumn: true,
 			// The price is typed here and the price after discount follows it, so the
 			// three always agree (ERPNext's own price_list_rate trigger works the rate).
 			priceFirst: true,
@@ -89,6 +91,79 @@
 			? { before: roundMoney(Number(doc.total || 0) + lineDiscount), amount }
 			: null;
 	};
+	// The bill's foot as the owner's sample reads it (2026-10-14): the items' total, the
+	// discount, the amount before VAT, the VAT and the total, and the figures always add
+	// up. Where the prices include VAT the first two include it too (total − discount =
+	// the total due); otherwise they do not (total − discount = before VAT). Every figure
+	// comes from the engine's own totals: the VAT is the posted tax rows, the total the
+	// grand total, before VAT what is left of it, and the discount whatever separates the
+	// items' prices from that end (the lines' discounts and the invoice's own).
+	function billFooter(doc, precision = 2) {
+		const items = (doc?.items || []).filter(row => row.item_code);
+		const taxes = (doc?.taxes || []).filter(tax => tax.category !== "Valuation");
+		const inclusive = taxes.length > 0 && taxes.every(tax => Number(tax.included_in_print_rate));
+		const lineDiscount = items.reduce((sum, row) => {
+			const perUnit = Number(row.discount_amount || 0), qty = Number(row.qty || 0);
+			return Number.isFinite(perUnit) && perUnit > 0 && Number.isFinite(qty) ? sum + qty * perUnit : sum;
+		}, 0);
+		const total = roundMoney(doc?.grand_total, precision);
+		const vat = roundMoney(doc?.total_taxes_and_charges, precision);
+		const before = roundMoney(total - vat, precision);
+		const gross = roundMoney(Number(doc?.total || 0) + lineDiscount, precision);
+		const discount = roundMoney(gross - (inclusive ? total : before), precision);
+		const qty = items.reduce((sum, row) => sum + (Number(row.qty) || 0), 0);
+		return { inclusive, gross, discount, before, vat, total, count: items.length, qty: roundMoney(qty, 3) };
+	}
+	// A bill can be saved with no due date (owner, 2026-10-14): one paid at the counter is
+	// due the day it is made. ERPNext asks for the date on every invoice and works it out
+	// only when the party's terms say otherwise; an empty or earlier date becomes the
+	// invoice's own date (a purchase's supplier date), or its payment schedule's last. The
+	// date is written to the document directly: ERPNext's due_date trigger would clear the
+	// payment terms the schedule came from.
+	function fillDueDate(frm) {
+		const doc = frm?.doc;
+		if (!doc || !["Sales Invoice", "Purchase Invoice"].includes(doc.doctype) || Number(doc.docstatus) !== 0 ||
+			Number(doc.is_return) || Number(doc.is_pos)) return false;
+		const start = doc.doctype === "Purchase Invoice" ? doc.bill_date || doc.posting_date : doc.posting_date;
+		if (!start || (doc.due_date && String(doc.due_date) >= String(start))) return false;
+		const scheduled = (doc.payment_schedule || []).map(row => String(row.due_date || "")).filter(Boolean).sort().at(-1);
+		doc.due_date = scheduled && scheduled >= String(start) ? scheduled : start;
+		frm.refresh_field?.("due_date");
+		if (!doc.__islocal) frm.dirty?.();
+		return true;
+	}
+	// The checkout says once what happened (owner, 2026-10-14): Frappe's own «تم الحفظ» and
+	// «معتمد», and ERPNext's «submitted successfully» box, are held back while it runs;
+	// every other message still shows.
+	async function quietly(frm, run) {
+		const nativeAlert = frappe.show_alert, nativeToast = frappe.toast;
+		const muted = new Set(["Saved", "Submitted", __("Saved"), __("Submitted")]);
+		const own = Object.prototype.hasOwnProperty.call(frm, "show_success_action");
+		const ownAction = frm.show_success_action;
+		const filtered = function (message, ...rest) {
+			const text = String((typeof message === "string" ? message : message?.message) ?? "").trim();
+			if (muted.has(text)) return typeof $ === "function" ? $("<div>") : null;
+			return nativeAlert.call(this, message, ...rest);
+		};
+		if (typeof nativeAlert === "function") { frappe.show_alert = filtered; if (nativeToast) frappe.toast = filtered; }
+		frm.show_success_action = () => {};
+		try { return await run(); }
+		finally {
+			frappe.show_alert = nativeAlert;
+			if (nativeToast) frappe.toast = nativeToast;
+			if (own) frm.show_success_action = ownAction; else delete frm.show_success_action;
+		}
+	}
+	// A sales invoice is never cancelled once submitted (owner, 2026-10-14: ZATCA's rule);
+	// the server refuses it too (invoice_rules.refuse_cancel). A purchase bill may still be.
+	const neverCancelled = doctype => ["Sales Invoice", "POS Invoice"].includes(doctype);
+	function refuseCancel() {
+		frappe.msgprint({
+			title: __("This invoice cannot be cancelled"),
+			message: __("A sales invoice is never cancelled once it is submitted: a ZATCA requirement. To give money or goods back, make a return (a credit note)."),
+			indicator: "orange",
+		});
+	}
 	const balancedPaymentPair = (value, total, precision = 2) => {
 		const due = Math.max(0, roundMoney(total, precision));
 		const requested = roundMoney(value, precision);
@@ -455,6 +530,7 @@
 		// Frappe's Form.save promise does not settle when its native mandatory
 		// check returns false. Run the same check first so validation feedback is
 		// still native, while callers can always release their busy state.
+		fillDueDate(frm);
 		if (typeof frappe.ui?.form?.check_mandatory === "function" && !frappe.ui.form.check_mandatory(frm)) {
 			throw Error(__("Complete the required fields highlighted in the form, then try again."));
 		}
@@ -680,7 +756,11 @@
 			dialog.enable_primary_action();
 			dialog.get_primary_btn().prop("disabled", false);
 			dialog.get_secondary_btn().prop("disabled", false);
-			if (autoPrint && !sandbox) { frame.contentWindow.focus(); frame.contentWindow.print(); }
+			if (autoPrint && !sandbox) {
+				// Printed straight away, the preview closes once the print dialog does.
+				frame.contentWindow.addEventListener("afterprint", () => setTimeout(() => dialog.hide(), 0), { once: true });
+				frame.contentWindow.focus(); frame.contentWindow.print();
+			}
 		};
 		const method = sandbox ? "preview_sandbox_invoice" : "preview_customer_invoice";
 		const args = { doctype, name, ...(!sandbox && printFormat ? { print_format: printFormat } : {}) };
@@ -738,7 +818,7 @@
 			body.append(frame);
 		}).catch(() => { if (active) status.textContent = __("Invoice print preview is unavailable. Try again shortly."); });
 	}
-	async function printCustomerInvoice(frm, printFormat = "") {
+	async function printCustomerInvoice(frm, printFormat = "", autoPrint = false) {
 		if (!submittedCustomerInvoice(frm)) return frm.print_doc();
 		let readiness;
 		try { readiness = await deliveryStatus(frm.doc); }
@@ -755,12 +835,42 @@
 		if (readiness.regulated && printFormat && printFormat !== readiness.format) {
 			frappe.show_alert({ message: __("A ZATCA invoice prints in the ZATCA format."), indicator: "blue" });
 		}
-		previewInvoice(frm.doctype, frm.doc.name, false, false, printFormat);
+		previewInvoice(frm.doctype, frm.doc.name, false, autoPrint, printFormat);
+	}
+	// A bill just saved, as the print helpers read it, once the screen has moved on.
+	function savedInvoice(done) {
+		return { doctype: done.doctype, doc: { doctype: done.doctype, name: done.name, docstatus: 1 } };
+	}
+	// One message after «حفظ» or «طباعة» (owner, 2026-10-14): which bill was saved, what was
+	// received for it, and the way back to it or to its print.
+	function announceSaved(done, payment, printFormat = "") {
+		const escape = value => frappe.utils?.escape_html ? frappe.utils.escape_html(String(value ?? "")) : String(value ?? "");
+		const amount = (value, currency) => new DOMParser().parseFromString(
+			frappe.format(value, { fieldtype: "Currency", options: currency }, { inline: true }), "text/html").body.textContent || "";
+		const subtitle = payment?.entries?.length
+			? __("Payment recorded: {0}", [payment.entries.map(entry => `${__(entry.mode_of_payment)} ${amount(entry.amount, payment.currency)}`).join(" · ")])
+			: done.credit ? __("On credit: the customer owes {0}", [amount(done.total, done.currency)]) : "";
+		const actions = `<div class="bnd-bill-saved-actions">` +
+			`<button type="button" class="btn btn-xs btn-default" data-action="bnd_open">${escape(__("Open the invoice"))}</button>` +
+			(done.doctype === "Sales Invoice" ? `<button type="button" class="btn btn-xs btn-default" data-action="bnd_print">${escape(__("Print"))}</button>` : "") +
+			`</div>`;
+		frappe.show_alert({ message: escape(__("Bill saved: {0}", [done.name])), subtitle: escape(subtitle), body: actions, indicator: "green" }, 12, {
+			bnd_open: () => frappe.set_route("Form", done.doctype, done.name),
+			bnd_print: () => void printCustomerInvoice(savedInvoice(done), printFormat),
+		});
 	}
 	class BillWorkbench {
 		constructor(frm) {
 			this.frm = frm; this.doc = frm.doc; this.docname = frm.doc.name; this.profile = profileFor(frm); this.controls = []; this.closed = false; this.simple = true; this.invalid = new Map(); this.pending = new Map(); this.rowViews = new Map(); this.editTimers = new Map(); this.mobileExpanded = "";
 			this.queue = new SerialChanges(() => this.active(), () => this.busy());
+			// Frappe's own «إلغاء» (the Advanced form's) asks the same plain question as ours.
+			if (typeof frm.savecancel === "function" && !frm.bndNativeCancel) {
+				const nativeCancel = frm.bndNativeCancel = frm.savecancel;
+				frm.savecancel = function (...args) {
+					const workbench = instances.get(frm);
+					return workbench && !workbench.closed && workbench.syncDocument() ? workbench.cancelDocument() : nativeCancel.apply(this, args);
+				};
+			}
 			this.native = frm.$wrapper?.find(".form-layout").first()?.[0];
 			this.host = this.native?.parentElement || frm.$wrapper?.[0] || frm.wrapper;
 			this.root = node("section", "bnd-bill", null, null);
@@ -814,8 +924,13 @@
 			documentActions.setAttribute("role", "group"); documentActions.setAttribute("aria-label", __("Invoice actions"));
 			const utilityActions = node("div", "bnd-bill-action-group bnd-bill-action-group-utility", null, toolBody);
 			utilityActions.setAttribute("role", "group"); utilityActions.setAttribute("aria-label", __("Invoice tools"));
-			this.newButton = this.action(utilityActions, __("New"), null, null, () => this.newDocument());
+			// «جديد» beside «حفظ» and «طباعة» (owner, 2026-10-14), and the bills already made
+			// one click away: a draft to finish or print again, or any earlier bill.
+			this.newButton = this.action(commitActions, __("New"), null, "file-plus", () => this.newDocument());
 			this.newButton.classList.add("bnd-bill-action-new");
+			this.newButton.dataset.bndAction = "new";
+			this.newButton.setAttribute("aria-label", __("Start a new bill"));
+			this.newButton.setAttribute("title", __("Start a new bill"));
 			// Saving a draft remains immediately available from Invoice tools and F9,
 			// but it is not a second commitment CTA in the compact bottom bar.
 			this.saveButton = this.action(documentActions, __("Save draft"), "F9", "save", () => this.save());
@@ -849,10 +964,17 @@
 			this.previewButton.dataset.bndAction = "preview";
 			this.previewButton.setAttribute("aria-label", __("View the bill before printing or saving"));
 			this.previewButton.setAttribute("title", __("View the bill before printing or saving"));
+			this.listButton = this.action(commitActions, __("Invoices"), null, "list", () => this.openList());
+			this.listButton.classList.add("bnd-bill-action-list");
+			this.listButton.dataset.bndAction = "list";
+			this.listButton.setAttribute("aria-label", __("Earlier bills: drafts to finish and bills to print again"));
+			this.listButton.setAttribute("title", __("Earlier bills: drafts to finish and bills to print again"));
 			this.sendButton = this.action(documentActions, __("Send invoice to customer"), null, "send", () => showInvoiceDelivery(this.frm));
 			this.sendButton.classList.add("bnd-bill-action-send");
 			this.duplicateButton = this.action(documentActions, __("Duplicate"), null, "copy", () => this.duplicateDocument());
-			this.cancelButton = this.action(documentActions, __("Cancel document"), null, "close", () => this.cancelDocument());
+			// «إلغاء» alone reads as "close this" (owner, 2026-10-14): the button names what it
+			// cancels, and asks in plain words before it does.
+			this.cancelButton = this.action(documentActions, __("Cancel the invoice"), null, "close", () => this.cancelDocument());
 			this.cancelButton.classList.add("bnd-bill-action-danger");
 			this.paymentButton = this.action(commitActions, __("Record payment"), "F7", "coins", () => this.payment(), true);
 			this.paymentButton.classList.add("bnd-bill-action-save");
@@ -910,7 +1032,11 @@
 			const primaryFields = ["posting_date", ...(frm.doctype === "Purchase Invoice" ? ["bill_no"] : [])];
 			for (const name of primaryFields) {
 				const source = frm.fields_dict[name];
-				if (source && fieldStatus(frm, name) !== "None") this.bindControl(essentials, source, this.doc);
+				if (!source || fieldStatus(frm, name) === "None") continue;
+				// «تاريخ الفاتورة», not ERPNext's «تاريخ القيد» (owner, 2026-10-14).
+				if (name === "posting_date" && frm.doctype === "Sales Invoice") {
+					this.bindControl(essentials, { df: { ...source.df, label: __("Invoice Date") }, get_status: () => source.get_status() }, this.doc);
+				} else this.bindControl(essentials, source, this.doc);
 			}
 			// The customer, the date, then how the document prints, on one row (owner,
 			// 2026-10-12). It starts on the organisation's default print format.
@@ -947,38 +1073,49 @@
 			// The scan box sits above the lines: a barcode scanner types into it and
 			// presses Enter, and so can a person with an item code. ERPNext's own
 			// BarcodeScanner places the item, so a second scan raises the quantity.
-			const scan = node("div", "bnd-bill-scan bnd-bill-draft-only", null, items);
-			scan.setAttribute("role", "search");
-			this.scanButton = button("", scan, () => this.focusScan());
-			this.scanButton.classList.add("bnd-bill-icon-button", "bnd-bill-scan-icon");
-			this.scanButton.innerHTML = frappe.utils.icon("scan", "sm");
-			this.scanButton.setAttribute("aria-label", __("Scan barcode"));
-			this.scanButton.title = __("Scan barcode");
-			this.scanInput = node("input", "bnd-bill-scan-input", null, scan);
+			// On a sheet with a code column (the owner's sample, 2026-10-14) the box is the ready
+			// row's own code cell, where the next item goes; render() keeps it there.
+			const coded = !!this.profile.codeColumn;
+			const scan = coded ? null : node("div", "bnd-bill-scan bnd-bill-draft-only", null, items);
+			if (scan) {
+				scan.setAttribute("role", "search");
+				this.scanButton = button("", scan, () => this.focusScan());
+				this.scanButton.classList.add("bnd-bill-icon-button", "bnd-bill-scan-icon");
+				this.scanButton.innerHTML = frappe.utils.icon("scan", "sm");
+				this.scanButton.setAttribute("aria-label", __("Scan barcode"));
+				this.scanButton.title = __("Scan barcode");
+			}
+			this.scanInput = node("input", coded ? "bnd-bill-scan-input bnd-bill-code-input" : "bnd-bill-scan-input", null, scan);
 			this.scanInput.type = "text";
 			this.scanInput.autocomplete = "off";
 			this.scanInput.spellcheck = false;
-			this.scanInput.placeholder = __("Scan a barcode or type an item code, then press Enter");
+			this.scanInput.dir = "auto";
+			this.scanInput.placeholder = coded ? __("Barcode or code") : __("Scan a barcode or type an item code, then press Enter");
 			this.scanInput.setAttribute("aria-label", __("Scan a barcode or type an item code, then press Enter"));
 			this.scanInput.addEventListener("keydown", e => {
 				if (e.key !== "Enter" || e.isComposing) return;
 				e.preventDefault(); e.stopPropagation();
 				void this.scanCode(this.scanInput.value);
 			});
-			node("kbd", "bnd-bill-scan-key", "F2", scan).setAttribute("aria-hidden", "true");
+			if (scan) node("kbd", "bnd-bill-scan-key", "F2", scan).setAttribute("aria-hidden", "true");
 			const search = node("div", "bnd-bill-search bnd-bill-draft-only", null, items);
 			this.addLineButton = button(__("Add line"), search, () => this.addBlankLine(true), true);
 			if (this.profile.newItem && (frappe.boot.user.can_create || []).includes("Item")) {
 				this.newItemButton = button(__("New item"), search, () => this.newItem());
 				node("kbd", "bnd-bill-search-key", "F4", this.newItemButton).setAttribute("aria-hidden", "true");
 			}
-			this.lines = node("div", "bnd-bill-lines", null, items);
+			this.lines = node("div", coded ? "bnd-bill-lines bnd-bill-lines-coded" : "bnd-bill-lines", null, items);
 			this.lineHead = node("div", "bnd-bill-line-head", null, this.lines);
 			const rowHead = node("span", "bnd-bill-head-row", "#", this.lineHead);
 			rowHead.setAttribute("aria-label", __("Row"));
-			for (const [label, cls] of [
+			const fieldHeads = this.profile.lineFields.map(name => [lineLabel(this.profile, name), ""]);
+			for (const [label, cls] of coded ? [
+				[__("Code"), ""], [__("Item"), ""], [__("Unit"), ""], ...fieldHeads,
+				[__("Before VAT"), "bnd-bill-head-money"], [__("Line VAT"), "bnd-bill-head-money"],
+				[__("Total"), "bnd-bill-head-money"], [__("Delete"), ""],
+			] : [
 				[__("Item"), ""],
-				...this.profile.lineFields.map(name => [lineLabel(this.profile, name), ""]),
+				...fieldHeads,
 				...(this.profile.taxColumns
 					? [[__("Line VAT"), "bnd-bill-head-money"], [__("Line total after VAT"), "bnd-bill-head-money"]]
 					: [[__("Amount"), "bnd-bill-head-money"]]),
@@ -990,6 +1127,7 @@
 			this.amountSummary.setAttribute("aria-live", "polite");
 			const amountSummaryHead = node("header", "bnd-bill-amount-summary-head", null, this.amountSummary);
 			node("h3", "", __("Bill total"), amountSummaryHead);
+			if (coded) this.footCounts = node("p", "bnd-bill-foot-counts", null, amountSummaryHead);
 			// One box (owner, 2026-10-12): ticked, the prices include VAT; clear, VAT is
 			// added to them. There is no exempt choice on this screen.
 			this.vatChoice = node("div", "bnd-vat-inclusive bnd-bill-draft-only", null, amountSummaryHead);
@@ -1005,7 +1143,7 @@
 			this.vatApplyButton = button(__("Apply VAT"), this.vatChoice, () =>
 				this.selectVatTreatment(this.vatInclusiveInput.checked ? VAT_INCLUDED : VAT_STANDARD));
 			this.vatApplyButton.hidden = true;
-			this.amountBreakdown = node("dl", "bnd-bill-amount-breakdown", null, this.amountSummary);
+			this.amountBreakdown = node("dl", coded ? "bnd-bill-amount-breakdown bnd-bill-foot" : "bnd-bill-amount-breakdown", null, this.amountSummary);
 			this.amountGrand = node("div", "bnd-bill-amount-grand", null, this.amountSummary);
 			let popupWasOpen = false;
 			this.root.addEventListener("keydown", e => { if (e.key === "Escape") popupWasOpen = !!this.root.querySelector('[aria-expanded="true"]'); }, true);
@@ -2011,6 +2149,67 @@
 			} else node("bdi", "", this.format(value, df, doc), wrap);
 			return wrap;
 		}
+		renderCode(view, row, ready) {
+			// The ready row carries the code box; a line with an item shows its code.
+			if (ready) {
+				if (this.scanInput.parentElement !== view.code) view.code.replaceChildren(this.scanInput);
+				return;
+			}
+			const text = row.item_code || "";
+			if (view.code.contains(this.scanInput) || view.code.textContent !== text) {
+				const value = node("bdi", "bnd-bill-code-text", text);
+				view.code.replaceChildren(value);
+			}
+		}
+		loadUoms(codes) {
+			// The units each item sells in (its UOM conversions), asked once per item.
+			this.uoms = this.uoms || new Map();
+			const missing = [...new Set(codes)].filter(code => !this.uoms.has(code));
+			if (!missing.length) return;
+			for (const code of missing) this.uoms.set(code, null);
+			frappe.call({ method: "bunood_theme.api.item_uoms", type: "GET", args: { items: JSON.stringify(missing) } })
+				.then(response => {
+					const found = response?.message || {};
+					for (const code of missing) this.uoms.set(code, Array.isArray(found[code]) ? found[code] : []);
+				}, () => { for (const code of missing) this.uoms.set(code, []); })
+				.then(() => { if (this.active()) this.render(); });
+		}
+		renderUom(view, row) {
+			const choices = row.item_code ? this.uoms?.get(row.item_code) : null;
+			const current = row.uom || row.stock_uom || "";
+			const editable = Number(this.doc.docstatus) === 0 && rowFieldStatus(this.frm, row, "uom") === "Write";
+			if (!row.item_code) { if (view.uom.childElementCount) view.uom.replaceChildren(); return; }
+			if (editable && choices && choices.length > 1) {
+				let select = view.uomSelect;
+				const key = `${row.item_code}:${choices.join("\n")}`;
+				if (!select) {
+					select = view.uomSelect = node("select", "form-control bnd-bill-uom-select");
+					const name = row.name;
+					select.addEventListener("change", () => this.setUom(name, select.value));
+				}
+				if (select.dataset.key !== key) {
+					select.replaceChildren(...choices.map(uom => { const option = node("option", "", __(uom)); option.value = uom; return option; }));
+					select.dataset.key = key;
+				}
+				if (!choices.includes(current)) {
+					const option = node("option", "", __(current), select);
+					option.value = current;
+					select.dataset.key = "";
+				}
+				select.value = current;
+				select.setAttribute("aria-label", `${__("Unit")} · ${row.item_code}`);
+				if (select.parentElement !== view.uom) view.uom.replaceChildren(select);
+				return;
+			}
+			if (view.uom.firstElementChild?.classList.contains("bnd-bill-uom-text") && view.uom.textContent === __(current)) return;
+			view.uom.replaceChildren(node("span", "bnd-bill-uom-text", __(current)));
+		}
+		setUom(name, value) {
+			const row = (this.frm.doc.items || []).find(item => item.name === name);
+			if (!row || !value || row.uom === value || rowFieldStatus(this.frm, row, "uom") !== "Write") return;
+			// ERPNext's own uom trigger brings the conversion factor and the unit's price.
+			this.change(() => frappe.model.set_value(row.doctype, row.name, "uom", value)).catch(() => this.render());
+		}
 		setExpandedLine(name) {
 			this.mobileExpanded = name;
 			for (const [rowName, view] of this.rowViews) {
@@ -2026,6 +2225,7 @@
 			this.amountSummary.hidden = !totalDf;
 			if (this.amountSummary.hidden) return;
 			this.amountBreakdown.replaceChildren();
+			if (this.profile.codeColumn) { this.renderFooter(totalName, totalDf); return; }
 			const discount = discountSummary(doc);
 			if (discount) {
 				const before = node("div", "bnd-bill-amount-before-discount", null, this.amountBreakdown);
@@ -2065,6 +2265,47 @@
 			node("span", "", __("Total"), this.amountGrand);
 			this.money(node("strong", "", null, this.amountGrand), doc[totalName] || 0, totalDf);
 		}
+		renderFooter(totalName, totalDf) {
+			// The owner's sample (2026-10-14): the items' total, the discount, before VAT,
+			// the VAT and the total, side by side, with the count of items and of units.
+			const frm = this.frm, doc = this.doc;
+			const places = frappe.meta.get_field_precision?.(totalDf, doc);
+			const foot = billFooter(doc, Number.isInteger(places) ? places : 2);
+			const draft = Number(doc.docstatus) === 0;
+			if (this.footCounts) {
+				this.footCounts.replaceChildren();
+				node("span", "", __("Number of items: {0}", [foot.count]), this.footCounts);
+				const decimals = (String(foot.qty).split(".")[1] || "").length;
+				node("span", "", __("Total quantity: {0}", [window.format_number?.(foot.qty, null, decimals) ?? String(foot.qty)]), this.footCounts);
+			}
+			const card = (cls, label, value, df = totalDf) => {
+				const pair = node("div", `bnd-bill-foot-card ${cls}`, null, this.amountBreakdown);
+				const term = node("dt", "", null, pair);
+				node("span", "", label, term);
+				this.money(node("dd", "", null, pair), value, df);
+				return term;
+			};
+			card("bnd-bill-foot-gross", foot.inclusive ? __("Subtotal incl. VAT") : __("Subtotal"), foot.gross);
+			const discount = card("bnd-bill-foot-discount", foot.inclusive ? __("Discount incl. VAT") : __("Discount"), foot.discount);
+			// The invoice's own discount is a click away, as F10 is, beside the word «الخصم»
+			// so the foot stays one compact row (owner, 2026-10-14).
+			if (draft && fieldStatus(frm, "discount_amount") === "Write") {
+				const add = button(__("Discount on the bill"), discount, () => this.openDetails("discount_amount"));
+				add.classList.add("bnd-bill-foot-action");
+			}
+			card("bnd-bill-foot-before", __("Before VAT"), foot.before);
+			const taxDf = frm.fields_dict.total_taxes_and_charges?.df || totalDf;
+			card("bnd-bill-foot-vat", taxLabel(doc, __("VAT")), foot.vat, taxDf);
+			card("bnd-bill-foot-total", __("Total"), doc[totalName] || 0);
+			// A rounded total, or what a submitted bill still owes, follows on its own line.
+			for (const name of ["rounding_adjustment", "outstanding_amount"]) {
+				const field = frm.fields_dict[name];
+				if (!field || fieldStatus(frm, name) === "None" || !Number(doc[name])) continue;
+				if (name === "outstanding_amount" && (draft || roundMoney(doc[name]) === roundMoney(doc[totalName]))) continue;
+				card(`bnd-bill-foot-extra bnd-bill-amount-${name.replaceAll("_", "-")}`, __(field.df.label), doc[name], field.df);
+			}
+			this.amountGrand.hidden = true;
+		}
 		render() {
 			if (this.closed || !this.syncDocument()) return;
 			this.syncSelectionGuard();
@@ -2094,6 +2335,11 @@
 				node("p", "", __("Add your first item. Prices and taxes follow your invoice settings."), empty);
 			}
 			const lineTotals = this.profile.taxColumns ? lineTaxes(frm) : null;
+			// The code box rides in the last empty row, the one the next item goes into.
+			const coded = !!this.profile.codeColumn;
+			const readyRow = coded && draft ? [...rows].reverse().find(row => !row.item_code) || null : null;
+			if (coded && !readyRow) this.scanInput?.remove();
+			if (coded) this.loadUoms(rows.map(row => row.item_code).filter(Boolean));
 			for (const row of rows) {
 				let view = this.rowViews.get(row.name);
 				const grid = frm.fields_dict.items.grid;
@@ -2109,6 +2355,7 @@
 					const body = node("div", "bnd-bill-line-body", null, line);
 					body.id = line.id + "-body";
 					const rowNumber = node("div", "bnd-bill-row-number", "", body);
+					const code = coded ? node("div", "bnd-bill-line-code", null, body) : null;
 					const info = node("div", "bnd-bill-item", null, body);
 					const itemName = node("strong", "bnd-bill-item-name", "", info);
 					const itemDf = frappe.meta.get_docfield(row.doctype, "item_code", row.name) || grid.get_docfield("item_code");
@@ -2117,6 +2364,7 @@
 						get_query: this.itemQuery(() => grid.get_field("item_code")?.get_query),
 					}, row, true);
 					const itemMeta = node("bdi", "bnd-bill-hint bnd-bill-item-meta", "", info);
+					const uom = coded ? node("div", "bnd-bill-line-uom", null, body) : null;
 				for (const name of this.profile.lineFields) {
 					const cell = node("div", `bnd-bill-cell bnd-bill-cell-${name}`, null, body);
 					const df = frappe.meta.get_docfield(row.doctype, name, row.name) || grid.get_docfield(name);
@@ -2126,9 +2374,10 @@
 						get_query: grid.get_field(name)?.get_query,
 					}, row, true, this.lineStatus(row, name));
 				}
+				const before = coded ? node("div", "bnd-bill-line-before", null, body) : null;
 				const vat = this.profile.taxColumns ? node("div", "bnd-bill-line-vat", null, body) : null;
 				const amount = node("div", "bnd-bill-line-total", null, body);
-					view = { line, toggle, toggleIndex, toggleTitle, toggleAmount, body, rowNumber, info, itemName, itemMeta, vat, amount };
+					view = { line, toggle, toggleIndex, toggleTitle, toggleAmount, body, rowNumber, code, info, itemName, itemMeta, uom, before, vat, amount };
 					this.rowViews.set(row.name, view);
 				}
 				const { info, amount } = view;
@@ -2140,10 +2389,14 @@
 				view.line.dataset.itemReady = String(!!row.item_code);
 				view.itemName.hidden = !row.item_code;
 				view.itemName.textContent = row.item_name || row.item_code || "";
-				view.itemMeta.textContent = [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" · ");
+				// The code and the unit have their own columns on a coded sheet.
+				view.itemMeta.textContent = coded ? "" : [row.item_code && row.item_code !== row.item_name ? `${__("Item code")}: ${row.item_code}` : "", row.uom ? __(row.uom) : ""].filter(Boolean).join(" · ");
+				if (view.code) this.renderCode(view, row, row === readyRow);
+				if (view.uom) this.renderUom(view, row);
 				view.toggle.setAttribute("aria-label", `${__("Item")} ${position}: ${row.item_name || row.item_code || __("New line")}`);
 				amount.replaceChildren();
 				view.vat?.replaceChildren();
+				view.before?.replaceChildren();
 				view.toggleAmount.replaceChildren();
 				const df = frappe.meta.get_docfield(row.doctype, "amount", row.name) || grid.get_docfield("amount");
 				if (df && frappe.perm.get_field_display_status(df, row, frm.perm) !== "None") {
@@ -2154,13 +2407,16 @@
 						// Without the engine's split (lineTotals null) a dash says so; the
 						// bill's totals below are always the engine's own.
 						const split = lineTotals?.get(row.name);
+						if (view.before) node("span", "bnd-bill-hint", __("Before VAT"), view.before);
 						node("span", "bnd-bill-hint", __("Line VAT"), view.vat);
-						node("span", "bnd-bill-hint", __("Line total after VAT"), amount);
+						node("span", "bnd-bill-hint", coded ? __("Total") : __("Line total after VAT"), amount);
 						if (split) {
+							// Before VAT is what the line's total keeps after its VAT, so the three add up.
+							if (view.before) this.money(view.before, roundMoney(split.total - split.tax, fieldPrecision(row, "amount")), df, row);
 							this.money(view.vat, split.tax, df, row);
 							this.money(amount, split.total, df, row);
 							this.money(view.toggleAmount, split.total, df, row);
-						} else for (const cell of [view.vat, amount]) node("span", "bnd-bill-line-unknown", "—", cell);
+						} else for (const cell of [view.before, view.vat, amount].filter(Boolean)) node("span", "bnd-bill-line-unknown", "—", cell);
 					}
 				}
 				if (!view.actions) {
@@ -2192,7 +2448,7 @@
 			this.newButton.hidden = !nativeActions.showNew;
 			this.deleteButton.hidden = !nativeActions.showDelete;
 			this.duplicateButton.hidden = !nativeActions.showDuplicate;
-			this.cancelButton.hidden = !nativeActions.showCancel;
+			this.cancelButton.hidden = !nativeActions.showCancel || neverCancelled(frm.doctype);
 			this.paymentButton.hidden = !nativeActions.showRecordPayment;
 			this.previewButton.hidden = !nativeActions.showPrint && !draft; this.discountButton.hidden = !draft;
 			this.sendButton.hidden = this.frm.doctype !== "Sales Invoice" || !submittedCustomerInvoice(frm);
@@ -2269,7 +2525,7 @@
 		async saveAndNew() { if (await this.save()) return frappe.new_doc(this.frm.doctype); }
 		async submit({ printAfter = false } = {}) {
 			if (!this.active() || Number(this.doc.docstatus) !== 0 || this.saving) return;
-			let missing, submitted = false, paymentFailed = false;
+			let missing, submitted = false, paymentFailed = false, payment = null, checkout = null;
 			this.saving = true; this.busy();
 			this.message(printAfter ? __("Saving and preparing print…") : __("Saving and submitting…"));
 			try {
@@ -2283,43 +2539,135 @@
 				if (taxIssue) { this.showTaxIssue(taxIssue); return; }
 				// How the bill is paid is asked before anything is committed.
 				const field = this.profile.paymentMethod;
-				const checkout = field ? await this.promptCheckout() : { method: null };
+				checkout = field ? await this.promptCheckout() : { method: null };
 				if (!checkout) { this.message(__("Nothing was submitted. The bill is as you left it.")); return; }
 				if (!this.active()) return;
 				const createPayment = settlementCreatesPayment(checkout.method);
-				// Submitted unpaid, the invoice says On Credit; the payment, once posted,
-				// writes how it was paid (payments.post_invoice_payment).
-				if (field && this.doc[field] !== CREDIT_SALE && fieldStatus(this.frm, field) === "Write") {
-					await this.queue.run(() => this.frm.set_value(field, CREDIT_SALE));
-				}
-				if (this.doc.__islocal || this.frm.is_dirty()) {
-					this.message(__("Saving invoice…"));
-					const local = this.doc.__islocal ? this.doc.name : "";
-					await saveDraft(this.frm);
-					if (!this.active() && !(local && window.cur_frm === this.frm && frappe.model?.new_names?.[local] === this.frm.doc.name)) return;
-				} else if (!this.active()) return;
-				this.message(__("Submitting invoice…"));
-				await submitConfirmed(this.frm);
-				submitted = Number(this.frm.doc.docstatus) === 1;
-				if (createPayment && Number(this.frm.doc.docstatus) === 1) {
-					this.message(__("Recording payment…"));
-					try { await this.postPayment(checkout, true); }
-					catch (error) {
-						paymentFailed = true;
-						this.message(__("Invoice submitted, but payment could not be recorded: {0}", [error.message]), true);
+				// One message says what happened, once it has: the steps' own alerts are held back.
+				await quietly(this.frm, async () => {
+					// Submitted unpaid, the invoice says On Credit; the payment, once posted,
+					// writes how it was paid (payments.post_invoice_payment).
+					if (field && this.doc[field] !== CREDIT_SALE && fieldStatus(this.frm, field) === "Write") {
+						await this.queue.run(() => this.frm.set_value(field, CREDIT_SALE));
 					}
-				}
+					if (this.doc.__islocal || this.frm.is_dirty()) {
+						this.message(__("Saving invoice…"));
+						const local = this.doc.__islocal ? this.doc.name : "";
+						await saveDraft(this.frm);
+						if (!this.active() && !(local && window.cur_frm === this.frm && frappe.model?.new_names?.[local] === this.frm.doc.name)) return;
+					} else if (!this.active()) return;
+					this.message(__("Submitting invoice…"));
+					await submitConfirmed(this.frm);
+					submitted = Number(this.frm.doc.docstatus) === 1;
+					if (createPayment && submitted) {
+						this.message(__("Recording payment…"));
+						try { payment = await this.postPayment(checkout, true, { quiet: true }); }
+						catch (error) {
+							paymentFailed = true;
+							this.message(__("Invoice submitted, but payment could not be recorded: {0}", [error.message]), true);
+						}
+					}
+				});
 			} catch (e) { this.message(e.message || __("The document was not submitted. Review the highlighted fields."), true); }
 			finally { this.saving = false; this.render(); this.busy(); if (missing && this.active()) missing.control?.set_focus(); }
-			if (submitted && printAfter) void printCustomerInvoice(this.frm, this.printFormat);
-			if (submitted && !printAfter && !paymentFailed && this.frm.doctype === "Sales Invoice") showInvoiceDelivery(this.frm, true);
+			if (!submitted) return submitted;
+			// A payment that did not post keeps the bill open, so it can be received from here.
+			if (paymentFailed) {
+				if (printAfter) void this.printDocument(this.frm);
+				return submitted;
+			}
+			// The counter moves on (owner, 2026-10-14): after «حفظ» or «طباعة» a new bill
+			// opens, the one just made is printed over it, and one message says what was saved
+			// and paid, with the way back to it.
+			const done = { doctype: this.frm.doctype, name: this.frm.doc.name, currency: this.frm.doc.currency,
+				total: this.frm.doc[totalField(this.frm)], credit: !settlementCreatesPayment(checkout?.method) };
+			const printFormat = this.printFormat;
+			if (printAfter && done.doctype !== "Sales Invoice") { void this.printDocument(this.frm); return submitted; }
+			try { await frappe.new_doc(done.doctype); } catch (_) { /* The saved bill stays on screen. */ }
+			announceSaved(done, payment, printFormat);
+			if (printAfter) void printCustomerInvoice(savedInvoice(done), printFormat, true);
 			return submitted;
 		}
+		printDocument(frm) {
+			return submittedCustomerInvoice(frm) ? printCustomerInvoice(frm, this.printFormat) : frm.print_doc();
+		}
 		submitAndPrint() { return this.submit({ printAfter: true }); }
-		newDocument() { if (this.active() && !this.queue.count && !this.saving && !this.flushing && !this.closing) return frappe.new_doc(this.frm.doctype); }
+		newDocument() {
+			if (!this.active() || this.queue.count || this.saving || this.flushing || this.closing) return;
+			const start = () => frappe.new_doc(this.frm.doctype);
+			// A bill with lines not saved yet is not dropped without a word.
+			const unsaved = Number(this.doc.docstatus) === 0 && (this.doc.__islocal || this.frm.is_dirty()) &&
+				(this.doc.items || []).some(row => row.item_code);
+			if (unsaved) frappe.confirm(__("This bill is not saved. Start a new one and leave it?"), start);
+			else return start();
+		}
+		openList() {
+			// Earlier bills (owner, 2026-10-14): drafts to finish or print, any bill to find again.
+			return frappe.set_route("List", this.frm.doctype);
+		}
 		removeDocument() { if (!this.doc.__islocal && Number(this.doc.docstatus) === 0) this.frm.savetrash(); }
 		duplicateDocument() { if (!this.doc.__islocal) return this.frm.copy_doc(); }
-		cancelDocument() { if (Number(this.doc.docstatus) === 1) return this.frm.savecancel(); }
+		async cancelDocument() {
+			if (Number(this.doc.docstatus) !== 1 || this.cancelDialog || this.saving) return;
+			if (neverCancelled(this.frm.doctype)) { refuseCancel(); return; }
+			// One plain question before anything happens (owner, 2026-10-14): Frappe's own pair
+			// of prompts ended on «إلغاء الكل», which reads as "close" and cancelled the invoice
+			// with the documents linked to it. This one names what is cancelled, and its
+			// buttons never read «إلغاء».
+			const frm = this.frm, name = frm.doc.name;
+			const ignore = frm.ignore_doctypes_on_cancel_all || [];
+			let links = [];
+			try {
+				const response = await frappe.call({ method: "frappe.desk.form.linked_with.get_submitted_linked_docs",
+					args: { doctype: frm.doctype, name, ignore_doctypes_on_cancel_all: ignore }, freeze: true });
+				links = (response?.message?.docs || []).filter(link => !ignore.includes(link.doctype));
+			} catch (_) { return; /* Frappe shows the server's reason. */ }
+			if (!this.active() || this.cancelDialog) return;
+			const allowed = links.every(link => frappe.model.can_cancel(link.doctype));
+			const dialog = this.cancelDialog = new frappe.ui.Dialog({
+				title: __("Cancel invoice {0}?", [name]),
+				fields: [{ fieldtype: "HTML", fieldname: "note" }],
+				...(allowed ? {
+					primary_action_label: links.length ? __("Yes, cancel the invoice and these documents") : __("Yes, cancel the invoice"),
+					primary_action: () => { dialog.hide(); void this.cancelConfirmed(links); },
+				} : {}),
+				secondary_action_label: __("Keep the invoice"),
+				secondary_action: () => dialog.hide(),
+				onhide: () => { if (this.cancelDialog === dialog) this.cancelDialog = null; },
+			});
+			dialog.$wrapper?.addClass("bnd-bill-cancel-dialog");
+			dialog.$wrapper?.on("hidden.bs.modal", () => dialog.$wrapper.remove());
+			const note = dialog.fields_dict.note.$wrapper?.[0];
+			if (note) {
+				node("p", "", __("Cancelling reverses the invoice's accounting and stock entries. This cannot be undone."), note);
+				if (links.length) {
+					node("p", "", allowed ? __("These documents are linked to it and are cancelled with it:")
+						: __("These documents are linked to it, and you may not cancel them, so the invoice stays as it is:"), note);
+					const list = node("ul", "bnd-bill-cancel-links", null, note);
+					for (const link of links) node("li", "", `${__(link.doctype)}: ${link.name}`, list);
+				}
+				// ERPNext unlinks the invoice's payments rather than cancel them; the money stays received.
+				const total = Number(frm.doc[totalField(frm)] || 0), owed = Number(frm.doc.outstanding_amount || 0);
+				if (total > 0 && owed < total) node("p", "", __("What was received for it stays with the customer as an advance: refund it, or use it on another bill."), note);
+				node("p", "bnd-bill-hint", __("To give the customer money back or take goods back, make a return instead."), note);
+			}
+			if (allowed) dialog.get_primary_btn?.().removeClass("btn-primary").addClass("btn-danger");
+			dialog.show();
+		}
+		async cancelConfirmed(links) {
+			const frm = this.frm;
+			if (Number(frm.doc.docstatus) !== 1) return;
+			// The reader confirmed above: Frappe's own steps run without asking again.
+			if (typeof frm._cancel !== "function") return (frm.bndNativeCancel || frm.savecancel).call(frm);
+			try {
+				if (links.length) {
+					await frappe.call({ method: "frappe.desk.form.linked_with.cancel_all_linked_docs",
+						args: { docs: links, ignore_doctypes_on_cancel_all: frm.ignore_doctypes_on_cancel_all || [] }, freeze: true });
+					await frm.reload_doc();
+				}
+				frm._cancel(null, null, null, true);
+			} catch (_) { /* Frappe shows the server's reason; the invoice stays as it was. */ }
+		}
 		async preview() {
 			if (this.saving || this.closing) return;
 			// A submitted bill opens its delivery preview, which prints and downloads it.
@@ -2521,7 +2869,7 @@
 				});
 			});
 		}
-		async postPayment(checkout, atInvoiceCheckout = false) {
+		async postPayment(checkout, atInvoiceCheckout = false, { quiet = false } = {}) {
 			const response = await frappe.call({
 				method: "bunood_theme.payments.post_invoice_payment",
 				args: {
@@ -2537,7 +2885,7 @@
 			await this.frm.reload_doc();
 			const result = response.message;
 			const parts = result.entries.map(entry => `${__(entry.mode_of_payment)} ${this.format(entry.amount, { fieldtype: "Currency", options: result.currency })}`);
-			frappe.show_alert({ message: __("Payment recorded: {0}", [parts.join(" · ")]), indicator: "green" }, 8);
+			if (!quiet) frappe.show_alert({ message: __("Payment recorded: {0}", [parts.join(" · ")]), indicator: "green" }, 8);
 			return result;
 		}
 		async payment() {
@@ -2549,6 +2897,20 @@
 			}
 			catch (error) { this.message(error.message, true); }
 		}
+	}
+	// Frappe offers «إلغاء» on a submitted document its reader may cancel; a sales invoice
+	// never is, so its toolbar never offers it, and any other way in says why.
+	function withoutCancel(frm) {
+		if (!frm?.toolbar || !neverCancelled(frm.doctype)) return false;
+		if (!frm.toolbar.bndNeverCancelled) {
+			frm.toolbar.bndNeverCancelled = true;
+			frm.toolbar.can_cancel = () => false;
+		}
+		if (!frm.bndRefuseCancel) {
+			frm.bndRefuseCancel = true;
+			frm.savecancel = () => refuseCancel();
+		}
+		return true;
 	}
 	function visibleInvoiceForm(frm) {
 		const route = frappe.get_route?.() || [];
@@ -2576,7 +2938,10 @@
 	}, true);
 	if (frappe.ui?.form?.on) {
 		frappe.ui.form.on("Sales Invoice", {
+			validate: frm => { fillDueDate(frm); },
+			onload(frm) { withoutCancel(frm); },
 			refresh(frm) {
+				if (withoutCancel(frm) && Number(frm.doc.docstatus) === 1) frm.page?.clear_secondary_action?.();
 				if (submittedCustomerInvoice(frm)) frm.add_custom_button(
 					__("Send invoice to customer"), () => showInvoiceDelivery(frm), __("Actions"));
 				if (!frm.fields_dict.exempt_from_sales_tax) return;
@@ -2596,18 +2961,21 @@
 			},
 		});
 		frappe.ui.form.on("Purchase Invoice", {
+			validate: frm => { fillDueDate(frm); },
 			tax_category: frm => scheduleVatNormalization(frm, "tax_category"),
 			taxes_and_charges: frm => scheduleVatNormalization(frm, "taxes_and_charges"),
 		});
 		frappe.ui.form.on("POS Invoice", {
+			onload(frm) { withoutCancel(frm); },
 			refresh(frm) {
+				if (withoutCancel(frm) && Number(frm.doc.docstatus) === 1) frm.page?.clear_secondary_action?.();
 				if (submittedCustomerInvoice(frm)) frm.add_custom_button(
 					__("Send invoice to customer"), () => showInvoiceDelivery(frm), __("Actions"));
 			},
 			on_submit(frm) { setTimeout(() => showInvoiceDelivery(frm, true), 0); },
 		});
 	}
-	api.sales_bill = { open, newInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, lineTaxes, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
+	api.sales_bill = { open, newInvoice, billFooter, fillDueDate, quietly, savedInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, lineTaxes, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
 		// Let native refresh_fields finish on the next turn, but do not wait for

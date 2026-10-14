@@ -19674,3 +19674,158 @@ msgstr "المستحق على الفاتورة الآن {0} {1}. افتح الد
 #, fuzzy
 msgid "The payment did not settle the amount received."
 msgstr "الدفعة لم تسدّد المبلغ المستلم."
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Price"
+msgstr "السعر"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Invoice Date"
+msgstr "تاريخ الفاتورة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Start a new bill"
+msgstr "بدء فاتورة جديدة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Earlier bills: drafts to finish and bills to print again"
+msgstr "الفواتير السابقة: مسودات لإكمالها وفواتير لإعادة طباعتها"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Cancel the invoice"
+msgstr "إلغاء الفاتورة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Barcode or code"
+msgstr "الباركود أو الكود"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Unit"
+msgstr "الوحدة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Before VAT"
+msgstr "قبل الضريبة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Subtotal"
+msgstr "المجموع"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Subtotal incl. VAT"
+msgstr "المجموع شامل الضريبة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Discount incl. VAT"
+msgstr "الخصم شامل الضريبة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Discount on the bill"
+msgstr "خصم على الفاتورة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Number of items: {0}"
+msgstr "عدد الأصناف: {0}"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Total quantity: {0}"
+msgstr "إجمالي الكميات: {0}"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "This bill is not saved. Start a new one and leave it?"
+msgstr "هذه الفاتورة غير محفوظة. هل تبدأ فاتورة جديدة وتتركها؟"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Cancel invoice {0}?"
+msgstr "إلغاء الفاتورة {0}؟"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Yes, cancel the invoice and these documents"
+msgstr "نعم، ألغِ الفاتورة وهذه المستندات"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Yes, cancel the invoice"
+msgstr "نعم، ألغِ الفاتورة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Keep the invoice"
+msgstr "أبقِ الفاتورة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Cancelling reverses the invoice's accounting and stock entries. This cannot be undone."
+msgstr "الإلغاء يعكس قيود الفاتورة المحاسبية وحركات مخزونها، ولا يمكن التراجع عنه."
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "These documents are linked to it and are cancelled with it:"
+msgstr "هذه المستندات مرتبطة بها وتُلغى معها:"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "These documents are linked to it, and you may not cancel them, so the invoice stays as it is:"
+msgstr "هذه المستندات مرتبطة بها ولا تملك صلاحية إلغائها، لذلك تبقى الفاتورة كما هي:"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "To give the customer money back or take goods back, make a return instead."
+msgstr "لإرجاع مبلغ للعميل أو استرجاع بضاعة، أنشئ مرتجعًا بدلًا من الإلغاء."
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Bill saved: {0}"
+msgstr "حُفظت الفاتورة: {0}"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "On credit: the customer owes {0}"
+msgstr "آجل: على العميل {0}"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "Open the invoice"
+msgstr "عرض الفاتورة"
+
+#. src: owner review 2026-10-14, Arabic proposal
+#, fuzzy
+msgid "What was received for it stays with the customer as an advance: refund it, or use it on another bill."
+msgstr "ما قُبض عنها يبقى للعميل دفعةً مقدّمة: رُدّه إليه أو استخدمه في فاتورة أخرى."
+
+#. src: owner review 2026-10-14 (no cancel, no delete), Arabic proposal
+#, fuzzy
+msgid "This invoice cannot be cancelled"
+msgstr "لا يمكن إلغاء هذه الفاتورة"
+
+#. src: owner review 2026-10-14 (no cancel, no delete), Arabic proposal
+#, fuzzy
+msgid "A sales invoice is never cancelled once it is submitted: a ZATCA requirement. To give money or goods back, make a return (a credit note)."
+msgstr "فاتورة المبيعات لا تُلغى بعد اعتمادها، وهذا من اشتراطات هيئة الزكاة والضريبة والجمارك. لإرجاع مبلغ أو بضاعة أنشئ مرتجعًا (إشعارًا دائنًا)."
+
+#. src: owner review 2026-10-14 (no cancel, no delete), Arabic proposal
+#, fuzzy
+msgid "This invoice cannot be deleted"
+msgstr "لا يمكن حذف هذه الفاتورة"
+
+#. src: owner review 2026-10-14 (no cancel, no delete), Arabic proposal
+#, fuzzy
+msgid "A sales invoice is never deleted once it is submitted: a ZATCA requirement."
+msgstr "فاتورة المبيعات لا تُحذف بعد اعتمادها، وهذا من اشتراطات هيئة الزكاة والضريبة والجمارك."

@@ -1910,6 +1910,38 @@ def bill_item_defaults(company: str | None = None) -> dict:
     }
 
 
+ITEM_UOMS_LIMIT = 200
+
+
+@frappe.whitelist(methods=["GET"])
+def item_uoms(items: str | list | None = None) -> dict:
+    """The units each item is sold in, for the bill's unit column (owner, 2026-10-14).
+
+    The item's stock unit first, then its UOM conversions in their own order. Only items
+    the caller may read answer; the bill changes the line's unit through ERPNext's own
+    uom trigger, which brings the conversion factor and the unit's price.
+    """
+    codes = frappe.parse_json(items) if isinstance(items, str) else items
+    codes = [code for code in (codes or []) if isinstance(code, str) and code][:ITEM_UOMS_LIMIT]
+    if not codes:
+        return {}
+    readable = frappe.get_list(
+        "Item", filters={"name": ["in", codes]}, fields=["name", "stock_uom"], limit_page_length=0
+    )
+    units = {row.name: [row.stock_uom] if row.stock_uom else [] for row in readable}
+    if not units:
+        return {}
+    for row in frappe.get_all(
+        "UOM Conversion Detail",
+        filters={"parenttype": "Item", "parent": ["in", list(units)]},
+        fields=["parent", "uom"],
+        order_by="idx asc",
+    ):
+        if row.uom and row.uom not in units[row.parent]:
+            units[row.parent].append(row.uom)
+    return units
+
+
 def warehouse_items(warehouse: str) -> set[str]:
     """The items that belong to a warehouse: stock records there (a Bin), or an item default that
     names it. ERPNext's own default does not count: it adds one to every new item

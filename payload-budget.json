@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-10-14: the owner's second invoice review (v0.59.0) adds the coded sheet (a code column whose ready row is the scan box, a unit column that switches the line's UOM, before VAT on each line), the five-figure foot, «جديد» and «الفواتير» beside «حفظ», one message after a sale with the way back to it, a new bill after «حفظ» or «طباعة», one plain cancel question in place of Frappe's «إلغاء الكل», a due date that never refuses a bill, and no cancel at all on a sales invoice (ZATCA). Desk JS measures 202,333 gzip bytes (+7,182 over v0.58.0); ceiling 195,700 -> 202,700. Desk CSS measures 40,793 gzip bytes; ceiling 40,300 -> 41,100.",
 		"2026-10-12: the counter's settings gain the two site-wide stock choices (stock leaves at each sale or at closing; selling an item that ran out) and the grid reads again when the counter's tab comes back. POS JS measures 53,062 gzip bytes; ceiling 53,000 -> 53,200.",
 		"2026-10-12: the sales invoice owner review (v0.58.0) adds the checkout dialog (network, cash with change, bank transfer, cash and network, on credit, each posted as submitted ERPNext Payment Entries), the line VAT split that mirrors ERPNext's item-wise tax, the print-format choice beside the date, and «عرض», a read-only preview of an unsaved draft. Desk JS measures 195,151 gzip bytes (+5,311 over v0.57.9); ceiling 190,000 -> 195,700.",
 		"2026-10-07: complete the team invoice party/date and stock-settings strips, full-width item canvas and total surface from 2108af3. Desk CSS is 40,165 gzip bytes; ceiling 39,900 -> 40,300 for this scoped composition. JavaScript is unchanged.",
@@ -227,8 +228,8 @@
 	"ceiling": {
 		"home_css_gzip": 5000,
 		"home_js_gzip": 9500,
-		"css_gzip": 40300,
-		"js_gzip": 195700,
+		"css_gzip": 41100,
+		"js_gzip": 202700,
 		"studio_js_gzip": 39050,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,
