@@ -24,6 +24,46 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.59.0] — 2026-10-14 — the owner's second review: the sheet, the foot, the next bill, no cancel
+
+The owner, 2026-10-14, with a customer's notes and a sample sales screen: «مهم جدا في الفواتير ... لازم
+بعد الحفظ او الطباعه تفتح فاتوره جديده»; «في الصوره الاخيره نموذج لفاتوره مبيعات ... اريد نفس الفكره في
+الجدول»; «فاتوره البيع لاتلغى خالص من شروط هيئه الضريبه».
+
+**The sales invoice**
+- The sheet reads as the sample: the code (the ready row's code cell is the scan box), the item, its
+  unit (the item's other units offered; ERPNext's own `uom` trigger brings the conversion factor and
+  the unit's price — `api.item_uoms`), the quantity, the price, its discount, then the line before
+  VAT, its VAT and its total. Before VAT is what the line's total keeps after its VAT, so every line
+  adds up.
+- The foot: the items' total, the discount (with «خصم على الفاتورة»), before VAT, the VAT and the
+  total, one compact row, with the number of items and of units (`billFooter`). With VAT in the
+  prices the first two include it; every pair adds up, from the engine's own totals.
+- «تاريخ الفاتورة» for the posting date. A bill is never refused for its due date: an empty or
+  earlier one becomes the invoice's own date, or its payment schedule's last (`fillDueDate`).
+- «جديد» and «الفواتير» beside «حفظ» and «طباعة». After «حفظ» or «طباعة» a new bill opens; the
+  saved one prints over it and its print preview closes when the print dialog does. One message
+  replaces four (Frappe's «تم الحفظ» and «معتمد» and ERPNext's success box are held back while the
+  checkout runs): what was saved and received, with «إرسال للعميل», «عرض الفاتورة» and «الطباعة».
+- Sending is one screen: WhatsApp to the customer's number, email with the PDF (and the ZATCA XML on
+  a Phase 2 invoice), and the PDF to download.
+- No price list chip («البيع القياسية»), and no Frappe side panel beside a saved bill.
+- **A sales invoice is never cancelled, nor deleted once submitted** — ZATCA's rule, for every
+  company (ksa_compliance refuses the cancel only where Phase 2 is on). `invoice_rules` refuses both on
+  the server for Sales and POS Invoices; the bill and Frappe's toolbar offer no cancel. Money or goods
+  given back go through a return. A purchase bill asks one plain question instead of Frappe's pair of
+  prompts ending on «إلغاء الكل».
+
+**The counter.** A cashier's shift open on another screen (the restaurant's cashier) is named with its
+date and a button to go there and close it (`pos._shift_elsewhere`); pressed, never automatic. The
+restaurant's cashier closes its own stale shift (bunood_dining 0.9.1).
+
+**The release review** (one per release): a refused submit settles (Frappe's `savesubmit` promise never does; its
+`on_error` now rejects), so the bill and the held-back alerts are always released; a shipping charge beside
+VAT-inclusive prices is no discount; a consolidated invoice says what it is when its cancel is refused.
+
+**Payload.** Desk JS and CSS and POS JS ceilings raised (recorded in `payload-budget.json`).
+
 ## [0.58.0] — 2026-10-12 — the owner's review: the sales invoice, the points of sale, printing, the halala
 
 The owner, 2026-10-12: «الخصم في فاتوره المبيعات غير مضبوط ... اريد ان تراجع فاتوره المبيعات لانها
