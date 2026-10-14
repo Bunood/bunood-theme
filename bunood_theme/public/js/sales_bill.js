@@ -589,56 +589,25 @@
 			args: { doctype: doc.doctype, name: doc.name } });
 		return response.message || {};
 	}
-	function openInvoiceEmail(frm, readiness = {}) {
-		if (!submittedCustomerInvoice(frm) || !frappe.ui?.Dialog) return;
-		if (!frm.isPosReceiptHandoff && frappe.model?.can_email && !frappe.model.can_email(frm.doctype, frm)) {
-			frappe.msgprint(__("You do not have permission to email this invoice."));
-			return;
-		}
-		const doc = frm.doc;
-		const dialog = new frappe.ui.Dialog({
-			title: readiness.regulated ? __("Email ZATCA invoice with PDF and XML") : __("Email invoice with PDF"),
-			fields: [
-				{ fieldtype: "Data", fieldname: "recipient", label: __("Customer email"),
-					options: "Email", reqd: 1, default: doc.contact_email || "" },
-				{ fieldtype: "Data", fieldname: "subject", label: __("Subject"), reqd: 1,
-					default: __("Invoice {0}", [doc.name]) },
-				{ fieldtype: "Small Text", fieldname: "message", label: __("Message"), reqd: 1,
-					default: __("Please find your invoice attached.") },
-				{ fieldtype: "HTML", fieldname: "delivery_note" },
-			],
-			primary_action_label: __("Send email"),
-			primary_action: async values => {
-				if (!values) return;
-				const send = dialog.get_primary_btn();
-				send.prop("disabled", true);
-				try {
-					await frappe.call({ method: "bunood_theme.invoice_delivery.send_invoice_email", type: "POST",
-						args: { doctype: doc.doctype, name: doc.name, ...values } });
-					dialog.hide();
-					frappe.show_alert({ message: readiness.regulated
-						? __("Invoice email queued with its PDF and ZATCA XML.")
-						: __("Invoice email queued with its PDF."), indicator: "green" });
-				} catch (_) { /* Frappe displays the server-side error; keep the form available. */ }
-				finally { send.prop("disabled", false); }
-			},
-		});
-		dialog.show();
-		dialog.$wrapper?.addClass("bnd-invoice-email-dialog");
-		const note = dialog.fields_dict.delivery_note.$wrapper?.[0];
-		if (note) node("p", "bnd-invoice-delivery-help",
-			readiness.regulated
-				? __("Review the address before sending. The ZATCA XML and a PDF reading copy are attached.")
-				: __("Review the address before sending. A PDF copy is attached to the email."), note);
-	}
 	function whatsappNumber(value) {
 		const raw = String(value || "").trim().replace(/[\s().-]/g, "");
 		const digits = raw.replace(/^\+|^00/, "");
 		return /^[1-9]\d{7,14}$/.test(digits) ? digits : "";
 	}
-	async function openInvoiceWhatsApp(frm, readiness = {}) {
-		if (!submittedCustomerInvoice(frm) || !frappe.ui?.Dialog) return;
-		const doc = frm.doc;
+	// Sending a submitted invoice to its customer, on one screen (owner, 2026-10-14: «ارسال الفاتورة
+	// للعميل مباشرة بدون كثرة الشاشات»): WhatsApp to the customer's number, email with the PDF (and
+	// the ZATCA XML on a Phase 2 invoice), and the PDF itself to download. `doc` is the invoice as
+	// the form has it, or as the bill kept it after moving on to the next one.
+	async function sendInvoice(doc, { canEmail = true, justSubmitted = false } = {}) {
+		if (!doc?.name || Number(doc.docstatus) !== 1 || !frappe.ui?.Dialog) return;
+		let readiness;
+		try { readiness = await deliveryStatus(doc); }
+		catch (_) { frappe.msgprint(__("Invoice delivery status is unavailable. Try again shortly.")); return; }
+		if (!readiness.ready) {
+			if (justSubmitted) frappe.show_alert({ message: readiness.reason || __("Invoice delivery is not ready."), indicator: "orange" });
+			else frappe.msgprint(readiness.reason || __("Invoice delivery is not ready."));
+			return;
+		}
 		let mobile = doc.contact_mobile || "";
 		if (!mobile && doc.customer) {
 			try {
@@ -646,70 +615,60 @@
 				mobile = result?.message?.mobile_no || "";
 			} catch (_) { /* The cashier can enter the number without Customer read access. */ }
 		}
-		const total = `${doc.grand_total || 0} ${doc.currency || ""}`.trim();
+		const total = new DOMParser().parseFromString(frappe.format(doc.grand_total || 0,
+			{ fieldtype: "Currency", options: doc.currency }, { inline: true }), "text/html").body.textContent || "";
 		const dialog = new frappe.ui.Dialog({
-			title: __("Share invoice on WhatsApp"),
+			title: __("Send to the customer: {0}", [doc.name]),
 			fields: [
-				{ fieldtype: "Data", fieldname: "phone", label: __("Customer WhatsApp number"),
-					reqd: 1, default: mobile, description: __("Include the country code, for example +966501234567.") },
-				{ fieldtype: "Small Text", fieldname: "message", label: __("Message"),
-					default: __("Your invoice is ready. Number: {0}. Total: {1}.", [doc.name, total]) },
-				{ fieldtype: "HTML", fieldname: "attachment_help" },
+				{ fieldtype: "Data", fieldname: "phone", label: __("Customer WhatsApp number"), default: mobile,
+					description: __("Include the country code, for example +966501234567.") },
+				{ fieldtype: "Button", fieldname: "whatsapp", label: __("Open WhatsApp"), click: () => {
+					const phone = whatsappNumber(dialog.get_value("phone"));
+					if (!phone) { frappe.msgprint(__("Enter a WhatsApp number with its country code.")); return; }
+					const message = __("Your invoice is ready. Number: {0}. Total: {1}.", [doc.name, total]);
+					window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
+				} },
+				...(canEmail ? [
+					{ fieldtype: "Column Break" },
+					{ fieldtype: "Data", fieldname: "recipient", label: __("Customer email"), options: "Email", default: doc.contact_email || "" },
+					{ fieldtype: "Button", fieldname: "email", label: readiness.regulated ? __("Email with PDF and XML") : __("Email with PDF"), click: async () => {
+						const recipient = String(dialog.get_value("recipient") || "").trim();
+						if (!recipient) { frappe.msgprint(__("Enter the customer's email.")); return; }
+						const send = dialog.fields_dict.email.$input;
+						send?.prop("disabled", true);
+						try {
+							await frappe.call({ method: "bunood_theme.invoice_delivery.send_invoice_email", type: "POST",
+								args: { doctype: doc.doctype, name: doc.name, recipient,
+									subject: __("Invoice {0}", [doc.name]), message: __("Please find your invoice attached.") } });
+							frappe.show_alert({ message: readiness.regulated
+								? __("Invoice email queued with its PDF and ZATCA XML.")
+								: __("Invoice email queued with its PDF."), indicator: "green" });
+						} catch (_) { /* Frappe displays the server-side error; the screen stays. */ }
+						finally { send?.prop("disabled", false); }
+					} },
+				] : []),
+				{ fieldtype: "Section Break" },
+				{ fieldtype: "HTML", fieldname: "help" },
 			],
-			primary_action_label: __("Open WhatsApp"),
-			primary_action: () => {
-				const phone = whatsappNumber(dialog.get_value("phone"));
-				if (!phone) {
-					frappe.msgprint(__("Enter a WhatsApp number with its country code."));
-					return;
-				}
-				const message = String(dialog.get_value("message") || "").trim();
-				window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener");
-			},
 			secondary_action_label: __("Download invoice PDF"),
 			secondary_action: () => window.open(invoicePdfUrl(doc), "_blank", "noopener"),
 		});
-		dialog.show();
-		dialog.$wrapper?.addClass("bnd-invoice-whatsapp-dialog");
-		const help = dialog.fields_dict.attachment_help.$wrapper?.[0];
+		dialog.$wrapper?.addClass("bnd-invoice-send-dialog");
+		dialog.$wrapper?.on("hidden.bs.modal", () => dialog.$wrapper.remove());
+		const help = dialog.fields_dict.help.$wrapper?.[0];
 		if (help) {
 			node("p", "bnd-invoice-delivery-help", readiness.regulated
-				? __("Attach the ZATCA XML to the WhatsApp chat. The PDF is a reading copy; opening WhatsApp does not send either file automatically.")
-				: __("Download the PDF and attach it in WhatsApp. Opening the chat does not send the invoice automatically."), help);
+				? __("WhatsApp opens the chat with the customer; attach the ZATCA XML there yourself. The email carries the PDF and the XML.")
+				: __("WhatsApp opens the chat with the customer; attach the PDF there yourself. The email carries the PDF."), help);
 			if (readiness.regulated) button(__("Download ZATCA XML"), help,
 				() => window.open(invoiceXmlUrl(doc), "_blank", "noopener"));
 		}
-	}
-	async function showInvoiceDelivery(frm, justSubmitted = false) {
-		if (!submittedCustomerInvoice(frm) || !frappe.ui?.Dialog) return;
-		let readiness;
-		try { readiness = await deliveryStatus(frm.doc); }
-		catch (_) { frappe.msgprint(__("Invoice delivery status is unavailable. Try again shortly.")); return; }
-		if (!readiness.ready) {
-			if (justSubmitted) frappe.show_alert({ message: readiness.reason || __("Invoice delivery is not ready."), indicator: "orange" });
-			else frappe.msgprint(readiness.reason || __("Invoice delivery is not ready."));
-			return;
-		}
-		const dialog = new frappe.ui.Dialog({
-			title: justSubmitted ? __("Invoice submitted") : __("Send invoice to customer"),
-			fields: [{ fieldtype: "HTML", fieldname: "delivery_options" }],
-		});
 		dialog.show();
-		dialog.$wrapper?.addClass("bnd-invoice-delivery-dialog");
-		const body = dialog.fields_dict.delivery_options.$wrapper?.[0];
-		if (!body) return;
-		const intro = node("div", "bnd-invoice-delivery-intro", null, body);
-		const mark = node("span", "bnd-invoice-delivery-mark", null, intro);
-		mark.innerHTML = frappe.utils.icon("check-circle", "lg");
-		mark.setAttribute("aria-hidden", "true");
-		node("p", "", justSubmitted
-			? __("The invoice is posted. How would you like to share it with the customer?")
-			: __("Choose how to share this submitted invoice with the customer."), intro);
-		const actions = node("div", "bnd-invoice-delivery-actions", null, body);
-		button(readiness.regulated ? __("Email with PDF and XML") : __("Email with PDF"), actions,
-			() => { dialog.hide(); openInvoiceEmail(frm, readiness); }, true);
-		button(__("WhatsApp"), actions, () => { dialog.hide(); void openInvoiceWhatsApp(frm, readiness); });
-		button(__("Later"), actions, () => dialog.hide());
+	}
+	function showInvoiceDelivery(frm, justSubmitted = false) {
+		if (!submittedCustomerInvoice(frm)) return;
+		const canEmail = !!frm.isPosReceiptHandoff || !frappe.model?.can_email || frappe.model.can_email(frm.doctype, frm);
+		return sendInvoice(frm.doc, { canEmail, justSubmitted });
 	}
 	function previewInvoice(doctype, name, sandbox = true, autoPrint = false, printFormat = "") {
 		const key = `${doctype}:${name}:${printFormat}`;
@@ -850,11 +809,14 @@
 		const subtitle = payment?.entries?.length
 			? __("Payment recorded: {0}", [payment.entries.map(entry => `${__(entry.mode_of_payment)} ${amount(entry.amount, payment.currency)}`).join(" · ")])
 			: done.credit ? __("On credit: the customer owes {0}", [amount(done.total, done.currency)]) : "";
+		const sales = done.doctype === "Sales Invoice";
 		const actions = `<div class="bnd-bill-saved-actions">` +
+			(sales ? `<button type="button" class="btn btn-xs btn-primary" data-action="bnd_send">${escape(__("Send to the customer"))}</button>` : "") +
 			`<button type="button" class="btn btn-xs btn-default" data-action="bnd_open">${escape(__("Open the invoice"))}</button>` +
-			(done.doctype === "Sales Invoice" ? `<button type="button" class="btn btn-xs btn-default" data-action="bnd_print">${escape(__("Print"))}</button>` : "") +
+			(sales ? `<button type="button" class="btn btn-xs btn-default" data-action="bnd_print">${escape(__("Print"))}</button>` : "") +
 			`</div>`;
-		frappe.show_alert({ message: escape(__("Bill saved: {0}", [done.name])), subtitle: escape(subtitle), body: actions, indicator: "green" }, 12, {
+		frappe.show_alert({ message: escape(__("Bill saved: {0}", [done.name])), subtitle: escape(subtitle), body: actions, indicator: "green" }, 15, {
+			bnd_send: () => void sendInvoice(done.doc),
 			bnd_open: () => frappe.set_route("Form", done.doctype, done.name),
 			bnd_print: () => void printCustomerInvoice(savedInvoice(done), printFormat),
 		});
@@ -996,7 +958,9 @@
 			// «طريقة الدفع», as the owner names it, whatever the settlement field is called.
 			if (settlement) this.chips.payment = this.chip(context, "wallet", __("Payment method"), () => this.paymentMenu());
 			if (frm.fields_dict.currency) this.chips.currency = this.chip(context, "badge-dollar-sign", __("Currency"), () => this.openDetails("currency"));
-			if (frm.fields_dict[this.profile.priceList]) this.chips.priceList = this.chip(context, "tag", __("Price List"), () => this.openDetails(this.profile.priceList));
+			// No price list chip on the sales bill (owner, 2026-10-14: «البيع القياسية لا اريدها»);
+			// the list stays in the folded details.
+			if (frm.fields_dict[this.profile.priceList] && frm.doctype !== "Sales Invoice") this.chips.priceList = this.chip(context, "tag", __("Price List"), () => this.openDetails(this.profile.priceList));
 			const keys = node("div", "bnd-bill-context-keys", null, context);
 			keys.setAttribute("aria-hidden", "true");
 			for (const [key, label] of [["F2", __("Barcode")], ...(this.profile.newItem ? [["F4", __("New item")]] : []), ["F9", __("Save")]]) {
@@ -2579,8 +2543,13 @@
 			// The counter moves on (owner, 2026-10-14): after «حفظ» or «طباعة» a new bill
 			// opens, the one just made is printed over it, and one message says what was saved
 			// and paid, with the way back to it.
-			const done = { doctype: this.frm.doctype, name: this.frm.doc.name, currency: this.frm.doc.currency,
-				total: this.frm.doc[totalField(this.frm)], credit: !settlementCreatesPayment(checkout?.method) };
+			const saved = this.frm.doc;
+			const done = { doctype: this.frm.doctype, name: saved.name, currency: saved.currency,
+				total: saved[totalField(this.frm)], credit: !settlementCreatesPayment(checkout?.method),
+				// What sending needs once the screen has moved on to the next bill.
+				doc: { doctype: saved.doctype, name: saved.name, docstatus: 1, customer: saved.customer,
+					contact_mobile: saved.contact_mobile, contact_email: saved.contact_email,
+					grand_total: saved.grand_total, currency: saved.currency } };
 			const printFormat = this.printFormat;
 			if (printAfter && done.doctype !== "Sales Invoice") { void this.printDocument(this.frm); return submitted; }
 			try { await frappe.new_doc(done.doctype); } catch (_) { /* The saved bill stays on screen. */ }
@@ -2975,7 +2944,7 @@
 			on_submit(frm) { setTimeout(() => showInvoiceDelivery(frm, true), 0); },
 		});
 	}
-	api.sales_bill = { open, newInvoice, billFooter, fillDueDate, quietly, savedInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, lineTaxes, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
+	api.sales_bill = { open, newInvoice, sendInvoice, billFooter, fillDueDate, quietly, savedInvoice, visibleInvoiceForm, eligible, supports, actionState, SerialChanges, saveDraft, submitConfirmed, totalField, ensureExactHalalas, rowFieldStatus, setLineValue, makePaymentEntry, settlementCreatesPayment, mixedPaymentSelected, lineTaxes, receiptMethod, settlementValue, roundMoney, balancedPaymentPair, canAdd, canRemove, hasTaxConfiguration, taxLabel, showSummary, taxConfigurationIssue, taxIssueMessage, loadVatProfiles, vatTreatment, clearItemTaxOverrides, setVatIncludedInPrice, recalculateVatTreatment, applyVatTreatment, showInvoiceDelivery, whatsappNumber, invoicePdfUrl, profiles: PROFILES };
 	$(document).on("form-refresh.bnd-sales-bill", (_event, frm) => {
 		if (!profileFor(frm)) return;
 		// Let native refresh_fields finish on the next turn, but do not wait for

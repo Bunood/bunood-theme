@@ -706,12 +706,24 @@ def get_context(pos_profile: str | None = None) -> dict[str, Any]:
             (row for row in stale_entries if row.pos_profile == selected), None
         ),
         "capabilities": _capabilities(invoice_type),
-        "shift_elsewhere": {
-            "pos_profile": other.pos_profile,
-            "title": (reserved.get(other.pos_profile) or {}).get("title") or "",
-        } if other else None,
+        "shift_elsewhere": _shift_elsewhere(other, reserved) if other else None,
         "online_only": True,
         "engine": "ERPNext POS",
+    }
+
+
+def _shift_elsewhere(entry, reserved: dict) -> dict[str, Any]:
+    """The cashier's open shift on another screen, and the way to it (owner, 2026-10-14: the
+    counter and the restaurant's cashier each sent the cashier to the other, with no way there).
+    Each screen closes its own shifts, its own way (the restaurant's counts its drivers' cash),
+    so the other screen is only named and linked, never closed from here."""
+    screen = reserved.get(entry.pos_profile) or {}
+    return {
+        "pos_profile": entry.pos_profile,
+        "title": screen.get("title") or _("Point of sale", context="Bunood POS"),
+        "route": screen.get("route") or "/desk/bnd-pos",
+        "opening_entry": entry.name,
+        "period_start_date": str(entry.period_start_date or ""),
     }
 
 

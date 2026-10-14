@@ -19829,3 +19829,55 @@ msgstr "لا يمكن حذف هذه الفاتورة"
 #, fuzzy
 msgid "A sales invoice is never deleted once it is submitted: a ZATCA requirement."
 msgstr "فاتورة المبيعات لا تُحذف بعد اعتمادها، وهذا من اشتراطات هيئة الزكاة والضريبة والجمارك."
+
+#. src: owner review 2026-10-14 (one send screen), Arabic proposal
+#, fuzzy
+msgid "Send to the customer: {0}"
+msgstr "إرسال للعميل: {0}"
+
+#. src: owner review 2026-10-14 (one send screen), Arabic proposal
+#, fuzzy
+msgid "Enter the customer's email."
+msgstr "اكتب بريد العميل."
+
+#. src: owner review 2026-10-14 (one send screen), Arabic proposal
+#, fuzzy
+msgid "WhatsApp opens the chat with the customer; attach the ZATCA XML there yourself. The email carries the PDF and the XML."
+msgstr "واتساب يفتح المحادثة مع العميل، وأرفق ملف ZATCA XML فيها بنفسك. البريد يحمل ملف PDF وملف XML."
+
+#. src: owner review 2026-10-14 (one send screen), Arabic proposal
+#, fuzzy
+msgid "WhatsApp opens the chat with the customer; attach the PDF there yourself. The email carries the PDF."
+msgstr "واتساب يفتح المحادثة مع العميل، وأرفق ملف PDF فيها بنفسك. البريد يحمل ملف PDF."
+
+#. src: owner review 2026-10-14 (one send screen), Arabic proposal
+#, fuzzy
+msgid "Send to the customer"
+msgstr "إرسال للعميل"
+
+#. src: owner review 2026-10-14 (the shift on another screen), Arabic proposal
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Opened on: {0}"
+msgstr "فُتحت في: {0}"
+
+#. src: owner review 2026-10-14 (the shift on another screen), Arabic proposal
+#, fuzzy
+msgctxt "Bunood POS"
+msgid "Go to the shift: {0}"
+msgstr "الذهاب إلى الوردية: {0}"
+
+#. src: owner review 2026-10-14 (the shift on another screen), Arabic proposal
+#, fuzzy
+msgid "Opened on: {0}"
+msgstr "فُتحت في: {0}"
+
+#. src: owner review 2026-10-14 (the shift on another screen), Arabic proposal
+#, fuzzy
+msgid "Go to the shift: {0}"
+msgstr "الذهاب إلى الوردية: {0}"
+
+#. src: owner review 2026-10-14 (the shift on another screen), Arabic proposal
+#, fuzzy
+msgid "Point of sale"
+msgstr "نقطة البيع"

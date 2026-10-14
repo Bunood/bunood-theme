@@ -1489,3 +1489,16 @@ html[data-theme] .bnd-delivery-simple-active .std-form-layout > .form-layout { d
   .bnd-bill-foot-extra { grid-column: auto; }
 }
 .bnd-bill-lines-coded .bnd-bill-cell .control-value { font-size: var(--bnd-text-sm); }
+// The bill fills the page once saved too (owner, 2026-10-14): Frappe's form side panel (assigned,
+// attachments, tags, share) stays off beside the Simple bill, as it is on a new one.
+html[data-theme][data-bnd-own~="salesbill"] .bnd-bill-simple-active .layout-side-section { display: none; }
+.bnd-invoice-send-dialog .modal-dialog { max-inline-size: 40rem; }
+.bnd-invoice-send-dialog .frappe-control[data-fieldtype="Button"] .btn {
+  inline-size: 100%;
+  min-block-size: var(--bnd-control-h);
+  color: var(--bnd-on-brand);
+  background: var(--bnd-brand-solid);
+  border-color: var(--bnd-brand-solid);
+  font-weight: 650;
+}
+.bnd-invoice-send-dialog .frappe-control[data-fieldtype="Button"] .btn:hover { filter: brightness(.95); }
