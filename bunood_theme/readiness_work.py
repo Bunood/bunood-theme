@@ -68,7 +68,7 @@ CUSTOM_FIELDS = {
     "Project": (
         {
             "fieldname": PROJECT_IDENTITY_FIELD,
-            "label": "Bunood Readiness Identity",
+            "label": "Zero One Readiness Identity",
             "fieldtype": "Data",
             "insert_after": "company",
             "hidden": 1,
@@ -80,7 +80,7 @@ CUSTOM_FIELDS = {
     "Task": (
         {
             "fieldname": TASK_IDENTITY_FIELD,
-            "label": "Bunood Readiness Identity",
+            "label": "Zero One Readiness Identity",
             "fieldtype": "Data",
             "insert_after": "project",
             "hidden": 1,
@@ -90,7 +90,7 @@ CUSTOM_FIELDS = {
         },
         {
             "fieldname": TASK_DOMAIN_FIELD,
-            "label": "Bunood Readiness Domain",
+            "label": "Zero One Readiness Domain",
             "fieldtype": "Select",
             # The blank first option is essential: this field exists on every
             # native Task, and ordinary project work must never default to the

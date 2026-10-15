@@ -2508,7 +2508,7 @@ def ensure_pos_reference_field() -> None:
         "label": "Payment Reference",
         "fieldtype": "Data",
         "insert_after": "amount",
-        "description": "Card, network, or external tender reference captured at Bunood POS checkout.",
+        "description": "Card, network, or external tender reference captured at Zero One POS checkout.",
         "no_copy": 1,
         "translatable": 0,
     }
@@ -2544,7 +2544,7 @@ def ensure_pos_hold_field() -> None:
                 "doctype": "Custom Field",
                 "dt": doctype,
                 "fieldname": HELD_FIELD,
-                "label": "Held in Bunood POS",
+                "label": "Held in Zero One POS",
                 "fieldtype": "Check",
                 "insert_after": "is_pos",
                 "hidden": 1,

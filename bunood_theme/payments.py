@@ -616,7 +616,7 @@ def ensure_payment_origin_field() -> None:
             "Payment Entry": [
                 {
                     "fieldname": PAYMENT_ORIGIN_FIELD,
-                    "label": "Bunood Payment Origin",
+                    "label": "Zero One Payment Origin",
                     "fieldtype": "Data",
                     "insert_after": "mode_of_payment",
                     "hidden": 1,

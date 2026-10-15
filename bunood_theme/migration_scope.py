@@ -121,7 +121,7 @@ CUSTOM_FIELDS = {
     DATA_IMPORT_DOCTYPE: (
         {
             "fieldname": "custom_bunood_migration_section",
-            "label": "Bunood Migration Packet",
+            "label": "Zero One Migration Packet",
             "fieldtype": "Section Break",
             "insert_after": "mute_emails",
             "collapsible": 1,
@@ -162,7 +162,7 @@ CUSTOM_FIELDS = {
         },
         {
             "fieldname": "custom_bunood_migration_identity",
-            "label": "Bunood Migration Identity",
+            "label": "Zero One Migration Identity",
             "fieldtype": "Data",
             "insert_after": "custom_bunood_mapping_version",
             "hidden": 1,
