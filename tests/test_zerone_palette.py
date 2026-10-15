@@ -357,6 +357,28 @@ class PrintCarrierTests(unittest.TestCase):
 		self.assertIn(palette.derive("#ab4aba", "#0090ff", "light")["--bnd-brand-solid"], css)
 		self.assertNotIn(ZERONE_BLUE, css)
 
+	def test_the_kit_sheet_follows_a_seed_written_without_modified(self):
+		# The palette patch and the seeder write with update_modified=False: a worker that cached
+		# the sheet under `modified` alone kept printing the old colour until it restarted.
+		from bunood_theme.printing import jinja
+
+		seeds = {"brand_color": OLD_GREEN}
+		settings = lambda doctype: frappe._dict(modified="2026-10-15 09:00:00", accent_color="#0090ff", **seeds)
+		tokens = lambda mode, s=None: {"--bnd-brand-solid": seeds["brand_color"]}
+		jinja._kit_css.cache_clear()
+		try:
+			with patch.object(jinja.frappe, "get_cached_doc", settings), \
+				patch.object(jinja.frappe, "db", SimpleNamespace(get_value=lambda *a, **k: "2026-10-15 09:00:00")), \
+				patch("bunood_theme.email.tokens", tokens), \
+				patch("bunood_theme.email.substitute", lambda css, values: values["--bnd-brand-solid"]):
+				first = jinja.bunood_print_kit_css()
+				seeds["brand_color"] = ZERONE_BLUE
+				second = jinja.bunood_print_kit_css()
+		finally:
+			jinja._kit_css.cache_clear()
+		self.assertTrue(first.endswith(OLD_GREEN), first[-40:])
+		self.assertTrue(second.endswith(ZERONE_BLUE), "the moved seed reaches the sheet with `modified` unchanged")
+
 	def test_a_format_in_tokens_is_written_in_the_site_colours(self):
 		# No shipped format carries tokens any more; the mechanism stays for one that does.
 		from bunood_theme import palette

@@ -433,13 +433,26 @@ def _kit_css(site: str, stamp: str, mtime: float) -> str:
     return face + substitute(css, tokens("light"))
 
 
+#: What `email.tokens("light")` derives the kit's colours from. The cache key carries them because
+#: a palette can move without `modified` moving: the zerONE palette patch (and the seeder) write
+#: with update_modified=False, and a key of `modified` alone kept serving the old green sheet from
+#: every worker's cache until it restarted (the v0.60.0 review, finding 8).
+_KIT_SEEDS = ("brand_color", "accent_color", "ground_color")
+
+
+def _kit_stamp() -> str:
+    # The same cached document `tokens()` reads, so the key and the colours cannot disagree.
+    settings = frappe.get_cached_doc("Theme Settings")
+    return "|".join(str(settings.get(field) or "") for field in ("modified", *_KIT_SEEDS))
+
+
 def bunood_print_kit_css():
     """The print kit's stylesheet (templates/print/print_kit.css), its tokens substituted from
-    this site's palette. Cached per site, Theme Settings version and file mtime; "" on failure
-    (the format then prints unstyled rather than not at all, and the failure is logged)."""
+    this site's palette. Cached per site, Theme Settings version and colour seeds, and file mtime;
+    "" on failure (the format then prints unstyled rather than not at all, and the failure is
+    logged)."""
     try:
-        stamp = str(frappe.db.get_value("Theme Settings", "Theme Settings", "modified") or "")
-        return _kit_css(getattr(frappe.local, "site", "") or "", stamp, os.path.getmtime(_KIT_CSS))
+        return _kit_css(getattr(frappe.local, "site", "") or "", _kit_stamp(), os.path.getmtime(_KIT_CSS))
     except Exception:
         frappe.log_error(title="bunood_theme: print kit stylesheet stood down"[:140])
         return ""
