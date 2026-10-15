@@ -223,17 +223,65 @@ class ReprintTests(unittest.TestCase):
         self.reprint, self.frappe = load_with_view("isolated_reprint", "printing/reprint.py")
         self.reprint.now_datetime = lambda: SimpleNamespace(strftime=lambda fmt: "2026-10-15 18:20")
         self.stored = {"SINV-1": 0}
+        self.log = []
         self.frappe.get_meta = lambda doctype: SimpleNamespace(is_submittable=True, has_field=lambda f: f == "bnd_print_count")
         self.frappe.db = SimpleNamespace(
+            db_type="mariadb",
             get_value=lambda doctype, name, field: self.stored.get(name, 0),
-            sql=lambda query, name: self.stored.__setitem__(name, self.stored.get(name, 0) + 1))
+            sql=self.sql, commit=lambda: self.log.append("commit"), rollback=lambda: self.log.append("rollback"))
+        self.frappe.session = SimpleNamespace(user="cashier@example.com")
+        self.warnings = []
+        self.frappe.logger = lambda name=None: SimpleNamespace(warning=lambda msg, **k: self.warnings.append(msg))
         self.request("/printview", {})
 
+    def sql(self, query, name):
+        self.log.append(query)
+        self.stored[name] = self.stored.get(name, 0) + 1
+
     def request(self, path, form):
-        self.frappe.local = SimpleNamespace(request=SimpleNamespace(path=path), form_dict=form, flags=SimpleNamespace(commit=False))
+        """A new request; its after-response callbacks run when the test says the response is sent."""
+        self.callbacks = []
+        request = SimpleNamespace(path=path, after_response=SimpleNamespace(add=self.callbacks.append))
+        self.frappe.local = SimpleNamespace(request=request, form_dict=form, flags=SimpleNamespace(commit=False))
+
+    def respond(self):
+        for callback in self.callbacks:
+            callback()
 
     def doc(self, **over):
         return Doc(dict(doctype="Sales Invoice", name="SINV-1", docstatus=1), **over)
+
+    def test_the_count_is_written_after_the_response_in_its_own_transaction(self):
+        """The counter sits on the submitted invoice's row: an UPDATE under the render held that row's
+        lock for the whole request (a bulk PDF: minutes) and Payment Entry submits timed out behind
+        it (the v0.60.0 review, finding 3)."""
+        self.request("/api/method/frappe.utils.print_format.download_multi_pdf", {})
+        self.reprint.before_print(self.doc())
+        self.reprint.before_print(self.doc(name="SINV-2"))
+        self.assertEqual(self.log, [], "nothing is written while the documents render")
+        self.assertEqual(self.reprint.mark(self.doc()), {}, "the first print is the original")
+        self.respond()
+        self.assertEqual(self.stored, {"SINV-1": 1, "SINV-2": 1})
+        self.assertEqual(self.log[1::2], ["commit", "commit"], "one short transaction per document")
+        self.assertTrue(self.log[0].startswith("SET STATEMENT innodb_lock_wait_timeout=5 FOR update"),
+                        "a row another transaction holds is waited for briefly, not for the lock timeout")
+        self.assertFalse(self.frappe.local.flags.commit, "the request's own transaction is not kept open for it")
+
+    def test_nothing_in_the_count_stops_a_print(self):
+        def locked(query, name):
+            raise RuntimeError("Lock wait timeout exceeded")
+
+        self.request("/printview", {"trigger_print": "1"})
+        self.frappe.db.sql = locked
+        self.reprint.before_print(self.doc())
+        self.respond()
+        self.assertEqual(self.log, ["rollback"])
+        self.assertTrue(self.warnings, "a failed count is logged")
+        # Read-only, a missing table, anything: before_print and the copy mark still return.
+        self.frappe.db.get_value = lambda *a, **k: (_ for _ in ()).throw(RuntimeError("read-only"))
+        self.request("/printview", {"trigger_print": "1"})
+        self.assertIsNone(self.reprint.before_print(self.doc(name="SINV-3")))
+        self.assertEqual(self.reprint.mark(self.doc(name="SINV-3")), {})
 
     def test_what_counts_as_a_print(self):
         for path, form, counted in (("/printview", {"trigger_print": "1"}, True), ("/printview", {}, False),
@@ -249,10 +297,12 @@ class ReprintTests(unittest.TestCase):
         self.request("/printview", {"trigger_print": "1"})
         self.assertEqual(self.reprint.record(self.doc()), 1)
         self.assertEqual(self.reprint.mark(self.doc()), {}, "the original")
-        self.assertTrue(self.frappe.local.flags.commit, "a GET print commits its count")
+        self.respond()
+        self.assertEqual(self.log[-1], "commit", "a GET print commits its count")
         self.request("/printview", {"trigger_print": "1"})
         self.assertEqual(self.reprint.record(self.doc()), 2)
         self.assertEqual(self.reprint.mark(self.doc()), {"number": 2, "at": "2026-10-15 18:20"})
+        self.respond()
         # A preview counts nothing and shows what the next print would be.
         self.request("/printview", {})
         self.assertEqual(self.reprint.mark(self.doc()), {"number": 3, "at": "2026-10-15 18:20"})
