@@ -1228,6 +1228,17 @@ const SANCTIONED_IMPORTANT = [
 		class: "literal",
 	},
 	{
+		// Frappe's number formatter (`formatters._right`) wraps every Currency, Float,
+		// Int and Percent figure of a DataTable in a block with an INLINE
+		// `text-align: right` — the START of an Arabic sheet, away from the
+		// figure's heading (owner, 2026-10-15). The block follows its cell's
+		// logical alignment instead; rewriting the formatter's markup is refused.
+		bundle: "bunood",
+		selector: 'html[data-bnd-desk] .datatable[dir=rtl] .dt-cell__content div[style*="align: right"]',
+		property: "text-align",
+		class: "inline",
+	},
+	{
 		// Item 33: `.text-muted { color: #7c7c7c !important }`, a LITERAL, at 4.17:1
 		// on /404's only link and every portal row; a website page has no `.bunood`
 		// root to escalate through.

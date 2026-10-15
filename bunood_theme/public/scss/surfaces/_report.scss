@@ -1,4 +1,5 @@
 @use "../breakpoints" as bp;
+@use "../sheet";
 
 // Copyright (c) 2026, Bunood and contributors
 // ============================================================================
@@ -314,7 +315,9 @@ html[data-theme] [id="page-query-report"][data-bnd-report-workbench] .bnd-report
 
 // Keep monetary and quantity strings LTR as atomic units while alignment still
 // follows the sheet's reading direction. Header labels remain in the locale's
-// direction; only values and totals receive this class.
+// direction; only values and totals receive this class. (`end` here resolves in
+// the box's own LTR direction - right - which is the sheet's end only in
+// English; THE ORGANISED TABLE below puts an Arabic sheet's figures at its end.)
 html[data-theme] [id="page-query-report"][data-bnd-report-workbench] :is(.dt-scrollable, .dt-footer) .bnd-report-number .dt-cell__content {
   direction: ltr;
   unicode-bidi: isolate;
@@ -508,5 +511,166 @@ html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable:ha
 @media (hover: none) {
   html[data-bnd-report][data-bnd-report-ckreveal] #{$rpt-routes} .dt-scrollable .dt-cell--col-0 input[type="checkbox"] {
     opacity: 1;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// THE ORGANISED TABLE on Frappe's DataTable (owner, 2026-10-15).
+// ════════════════════════════════════════════════════════════════════════════
+// The query report (/app/query-report/...) and a list's Report view take the
+// business app's table look (_sheet.scss carries the WHY and the tones). Two
+// layers, split by GUIDELINES §1.3's test - "how it looks, or whether it works":
+//
+//   * WHERE A FIGURE SITS is a contract: under its heading, at the reading END,
+//     with every text column at the START - in every Data tables style, so it
+//     is keyed on html[data-bnd-desk] (this theme is running), not the anchor.
+//   * HOW THE TABLE LOOKS (header band, grid, zebra, banded totals) is the
+//     desk's report look when no Data tables style is chosen - the tenants this
+//     was asked for all run `report_style: Original`. A chosen style keeps its
+//     own block above: html[data-bnd-desk]:not([data-bnd-report]).
+//
+// THE VENDOR FACTS (measured on the lab, 2026-10-15, Arabic desk)
+//   * DataTable writes a PHYSICAL `text-align: left|right` per column into its
+//     own per-instance sheet (style.js setColumnStyle: numbers `right`, the rest
+//     `left`). In Arabic every text column therefore ENDS and every figure
+//     STARTS - the sheet mirrored. Only the RTL table needs the correction; an
+//     English one already reads right and is left exactly as the vendor draws it.
+//   * Frappe's number formatter (formatters._right: every Currency, Float, Int
+//     and Percent cell) wraps the figure in a block with an INLINE
+//     `text-align: right`. No selector outranks an inline declaration, so that
+//     one block takes the sanctioned `!important` (build.mjs
+//     SANCTIONED_IMPORTANT, class "inline"): it follows its cell instead.
+//     (The selectors match `align: right` inside that style attribute: the
+//     build's RTL guard reads any `text-align: right` as a physical property,
+//     even inside an attribute selector, and this one only READS the vendor's.)
+//   * The header carries no mark of its column's type, so a heading is a
+//     figure's heading when ITS column's cells hold that block: one `:has()`
+//     per column index, up to $dt-cols columns (a wider report keeps the
+//     vendor's alignment past it).
+//   * Rows are HyperList rows at `top: index * cellHeight` (33px in a query
+//     report, 35px in a Report view - both ODD), so an odd row's inline top
+//     ends in an odd digit: the zebra keys on that, exactly like the kit's
+//     grain (its coupling note applies here too). It re-points the vendor's own
+//     --dt-cell-bg, so the vendor's selection and select-all paints still win.
+//   * A tree report's group row is the one whose first cell holds the vendor's
+//     toggle (.dt-tree-node__toggle); the total row is the footer's.
+$dt-cols: 40;
+
+// ── The contract: alignment, every style ────────────────────────────────────
+html[data-bnd-desk] .datatable[dir="rtl"] .dt-cell__content {
+  text-align: start;
+}
+
+// The row number (and a Report view's checkbox) stay centred, as drawn.
+html[data-bnd-desk] .datatable[dir="rtl"] :is(.dt-cell__content--header-0, .dt-cell__content--col-0),
+html[data-bnd-desk] .datatable[dir="rtl"]:has(.dt-cell--col-0 [type="checkbox"]) :is(.dt-cell__content--header-1, .dt-cell__content--col-1) {
+  text-align: center;
+}
+
+// The formatter's inline alignment yields to its cell...
+html[data-bnd-desk] .datatable[dir="rtl"] .dt-cell__content div[style*="align: right"] {
+  text-align: inherit !important;
+}
+
+// ...a figure's cell (and its total) sits at the end...
+html[data-bnd-desk] .datatable[dir="rtl"] .dt-cell__content:has(div[style*="align: right"]) {
+  text-align: end;
+}
+
+// ...under a heading at the end.
+@for $i from 1 through $dt-cols {
+  html[data-bnd-desk] .datatable[dir="rtl"]:has(.dt-cell__content--col-#{$i} div[style*="align: right"]) .dt-cell__content--header-#{$i} {
+    text-align: end;
+  }
+}
+
+// The seven workbench reports isolate a figure in an LTR box (report_workbench
+// stamps dir=ltr): an LTR box's START is an Arabic sheet's END. The page id is
+// weight, so this beats both the rules above and the workbench's own `end`.
+html[data-bnd-desk] [id="page-query-report"] .datatable[dir="rtl"] .bnd-report-number > .dt-cell__content[dir="ltr"] {
+  text-align: start;
+}
+
+// A heading reads whole: it wraps onto a second line instead of ending in «…».
+// The vendor clips every cell to one line and pins every cell at its cellHeight
+// (style.js setCellHeight, `.dt-instance-N .dt-cell`), and Frappe every row at
+// 35px — right for the body's HyperList pitch, wrong for the header, which is in
+// flow above it. The header's row and cells take their content's height.
+html[data-bnd-desk] .datatable .dt-header .dt-row-header,
+html[data-bnd-desk] .datatable .dt-header .dt-row-header .dt-cell--header {
+  height: auto;
+}
+
+html[data-bnd-desk] .datatable .dt-header .dt-cell--header .dt-cell__content {
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+  line-height: var(--bnd-leading-tight);
+}
+
+// A group row of a tree report reads as a group.
+html[data-bnd-desk] .datatable .dt-scrollable .dt-row:has(.dt-tree-node__toggle) .dt-cell__content {
+  font-weight: 700;
+}
+
+// ── The look: when no Data tables style is chosen ───────────────────────────
+html[data-bnd-desk]:not([data-bnd-report]) .datatable {
+  @include sheet.tones;
+  --dt-border-color: var(--bnd-border);
+  --dt-header-cell-bg: var(--bnd-tbl-head);
+  --dt-border-radius: var(--bnd-radius-md);
+}
+
+// The header band: one tone, ink labels, a strong rule under it. The vendor
+// paints the band three ways (probe A, at the top of this file); these beat
+// Frappe's two hardcoded --subtle-fg rules on their own specificity.
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-header {
+  border-block-end: var(--bnd-line-strong) solid var(--bnd-border-strong);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-header .dt-row-header {
+  background-color: var(--bnd-tbl-head);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-header .dt-cell--header .dt-cell__content {
+  background-color: var(--bnd-tbl-head);
+  color: var(--bnd-ink);
+  font-weight: 700;
+}
+
+// The zebra: odd visual rows (the HyperList top ends in an odd digit).
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-scrollable .dt-row:is([style*="1px"], [style*="3px"], [style*="5px"], [style*="7px"], [style*="9px"]) {
+  --dt-cell-bg: var(--bnd-tbl-zebra);
+}
+
+// The totals - the footer's row, and the rows a workbench report flags as a
+// total or a section - wear the edge band; a total takes the strong rule.
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-footer .dt-row,
+html[data-bnd-desk]:not([data-bnd-report]) [id="page-query-report"] .datatable .dt-row:is(.bnd-report-total-row, .bnd-report-section-row) {
+  --dt-cell-bg: var(--bnd-tbl-edge);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-footer .dt-cell,
+html[data-bnd-desk]:not([data-bnd-report]) [id="page-query-report"] .datatable .dt-row.bnd-report-total-row .dt-cell {
+  border-block-start: var(--bnd-line-2) solid var(--bnd-border-strong);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-footer .dt-cell__content {
+  color: var(--bnd-ink);
+  font-weight: 700;
+}
+
+// ── On paper (window.print of these screens) ────────────────────────────────
+// _print.scss forces ink black and the surface white; the bands mix ink, so
+// they print grey, and print even with background graphics off. The printed
+// page header belongs to the print redesign (Frappe's print_grid), not here.
+@media print {
+  html[data-bnd-desk]:not([data-bnd-report]) .datatable {
+    @include sheet.paper-tones;
+  }
+
+  html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-cell {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }
