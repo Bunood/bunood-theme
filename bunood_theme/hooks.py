@@ -231,6 +231,11 @@ jinja = {
         "bunood_theme.printing.jinja.bunood_buyer_profile",
         "bunood_theme.printing.jinja.bunood_invoice_view",
         "bunood_theme.printing.jinja.bunood_receipt_extras",
+        "bunood_theme.printing.jinja.bunood_trade_view",
+        "bunood_theme.printing.jinja.bunood_party_profile",
+        "bunood_theme.printing.jinja.bunood_voucher_view",
+        "bunood_theme.printing.jinja.bunood_journal_view",
+        "bunood_theme.printing.jinja.bunood_shift_view",
         "bunood_theme.printing.jinja.bunood_print_kit_css",
         # Item 34: the email stylesheet, substituted per site. Registered here
         # rather than delivered by Frappe's `email_css` hook because that hook is a

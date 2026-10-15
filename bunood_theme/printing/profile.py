@@ -241,7 +241,7 @@ def company_profile(company: str | None, doc=None, arabic: bool = True) -> dict:
                 value = website(value)
             if value:
                 contacts.append({"key": key, "value": value})
-    return {
+    profile = {
         "name": c.name if c else _clean(company),
         "name_ar": ar,
         "name_en": en,
@@ -258,34 +258,57 @@ def company_profile(company: str | None, doc=None, arabic: bool = True) -> dict:
         "signatory": _clean(c.get("bnd_signatory")) if c else "",
         "bank": bank(c.name) if c else {},
     }
+    profile["cells"] = cells(profile, vat_required=True)
+    return profile
 
 
 def buyer_profile(doc, arabic: bool = True) -> dict:
     """The buyer (a Sales/POS invoice's customer) as a standard tax invoice shows it: name, VAT
     or another identifier with its type (ksa_compliance's Additional Buyer IDs), the national
     address in parts, and a phone."""
-    customer = doc.get("customer")
-    cust = frappe.get_cached_doc("Customer", customer) if customer and frappe.db.exists("Customer", customer) else None
-    name = _clean(doc.get("customer_name")) or _clean(customer)
-    name_ar = _clean(doc.get("customer_name_in_arabic")) or (_clean(cust.get("customer_name_in_arabic")) if cust else "")
-    vat = _clean(doc.get("tax_id")) or (
-        (_clean(cust.get("custom_vat_registration_number")) or _clean(cust.get("tax_id"))) if cust else ""
+    return party_profile(doc, "Customer", arabic=arabic)
+
+
+#: Where each party lives on a document: (party doctype field, name field, address field).
+_PARTY_FIELDS = {
+    "Customer": ("customer", "customer_name", "customer_address"),
+    "Supplier": ("supplier", "supplier_name", "supplier_address"),
+}
+
+
+def party_profile(doc, party_type: str = "Customer", arabic: bool = True) -> dict:
+    """A customer or a supplier of any document, in the shape the party boxes print.
+
+    A Quotation names its party in `party_name` (`quotation_to` says which doctype); every
+    other selling document in `customer`, every buying one in `supplier`."""
+    field, name_field, address_field = _PARTY_FIELDS.get(party_type, _PARTY_FIELDS["Customer"])
+    party = doc.get(field)
+    if not party and doc.get("doctype") == "Quotation" and (doc.get("quotation_to") or "Customer") == party_type:
+        party = doc.get("party_name")
+    record = frappe.get_cached_doc(party_type, party) if party and frappe.db.exists(party_type, party) else None
+    name = _clean(doc.get(name_field)) or (_clean(record.get(name_field)) if record else "") or _clean(party)
+    name_ar = (_clean(doc.get("customer_name_in_arabic")) if party_type == "Customer" else "") or (
+        _clean(record.get("customer_name_in_arabic")) if record and party_type == "Customer" else ""
+    )
+    vat = (_clean(doc.get("tax_id")) if party_type == "Customer" else "") or (
+        (_clean(record.get("custom_vat_registration_number")) or _clean(record.get("tax_id"))) if record else ""
     )
     ids = []
-    if cust:
-        for row in cust.get("custom_additional_ids") or []:
+    if record:
+        for row in record.get("custom_additional_ids") or []:
             value = _clean(row.get("value"))
             if value:
                 ids.append({"type": _clean(row.get("type_name")) or _clean(row.get("type_code")),
                     "code": _clean(row.get("type_code")), "value": value})
     cr = next((i["value"] for i in ids if i["code"].upper() == "CRN"), "")
     other = [i for i in ids if i["code"].upper() != "CRN"]
-    address_name = doc.get("customer_address") or (primary_address_name("Customer", customer) if customer else None)
+    address_name = doc.get(address_field) or (primary_address_name(party_type, party) if party else None)
     address = address_parts(address_name, arabic=arabic)
     phone = _clean(doc.get("contact_mobile")) or _clean(doc.get("contact_phone")) or (
-        _clean(cust.get("mobile_no")) if cust else ""
+        _clean(record.get("mobile_no")) if record else ""
     )
-    return {
+    out = {
+        "type": party_type,
         "name": name,
         "name_ar": name_ar if name_ar != name else "",
         "vat": vat,
@@ -295,3 +318,33 @@ def buyer_profile(doc, arabic: bool = True) -> dict:
         "address_text": "" if address["line"] else _clean(frappe.utils.strip_html(doc.get("address_display") or "")),
         "phone": phone,
     }
+    out["cells"] = cells(out)
+    return out
+
+
+_SA = ("Saudi Arabia", "المملكة العربية السعودية", "السعودية")
+
+
+def cells(party: dict, vat_required: bool = False) -> list[dict]:
+    """A party box's grid: VAT, CR, phone, other IDs, then the national address in parts.
+    Empty values are dropped by the box; a seller's VAT says when it is not set."""
+    a = party.get("address") or {}
+    out = [
+        {"ar": "الرقم الضريبي", "en": "VAT No.", "ltr": True,
+         "value": party.get("vat") or ("غير مُعدّ — NOT SET" if vat_required else "")},
+        {"ar": "السجل التجاري", "en": "C.R.", "value": party.get("cr"), "ltr": True},
+        {"ar": "الهاتف", "en": "Phone", "value": party.get("phone"), "ltr": True},
+    ]
+    for i in party.get("ids") or []:
+        out.append({"ar": i.get("type") or "معرّف آخر", "en": i.get("code") or "ID", "value": i.get("value"), "ltr": True})
+    out += [
+        {"ar": "رقم المبنى", "en": "Building", "value": a.get("building"), "ltr": True},
+        {"ar": "الشارع", "en": "Street", "value": a.get("street")},
+        {"ar": "الحي", "en": "District", "value": a.get("district")},
+        {"ar": "المدينة", "en": "City", "value": a.get("city")},
+        {"ar": "الرمز البريدي", "en": "Postal", "value": a.get("postal"), "ltr": True},
+        {"ar": "الرقم الإضافي", "en": "Add. no.", "value": a.get("additional"), "ltr": True},
+        {"ar": "الدولة", "en": "Country", "value": "" if a.get("country") in _SA else a.get("country")},
+        {"ar": "العنوان", "en": "Address", "value": party.get("address_text")},
+    ]
+    return out

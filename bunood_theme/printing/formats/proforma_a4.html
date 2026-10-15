@@ -1,0 +1,5 @@
+{#- Managed by bunood_theme (printing/install.py): a migrate restores this file. Duplicate the
+    Print Format in Desk to customise it. «فاتورة مبدئية - A4» — the proforma (on a Sales Order): «ليست فاتورة ضريبية», no QR. The family's one template is
+    templates/print/trade_a4.html; this file only sets its switches. -#}
+{%- set zo_kind = "proforma" -%}
+{% include "templates/print/trade_a4.html" %}

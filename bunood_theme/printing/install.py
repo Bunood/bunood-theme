@@ -36,9 +36,10 @@ from bunood_theme import zatca
 # mapping in patches/v0_60_0/print_format_names.py (RENAMES); the installer creates ONLY these,
 # so a migrate after that patch makes no duplicates. The names themselves are printing/names.py.
 from bunood_theme.printing.names import (  # noqa: E402
-    JOURNAL_A4, LETTERHEAD_NAME, MATRIX_INVOICE, POS_SUFFIX, PURCHASE_INVOICE_A4, QUOTATION_A4,
-    SIMPLIFIED_INVOICE_A4, SIMPLIFIED_RECEIPT_80, STATEMENT_A4, STYLE_NAME, TAX_INVOICE_A4,
-    TAX_RECEIPT_80, VOUCHER_A4,
+    DELIVERY_NOTE_A4, GIFT_RECEIPT_80, JOURNAL_A4, LETTERHEAD_NAME, MATRIX_INVOICE, POS_SUFFIX, PROFORMA_A4,
+    PURCHASE_INVOICE_A4, PURCHASE_ORDER_A4, PURCHASE_RECEIPT_A4, QUOTATION_A4, SALES_ORDER_A4, SHIFT_REPORT_80,
+    SIMPLIFIED_INVOICE_A4, SIMPLIFIED_RECEIPT_58, SIMPLIFIED_RECEIPT_80, STATEMENT_A4, STOCK_ENTRY_A4, STYLE_NAME,
+    TAX_INVOICE_A4, TAX_RECEIPT_80, VOUCHER_A4, VOUCHER_A5,
 )
 
 MODULE = "Bunood Theme"
@@ -70,24 +71,35 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 # from the default) is recorded there and in the CHANGELOG.
 STOCK_STYLES = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome")
 
+#: The kit's formats (the owner's redesign, 2026-10-15). Each family is ONE template under
+#: templates/print/ with switches; a format file only sets them. Every one renders on Chromium,
+#: the release engine, and carries its own page chrome. The sales receipts and A4s have a POS
+#: Invoice twin (« - نقطة البيع») wherever a counter prints that doctype.
+_SALES = [
+    (TAX_INVOICE_A4, "sales_invoice_tax_a4.html"),
+    (SIMPLIFIED_INVOICE_A4, "sales_invoice_simplified_a4.html"),
+    (SIMPLIFIED_RECEIPT_80, "sales_invoice_simplified_thermal.html"),
+    (SIMPLIFIED_RECEIPT_58, "sales_invoice_simplified_thermal_58.html"),
+    (TAX_RECEIPT_80, "sales_invoice_tax_thermal.html"),
+    (GIFT_RECEIPT_80, "gift_receipt_thermal.html"),
+    (MATRIX_INVOICE, "sales_invoice_matrix.html"),
+]
 FORMATS = [
-    # THE PRINT KIT (the owner's redesign, 2026-10-15). Each family is ONE template under
-    # templates/print/ with switches; a format file only sets the switch. Every kit format
-    # renders on Chromium, the release engine, and carries its own page chrome.
-    {"name": TAX_INVOICE_A4, "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html", "pdf_generator": "chrome"},
-    {"name": SIMPLIFIED_INVOICE_A4, "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html", "pdf_generator": "chrome"},
-    {"name": SIMPLIFIED_RECEIPT_80, "doctype": "Sales Invoice", "file": "sales_invoice_simplified_thermal.html", "pdf_generator": "chrome"},
-    # The POS Invoice twins, wherever a counter prints that doctype (POS Settings.invoice_type).
-    {"name": TAX_INVOICE_A4 + POS_SUFFIX, "doctype": "POS Invoice", "file": "sales_invoice_tax_a4.html", "pdf_generator": "chrome"},
-    {"name": SIMPLIFIED_INVOICE_A4 + POS_SUFFIX, "doctype": "POS Invoice", "file": "sales_invoice_simplified_a4.html", "pdf_generator": "chrome"},
-    {"name": SIMPLIFIED_RECEIPT_80 + POS_SUFFIX, "doctype": "POS Invoice", "file": "sales_invoice_simplified_thermal.html", "pdf_generator": "chrome"},
-    # Not yet redesigned (Stage 2 of the brief): renamed now, their files unchanged.
+    *({"name": name, "doctype": "Sales Invoice", "file": file, "pdf_generator": "chrome"} for name, file in _SALES),
+    *({"name": name + POS_SUFFIX, "doctype": "POS Invoice", "file": file, "pdf_generator": "chrome"}
+      for name, file in _SALES if name != MATRIX_INVOICE),
+    {"name": QUOTATION_A4, "doctype": "Quotation", "file": "quotation_a4.html", "pdf_generator": "chrome"},
+    {"name": SALES_ORDER_A4, "doctype": "Sales Order", "file": "sales_order_a4.html", "pdf_generator": "chrome"},
+    {"name": PROFORMA_A4, "doctype": "Sales Order", "file": "proforma_a4.html", "pdf_generator": "chrome"},
+    {"name": DELIVERY_NOTE_A4, "doctype": "Delivery Note", "file": "delivery_note_a4.html", "pdf_generator": "chrome"},
     {"name": PURCHASE_INVOICE_A4, "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html", "pdf_generator": "chrome"},
-    {"name": TAX_RECEIPT_80, "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
-    {"name": MATRIX_INVOICE, "doctype": "Sales Invoice", "file": "sales_invoice_matrix.html"},
-    {"name": DEFAULT_QUOTATION_FORMAT, "doctype": "Quotation", "file": "quotation_a4.html", "pdf_generator": "chrome"},
-    {"name": DEFAULT_PAYMENT_FORMAT, "doctype": "Payment Entry", "file": "payment_entry_voucher.html"},
-    {"name": JOURNAL_FORMAT, "doctype": "Journal Entry", "file": "journal_entry_voucher.html"},
+    {"name": PURCHASE_ORDER_A4, "doctype": "Purchase Order", "file": "purchase_order_a4.html", "pdf_generator": "chrome"},
+    {"name": PURCHASE_RECEIPT_A4, "doctype": "Purchase Receipt", "file": "purchase_receipt_a4.html", "pdf_generator": "chrome"},
+    {"name": STOCK_ENTRY_A4, "doctype": "Stock Entry", "file": "stock_entry_a4.html", "pdf_generator": "chrome"},
+    {"name": VOUCHER_A5, "doctype": "Payment Entry", "file": "payment_entry_voucher_a5.html", "pdf_generator": "chrome"},
+    {"name": DEFAULT_PAYMENT_FORMAT, "doctype": "Payment Entry", "file": "payment_entry_voucher.html", "pdf_generator": "chrome"},
+    {"name": JOURNAL_FORMAT, "doctype": "Journal Entry", "file": "journal_entry_voucher.html", "pdf_generator": "chrome"},
+    {"name": SHIFT_REPORT_80, "doctype": "POS Closing Entry", "file": "pos_closing_shift_thermal.html", "pdf_generator": "chrome"},
     {"name": CUSTOMER_STATEMENT_FORMAT, "report": "General Ledger", "file": "customer_statement.html", "pdf_generator": "chrome"},
 ]
 

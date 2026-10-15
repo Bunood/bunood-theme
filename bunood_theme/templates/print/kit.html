@@ -247,9 +247,9 @@
 {#- ===== UNDER THE TABLE (owner rule): one row, the totals in the physical RIGHT
     cell, the ZATCA QR in the physical LEFT one — `direction: ltr` on the row
     keeps them there in an English print too. Kept together on one page. -#}
-{% macro summary_row(doc, v, qr, lean=False) -%}
+{% macro summary_row(doc, v, qr, lean=False, with_qr=True) -%}
 <table class="zo-sum"><tr>
-  <td class="zo-sum__qr">{{ qr_block(doc, qr) }}</td>
+  <td class="zo-sum__qr">{% if with_qr %}{{ qr_block(doc, qr) }}{% endif %}</td>
   <td class="zo-sum__gap"></td>
   <td class="zo-sum__tot" dir="{{ 'rtl' if bunood_print_language() == 'ar' else 'ltr' }}">{{ totals_table(v.totals, lean=lean) }}</td>
 </tr></table>
@@ -279,12 +279,14 @@
 
 {#- ===== SIGNATURES — labels per document type; the seller's cell carries the
     company's signature, signatory and stamp when the «المنشأة» screen has them. -#}
-{% macro signatures(p, labels) -%}
-<table class="zo-sigs{% if p.signature or p.stamp %} zo-sigs--images{% endif %}"><tr>
+{#- `seal` is the index of the cell that carries the company's signature, stamp and
+    signatory (the seller's / the approver's), or none for a purely internal paper. -#}
+{% macro signatures(p, labels, seal=0) -%}
+<table class="zo-sigs{% if seal is not none and (p.signature or p.stamp) %} zo-sigs--images{% endif %}"><tr>
   {%- for l in labels %}
   <td>
-    <div class="zo-sigs__img">{% if loop.first %}{% if p.signature %}<img src="{{ p.signature | e }}" alt="">{% endif %}{% if p.stamp %}<img src="{{ p.stamp | e }}" alt="">{% endif %}{% endif %}</div>
-    {% if loop.first and p.signatory %}<div class="zo-sigs__who">{{ p.signatory | e }}</div>{% endif %}
+    <div class="zo-sigs__img">{% if loop.index0 == seal %}{% if p.signature %}<img src="{{ p.signature | e }}" alt="">{% endif %}{% if p.stamp %}<img src="{{ p.stamp | e }}" alt="">{% endif %}{% endif %}</div>
+    {% if loop.index0 == seal and p.signatory %}<div class="zo-sigs__who">{{ p.signatory | e }}</div>{% endif %}
     <div class="zo-sigs__line">{{ l[0] }} <span class="en">{{ l[1] }}</span></div>
   </td>
   {%- endfor %}
@@ -297,4 +299,83 @@
 {% macro watermark(doc, tax_document=True) -%}
 {%- if doc.get("docstatus") == 0 -%}<div class="zo-wm">مسودة<span>DRAFT</span></div>
 {%- elif doc.get("docstatus") == 2 and not tax_document -%}<div class="zo-wm">ملغاة<span>CANCELLED</span></div>{%- endif -%}
+{%- endmacro %}
+
+{#- Two party boxes side by side (left blank when only one is given). -#}
+{% macro parties(first, second=None) -%}
+<table class="zo-parties"><tr>
+  <td>{{ party_box(first.head_ar, first.head_en, first.name, first.sub, first.cells) }}</td>
+  <td class="gap"></td>
+  {%- if second %}
+  <td>{{ party_box(second.head_ar, second.head_en, second.name, second.sub, second.cells) }}</td>
+  {%- else %}<td class="zo-parties__none"></td>{% endif %}
+</tr></table>
+{%- endmacro %}
+
+{#- ===== A QUANTITY TABLE — documents that move goods without prices (a delivery note,
+    a goods receipt, a stock transfer). `cols` is a list of {"ar", "en", "key", "n"}
+    (n: a number column, right-aligned on its own end like every number). -#}
+{% macro items_qty(lines, cols) -%}
+<table class="zo-items zo-items--qty">
+  <thead><tr>
+    <th class="c" style="width:5%">م<span class="en">No.</span></th>
+    {%- for c in cols %}<th class="{{ 'n' if c.n else '' }}"{% if c.w %} style="width:{{ c.w }}"{% endif %}>{{ c.ar }}<span class="en">{{ c.en }}</span></th>{% endfor %}
+  </tr></thead>
+  <tbody>
+  {%- for l in lines %}
+    <tr>
+      <td class="c"><span class="num">{{ l.idx }}</span></td>
+      {%- for c in cols %}
+      {%- if c.key == "name" %}<td><div class="zo-item__n">{{ l.name | e }}</div>{% if l.code and l.code != l.name %}<div class="zo-item__d code">{{ l.code | e }}</div>{% endif %}</td>
+      {%- elif c.n %}<td class="n"><span class="num">{{ l[c.key] or "—" }}</span></td>
+      {%- else %}<td>{{ (l[c.key] or "—") | e }}</td>{% endif %}
+      {%- endfor %}
+    </tr>
+  {%- endfor %}
+  </tbody>
+</table>
+{%- endmacro %}
+
+{#- ===== THE A4 / A5 PAGE — the kit's page chrome around a document's content
+    ({% call page(...) %} … {% endcall %}): the stylesheet, the page size, the
+    repeated head and foot, the page number, the watermark, and the policy at the
+    end when it is too long to repeat. `tax_document` decides whether a cancelled
+    document may say «ملغاة» (never on a tax invoice or note). -#}
+{% macro page(p, doc, no_letterhead=0, tax_document=True, size="A4", landscape=False) -%}
+{%- set ar = bunood_print_language() == "ar" -%}
+{%- set dir = "rtl" if ar else "ltr" -%}
+{%- set short_policy = policy_is_short(p) == "1" -%}
+{%- set chrome = not no_letterhead -%}
+{%- set a5 = size == "A5" -%}
+<style>
+{{ bunood_print_kit_css() }}
+{#- Frappe reads page-width / page-height from this exact rule; Chromium ignores its own
+    `landscape` flag once a paper size is given (measured: an A5 "Landscape" printed portrait),
+    so a landscape page is given as its own width and height. -#}
+{%- set dims = {"A4": (210, 297), "A5": (148, 210)}.get(size, (210, 297)) -%}
+{%- set pw, ph = (dims[1], dims[0]) if landscape else dims -%}
+/* The PDF page, read by Frappe from this exact rule (size and margins). */
+.print-format { page-width: {{ pw }}mm; page-height: {{ ph }}mm; margin-top: {{ 8 if a5 else 10 }}mm; margin-bottom: {{ 6 if a5 else 8 }}mm; margin-left: {{ 10 if a5 else 12 }}mm; margin-right: {{ 10 if a5 else 12 }}mm; }
+@media print { @page { size: {{ size }} {{ "landscape" if landscape else "portrait" }}; margin: {{ 8 if a5 else 10 }}mm {{ 10 if a5 else 12 }}mm {{ 6 if a5 else 8 }}mm {{ 10 if a5 else 12 }}mm; } }
+{% if chrome %}{{ page_number_css() }}{% endif %}
+</style>
+<div class="zo zo-a4{{ ' zo-a5' if a5 else '' }} zo-paged" dir="{{ dir }}" lang="{{ 'ar' if ar else 'en' }}">
+  {%- if chrome %}
+  <div class="zo-chrome-head">{{ page_head(p, numbered=False) }}</div>
+  <div class="zo-chrome-foot">{{ page_foot(p, with_policy=short_policy) }}</div>
+  {%- endif %}
+  {{ watermark(doc, tax_document) }}
+  <table class="zo-frame">
+    {%- if chrome %}
+    <thead><tr><td><div class="zo-frame__head"></div></td></tr></thead>
+    <tfoot><tr><td><div class="zo-frame__foot{% if short_policy and p.policy %} zo-frame__foot--policy{% endif %}"></div></td></tr></tfoot>
+    {%- endif %}
+    <tbody><tr><td>
+{{ caller() }}
+  {%- if chrome and p.policy and not short_policy %}
+  <div class="zo-policy zo-policy--body">{{ p.policy | e | replace("\n", "<br>") }}</div>
+  {%- endif %}
+    </td></tr></tbody>
+  </table>
+</div>
 {%- endmacro %}

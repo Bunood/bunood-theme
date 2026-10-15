@@ -6,6 +6,8 @@
                               ~48 mm (384 dots) with three item columns.
       zo_b2b   = True         «فاتورة ضريبية - حراري 80مم»: the buyer's name,
                               VAT and CR block, titled a tax invoice.
+      zo_gift  = True         «إيصال هدية - حراري 80مم»: the items and their
+                              quantities only — no price, no total, no QR.
 
     Top to bottom: logo · names AR/EN · VAT / C.R. / branch · title band · meta
     table · items table · totals (the total in an inverted band) · payments ·
@@ -20,6 +22,7 @@
 {%- set width = (zo_width | default(80)) | int -%}
 {%- set narrow = width == 58 -%}
 {%- set b2b = zo_b2b | default(False) -%}
+{%- set gift = zo_gift | default(False) -%}
 {%- set ar = bunood_print_language() == "ar" -%}
 {%- set p = bunood_print_profile(doc) -%}
 {%- set v = bunood_invoice_view(doc, not b2b) -%}
@@ -28,10 +31,10 @@
 {%- set t = v.totals -%}
 {#- A roll has no length: the page is as long as the receipt, estimated generously from what it
     carries (a short estimate would split the receipt in two; the excess is blank paper). -#}
-{%- set height = 175 + (22 if p.logo else 0) + (v.lines | length) * (14 if narrow else 11)
+{%- set height = (215 if narrow else 175) + (22 if p.logo else 0) + (v.lines | length) * (17 if narrow else 11)
       + ((v.payments | length) + (1 if v.totals.paid else 0) + (1 if v.totals.change else 0)) * 6
-      + ((p.policy | length) // (24 if narrow else 36) + 1) * 4 + (34 if b2b else 0) + (14 if v.reference else 0)
-      + (10 if x.service else 0) -%}
+      + ((p.policy | length) // (24 if narrow else 36) + 1) * 4 + (60 if b2b else 0) + (14 if v.reference else 0)
+      + (10 if x.service else 0) - (95 if gift else 0) -%}
 <style>
 {{ bunood_print_kit_css() }}
 /* The PDF page: read by both engines from this rule (read_options_from_html); @page
@@ -45,12 +48,16 @@
   <div class="c">
     {%- if p.name_ar %}<div class="zo-rcpt__name-ar">{{ p.name_ar | e }}</div>{% endif %}
     {%- if p.name_en %}<div class="zo-rcpt__name-en">{{ p.name_en | e }}</div>{% endif %}
-    {%- if p.vat %}<div class="zo-rcpt__id">الرقم الضريبي / VAT: <span class="num">{{ p.vat | e }}</span></div>{% endif %}
-    {%- if p.cr %}<div class="zo-rcpt__id">س.ت / C.R.: <span class="num">{{ p.cr | e }}</span></div>{% endif %}
+    {%- if p.vat %}<div class="zo-rcpt__id">الرقم الضريبي <bdi class="en" dir="ltr">VAT</bdi>: <span class="num">{{ p.vat | e }}</span></div>{% endif %}
+    {%- if p.cr %}<div class="zo-rcpt__id">س.ت <bdi class="en" dir="ltr">C.R.</bdi>: <span class="num">{{ p.cr | e }}</span></div>{% endif %}
     {%- if v.branch %}<div class="zo-rcpt__id">{{ v.branch | e }}</div>{% endif %}
   </div>
 
+  {%- if gift %}
+  <div class="zo-rcpt__title"><b>إيصال هدية</b><span>Gift Receipt</span></div>
+  {%- else %}
   <div class="zo-rcpt__title"><b>{{ v.title_ar | e }}</b><span>{{ v.title_en | e }}</span></div>
+  {%- endif %}
 
   <table class="zo-rcpt-meta">
     <tr><td class="k">{{ "رقم الإشعار" if (doc.get("is_return") or doc.get("is_debit_note")) else "رقم الفاتورة" }}</td><td class="v"><span class="num">{{ v.number | e }}</span></td></tr>
@@ -75,14 +82,19 @@
   </table>
   {%- endif %}
 
-  {#- Items: a long name takes its own full-width line, the figures go under it. -#}
-  {%- set cut = 14 if narrow else 16 %}
+  {#- Items: a long name takes its own full-width line, the figures go under it. Every figure
+      column has its own width, wide enough for its Arabic header, and header and figures share
+      one right edge. 58 mm: الصنف | الكمية | الإجمالي, the unit price under the name. -#}
+  {%- set cut = 13 %}
   <table class="zo-rcpt-items">
-    {%- if narrow %}
-    <colgroup><col style="width:56%"><col style="width:14%"><col style="width:30%"></colgroup>
+    {%- if gift %}
+    <colgroup><col style="width:78%"><col style="width:22%"></colgroup>
+    <thead><tr><th>الصنف<span class="en">Item</span></th><th class="q">الكمية<span class="en">Qty</span></th></tr></thead>
+    {%- elif narrow %}
+    <colgroup><col style="width:50%"><col style="width:22%"><col style="width:28%"></colgroup>
     <thead><tr><th>الصنف<span class="en">Item</span></th><th class="q">الكمية<span class="en">Qty</span></th><th class="n">الإجمالي<span class="en">Total</span></th></tr></thead>
     {%- else %}
-    <colgroup><col style="width:39%"><col style="width:14%"><col style="width:21%"><col style="width:26%"></colgroup>
+    <colgroup><col style="width:35%"><col style="width:18%"><col style="width:22%"><col style="width:25%"></colgroup>
     <thead><tr><th>الصنف<span class="en">Item</span></th><th class="q">الكمية<span class="en">Qty</span></th><th class="n">السعر<span class="en">Price</span></th><th class="n">الإجمالي<span class="en">Total</span></th></tr></thead>
     {%- endif %}
     <tbody>
@@ -90,7 +102,9 @@
       {%- set price = l.unit_incl if not b2b else l.rate %}
       {%- set amount = l.total %}
       {%- set mod = l.description if l.description and (l.description | length) <= 120 else "" %}
-      {%- if narrow %}
+      {%- if gift %}
+      <tr class="{{ 'end' if loop.last else '' }}"><td><b>{{ l.name | e }}</b>{% if mod %}<span class="mod">{{ mod | e }}</span>{% endif %}</td><td class="q"><span class="num">{{ l.qty }}</span></td></tr>
+      {%- elif narrow %}
       <tr class="{{ 'end' if loop.last else '' }}"><td><b>{{ l.name | e }}</b><span class="unit num">{{ l.qty }} × {{ price }}</span>{% if mod %}<span class="mod">{{ mod | e }}</span>{% endif %}</td><td class="q"><span class="num">{{ l.qty }}</span></td><td class="n"><span class="num">{{ amount }}</span></td></tr>
       {%- elif (l.name | length) > cut %}
       <tr class="nm"><td colspan="4">{{ l.name | e }}{% if mod %}<span class="mod">{{ mod | e }}</span>{% endif %}</td></tr>
@@ -101,6 +115,9 @@
     {%- endfor %}
     </tbody>
   </table>
+  {%- if gift %}
+  <div class="zo-rcpt__note">إيصال للاستبدال بلا أسعار — <span class="en">An exchange receipt, without prices</span></div>
+  {%- else %}
   <div class="zo-rcpt__note">{{ "الأسعار شاملة ضريبة القيمة المضافة — Prices include VAT" if not b2b else "الأسعار قبل الضريبة، والإجمالي شامل الضريبة — Prices excl. VAT, totals incl. VAT" }}</div>
 
   <table class="zo-rcpt-tot">
@@ -121,6 +138,7 @@
   {%- endif %}
 
   <div class="zo-rcpt__qr">{{ qr_block(doc, qr) }}</div>
+  {%- endif %}
 
   {%- if p.address.line or p.contacts %}
   <div class="zo-rcpt__rule zo-rcpt__rule--dash"></div>

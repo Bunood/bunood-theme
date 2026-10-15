@@ -1,0 +1,55 @@
+{#- ============================================================================
+    «فاتورة - طابعة نقطية» — the dot-matrix layout (pre-printed or continuous
+    forms): one monospace face, no tint, no image, aligned columns, the totals on
+    the physical right. A matrix head prints characters, not pictures, so NO QR
+    is printed here: a simplified tax invoice that must carry ZATCA's QR is
+    printed from «فاتورة ضريبية مبسطة - A4» or a thermal receipt instead (the
+    note at the foot says so). Duplicate the format to match a client's form.
+    ============================================================================ -#}
+{%- set ar = bunood_print_language() == "ar" -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set b = bunood_buyer_profile(doc) -%}
+{%- set v = bunood_invoice_view(doc, not b.vat) -%}
+{%- set t = v.totals -%}
+<style>
+{{ bunood_print_kit_css() }}
+.print-format { margin-top: 10mm; margin-bottom: 10mm; margin-left: 10mm; margin-right: 10mm; }
+@media print { @page { size: A4 portrait; margin: 10mm; } }
+</style>
+<div class="zo zo-matrix" dir="{{ 'rtl' if ar else 'ltr' }}" lang="{{ 'ar' if ar else 'en' }}">
+  <table class="zo-m-head"><tr>
+    <td>{{ (p.name_ar or p.name) | e }}<br>الرقم الضريبي: {{ p.vat | e }}{% if p.cr %}<br>السجل التجاري: {{ p.cr | e }}{% endif %}</td>
+    <td style="text-align:left" dir="ltr">{{ p.name_en | e }}<br>VAT No.: {{ p.vat | e }}{% if p.cr %}<br>C.R.: {{ p.cr | e }}{% endif %}</td>
+  </tr></table>
+  <div class="zo-m-rule"></div>
+  <div class="zo-m-title">{{ v.title_ar }} / {{ v.title_en }}</div>
+  <table>
+    <tr><td style="width:50%">رقم الفاتورة: <span class="num">{{ v.number | e }}</span></td><td>التاريخ: <span class="num">{{ v.issued }}</span></td></tr>
+    <tr><td>العميل: {{ b.name | e }}</td><td>{% if b.vat %}الرقم الضريبي للعميل: <span class="num">{{ b.vat | e }}</span>{% endif %}</td></tr>
+    {%- if v.reference %}<tr><td>الفاتورة الأصلية: <span class="num">{{ v.reference.originals | join("، ") }}</span></td><td>السبب: {{ (v.reference.reason or "—") | e }}</td></tr>{% endif %}
+  </table>
+  <div class="zo-m-rule"></div>
+  <table>
+    <colgroup><col style="width:6%"><col style="width:40%"><col style="width:10%"><col style="width:14%"><col style="width:14%"><col style="width:16%"></colgroup>
+    <thead><tr><th>م</th><th>الصنف</th><th class="n">الكمية</th><th class="n">السعر</th><th class="n">الضريبة</th><th class="n">الإجمالي</th></tr></thead>
+    <tbody>
+    {%- for l in v.lines %}
+      <tr><td><span class="num">{{ l.idx }}</span></td><td>{{ l.name | e }}</td><td class="n"><span class="num">{{ l.qty }}</span></td>
+          <td class="n"><span class="num">{{ l.rate }}</span></td><td class="n"><span class="num">{{ l.vat }}</span></td><td class="n"><span class="num">{{ l.total }}</span></td></tr>
+    {%- endfor %}
+    </tbody>
+  </table>
+  <div class="zo-m-rule"></div>
+  <table dir="ltr"><tr><td style="width:45%"></td><td dir="{{ 'rtl' if ar else 'ltr' }}">
+    <table class="zo-m-tot" style="width:100%">
+      <tr><td>الإجمالي قبل الضريبة</td><td class="n"><span class="num">{{ t.taxable }}</span></td></tr>
+      {%- if t.discount %}<tr><td>الخصم</td><td class="n"><span class="num">{{ t.discount }}</span></td></tr>{% endif %}
+      <tr><td>ضريبة القيمة المضافة{% if t.vat_rate %} {{ t.vat_rate }}%{% endif %}</td><td class="n"><span class="num">{{ t.vat }}</span></td></tr>
+      <tr class="g"><td>الإجمالي شامل الضريبة ({{ v.currency }})</td><td class="n"><span class="num">{{ t.grand }}</span></td></tr>
+    </table>
+  </td></tr></table>
+  {%- if v.words %}<div class="zo-m-note">المبلغ كتابةً: {{ v.words | e }}</div>{% endif %}
+  <div class="zo-m-rule"></div>
+  <div class="zo-m-note">{% if p.address.line %}<div>{{ p.address.line | e }}</div>{% endif %}{% if p.contacts %}<div>{% for c in p.contacts %}{% if not loop.first %}&#8195;{% endif %}<span class="num">{{ c.value | e }}</span>{% endfor %}</div>{% endif %}</div>
+  <div class="zo-m-note">لا تطبع الطابعة النقطية رمز الاستجابة السريعة (QR)؛ النسخة الإلكترونية من الفاتورة تحمله.<br><span dir="ltr">A dot-matrix head prints no QR; the electronic copy carries it.</span></div>
+</div>

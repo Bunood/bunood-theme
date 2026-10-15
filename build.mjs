@@ -1933,13 +1933,13 @@ function assertThermalPageSize(formats) {
 	for (const { name, src } of formats) {
 		const bodies = [...src.matchAll(rule)].map((m) => m[1]);
 		const sized = bodies.some(
-			(b) => /\bpage-width:\s*80mm\b/.test(b) && /\bpage-height:\s*\d+mm\b/.test(b)
+			(b) => /\bpage-width:\s*(?:80|58)mm\b/.test(b) && /\bpage-height:\s*\d+mm\b/.test(b)
 		);
 		if (!sized) problems.push(name);
 	}
 	if (problems.length) {
 		throw new Error(
-			"Thermal page-size guard: no `.print-format { page-width: 80mm; page-height: …mm }` rule, " +
+			"Thermal page-size guard: no `.print-format { page-width: 80mm (or 58mm); page-height: …mm }` rule, " +
 				"so both PDF engines print A4:\n  " +
 				problems.join("\n  ") +
 				"\nDeclare it on a rule whose selector is purely `.print-format` — @page reaches neither engine."
@@ -2512,7 +2512,8 @@ async function main() {
 	// includes the family template, which carries the `.print-format` rule with the
 	// roll width as `{{ width }}`. The guard reads that template with the format's own
 	// width put in, so it still measures what the engine is handed. The ZATCA
-	// directory may now be empty (its receipt merged into the kit's).
+	// directory may now be empty (its receipt merged into the kit's). Stage 2 adds the 58 mm
+	// roll: its format says `zo_width = 58`; a format that names no width gets the family's 80.
 	{
 		const thermal = [];
 		for (const rel of ["printing/formats/", "zatca/formats/"]) {
@@ -2522,7 +2523,7 @@ async function main() {
 				let src = await readFile(new URL(f, dir), "utf8");
 				const inc = src.match(/\{%-?\s*include\s+"(templates\/print\/[\w.]+)"\s*-?%\}/);
 				if (inc) {
-					const width = (src.match(/zo_width\s*=\s*(\d+)/) || [])[1] || "";
+					const width = (src.match(/zo_width\s*=\s*(\d+)/) || [])[1] || "80";
 					src = (await readFile(new URL(`./bunood_theme/${inc[1]}`, import.meta.url), "utf8"))
 						.replace(/\{\{\s*width\s*\}\}mm/g, `${width}mm`)
 						.replace(/\{\{\s*height\s*\}\}mm/g, "1mm");

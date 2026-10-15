@@ -169,9 +169,10 @@ def _treatment(row) -> str:
     return ""
 
 
-def totals(doc, items: list[dict] | None = None) -> dict:
+def totals(doc, items: list[dict] | None = None, settled: bool = True) -> dict:
     """The small totals table: before discount, discount, taxable, VAT, other charges, rounding,
-    the grand total, then paid / remaining / change when they apply."""
+    the grand total, then paid / remaining / change when they apply. `settled=False` (a quotation,
+    an order) prints no paid rows: nothing is paid against a document that is not an invoice."""
     rows = doc.get("items") or []
     gross = 0.0
     for row in rows:
@@ -209,7 +210,7 @@ def totals(doc, items: list[dict] | None = None) -> dict:
         "change": "",
         "advance": num(doc.get("total_advance")) if flt(doc.get("total_advance")) >= 0.005 else "",
     }
-    if doc.get("is_return") or doc.get("docstatus") != 1 and not doc.get("is_pos"):
+    if not settled or doc.get("is_return") or doc.get("docstatus") != 1 and not doc.get("is_pos"):
         return out
     if doc.get("is_pos"):
         paid = abs(flt(doc.get("paid_amount")))

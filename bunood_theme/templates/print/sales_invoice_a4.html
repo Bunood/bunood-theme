@@ -11,62 +11,35 @@
     simplified «إشعار دائن مبسط») with its reference strip (the original and
     the reason, Article 54), a debit note likewise; amounts print positive.
 
-    PAGE CHROME IS CSS, the same in the PDF (Chromium) and the browser's own
-    print: the header and the footer are `position: fixed` in print media (a
-    fixed box prints on every sheet), and the frame table's <thead>/<tfoot>
-    spacers, which Chromium repeats on every page, keep the content clear of
-    them. The page number is an @page margin box («صفحة 1 من 2 — Page 1 of 2»).
-    Frappe's #header-html/#footer-html overlay was measured and set aside: on
-    Chromium it cannot number pages (its clone_and_update script ships only
-    with print_designer), and the .print-format margins it reads also shift the
-    overlay, so the header and the footer were cut. On screen the header sits
-    at the top and the footer at the end. `no_letterhead` (pre-printed
-    stationery) drops both.
+    PAGE CHROME is the kit's `page` macro (kit.html): CSS, the same in the PDF
+    (Chromium) and the browser's own print — the header and the footer are fixed
+    boxes in print media, the frame's <thead>/<tfoot> spacers keep the content
+    clear of them, and an @page margin box numbers the sheets («صفحة 1 من 2 —
+    Page 1 of 2»). Frappe's #header-html/#footer-html overlay was measured and
+    set aside: on Chromium it cannot number pages (its clone_and_update script
+    ships only with print_designer), and the .print-format margins it reads also
+    shift the overlay. `no_letterhead` (pre-printed stationery) drops both.
 
     PHASE 2. The QR is bunood_zatca_qr_src: a stored artefact first (the
     connector's cleared / reported QR on «Sales Invoice Additional Fields»), the
     Phase-1 QR computed at print time only when no artefact exists — so the same
     format is valid for a Phase-2 invoice. No QR on a draft.
     ============================================================================ -#}
-{%- from "templates/print/kit.html" import page_head, page_foot, policy_is_short, title_band, meta_grid, ref_strip,
-    party_box, items_standard, items_lean, summary_row, words_strip, notes_block, bank_block, signatures, watermark,
-    page_number_css -%}
+{%- from "templates/print/kit.html" import page, title_band, meta_grid, ref_strip, party_box, parties,
+    items_standard, items_lean, summary_row, words_strip, notes_block, bank_block, signatures -%}
 {%- set simplified = (zo_kind | default("standard")) == "simplified" -%}
-{%- set ar = bunood_print_language() == "ar" -%}
-{%- set dir = "rtl" if ar else "ltr" -%}
 {%- set p = bunood_print_profile(doc) -%}
 {%- set v = bunood_invoice_view(doc, simplified) -%}
+{%- set b = bunood_buyer_profile(doc) -%}
 {%- set qr = (bunood_zatca_qr_src(doc) if doc.get("docstatus") != 0 else "") -%}
-{%- set short_policy = policy_is_short(p) == "1" -%}
-{%- set chrome = not no_letterhead -%}
 {%- set note = doc.get("is_return") or doc.get("is_debit_note") -%}
-{%- set sa = ("Saudi Arabia", "المملكة العربية السعودية", "السعودية") -%}
-<style>
-{{ bunood_print_kit_css() }}
-/* The PDF page: A4 portrait, 12 mm side margins, read by Frappe from this exact rule. */
-.print-format { margin-top: 10mm; margin-bottom: 8mm; margin-left: 12mm; margin-right: 12mm; }
-@media print { @page { size: A4 portrait; margin: 10mm 12mm 8mm 12mm; } }
-{% if chrome %}{{ page_number_css() }}{% endif %}
-</style>
-<div class="zo zo-a4 zo-paged" dir="{{ dir }}" lang="{{ 'ar' if ar else 'en' }}">
-  {%- if chrome %}
-  <div class="zo-chrome-head">{{ page_head(p, numbered=False) }}</div>
-  <div class="zo-chrome-foot">{{ page_foot(p, with_policy=short_policy) }}</div>
-  {%- endif %}
-  {{ watermark(doc) }}
-  <table class="zo-frame">
-    {%- if chrome %}
-    <thead><tr><td><div class="zo-frame__head"></div></td></tr></thead>
-    <tfoot><tr><td><div class="zo-frame__foot{% if short_policy and p.policy %} zo-frame__foot--policy{% endif %}"></div></td></tr></tfoot>
-    {%- endif %}
-    <tbody><tr><td>
+{%- call page(p, doc, no_letterhead=no_letterhead, tax_document=True) %}
 
   {{ title_band(v.title_ar, v.title_en, v.number,
        "رقم الإشعار" if note else "رقم الفاتورة", "Note No." if note else "Invoice No.") }}
 
   {%- if v.reference %}{{ ref_strip(v.reference) }}{% endif %}
 
-  {%- set b = bunood_buyer_profile(doc) %}
   {%- if simplified %}
   {{ meta_grid([
       {"ar": "تاريخ ووقت الإصدار", "en": "Issued", "value": v.issued, "ltr": True},
@@ -88,40 +61,9 @@
       {"ar": "الفرع", "en": "Branch", "value": v.branch},
       {"ar": "العملة", "en": "Currency", "value": v.currency ~ ((" · " ~ v.conversion) if v.foreign else ""), "ltr": True},
     ], 5) }}
-
-  {%- set seller_cells = [
-      {"ar": "الرقم الضريبي", "en": "VAT No.", "value": p.vat or "غير مُعدّ — NOT SET", "ltr": True},
-      {"ar": "السجل التجاري", "en": "C.R.", "value": p.cr, "ltr": True},
-      {"ar": "الهاتف", "en": "Phone", "value": p.phone, "ltr": True},
-      {"ar": "رقم المبنى", "en": "Building", "value": p.address.building, "ltr": True},
-      {"ar": "الشارع", "en": "Street", "value": p.address.street},
-      {"ar": "الحي", "en": "District", "value": p.address.district},
-      {"ar": "المدينة", "en": "City", "value": p.address.city},
-      {"ar": "الرمز البريدي", "en": "Postal", "value": p.address.postal, "ltr": True},
-      {"ar": "الرقم الإضافي", "en": "Add. no.", "value": p.address.additional, "ltr": True},
-      {"ar": "الدولة", "en": "Country", "value": "" if p.address.country in sa else p.address.country},
-    ] %}
-  {%- set buyer_cells = [
-      {"ar": "الرقم الضريبي", "en": "VAT No.", "value": b.vat, "ltr": True},
-      {"ar": "السجل التجاري", "en": "C.R.", "value": b.cr, "ltr": True},
-      {"ar": "الهاتف", "en": "Phone", "value": b.phone, "ltr": True},
-    ] %}
-  {%- for i in b.ids %}{%- set _ = buyer_cells.append({"ar": i.type or "معرّف آخر", "en": i.code or "ID", "value": i.value, "ltr": True}) %}{%- endfor %}
-  {%- for c in [
-      {"ar": "رقم المبنى", "en": "Building", "value": b.address.building, "ltr": True},
-      {"ar": "الشارع", "en": "Street", "value": b.address.street},
-      {"ar": "الحي", "en": "District", "value": b.address.district},
-      {"ar": "المدينة", "en": "City", "value": b.address.city},
-      {"ar": "الرمز البريدي", "en": "Postal", "value": b.address.postal, "ltr": True},
-      {"ar": "الرقم الإضافي", "en": "Add. no.", "value": b.address.additional, "ltr": True},
-      {"ar": "الدولة", "en": "Country", "value": "" if b.address.country in sa else b.address.country},
-      {"ar": "العنوان", "en": "Address", "value": b.address_text},
-    ] %}{%- set _ = buyer_cells.append(c) %}{%- endfor %}
-  <table class="zo-parties"><tr>
-    <td>{{ party_box("البائع", "Seller", p.name_ar or p.name_en or p.name, p.name_en if p.name_ar else "", seller_cells) }}</td>
-    <td class="gap"></td>
-    <td>{{ party_box("المشتري", "Buyer", b.name, b.name_ar, buyer_cells) }}</td>
-  </tr></table>
+  {{ parties(
+      {"head_ar": "البائع", "head_en": "Seller", "name": p.name_ar or p.name_en or p.name, "sub": p.name_en if p.name_ar else "", "cells": p.cells},
+      {"head_ar": "المشتري", "head_en": "Buyer", "name": b.name, "sub": b.name_ar, "cells": b.cells}) }}
   {%- endif %}
 
   {{ items_lean(v) if simplified else items_standard(v) }}
@@ -137,10 +79,4 @@
   {%- if not simplified %}
   {{ signatures(p, [("البائع", "Seller"), ("المستلم", "Received by")]) }}
   {%- endif %}
-  {%- if chrome and p.policy and not short_policy %}
-  <div class="zo-policy zo-policy--body">{{ p.policy | e | replace("\n", "<br>") }}</div>
-  {%- endif %}
-
-    </td></tr></tbody>
-  </table>
-</div>
+{%- endcall %}

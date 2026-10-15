@@ -361,6 +361,43 @@ def bunood_invoice_view(doc, simplified=False):
     return invoice_view(doc, simplified=bool(simplified), arabic=bunood_print_language() == "ar")
 
 
+def bunood_trade_view(doc, kind):
+    """What the trade family prints (printing/documents.py): quotation, orders, delivery note,
+    purchase invoice, goods receipt, stock entry."""
+    from bunood_theme.printing.documents import trade_view
+
+    return trade_view(doc, kind, arabic=bunood_print_language() == "ar")
+
+
+def bunood_party_profile(doc, party_type="Customer"):
+    """A customer or a supplier as a party box prints it (printing/profile.py)."""
+    from bunood_theme.printing.profile import party_profile
+
+    try:
+        return party_profile(doc, party_type, arabic=bunood_print_language() == "ar")
+    except Exception:
+        frappe.log_error(title="bunood_theme: party_profile failed"[:140])
+        return {"name": "", "address": {}, "ids": [], "cells": []}
+
+
+def bunood_voucher_view(doc):
+    from bunood_theme.printing.documents import voucher_view
+
+    return voucher_view(doc, arabic=bunood_print_language() == "ar")
+
+
+def bunood_journal_view(doc):
+    from bunood_theme.printing.documents import journal_view
+
+    return journal_view(doc, arabic=bunood_print_language() == "ar")
+
+
+def bunood_shift_view(doc):
+    from bunood_theme.printing.documents import shift_view
+
+    return shift_view(doc, arabic=bunood_print_language() == "ar")
+
+
 def bunood_receipt_extras(doc):
     """What a thermal receipt adds to the invoice view: the named customer (never the walk-in
     one), the restaurant's order type and table, and the invoice number as a Code 128 SVG."""

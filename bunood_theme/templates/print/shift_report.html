@@ -1,0 +1,61 @@
+{#- ============================================================================
+    «تقرير الوردية - حراري 80مم» (POS Closing Entry) — the cashier's shift in the
+    receipt's language (the market study's must-have): the shift, the cashier,
+    the opening and closing times; sales, returns, discounts, VAT and the total;
+    each tender's expected and counted amounts and the difference; signatures.
+    Not a tax document; black only.
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import cur -%}
+{%- set ar = bunood_print_language() == "ar" -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set s = bunood_shift_view(doc) -%}
+{%- set height = 150 + (s.tenders | length) * 7 + (s.taxes | length) * 5 + (22 if p.logo else 0) -%}
+<style>
+{{ bunood_print_kit_css() }}
+.print-format { page-width: 80mm; page-height: {{ height }}mm; margin-top: 3mm; margin-bottom: 3mm; margin-left: 4mm; margin-right: 4mm; }
+@media print { @page { size: 80mm {{ height }}mm; margin: 0; } }
+</style>
+<div class="zo zo-rcpt" dir="{{ 'rtl' if ar else 'ltr' }}" lang="{{ 'ar' if ar else 'en' }}">
+  {%- if s.draft %}<div class="zo-rcpt__dup">مسودة — لم تُغلق الوردية <span class="en">DRAFT — the shift is not closed</span></div>{% endif %}
+  <div class="c">
+    {%- if p.name_ar %}<div class="zo-rcpt__name-ar">{{ p.name_ar | e }}</div>{% endif %}
+    {%- if p.name_en %}<div class="zo-rcpt__name-en">{{ p.name_en | e }}</div>{% endif %}
+  </div>
+  <div class="zo-rcpt__title"><b>تقرير الوردية</b><span>Shift Report</span></div>
+
+  <table class="zo-rcpt-meta">
+    <tr><td class="k">رقم الإغلاق</td><td class="v"><span class="num">{{ s.number | e }}</span></td></tr>
+    <tr><td class="k">نقطة البيع</td><td class="v">{{ s.profile | e }}</td></tr>
+    <tr><td class="k">الكاشير</td><td class="v">{{ s.cashier | e }}</td></tr>
+    <tr><td class="k">بداية الوردية</td><td class="v"><span class="num">{{ s.opened }}</span></td></tr>
+    <tr><td class="k">نهاية الوردية</td><td class="v"><span class="num">{{ s.closed }}</span></td></tr>
+  </table>
+
+  <div class="zo-rcpt-sec">المبيعات <span class="en">Sales</span></div>
+  <table class="zo-rcpt-tot">
+    <tr><td class="k">عدد الفواتير <span class="en">Invoices</span></td><td class="v"><span class="num">{{ s.invoices }}</span></td></tr>
+    <tr><td class="k">المبيعات <span class="en">Sales</span></td><td class="v"><span class="num">{{ s.sales }}</span></td></tr>
+    <tr><td class="k">المرتجعات ({{ s.returns_count }}) <span class="en">Returns</span></td><td class="v"><span class="num">{{ s.returns }}</span></td></tr>
+    <tr><td class="k">الخصومات <span class="en">Discounts</span></td><td class="v"><span class="num">{{ s.discounts }}</span></td></tr>
+    <tr><td class="k">الصافي قبل الضريبة <span class="en">Net</span></td><td class="v"><span class="num">{{ s.net }}</span></td></tr>
+    <tr><td class="k">ضريبة القيمة المضافة <span class="en">VAT</span></td><td class="v"><span class="num">{{ s.vat }}</span></td></tr>
+    <tr class="g"><td class="k">إجمالي الوردية <span class="en">Total</span></td><td class="v"><span class="num">{{ cur("SAR") }}&#8201;{{ s.grand }}</span></td></tr>
+  </table>
+
+  <div class="zo-rcpt-sec">طرق الدفع <span class="en">Tenders</span></div>
+  <table class="zo-rcpt-grid">
+    <colgroup><col style="width:28%"><col style="width:24%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <tr><th>الطريقة<span class="en"> </span></th><th>المتوقع</th><th>المعدود</th><th>الفرق</th></tr>
+    {%- for t in s.tenders %}
+    <tr class="{{ 'short' if t.short else '' }}"><td>{{ t.method | e }}</td><td><span class="num">{{ t.expected }}</span></td><td><span class="num">{{ t.counted }}</span></td><td><span class="num">{{ t.difference }}</span></td></tr>
+    {%- endfor %}
+  </table>
+  <table class="zo-rcpt-tot">
+    <tr class="{{ 'g' if s.short else '' }}"><td class="k stack">{{ "عجز في الصندوق" if s.short else "فرق الصندوق" }} <span class="en">{{ "Cash short" if s.short else "Difference" }}</span></td><td class="v"><span class="num">{{ s.difference }}</span></td></tr>
+  </table>
+
+  <table class="zo-rcpt-sign"><tr>
+    <td><div>الكاشير <span class="en">Cashier</span></div></td>
+    <td><div>المشرف <span class="en">Supervisor</span></div></td>
+  </tr></table>
+</div>

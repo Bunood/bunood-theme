@@ -1,0 +1,6 @@
+{#- Managed by bunood_theme (printing/install.py): a migrate restores this file. Duplicate the
+    Print Format in Desk to customise it. «سند تسليم - A4» — the delivery note: ordered and delivered quantities, batch or serial,
+    no prices, the receiver's signature and date. The family's one template is
+    templates/print/trade_a4.html; this file only sets its switches. -#}
+{%- set zo_kind = "delivery_note" -%}
+{% include "templates/print/trade_a4.html" %}
