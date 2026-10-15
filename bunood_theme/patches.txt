@@ -184,6 +184,10 @@ bunood_theme.patches.v0_60_0.print_format_names
 # beside the old records if it ran first, leaving the rename a merge.
 bunood_theme.patches.v0_60_0.zerone_palette
 
+# The sign-in's «استمر» in the brand colour, THE OWNER (2026-10-15): login_action moves from
+# the stand-down "Neutral" (black in light) to the shipped "Branded", once; nothing else.
+bunood_theme.patches.v0_60_0.sign_in_branded
+
 # LAST, AND IT STAYS: whatever the translations above could not map, this makes
 # legal. It had drifted to third-from-last (audit finding c-8) — a Select a
 # later patch writes must still be healed by it.

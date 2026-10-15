@@ -251,6 +251,18 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+// ── The sign-in logo at the mark's size (zerONE, 2026-10-15) ────────────────
+// Frappe caps `.page-card-head img.app-logo` at `max-height: 32px` (0,2,1), sized
+// for a wordmark; the zerONE tile is a square with its own rounded field, and at
+// 32px it read as an icon beside the heading. 56px (3.5rem: --bnd-sp-7 + --bnd-sp-2)
+// at (0,2,2), which is enough and the shortest selector that is (the web sheet had
+// 30 gzip bytes free); /update-password's logo is the same element and follows. The
+// width stays Frappe's `auto`, so a tenant's wide logo keeps its ratio inside the
+// card. A contract, not a pole: the logo is on every style.
+body.bnd-auth img.app-logo {
+  max-block-size: calc(var(--bnd-sp-7) + var(--bnd-sp-2));
+}
+
 // ── The guest language switch ───────────────────────────────────────────────
 // Server-rendered by `context._auth_language_switch` from the languages Theme
 // Settings offers (item 44's list, so a one-language site draws nothing). Each
@@ -680,13 +692,11 @@ body.bnd-auth-plate {
 // So the second column starts at `md` (768), not at Frappe's `sm` collapse, and
 // in the band between them this pole takes Panel's variables verbatim rather
 // than inventing a fourth composition for 192px of viewport.
-body.bnd-auth-split {
-  --bnd-auth-ground: var(--bnd-page);
-  --bnd-auth-card: var(--bnd-surface);
-  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
-  --bnd-auth-shadow: var(--bnd-shadow-md);
-  --bnd-auth-radius: var(--bnd-radius-lg);
-}
+//
+// SO SPLIT DECLARES NO WORKING SET OF ITS OWN: its values ARE the base `:is()`
+// block's, which already sets every variable for it, and the restated copy that
+// stood here was byte-for-byte that block. Removed for the sign-in logo's bytes
+// (v0.60.0, the web sheet had 30 gzip bytes free); the rendering is identical.
 
 // ── The object rules — the working set, consumed once each ──────────────────
 //

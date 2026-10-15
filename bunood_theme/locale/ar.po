@@ -20070,3 +20070,16 @@ msgstr "سياسة الشركة"
 #. src: print redesign 2026-10-15 (the owner's wording)
 msgid "Printed in small type under the footer of every document: a return and exchange policy, a warranty note, opening hours. The Ministry of Commerce bans the phrase «البضاعة المباعة لا ترد ولا تستبدل»; write the real return and exchange terms instead."
 msgstr "تُطبع بخط صغير تحت تذييل كل مستند: سياسة الاستبدال والاسترجاع، أو ملاحظة الضمان، أو أوقات العمل. تحظر وزارة التجارة عبارة «البضاعة المباعة لا ترد ولا تستبدل»؛ اكتب شروط الاستبدال والاسترجاع الفعلية بدلاً منها."
+
+#. Frappe's sign-in card (www/login.html, the subtitle under «تسجيل الدخول»): its own
+#. Arabic catalogue leaves it empty, so an Arabic sign-in page read it in English.
+#. Carried here like "Sign In" above; the theme loads after Frappe.
+#. src: owner 2026-10-15 (zerONE sign-in)
+msgid "Welcome! Please sign in to continue."
+msgstr "مرحباً بك! سجّل الدخول للمتابعة."
+
+#. Frappe's sign-in card (www/login.html, the link under the password): empty in its
+#. own Arabic catalogue, beside the subtitle above.
+#. src: owner 2026-10-15 (zerONE sign-in)
+msgid "Forgot password?"
+msgstr "نسيت كلمة المرور؟"
