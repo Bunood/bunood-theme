@@ -624,9 +624,11 @@ def _sync_format(spec, settings=None):
 
     html = _format_html(spec)
     if _TOKEN_MARK in html:
-        # The customer statement's colours (zerONE, 2026-10-15): it named a green of its
-        # own on every tenant. `substitute` THROWS on a token it cannot resolve, so the
-        # caller logs and the record keeps its last good HTML rather than a half-coloured one.
+        # zerONE (2026-10-15): the old customer statement named a green of its own on every
+        # tenant. Since the print redesign no shipped format carries tokens (the kit's sheet
+        # is substituted at render, `printing.jinja.bunood_print_kit_css`); this keeps any
+        # format that does in this site's colours. `substitute` THROWS on a token it cannot
+        # resolve, so the caller logs and the record keeps its last good HTML.
         from bunood_theme.email import substitute, tokens
 
         html = substitute(html, tokens("light", settings))
@@ -701,8 +703,8 @@ def resync_print_brand(settings=None):
     Narrower than :func:`sync_print_theme` on purpose: most format records
     carry no colour (their look lives in the Print Style), so a settings save
     rewrites the style sheet, the letterhead and only the formats authored in
-    tokens (the customer statement). Each step keeps the same never-blocks
-    guard the full sync has.
+    tokens (none since the print kit, whose sheet takes the seeds at render).
+    Each step keeps the same never-blocks guard the full sync has.
     """
     try:
         _sync_style(settings)

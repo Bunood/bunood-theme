@@ -151,11 +151,17 @@ class NoSecondLiteralTests(unittest.TestCase):
 		js = (APP / "bunood_theme" / "doctype" / "theme_settings" / "theme_settings.js").read_text(encoding="utf-8")
 		self.assertNotIn(OLD_GREEN, js)
 
-	def test_the_customer_statement_is_painted_from_tokens(self):
+	def test_the_customer_statement_names_no_colour_of_its_own(self):
+		# The print redesign moved the statement into the print kit (the v0.60.0 merge): its chrome
+		# and colours come from the kit's sheet (`ctx.open`), substituted per site at render.
 		html = (APP / "printing" / "formats" / "customer_statement.html").read_text(encoding="utf-8")
-		style = html[html.index("<style>"):html.index("</style>")]
-		self.assertNotRegex(style, r"#[0-9a-fA-F]{3,8}\b", "the statement names no colour of its own")
-		self.assertIn("var(--bnd-brand-ink)", style)
+		# `(?<!&)`: an HTML entity (`&#8201;`) is not a colour.
+		self.assertNotRegex(html, r"(?<!&)#[0-9a-fA-F]{3,8}\b", "the statement names no colour of its own")
+		self.assertNotIn("<style", html, "no sheet of its own: the kit's")
+		self.assertIn("ctx.open", html)
+		kit = (APP / "templates" / "print" / "print_kit.css").read_text(encoding="utf-8")
+		self.assertNotIn(OLD_GREEN, kit)
+		self.assertIn("var(--bnd-brand-solid)", kit)
 
 
 class FakeSingles:
@@ -307,7 +313,9 @@ class SiteDefaultTests(unittest.TestCase):
 
 @unittest.skipUnless(HAVE_FRAPPE, "the print installer imports frappe; run in the bench env")
 class PrintCarrierTests(unittest.TestCase):
-	"""The customer statement's colours come from this site's seeds, at sync and on a save."""
+	"""The prints' colours come from this site's seeds: the print kit's sheet at render (every kit
+	format, the statement included, since the v0.60.0 merge), and a format authored in tokens at
+	sync and on a save."""
 
 	def setUp(self):
 		from unittest.mock import Mock
@@ -325,27 +333,55 @@ class PrintCarrierTests(unittest.TestCase):
 		)
 		self.statement = next(s for s in install.FORMATS if s["name"] == install.CUSTOMER_STATEMENT_FORMAT)
 
-	def sync(self, brand):
-		settings = frappe._dict(brand_color=brand, accent_color="#0090ff")
-		with patch.object(self.install, "frappe", self.fake):
-			self.install._sync_format(self.statement, settings)
-		html = self.inserted[-1]["html"]
-		return html[html.index("<style>"):html.index("</style>")]
+	def kit(self, brand):
+		# What `printing.jinja._kit_css` hands every kit format, for these seeds.
+		from bunood_theme.email import substitute, tokens
 
-	def test_the_statement_is_written_in_the_shipped_blue(self):
-		style = self.sync(ZERONE_BLUE)
-		self.assertNotIn("var(", style)
-		self.assertIn(f"h1 {{ color: {ZERONE_BLUE};", style)
+		css = (APP / "templates" / "print" / "print_kit.css").read_text(encoding="utf-8")
+		return substitute(css, tokens("light", frappe._dict(brand_color=brand, accent_color="#0090ff")))
 
-	def test_the_statement_follows_a_tenant_seed(self):
+	def test_the_kit_prints_in_the_shipped_blue(self):
 		from bunood_theme import palette
 
-		style = self.sync("#ab4aba")
+		css = self.kit(ZERONE_BLUE)
+		self.assertNotIn("var(--bnd-", css)
+		self.assertIn(palette.derive(ZERONE_BLUE, "#0090ff", "light")["--bnd-brand-solid"], css)
+		self.assertNotIn(OLD_GREEN, css)
+
+	def test_the_kit_follows_a_tenant_seed(self):
+		from bunood_theme import palette
+
+		css = self.kit("#ab4aba")
+		self.assertIn(palette.derive("#ab4aba", "#0090ff", "light")["--bnd-brand-solid"], css)
+		self.assertNotIn(ZERONE_BLUE, css)
+
+	def test_a_format_in_tokens_is_written_in_the_site_colours(self):
+		# No shipped format carries tokens any more; the mechanism stays for one that does.
+		from bunood_theme import palette
+
+		settings = frappe._dict(brand_color="#ab4aba", accent_color="#0090ff")
+		with patch.object(self.install, "frappe", self.fake), \
+			patch.object(self.install, "_format_html", lambda spec: "<style>h1 { color: var(--bnd-brand-ink); }</style>"):
+			self.install._sync_format(self.statement, settings)
 		ink = palette.derive("#ab4aba", "#0090ff", "light")["--bnd-brand-ink"]
-		self.assertIn(f"h1 {{ color: {ink};", style)
-		self.assertNotIn(ZERONE_BLUE, style)
+		self.assertEqual(self.inserted[-1]["html"], f"<style>h1 {{ color: {ink}; }}</style>")
 
 	def test_a_settings_save_re_papers_only_the_token_formats(self):
+		from unittest.mock import Mock
+
+		real = self.install._format_html
+		statement = self.statement
+		synced = Mock()
+		with patch.object(self.install, "frappe", self.fake), \
+			patch.object(self.install, "_sync_style", Mock()), \
+			patch.object(self.install, "_sync_letterhead", Mock()), \
+			patch.object(self.install, "_format_html", lambda spec: "var(--bnd-ink)" if spec is statement else real(spec)), \
+			patch.object(self.install, "_sync_format", synced):
+			self.install.resync_print_brand("settings")
+		self.assertEqual([c.args for c in synced.call_args_list], [(self.statement, "settings")])
+
+	def test_no_shipped_format_needs_a_re_paper(self):
+		# The kit's formats take their colours at render; a save re-papers no format record.
 		from unittest.mock import Mock
 
 		synced = Mock()
@@ -354,7 +390,7 @@ class PrintCarrierTests(unittest.TestCase):
 			patch.object(self.install, "_sync_letterhead", Mock()), \
 			patch.object(self.install, "_sync_format", synced):
 			self.install.resync_print_brand("settings")
-		self.assertEqual([c.args for c in synced.call_args_list], [(self.statement, "settings")])
+		self.assertEqual(synced.call_args_list, [])
 
 
 if __name__ == "__main__":
