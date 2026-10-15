@@ -147,6 +147,10 @@ override_whitelisted_methods = {
     "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
 }
 
+# An old print format name in a kept receipt link (/printview, download_pdf) reads as its new
+# name after the print redesign's rename (printing/renames.py). Two string checks on any other path.
+before_request = ["bunood_theme.printing.renames.map_old_format_name"]
+
 doc_events = {
     "Theme Settings": {
         # Regenerate the per-site brand stylesheet whenever colours change.
@@ -178,13 +182,16 @@ doc_events = {
     },
     # A sales invoice is never cancelled, nor deleted once issued (owner, 2026-10-14: ZATCA's
     # rule, for every company, not only those on Phase 2). invoice_rules.py says why.
+    # Each print of an invoice is counted; the second and later say «نسخة مكررة» (printing/reprint.py).
     "Sales Invoice": {
         "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
         "on_trash": "bunood_theme.invoice_rules.refuse_delete",
+        "before_print": "bunood_theme.printing.reprint.before_print",
     },
     "POS Invoice": {
         "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
         "on_trash": "bunood_theme.invoice_rules.refuse_delete",
+        "before_print": "bunood_theme.printing.reprint.before_print",
     },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
@@ -221,6 +228,19 @@ jinja = {
         # The print macros' settings reads, with their defaults from presets.PRINT_DEFAULTS
         # rather than from literals in the template (settings audit 2026-09-21, ii-1).
         "bunood_theme.printing.jinja.bunood_print_setting",
+        # The print kit (the owner's redesign, 2026-10-15): the seller's and the buyer's
+        # profiles, an invoice's printed figures and the kit's own stylesheet.
+        "bunood_theme.printing.jinja.bunood_print_profile",
+        "bunood_theme.printing.jinja.bunood_buyer_profile",
+        "bunood_theme.printing.jinja.bunood_invoice_view",
+        "bunood_theme.printing.jinja.bunood_receipt_extras",
+        "bunood_theme.printing.jinja.bunood_trade_view",
+        "bunood_theme.printing.jinja.bunood_party_profile",
+        "bunood_theme.printing.jinja.bunood_voucher_view",
+        "bunood_theme.printing.jinja.bunood_journal_view",
+        "bunood_theme.printing.jinja.bunood_shift_view",
+        "bunood_theme.printing.jinja.bunood_print_copy",
+        "bunood_theme.printing.jinja.bunood_print_kit_css",
         # Item 34: the email stylesheet, substituted per site. Registered here
         # rather than delivered by Frappe's `email_css` hook because that hook is a
         # STATIC file list (so it can never carry a customer's seed) and its

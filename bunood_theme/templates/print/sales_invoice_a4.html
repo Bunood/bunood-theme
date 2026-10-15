@@ -1,0 +1,84 @@
+{#- ============================================================================
+    THE SALES-INVOICE FAMILY, A4 — one template, two switches (the owner,
+    2026-10-15; the market study's ZATCA print content folded in):
+
+      zo_kind = "standard"    «فاتورة ضريبية - A4» (B2B): the seller and the buyer
+                              in full, eleven columns, bank, signatures.
+      zo_kind = "simplified"  «فاتورة ضريبية مبسطة - A4» (B2C), lean: the customer
+                              on one line, five columns with prices incl. VAT.
+
+    The title follows the document: a return is a credit note («إشعار دائن»,
+    simplified «إشعار دائن مبسط») with its reference strip (the original and
+    the reason, Article 54), a debit note likewise; amounts print positive.
+
+    PAGE CHROME is the kit's `page` macro (kit.html): CSS, the same in the PDF
+    (Chromium) and the browser's own print — the header and the footer are fixed
+    boxes in print media, the frame's <thead>/<tfoot> spacers keep the content
+    clear of them, and an @page margin box numbers the sheets («صفحة 1 من 2 —
+    Page 1 of 2»). Frappe's #header-html/#footer-html overlay was measured and
+    set aside: on Chromium it cannot number pages (its clone_and_update script
+    ships only with print_designer), and the .print-format margins it reads also
+    shift the overlay. `no_letterhead` (pre-printed stationery) drops both.
+
+    PHASE 2. The QR is bunood_zatca_qr_src: a stored artefact first (the
+    connector's cleared / reported QR on «Sales Invoice Additional Fields»), the
+    Phase-1 QR computed at print time only when no artefact exists — so the same
+    format is valid for a Phase-2 invoice. No QR on a draft.
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import page, title_band, meta_grid, ref_strip, party_box, parties,
+    items_standard, items_lean, summary_row, words_strip, notes_block, bank_block, signatures -%}
+{%- set simplified = (zo_kind | default("standard")) == "simplified" -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set v = bunood_invoice_view(doc, simplified) -%}
+{%- set b = bunood_buyer_profile(doc) -%}
+{%- set qr = (bunood_zatca_qr_src(doc) if doc.get("docstatus") != 0 else "") -%}
+{%- set note = doc.get("is_return") or doc.get("is_debit_note") -%}
+{%- call page(p, doc, no_letterhead=no_letterhead, tax_document=True) %}
+
+  {{ title_band(v.title_ar, v.title_en, v.number,
+       "رقم الإشعار" if note else "رقم الفاتورة", "Note No." if note else "Invoice No.") }}
+
+  {%- set copy = bunood_print_copy(doc) if bunood_print_copy is defined else {} %}
+  {%- if copy %}<div class="zo-notice">نسخة مكررة — <span class="en">Copy</span> · طُبعت <span class="num">{{ copy.at }}</span></div>{% endif %}
+  {%- if v.reference %}{{ ref_strip(v.reference) }}{% endif %}
+
+  {%- if simplified %}
+  {{ meta_grid([
+      {"ar": "تاريخ ووقت الإصدار", "en": "Issued", "value": v.issued, "ltr": True},
+      {"ar": "طريقة الدفع", "en": "Payment", "value": v.method[0]},
+      {"ar": "الفرع", "en": "Branch", "value": v.branch},
+      {"ar": "العملة", "en": "Currency", "value": v.currency if v.foreign else ""},
+    ], 4) }}
+  {%- if b.name %}
+  <div class="zo-customer">العميل <span class="en">Customer</span>: <b>{{ b.name | e }}</b>{% if b.phone %} · <span class="num">{{ b.phone | e }}</span>{% endif %}{% if b.vat %} · الرقم الضريبي <span class="num">{{ b.vat | e }}</span>{% endif %}</div>
+  {%- endif %}
+  {%- else %}
+  {{ meta_grid([
+      {"ar": "تاريخ ووقت الإصدار", "en": "Issued", "value": v.issued, "ltr": True},
+      {"ar": "تاريخ الاستحقاق", "en": "Due", "value": v.due, "ltr": True},
+      {"ar": "شروط الدفع", "en": "Terms", "value": v.terms_template},
+      {"ar": "طريقة الدفع", "en": "Payment", "value": v.method[0]},
+      {"ar": "أمر الشراء / العقد", "en": "PO", "value": v.po, "ltr": True},
+      {"ar": "المندوب", "en": "Salesperson", "value": v.sales_person},
+      {"ar": "الفرع", "en": "Branch", "value": v.branch},
+      {"ar": "العملة", "en": "Currency", "value": v.currency ~ ((" · " ~ v.conversion) if v.foreign else ""), "ltr": True},
+    ], 5) }}
+  {{ parties(
+      {"head_ar": "البائع", "head_en": "Seller", "name": p.name_ar or p.name_en or p.name, "sub": p.name_en if p.name_ar else "", "cells": p.cells},
+      {"head_ar": "المشتري", "head_en": "Buyer", "name": b.name, "sub": b.name_ar, "cells": b.cells}) }}
+  {%- endif %}
+
+  {{ items_lean(v) if simplified else items_standard(v) }}
+
+  {{ summary_row(doc, v, qr, lean=simplified) }}
+  {{ words_strip(v) }}
+  {%- if v.treatments %}<div class="zo-block"><div class="zo-block__b">{% for t in v.treatments %}<div>{{ t | e }}</div>{% endfor %}</div></div>{% endif %}
+  {%- set notes_html = notes_block(doc) | trim %}
+  {%- set bank_html = (bank_block(p) | trim) if not (simplified or note) else "" %}
+  {%- if notes_html and bank_html %}
+  <table class="zo-pair"><tr><td>{{ notes_html }}</td><td>{{ bank_html }}</td></tr></table>
+  {%- else %}{{ notes_html }}{{ bank_html }}{% endif %}
+  {%- if not simplified %}
+  {{ signatures(p, [("البائع", "Seller"), ("المستلم", "Received by")]) }}
+  {%- endif %}
+{%- endcall %}

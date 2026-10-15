@@ -637,6 +637,9 @@ Committed total,إجمالي الالتزام,
 Compact,المضغوط,
 Compact 13,مضغوط 13,
 Company,الشركة,Bunood POS
+Company Name in Arabic,اسم الشركة بالعربية,
+Company Name in English,اسم الشركة بالإنجليزية,
+Company Policy,سياسة الشركة,
 Company VAT registration,الرقم الضريبي للمنشأة,
 Company and bank account are required,الشركة والحساب البنكي مطلوبان,
 Company bank account,حساب الشركة البنكي,
@@ -1409,6 +1412,7 @@ Inserted records,السجلات المضافة,
 Inset,داخلي,
 Inside the selected period,ضمن الفترة المحددة,
 Inspector Rail,شريط الفحص,
+Instagram,إنستغرام,
 Install KSA Compliance,ثبّت موصل الامتثال السعودي,
 Install KSA Compliance before starting Sandbox setup.,ثبّت موصل الامتثال السعودي قبل بدء إعداد بيئة الاختبار.,
 Install and migrate KSA Compliance on the site.,ثبّت موصل الامتثال السعودي ورحّله على الموقع.,
@@ -1701,6 +1705,7 @@ Missing JSON,JSON الناقص,
 Missing Total,إجمالي الناقص,
 Mixed Payment,دفع متعدد,
 Mixed Weights,أوزان متباينة,
+Mobile / WhatsApp,جوال / واتساب,
 Mobile Bar,شريط الجوّال,
 Mobile bar,شريط الجوّال,
 "Mobile, name or customer code",الجوال أو الاسم أو رمز العميل,Bunood POS
@@ -2265,6 +2270,7 @@ Print Header Style,نمط ترويسة الطباعة,
 Print Heading Style,نمط عناوين الطباعة,
 Print Letterhead,ترويسة الطباعة,
 Print Picker,مُنتقي الطباعة,
+Print Profile,بيانات الطباعة,
 Print QR,رمز QR للطباعة,
 Print QR Placement,موضع رمز QR,
 Print QR Size,حجم رمز QR,
@@ -2281,6 +2287,7 @@ Print receipt,طباعة الإيصال,Bunood POS
 Print the closing report,طباعة تقرير الإغلاق,Bunood POS
 Print the receipt,طباعة الإيصال,Bunood POS
 "Print, numbering and language",الطباعة والترقيم واللغة,
+"Printed in small type under the footer of every document: a return and exchange policy, a warranty note, opening hours. The Ministry of Commerce bans the phrase «البضاعة المباعة لا ترد ولا تستبدل»; write the real return and exchange terms instead.",تُطبع بخط صغير تحت تذييل كل مستند: سياسة الاستبدال والاسترجاع، أو ملاحظة الضمان، أو أوقات العمل. تحظر وزارة التجارة عبارة «البضاعة المباعة لا ترد ولا تستبدل»؛ اكتب شروط الاستبدال والاسترجاع الفعلية بدلاً منها.,
 Printed on,طُبع في,
 Printing the receipt,طباعة الإيصال,Bunood POS
 Prior rehearsal receipt digest,بصمة إيصال تجربة الترحيل السابقة,
@@ -2962,6 +2969,7 @@ Small shows more items; large is easier to touch.,الصغير يعرض أصنا
 Small trail line above a large title. Long names wrap without deforming the trail.,سطر مسار صغير فوق عنوان كبير. الأسماء الطويلة تلتف دون أن تشوه المسار.,
 Smart,ذكي,
 "Smart keeps existing icons, infers missing ones, falls back to letter chips. Original leaves Frappe icons untouched.",«ذكي» يحتفظ بالأيقونات الموجودة ويستنتج الناقصة ويرجع إلى شرائح الحروف عند الحاجة. «الأصلي» يترك أيقونات Frappe كما هي.,
+Snapchat,سناب شات,
 Soft,ناعم,
 Soft Cards,بطاقات ناعمة,
 Soft Pill,كبسولة ناعمة,
@@ -3145,8 +3153,10 @@ Textured,مُحبَّب,
 Thank you,شكرًا لك,Bunood POS
 That is not valid JSON.,هذا ليس JSON صالحًا.,
 That language is not offered on this site.,هذه اللغة غير معروضة في هذا الموقع.,
+The Arabic name in the header of every printed document.,الاسم العربي في ترويسة كل مستند مطبوع.,
 "The Arabic typeface, and the translation console.",الخط العربي، ولوحة الترجمة.,
 "The Disc % key, and -10% in the scan field.",زر «خصم %»، و‎-10%‎ في خانة المسح.,Bunood POS
+The English name in the header of every printed document.,الاسم الإنجليزي في ترويسة كل مستند مطبوع.,
 The POS Profile changed after these settings were opened. Open them again.,تغيّر ملف نقطة البيع بعد فتح هذه الإعدادات. افتحها من جديد.,
 The POS Profile needs at least one payment method.,يحتاج ملف نقطة البيع إلى طريقة دفع واحدة على الأقل.,
 The POS cart is not valid.,سلة نقطة البيع غير صالحة.,
@@ -3443,6 +3453,7 @@ This view does not declare the boundary reconciled. Qualified preparer and revie
 This warehouse's items,أصناف هذا المخزن,Bunood POS
 Three lines,ثلاثة أسطر,
 "Tight rows under a small-caps header, status as a dot and a word — the spreadsheet look.",صفوف متقاربة تحت رأس بأحرف صغيرة، والحالة نقطة وكلمة — مظهر جدول البيانات.,
+TikTok,تيك توك,
 Time,الوقت,Bunood POS
 Tinted,مُلوَّن,
 Tinted Heads,عناوين ملوّنة,
@@ -3731,6 +3742,7 @@ Write the reason,اكتب السبب,Bunood POS
 Written outside the invoices — journal entries and any non-invoice voucher.,كُتب خارج الفواتير — قيود يومية وأي سند غير فاتورة.,
 Wrong change given,خطأ في الباقي,Bunood POS
 Wrong item,خطأ في الصنف,Bunood POS
+X (Twitter),إكس (تويتر),
 Yes,نعم,
 "Yes, cancel the invoice",نعم، ألغِ الفاتورة,
 "Yes, cancel the invoice and these documents",نعم، ألغِ الفاتورة وهذه المستندات,

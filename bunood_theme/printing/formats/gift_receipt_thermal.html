@@ -1,0 +1,8 @@
+{#- Managed by bunood_theme (printing/install.py): a migrate restores this file. Duplicate the
+    Print Format in Desk to customise it. «إيصال هدية - حراري 80مم» — a gift receipt: the items and quantities, no price, no
+    total, no QR; the invoice number as a barcode for the exchange. The family's one template is
+    templates/print/sales_receipt.html; this file only sets its switches. -#}
+{%- set zo_width = 80 -%}
+{%- set zo_b2b = False -%}
+{%- set zo_gift = True -%}
+{% include "templates/print/sales_receipt.html" %}

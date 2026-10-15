@@ -1,0 +1,587 @@
+/* ============================================================================
+   THE PRINT KIT — one stylesheet for every Zero One printed document (the owner,
+   2026-10-15: «اريد ان تعيد تصاميم كل انواع الطباعه»). Every format emits it
+   through `bunood_print_kit_css()` (printing/jinja.py), which substitutes the
+   brand tokens (--bnd-*) from the tenant's palette — the item-34 mechanism, one
+   more consumer — so a format carries its own look whatever Print Style the site
+   has selected, and Frappe's Chromium header/footer pages (which copy every
+   <style> of the document) get the same sheet.
+
+   ENGINE: Chromium (the release engine; every kit format declares it). So this
+   sheet may use logical properties, and does, everywhere except the two cells the
+   owner placed PHYSICALLY — the totals on the right and the ZATCA QR on the left
+   (`.zo-sum`, which pins `direction: ltr` so an English print keeps them there).
+
+   PAPER IS LIGHT-ONLY and must read on a black-and-white laser: black text, ONE
+   accent (the brand fill for the title rule, the grand-total band and the table
+   head's tint), 0.5pt mid-grey grid lines, a zebra that is barely there.
+   Thermal ink is literal black: a 203-dpi head has no greys.
+   ============================================================================ */
+
+@font-face {
+	font-family: "Cairo";
+	src: local("Cairo"), url("/assets/bunood_theme/fonts/cairo/Cairo-Variable.ttf") format("truetype");
+	font-weight: 200 1000;
+	font-display: block;
+}
+
+/* ---------- the sheet ------------------------------------------------------ */
+/* Frappe's print view pins every `.print-format td, th` to `padding: 6px !important;
+   vertical-align: top !important`; a kit cell states its own padding and alignment,
+   so those two declarations carry !important here (the print class of the sanction). */
+.print-format .zo,
+.zo {
+	font-family: "Bunood Riyal", "Cairo", "Noto Sans Arabic", "DejaVu Sans", sans-serif;
+	color: #000;
+	font-size: 9.5pt;
+	line-height: 1.45;
+	font-variant-numeric: tabular-nums lining-nums;
+	-webkit-print-color-adjust: exact;
+	print-color-adjust: exact;
+}
+.zo *,
+.zo *::before,
+.zo *::after {
+	box-sizing: border-box;
+	/* The vendor's print sheet (Bootstrap 3) inks EVERY element `color: #000` in print media,
+	   which breaks inheritance: a span inside the white total band printed black on black.
+	   Inheritance restored here, first, so every coloured rule below still wins. */
+	color: inherit;
+}
+.zo[dir="rtl"] { text-align: right; }
+.zo[dir="ltr"] { text-align: left; }
+.zo table {
+	border-collapse: collapse;
+	border-spacing: 0;
+	width: 100%;
+	margin: 0;
+}
+.zo td,
+.zo th {
+	padding: 0 !important;
+	vertical-align: top !important;
+	font-weight: inherit;
+}
+.zo .ltr { direction: ltr; unicode-bidi: isolate; }
+.zo .num { direction: ltr; unicode-bidi: isolate; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
+.zo .en { direction: ltr; unicode-bidi: isolate; }
+.zo .sar { font-family: "Bunood Riyal", sans-serif; font-weight: 400; }
+.zo .zo-muted { color: var(--bnd-ink-muted); }
+.zo .zo-glyph {
+	display: inline-block;
+	inline-size: 3.1mm;
+	block-size: 3.1mm;
+	vertical-align: -0.55mm;
+	margin-inline-end: 1mm;
+}
+.zo .zo-glyph svg { display: block; inline-size: 100%; block-size: 100%; }
+
+/* ---------- page head: the bilingual mirror -------------------------------- */
+/* The header table is PHYSICAL (dir="ltr" in the markup): the English block on
+   the left, the logo in the centre, the Arabic block on the right — the same in
+   an Arabic and an English print, as a bilingual letterhead is. */
+.zo-head { padding-block-start: 1mm; }
+.zo-head__page {
+	text-align: center;
+	font-size: 7.5pt;
+	color: var(--bnd-ink-muted);
+	margin-block-end: 1mm;
+	letter-spacing: 0;
+}
+.zo-head__grid { table-layout: fixed; }
+.zo-head__grid td { vertical-align: middle !important; }
+.zo-head__en { inline-size: 42%; direction: ltr; text-align: left; }
+.zo-head__logo { inline-size: 16%; text-align: center; }
+.zo-head__ar { inline-size: 42%; direction: rtl; text-align: right; }
+.zo-head__logo img { max-block-size: 19mm; max-inline-size: 36mm; }
+.zo-head__name-ar { font-size: 15pt; font-weight: 800; line-height: 1.3; }
+.zo-head__name-en { font-size: 11pt; font-weight: 700; line-height: 1.3; }
+.zo-head__id { font-size: 8.5pt; line-height: 1.55; }
+.zo-head__id b { font-weight: 700; }
+.zo-head__rule {
+	border-block-end: 1.25pt solid var(--bnd-brand-solid);
+	margin-block-start: 2.2mm;
+}
+
+/* ---------- title band ----------------------------------------------------- */
+.zo .zo-title { margin-block: 1mm 2.5mm; }
+.zo-title td { vertical-align: bottom !important; }
+.zo-title__name { font-size: 16pt; font-weight: 800; line-height: 1.2; }
+.zo-title__name .en { font-size: 11pt; font-weight: 600; color: var(--bnd-ink-muted); }
+.zo-title__sep { color: var(--bnd-brand-solid); font-weight: 400; padding-inline: 1.5mm; }
+.zo-title__no { text-align: end; white-space: nowrap; }
+.zo-title__no small { display: block; font-size: 7.5pt; color: var(--bnd-ink-muted); }
+.zo-title__no b { font-size: 14pt; font-weight: 800; direction: ltr; unicode-bidi: isolate; }
+
+/* ---------- label / value (the meta grid, the party boxes) ----------------- */
+.zo-lbl { font-size: 7.6pt; color: var(--bnd-ink-muted); line-height: 1.25; }
+.zo-lbl .en { font-size: 6.8pt; }
+.zo-val { font-size: 9.2pt; font-weight: 700; line-height: 1.35; }
+
+.zo .zo-meta {
+	table-layout: fixed;
+	border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white);
+	margin-block-end: 3mm;
+}
+.zo-meta td {
+	padding: 1.1mm 2.2mm !important;
+	border-inline-start: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 22%, white);
+	border-block-start: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 22%, white);
+}
+.zo-meta tr:first-child td { border-block-start: 0; }
+.zo-meta td:first-child { border-inline-start: 0; }
+
+/* The reference strip of a credit / debit note (Article 54: the original and the reason). */
+.zo .zo-ref {
+	border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white);
+	border-inline-start: 2pt solid var(--bnd-brand-solid);
+	margin-block-end: 3mm;
+	table-layout: fixed;
+}
+.zo-ref td { padding: 1.4mm 2.2mm !important; }
+.zo-ref .zo-val { overflow-wrap: anywhere; white-space: normal; }
+
+/* ---------- parties -------------------------------------------------------- */
+/* Two boxes of equal height: the borders sit on the cells, the gap is border-spacing. */
+.zo .zo-parties { table-layout: fixed; margin-block-end: 3mm; }
+.zo-parties > tbody > tr > td { inline-size: 48.5%; border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white); }
+.zo-parties > tbody > tr > td.gap { inline-size: 3%; border-block: 0; }
+.zo-party__h {
+	background: var(--bnd-active);
+	padding: 1mm 2.2mm;
+	font-size: 8pt;
+	font-weight: 700;
+	border-block-end: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white);
+}
+.zo-party__h .en { font-weight: 600; color: var(--bnd-ink-muted); }
+.zo-party__n { padding: 1.2mm 2.2mm 0.6mm; font-size: 10.5pt; font-weight: 800; line-height: 1.3; }
+.zo-party__n small { display: block; font-size: 8.5pt; font-weight: 600; }
+.zo-party__grid { table-layout: fixed; margin-block-end: 1mm; }
+.zo-party__grid td { padding: 0.5mm 2.2mm !important; vertical-align: top !important; }
+.zo-party__grid .zo-lbl { font-size: 7pt; }
+.zo-party__grid .zo-lbl .en { font-size: 6.2pt; }
+.zo-pv { font-size: 8.6pt; font-weight: 600; line-height: 1.35; overflow-wrap: anywhere; }
+
+/* The simplified invoice's one customer line. */
+.zo-customer {
+	margin-block-end: 3mm;
+	padding: 1.4mm 2.2mm;
+	border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white);
+	font-size: 9pt;
+}
+.zo-customer b { font-weight: 700; }
+
+/* ---------- the items table ------------------------------------------------ */
+.zo-items {
+	table-layout: fixed;
+	border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white);
+}
+.zo-items thead { display: table-header-group; }
+.zo-items tr { break-inside: avoid; page-break-inside: avoid; }
+.zo-items th {
+	background: var(--bnd-active);
+	color: #000;
+	font-size: 7.3pt;
+	font-weight: 700;
+	line-height: 1.25;
+	padding: 1.3mm 1.1mm !important;
+	vertical-align: bottom !important;
+	text-align: start;
+	border-inline-start: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 30%, white);
+	border-block-end: 0.75pt solid color-mix(in srgb, var(--bnd-ink) 55%, white);
+}
+.zo-items th .en { display: block; font-size: 6.2pt; font-weight: 600; color: var(--bnd-ink-muted); }
+.zo-items td {
+	font-size: 8.6pt;
+	padding: 1.2mm 1.1mm !important;
+	line-height: 1.35;
+	border-inline-start: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 22%, white);
+	border-block-start: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 22%, white);
+	overflow-wrap: anywhere;
+}
+.zo-items th:first-child,
+.zo-items td:first-child { border-inline-start: 0; }
+.zo-items tbody tr:nth-child(even) td { background: var(--bnd-page); }
+/* Number cells and their headers aligned exactly alike, on the number's own END: a number is
+   LTR, so its end is the right edge, whatever the page direction — that is what lines the
+   decimal points up. Physical on purpose (a logical `end` would flip in an Arabic print). */
+.zo-items .n { text-align: right; }
+.zo-items .c { text-align: center; }
+.zo-items td.n { white-space: nowrap; overflow-wrap: normal; }
+.zo-items .zo-item__n { font-weight: 700; }
+.zo-items .zo-item__d { font-size: 7.4pt; color: var(--bnd-ink-muted); margin-block-start: 0.4mm; }
+.zo-items .zo-item__t { font-size: 7.2pt; margin-block-start: 0.4mm; }
+.zo-items .code { font-size: 7.2pt; direction: ltr; unicode-bidi: isolate; white-space: nowrap; }
+
+/* ---------- under the table: totals (physical RIGHT) + QR (physical LEFT) --- */
+.zo .zo-sum {
+	direction: ltr;
+	table-layout: fixed;
+	margin-block-start: 3mm;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+.zo-sum__qr { inline-size: 44%; text-align: left; vertical-align: top; }
+.zo-sum__gap { inline-size: 4%; }
+.zo-sum__tot { inline-size: 52%; vertical-align: top; }
+.zo-qr { display: inline-block; text-align: center; direction: rtl; }
+.zo-qr img { inline-size: 36mm; block-size: 36mm; display: block; image-rendering: pixelated; }
+.zo-qr__cap { font-size: 6.8pt; color: var(--bnd-ink-muted); margin-block-start: 0.8mm; }
+.zo-qr__missing {
+	inline-size: 38mm;
+	border: 0.75pt dashed color-mix(in srgb, var(--bnd-ink) 55%, white);
+	padding: 3mm 2mm;
+	font-size: 7.4pt;
+	text-align: center;
+	direction: rtl;
+}
+
+.zo .zo-totals {
+	border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 42%, white);
+	table-layout: fixed;
+}
+.zo-totals td {
+	padding: 0.6mm 2.2mm !important;
+	border-block-start: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 22%, white);
+	vertical-align: middle !important;
+}
+.zo-totals tr:first-child td { border-block-start: 0; }
+.zo-totals td.k { font-size: 8.4pt; }
+.zo-totals td.k .en { font-size: 6.8pt; color: var(--bnd-ink-muted); }
+.zo .zo-sub { display: block; line-height: 1.15; }
+/* The amount column shrinks to its widest amount, amounts on their own end (decimals aligned). */
+.zo-totals td.v { inline-size: 36%; text-align: end; font-size: 9.2pt; font-weight: 700; white-space: nowrap; }
+.zo-totals td.v .num { display: inline-block; min-inline-size: 27mm; text-align: right; }
+.zo-totals tr.g td {
+	background: var(--bnd-brand-solid);
+	color: var(--bnd-on-brand);
+	font-size: 10.5pt;
+	font-weight: 800;
+	padding-block: 1.8mm !important;
+}
+.zo-totals tr.g td,
+.zo-totals tr.g td .en { color: var(--bnd-on-brand); }
+.zo-totals tr.s td { font-size: 8.4pt; }
+
+/* ---------- words, notes, bank --------------------------------------------- */
+.zo-words {
+	margin-block-start: 2mm;
+	padding: 1.4mm 2.2mm;
+	background: var(--bnd-page);
+	border: 0.5pt solid color-mix(in srgb, var(--bnd-ink) 22%, white);
+	font-size: 8.8pt;
+	break-inside: avoid;
+	page-break-inside: avoid;
+}
+.zo-words b { font-weight: 700; }
+.zo-block { margin-block-start: 3mm; break-inside: avoid; page-break-inside: avoid; }
+/* Notes and bank details side by side when a document has both. */
+.zo .zo-pair { table-layout: fixed; margin-block-start: 1mm; }
+.zo-pair > tbody > tr > td { inline-size: 50%; }
+.zo-pair > tbody > tr > td + td { padding-inline-start: 6mm !important; }
+.zo-block__h { font-size: 8pt; font-weight: 700; margin-block-end: 0.8mm; }
+.zo-block__h .en { font-weight: 600; color: var(--bnd-ink-muted); }
+.zo-block__b { font-size: 8.4pt; line-height: 1.55; }
+.zo-block__b p { margin: 0 0 1mm; }
+.zo-bank td { padding: 0.5mm 0 !important; font-size: 8.4pt; }
+.zo-bank td.k { color: var(--bnd-ink-muted); white-space: nowrap; padding-inline-end: 4mm !important; }
+
+/* ---------- signatures ------------------------------------------------------ */
+.zo .zo-sigs { margin-block-start: 3mm; table-layout: fixed; break-inside: avoid; page-break-inside: avoid; }
+.zo-sigs td { text-align: center; vertical-align: bottom !important; padding-inline: 4mm !important; }
+.zo-sigs__img { block-size: 6mm; }
+.zo-sigs--images .zo-sigs__img { block-size: 20mm; }
+.zo-sigs__img img { max-block-size: 20mm; max-inline-size: 42mm; }
+.zo-sigs__line { border-block-start: 0.5pt solid #000; margin-block-start: 1mm; padding-block-start: 1mm; font-size: 8.2pt; font-weight: 700; }
+.zo-sigs__line .en { font-weight: 600; color: var(--bnd-ink-muted); }
+.zo-sigs__who { font-size: 8pt; }
+
+/* ---------- foot: address + contacts, then the policy ---------------------- */
+.zo-foot { padding-block-start: 1.6mm; border-block-start: 0.75pt solid var(--bnd-brand-solid); }
+.zo-foot__grid { table-layout: fixed; }
+.zo-foot__grid td { vertical-align: top !important; font-size: 7.8pt; line-height: 1.6; }
+.zo-foot__addr { inline-size: 46%; padding-inline-end: 3mm; }
+.zo-foot__contacts { inline-size: 54%; text-align: end; }
+.zo-foot__c { display: inline-block; white-space: nowrap; margin-inline-start: 3mm; }
+.zo-policy {
+	margin-block-start: 1.2mm;
+	text-align: center;
+	font-size: 7pt;
+	line-height: 1.5;
+	color: var(--bnd-ink-muted);
+}
+.zo-policy--body { margin-block-start: 5mm; break-inside: avoid; page-break-inside: avoid; }
+
+/* ---------- states ---------------------------------------------------------- */
+/* A draft's watermark repeats on every page (a fixed box prints on each sheet). */
+.zo-wm {
+	position: fixed;
+	inset-block-start: 40%;
+	inset-inline: 0;
+	text-align: center;
+	font-size: 64pt;
+	font-weight: 900;
+	color: rgba(0, 0, 0, 0.07);
+	transform: rotate(-24deg);
+	z-index: 0;
+	pointer-events: none;
+	line-height: 1.1;
+}
+.zo-wm span { display: block; font-size: 40pt; }
+
+/* ---------- page chrome: a header and a footer on every sheet ---------------- */
+/* Print media: the head and the foot are fixed boxes (Chromium paints a fixed box on
+   every page), and the frame's <thead>/<tfoot> spacers — repeated on every page —
+   keep the content clear of them. Screen: the head on top, the foot at the end. */
+.zo-frame { inline-size: 100%; border-collapse: collapse; }
+/* The vendor's print sheet turns every tfoot into a plain row group (an old wkhtmltopdf
+   workaround), which put the foot spacer at the TOP of page 1; the frame needs both groups. */
+.print-format .zo-frame > thead { display: table-header-group !important; }
+.print-format .zo-frame > tfoot { display: table-footer-group !important; }
+.zo-frame > thead > tr > td,
+.zo-frame > tfoot > tr > td,
+.zo-frame > tbody > tr > td { padding: 0 !important; }
+/* The frame's one body row carries the whole document: it MUST break across pages (the site
+   Print Style keeps every `.print-format tr` whole, which would push it to page 2 and clip it). */
+.print-format .zo-frame > tbody > tr,
+.print-format .zo-frame > tbody > tr > td { break-inside: auto; page-break-inside: auto; }
+@media screen {
+	.zo-paged { display: flex; flex-direction: column; }
+	.zo-paged > .zo-chrome-foot { order: 9; margin-block-start: 8mm; }
+	.zo-frame__head,
+	.zo-frame__foot { display: none; }
+}
+@media print {
+	/* Frappe reads the page margins from `.print-format { margin-* }`; as CSS those
+	   margins would ALSO indent the sheet a second time. Neutralised here, under a
+	   selector Frappe's option parser does not read. */
+	html .print-format,
+	html body .print-format { margin: 0 !important; padding: 0 !important; max-inline-size: none !important; }
+	.zo-chrome-head { position: fixed; inset-block-start: 0; inset-inline: 0; block-size: 25mm; overflow: hidden; }
+	.zo-chrome-foot { position: fixed; inset-block-end: 0; inset-inline: 0; }
+	.zo-frame__head { block-size: 27mm; }
+	.zo-frame__foot { block-size: 13mm; }
+	.zo-frame__foot--policy { block-size: 19mm; }
+}
+
+/* ============================================================================
+   THERMAL — 80 mm (≈72 mm printable, 576 dots) and 58 mm (≈48 mm, 384 dots).
+   Black only. Weights 600-700. Body ≥ 9pt. Rules ≥ 2 dots (0.25 mm).
+   The only fill is the inverted total band.
+   ============================================================================ */
+.zo-rcpt {
+	inline-size: 72mm;
+	margin-inline: auto;
+	color: #000;
+	font-size: 9.2pt;
+	font-weight: 600;
+	line-height: 1.38;
+}
+.zo-rcpt--58 { inline-size: 48mm; font-size: 9pt; }
+/* On paper the receipt fills the printable width of its roll (the page margins set it). */
+@media print { .zo-rcpt, .zo-rcpt--58 { inline-size: auto; } }
+.zo-rcpt .c { text-align: center; }
+.zo-rcpt .e { text-align: end; }
+.zo-rcpt__logo { text-align: center; margin-block-end: 1.2mm; }
+.zo-rcpt__logo img { max-inline-size: 40mm; max-block-size: 15mm; }
+.zo-rcpt__name-ar { font-size: 12.5pt; font-weight: 800; line-height: 1.3; }
+.zo-rcpt__name-en { font-size: 9.5pt; font-weight: 700; line-height: 1.3; direction: ltr; }
+.zo-rcpt--58 .zo-rcpt__name-en { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 8.5pt; }
+.zo-rcpt__id { font-size: 8.5pt; line-height: 1.5; }
+.zo-rcpt__rule { border-block-start: 0.35mm solid #000; margin-block: 1.6mm; }
+.zo-rcpt__rule--dash { border-block-start: 0.3mm dashed #000; }
+.zo-rcpt__title {
+	text-align: center;
+	border-block: 0.5mm solid #000;
+	padding-block: 1mm;
+	margin-block: 1.6mm;
+}
+.zo-rcpt__title b { display: block; font-size: 11pt; font-weight: 800; }
+.zo-rcpt__title span { display: block; font-size: 8.5pt; font-weight: 700; direction: ltr; }
+.zo-rcpt__dup { text-align: center; font-size: 9pt; font-weight: 800; border: 0.35mm solid #000; padding: 0.6mm; margin-block-end: 1.4mm; }
+
+.zo-rcpt-meta { table-layout: fixed; }
+.zo-rcpt-meta td { padding-block: 0.3mm !important; font-size: 8.8pt; vertical-align: top !important; }
+.zo-rcpt-meta td.k { inline-size: 42%; }
+.zo-rcpt-meta td.k .en { font-size: 7.2pt; }
+.zo-rcpt-meta td.v { text-align: end; font-weight: 700; overflow-wrap: anywhere; }
+.zo-rcpt-meta td.v .num { white-space: normal; }
+.zo-rcpt--58 .zo-rcpt-meta td { font-size: 8.4pt; }
+.zo-rcpt--58 .zo-rcpt-meta td.k { inline-size: 36%; }
+
+.zo .zo-rcpt-items { table-layout: fixed; margin-block-start: 1mm; }
+.zo-rcpt-items th {
+	font-size: 8.4pt;
+	font-weight: 800;
+	padding: 0.8mm 0.4mm !important;
+	border-block: 0.4mm solid #000;
+	text-align: start;
+	line-height: 1.2;
+	vertical-align: bottom !important;
+}
+/* A one-word English label under its Arabic header, in the header's own direction so it sits
+   on the same side (an ltr block would put «Item» at the far end, against «Qty»). */
+.zo-rcpt-items th .en { display: block; font-size: 6.8pt; font-weight: 700; direction: inherit; }
+.zo-rcpt-items td { padding: 0.7mm 0.4mm !important; font-size: 9pt; vertical-align: top !important; }
+/* Every figure column — header and figures alike — sits on the number's own end (right), with
+   a clear gutter on that side so neighbouring columns never run together. */
+.zo-rcpt-items th.n,
+.zo-rcpt-items th.q,
+.zo-rcpt-items td.n,
+.zo-rcpt-items td.q { text-align: right; white-space: nowrap; padding-right: 1.2mm !important; padding-left: 0.6mm !important; }
+.zo-rcpt-items th.n,
+.zo-rcpt-items th.q { font-size: 7.8pt; }
+.zo-rcpt--58 .zo-rcpt-items th.n,
+.zo-rcpt--58 .zo-rcpt-items th.q { font-size: 7.4pt; }
+.zo-rcpt--58 .zo-rcpt-items th.n,
+.zo-rcpt--58 .zo-rcpt-items th.q,
+.zo-rcpt--58 .zo-rcpt-items td.n,
+.zo-rcpt--58 .zo-rcpt-items td.q { padding-right: 0.8mm !important; padding-left: 0.4mm !important; }
+.zo-rcpt-items th:last-child,
+.zo-rcpt-items td:last-child { padding-left: 0 !important; }
+.zo-rcpt-items tr.nm td { padding-block-end: 0 !important; font-weight: 700; }
+.zo-rcpt-items tr.fg td { padding-block-start: 0.2mm !important; }
+.zo-rcpt-items tr.end td { border-block-end: 0.25mm solid #000; }
+.zo-rcpt-items tr { break-inside: avoid; page-break-inside: avoid; }
+.zo-rcpt-items .mod { display: block; font-size: 7.8pt; font-weight: 600; padding-inline-start: 2.5mm; }
+.zo-rcpt-items .unit { display: block; font-size: 7.6pt; font-weight: 600; }
+.zo-rcpt__note { font-size: 7.6pt; text-align: center; margin-block-start: 0.6mm; }
+
+.zo .zo-rcpt-tot { table-layout: fixed; margin-block-start: 1.4mm; }
+.zo-rcpt-tot td { padding-block: 0.35mm !important; font-size: 9pt; }
+.zo-rcpt-tot td.k { }
+.zo-rcpt-tot td.k .en { font-size: 7.2pt; }
+/* A long label in a band: the English under the Arabic, not broken across the band. */
+.zo-rcpt-tot td.k.stack .en { display: block; direction: inherit; }
+.zo-rcpt--58 .zo-rcpt-tot td { font-size: 8.6pt; }
+.zo-rcpt--58 .zo-rcpt-tot td.k .en { display: block; font-size: 6.8pt; }
+/* Amounts flush to the line's end, each in a box of one width with the figures on its right
+   edge, so the decimal points line up down the column. */
+.zo-rcpt-tot td.v { inline-size: 40%; text-align: end; font-weight: 700; white-space: nowrap; }
+.zo-rcpt-tot td.v .num { display: inline-block; min-inline-size: 25mm; text-align: right; }
+.zo-rcpt--58 .zo-rcpt-tot td.v { inline-size: 50%; }
+.zo-rcpt--58 .zo-rcpt-tot td.v .num { min-inline-size: 20mm; }
+.zo-rcpt--58 .zo-rcpt-tot tr.g td { font-size: 10.5pt; }
+.zo-rcpt-tot tr.g td {
+	background: #000;
+	color: #fff;
+	font-size: 12pt;
+	font-weight: 800;
+	padding: 1.3mm 1.4mm !important;
+}
+
+
+.zo-rcpt__qr { text-align: center; margin-block: 2.6mm 1.4mm; }
+.zo-rcpt__qr img { inline-size: 35mm; block-size: 35mm; image-rendering: pixelated; }
+.zo-rcpt--58 .zo-rcpt__qr img { inline-size: 30mm; block-size: 30mm; }
+.zo-rcpt__qr .zo-qr__missing { margin-inline: auto; inline-size: 100%; }
+.zo-rcpt__foot { font-size: 8pt; text-align: center; line-height: 1.5; }
+.zo-rcpt__foot .zo-glyph { inline-size: 2.8mm; block-size: 2.8mm; }
+.zo-rcpt__foot .zo-foot__c { margin-inline: 1.2mm; }
+.zo-rcpt__policy { font-size: 7.4pt; font-weight: 600; text-align: center; line-height: 1.45; margin-block-start: 1.2mm; }
+.zo-rcpt__thanks { text-align: center; font-size: 10pt; font-weight: 800; margin-block-start: 2mm; }
+.zo-rcpt__thanks span { display: block; font-size: 8.5pt; font-weight: 700; }
+.zo-rcpt__barcode { text-align: center; margin-block-start: 1.6mm; }
+.zo-rcpt__barcode svg { inline-size: 60mm; block-size: 10mm; }
+.zo-rcpt--58 .zo-rcpt__barcode svg { inline-size: 44mm; }
+
+
+/* ============================================================================
+   STAGE 2 — the trade family, vouchers, the journal, the shift report, the
+   dot-matrix layout and A5.
+   ============================================================================ */
+.zo-notice {
+	display: inline-block;
+	margin-block: -1mm 2.5mm;
+	padding: 0.6mm 2.4mm;
+	border: 0.75pt solid #000;
+	font-size: 8.4pt;
+	font-weight: 700;
+}
+.zo-qty-total { margin-block-start: 1.6mm; font-size: 8.8pt; text-align: end; }
+.zo-qty-total b { font-weight: 800; }
+.zo-parties > tbody > tr > td.zo-parties__none { border: 0; }
+.zo-items--qty td { font-size: 8.8pt; }
+
+/* The voucher: the party, the words and «وذلك عن» beside a large amount box. */
+.zo .zo-vbody { table-layout: fixed; margin-block: 1mm 3mm; }
+.zo-vbody td.zo-vlines { inline-size: 66%; padding-inline-end: 4mm !important; vertical-align: top !important; }
+.zo-vbody td.zo-vamount { inline-size: 34%; vertical-align: top !important; }
+.zo-vline { border-block-end: 0.5pt dotted color-mix(in srgb, var(--bnd-ink) 55%, white); padding-block: 1.6mm 0.8mm; font-size: 9.6pt; }
+.zo-vline .k { color: var(--bnd-ink-muted); font-size: 8pt; padding-inline-end: 2mm; }
+.zo-vline .k .en { font-size: 7pt; }
+.zo-vline b { font-weight: 800; }
+.zo-amountbox {
+	border: 1.25pt solid var(--bnd-brand-solid);
+	text-align: center;
+	padding: 2.4mm 2mm;
+}
+.zo-amountbox small { display: block; font-size: 7.6pt; color: var(--bnd-ink-muted); }
+.zo-amountbox b { display: block; font-size: 17pt; font-weight: 800; line-height: 1.25; }
+.zo-amountbox .zo-amountbox__method { margin-block-start: 1mm; font-size: 8pt; }
+
+/* The journal's table: two money columns and a totals row. */
+.zo-items tfoot td { font-weight: 800; background: var(--bnd-active); border-block-start: 0.75pt solid color-mix(in srgb, var(--bnd-ink) 55%, white); }
+
+/* A5 landscape (the market's voucher): the same page, sized down. */
+.zo-a5 .zo-head__name-ar { font-size: 12.5pt; }
+.zo-a5 .zo-head__name-en { font-size: 9.5pt; }
+.zo-a5 .zo-head__id { font-size: 7.6pt; line-height: 1.45; }
+.zo-a5 .zo-head__logo img { max-block-size: 13mm; }
+.zo-a5 .zo-head__rule { margin-block-start: 1.4mm; }
+.zo-a5 .zo-title__name { font-size: 13pt; }
+.zo-a5 .zo-title__no b { font-size: 12pt; }
+.zo-a5 .zo-foot__grid td { font-size: 7pt; line-height: 1.45; }
+.zo-a5 .zo-policy { font-size: 6.4pt; margin-block-start: 0.6mm; }
+.zo-a5 .zo-items th { font-size: 7pt; padding-block: 0.8mm !important; }
+.zo-a5 .zo-items td { font-size: 8pt; padding-block: 0.7mm !important; }
+.zo-a5 .zo-sigs { margin-block-start: 2mm; }
+.zo-a5 .zo-sigs--images .zo-sigs__img { block-size: 13mm; }
+.zo-a5 .zo-sigs--images .zo-sigs__img img { max-block-size: 13mm; }
+@media print {
+	.zo-a5 .zo-chrome-head { block-size: 19mm; }
+	.zo-a5 .zo-frame__head { block-size: 21mm; }
+	.zo-a5 .zo-frame__foot { block-size: 10mm; }
+	.zo-a5 .zo-frame__foot--policy { block-size: 14mm; }
+}
+
+/* The shift report (thermal). */
+.zo-rcpt-sec { margin-block-start: 1.6mm; font-size: 8.6pt; font-weight: 800; border-block-end: 0.35mm solid #000; padding-block-end: 0.4mm; }
+.zo-rcpt-sec .en { font-size: 7pt; font-weight: 700; }
+.zo .zo-rcpt-grid { table-layout: fixed; margin-block-start: 0.6mm; }
+.zo-rcpt-grid th { font-size: 7.6pt; font-weight: 800; text-align: right; padding: 0.5mm 0.4mm !important; border-block-end: 0.3mm solid #000; }
+.zo-rcpt-grid th:first-child { text-align: start; }
+.zo-rcpt-grid td { font-size: 8.4pt; padding: 0.5mm 0.4mm !important; text-align: right; white-space: nowrap; }
+.zo-rcpt-grid td:first-child { text-align: start; white-space: normal; }
+.zo-rcpt-grid tr.short td { font-weight: 800; }
+.zo-rcpt-sign { margin-block-start: 5mm; table-layout: fixed; }
+.zo-rcpt-sign td { padding-inline: 1.5mm !important; text-align: center; font-size: 8pt; }
+.zo-rcpt-sign td div { border-block-start: 0.3mm solid #000; padding-block-start: 0.6mm; margin-block-start: 7mm; }
+
+/* The dot-matrix layout: one monospace face, no tints, rules in characters' weight. */
+.zo-matrix, .zo-matrix * { font-family: "Courier New", "DejaVu Sans Mono", monospace !important; color: #000 !important; background: none !important; }
+.zo-matrix { font-size: 10pt; line-height: 1.35; }
+.zo .zo-matrix table { table-layout: fixed; }
+.zo-matrix td, .zo-matrix th { padding: 0.4mm 1mm !important; font-size: 9.6pt; font-weight: 400; vertical-align: top !important; }
+.zo-matrix th { border-block: 1px solid #000; text-align: start; }
+.zo-matrix th.n, .zo-matrix td.n { text-align: right; }
+.zo-matrix .zo-m-rule { border-block-start: 1px dashed #000; margin-block: 2mm; }
+.zo-matrix .zo-m-head td { padding: 0 1mm !important; }
+.zo-matrix .zo-m-title { text-align: center; font-size: 12pt; font-weight: 700; letter-spacing: 0; margin-block: 2mm; }
+.zo-matrix .zo-m-tot { inline-size: 55%; margin-inline-start: auto; }
+.zo-matrix .zo-m-tot td.n { white-space: nowrap; }
+.zo-matrix .zo-m-tot tr.g td { font-weight: 700; border-block: 1px solid #000; }
+.zo-matrix .zo-m-note { font-size: 8.4pt; margin-block-start: 2mm; }
+
+/* The statement of account (a General Ledger report print). */
+.zo-parties > tbody > tr > td.zo-statement__sum { border: 0; vertical-align: top !important; }
+/* Beside a borderless summary the gap's own side borders would show as a stray rule. */
+.zo-statement .zo-parties > tbody > tr > td.gap { border-inline: 0; }
+.zo .zo-statement__cells { margin: 0; }
+.zo-statement__cells td { inline-size: 50%; }
+.zo-statement__closing { background: var(--bnd-active); }
+.zo .zo-statement__aging { margin-block: 0 3mm; }
+.zo-statement__aging .zo-val { font-size: 8.8pt; }
+.zo-items tr.zo-statement__opening td { font-weight: 700; background: var(--bnd-page); }
+.zo-statement__note { margin-block-start: 1.4mm; font-size: 7.4pt; color: var(--bnd-ink-muted); }
+.zo-statement__printed { margin-block-start: 3mm; font-size: 7.6pt; color: var(--bnd-ink-muted); text-align: center; }

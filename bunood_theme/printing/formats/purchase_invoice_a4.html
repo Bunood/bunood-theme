@@ -1,4 +1,6 @@
-{# Managed format. Duplicate in Desk for tenant-specific changes. #}
-{# Pass request language through include context; cached template globals may be stale. #}
-{% set bnd_print_language = bunood_print_language() %}
-{% include "templates/bunood_invoice_a4.html" %}
+{#- Managed by bunood_theme (printing/install.py): a migrate restores this file. Duplicate the
+    Print Format in Desk to customise it. «فاتورة مشتريات - A4» — the purchase invoice (a return prints «مرتجع مشتريات» with the
+    supplier invoice and the reason); the supplier's QR is the supplier's. The family's one template is
+    templates/print/trade_a4.html; this file only sets its switches. -#}
+{%- set zo_kind = "purchase_invoice" -%}
+{% include "templates/print/trade_a4.html" %}

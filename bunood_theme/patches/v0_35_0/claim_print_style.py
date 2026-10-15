@@ -28,14 +28,18 @@ CLAIMABLE = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome"
 
 
 def execute():
+    # The style's name is the installer's (it was "Bunood" when this patch was written; the
+    # print redesign renamed it, patches/v0_60_0/print_format_names).
+    from bunood_theme.printing.install import STYLE_NAME
+
     # The record must exist before it can be the default. On an upgrading site
     # it has existed since 0.13.0; a fresh site runs after_install first. The
     # guard is for the odd migration order, not the common path.
-    if not frappe.db.exists("Print Style", "Bunood"):
+    if not frappe.db.exists("Print Style", STYLE_NAME):
         from bunood_theme.printing.install import sync_print_theme
 
         sync_print_theme()
-        if not frappe.db.exists("Print Style", "Bunood"):
+        if not frappe.db.exists("Print Style", STYLE_NAME):
             # The sync stood down (logged there). Do not claim a default that
             # would point at nothing.
             return
@@ -44,5 +48,5 @@ def execute():
 
     settings = frappe.get_single("Print Settings")
     if settings.meta.has_field("print_style") and _is_displaceable(settings.get("print_style")):
-        settings.print_style = "Bunood"
+        settings.print_style = STYLE_NAME
         settings.save(ignore_permissions=True)

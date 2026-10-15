@@ -31,12 +31,23 @@ import frappe
 
 from bunood_theme import zatca
 
-STYLE_NAME = "Bunood"
+# THE NAMES CARRY NO BRAND (the owner, 2026-10-15: «غير اسماء نماذج الطباعه»), so a future
+# rebrand never renames a record again. The old names, and what each became, are the single
+# mapping in patches/v0_60_0/print_format_names.py (RENAMES); the installer creates ONLY these,
+# so a migrate after that patch makes no duplicates. The names themselves are printing/names.py.
+from bunood_theme.printing.names import (  # noqa: E402
+    DELIVERY_NOTE_A4, GIFT_RECEIPT_80, JOURNAL_A4, LETTERHEAD_NAME, MATRIX_INVOICE, POS_SUFFIX, PROFORMA_A4,
+    PURCHASE_INVOICE_A4, PURCHASE_ORDER_A4, PURCHASE_RECEIPT_A4, QUOTATION_A4, SALES_ORDER_A4, SHIFT_REPORT_80,
+    SIMPLIFIED_INVOICE_A4, SIMPLIFIED_RECEIPT_58, SIMPLIFIED_RECEIPT_80, STATEMENT_A4, STOCK_ENTRY_A4, STYLE_NAME,
+    TAX_INVOICE_A4, TAX_RECEIPT_80, VOUCHER_A4, VOUCHER_A5,
+)
+
 MODULE = "Bunood Theme"
-DEFAULT_SALES_FORMAT = "بونود - فاتورة ضريبية (A4)"
-DEFAULT_QUOTATION_FORMAT = "بنود - عرض سعر (A4)"
-DEFAULT_PAYMENT_FORMAT = "بونود - سند قبض-صرف"
-CUSTOMER_STATEMENT_FORMAT = "بنود - كشف حساب عميل"
+DEFAULT_SALES_FORMAT = TAX_INVOICE_A4
+DEFAULT_QUOTATION_FORMAT = QUOTATION_A4
+DEFAULT_PAYMENT_FORMAT = VOUCHER_A4
+JOURNAL_FORMAT = JOURNAL_A4
+CUSTOMER_STATEMENT_FORMAT = STATEMENT_A4
 CREDIT_SALE = "On Credit"
 from bunood_theme.payments import SETTLEMENT_METHODS  # noqa: E402  (one list: the checkout's)
 # Company has tax_id for VAT but nothing for the commercial registration;
@@ -60,37 +71,37 @@ BASE = os.path.dirname(os.path.abspath(__file__))
 # from the default) is recorded there and in the CHANGELOG.
 STOCK_STYLES = (None, "", "Modern", "Classic", "Standard", "Redesign", "Monochrome")
 
+#: The kit's formats (the owner's redesign, 2026-10-15). Each family is ONE template under
+#: templates/print/ with switches; a format file only sets them. Every one renders on Chromium,
+#: the release engine, and carries its own page chrome. The sales receipts and A4s have a POS
+#: Invoice twin (« - نقطة البيع») wherever a counter prints that doctype.
+_SALES = [
+    (TAX_INVOICE_A4, "sales_invoice_tax_a4.html"),
+    (SIMPLIFIED_INVOICE_A4, "sales_invoice_simplified_a4.html"),
+    (SIMPLIFIED_RECEIPT_80, "sales_invoice_simplified_thermal.html"),
+    (SIMPLIFIED_RECEIPT_58, "sales_invoice_simplified_thermal_58.html"),
+    (TAX_RECEIPT_80, "sales_invoice_tax_thermal.html"),
+    (GIFT_RECEIPT_80, "gift_receipt_thermal.html"),
+    (MATRIX_INVOICE, "sales_invoice_matrix.html"),
+]
 FORMATS = [
-    # Integration v0.48.0: the seven pre-existing formats keep their official
-    # record names (the branch renamed بونود -> بنود without migrating the old
-    # records, which would list every format twice). New formats carry chrome.
-    # Shared bilingual A4 formats. These records were removed when the old main
-    # branch did not ship their include target; the template is now part of the
-    # app again, and both the release PDF matrix and finance verification use
-    # these stable names. Keep the Arabic ZATCA formats below as additional
-    # legal/POS choices rather than making Purchase Invoice fall back to stock.
-    {"name": "Bunood Purchase Invoice (A4)", "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html", "pdf_generator": "chrome"},
-    {"name": "Bunood Sales Invoice (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_a4.html", "pdf_generator": "chrome"},
-    {"name": "بونود - فاتورة ضريبية (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_a4.html"},
-    {"name": "بونود - فاتورة ضريبية مبسطة (A4)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_a4.html"},
-    {"name": "بونود - فاتورة ضريبية (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_tax_thermal.html"},
-    {"name": "بونود - فاتورة مبسطة (حراري 80مم)", "doctype": "Sales Invoice", "file": "sales_invoice_simplified_thermal.html"},
-    {"name": "بونود - فاتورة (نقطي)", "doctype": "Sales Invoice", "file": "sales_invoice_matrix.html"},
-    {"name": DEFAULT_QUOTATION_FORMAT, "doctype": "Quotation", "file": "quotation_a4.html", "pdf_generator": "chrome"},
-    {"name": DEFAULT_PAYMENT_FORMAT, "doctype": "Payment Entry", "file": "payment_entry_voucher.html"},
-    {"name": "بونود - سند قيد", "doctype": "Journal Entry", "file": "journal_entry_voucher.html"},
+    *({"name": name, "doctype": "Sales Invoice", "file": file, "pdf_generator": "chrome"} for name, file in _SALES),
+    *({"name": name + POS_SUFFIX, "doctype": "POS Invoice", "file": file, "pdf_generator": "chrome"}
+      for name, file in _SALES if name != MATRIX_INVOICE),
+    {"name": QUOTATION_A4, "doctype": "Quotation", "file": "quotation_a4.html", "pdf_generator": "chrome"},
+    {"name": SALES_ORDER_A4, "doctype": "Sales Order", "file": "sales_order_a4.html", "pdf_generator": "chrome"},
+    {"name": PROFORMA_A4, "doctype": "Sales Order", "file": "proforma_a4.html", "pdf_generator": "chrome"},
+    {"name": DELIVERY_NOTE_A4, "doctype": "Delivery Note", "file": "delivery_note_a4.html", "pdf_generator": "chrome"},
+    {"name": PURCHASE_INVOICE_A4, "doctype": "Purchase Invoice", "file": "purchase_invoice_a4.html", "pdf_generator": "chrome"},
+    {"name": PURCHASE_ORDER_A4, "doctype": "Purchase Order", "file": "purchase_order_a4.html", "pdf_generator": "chrome"},
+    {"name": PURCHASE_RECEIPT_A4, "doctype": "Purchase Receipt", "file": "purchase_receipt_a4.html", "pdf_generator": "chrome"},
+    {"name": STOCK_ENTRY_A4, "doctype": "Stock Entry", "file": "stock_entry_a4.html", "pdf_generator": "chrome"},
+    {"name": VOUCHER_A5, "doctype": "Payment Entry", "file": "payment_entry_voucher_a5.html", "pdf_generator": "chrome"},
+    {"name": DEFAULT_PAYMENT_FORMAT, "doctype": "Payment Entry", "file": "payment_entry_voucher.html", "pdf_generator": "chrome"},
+    {"name": JOURNAL_FORMAT, "doctype": "Journal Entry", "file": "journal_entry_voucher.html", "pdf_generator": "chrome"},
+    {"name": SHIFT_REPORT_80, "doctype": "POS Closing Entry", "file": "pos_closing_shift_thermal.html", "pdf_generator": "chrome"},
     {"name": CUSTOMER_STATEMENT_FORMAT, "report": "General Ledger", "file": "customer_statement.html", "pdf_generator": "chrome"},
 ]
-
-LEGACY_FORMAT_NAMES = {
-    "بونود - فاتورة ضريبية (A4)": DEFAULT_SALES_FORMAT,
-    "بونود - فاتورة ضريبية مبسطة (A4)": "بنود - فاتورة ضريبية مبسطة (A4)",
-    "بونود - فاتورة ضريبية (حراري 80مم)": "بنود - فاتورة ضريبية (حراري 80مم)",
-    "بونود - فاتورة مبسطة (حراري 80مم)": "بنود - فاتورة مبسطة (حراري 80مم)",
-    "بونود - فاتورة (نقطي)": "بنود - فاتورة (نقطي)",
-    "بونود - سند قبض-صرف": DEFAULT_PAYMENT_FORMAT,
-    "بونود - سند قيد": "بنود - سند قيد",
-}
 
 
 def _read(*parts, base=BASE):
@@ -120,6 +131,8 @@ def sync_print_theme():
         )
     try:
         _company_cr_field()
+        _company_print_fields()
+        _reprint_fields()
         _sync_letterhead()
     except Exception:
         frappe.log_error(
@@ -466,14 +479,14 @@ def _sync_letterhead(settings=None):
     if meta.has_field("footer_source"):
         values["footer_source"] = "HTML"
 
-    if frappe.db.exists("Letter Head", STYLE_NAME):
-        lh = frappe.get_doc("Letter Head", STYLE_NAME)
+    if frappe.db.exists("Letter Head", LETTERHEAD_NAME):
+        lh = frappe.get_doc("Letter Head", LETTERHEAD_NAME)
         if any(lh.get(k) != v for k, v in values.items()):
             lh.update(values)
             lh.save(ignore_permissions=True)
     else:
         lh = frappe.get_doc(
-            {"doctype": "Letter Head", "letter_head_name": STYLE_NAME, **values}
+            {"doctype": "Letter Head", "letter_head_name": LETTERHEAD_NAME, **values}
         )
         lh.insert(ignore_permissions=True, ignore_if_duplicate=True)
 
@@ -507,6 +520,60 @@ def _company_cr_field():
     )
 
 
+#: The print profile's fields on Company (the owner, 2026-10-15: the header names the company
+#: in Arabic AND English; the footer carries its address and contact methods; its policy prints
+#: under the footer). The theme installs them, like the CR above; the business «المنشأة» screen
+#: edits them («بيانات الطباعة»). phone_no, email and website are stock and reused.
+POLICY_HINT = (
+    "Printed in small type under the footer of every document: a return and exchange policy, "
+    "a warranty note, opening hours. The Ministry of Commerce bans the phrase "
+    "«البضاعة المباعة لا ترد ولا تستبدل»; write the real return and exchange terms instead."
+)
+PRINT_FIELDS = [
+    {"fieldname": "bnd_print_section", "fieldtype": "Section Break", "label": "Print Profile",
+     "insert_after": CR_FIELD, "collapsible": 0},
+    {"fieldname": "bnd_company_name_ar", "fieldtype": "Data", "label": "Company Name in Arabic",
+     "insert_after": "bnd_print_section", "translatable": 0,
+     "description": "The Arabic name in the header of every printed document."},
+    {"fieldname": "bnd_company_name_en", "fieldtype": "Data", "label": "Company Name in English",
+     "insert_after": "bnd_company_name_ar", "translatable": 0,
+     "description": "The English name in the header of every printed document."},
+    {"fieldname": "bnd_mobile", "fieldtype": "Data", "label": "Mobile / WhatsApp", "options": "Phone",
+     "insert_after": "bnd_company_name_en", "translatable": 0},
+    {"fieldname": "bnd_print_cb", "fieldtype": "Column Break", "insert_after": "bnd_mobile"},
+    {"fieldname": "bnd_instagram", "fieldtype": "Data", "label": "Instagram", "insert_after": "bnd_print_cb", "translatable": 0},
+    {"fieldname": "bnd_x", "fieldtype": "Data", "label": "X (Twitter)", "insert_after": "bnd_instagram", "translatable": 0},
+    {"fieldname": "bnd_snapchat", "fieldtype": "Data", "label": "Snapchat", "insert_after": "bnd_x", "translatable": 0},
+    {"fieldname": "bnd_tiktok", "fieldtype": "Data", "label": "TikTok", "insert_after": "bnd_snapchat", "translatable": 0},
+    {"fieldname": "bnd_print_policy", "fieldtype": "Small Text", "label": "Company Policy",
+     "insert_after": "bnd_tiktok", "translatable": 0, "description": POLICY_HINT},
+]
+
+
+#: A printed invoice's own print count (printing/reprint.py): its second and later prints say
+#: «نسخة مكررة». Hidden, read-only, never copied to a duplicate, an amendment or a return.
+REPRINT_FIELD = {"fieldname": "bnd_print_count", "fieldtype": "Int", "label": "Print Count", "default": "0",
+                 "insert_after": "amended_from", "read_only": 1, "hidden": 1, "no_copy": 1, "print_hide": 1,
+                 "allow_on_submit": 1, "report_hide": 1}
+REPRINT_DOCTYPES = ("Sales Invoice", "POS Invoice")
+
+
+def _reprint_fields():
+    """The print count on the invoices (additive; created and reconciled on every migrate)."""
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    create_custom_fields({doctype: [dict(REPRINT_FIELD)] for doctype in REPRINT_DOCTYPES if frappe.db.exists("DocType", doctype)},
+                         ignore_validate=True, update=True)
+
+
+def _company_print_fields():
+    """Create — and reconcile on every migrate, since the labels are ours — the print profile's
+    fields on Company. Additive: nothing is renamed or removed, so no tenant data moves."""
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    create_custom_fields({"Company": PRINT_FIELDS}, ignore_validate=True, update=True)
+
+
 def _adopt_letterhead_default():
     """Claim the default letter head, and RE-claim it when ERPNext takes it.
 
@@ -528,11 +595,11 @@ def _adopt_letterhead_default():
     never claims — the stand-down stays total.
     """
     current = frappe.db.get_value("Letter Head", {"is_default": 1}, "name")
-    if current == STYLE_NAME:
+    if current == LETTERHEAD_NAME:
         return
     if current and (frappe.db.get_value("Letter Head", current, "footer") or "").strip():
         return
-    lh = frappe.get_doc("Letter Head", STYLE_NAME)
+    lh = frappe.get_doc("Letter Head", LETTERHEAD_NAME)
     lh.is_default = 1
     # save(), not db.set_value: the controller is what clears the flag on the
     # letter head that held it before.

@@ -169,10 +169,19 @@ bunood_theme.patches.v0_58_0.exact_halala_totals
 # name is never touched. Before the seeder (after_migrate), which only fills an empty field.
 bunood_theme.patches.v0_60_0.zerone_brand
 
+# The print redesign, THE OWNER (2026-10-15): «غير اسماء نماذج الطباعه الحين». Every print
+# format, the print style and the letter head take a name with no brand; the defaults, the POS
+# profiles and every link follow (rename_doc), two old formats merge. Before after_migrate, whose
+# sync then rewrites the renamed records and creates nothing twice.
+bunood_theme.patches.v0_60_0.print_format_names
+
 # zerONE, THE OWNER (2026-10-15): the desk is the zerONE blue (palette "Zero One"). A site
 # moves only while it still holds the old shipped green "Bunood" exactly (its seed and accent,
 # no dark seed, no ground); a tenant's own colour is never touched. Re-renders the brand sheet
 # and the print carriers, which a raw write would leave on the green.
+# After the renames on purpose: its re-render (resync_print_brand) writes the print style and
+# the letter head under their NEW names, and would create «النمط الرسمي» / «الترويسة الرسمية»
+# beside the old records if it ran first, leaving the rename a merge.
 bunood_theme.patches.v0_60_0.zerone_palette
 
 # LAST, AND IT STAYS: whatever the translations above could not map, this makes

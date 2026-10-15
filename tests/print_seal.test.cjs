@@ -32,13 +32,28 @@ test('it rides the signature row and carries no colour of its own', () => {
 });
 
 test('the tax invoice and the quotation close with the seal, above their signature lines', () => {
-	for (const name of ['sales_invoice_tax_a4.html', 'quotation_a4.html']) {
-		const html = format(name);
-		assert.match(html, /import [^%]*seal_row/, `${name} imports seal_row`);
-		const at = html.indexOf('{{ seal_row(doc');
-		assert.ok(at > 0 && at < html.indexOf('{{ sig_row('), `${name}: the seal comes before the signature lines`);
-	}
-	const simplified = format('sales_invoice_simplified_a4.html');
-	assert.match(simplified, /import [^%]*seal_row/);
-	assert.ok(simplified.indexOf('{{ seal_row(doc) }}') > simplified.indexOf('{{ totals_block('), 'the simplified invoice closes with the seal after its totals');
+	// Stage 2: the quotation is the trade family's (trade_a4.html); its signature row carries the
+	// seal in the seller's cell, the first (printing/documents.py SIGNATURES: labels, seal index).
+	const quotation = format('quotation_a4.html');
+	assert.match(quotation, /\{% include "templates\/print\/trade_a4\.html" %\}/);
+	const trade = fs.readFileSync('bunood_theme/templates/print/trade_a4.html', 'utf8');
+	assert.match(trade, /\{\{ signatures\(p, v\.signatures, seal=v\.seal\) \}\}/);
+	const documents = fs.readFileSync('bunood_theme/printing/documents.py', 'utf8');
+	assert.match(documents, /"quotation": \(\[\("البائع", "Seller"\), \("قبول العميل", "Customer acceptance"\)\], 0\)/);
+	// The print kit (2026-10-15): the standard tax invoice's signature row carries the seal in the
+	// seller's cell — the company's signature, its stamp and its signatory, from the print profile,
+	// which inlines both private images (printing/profile.py `_image` → bunood_print_image_src).
+	const kit = fs.readFileSync('bunood_theme/templates/print/kit.html', 'utf8');
+	const sigs = kit.slice(kit.indexOf('{% macro signatures('), kit.indexOf('{%- endmacro %}', kit.indexOf('{% macro signatures(')));
+	assert.match(sigs, /\{% if loop\.index0 == seal %\}\{% if p\.signature %\}<img src="\{\{ p\.signature \| e \}\}"/);
+	assert.match(sigs, /\{% if p\.stamp %\}<img src="\{\{ p\.stamp \| e \}\}"/);
+	assert.match(sigs, /p\.signatory/);
+	const profile = fs.readFileSync('bunood_theme/printing/profile.py', 'utf8');
+	assert.match(profile, /"stamp": _image\(_clean\(c\.get\("bnd_company_stamp"\)\)\)/);
+	assert.match(profile, /"signature": _image\(_clean\(c\.get\("bnd_signature"\)\)\)/);
+	const family = fs.readFileSync('bunood_theme/templates/print/sales_invoice_a4.html', 'utf8');
+	assert.match(family, /\{\{ signatures\(p, \[\("البائع", "Seller"\), \("المستلم", "Received by"\)\]\) \}\}/);
+	// The simplified (B2C) invoice is lean: the owner's rule puts the signature row on the tax
+	// invoice, the quotation, the orders, the vouchers and the journal — not on a receipt-like bill.
+	assert.match(family, /\{%- if not simplified %\}\s*\{\{ signatures\(/, 'the signature row sits behind the simplified switch');
 });

@@ -1,0 +1,54 @@
+{#- ============================================================================
+    «سند قيد - A4» (Journal Entry), the print redesign's journal voucher: the
+    meta (number, date, type, reference), the table الحساب | الطرف | مركز
+    التكلفة | البيان | مدين | دائن with its totals row, the total in words, the
+    remark, and the signatures أعده / راجعه / اعتمده. Not a tax document: a
+    cancelled entry says «ملغاة».
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import page, title_band, meta_grid, cur, words_strip, signatures -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set v = bunood_journal_view(doc) -%}
+{%- call page(p, doc, no_letterhead=no_letterhead, tax_document=False) %}
+
+  {{ title_band(v.title_ar, v.title_en, v.number, "رقم القيد", "Entry No.") }}
+  {{ meta_grid([
+      {"ar": "التاريخ", "en": "Date", "value": v.date, "ltr": True},
+      {"ar": "نوع القيد", "en": "Entry type", "value": v.type},
+      {"ar": "المرجع", "en": "Reference", "value": v.reference, "ltr": True},
+    ], 3) }}
+
+  <table class="zo-items">
+    <colgroup><col style="width:4%"><col style="width:24%"><col style="width:15%"><col style="width:13%"><col style="width:18%"><col style="width:13%"><col style="width:13%"></colgroup>
+    <thead><tr>
+      <th class="c">م<span class="en">No.</span></th>
+      <th>الحساب<span class="en">Account</span></th>
+      <th>الطرف<span class="en">Party</span></th>
+      <th>مركز التكلفة<span class="en">Cost centre</span></th>
+      <th>البيان<span class="en">Description</span></th>
+      <th class="n">مدين {{ cur(v.currency) }}<span class="en">Debit</span></th>
+      <th class="n">دائن {{ cur(v.currency) }}<span class="en">Credit</span></th>
+    </tr></thead>
+    <tbody>
+    {%- for r in v.rows %}
+      <tr>
+        <td class="c"><span class="num">{{ loop.index }}</span></td>
+        <td><div class="zo-item__n">{{ r.account | e }}</div></td>
+        <td>{{ (r.party or "—") | e }}</td>
+        <td>{{ (r.cost_center or "—") | e }}</td>
+        <td>{{ (r.remark or "") | e }}</td>
+        <td class="n"><span class="num">{{ r.debit or "—" }}</span></td>
+        <td class="n"><span class="num">{{ r.credit or "—" }}</span></td>
+      </tr>
+    {%- endfor %}
+    </tbody>
+    <tfoot><tr>
+      <td colspan="5">الإجمالي <span class="en">Total</span></td>
+      <td class="n"><span class="num">{{ v.total_debit }}</span></td>
+      <td class="n"><span class="num">{{ v.total_credit }}</span></td>
+    </tr></tfoot>
+  </table>
+  {{ words_strip(v) }}
+  {%- if v.remark %}<div class="zo-block"><div class="zo-block__h">البيان <span class="en">Remark</span></div><div class="zo-block__b">{{ v.remark | e }}</div></div>{% endif %}
+
+  {{ signatures(p, [("أعده", "Prepared by"), ("راجعه", "Reviewed by"), ("اعتمده", "Approved by")], seal=2) }}
+{%- endcall %}

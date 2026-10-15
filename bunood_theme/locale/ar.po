@@ -20010,3 +20010,63 @@ msgstr "الإجمالي (دائن)"
 #. src: owner 2026-10-15 (reports brief)
 msgid "Unclosed Fiscal Years Profit / Loss (Credit)"
 msgstr "أرباح وخسائر السنوات المالية غير المقفلة (دائن)"
+
+#. Label of a Section Break field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Print Profile"
+msgstr "بيانات الطباعة"
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Company Name in Arabic"
+msgstr "اسم الشركة بالعربية"
+
+#. Description of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "The Arabic name in the header of every printed document."
+msgstr "الاسم العربي في ترويسة كل مستند مطبوع."
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Company Name in English"
+msgstr "اسم الشركة بالإنجليزية"
+
+#. Description of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "The English name in the header of every printed document."
+msgstr "الاسم الإنجليزي في ترويسة كل مستند مطبوع."
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Mobile / WhatsApp"
+msgstr "جوال / واتساب"
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Instagram"
+msgstr "إنستغرام"
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "X (Twitter)"
+msgstr "إكس (تويتر)"
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Snapchat"
+msgstr "سناب شات"
+
+#. Label of a Data field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "TikTok"
+msgstr "تيك توك"
+
+#. Label of a Small Text field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Company Policy"
+msgstr "سياسة الشركة"
+
+#. Description of a Small Text field in Company (the print profile)
+#. src: print redesign 2026-10-15 (the owner's wording)
+msgid "Printed in small type under the footer of every document: a return and exchange policy, a warranty note, opening hours. The Ministry of Commerce bans the phrase «البضاعة المباعة لا ترد ولا تستبدل»; write the real return and exchange terms instead."
+msgstr "تُطبع بخط صغير تحت تذييل كل مستند: سياسة الاستبدال والاسترجاع، أو ملاحظة الضمان، أو أوقات العمل. تحظر وزارة التجارة عبارة «البضاعة المباعة لا ترد ولا تستبدل»؛ اكتب شروط الاستبدال والاسترجاع الفعلية بدلاً منها."

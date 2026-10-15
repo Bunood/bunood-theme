@@ -1532,6 +1532,7 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
             from frappe.www.printview import get_html_and_style
 
             from bunood_theme.setup import is_rtl as _is_rtl
+            from bunood_theme.printing.names import STYLE_NAME
 
             frappe.local.form_dict = frappe._dict()
             if shape == "invoice" and frappe.db.exists("DocType", "Sales Invoice"):
@@ -1559,7 +1560,7 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
                     "taxes": [],
                 }
                 r = get_html_and_style(
-                    doc=json.dumps(doc), print_format="Sales Invoice Standard", style="Bunood"
+                    doc=json.dumps(doc), print_format="Sales Invoice Standard", style=STYLE_NAME
                 )
             else:
                 doc = {
@@ -1570,7 +1571,7 @@ def print_preview(shape: str = "document", lang: str = "en") -> str:
                     "priority": "Medium",
                     "date": "2026-08-26",
                 }
-                r = get_html_and_style(doc=json.dumps(doc), style="Bunood")
+                r = get_html_and_style(doc=json.dumps(doc), style=STYLE_NAME)
 
             if not r or not r.get("html"):
                 return ""

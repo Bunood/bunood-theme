@@ -1,0 +1,65 @@
+{#- ============================================================================
+    THE VOUCHER FAMILY — «سند قبض وصرف» (Payment Entry), one template, the page
+    as a switch: `zo_page` = "A5" (A5 landscape, the market's voucher, the main
+    one) | "A4". The title follows payment_type: «سند قبض | Receipt Voucher»,
+    «سند صرف | Payment Voucher», «سند تحويل | Transfer Voucher».
+
+    It shows the meta (number, date, method, the cheque / reference and its date,
+    the account), «استلمنا من / صرفنا إلى», «مبلغ وقدره» in words, «وذلك عن»,
+    a large amount box with the Riyal sign, the allocation mini-table
+    (الفاتورة | التاريخ | المبلغ | المسدد) and the signatures المستلم / المحاسب /
+    المعتمد with the company's stamp on the approver's cell. A voucher is not a
+    tax document: a cancelled one says «ملغاة».
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import page, title_band, meta_grid, cur, signatures -%}
+{%- set size = zo_page | default("A5") -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set v = bunood_voucher_view(doc) -%}
+{%- call page(p, doc, no_letterhead=no_letterhead, tax_document=False, size=size, landscape=(size == "A5")) %}
+
+  {{ title_band(v.title_ar, v.title_en, v.number, "رقم السند", "Voucher No.") }}
+  {{ meta_grid([
+      {"ar": "التاريخ", "en": "Date", "value": v.date, "ltr": True},
+      {"ar": "طريقة الدفع", "en": "Method", "value": v.method},
+      {"ar": "رقم الشيك / المرجع", "en": "Cheque / ref.", "value": v.reference, "ltr": True},
+      {"ar": "تاريخه", "en": "Its date", "value": v.reference_date if v.reference else "", "ltr": True},
+      {"ar": "الحساب", "en": "Account", "value": v.account},
+    ], 5) }}
+
+  <table class="zo-vbody"><tr>
+    <td class="zo-vlines">
+      <div class="zo-vline"><span class="k">{{ v.party_ar }} <span class="en">{{ v.party_en }}</span></span><b>{{ (v.party or "—") | e }}</b></div>
+      <div class="zo-vline"><span class="k">مبلغ وقدره <span class="en">The sum of</span></span>{{ (v.words or "—") | e }}</div>
+      <div class="zo-vline"><span class="k">وذلك عن <span class="en">Being</span></span>{{ (v.remarks or ("سداد المستندات أدناه" if v.allocations else "—")) | e }}</div>
+    </td>
+    <td class="zo-vamount">
+      <div class="zo-amountbox">
+        <small>المبلغ <span class="en">Amount</span></small>
+        <b><span class="num">{{ cur(v.currency) }}&#8201;{{ v.amount }}</span></b>
+        {%- if v.method %}<div class="zo-amountbox__method">{{ v.method | e }}</div>{% endif %}
+      </div>
+    </td>
+  </tr></table>
+
+  {%- if v.allocations %}
+  <table class="zo-items">
+    <colgroup><col style="width:30%"><col style="width:22%"><col style="width:24%"><col style="width:24%"></colgroup>
+    <thead><tr>
+      <th>الفاتورة<span class="en">Invoice</span></th>
+      <th>التاريخ<span class="en">Date</span></th>
+      <th class="n">المبلغ {{ cur(v.currency) }}<span class="en">Invoice total</span></th>
+      <th class="n">المسدد {{ cur(v.currency) }}<span class="en">Allocated</span></th>
+    </tr></thead>
+    <tbody>
+    {%- for a in v.allocations %}
+      <tr><td><span class="code">{{ a.name | e }}</span></td><td><span class="num">{{ a.date }}</span></td>
+          <td class="n"><span class="num">{{ a.total }}</span></td><td class="n"><span class="num"><b>{{ a.allocated }}</b></span></td></tr>
+    {%- endfor %}
+    </tbody>
+    <tfoot><tr><td colspan="3">الإجمالي المسدد <span class="en">Total allocated</span>{% if v.unallocated %} · غير مخصص <span class="en">Unallocated</span> <span class="num">{{ v.unallocated }}</span>{% endif %}</td>
+      <td class="n"><span class="num">{{ v.allocated_total }}</span></td></tr></tfoot>
+  </table>
+  {%- endif %}
+
+  {{ signatures(p, [("المستلم", "Received by"), ("المحاسب", "Accountant"), ("المعتمد", "Approved by")], seal=2) }}
+{%- endcall %}

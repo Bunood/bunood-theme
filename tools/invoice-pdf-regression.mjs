@@ -18,7 +18,7 @@ for dt,name in [('Purchase Invoice','ACC-PINV-2026-00002'),('Sales Invoice','ACC
  before=doc.as_json()
  for lang in ['en','ar','en','ar']:
   with print_language(lang):
-   rendered=get_html_and_style(doc=before,print_format='Bunood '+dt+' (A4)',no_letterhead=0,letterhead='Bunood')['html']
+   rendered=get_html_and_style(doc=before,print_format={'Sales Invoice':'فاتورة ضريبية - A4','Purchase Invoice':'فاتورة مشتريات - A4'}[dt],no_letterhead=0,letterhead='الترويسة الرسمية')['html']
    root=BeautifulSoup(rendered,'html.parser').select_one('.bnd-invoice')
    assert root['lang']==lang and root['dir']==('rtl' if lang=='ar' else 'ltr'),(dt,lang)
    assert ('VAT number' in root.select_one('.letter-head').text)==(lang=='en'),(dt,lang,'header')
@@ -33,11 +33,11 @@ console.log('Native preview: '+languagePreview.length+' repeated language switch
 const cases=[];
 for (const language of ['en','ar']) {
  for (const [dt,id,format,file] of [
-  ['Purchase Invoice','ACC-PINV-2026-00002','Bunood Purchase Invoice (A4)','purchase'],
-  ['Sales Invoice','ACC-SINV-2026-00002','Bunood Sales Invoice (A4)','sales'],
-  ['Sales Invoice','ACC-SINV-2026-00002','Bunood Sales Invoice (A4)','specimen-long'],
-  ['Sales Invoice','ACC-SINV-2026-00002','Bunood Sales Invoice (A4)','specimen-discount-tax'],
-  ['Purchase Invoice','ACC-PINV-2026-00002','Bunood Purchase Invoice (A4)','specimen-return'],
+  ['Purchase Invoice','ACC-PINV-2026-00002','فاتورة مشتريات - A4','purchase'],
+  ['Sales Invoice','ACC-SINV-2026-00002','فاتورة ضريبية - A4','sales'],
+  ['Sales Invoice','ACC-SINV-2026-00002','فاتورة ضريبية - A4','specimen-long'],
+  ['Sales Invoice','ACC-SINV-2026-00002','فاتورة ضريبية - A4','specimen-discount-tax'],
+  ['Purchase Invoice','ACC-PINV-2026-00002','فاتورة مشتريات - A4','specimen-return'],
  ]) cases.push([dt,id,format,file+'-'+language,language]);
 }
 for(const [dt,name,format,file,language] of cases) {

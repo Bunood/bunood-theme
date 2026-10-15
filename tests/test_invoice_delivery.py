@@ -25,7 +25,7 @@ def load_module():
     delivery = ModuleType("bunood_theme.zatca.delivery")
     doc = SimpleNamespace(doctype="Sales Invoice", name="SINV-TEST", docstatus=1, company="COMPANY",
                           check_permission=Mock())
-    delivery.CUSTOMER_FORMATS = {"Sales Invoice": "Bunood Sales Invoice (A4)"}
+    delivery.CUSTOMER_FORMATS = {"Sales Invoice": "فاتورة ضريبية - A4"}
     delivery._settings = Mock(return_value=SimpleNamespace(fatoora_server="Sandbox",enable_zatca_integration=1))
     delivery._latest_record = Mock(return_value=SimpleNamespace(qr_code="native-qr", uuid="test",
                                   check_permission=Mock(),get_signed_xml=lambda: "<Invoice/>"))

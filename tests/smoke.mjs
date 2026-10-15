@@ -24470,7 +24470,7 @@ print("cleared")
 			const out = benchPy(
 				"import json\n" +
 					"from bunood_theme.email import tokens\n" +
-					"css = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"css = frappe.db.get_value('Print Style', 'النمط الرسمي', 'css') or ''\n" +
 					"tok = tokens('light')\n" +
 					"print('BND_PS' + json.dumps({'n': len(css), 'has_var': 'var(' in css,\n" +
 					"    'bnd_p': '.bnd-p' in css, 'dead': '#1F5145' in css or '#1f5145' in css,\n" +
@@ -24494,7 +24494,7 @@ print("cleared")
 			// `page-break-*` for wkhtml, modern `break-*` for chrome/browser print.
 			// One spelling alone is a rule that silently skips an engine.
 			const css = benchPy(
-				"print(frappe.db.get_value('Print Style', 'Bunood', 'css') or '')\n"
+				"print(frappe.db.get_value('Print Style', 'النمط الرسمي', 'css') or '')\n"
 			);
 			// The modern needles are SUBSTRINGS of the legacy ones, so a naive
 			// includes() can never notice the modern spelling missing — strip the
@@ -24522,7 +24522,7 @@ assert frappe.local.site == expected_site, 'print test site mismatch'
 assert frappe.conf.get('allow_tests') and frappe.session.user == 'Administrator', 'authorized test context required'
 from bunood_theme.patches.v0_35_0.claim_print_style import execute
 from bunood_theme.printing.install import _sync_style
-assert frappe.db.exists('Print Style', 'Bunood'), 'Bunood style missing'
+assert frappe.db.exists('Print Style', 'النمط الرسمي'), 'the official print style is missing'
 assert frappe.db.get_value('Print Style', 'Redesign', 'standard'), 'stock control missing'
 keep = frappe.db.get_single_value('Print Settings', 'print_style')
 frappe.db.savepoint('bnd_print_ownership_probe')
@@ -24575,13 +24575,13 @@ print('BND_DEF' + json.dumps(res))
 					"    doc.brand_color = '#2b4fd8'\n" +
 					"    doc.save(ignore_permissions=True)\n" +
 					"    probe_ink = tokens('light', doc)['--bnd-brand-ink']\n" +
-					"    css = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"    css = frappe.db.get_value('Print Style', 'النمط الرسمي', 'css') or ''\n" +
 					"    res = {'probe_ink': probe_ink, 'ink_in': probe_ink in css, 'n': len(css)}\n" +
 					"finally:\n" +
 					"    doc = frappe.get_doc('Theme Settings')\n" +
 					"    doc.brand_color = keep\n" +
 					"    doc.save(ignore_permissions=True)\n" +
-					"back = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"back = frappe.db.get_value('Print Style', 'النمط الرسمي', 'css') or ''\n" +
 					"res['restored'] = tokens('light')['--bnd-brand-ink'] in back\n" +
 					"print('BND_SEED' + json.dumps(res))\n"
 			);
@@ -24755,7 +24755,7 @@ print('BND_DEF' + json.dumps(res))
 					"from bunood_theme.printing.install import resync_print_brand\n" +
 					"keep = {\n" +
 					"    'field': frappe.db.get_single_value('Theme Settings', 'print_letterhead'),\n" +
-					"    'content': frappe.db.get_value('Letter Head', 'Bunood', 'content'),\n" +
+					"    'content': frappe.db.get_value('Letter Head', 'الترويسة الرسمية', 'content'),\n" +
 					"}\n" +
 					"res = {}\n" +
 					"try:\n" +
@@ -24765,13 +24765,13 @@ print('BND_DEF' + json.dumps(res))
 					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', pole)\n" +
 					"        frappe.clear_cache(doctype='Theme Settings')\n" +
 					"        resync_print_brand()\n" +
-					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
+					"        html = frappe.db.get_value('Letter Head', 'الترويسة الرسمية', 'content') or ''\n" +
 					"        res[pole] = mark in html and 'var(--bnd' not in html\n" +
-					"    frappe.db.set_value('Letter Head', 'Bunood', 'content', 'BND-SENTINEL', update_modified=False)\n" +
+					"    frappe.db.set_value('Letter Head', 'الترويسة الرسمية', 'content', 'BND-SENTINEL', update_modified=False)\n" +
 					"    frappe.db.set_single_value('Theme Settings', 'print_letterhead', \"Frappe's own\")\n" +
 					"    frappe.clear_cache(doctype='Theme Settings')\n" +
 					"    resync_print_brand()\n" +
-					"    res['standdown'] = frappe.db.get_value('Letter Head', 'Bunood', 'content') == 'BND-SENTINEL'\n" +
+					"    res['standdown'] = frappe.db.get_value('Letter Head', 'الترويسة الرسمية', 'content') == 'BND-SENTINEL'\n" +
 					"    keep_logo = frappe.db.get_single_value('Theme Settings', 'logo')\n" +
 					"    company = frappe.db.get_default('company') or frappe.db.get_value('Company', {}, 'name')\n" +
 					// ITEM 36 HARDENING: the original probe proved the theme's logo
@@ -24788,7 +24788,7 @@ print('BND_DEF' + json.dumps(res))
 					"        frappe.db.set_single_value('Theme Settings', 'print_letterhead', 'Bilingual Split')\n" +
 					"        frappe.clear_cache(doctype='Theme Settings')\n" +
 					"        resync_print_brand()\n" +
-					"        html = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
+					"        html = frappe.db.get_value('Letter Head', 'الترويسة الرسمية', 'content') or ''\n" +
 					"        rendered = frappe.render_template(html, {'doc': frappe._dict(company=company)})\n" +
 					"        res['theme_logo_precedence'] = ('src=\"' + logos['theme_src'] + '\"') in rendered\n" +
 					"        res['company_logo_lost'] = logos['company_src'] not in rendered\n" +
@@ -24798,7 +24798,7 @@ print('BND_DEF' + json.dumps(res))
 					"        frappe.db.set_single_value('Theme Settings', 'logo', '')\n" +
 					"        frappe.clear_cache(doctype='Theme Settings')\n" +
 					"        resync_print_brand()\n" +
-					"        html2 = frappe.db.get_value('Letter Head', 'Bunood', 'content') or ''\n" +
+					"        html2 = frappe.db.get_value('Letter Head', 'الترويسة الرسمية', 'content') or ''\n" +
 					"        rendered2 = frappe.render_template(html2, {'doc': frappe._dict(company=company)})\n" +
 					"        res['company_arm_live'] = ('src=\"' + logos['company_src'] + '\"') in rendered2\n" +
 					"    finally:\n" +
@@ -24809,7 +24809,7 @@ print('BND_DEF' + json.dumps(res))
 					"    frappe.clear_cache(doctype='Theme Settings')\n" +
 					"    resync_print_brand()\n" +
 					"    if keep['field'] == \"Frappe's own\":\n" +
-					"        frappe.db.set_value('Letter Head', 'Bunood', 'content', keep['content'], update_modified=False)\n" +
+					"        frappe.db.set_value('Letter Head', 'الترويسة الرسمية', 'content', keep['content'], update_modified=False)\n" +
 					"print('BND_LH' + json.dumps(res))\n"
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_LH"));
@@ -24837,7 +24837,7 @@ print('BND_DEF' + json.dumps(res))
 			const out = benchPy(
 				"import json\n" +
 					"from frappe.utils.jinja_globals import bundled_asset\n" +
-					"css = frappe.db.get_value('Print Style', 'Bunood', 'css') or ''\n" +
+					"css = frappe.db.get_value('Print Style', 'النمط الرسمي', 'css') or ''\n" +
 					"print('BND_FILL' + json.dumps({'css': css, 'bundle': bundled_asset('print.bundle.css')}))\n"
 			);
 			const line = String(out).split(/\r?\n/).find((l) => l.startsWith("BND_FILL"));
@@ -24922,7 +24922,7 @@ print('BND_DEF' + json.dumps(res))
 					"        'total_taxes_and_charges': 15.0,\n" +
 					"        'items': [{'doctype': 'Sales Invoice Item', 'item_name': 'Rebar', 'qty': 1, 'rate': 100.0, 'amount': 100.0, 'idx': 1}],\n" +
 					"        'taxes': []})\n" +
-					"    fmt = frappe.db.get_value('Print Format', 'بونود - فاتورة ضريبية (A4)', 'html')\n" +
+					"    fmt = frappe.db.get_value('Print Format', 'فاتورة ضريبية - A4', 'html')\n" +
 					"    setv('print_words', 'Hide')\n" +
 					"    res['words_hide'] = 'bnd-p-words' not in frappe.render_template(fmt, {'doc': sinv})\n" +
 					"    setv('print_words', 'Show')\n" +
@@ -25018,7 +25018,7 @@ print('BND_DEF' + json.dumps(res))
 					"       'in_words': 'BND words', 'terms': 'BND terms text',\n" +
 					"       'items': [{'doctype': 'Sales Invoice Item', 'item_name': 'Rebar 16mm',\n" +
 					"                  'qty': 12, 'rate': 1500.0, 'amount': 18000.0, 'idx': 1}], 'taxes': []}\n" +
-					"r = get_html_and_style(doc=json.dumps(doc), print_format='Sales Invoice Standard', style='Bunood')\n" +
+					"r = get_html_and_style(doc=json.dumps(doc), print_format='Sales Invoice Standard', style='النمط الرسمي')\n" +
 					"print('BND_AA' + json.dumps({'html': r.get('html'), 'style': r.get('style'),\n" +
 					"    'bundle': bundled_asset('print.bundle.css')}))\n"
 			);

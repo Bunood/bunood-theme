@@ -11,7 +11,7 @@ import {benchJson, benchPy, openDesk, URL_BASE} from "./session.mjs";
 const output = resolve(
 	process.env.BND_STATEMENT_PDF_OUTPUT || "artifacts/customer-statement-pdfs-20260919"
 );
-const printFormat = "بنود - كشف حساب عميل";
+const printFormat = "كشف حساب - A4";
 const customer = process.env.BND_STATEMENT_CUSTOMER || "Bunood Acceptance Customer RC20A";
 const company = process.env.BND_STATEMENT_COMPANY || "Bunood Development";
 const fromDate = process.env.BND_STATEMENT_FROM || "2026-09-01";

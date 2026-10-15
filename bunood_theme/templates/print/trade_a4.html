@@ -1,0 +1,60 @@
+{#- ============================================================================
+    THE TRADE FAMILY, A4 — one template for every document that carries items and
+    is not a sales invoice (the print redesign, Stage 2). The format file sets
+    `zo_kind`; printing/documents.py `trade_view` says what that kind prints:
+
+      quotation · sales_order · proforma · delivery_note · purchase_invoice ·
+      purchase_order · purchase_receipt · stock_entry
+
+    Priced kinds print the standard eleven columns and the small totals table on
+    the physical RIGHT; their left cell stays empty — NONE of these carries a QR
+    (the not-an-invoice rule; a purchase invoice's QR is the supplier's). The
+    goods-only kinds print a quantity table and the total quantity. A proforma
+    says «فاتورة مبدئية» with «ليست فاتورة ضريبية — Not a tax invoice». A
+    cancelled document here may say «ملغاة» (none of them is a tax document).
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import page, title_band, meta_grid, ref_strip, parties, items_standard, items_qty,
+    summary_row, words_strip, notes_block, bank_block, signatures -%}
+{%- set kind = zo_kind | default("quotation") -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set v = bunood_trade_view(doc, kind) -%}
+{%- call page(p, doc, no_letterhead=no_letterhead, tax_document=v.tax_document) %}
+
+  {{ title_band(v.title_ar, v.title_en, v.number, v.no_ar, v.no_en) }}
+  {%- if v.not_invoice %}<div class="zo-notice">ليست فاتورة ضريبية — <span class="en">Not a tax invoice</span></div>{% endif %}
+  {%- if v.reference %}{{ ref_strip(v.reference, "المستند الأصلي", "Original document") }}{% endif %}
+
+  {{ meta_grid(v.meta, 5) }}
+
+  {%- set company = {"head_ar": "المنشأة", "head_en": "Company", "name": p.name_ar or p.name_en or p.name, "sub": p.name_en if p.name_ar else "", "cells": p.cells} %}
+  {%- if v.roles %}
+  {%- set boxes = [] %}
+  {%- for role in v.roles %}
+    {%- if role == "company" %}
+      {%- set _ = boxes.append(dict(company, head_ar=("البائع" if v.roles[0] == "company" else "المشتري"), head_en=("Seller" if v.roles[0] == "company" else "Buyer"))) %}
+    {%- else %}
+      {%- set party = bunood_party_profile(doc, role) %}
+      {%- set _ = boxes.append({"head_ar": ("العميل" if role == "Customer" else "المورد"), "head_en": role, "name": party.name, "sub": party.name_ar, "cells": party.cells}) %}
+    {%- endif %}
+  {%- endfor %}
+  {{ parties(boxes[0], boxes[1] if boxes | length > 1 else None) }}
+  {%- endif %}
+
+  {%- if v.priced %}
+  {{ items_standard(v) }}
+  {{ summary_row(doc, v, "", with_qr=False) }}
+  {{ words_strip(v) }}
+  {%- set notes_html = notes_block(doc) | trim %}
+  {%- set bank_html = (bank_block(p) | trim) if kind in ("quotation", "proforma", "sales_order") else "" %}
+  {%- if notes_html and bank_html %}
+  <table class="zo-pair"><tr><td>{{ notes_html }}</td><td>{{ bank_html }}</td></tr></table>
+  {%- else %}{{ notes_html }}{{ bank_html }}{% endif %}
+  {%- else %}
+  {{ items_qty(v.lines, v.columns) }}
+  <div class="zo-qty-total">إجمالي الكمية <span class="en">Total quantity</span>&#8195;<b class="num">{{ v.total_qty }}</b></div>
+  {{ notes_block(doc) }}
+  {%- if v.remarks %}<div class="zo-block"><div class="zo-block__h">البيان <span class="en">Remarks</span></div><div class="zo-block__b">{{ v.remarks | e }}</div></div>{% endif %}
+  {%- endif %}
+
+  {{ signatures(p, v.signatures, seal=v.seal) }}
+{%- endcall %}
