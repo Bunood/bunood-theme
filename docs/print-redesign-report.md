@@ -1,4 +1,4 @@
-# The print redesign — report (Stage 1)
+# The print redesign — report (Stages 1 and 2)
 
 The owner, 2026-10-15: «غير اسماء نماذج الطباعه الحين … اريد ان تعيد تصاميم كل انواع الطباعه …» —
 rename every print format now; items in a full table; under it a SMALL totals table on the physical
@@ -210,17 +210,125 @@ through the normal controllers.
 - Engineering's five formats ("Bunood Engineering Contract / Document / Quotation / Receipt /
   Transmittal") and its per-company letter heads "<company> — Bunood": the next wave.
 - `pos.py:451` falls back to the stock "POS Invoice" format when a profile names none; left as is
-  (rule 5: no new defaults).
+  (rule 5: no new defaults). Superseded in Stage 2 at the lead's word: `receipt_format()`.
 - Reprint «نسخة مكررة»: no print path in Frappe knows a reprint (no print count), so it is not
   printed.
 - Out of scope: PDF/A-3 with embedded XML, ESC/POS raster, the cheque layout, petty cash.
 
-## Stage 2
+## Stage 2 (2026-10-15)
 
-The 58 mm receipt and the B2B thermal (switches on the receipt family), the dot-matrix layout,
-the POS twins' checks, quotation, sales order, delivery note (not-an-invoice rule), purchase
-invoice and its return title, purchase order, receipt and payment vouchers (A5 landscape main,
-A4 second), journal voucher, statement of account (the report template, aging strip), the
-report `print_grid` header if it can be overridden cleanly, stock transfer, purchase receipt,
-the shift report, dining's pre-bill «الحساب», kitchen ticket and restaurant invoice in the
-receipt language — each rendered.
+The lead's answers, applied: figures stay aligned on their right edge; the simplified invoice's
+line totals include VAT; the estimated receipt height stands; a site that chose Frappe's own
+letter head is left alone; a POS Profile that names no format falls back to the kit's receipt.
+
+### Commits
+
+| Repo | Commit | Subject |
+| --- | --- | --- |
+| theme | `d8fc30d` | feat(print): Stage 2 — every remaining document in the kit |
+| theme | `40c6a4c` | feat(print): the statement of account in the kit, printed on Chromium |
+| theme | `81ef34c` | feat(pos): a counter that names no print format prints the kit's receipt |
+| theme | `85f88c2` | test(print): Stage 2 — the families, the receipt columns, the fallback, the statement |
+| theme | `8ae3066` | fix(print): the statement's aging counts an unapplied credit note |
+| dining | `103ece1` | feat(print): the restaurant's prints in the kit's receipt language, on Chromium |
+| dining | `9aa3bdf` | test(print): the restaurant's prints in their new layout |
+
+The tests that follow the new layouts landed in `85f88c2`: at `d8fc30d` alone the engine test
+still reads the old ones. Each repo is green at its head.
+
+### What was built
+
+- **One page for every A4/A5 family.** kit.html's `page` macro (the stylesheet, the repeated
+  head and foot, the page numbers, the watermark, the policy); the sales invoice calls it too.
+  Party boxes take their cells from `profile.cells` / `party_profile` (customer or supplier).
+- **The trade family** (`trade_a4.html`, `printing/documents.py`): «عرض سعر - A4», «أمر بيع -
+  A4», «فاتورة مبدئية - A4» (with «ليست فاتورة ضريبية — Not a tax invoice»), «سند تسليم - A4»
+  (ordered / delivered / batch, received-by and date), «فاتورة مشتريات - A4» and its return
+  («مرتجع مشتريات | Purchase Return» with the original, its date and the reason), «أمر شراء -
+  A4», «إذن استلام - A4» (PO, ordered / received / accepted, warehouse), «تحويل مخزني - A4»
+  (titled «صرف مخزني» / «استلام مخزني» by purpose; remarks under the table). No QR on any of
+  them; only the purchase invoice shows paid / due.
+- **Vouchers.** «سند قبض وصرف - A5» is A5 landscape and the main one (the amount box, received
+  from / paid to, the sum in words, «وذلك عن», الفاتورة | التاريخ | المبلغ | المسدد, المستلم /
+  المحاسب / المعتمد with the stamp); «سند قبض وصرف - A4» stays. Chromium ignores the landscape
+  flag once a paper size is given, so the page is declared 210 × 148 mm. «سند قيد - A4»: الحساب |
+  الطرف | مركز التكلفة | البيان | مدين | دائن, totals, words.
+- **Thermal.** «… - حراري 58مم» (الصنف | الكمية | الإجمالي, the unit price under the name, QR 30
+  mm), the B2B «فاتورة ضريبية - حراري 80مم», «إيصال هدية - حراري 80مم» (no prices, no QR),
+  «تقرير الوردية - حراري 80مم» (POS Closing Entry: invoices, sales, returns, discounts, net, VAT,
+  tenders expected / counted, the difference in the band when short). Every receipt figure
+  column has its own width (80 mm: 35/18/22/25 %; 58 mm: 50/22/28 %), header and figures on
+  one right edge — «الكمية» and «السعر» no longer touch. «C.R.» keeps its stops (an isolated
+  label). POS twins for the 58 mm, B2B and gift receipts.
+- **«فاتورة - طابعة نقطية»**: monospace, totals on the physical right, no QR — a dot-matrix
+  head prints characters, not pictures; the foot says the electronic copy carries the QR.
+- **Statement «كشف حساب - A4»** (General Ledger report format): the template asks
+  `printing.statement.context` once for the page, the party box, the aging (current, 1-30,
+  31-60, 61-90, 90+; credits in brackets) and printed at / by; التاريخ | النوع | الرقم | البيان |
+  مدين | دائن | الرصيد with the opening row, totals and closing balance, credit balances in
+  brackets. `report_to_pdf` sends a page with the statement's marker to Chromium; every other
+  report keeps wkhtmltopdf.
+- **POS fallback.** `pos.receipt_format()`: a profile without a format prints «فاتورة ضريبية
+  مبسطة - حراري 80مم» (« - نقطة البيع» for a POS Invoice), for the counter and the shared link.
+- **Dining** (all on Chromium; the kit's stylesheet plus a few restaurant pieces): the kitchen
+  ticket (station and time sent, the state band «جديد» / «تعديل» / «ملغي», the order number —
+  or the table — LARGE, the order type, server and guests, «2 × name» bold, choices signed − /
+  +, notes in an inverted band, the allergy box, no prices or QR); «الحساب» (not an invoice,
+  no number, no QR, the total in the band); the restaurant invoice in the receipt language
+  (seller's names, VAT, CR; four figure columns; the deposit box; QR 35 mm; address, contacts,
+  policy). It needs the theme's kit in the same release (it imports `kit.html`).
+
+### Decisions and notes
+
+- **`print_grid` (every other report's header) is not overridden.** It is Frappe's client
+  template; replacing it means a desk bundle, and the desk JS has 8 bytes of budget left. The
+  statement shows the kit on a report without touching it.
+- **Reprints** are still unmarked: neither the receipt nor the kitchen ticket's print path
+  knows it is printing again.
+- **The lab tenant's brand turned blue mid-session** (another builder's palette work on the
+  shared team-rc): the prints take the tenant's brand through tokens, so 08-32 show the blue,
+  01-07 the earlier green. Nothing is hard-coded.
+- The statement image comes from Frappe's own microtemplate compiler (Node, `microtemplate.js`
+  as shipped) with the desk's two calls answered from the lab, then the real `report_to_pdf`.
+  In the desk «Sales Invoice» in the type column is translated; the harness has no `__()`.
+- Dining lab data reuses the dining print suite's world (company «_DIN Native», given a
+  restaurant profile). The suite then needed its own VAT account, template and menu rows back;
+  those lab copies are renamed «_LAB …», and the suite is 10/10 on the site.
+
+### Tests and gates (lab `bunood-print-lab`, site team-rc.localhost)
+
+- `python -m unittest discover -s tests -p <file>`:
+  - test_print_stage2: 15, new. A sabotage (the old 14 % quantity column; a QR on the trade
+    family) failed 6; restored green.
+  - Also green: test_print_kit 20, test_print_engine 15 (updated), test_print_format_names 6,
+    test_letterhead 9, test_print_thermal_service 5, test_print_thermal_logo 4,
+    test_print_qr_rule 5, test_riyal_sign 3, test_print_preview 6, test_zerone_brand 9,
+    test_print_logo_fixture 7, test_amount_words 5, test_custom_fields 3, test_zatca_delivery 9,
+    test_invoice_delivery 11.
+- `node --test` sales_bill, invoice_a4_qr, print_seal (updated), print_language: 123/123.
+- `node build.mjs`: green. The thermal guard now reads the 58 mm roll, and a format without a
+  width gets 80.
+- `tools/payload.mjs --check`: within budget, desk JS still 8 bytes free.
+- `i18n_po.mjs emit`: 3,876 rows. `i18n.mjs check`: coverage complete.
+- Dining:
+  - `bench --site team-rc.localhost run-tests --module bunood_dining.tests.test_prints`: 10/10.
+  - `test_print_format_names`: 3/3.
+
+### Images (08-32, `scratchpad/brand/print-shots/`, PDFs beside them)
+
+08 quotation · 09 sales order · 10 proforma · 11 delivery note · 12 purchase invoice (15 % VAT)
+· 13 purchase return · 14 purchase order · 15 goods receipt · 16 stock transfer · 17/18 receipt /
+payment voucher A5 landscape · 19 receipt voucher A4 · 20 journal voucher · 21 58 mm · 22 B2B
+80 mm · 23 gift receipt · 24 dot-matrix · 25 shift report · 26 80 mm with the new columns · 27-29
+kitchen ticket new / change / cancelled · 30 «الحساب» · 31 restaurant invoice · 32 statement.
+All single pages; «تذاكر المطبخ» printed two tickets on two pages.
+
+### The acceptance script, updated for Stage 2
+
+The Purchase Invoice is now the kit's too: its `.bnd-invoice` / `.bnd-inv-title` assertion
+becomes `'class="zo zo-a4' in html and 'zo-title' in html`, as for the Sales Invoice.
+
+### Still not done
+
+- Engineering's five formats and its per-company letter heads: the next wave.
+- Out of scope: PDF/A-3 with embedded XML, ESC/POS raster, the cheque layout, petty cash.
