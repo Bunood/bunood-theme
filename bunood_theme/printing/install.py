@@ -120,6 +120,7 @@ def sync_print_theme():
         )
     try:
         _company_cr_field()
+        _company_print_fields()
         _sync_letterhead()
     except Exception:
         frappe.log_error(
@@ -505,6 +506,44 @@ def _company_cr_field():
         },
         ignore_validate=True,
     )
+
+
+#: The print profile's fields on Company (the owner, 2026-10-15: the header names the company
+#: in Arabic AND English; the footer carries its address and contact methods; its policy prints
+#: under the footer). The theme installs them, like the CR above; the business «المنشأة» screen
+#: edits them («بيانات الطباعة»). phone_no, email and website are stock and reused.
+POLICY_HINT = (
+    "Printed in small type under the footer of every document: a return and exchange policy, "
+    "a warranty note, opening hours. The Ministry of Commerce bans the phrase "
+    "«البضاعة المباعة لا ترد ولا تستبدل»; write the real return and exchange terms instead."
+)
+PRINT_FIELDS = [
+    {"fieldname": "bnd_print_section", "fieldtype": "Section Break", "label": "Print Profile",
+     "insert_after": CR_FIELD, "collapsible": 0},
+    {"fieldname": "bnd_company_name_ar", "fieldtype": "Data", "label": "Company Name in Arabic",
+     "insert_after": "bnd_print_section", "translatable": 0,
+     "description": "The Arabic name in the header of every printed document."},
+    {"fieldname": "bnd_company_name_en", "fieldtype": "Data", "label": "Company Name in English",
+     "insert_after": "bnd_company_name_ar", "translatable": 0,
+     "description": "The English name in the header of every printed document."},
+    {"fieldname": "bnd_mobile", "fieldtype": "Data", "label": "Mobile / WhatsApp", "options": "Phone",
+     "insert_after": "bnd_company_name_en", "translatable": 0},
+    {"fieldname": "bnd_print_cb", "fieldtype": "Column Break", "insert_after": "bnd_mobile"},
+    {"fieldname": "bnd_instagram", "fieldtype": "Data", "label": "Instagram", "insert_after": "bnd_print_cb", "translatable": 0},
+    {"fieldname": "bnd_x", "fieldtype": "Data", "label": "X (Twitter)", "insert_after": "bnd_instagram", "translatable": 0},
+    {"fieldname": "bnd_snapchat", "fieldtype": "Data", "label": "Snapchat", "insert_after": "bnd_x", "translatable": 0},
+    {"fieldname": "bnd_tiktok", "fieldtype": "Data", "label": "TikTok", "insert_after": "bnd_snapchat", "translatable": 0},
+    {"fieldname": "bnd_print_policy", "fieldtype": "Small Text", "label": "Company Policy",
+     "insert_after": "bnd_tiktok", "translatable": 0, "description": POLICY_HINT},
+]
+
+
+def _company_print_fields():
+    """Create — and reconcile on every migrate, since the labels are ours — the print profile's
+    fields on Company. Additive: nothing is renamed or removed, so no tenant data moves."""
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    create_custom_fields({"Company": PRINT_FIELDS}, ignore_validate=True, update=True)
 
 
 def _adopt_letterhead_default():

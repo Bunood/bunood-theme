@@ -4,8 +4,10 @@
 # fields, or bad data.
 
 import base64
+import functools
 import json
 import mimetypes
+import os
 from decimal import InvalidOperation
 
 import frappe
@@ -327,6 +329,83 @@ def bunood_item_vat_map(doc):
     except Exception:
         frappe.log_error(title="bunood_theme: item_vat_map failed"[:140])
     return result
+
+
+def bunood_print_profile(doc):
+    """The seller as the print kit shows it (printing/profile.py): names AR/EN, CR, VAT, the
+    national address, the contact methods, the policy, the logo, stamp, signature and bank."""
+    from bunood_theme.printing.profile import company_profile
+
+    try:
+        return company_profile(doc.get("company") if doc else None, doc, arabic=bunood_print_language() == "ar")
+    except Exception:
+        frappe.log_error(title="bunood_theme: print_profile failed"[:140])
+        return company_profile(None)
+
+
+def bunood_buyer_profile(doc):
+    """The buyer of a sales document, in full (the standard tax invoice's buyer box)."""
+    from bunood_theme.printing.profile import buyer_profile
+
+    try:
+        return buyer_profile(doc, arabic=bunood_print_language() == "ar")
+    except Exception:
+        frappe.log_error(title="bunood_theme: buyer_profile failed"[:140])
+        return {"name": doc.get("customer_name") or "", "address": {}, "ids": []}
+
+
+def bunood_invoice_view(doc, simplified=False):
+    """The figures the sales-invoice family prints (printing/view.py)."""
+    from bunood_theme.printing.view import invoice_view
+
+    return invoice_view(doc, simplified=bool(simplified), arabic=bunood_print_language() == "ar")
+
+
+def bunood_receipt_extras(doc):
+    """What a thermal receipt adds to the invoice view: the named customer (never the walk-in
+    one), the restaurant's order type and table, and the invoice number as a Code 128 SVG."""
+    from bunood_theme.printing.view import code128_svg, named_customer, service
+
+    try:
+        return {"customer": named_customer(doc), "service": service(doc), "barcode": code128_svg(doc.get("name") or "")}
+    except Exception:
+        frappe.log_error(title="bunood_theme: receipt_extras failed"[:140])
+        return {"customer": "", "service": {}, "barcode": ""}
+
+
+_KIT_CSS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates", "print", "print_kit.css")
+_RIYAL_OTF = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "public", "fonts", "riyal", "bunood-riyal.otf")
+
+
+@functools.lru_cache(maxsize=16)
+def _kit_css(site: str, stamp: str, mtime: float) -> str:
+    from bunood_theme.email import substitute, tokens
+
+    with open(_KIT_CSS, encoding="utf-8") as handle:
+        css = handle.read()
+    with open(_RIYAL_OTF, "rb") as handle:
+        otf = base64.b64encode(handle.read()).decode("ascii")
+    # The riyal sign's face, from the file the theme ships: the woff2 when the page can fetch
+    # it, the same glyph inlined when it cannot (an isolated PDF header has no base URL).
+    face = (
+        '@font-face { font-family: "Bunood Riyal"; '
+        "src: url(/assets/bunood_theme/fonts/riyal/bunood-riyal.woff2) format('woff2'), "
+        f"url(data:font/otf;base64,{otf}) format('opentype'); "
+        "font-weight: 100 900; font-display: block; unicode-range: U+20C1; }\n"
+    )
+    return face + substitute(css, tokens("light"))
+
+
+def bunood_print_kit_css():
+    """The print kit's stylesheet (templates/print/print_kit.css), its tokens substituted from
+    this site's palette. Cached per site, Theme Settings version and file mtime; "" on failure
+    (the format then prints unstyled rather than not at all, and the failure is logged)."""
+    try:
+        stamp = str(frappe.db.get_value("Theme Settings", "Theme Settings", "modified") or "")
+        return _kit_css(getattr(frappe.local, "site", "") or "", stamp, os.path.getmtime(_KIT_CSS))
+    except Exception:
+        frappe.log_error(title="bunood_theme: print kit stylesheet stood down"[:140])
+        return ""
 
 
 def bunood_print_setting(field: str):

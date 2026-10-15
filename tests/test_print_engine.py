@@ -81,7 +81,7 @@ class PrintEngineTests(unittest.TestCase):
 
 	def test_migrate_does_not_run_the_held_tenant_configuration(self):
 		"""Integration v0.48.0: engine, default formats and MVP fields are held."""
-		for name in ("_sync_style", "_company_cr_field", "_sync_letterhead", "_sync_format"):
+		for name in ("_sync_style", "_company_cr_field", "_company_print_fields", "_sync_letterhead", "_sync_format"):
 			setattr(self.install, name, Mock())
 		held = {name: Mock() for name in (
 			"_sync_pdf_generator", "adopt_business_print_formats",

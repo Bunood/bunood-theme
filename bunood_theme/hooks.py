@@ -221,6 +221,13 @@ jinja = {
         # The print macros' settings reads, with their defaults from presets.PRINT_DEFAULTS
         # rather than from literals in the template (settings audit 2026-09-21, ii-1).
         "bunood_theme.printing.jinja.bunood_print_setting",
+        # The print kit (the owner's redesign, 2026-10-15): the seller's and the buyer's
+        # profiles, an invoice's printed figures and the kit's own stylesheet.
+        "bunood_theme.printing.jinja.bunood_print_profile",
+        "bunood_theme.printing.jinja.bunood_buyer_profile",
+        "bunood_theme.printing.jinja.bunood_invoice_view",
+        "bunood_theme.printing.jinja.bunood_receipt_extras",
+        "bunood_theme.printing.jinja.bunood_print_kit_css",
         # Item 34: the email stylesheet, substituted per site. Registered here
         # rather than delivered by Frappe's `email_css` hook because that hook is a
         # STATIC file list (so it can never carry a customer's seed) and its
