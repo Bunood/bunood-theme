@@ -19,6 +19,15 @@ def load_module():
     fake.flags = SimpleNamespace()
     fake.form_dict = {}
     sys.modules["frappe"] = fake
+    # delivery.py reads the print records' names from printing/names.py (no imports of its
+    # own); load it as the module the import names, without the package's frappe-bound init.
+    names_path = Path(__file__).parents[1] / "bunood_theme" / "printing" / "names.py"
+    names_spec = importlib.util.spec_from_file_location("bunood_theme.printing.names", names_path)
+    names = importlib.util.module_from_spec(names_spec)
+    names_spec.loader.exec_module(names)
+    for package in ("bunood_theme", "bunood_theme.printing"):
+        sys.modules.setdefault(package, ModuleType(package))
+    sys.modules["bunood_theme.printing.names"] = names
     path = Path(__file__).parents[1] / "bunood_theme" / "zatca" / "delivery.py"
     spec = importlib.util.spec_from_file_location("bunood_zatca_delivery_test", path)
     module = importlib.util.module_from_spec(spec)
@@ -83,8 +92,10 @@ class DeliveryTests(unittest.TestCase):
         })
 
     def test_non_integrated_customer_pdf_uses_a_qr_aware_managed_format(self):
-        for doctype, expected in [("Sales Invoice", "Bunood Sales Invoice (A4)"),
-                                  ("POS Invoice", "Bunood POS Invoice (A4)")]:
+        # The print kit's standard tax invoice and its POS Invoice twin (the print redesign,
+        # 2026-10-15); "Bunood POS Invoice (A4)" was named here but never shipped.
+        for doctype, expected in [("Sales Invoice", "فاتورة ضريبية - A4"),
+                                  ("POS Invoice", "فاتورة ضريبية - A4 - نقطة البيع")]:
             with self.subTest(doctype=doctype), patch.object(self.delivery, "_settings", return_value=None):
                 context = self.delivery.delivery_context(SimpleNamespace(
                     doctype=doctype, company="COMPANY", docstatus=1))

@@ -27,15 +27,10 @@ PHASE1_DOCTYPE = "ZATCA Phase 1 Business Settings"
 #: from ``<dir>/formats/``, exactly as it does for its own.
 DIR = os.path.dirname(os.path.abspath(__file__))
 
-#: The formats this package ships — the same shape as
-#: ``printing.install.FORMATS`` plus ``dir``, so the installer knows where to
-#: read from. Managed exactly like the «بونود - …» ones: the file is the truth,
-#: and a migrate overwrites desk edits.
-FORMATS = [
-    {
-        "name": "زاتكا - فاتورة مبسطة (حراري 80مم)",
-        "doctype": "Sales Invoice",
-        "file": "sales_invoice_zatca_thermal.html",
-        "dir": DIR,
-    },
-]
+#: The formats this package ships — the same shape as ``printing.install.FORMATS`` plus ``dir``,
+#: so the installer knows where to read from. EMPTY since the print redesign (the owner,
+#: 2026-10-15): «زاتكا - فاتورة مبسطة (حراري 80مم)» MERGED into the kit's main receipt
+#: «فاتورة ضريبية مبسطة - حراري 80مم» (patches/v0_60_0/print_format_names.py), which takes the
+#: Phase-2 QR first and the Phase-1 QR computed by ``qr.phase1_qr_src`` when no artefact exists.
+#: The list and the loop stay, so a future compliance-only format has its place.
+FORMATS = []

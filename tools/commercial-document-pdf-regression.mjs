@@ -8,12 +8,12 @@ const output = resolve(process.env.BND_PDF_OUTPUT || 'artifacts/commercial-docum
 mkdirSync(output, {recursive: true});
 
 const cases = [
-	['Quotation', 'SAL-QTN-2026-00002', 'بنود - عرض سعر (A4)', 'quotation-a4'],
-	['Payment Entry', 'ACC-PAY-2026-00001', 'بنود - سند قبض-صرف', 'payment-receipt-a4'],
-	['Sales Invoice', 'ACC-SINV-2026-00003', 'بنود - فاتورة ضريبية (A4)', 'tax-invoice-a4'],
-	['Sales Invoice', 'ACC-SINV-2026-00006', 'بنود - فاتورة ضريبية مبسطة (A4)', 'simplified-invoice-a4'],
-	['Sales Invoice', 'ACC-SINV-2026-00003', 'بنود - فاتورة ضريبية (حراري 80مم)', 'tax-invoice-thermal'],
-	['Sales Invoice', 'ACC-SINV-2026-00006', 'بنود - فاتورة مبسطة (حراري 80مم)', 'simplified-invoice-thermal'],
+	['Quotation', 'SAL-QTN-2026-00002', 'عرض سعر - A4', 'quotation-a4'],
+	['Payment Entry', 'ACC-PAY-2026-00001', 'سند قبض وصرف - A4', 'payment-receipt-a4'],
+	['Sales Invoice', 'ACC-SINV-2026-00003', 'فاتورة ضريبية - A4', 'tax-invoice-a4'],
+	['Sales Invoice', 'ACC-SINV-2026-00006', 'فاتورة ضريبية مبسطة - A4', 'simplified-invoice-a4'],
+	['Sales Invoice', 'ACC-SINV-2026-00003', 'فاتورة ضريبية - حراري 80مم', 'tax-invoice-thermal'],
+	['Sales Invoice', 'ACC-SINV-2026-00006', 'فاتورة ضريبية مبسطة - حراري 80مم', 'simplified-invoice-thermal'],
 ];
 
 for (const language of ['en', 'ar']) {

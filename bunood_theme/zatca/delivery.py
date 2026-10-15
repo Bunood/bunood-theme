@@ -15,15 +15,20 @@ from xml.etree import ElementTree
 import frappe
 from frappe import _
 
+from bunood_theme.printing.names import POS_SUFFIX, TAX_INVOICE_A4
+
 
 INVOICE_DOCTYPES = frozenset({"Sales Invoice", "POS Invoice"})
 PHASE2_FORMATS = {
     "Sales Invoice": "ZATCA Phase 2 Print Format",
     "POS Invoice": "ZATCA Phase 2 Print Format - POS Invoice",
 }
+#: The customer's A4 when Phase 2 does not govern the company: the print kit's standard tax
+#: invoice and its POS Invoice twin (printing/names.py; the old "Bunood … (A4)" names moved with
+#: patches/v0_60_0/print_format_names). Both take the cleared / reported QR first.
 CUSTOMER_FORMATS = {
-    "Sales Invoice": "Bunood Sales Invoice (A4)",
-    "POS Invoice": "Bunood POS Invoice (A4)",
+    "Sales Invoice": TAX_INVOICE_A4,
+    "POS Invoice": TAX_INVOICE_A4 + POS_SUFFIX,
 }
 ACCEPTED = frozenset({"Accepted", "Accepted with warnings"})
 

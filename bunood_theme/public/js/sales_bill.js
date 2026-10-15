@@ -1387,8 +1387,8 @@
 			try { formats = frappe.meta.get_print_formats(this.frm.doctype) || []; } catch (_) { return; }
 			if (!formats.length) return;
 			// The organisation's default (the doctype's own default_print_format),
-			// else Bunood's format, else the first the site has.
-			const preferred = [this.frm.meta?.default_print_format, `Bunood ${this.frm.doctype} (A4)`];
+			// else the kit's A4 (tax first), else the first.
+			const preferred = [this.frm.meta?.default_print_format, ...formats.filter(n => n.endsWith(" - A4")).sort()];
 			const field = node("div", "frappe-control bnd-bill-print-format", null, parent);
 			field.dataset.fieldname = "bnd_print_format";
 			const label = node("label", "control-label", __("Print format"), field);

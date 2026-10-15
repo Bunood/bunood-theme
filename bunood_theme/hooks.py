@@ -147,6 +147,10 @@ override_whitelisted_methods = {
     "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
 }
 
+# An old print format name in a kept receipt link (/printview, download_pdf) reads as its new
+# name after the print redesign's rename (printing/renames.py). Two string checks on any other path.
+before_request = ["bunood_theme.printing.renames.map_old_format_name"]
+
 doc_events = {
     "Theme Settings": {
         # Regenerate the per-site brand stylesheet whenever colours change.
