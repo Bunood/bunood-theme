@@ -448,13 +448,23 @@ def _profile_payload(profile) -> dict[str, Any]:
         # The counter rounds its own estimate the same way while offline.
         "disable_rounded_total": bool(profile.disable_rounded_total),
         "rounding": _rounding_rule(profile),
-        "print_format": profile.print_format or "POS Invoice",
+        "print_format": profile.print_format or receipt_format(),
         "print_receipt_on_order_complete": bool(profile.print_receipt_on_order_complete),
         "payments": _payment_methods(profile),
         "taxes": _profile_taxes(profile),
         "counter": _counter_settings(profile.name),
         "can_edit": bool(frappe.has_permission("POS Profile", "write", profile)),
     }
+
+
+def receipt_format(doctype: str | None = None) -> str:
+    """The receipt a counter prints when its POS Profile names none: the print kit's main receipt
+    (its « - نقطة البيع» twin for a POS Invoice), never the stock "POS Invoice" layout. "" when the
+    kit's receipt is not installed, so the doctype's own default answers."""
+    from bunood_theme.printing.names import POS_SUFFIX, SIMPLIFIED_RECEIPT_80
+
+    name = SIMPLIFIED_RECEIPT_80 + (POS_SUFFIX if (doctype or _invoice_type()) == "POS Invoice" else "")
+    return name if frappe.db.exists("Print Format", name) else ""
 
 
 def _rounding_rule(profile) -> dict[str, Any]:
@@ -2490,6 +2500,7 @@ def receipt_link(doctype: str, name: str) -> dict[str, Any]:
         return none
     query = {"doctype": doc.doctype, "name": doc.name, "key": _share_key(doc)}
     print_format = frappe.db.get_value("POS Profile", doc.pos_profile, "print_format") if doc.pos_profile else None
+    print_format = print_format or receipt_format(doc.doctype)
     if print_format:
         query["format"] = print_format
     url = get_url(f"/printview?{urlencode(query)}")
