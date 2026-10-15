@@ -83,7 +83,7 @@
 		const assurance = el("div", "bnd-banking__assurance");
 		assurance.append(
 			icon("shield"),
-			el("span", null, __("Bunood summarizes evidence. ERPNext remains the accounting system of record."))
+			el("span", null, __("Zero One summarizes evidence. ERPNext remains the accounting system of record."))
 		);
 		intro.append(introCopy, assurance);
 		root.append(intro);

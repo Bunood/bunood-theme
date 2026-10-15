@@ -86,7 +86,7 @@ def _claude_translate(batch, language, settings):
                 "content": (
                     "Translate these ERP user-interface strings to %s.\n"
                     "Rules: keep {placeholders} exactly as written; keep product and "
-                    "typeface names (Frappe, ERPNext, Bunood, Ctrl+K) in Latin; short "
+                    "typeface names (Frappe, ERPNext, Zero One, Ctrl+K) in Latin; short "
                     "labels stay short; use Modern Standard Arabic with Western digits.\n"
                     "Reply with ONLY a JSON object mapping each source string, verbatim, "
                     "to its translation.\n\n%s"

@@ -246,7 +246,7 @@
 			return;
 		}
 		fill(container);
-		page?.set_title?.(__("Bunood POS", null, "Bunood POS"));
+		page?.set_title?.(__("Zero One POS", null, "Bunood POS"));
 
 		const prefs = readPrefs();
 		const state = {
@@ -586,7 +586,7 @@
 				state.opening = null;
 				await initialize(state.profile.name);
 			} catch (error) {
-				frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The shift could not be opened.", null, "Bunood POS")), indicator: "red" });
+				frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: messageOf(error, __("The shift could not be opened.", null, "Bunood POS")), indicator: "red" });
 			}
 		}
 
@@ -1372,7 +1372,7 @@
 				}
 				state.payErr = messageOf(error, __("The sale was not submitted.", null, "Bunood POS"));
 				if (state.screen !== "pay") {
-					frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: state.payErr, indicator: "red" });
+					frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: state.payErr, indicator: "red" });
 					state.payErr = "";
 				}
 			} finally {
@@ -1426,7 +1426,7 @@
 				refreshHeld();
 				focusOmni();
 			} catch (error) {
-				frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The sale could not be held.", null, "Bunood POS")), indicator: "red" });
+				frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: messageOf(error, __("The sale could not be held.", null, "Bunood POS")), indicator: "red" });
 			}
 		}
 
@@ -1477,7 +1477,7 @@
 				cartChanged();
 				refreshHeld();
 			} catch (error) {
-				frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The held sale could not be resumed.", null, "Bunood POS")), indicator: "red" });
+				frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: messageOf(error, __("The held sale could not be resumed.", null, "Bunood POS")), indicator: "red" });
 			}
 		}
 
@@ -1583,7 +1583,7 @@
 				else addItem(row, 1);
 				flash("ok", __("Barcode saved — {0} → {1}", [overlay.code, row.item_name || row.item_code]));
 			} catch (error) {
-				frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The barcode could not be saved.", null, "Bunood POS")), indicator: "red" });
+				frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: messageOf(error, __("The barcode could not be saved.", null, "Bunood POS")), indicator: "red" });
 			}
 		}
 		function newItem() {
@@ -1597,7 +1597,7 @@
 					renderAlert();
 					if (code) scan(labelled || code);
 				} catch (error) {
-					frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The barcode could not be saved.", null, "Bunood POS")), indicator: "red" });
+					frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: messageOf(error, __("The barcode could not be saved.", null, "Bunood POS")), indicator: "red" });
 				}
 			});
 		}
@@ -3325,7 +3325,7 @@
 					const result = await api("create_return", { source_doctype: row.doctype, source_name: row.name }, { freeze: true, message: __("Preparing the return…", null, "Bunood POS") });
 					frappe.set_route.apply(frappe, result.route);
 				} catch (error) {
-					frappe.msgprint({ title: __("Bunood POS", null, "Bunood POS"), message: messageOf(error, __("The return draft could not be created.", null, "Bunood POS")), indicator: "red" });
+					frappe.msgprint({ title: __("Zero One POS", null, "Bunood POS"), message: messageOf(error, __("The return draft could not be created.", null, "Bunood POS")), indicator: "red" });
 				}
 			});
 		}

@@ -5,7 +5,7 @@
 frappe.pages["bnd-pos"].on_page_load = function (wrapper) {
 	const page = frappe.ui.make_app_page({
 		parent: wrapper,
-		title: __("Bunood POS"),
+		title: __("Zero One POS"),
 		single_column: true,
 	});
 	const container = document.createElement("div");
@@ -63,6 +63,6 @@ frappe.pages["bnd-pos"].on_page_load = function (wrapper) {
 		})
 		.catch((error) => {
 			console.error("Bunood POS asset load failed", error);
-			fail(__("Bunood POS failed to load. Rebuild the theme assets and try again."));
+			fail(__("Zero One POS failed to load. Rebuild the theme assets and try again."));
 		});
 };

@@ -273,7 +273,7 @@ def _prepare_common(doc: Any) -> tuple[Any, Any, dict[str, Any], dict[str, Any] 
     task, project, company = _task_and_project(str(_value(doc, "task") or "").strip())
     domain = _value(task, TASK_DOMAIN_FIELD)
     if domain not in READINESS_DOMAINS:
-        frappe.throw(frappe._("The selected Task is not a Bunood readiness task."))
+        frappe.throw(frappe._("The selected Task is not a Zero One readiness task."))
     if _value(task, TASK_IDENTITY_FIELD) != readiness_task_identity(company, domain):
         frappe.throw(frappe._("The readiness Task identity does not match its company and domain."))
     if _value(project, PROJECT_IDENTITY_FIELD) != company:
@@ -496,7 +496,7 @@ def prepare_readiness_decision(company: str, domain: str) -> dict[str, Any]:
     if domain not in READINESS_DOMAINS:
         frappe.throw(frappe._("Select a valid readiness domain."))
     if not _doctype_exists(REVIEW_DOCTYPE):
-        frappe.throw(frappe._("Run the latest Bunood migration before recording a review."))
+        frappe.throw(frappe._("Run the latest Zero One migration before recording a review."))
     if not frappe.has_permission(REVIEW_DOCTYPE, "create"):
         frappe.throw(
             frappe._("You do not have permission to record readiness reviews."),

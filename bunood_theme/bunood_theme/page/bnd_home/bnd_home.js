@@ -1,7 +1,7 @@
 /* global frappe, __ */
 frappe.pages["bnd-home"].on_page_show = () => window.bunood_theme?.select_home_sidebar?.();
 frappe.pages["bnd-home"].on_page_load = function (wrapper) {
-    const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Bunood Home"), single_column: true });
+    const page = frappe.ui.make_app_page({ parent: wrapper, title: __("Zero One Home"), single_column: true });
     const host = document.createElement("div");
     page.main[0].appendChild(host);
     const load = async () => {

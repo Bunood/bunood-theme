@@ -235,7 +235,7 @@
    "description": "Counts and row outcomes are copied from the permissioned native Data Import result. Error text is retained only in the native log.",
    "fieldname": "result_notice",
    "fieldtype": "HTML",
-   "options": "<p class=\"text-muted\">Use the linked Data Import for full error messages and corrected-row export. Bunood stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>"
+   "options": "<p class=\"text-muted\">Use the linked Data Import for full error messages and corrected-row export. Zero One stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>"
   },
   {
    "fieldname": "data_import_status",

@@ -1640,8 +1640,9 @@ msgstr "يتطلب لوحة ملتصقة"
 
 #. In theme_settings.js
 #. src: ai
-msgid "Needs the Bunood panel"
-msgstr "يتطلب لوحة بنود"
+#. zerONE brand 2026-10-15: renamed from 'Needs the Bunood panel'
+msgid "Needs the Zero One panel"
+msgstr "يتطلب لوحة زيرو ون"
 
 #. In bunood.js
 #. src: ai
@@ -2470,8 +2471,9 @@ msgstr "هذا ليس JSON صالحًا."
 
 #. In bnd_inbox.js
 #. src: ai
-msgid "The Bunood inbox is not active. Enable it in Theme Settings."
-msgstr "وارد بنود غير مفعّل. فعّله من إعدادات المظهر."
+#. zerONE brand 2026-10-15: renamed from 'The Bunood inbox is not active. Enable it in Theme Settings.'
+msgid "The Zero One inbox is not active. Enable it in Theme Settings."
+msgstr "وارد زيرو ون غير مفعّل. فعّله من إعدادات المظهر."
 
 #. Description of a Check field in DocType 'Theme Settings'
 #. src: ai
@@ -4854,8 +4856,9 @@ msgid "Print QR"
 msgstr "رمز QR للطباعة"
 
 #. src: item35
-msgid "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect."
-msgstr "يُضبط من المُنتقي أعلاه. رمز ZATCA في نماذج بنود. «إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة الضريبية المبسطة تحتفظ برمزها وبتحذير غيابه مهما كان الاختيار، لأن إلزاماً قانونياً قابلاً للإطفاء عيبٌ لا إعداد."
+#. zerONE brand 2026-10-15: renamed from 'Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.'
+msgid "Set by the picker above. The ZATCA QR on the Zero One formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect."
+msgstr "يُضبط من المُنتقي أعلاه. رمز ZATCA في نماذج زيرو ون. «إخفاء» يسري فقط حيث يكون الرمز اختيارياً — الفاتورة الضريبية المبسطة تحتفظ برمزها وبتحذير غيابه مهما كان الاختيار، لأن إلزاماً قانونياً قابلاً للإطفاء عيبٌ لا إعداد."
 
 #. src: item35
 msgid "Show"
@@ -4997,8 +5000,9 @@ msgstr "المكتب وصفحة الدخول والموقع. يقبل البري
 
 #. Description of a Attach Image field in DocType 'Theme Settings'
 #. src: item36
-msgid "The browser-tab icon. Empty — follows Website Settings, then the Bunood mark."
-msgstr "أيقونة تبويب المتصفح. فارغة — تتبع إعدادات الموقع ثم علامة بنود."
+#. zerONE brand 2026-10-15: renamed from 'The browser-tab icon. Empty — follows Website Settings, then the Bunood mark.'
+msgid "The browser-tab icon. Empty — follows Website Settings, then the Zero One mark."
+msgstr "أيقونة تبويب المتصفح. فارغة — تتبع إعدادات الموقع ثم علامة زيرو ون."
 
 #. In theme_settings.js
 #. src: item36
@@ -5113,13 +5117,15 @@ msgstr "تعيد الاستعادة الاسم المضمَّن."
 
 #. In theme_settings.js
 #. src: item36
-msgid "Empty — the splash follows Website Settings, then the Bunood mark. Email and paper need a raster image."
-msgstr "فارغ — تتبع شاشة البدء إعدادات الموقع ثم علامة بنود. يحتاج البريد والورق صورة نقطية."
+#. zerONE brand 2026-10-15: renamed from 'Empty — the splash follows Website Settings, then the Bunood mark. Email and paper need a raster image.'
+msgid "Empty — the splash follows Website Settings, then the Zero One mark. Email and paper need a raster image."
+msgstr "فارغ — تتبع شاشة البدء إعدادات الموقع ثم علامة زيرو ون. يحتاج البريد والورق صورة نقطية."
 
 #. In theme_settings.js
 #. src: item36
-msgid "Empty — the tab icon follows Website Settings, then the Bunood mark."
-msgstr "فارغ — تتبع أيقونة التبويب إعدادات الموقع ثم علامة بنود."
+#. zerONE brand 2026-10-15: renamed from 'Empty — the tab icon follows Website Settings, then the Bunood mark.'
+msgid "Empty — the tab icon follows Website Settings, then the Zero One mark."
+msgstr "فارغ — تتبع أيقونة التبويب إعدادات الموقع ثم علامة زيرو ون."
 
 #. In theme_settings.js
 #. src: item36
@@ -7723,8 +7729,9 @@ msgstr "صافي الحركة الدفترية"
 
 #. src: capability/banking
 #, fuzzy
-msgid "Bunood summarizes evidence. ERPNext remains the accounting system of record."
-msgstr "تعرض بنود ملخص الأدلة، ويظل ERPNext نظام السجل المحاسبي المعتمد."
+#. zerONE brand 2026-10-15: renamed from 'Bunood summarizes evidence. ERPNext remains the accounting system of record.'
+msgid "Zero One summarizes evidence. ERPNext remains the accounting system of record."
+msgstr "تعرض زيرو ون ملخص الأدلة، ويظل ERPNext نظام السجل المحاسبي المعتمد."
 
 #. src: capability/banking
 #, fuzzy
@@ -8033,8 +8040,9 @@ msgstr "حضّر التسويات المحاسبية وراجعها وتتبعه
 
 #. src: capability/finance-operations
 #, fuzzy
-msgid "See what needs attention, review the same reporting boundary, then use ERPNext's native controls. Bunood does not certify the books."
-msgstr "اعرف ما يحتاج إلى الانتباه، وراجع نطاق التقارير نفسه، ثم استخدم ضوابط ERPNext الأصلية. لا تصادق بنود على الدفاتر."
+#. zerONE brand 2026-10-15: renamed from "See what needs attention, review the same reporting boundary, then use ERPNext's native controls. Bunood does not certify the books."
+msgid "See what needs attention, review the same reporting boundary, then use ERPNext's native controls. Zero One does not certify the books."
+msgstr "اعرف ما يحتاج إلى الانتباه، وراجع نطاق التقارير نفسه، ثم استخدم ضوابط ERPNext الأصلية. لا تصادق زيرو ون على الدفاتر."
 
 #. src: capability/finance-operations
 #, fuzzy
@@ -8998,8 +9006,13 @@ msgstr "اختر إيصال بيع معتمداً لإنشاء المرتجع."
 
 #. src: capability/pos-retail
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood POS"
-msgstr "نقطة بيع بنود"
+msgstr "نقطة بيع زيرو ون"
+
+#. zerONE brand 2026-10-15: the new name beside 'Bunood POS', which a stored record may still show
+msgid "Zero One POS"
+msgstr "نقطة بيع زيرو ون"
 
 #. src: capability/pos-retail
 #, fuzzy
@@ -9118,8 +9131,9 @@ msgstr "<p class=\"text-muted\">سجّل إجمالي المصدر المعتم�
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
-msgid "<p class=\"text-muted\">Use the linked Data Import for full error messages and corrected-row export. Bunood stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>"
-msgstr "<p class=\"text-muted\">استخدم استيراد البيانات المرتبط لعرض رسائل الخطأ كاملة وتصدير الصفوف المطلوب تصحيحها. يحفظ بنود أرقام الصفوف والنتائج وبصمات السلامة دون تكرار نصوص الأخطاء الحساسة.</p>"
+#. zerONE brand 2026-10-15: renamed from '<p class="text-muted">Use the linked Data Import for full error messages and corrected-row export. Bunood stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>'
+msgid "<p class=\"text-muted\">Use the linked Data Import for full error messages and corrected-row export. Zero One stores row numbers, outcomes and integrity digests without duplicating sensitive error text.</p>"
+msgstr "<p class=\"text-muted\">استخدم استيراد البيانات المرتبط لعرض رسائل الخطأ كاملة وتصدير الصفوف المطلوب تصحيحها. يحفظ زيرو ون أرقام الصفوف والنتائج وبصمات السلامة دون تكرار نصوص الأخطاء الحساسة.</p>"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
@@ -9368,8 +9382,9 @@ msgstr "مراجع جاهزية بنود"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
-msgid "Bunood readiness — {0}"
-msgstr "جاهزية بنود — {0}"
+#. zerONE brand 2026-10-15: renamed from 'Bunood readiness — {0}'
+msgid "Zero One readiness — {0}"
+msgstr "جاهزية زيرو ون — {0}"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
@@ -10583,18 +10598,21 @@ msgstr "بصمة نتيجة الصف"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
-msgid "Run the latest Bunood migration before creating the work plan."
-msgstr "شغّل أحدث ترحيل لبنود قبل إنشاء خطة الأعمال."
+#. zerONE brand 2026-10-15: renamed from 'Run the latest Bunood migration before creating the work plan.'
+msgid "Run the latest Zero One migration before creating the work plan."
+msgstr "شغّل أحدث ترحيل لزيرو ون قبل إنشاء خطة الأعمال."
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
-msgid "Run the latest Bunood migration before preparing reconciliation."
-msgstr "شغّل أحدث ترحيل لبنود قبل إعداد التسوية."
+#. zerONE brand 2026-10-15: renamed from 'Run the latest Bunood migration before preparing reconciliation.'
+msgid "Run the latest Zero One migration before preparing reconciliation."
+msgstr "شغّل أحدث ترحيل لزيرو ون قبل إعداد التسوية."
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
-msgid "Run the latest Bunood migration before recording a review."
-msgstr "شغّل أحدث ترحيل لبنود قبل تسجيل مراجعة."
+#. zerONE brand 2026-10-15: renamed from 'Run the latest Bunood migration before recording a review.'
+msgid "Run the latest Zero One migration before recording a review."
+msgstr "شغّل أحدث ترحيل لزيرو ون قبل تسجيل مراجعة."
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
@@ -11028,8 +11046,9 @@ msgstr "يجب أن يكون مراجع البيانات الافتتاحية ا
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
-msgid "The selected Task is not a Bunood readiness task."
-msgstr "المهمة المحددة ليست مهمة جاهزية لبنود."
+#. zerONE brand 2026-10-15: renamed from 'The selected Task is not a Bunood readiness task.'
+msgid "The selected Task is not a Zero One readiness task."
+msgstr "المهمة المحددة ليست مهمة جاهزية لزيرو ون."
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
@@ -13189,8 +13208,9 @@ msgstr "إجمالي العرض"
 msgid "Customer commitment"
 msgstr "التزام العميل"
 
-msgid "Confirm who ordered and the dates Bunood is promising."
-msgstr "حدّد صاحب الطلب والمواعيد التي تلتزم بها بنود."
+#. zerONE brand 2026-10-15: renamed from 'Confirm who ordered and the dates Bunood is promising.'
+msgid "Confirm who ordered and the dates Zero One is promising."
+msgstr "حدّد صاحب الطلب والمواعيد التي تلتزم بها زيرو ون."
 
 msgid "What was ordered?"
 msgstr "ما الذي تم طلبه؟"
@@ -14638,8 +14658,13 @@ msgstr "دفع متعدد"
 #, fuzzy
 #. src: team Home integration, Arabic proposal 2026-10-06
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Home"
-msgstr "الرئيسية — بنود"
+msgstr "الرئيسية — زيرو ون"
+
+#. zerONE brand 2026-10-15: the new name beside 'Bunood Home', which a stored record may still show
+msgid "Zero One Home"
+msgstr "الرئيسية — زيرو ون"
 
 #. src: team Home integration, Arabic proposal 2026-10-06
 #, fuzzy
@@ -15910,9 +15935,10 @@ msgstr "عدد"
 
 #. src: pos counter redesign 2026-10-09
 #, fuzzy
+#. zerONE brand 2026-10-15: renamed from 'Bunood POS'
 msgctxt "Bunood POS"
-msgid "Bunood POS"
-msgstr "نقطة بيع بنود"
+msgid "Zero One POS"
+msgstr "نقطة بيع زيرو ون"
 
 #. src: pos counter redesign 2026-10-09
 #, fuzzy

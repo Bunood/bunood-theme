@@ -174,7 +174,7 @@ test("every counter string is in the translation gate, with the counter's own co
 	const i18n = read("tools/i18n.mjs");
 	assert.match(i18n, /join\(APP, "public", "js", "pos_workbench\.js"\),/);
 	assert.doesNotMatch(js.slice(0, js.indexOf("The native print view")), /__\("[^"]+"\)/, "a bare __() would take a global meaning (Nos reads «لا»)");
-	for (const [source, arabicText] of [["Bunood POS", "نقطة بيع بنود"], ["Exact cash", "نقدي مضبوط"], ["Held sales", "الفواتير المعلّقة"], ["Nos", "حبة"]]) {
+	for (const [source, arabicText] of [["Zero One POS", "نقطة بيع زيرو ون"], ["Exact cash", "نقدي مضبوط"], ["Held sales", "الفواتير المعلّقة"], ["Nos", "حبة"]]) {
 		assert.ok(arabic.split(/\r?\n/).some((line) => line.startsWith(`${source},${arabicText},Bunood POS`)), source);
 	}
 });

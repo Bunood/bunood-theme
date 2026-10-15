@@ -27,8 +27,8 @@ from bunood_theme.assets import THEME_CSS, THEME_JS, WEB_CSS
 
 # ── Identity ────────────────────────────────────────────────────────────────────
 app_name = "bunood_theme"
-app_title = "Bunood Theme"
-app_publisher = "Bunood"
+app_title = "Zero One Theme"
+app_publisher = "Zero One"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"

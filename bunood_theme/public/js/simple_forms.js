@@ -78,7 +78,7 @@
 		"Sales Order": {
 			variant: "sales-order", steps: ["Customer", "Commitment", "Fulfilment"],
 			panels: [
-				["commitment", "Customer commitment", "Confirm who ordered and the dates Bunood is promising.", ["customer", "company", "transaction_date", "delivery_date"], "lead"],
+				["commitment", "Customer commitment", "Confirm who ordered and the dates Zero One is promising.", ["customer", "company", "transaction_date", "delivery_date"], "lead"],
 				["items", "What was ordered?", "Keep quantities, prices and delivery expectations together in one working sheet.", ["items"], "sheet"],
 				["fulfilment", "Fulfilment and pricing", "Set the source warehouse and the commercial defaults for this order.", ["set_warehouse", "currency", "selling_price_list", "taxes_and_charges", "discount_amount"], "aside"],
 			],

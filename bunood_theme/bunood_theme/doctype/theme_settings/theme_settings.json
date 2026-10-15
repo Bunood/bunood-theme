@@ -274,7 +274,7 @@
    "fieldname": "favicon",
    "fieldtype": "Attach Image",
    "label": "Favicon",
-   "description": "The browser-tab icon. Empty — follows Website Settings, then the Bunood mark."
+   "description": "The browser-tab icon. Empty — follows Website Settings, then the Zero One mark."
   },
   {
    "fieldname": "tagline",
@@ -845,7 +845,7 @@
    "options": "Follow print language\nBoth\nArabic only\nEnglish only"
   },
   {
-   "description": "Set by the picker above. The ZATCA QR on the Bunood formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
+   "description": "Set by the picker above. The ZATCA QR on the Zero One formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
    "fieldname": "print_qr",
    "fieldtype": "Select",
    "hidden": 1,

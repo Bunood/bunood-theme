@@ -444,7 +444,7 @@ def prepare_migration_reconciliation(rehearsal_name: str) -> dict[str, Any]:
     """Create one permission-safe draft after all packet rehearsals succeed."""
 
     if not frappe.db.exists("DocType", RECONCILIATION_DOCTYPE):
-        _throw(_("Run the latest Bunood migration before preparing reconciliation."))
+        _throw(_("Run the latest Zero One migration before preparing reconciliation."))
     if not frappe.has_permission(RECONCILIATION_DOCTYPE, "create"):
         _throw(_("You do not have permission to prepare migration reconciliation."), frappe.PermissionError)
 

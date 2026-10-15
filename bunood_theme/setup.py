@@ -307,7 +307,7 @@ def after_install() -> None:
     # ensure_pos_retail below) -- it creates payment modes, GL accounts, a cash
     # customer, a POS role and custom fields, and disables whole-riyal rounding.
     _ensure_onboarding_migration()
-    print("\n✅ Bunood Theme installed")
+    print("\n✅ Zero One Theme installed")
     print("→ Configure at /app/theme-settings\n")
 
 

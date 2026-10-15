@@ -41,7 +41,7 @@ frappe.pages["bnd-inbox"].on_page_load = function (wrapper) {
 		// trace: the theme's desk script is what owns this surface.
 		container.innerHTML =
 			'<div class="text-muted" style="padding:2rem;text-align:center">' +
-			__("The Bunood inbox is not active. Enable it in Theme Settings.") +
+			__("The Zero One inbox is not active. Enable it in Theme Settings.") +
 			"</div>";
 		return;
 	}

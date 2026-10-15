@@ -4737,7 +4737,7 @@ function bnd_render_inbox_picker(frm, host) {
 		const reason = kit_down
 			? __("Original leaves the stock panel")
 			: group.field === "inbox_arrival" && !panel_ours
-			? __("Needs the Bunood panel")
+			? __("Needs the Zero One panel")
 			: "";
 		return P.group({
 			title: group.title(),
@@ -4761,7 +4761,7 @@ function bnd_render_inbox_picker(frm, host) {
 			name: t.name(),
 			desc: t.desc(),
 			cls: "bnd-ibp-toggle",
-			reason: panel_ours ? "" : kit_down ? __("Original leaves the stock panel") : __("Needs the Bunood panel"),
+			reason: panel_ours ? "" : kit_down ? __("Original leaves the stock panel") : __("Needs the Zero One panel"),
 		})
 	).join("");
 
@@ -8793,9 +8793,9 @@ function bnd_render_identity_picker(frm, host) {
 		{ field: "company_name", verb: "reset", to: shipped, label: __("Company Name"),
 		  note: __("Reset returns the shipped name.") },
 		{ field: "logo", verb: "clear", to: "", label: __("Logo"),
-		  note: __("Empty — the splash follows Website Settings, then the Bunood mark. Email and paper need a raster image.") },
+		  note: __("Empty — the splash follows Website Settings, then the Zero One mark. Email and paper need a raster image.") },
 		{ field: "favicon", verb: "clear", to: "", label: __("Favicon"),
-		  note: __("Empty — the tab icon follows Website Settings, then the Bunood mark.") },
+		  note: __("Empty — the tab icon follows Website Settings, then the Zero One mark.") },
 		{ field: "tagline", verb: "clear", to: "", label: __("Tagline"),
 		  note: __("Appears under the sign-in card only. Empty — nothing shows there.") },
 	].map((row) =>

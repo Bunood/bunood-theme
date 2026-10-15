@@ -68,9 +68,11 @@ class TestHomeBoot(unittest.TestCase):
         candidates = [sidebar.get("label") or key
                       for key, sidebar in boot.workspace_sidebar_item.items()
                       if any(item.get("link_to") == "bnd-home" for item in sidebar["items"])]
+        # The sidebar's routing identity stays "Bunood Home" (zerONE renames visible
+        # titles only); its first link is the page's visible, translated title.
         self.assertIn("Bunood Home", candidates)
         self.assertEqual(boot.workspace_sidebar_item["bunood home"]["items"][0]["label"],
-                         "translated:Bunood Home")
+                         "translated:Zero One Home")
 
     def test_explicit_role_landing_keeps_native_root(self):
         self.fake.get_roles = lambda: ["Office User"]

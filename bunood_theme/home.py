@@ -130,7 +130,7 @@ def extend_bootinfo(bootinfo):
     sidebars = bootinfo.get("workspace_sidebar_item")
     if not isinstance(sidebars, dict):
         return
-    entry = {"type": "Link", "label": _("Bunood Home"), "link_type": "Page", "link_to": PAGE,
+    entry = {"type": "Link", "label": _("Zero One Home"), "link_type": "Page", "link_to": PAGE,
              "icon": "home", "child": 0, "route_options": '{"sidebar":"Bunood Home"}'}
     for sidebar in sidebars.values():
         if isinstance(sidebar.get("items"), list) and not any(row.get("link_to") == PAGE for row in sidebar["items"]):
@@ -172,5 +172,5 @@ def extend_bootinfo(bootinfo):
                           "link_type": "Workspace", "link_to": name, "child": 1, "icon": allowed[name].get("icon")})
     # Native sidebar routing uses label as its identity; the header translates
     # it when rendering. Translating it here makes Arabic routes pick a peer.
-    sidebars["bunood home"] = {"label": "Bunood Home", "title": "Bunood Home", "items": items,
+    sidebars["bunood home"] = {"label": "Bunood Home", "title": "Zero One Home", "items": items,
                                "header_icon": "home", "module": "Bunood Theme", "app": "bunood_theme"}

@@ -378,7 +378,7 @@ def start_readiness_review(company: str) -> dict[str, Any]:
     if not company:
         frappe.throw(frappe._("Select a company before creating the work plan."))
     if not _fields_installed():
-        frappe.throw(frappe._("Run the latest Bunood migration before creating the work plan."))
+        frappe.throw(frappe._("Run the latest Zero One migration before creating the work plan."))
     if not _visible_company(company):
         frappe.throw(
             frappe._("You do not have permission to use this company."),
@@ -407,7 +407,7 @@ def start_readiness_review(company: str) -> dict[str, Any]:
 
     values = {
         "doctype": "Project",
-        "project_name": frappe._("Bunood readiness — {0}").format(company),
+        "project_name": frappe._("Zero One readiness — {0}").format(company),
         "company": company,
         "status": "Open",
         "expected_start_date": nowdate(),
