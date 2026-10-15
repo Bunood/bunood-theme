@@ -308,6 +308,19 @@ class ReprintTests(unittest.TestCase):
         self.assertEqual(self.reprint.mark(self.doc()), {"number": 3, "at": "2026-10-15 18:20"})
         self.assertEqual(self.stored["SINV-1"], 2)
 
+    def test_a_guest_never_raises_the_count(self):
+        """The customer opening their receipt's shared link or QR is not the shop printing it again
+        (the v0.60.0 review, finding 5): a Guest's print shows the next number and counts nothing."""
+        self.frappe.session = SimpleNamespace(user="Guest")
+        for path, form in (("/printview", {"trigger_print": "1"}),
+                           ("/api/method/frappe.utils.print_format.download_pdf", {})):
+            with self.subTest(path=path):
+                self.request(path, form)
+                self.assertEqual(self.reprint.record(self.doc()), 1)
+                self.respond()
+        self.assertEqual(self.stored["SINV-1"], 0)
+        self.assertEqual(self.log, [])
+
     def test_a_draft_is_never_marked_nor_counted(self):
         self.request("/printview", {"trigger_print": "1"})
         self.assertEqual(self.reprint.record(self.doc(docstatus=0)), 0)

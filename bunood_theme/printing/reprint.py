@@ -8,9 +8,10 @@ doctype's own `print_count` (the restaurant's kitchen ticket).
 
 - A PRINT is a render the user asked to put on paper or into a file: `/printview` with
   `trigger_print` (the desk's Print button, the counter's receipt), `download_pdf`, the bulk PDFs,
-  `print_by_server`. Those raise the count.
+  `print_by_server` — by a signed-in user. Those raise the count.
 - Every other render — the desk's print preview, an e-mailed PDF, the customer's shared receipt
-  link — counts nothing and shows what the next print would be.
+  link or QR (a Guest: the customer opening their own receipt is not the shop printing it again)
+  — counts nothing and shows what the next print would be.
 - The first print is the original. A draft is never marked and never counted (nor a cancelled
   document, which Frappe prints only on request).
 
@@ -78,6 +79,12 @@ def _printable(doc) -> bool:
     return True
 
 
+def _counted_user() -> bool:
+    """A print by someone signed in: a Guest reaches a receipt only through its shared link."""
+    session = getattr(frappe, "session", None)
+    return bool(session and getattr(session, "user", None) and session.user != "Guest")
+
+
 def record(doc, count: bool = True) -> int:
     """The number of the print being rendered (1 = the original), raising the stored count —
     after the response — when this request is a print (and `count`). 0 when the document
@@ -100,7 +107,7 @@ def _record(doc, count: bool) -> int:
     if key in numbers:
         return numbers[key]
     number = cint(frappe.db.get_value(doc.doctype, doc.name, field)) + 1
-    if count and counted_request():
+    if count and counted_request() and _counted_user():
         # Kept for the request, so the template that follows reads this print's number.
         numbers[key] = number
         _schedule(doc.doctype, doc.name, field)
