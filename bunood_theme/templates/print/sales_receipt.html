@@ -37,7 +37,7 @@
       + ((v.payments | length) + (1 if v.totals.paid else 0) + (1 if v.totals.change else 0)) * 6
       + ((p.policy | length) // (24 if narrow else 36) + 1) * 4 + (60 if b2b else 0) + (14 if v.reference else 0)
       + (10 if x.service else 0) + (10 if copy else 0) - (95 if gift else 0)
-      + (12 if v.totals.discount and not gift else 0) + (6 if (v.totals.other or v.totals.cash_discount) and not gift else 0) -%}
+      + (18 if v.totals.discount and not gift else 0) + (6 if (v.totals.other or v.totals.cash_discount) and not gift else 0) -%}
 <style>
 {{ bunood_print_kit_css() }}
 /* The PDF page: read by both engines from this rule (read_options_from_html); @page
@@ -130,7 +130,7 @@
       discount) + rounding = the total. A discount is shown off the figure it was taken from. -#}
   <table class="zo-rcpt-tot">
     {%- if t.discount %}
-    <tr><td class="k">{{ k("الإجمالي قبل الخصم", "Before discount", "قبل الخصم") }}</td><td class="v"><span class="num">{{ t.gross }}</span></td></tr>
+    <tr><td class="k">{{ k("الإجمالي قبل الخصم", "Gross", "قبل الخصم") }}</td><td class="v"><span class="num">{{ t.gross }}</span></td></tr>
     <tr><td class="k">{{ k("الخصم", "Discount", "الخصم") }}</td><td class="v"><span class="num">{{ t.discount }}</span></td></tr>
     {%- endif %}
     <tr><td class="k">{{ k("الإجمالي قبل الضريبة", "Subtotal", "قبل الضريبة") }}</td><td class="v"><span class="num">{{ t.taxable }}</span></td></tr>

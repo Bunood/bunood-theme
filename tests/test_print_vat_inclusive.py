@@ -258,7 +258,7 @@ class TotalsReadDownTests(unittest.TestCase):
     def test_the_80mm_receipt(self):
         page = kit_page("templates/print/sales_receipt.html", LINE_DISCOUNT)
         self.assertAddsUp(rows(page, ".zo-rcpt-tot"), [
-            "الإجمالي قبل الخصم Before discount", "الخصم Discount", "الإجمالي قبل الضريبة Subtotal",
+            "الإجمالي قبل الخصم Gross", "الخصم Discount", "الإجمالي قبل الضريبة Subtotal",
             "ضريبة القيمة المضافة 15% VAT", "الإجمالي Total"])
 
     def test_the_58mm_receipt(self):
