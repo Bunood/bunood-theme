@@ -76,7 +76,7 @@
 			link.type = "button";
 			link.addEventListener("click", () => frappe.set_route("Form", row.doctype, row.name));
 			linkCell.append(link);
-			tr.append(linkCell, el("td", "", __(row.doctype)), el("td", "", row.date || "—"), el("td", "", row.reason === "failed-closing-processing" ? __("Closing processing failed") : __("Draft source document")));
+			tr.append(linkCell, el("td", "", __(row.doctype)), el("td", "is-date", row.date || "—"), el("td", "", row.reason === "failed-closing-processing" ? __("Closing processing failed") : __("Draft source document")));
 			body.append(tr);
 		});
 		table.append(thead, body);
