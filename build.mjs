@@ -2508,13 +2508,26 @@ async function main() {
 	// Two format directories: printing's own, and the ZATCA package's (item 41
 	// moved the receipt there). Both are read, or the guard silently stops
 	// covering the one file it was written for.
+	// The print kit (2026-10-15): a format file only sets its family's switches and
+	// includes the family template, which carries the `.print-format` rule with the
+	// roll width as `{{ width }}`. The guard reads that template with the format's own
+	// width put in, so it still measures what the engine is handed. The ZATCA
+	// directory may now be empty (its receipt merged into the kit's).
 	{
 		const thermal = [];
 		for (const rel of ["printing/formats/", "zatca/formats/"]) {
 			const dir = new URL(`./bunood_theme/${rel}`, import.meta.url);
-			for (const f of await readdir(dir)) {
+			for (const f of await readdir(dir).catch(() => [])) {
 				if (!/thermal/.test(f) || !f.endsWith(".html")) continue;
-				thermal.push({ name: rel + f, src: await readFile(new URL(f, dir), "utf8") });
+				let src = await readFile(new URL(f, dir), "utf8");
+				const inc = src.match(/\{%-?\s*include\s+"(templates\/print\/[\w.]+)"\s*-?%\}/);
+				if (inc) {
+					const width = (src.match(/zo_width\s*=\s*(\d+)/) || [])[1] || "";
+					src = (await readFile(new URL(`./bunood_theme/${inc[1]}`, import.meta.url), "utf8"))
+						.replace(/\{\{\s*width\s*\}\}mm/g, `${width}mm`)
+						.replace(/\{\{\s*height\s*\}\}mm/g, "1mm");
+				}
+				thermal.push({ name: rel + f, src });
 			}
 		}
 		assertThermalPageSize(thermal);
