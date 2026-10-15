@@ -482,6 +482,10 @@ body.bnd-auth .page-card {
   color: var(--bnd-ink-muted);
 }
 
+body.bnd-auth img.app-logo {
+  max-block-size: calc(var(--bnd-sp-7) + var(--bnd-sp-2));
+}
+
 body.bnd-auth .bnd-auth-language-switch {
   position: fixed;
   z-index: 2;
@@ -635,14 +639,6 @@ body.bnd-auth-plate {
   --bnd-auth-card: var(--bnd-surface);
   --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
   --bnd-auth-shadow: var(--bnd-shadow-lg);
-  --bnd-auth-radius: var(--bnd-radius-lg);
-}
-
-body.bnd-auth-split {
-  --bnd-auth-ground: var(--bnd-page);
-  --bnd-auth-card: var(--bnd-surface);
-  --bnd-auth-ring: 0 0 0 1px var(--bnd-border-strong);
-  --bnd-auth-shadow: var(--bnd-shadow-md);
   --bnd-auth-radius: var(--bnd-radius-lg);
 }
 
