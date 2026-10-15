@@ -235,6 +235,7 @@
   <tr><td class="k">{{ lbl("الإجمالي الخاضع للضريبة" if not lean else "الإجمالي قبل الضريبة", "Taxable amount" if not lean else "Total before VAT") }}</td><td class="v">{{ money(t.taxable, t.currency) }}</td></tr>
   <tr><td class="k">{{ lbl("ضريبة القيمة المضافة" ~ ((" " ~ t.vat_rate ~ "%") if t.vat_rate else ""), "VAT") }}</td><td class="v">{{ money(t.vat, t.currency) }}</td></tr>
   {% if t.other %}<tr><td class="k">{{ lbl("رسوم أخرى", "Other charges") }}</td><td class="v">{{ money(t.other, t.currency) }}</td></tr>{% endif %}
+  {% if t.cash_discount %}<tr><td class="k">{{ lbl("خصم نقدي", "Cash discount") }}</td><td class="v">{{ money(t.cash_discount, t.currency) }}</td></tr>{% endif %}
   {% if t.rounding %}<tr><td class="k">{{ lbl("تسوية التقريب", "Rounding") }}</td><td class="v">{{ money(t.rounding, t.currency) }}</td></tr>{% endif %}
   <tr class="g"><td class="k">{{ lbl("الإجمالي شامل الضريبة", "Total incl. VAT") }}</td><td class="v">{{ money(t.grand, t.currency) }}</td></tr>
   {% if t.advance %}<tr class="s"><td class="k">{{ lbl("الدفعات المقدمة", "Advance") }}</td><td class="v">{{ money(t.advance, t.currency) }}</td></tr>{% endif %}

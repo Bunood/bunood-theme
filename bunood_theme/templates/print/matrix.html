@@ -44,9 +44,15 @@
   <div class="zo-m-rule"></div>
   <table dir="ltr"><tr><td style="width:45%"></td><td dir="{{ 'rtl' if ar else 'ltr' }}">
     <table class="zo-m-tot" style="width:100%">
+      {%- if t.discount %}
+      <tr><td>الإجمالي قبل الخصم</td><td class="n"><span class="num">{{ t.gross }}</span></td></tr>
+      <tr><td>الخصم</td><td class="n"><span class="num">{{ t.discount }}</span></td></tr>
+      {%- endif %}
       <tr><td>الإجمالي قبل الضريبة</td><td class="n"><span class="num">{{ t.taxable }}</span></td></tr>
-      {%- if t.discount %}<tr><td>الخصم</td><td class="n"><span class="num">{{ t.discount }}</span></td></tr>{% endif %}
       <tr><td>ضريبة القيمة المضافة{% if t.vat_rate %} {{ t.vat_rate }}%{% endif %}</td><td class="n"><span class="num">{{ t.vat }}</span></td></tr>
+      {%- if t.other %}<tr><td>رسوم أخرى</td><td class="n"><span class="num">{{ t.other }}</span></td></tr>{% endif %}
+      {%- if t.cash_discount %}<tr><td>خصم نقدي</td><td class="n"><span class="num">{{ t.cash_discount }}</span></td></tr>{% endif %}
+      {%- if t.rounding %}<tr><td>تسوية التقريب</td><td class="n"><span class="num">{{ t.rounding }}</span></td></tr>{% endif %}
       <tr class="g"><td>الإجمالي شامل الضريبة ({{ v.currency }})</td><td class="n"><span class="num">{{ t.grand }}</span></td></tr>
     </table>
   </td></tr></table>

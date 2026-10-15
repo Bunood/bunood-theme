@@ -12,6 +12,7 @@ fields: gross − discount = net_total; net_total + VAT = grand_total.
 """
 
 from pathlib import Path
+import re
 import sys
 import unittest
 from unittest.mock import patch
@@ -224,6 +225,62 @@ class InclusivePrintsTests(unittest.TestCase):
         self.assertIn("Prices excl. VAT", page.select_one(".zo-rcpt__note").get_text())
         self.assertEqual(self.receipt_figures(page), [["1", "100.00", "115.00"]], "net_rate under «Prices excl. VAT»")
         self.assertNotIn("الخصم", page.select_one(".zo-rcpt-tot").get_text(" "))
+
+
+
+#: 1 × 115 incl. VAT with 10.00 off the grand total as a CASH discount: ERPNext takes it off the
+#: grand total after tax and spreads none of it over the line.
+CASH_DISCOUNT = Doc(PLAIN, grand_total=105, apply_discount_on="Grand Total", discount_amount=10,
+                    is_cash_or_non_trade_discount=1)
+
+
+def rows(page, selector, label="td.k", value="td.v"):
+    out = []
+    for tr in page.select_one(selector).select("tr"):
+        k, v = tr.select_one(label), tr.select_one(value)
+        figure = re.search(r"[\d,]+\.\d{2}", v.get_text(" ", strip=True))
+        out.append((k.get_text(" ", strip=True), money(figure.group(0)) if figure else None))
+    return out
+
+
+class TotalsReadDownTests(unittest.TestCase):
+    """Top to bottom the totals add up: a discount is shown off the figure it was taken from,
+    before the taxable amount — never under it (the receipt printed «قبل الضريبة 90 / الخصم 10 /
+    الضريبة 13.50 / الإجمالي 103.50», which reads 90 − 10 + 13.50)."""
+
+    def assertAddsUp(self, figures, labels):
+        self.assertEqual([k for k, _v in figures][:len(labels)], labels)
+        values = [v for _k, v in figures]
+        before, discount, taxable, vat, total = values[:5]
+        self.assertAlmostEqual(before - discount, taxable, places=2)
+        self.assertAlmostEqual(taxable + vat, total, places=2)
+
+    def test_the_80mm_receipt(self):
+        page = kit_page("templates/print/sales_receipt.html", LINE_DISCOUNT)
+        self.assertAddsUp(rows(page, ".zo-rcpt-tot"), [
+            "الإجمالي قبل الخصم Before discount", "الخصم Discount", "الإجمالي قبل الضريبة Subtotal",
+            "ضريبة القيمة المضافة 15% VAT", "الإجمالي Total"])
+
+    def test_the_58mm_receipt(self):
+        page = kit_page("templates/print/sales_receipt.html", LINE_DISCOUNT, zo_width=58)
+        self.assertAddsUp(rows(page, ".zo-rcpt-tot"), ["قبل الخصم", "الخصم", "قبل الضريبة", "الضريبة 15%", "الإجمالي"])
+
+    def test_the_dot_matrix(self):
+        page = kit_page("templates/print/matrix.html", LINE_DISCOUNT)
+        self.assertAddsUp(rows(page, ".zo-m-tot", label="td:first-child", value="td.n"), [
+            "الإجمالي قبل الخصم", "الخصم", "الإجمالي قبل الضريبة", "ضريبة القيمة المضافة 15%",
+            "الإجمالي شامل الضريبة (SAR)"])
+
+    def test_a_cash_discount_is_printed_after_tax(self):
+        for template, selector, context in (("templates/print/sales_invoice_a4.html", ".zo-totals", {}),
+                                            ("templates/print/sales_receipt.html", ".zo-rcpt-tot", {})):
+            with self.subTest(template=template):
+                figures = dict(rows(kit_page(template, CASH_DISCOUNT, **context), selector))
+                cash = next(v for k, v in figures.items() if k.startswith("خصم نقدي"))
+                taxable = next(v for k, v in figures.items() if k.startswith(("الإجمالي الخاضع", "الإجمالي قبل الضريبة")))
+                vat = next(v for k, v in figures.items() if k.startswith("ضريبة القيمة المضافة"))
+                total = next(v for k, v in figures.items() if k.startswith(("الإجمالي شامل", "الإجمالي Total")))
+                self.assertEqual((taxable, vat, cash, total), (100, 15, 10, 105), "100 + 15 − 10 = 105")
 
 
 if __name__ == "__main__":

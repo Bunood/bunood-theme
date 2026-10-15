@@ -36,7 +36,8 @@
 {%- set height = (215 if narrow else 175) + (22 if p.logo else 0) + (v.lines | length) * (17 if narrow else 11)
       + ((v.payments | length) + (1 if v.totals.paid else 0) + (1 if v.totals.change else 0)) * 6
       + ((p.policy | length) // (24 if narrow else 36) + 1) * 4 + (60 if b2b else 0) + (14 if v.reference else 0)
-      + (10 if x.service else 0) + (10 if copy else 0) - (95 if gift else 0) -%}
+      + (10 if x.service else 0) + (10 if copy else 0) - (95 if gift else 0)
+      + (12 if v.totals.discount and not gift else 0) + (6 if (v.totals.other or v.totals.cash_discount) and not gift else 0) -%}
 <style>
 {{ bunood_print_kit_css() }}
 /* The PDF page: read by both engines from this rule (read_options_from_html); @page
@@ -125,10 +126,17 @@
   {%- macro k(ar, en, short) -%}{{ short if narrow else ar }}{% if not narrow %} <span class="en">{{ en }}</span>{% endif %}{%- endmacro %}
   <div class="zo-rcpt__note">{{ "الأسعار شاملة الضريبة" if narrow else ("الأسعار شاملة ضريبة القيمة المضافة — Prices include VAT" if not b2b else "الأسعار قبل الضريبة، والإجمالي شامل الضريبة — Prices excl. VAT, totals incl. VAT") }}</div>
 
+  {#- Top to bottom it adds up: before discount − discount = before VAT; + VAT (− a cash
+      discount) + rounding = the total. A discount is shown off the figure it was taken from. -#}
   <table class="zo-rcpt-tot">
+    {%- if t.discount %}
+    <tr><td class="k">{{ k("الإجمالي قبل الخصم", "Before discount", "قبل الخصم") }}</td><td class="v"><span class="num">{{ t.gross }}</span></td></tr>
+    <tr><td class="k">{{ k("الخصم", "Discount", "الخصم") }}</td><td class="v"><span class="num">{{ t.discount }}</span></td></tr>
+    {%- endif %}
     <tr><td class="k">{{ k("الإجمالي قبل الضريبة", "Subtotal", "قبل الضريبة") }}</td><td class="v"><span class="num">{{ t.taxable }}</span></td></tr>
-    {%- if t.discount %}<tr><td class="k">{{ k("الخصم", "Discount", "الخصم") }}</td><td class="v"><span class="num">{{ t.discount }}</span></td></tr>{% endif %}
     <tr><td class="k">{{ k("ضريبة القيمة المضافة" ~ ((" " ~ t.vat_rate ~ "%") if t.vat_rate else ""), "VAT", "الضريبة" ~ ((" " ~ t.vat_rate ~ "%") if t.vat_rate else "")) }}</td><td class="v"><span class="num">{{ t.vat }}</span></td></tr>
+    {%- if t.other %}<tr><td class="k">{{ k("رسوم أخرى", "Other charges", "رسوم أخرى") }}</td><td class="v"><span class="num">{{ t.other }}</span></td></tr>{% endif %}
+    {%- if t.cash_discount %}<tr><td class="k">{{ k("خصم نقدي", "Cash discount", "خصم نقدي") }}</td><td class="v"><span class="num">{{ t.cash_discount }}</span></td></tr>{% endif %}
     {%- if t.rounding %}<tr><td class="k">{{ k("تسوية التقريب", "Rounding", "التقريب") }}</td><td class="v"><span class="num">{{ t.rounding }}</span></td></tr>{% endif %}
     <tr class="g"><td class="k">{{ k("الإجمالي", "Total", "الإجمالي") }}</td><td class="v"><span class="num">{{ cur(t.currency) }}&#8201;{{ t.grand }}</span></td></tr>
   </table>
