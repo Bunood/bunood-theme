@@ -310,8 +310,10 @@ def journal_view(doc, arabic: bool = True) -> dict:
             "party": party,
             "cost_center": row.get("cost_center") or "",
             "remark": (row.get("user_remark") or "").strip(),
-            "debit": view.num(row.get("debit_in_account_currency") or row.get("debit")) if flt(row.get("debit")) else "",
-            "credit": view.num(row.get("credit_in_account_currency") or row.get("credit")) if flt(row.get("credit")) else "",
+            # In the company's currency, like the columns' heads and the totals under them (a
+            # multi-currency entry's `*_in_account_currency` is in each account's own currency).
+            "debit": view.num(row.get("debit")) if flt(row.get("debit")) else "",
+            "credit": view.num(row.get("credit")) if flt(row.get("credit")) else "",
         })
     total = flt(doc.get("total_debit"))
     return {

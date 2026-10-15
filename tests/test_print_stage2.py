@@ -114,6 +114,17 @@ class VoucherTests(unittest.TestCase):
         self.assertEqual((received["title_ar"], received["amount"]), ("سند قبض", "8,000.00"))
         self.assertEqual(paid["title_ar"], "سند صرف")
 
+    def test_a_journal_row_prints_in_the_company_currency(self):
+        # The columns and the totals are the company's currency; a USD bank line's account-currency
+        # amount (100) under them did not add up to the total (the v0.60.0 review, finding 7).
+        doc = Doc(name="JV-1", company_currency="SAR", total_debit=375, total_credit=375, accounts=[
+            Doc(account="Bank USD", debit=375, credit=0, debit_in_account_currency=100, credit_in_account_currency=0),
+            Doc(account="Sales", debit=0, credit=375, debit_in_account_currency=0, credit_in_account_currency=375)])
+        with patch.dict(sys.modules, VIEW_MODULES):
+            v = DOCS.journal_view(doc)
+        self.assertEqual([(r["debit"], r["credit"]) for r in v["rows"]], [("375.00", ""), ("", "375.00")])
+        self.assertEqual((v["total_debit"], v["currency"]), ("375.00", "SAR"))
+
     def test_erpnexts_generated_remark_is_dropped(self):
         self.assertEqual(DOCS._remarks(Doc(remarks="Amount SAR 100 received from X")), "")
         self.assertEqual(DOCS._remarks(Doc(remarks="دفعة من حساب المشروع")), "دفعة من حساب المشروع")
