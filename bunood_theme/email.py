@@ -369,7 +369,7 @@ VENDOR_FOOTER_HOSTS = ("frappe.io", "frappeframework.com", "erpnext.com")
 #: SVG IS THE ONE THAT MATTERS AND IT IS ABSENT. Discourse strips `svg` and
 #: `img[src$=".svg"]` from outgoing mail outright (`lib/email/styles.rb:70`)
 #: because clients do not render it, and this theme's own shipped mark is
-#: `bunood-mark.svg` — so the honest consequence is that OUR mark never appears in
+#: `zerone-mark.svg` — so the honest consequence is that OUR mark never appears in
 #: an email, and the chain falls through to the wordmark instead. Shipping a
 #: raster placeholder to fill the gap was considered and refused: the logo is
 #: PARKED (HANDOVER, 2026-08-24) and a placeholder that only exists in email would

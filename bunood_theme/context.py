@@ -211,7 +211,15 @@ AUTOMATIC = "Automatic"
 #: configured nothing publishes a site whose tab icon advertises a product they did
 #: not buy. This theme is the white-label layer; the last resort is ours, never
 #: theirs. Anything the tenant sets still wins — see :func:`_vendor_marks`.
-VENDOR_MARK = "/assets/bunood_theme/images/bunood-mark.svg"
+#:
+#: THE ZERONE BRAND (2026-10-15) made it the Zero One tile and gave it two more uses:
+#: the sign-in logo (already, via `_auth_context`) and the desk's brand tile, which
+#: boot serves as ``bnd_logo`` when no logo is set, so the pane's brand row, the page
+#: head's pill, the start pill, the dock chip and the bill's seal draw this same file
+#: instead of an initial letter. A new filename rather than a repaint, so a browser's
+#: cached favicon cannot outlive the old mark. ``bunood-mark.svg`` stays in
+#: ``public/images`` only because another repo's docs still name its path.
+VENDOR_MARK = "/assets/bunood_theme/images/zerone-mark.svg"
 
 
 def _vendor_name():

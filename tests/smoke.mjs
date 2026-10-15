@@ -1918,7 +1918,7 @@ async function main() {
 				"company_name", "tagline", "logo", "favicon", "brand_color", "brand_color_dark",
 			]);
 			const residue =
-				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.(svg|png)|bunood-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
+				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.(svg|png)|(bunood|zerone)-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
 			// MARKUP-SHAPED RESIDUE IS NEVER A TENANT'S REAL VALUE, and this arm
 			// is here because the fixture list above did not catch the one that
 			// mattered: an interrupted run left `company_name` holding an XSS
@@ -23406,7 +23406,7 @@ print("cleared")
 				expect(raster.hasImg, "a raster logo renders as an image in the sidebar cell");
 				expect(!raster.svgBadge, "a raster logo shows no wordmark-fallback badge");
 			});
-			await withBranding({ logo: "/assets/bunood_theme/images/bunood-mark.svg" }, async () => {
+			await withBranding({ logo: "/assets/bunood_theme/images/zerone-mark.svg" }, async () => {
 				await openIdentity();
 				const svg = await read();
 				expect(svg.svgBadge, "an SVG logo makes the email miniature demonstrate the wordmark fallback");

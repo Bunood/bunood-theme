@@ -1,5 +1,11 @@
 <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Bunood">
 	<!--
+		RETIRED BY THE ZERONE BRAND (2026-10-15). `context.VENDOR_MARK` now names
+		`zerone-mark.svg`, and nothing in this repo draws this file. It is kept
+		only because bunood_crm's docs/dev/theme-contract.md still names this
+		path; delete it once that page names the new one. The text below is its
+		history.
+
 		The vendor mark. ONE FILE, TWO USES: the browser-tab favicon on every page
 		and the desk splash image. Deliberately not two files — the same fact in two
 		places is the trap this repo names first, and a mark that drifts between the
