@@ -82,7 +82,7 @@
 {%- if p.address.line or p.contacts or (with_policy and p.policy) -%}
 <div class="zo-foot">
   <table class="zo-foot__grid"><tr>
-    <td class="zo-foot__addr">{% if p.address.line %}{{ glyph("pin") }}{{ p.address.line | e }}{% endif %}</td>
+    <td class="zo-foot__addr">{% if p.address.line %}{{ glyph("pin") }}<span dir="auto">{{ p.address.line | e }}</span>{% endif %}</td>
     <td class="zo-foot__contacts">{% for c in p.contacts %}{{ contact(c) }}{% endfor %}</td>
   </tr></table>
   {% if with_policy and p.policy %}<div class="zo-policy">{{ p.policy | e | replace("\n", "<br>") }}</div>{% endif %}

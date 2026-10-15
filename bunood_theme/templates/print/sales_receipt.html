@@ -125,7 +125,7 @@
   {%- if p.address.line or p.contacts %}
   <div class="zo-rcpt__rule zo-rcpt__rule--dash"></div>
   <div class="zo-rcpt__foot">
-    {%- if p.address.line %}<div>{{ glyph("pin") }}{{ p.address.line | e }}</div>{% endif %}
+    {%- if p.address.line %}<div>{{ glyph("pin") }}<span dir="auto">{{ p.address.line | e }}</span></div>{% endif %}
     {%- if p.contacts %}<div>{% for c in p.contacts %}{{ contact(c) }}{% endfor %}</div>{% endif %}
   </div>
   {%- endif %}
