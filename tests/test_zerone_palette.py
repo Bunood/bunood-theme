@@ -5,9 +5,10 @@ theme's own ``palette.derive`` and held by its own contrast gate; the old green 
 stays in the catalogue, untouched, and a site moves only while it still carries that old default
 exactly.
 
-Two halves. The catalogue, the derivation and the gate are site-free. The seeder and the brand
-sheet need ``frappe`` importable, so those classes skip on a host without it and run in the bench
-env (``env/bin/python -m unittest discover -s tests -p test_zerone_palette.py``).
+Two halves. The catalogue, the derivation, the gate and the patch are site-free (the patch runs
+against a recording fake ``frappe``, the way ``test_zerone_brand.py`` runs its patch). The seeder
+and the brand sheet need ``frappe`` importable, so those classes skip on a host without it and run
+in the bench env (``env/bin/python -m unittest discover -s tests -p test_zerone_palette.py``).
 """
 
 import ast
@@ -144,6 +145,130 @@ class NoSecondLiteralTests(unittest.TestCase):
 		for rel in ("brand.py", "email.py", "api.py", "setup.py"):
 			with self.subTest(file=rel):
 				self.assertFalse(OLD_GREEN in (APP / rel).read_text(encoding="utf-8"), rel)
+
+
+class FakeSingles:
+	"""A tabSingles for Theme Settings, recording every write, commit and clear in order."""
+
+	def __init__(self, values):
+		self.values = dict(values)
+		self.log = []
+
+	def sql(self, query, values=None):
+		assert "tabSingles" in query and "Theme Settings" in str(values or query), query
+		return [(f, v) for f, v in self.values.items()]
+
+	def set_single_value(self, doctype, field, value, update_modified=True):
+		assert doctype == "Theme Settings"
+		self.values[field] = value
+		self.log.append(("set", field, value, update_modified))
+
+	def commit(self):
+		self.log.append(("commit",))
+
+
+def fake_frappe(values):
+	singles = FakeSingles(values)
+	frappe = ModuleType("frappe")
+	frappe.db = SimpleNamespace(sql=singles.sql, set_single_value=singles.set_single_value, commit=singles.commit)
+	frappe.clear_cache = lambda doctype=None: singles.log.append(("clear", doctype))
+	frappe.get_single = lambda doctype: SimpleNamespace(**singles.values)
+	frappe.log_error = lambda *a, **k: singles.log.append(("error",))
+	return frappe, singles
+
+
+def run_patch(frappe, singles, times=1):
+	presets = ModuleType("bunood_theme.presets")
+	presets.PALETTES = constant(APP / "presets.py", "PALETTES")
+	presets.DEFAULT_PALETTE = constant(APP / "presets.py", "DEFAULT_PALETTE")
+	brand = ModuleType("bunood_theme.brand")
+	brand.write_brand_css = lambda settings=None: singles.log.append(("brand_css", settings.brand_color))
+	install = ModuleType("bunood_theme.printing.install")
+	install.resync_print_brand = lambda settings=None: singles.log.append(("print", settings.brand_color))
+	printing = ModuleType("bunood_theme.printing")
+	printing.install = install
+	package = ModuleType("bunood_theme")
+	package.presets, package.brand, package.printing = presets, brand, printing
+	path = APP / "patches" / "v0_60_0" / "zerone_palette.py"
+	modules = {
+		"frappe": frappe, "bunood_theme": package, "bunood_theme.presets": presets,
+		"bunood_theme.brand": brand, "bunood_theme.printing": printing,
+		"bunood_theme.printing.install": install,
+	}
+	with patch.dict(sys.modules, modules):
+		spec = importlib.util.spec_from_file_location("zerone_palette_under_test", path)
+		module = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(module)
+		with patch("builtins.print"):
+			for _ in range(times):
+				module.execute()
+	return module
+
+
+OLD_DEFAULT = {
+	"brand_color": OLD_GREEN, "accent_color": "#0090ff",
+	"brand_color_dark": "", "accent_color_dark": "", "ground_color": "",
+	"company_name": "ACME",
+}
+
+
+class PatchTests(unittest.TestCase):
+	def test_the_old_shipped_palette_moves_to_the_new_default(self):
+		for stored in (OLD_GREEN, "#3D8150", f" {OLD_GREEN}\n"):
+			with self.subTest(stored=stored):
+				frappe, singles = fake_frappe({**OLD_DEFAULT, "brand_color": stored})
+				run_patch(frappe, singles)
+				self.assertEqual(singles.values["brand_color"], ZERONE_BLUE)
+				self.assertEqual(singles.values["accent_color"], "#0090ff")
+				sets = [e for e in singles.log if e[0] == "set"]
+				self.assertEqual(sets, [("set", "brand_color", ZERONE_BLUE, False)],
+				                 "only the seed that differs, and not as a person's edit")
+				order = [e[0] for e in singles.log]
+				self.assertLess(order.index("commit"), order.index("clear"), "commit, then clear")
+				self.assertIn(("brand_css", ZERONE_BLUE), singles.log, "the brand sheet is re-rendered blue")
+				self.assertIn(("print", ZERONE_BLUE), singles.log, "the print carriers follow")
+
+	def test_an_empty_accent_is_still_the_old_default(self):
+		frappe, singles = fake_frappe({**OLD_DEFAULT, "accent_color": ""})
+		run_patch(frappe, singles)
+		self.assertEqual(singles.values["brand_color"], ZERONE_BLUE)
+
+	def test_a_tenant_colour_choice_is_never_touched(self):
+		cases = {
+			"own brand": {"brand_color": "#123456"},
+			"own accent on the old green": {"accent_color": "#ab4aba"},
+			"own dark brand": {"brand_color_dark": "#55aa66"},
+			"own dark accent": {"accent_color_dark": "#7ce2fe"},
+			"own ground": {"ground_color": "#8b8d98"},
+			"never seeded": {"brand_color": ""},
+			"absent row": {"brand_color": None},
+		}
+		for label, change in cases.items():
+			with self.subTest(case=label):
+				frappe, singles = fake_frappe({**OLD_DEFAULT, **change})
+				before = dict(singles.values)
+				run_patch(frappe, singles)
+				self.assertEqual(singles.values, before)
+				self.assertEqual(singles.log, [], "no write, no commit, no clear, no re-render")
+
+	def test_idempotent(self):
+		frappe, singles = fake_frappe(dict(OLD_DEFAULT))
+		run_patch(frappe, singles, times=2)
+		self.assertEqual(sum(1 for e in singles.log if e[0] == "set"), 1)
+		self.assertEqual(sum(1 for e in singles.log if e[0] == "brand_css"), 1)
+
+	def test_the_patch_names_the_old_default_the_catalogue_still_carries(self):
+		module = run_patch(*fake_frappe({"brand_color": "#123456"}))
+		palettes = constant(APP / "presets.py", "PALETTES")
+		self.assertEqual(module.OLD_DEFAULT["brand_color"], palettes["Bunood"]["brand_color"])
+		self.assertEqual(module.OLD_DEFAULT["accent_color"], palettes["Bunood"]["accent_color"])
+
+	def test_the_patch_is_registered_after_the_brand_patch_and_before_the_healer(self):
+		lines = [l.strip() for l in (APP / "patches.txt").read_text(encoding="utf-8").splitlines()]
+		lines = [l for l in lines if l and not l.startswith("#") and not l.startswith("[")]
+		here = lines.index("bunood_theme.patches.v0_60_0.zerone_palette")
+		self.assertGreater(here, lines.index("bunood_theme.patches.v0_60_0.zerone_brand"))
+		self.assertEqual(lines[-1], "bunood_theme.patches.v0_11_0.heal_unknown_placements")
 
 
 @unittest.skipUnless(HAVE_FRAPPE, "the seeder and the brand sheet import frappe; run in the bench env")
