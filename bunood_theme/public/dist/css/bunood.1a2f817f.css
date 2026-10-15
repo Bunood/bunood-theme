@@ -988,15 +988,32 @@ html[data-theme] .bnd-dock-item.bnd-active {
 }
 
 html[data-theme] .bnd-dock-brand {
-  background: var(--bnd-brand-solid);
+  background: transparent;
   color: var(--bnd-on-brand);
   font-weight: var(--bnd-weight-medium);
   font-size: var(--bnd-text-md);
+  overflow: hidden;
 }
 html[data-theme] .bnd-dock-brand:hover {
-  background: var(--bnd-brand-solid);
+  background: transparent;
   color: var(--bnd-on-brand);
   filter: brightness(1.08);
+}
+html[data-theme] .bnd-dock-brand .bnd-sb-brand-mark {
+  display: grid;
+  place-items: center;
+  inline-size: 100%;
+  block-size: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+html[data-theme] .bnd-dock-brand .bnd-sb-brand-logo {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
+}
+html[data-theme] .bnd-dock-brand .bnd-sb-brand-initial {
+  background: var(--bnd-brand-solid);
 }
 
 html[data-theme] .bnd-dock-divider {
@@ -8609,11 +8626,14 @@ html[data-bnd-body-width] body:not(.full-width):is([data-route^="Form/Sales Invo
   flex: none;
   inline-size: 2.5rem;
   block-size: 2.5rem;
-  background: var(--bnd-brand-solid);
-  color: var(--bnd-on-brand);
   border-radius: var(--bnd-radius-md);
-  font-size: var(--bnd-text-lg);
-  font-weight: 750;
+  overflow: hidden;
+}
+
+.bnd-bill-seal img {
+  inline-size: 100%;
+  block-size: 100%;
+  object-fit: contain;
 }
 
 .bnd-bill-brand {

@@ -3869,16 +3869,15 @@
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
-	/** The brand mark — logo, or the initial on the brand tile — for the pane's
-	 *  brand row, the page head's pill and the start pill. One builder; the
-	 *  third copy had drifted to a class no rule painted (_sidebar.scss). */
+	/** The brand mark (boot's logo or vendor mark) for the pane's brand row, the
+	 *  page head's pill, the start pill and the dock chip. One builder. */
 	function brand_mark() {
 		const mark = el("span", "bnd-sb-brand-mark");
 		if (frappe.boot.bnd_logo) {
 			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
 		} else {
 			mark.classList.add("bnd-sb-brand-initial");
-			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+			mark.textContent = (frappe.boot.bnd_company || "").charAt(0).toUpperCase();
 		}
 		return mark;
 	}
@@ -7512,12 +7511,13 @@
 		const dock = el("div", "bnd-dock", { role: "navigation", "aria-label": __("Workspaces") });
 
 		// Brand chip -> Desktop. Carries identity now that the sidebar is gone.
+		const brand_label = frappe.boot.bnd_company + " — " + __("Desktop");
 		const brand = el("button", "bnd-dock-item bnd-dock-brand", {
 			type: "button",
-			title: (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
-			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
+			title: brand_label,
+			"aria-label": brand_label,
 		});
-		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		brand.appendChild(brand_mark());
 		brand.addEventListener("click", () => frappe.set_route(""));
 		dock.appendChild(brand);
 
@@ -11283,9 +11283,10 @@
 			this.advancedButton = button(__("Advanced"), mode, () => this.fullInvoice());
 			const intro = node("header", "bnd-bill-intro", null, this.root);
 			const identity = node("div", "bnd-bill-identity", null, intro);
-			node("span", "bnd-bill-seal", "B", identity).setAttribute("aria-hidden", "true");
+			const seal = node("span", "bnd-bill-seal", null, identity); seal.setAttribute("aria-hidden", "true");
+			if (frappe.boot?.bnd_logo) Object.assign(node("img", "", null, seal), { src: frappe.boot.bnd_logo, alt: "" });
 			const heading = node("div", "", null, identity);
-			node("span", "bnd-bill-brand", "Bunood", heading);
+			node("span", "bnd-bill-brand", frappe.boot?.bnd_company || "", heading);
 			const title = node("div", "bnd-bill-title-row", null, heading);
 			node("h2", "", __(this.profile.title), title);
 			this.stateBadge = node("span", "bnd-document-state", "", title);
@@ -13486,7 +13487,7 @@
 		"Sales Order": {
 			variant: "sales-order", steps: ["Customer", "Commitment", "Fulfilment"],
 			panels: [
-				["commitment", "Customer commitment", "Confirm who ordered and the dates Bunood is promising.", ["customer", "company", "transaction_date", "delivery_date"], "lead"],
+				["commitment", "Customer commitment", "Confirm who ordered and the dates Zero One is promising.", ["customer", "company", "transaction_date", "delivery_date"], "lead"],
 				["items", "What was ordered?", "Keep quantities, prices and delivery expectations together in one working sheet.", ["items"], "sheet"],
 				["fulfilment", "Fulfilment and pricing", "Set the source warehouse and the commercial defaults for this order.", ["set_warehouse", "currency", "selling_price_list", "taxes_and_charges", "discount_amount"], "aside"],
 			],

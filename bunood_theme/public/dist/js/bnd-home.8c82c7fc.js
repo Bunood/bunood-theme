@@ -327,7 +327,7 @@
             return node;
         };
         const header = add("header", "bnd-home-command");
-        add("span", "bnd-home-eyebrow", __("Bunood Home"), header);
+        add("span", "bnd-home-eyebrow", __("Zero One Home"), header);
         const hour = new Date().getHours();
         add("h1", "bnd-home-title", hour < 12 ? __("Good morning") : hour < 18 ? __("Good afternoon") : __("Good evening"), header);
         add("p", "bnd-home-subtitle", __("Your business at a glance"), header);
@@ -379,7 +379,7 @@
             ["bnd-finance-close", __("Finance and close"), __("Review period readiness, exceptions and close evidence.")],
             ["bnd-banking", __("Bank Reconciliation"), __("Match bank activity to native transactions and investigate differences.")],
             ["bnd-asset-workbench", __("Fixed asset workbench"), __("Review assets, depreciation, repairs and lifecycle drafts by company and period.")],
-            ["bnd-pos", __("Bunood POS"), __("Open point of sale")],
+            ["bnd-pos", __("Zero One POS"), __("Open point of sale")],
             ["bnd-pos-register", __("POS register"), __("Review submitted POS receipts and returns.")],
             ["bnd-quick-sale", __("Quick Sale"), __("Prepare a native sales invoice.")],
             ["bnd-inbox", __("Inbox"), __("Review notifications and assigned work.")],

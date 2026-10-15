@@ -155,7 +155,7 @@
 		const root = el("main", "bnd-close");
 		const intro = el("header", "bnd-close__intro");
 		const introCopy = el("div", "bnd-close__intro-copy");
-		introCopy.append(el("span", "bnd-close__eyebrow", __("Native ERPNext controls")), el("h1", "", __("Finance and close")), el("p", "", __("See what needs attention, review the same reporting boundary, then use ERPNext's native controls. Bunood does not certify the books.")));
+		introCopy.append(el("span", "bnd-close__eyebrow", __("Native ERPNext controls")), el("h1", "", __("Finance and close")), el("p", "", __("See what needs attention, review the same reporting boundary, then use ERPNext's native controls. Zero One does not certify the books.")));
 		const actions = el("div", "bnd-close__actions");
 		actions.append(button(__("Journal workbench"), ["bnd-journal-workbench"], false), button(__("Accounting Periods"), ["List", "Accounting Period"], false), button(__("Closing Vouchers"), ["List", "Period Closing Voucher"], false));
 		intro.append(introCopy, actions);
