@@ -224,7 +224,7 @@ def trade_view(doc, kind: str, arabic: bool = True) -> dict:
     if priced:
         out["lines"] = view.lines(doc)
         out["currency"] = doc.get("currency") or ""
-        out["totals"] = view.totals(doc, settled=(kind == "purchase_invoice"))
+        out["totals"] = view.totals(doc, out["lines"], settled=(kind == "purchase_invoice"))
         out["words"] = view.words(doc, out["totals"]["grand_value"], arabic)
     else:
         out["lines"] = qty_lines(doc, kind)

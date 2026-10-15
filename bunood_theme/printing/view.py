@@ -97,6 +97,86 @@ def _company_vat(doc) -> str:
         return ""
 
 
+def inclusive(doc) -> bool:
+    """ERPNext's own test (taxes_and_totals.determine_exclusive_rate): one tax row «included in
+    the print rate» makes every `rate` and `price_list_rate` on the document a price INCLUDING
+    tax; only `net_rate` / `net_amount` are exclusive. The owner sells this way every day."""
+    return any(flt(t.get("included_in_print_rate")) for t in doc.get("taxes") or [])
+
+
+def cash_discount(doc) -> float:
+    """A cash / non-trade discount on the grand total: ERPNext takes it off the grand total
+    AFTER tax and spreads none of it over the lines (taxes_and_totals.apply_discount_amount)."""
+    if doc.get("apply_discount_on") == "Grand Total" and flt(doc.get("is_cash_or_non_trade_discount")):
+        return abs(flt(doc.get("discount_amount")))
+    return 0.0
+
+
+def _only_vat_inclusive(doc) -> bool:
+    """Every tax row included in the print rate is a VAT row on the net total, so a line's
+    inclusive price is its exclusive price × (1 + its VAT rate)."""
+    rows = [t for t in doc.get("taxes") or [] if flt(t.get("included_in_print_rate"))]
+    return bool(rows) and all(_is_vat(t) and t.get("charge_type") == "On Net Total" for t in rows)
+
+
+def _spread_discount(doc) -> bool:
+    """An invoice-level discount ERPNext spread over the lines' net amounts."""
+    return abs(flt(doc.get("discount_amount"))) >= 0.005 and not cash_discount(doc)
+
+
+def _figures(doc, row, vat_rate, incl: bool) -> dict:
+    """One line's money EXCLUSIVE of VAT, from ERPNext's own fields, so that
+    unit × qty − discount = taxable and taxable + VAT = the line total, in either pricing.
+
+    - taxable: `net_amount` — after the line's own discount and its share of the invoice's.
+    - share: the line's share of an invoice-level discount, exclusive (`distributed_discount_amount`,
+      which ERPNext adjusts so the shares add up to the document's).
+    - rate: the price after the line's own discount, before the invoice's. Exclusive pricing: the
+      row's `rate`. Inclusive pricing: (`net_amount` + share) / qty — ERPNext's `net_rate` when
+      no invoice discount moved it, unrounded so qty × price is the taxable amount.
+    - unit: the price before the line's own discount (`price_list_rate`, made exclusive when
+      inclusive: ÷ (1 + the line's VAT rate) when VAT is all the price includes, else by the line's
+      own ratio `net before the invoice discount / amount`).
+    - discount: the line's own discount plus its share, and nothing else — an inclusive price is
+      not a discount.
+    """
+    q = abs(flt(row.get("qty")))
+    rate = abs(flt(row.get("rate")))
+    plr = abs(flt(row.get("price_list_rate")))
+    amount = abs(flt(row.get("amount"))) if row.get("amount") is not None else rate * q
+    taxable = abs(flt(row.get("net_amount") if row.get("net_amount") is not None else row.get("amount")))
+    if incl:
+        share = abs(flt(row.get("distributed_discount_amount")))
+        if not share and _spread_discount(doc) and vat_rate:
+            # An invoice saved before ERPNext kept each line's share: back it out of the line's
+            # own VAT fraction (the price includes exactly that).
+            share = max(0.0, amount / (1 + flt(vat_rate) / 100) - taxable)
+        before = taxable + share
+        if vat_rate is not None and _only_vat_inclusive(doc):
+            # The price includes exactly this line's VAT: 212.75 incl. is 185.00, where the ratio
+            # of two rounded amounts would print 185.0004.
+            factor = 1 / (1 + flt(vat_rate) / 100)
+        elif amount:
+            factor = before / amount
+        else:
+            factor = 1.0
+        unit_rate = before / q if q else 0.0
+    else:
+        share = max(0.0, amount - taxable)
+        factor = 1.0
+        unit_rate = rate
+    own = (plr - rate) * q * factor if plr > rate else 0.0
+    # In cents, as it prints: the totals add the printed line discounts, not their fractions.
+    discount = float(Decimal(str(own + share)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP))
+    return {
+        "unit": plr * factor if plr > rate else unit_rate,
+        "rate": unit_rate,
+        "discount": discount,
+        "taxable": taxable,
+        "gross": taxable + discount,
+    }
+
+
 def lines(doc) -> list[dict]:
     """Every item row, in the numbers both shapes need."""
     from bunood_theme.printing.jinja import bunood_item_vat_map
@@ -106,18 +186,14 @@ def lines(doc) -> list[dict]:
     single_rates = {flt(t.get("rate")) for t in doc.get("taxes") or [] if _is_vat(t) and t.get("charge_type") == "On Net Total"}
     fallback_rate = single_rates.pop() if len(single_rates) == 1 else None
     conversion = flt(doc.get("conversion_rate")) or 1
+    incl = inclusive(doc)
     out = []
     for i, row in enumerate(doc.get("items") or [], start=1):
         q = abs(flt(row.get("qty")))
-        rate = abs(flt(row.get("rate")))
-        plr = abs(flt(row.get("price_list_rate")))
-        unit = plr if plr > rate else rate
-        gross = unit * q
-        taxable = abs(flt(row.get("net_amount") if row.get("net_amount") is not None else row.get("amount")))
-        discount = max(0.0, gross - taxable)
         v = vmap.get(row.get("name"))
         if not v and codes.count(row.get("item_code")) == 1:
             v = vmap.get(row.get("item_code"))
+        taxable = abs(flt(row.get("net_amount") if row.get("net_amount") is not None else row.get("amount")))
         if v:
             vat_rate = flt(v.get("rate"))
             # item_wise_tax_details keeps each line's tax in company currency.
@@ -126,6 +202,8 @@ def lines(doc) -> list[dict]:
             vat_rate, vat = fallback_rate, taxable * fallback_rate / 100
         else:
             vat_rate, vat = None, 0.0
+        money = _figures(doc, row, vat_rate, incl)
+        unit, rate, discount = money["unit"], money["rate"], money["discount"]
         total = taxable + vat
         name = row.get("item_name") or row.get("item_code") or ""
         description = frappe.utils.strip_html(row.get("description") or "").strip()
@@ -147,6 +225,10 @@ def lines(doc) -> list[dict]:
             # The lean shape prints the price INCLUDING VAT, so qty × price = the line total.
             "unit_incl": price(total / q) if q else num(total),
             "treatment": _treatment(row),
+            # Unformatted, for the totals: what this line adds before any discount, and whether
+            # ERPNext counts it at all (a quotation's alternative item is not in its net total).
+            "gross_value": money["gross"],
+            "counted": not row.get("is_alternative"),
         })
     return out
 
@@ -170,16 +252,18 @@ def _treatment(row) -> str:
 
 
 def totals(doc, items: list[dict] | None = None, settled: bool = True) -> dict:
-    """The small totals table: before discount, discount, taxable, VAT, other charges, rounding,
-    the grand total, then paid / remaining / change when they apply. `settled=False` (a quotation,
-    an order) prints no paid rows: nothing is paid against a document that is not an invoice."""
-    rows = doc.get("items") or []
-    gross = 0.0
-    for row in rows:
-        q = abs(flt(row.get("qty")))
-        rate, plr = abs(flt(row.get("rate"))), abs(flt(row.get("price_list_rate")))
-        gross += (plr if plr > rate else rate) * q
+    """The small totals table: before discount, discount, taxable, VAT, other charges, a cash
+    discount, rounding, the grand total, then paid / remaining / change when they apply.
+    `settled=False` (a quotation, an order) prints no paid rows: nothing is paid against a
+    document that is not an invoice.
+
+    Read top to bottom it adds up to ERPNext's own fields: gross − discount = `net_total`;
+    `net_total` + VAT + other (= `total_taxes_and_charges`) − a cash discount + rounding = the
+    grand total (`rounded_total` when rounded, else `grand_total`)."""
+    if items is None:
+        items = lines(doc)
     taxable = abs(flt(doc.get("net_total")))
+    gross = sum(line["gross_value"] for line in items if line.get("counted", True))
     discount = max(0.0, gross - taxable)
     vat_rows = [t for t in doc.get("taxes") or [] if _is_vat(t)]
     if vat_rows:
@@ -188,12 +272,21 @@ def totals(doc, items: list[dict] | None = None, settled: bool = True) -> dict:
         rate = rates.pop() if len(rates) == 1 else None
     else:
         vat, rate = abs(flt(doc.get("total_taxes_and_charges"))), None
-    other = max(0.0, abs(flt(doc.get("total_taxes_and_charges"))) - vat)
+    taxes = abs(flt(doc.get("total_taxes_and_charges")))
+    other = max(0.0, taxes - vat)
+    cash = cash_discount(doc)
     rounded = bool(doc.get("rounded_total")) and not doc.get("disable_rounded_total")
     grand = abs(flt(doc.get("rounded_total") if rounded else doc.get("grand_total")))
     rounding = flt(doc.get("rounding_adjustment")) if rounded else 0.0
     if doc.get("is_return"):
         rounding = -rounding
+    # With inclusive prices ERPNext keeps up to five smallest units out of the tax rows so the
+    # grand total equals the prices' own sum (taxes_and_totals.adjust_grand_total_for_inclusive_tax):
+    # grand_total = net_total + total_taxes_and_charges + that cent. It prints as rounding, which
+    # is what it is; anything larger is not a rounding and is never folded in.
+    kept = abs(flt(doc.get("grand_total"))) + cash - taxable - taxes
+    if inclusive(doc) and abs(kept) <= 0.05 + 1e-9:
+        rounding += kept
     out = {
         "gross": num(gross),
         "discount": num(discount) if discount >= 0.005 else "",
@@ -201,6 +294,7 @@ def totals(doc, items: list[dict] | None = None, settled: bool = True) -> dict:
         "vat": num(vat),
         "vat_rate": f"{rate:g}" if rate is not None else "",
         "other": num(other) if other >= 0.005 else "",
+        "cash_discount": num(cash) if cash >= 0.005 else "",
         "rounding": ("-" if rounding < 0 else "") + num(rounding) if abs(rounding) >= 0.005 else "",
         "grand": num(grand),
         "grand_value": grand,
