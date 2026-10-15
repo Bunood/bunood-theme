@@ -341,7 +341,9 @@
     repeated head and foot, the page number, the watermark, and the policy at the
     end when it is too long to repeat. `tax_document` decides whether a cancelled
     document may say «ملغاة» (never on a tax invoice or note). -#}
-{% macro page(p, doc, no_letterhead=0, tax_document=True, size="A4", landscape=False) -%}
+{#- `marked=False`: no draft / cancelled watermark — a vertical whose own approved body prints
+    its drafts plain (the engineering office's quotation and contract) keeps doing so. -#}
+{% macro page(p, doc, no_letterhead=0, tax_document=True, size="A4", landscape=False, marked=True) -%}
 {%- set ar = bunood_print_language() == "ar" -%}
 {%- set dir = "rtl" if ar else "ltr" -%}
 {%- set short_policy = policy_is_short(p) == "1" -%}
@@ -364,7 +366,7 @@
   <div class="zo-chrome-head">{{ page_head(p, numbered=False) }}</div>
   <div class="zo-chrome-foot">{{ page_foot(p, with_policy=short_policy) }}</div>
   {%- endif %}
-  {{ watermark(doc, tax_document) }}
+  {% if marked %}{{ watermark(doc, tax_document) }}{% endif %}
   <table class="zo-frame">
     {%- if chrome %}
     <thead><tr><td><div class="zo-frame__head"></div></td></tr></thead>
