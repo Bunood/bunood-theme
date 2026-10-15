@@ -664,6 +664,15 @@ def _sync_format(spec, settings=None):
         values["module"] = MODULE
 
     if frappe.db.exists("Print Format", spec["name"]):
+        owner = frappe.db.get_value("Print Format", spec["name"], "module")
+        if owner != MODULE:
+            # A record of the tenant's (or another app's) that happens to carry this name is
+            # THEIRS: never rewritten, and ours is not installed over it (the v0.60.0 review,
+            # finding 4). The note says so on every migrate until someone renames one of them.
+            note = f"bunood_theme: print format {spec['name']!r} belongs to {owner or 'the site'}; left untouched, ours not installed"
+            frappe.logger("bunood_theme").warning(note)
+            print(note)
+            return
         pf = frappe.get_doc("Print Format", spec["name"])
         # Compare EVERY managed field so drift (incl. custom_format on already-
         # deployed sites) self-heals; second run stays a true no-op.

@@ -30,13 +30,16 @@ NAMES = load("printing/names.py", "isolated_names")
 class FakeSite:
     """Records keyed by (doctype, name); rename_doc moves or merges them like Frappe's."""
 
-    def __init__(self, records, single_links=None):
+    def __init__(self, records, single_links=None, modules=None):
         self.records = set(records)
         self.singles = dict(single_links or {})
+        # A record's module; ours ("Bunood Theme") unless the test says whose it is.
+        self.owners = dict(modules or {})
         self.calls = []
         frappe = ModuleType("frappe")
         frappe.db = SimpleNamespace(
             exists=lambda doctype, name: (doctype, name) in self.records,
+            get_value=lambda doctype, name, field: self.owners.get((doctype, name), "Bunood Theme"),
             commit=Mock(), sql=self.sql, set_value=Mock(),
             get_single_value=lambda doctype, field: self.singles.get((doctype, field)),
             set_single_value=lambda doctype, field, value: self.singles.__setitem__((doctype, field), value),
@@ -44,7 +47,8 @@ class FakeSite:
         frappe.rename_doc = self.rename_doc
         frappe.delete_doc = lambda doctype, name, **kw: self.records.discard((doctype, name))
         frappe.clear_cache = Mock()
-        frappe.get_meta = lambda doctype: SimpleNamespace(autoname="field:print_style_name")
+        frappe.get_meta = lambda doctype: SimpleNamespace(
+            autoname="field:print_style_name", has_field=lambda field: field == "module" and doctype == "Print Format")
         rename = ModuleType("frappe.model.rename_doc")
         rename.get_link_fields = lambda doctype: (
             [SimpleNamespace(parent="Print Settings", fieldname="print_style", issingle=1, get=lambda k, d=None: 1)]
@@ -60,6 +64,8 @@ class FakeSite:
         self.calls.append((doctype, old, new, merge))
         self.records.discard((doctype, old))
         self.records.add((doctype, new))
+        if not merge:
+            self.owners[(doctype, new)] = self.owners.pop((doctype, old), "Bunood Theme")
 
     def sql(self, query, values):
         new, old = values
@@ -120,14 +126,80 @@ class RenamePatchTests(unittest.TestCase):
             self.assertEqual(module.rename_all(), [], "a second run finds nothing to move")
         self.assertEqual(site.calls, [])
 
-    def test_a_style_that_already_exists_absorbs_the_old_one(self):
+    def test_a_style_already_holding_the_new_name_is_the_sites_own(self):
+        # A Print Style has no module, and the installer has not created the new name yet when the
+        # patch runs: one already there is the tenant's. Ours keeps its name and the link stays.
         site = FakeSite([("Print Style", "Bunood"), ("Print Style", NAMES.STYLE_NAME)],
                         single_links={("Print Settings", "print_style"): "Bunood"})
         module = patch_module(site)
         with patch.dict(sys.modules, site.modules):
+            self.assertEqual(module.rename_all(), [])
+        self.assertEqual(site.records, {("Print Style", "Bunood"), ("Print Style", NAMES.STYLE_NAME)})
+        self.assertEqual(site.singles[("Print Settings", "print_style")], "Bunood")
+        self.assertEqual(site.calls, [])
+
+    def test_a_tenants_format_under_the_new_name_is_never_merged_into(self):
+        """Merging would move our links (a POS Profile's receipt, a default print format) onto
+        THEIR record and delete ours (the v0.60.0 review, finding 4)."""
+        site = FakeSite([("Print Format", "بونود - فاتورة ضريبية (A4)"), ("Print Format", NAMES.TAX_INVOICE_A4),
+                         ("Print Format", "بونود - فاتورة مبسطة (حراري 80مم)")],
+                        modules={("Print Format", NAMES.TAX_INVOICE_A4): "Accounts"})
+        module = patch_module(site)
+        with patch.dict(sys.modules, site.modules):
+            moved = module.rename_all()
+        self.assertEqual(site.calls, [("Print Format", "بونود - فاتورة مبسطة (حراري 80مم)", NAMES.SIMPLIFIED_RECEIPT_80, False)],
+                         "the free name is taken; the tenant's is left alone")
+        self.assertIn(("Print Format", "بونود - فاتورة ضريبية (A4)"), site.records, "ours keeps its name and links")
+        self.assertEqual(site.owners[("Print Format", NAMES.TAX_INVOICE_A4)], "Accounts")
+        self.assertEqual(len(moved), 1)
+
+    def test_our_own_format_under_the_new_name_absorbs_the_old_one(self):
+        site = FakeSite([("Print Format", "Bunood Sales Invoice (A4)"), ("Print Format", NAMES.TAX_INVOICE_A4)])
+        module = patch_module(site)
+        with patch.dict(sys.modules, site.modules):
             module.rename_all()
-        self.assertNotIn(("Print Style", "Bunood"), site.records)
-        self.assertEqual(site.singles[("Print Settings", "print_style")], NAMES.STYLE_NAME)
+        self.assertEqual(site.calls, [("Print Format", "Bunood Sales Invoice (A4)", NAMES.TAX_INVOICE_A4, True)])
+
+
+try:
+    import frappe as _real_frappe  # noqa: F401
+
+    HAVE_FRAPPE = True
+except ImportError:
+    HAVE_FRAPPE = False
+
+
+@unittest.skipUnless(HAVE_FRAPPE, "the print installer imports frappe; run in the bench env")
+class InstallerOwnershipTests(unittest.TestCase):
+    """printing/install.py `_sync_format` rewrites a same-named record only when it is ours
+    (module "Bunood Theme"); a tenant's record of that name is never touched (finding 4)."""
+
+    def sync(self, module):
+        from bunood_theme.printing import install
+
+        record = Mock()
+        record.get = lambda field: {"module": module}.get(field)
+        fake = SimpleNamespace(
+            db=SimpleNamespace(exists=lambda doctype, name=None: True,
+                               get_value=lambda doctype, name, field: module),
+            get_doc=Mock(return_value=record), logger=lambda name=None: SimpleNamespace(warning=Mock()),
+        )
+        spec = next(s for s in install.FORMATS if s["name"] == NAMES.TAX_INVOICE_A4)
+        with patch.object(install, "frappe", fake), patch.object(install, "_format_html", lambda spec: "<p>kit</p>"):
+            install._sync_format(spec)
+        return fake, record
+
+    def test_a_tenants_record_of_our_name_is_left_untouched(self):
+        fake, record = self.sync("Accounts")
+        fake.get_doc.assert_not_called()
+        record.save.assert_not_called()
+
+    def test_our_own_record_is_kept_in_step(self):
+        fake, record = self.sync("Bunood Theme")
+        fake.get_doc.assert_called_once_with("Print Format", NAMES.TAX_INVOICE_A4)
+        record.update.assert_called_once()
+        self.assertEqual(record.update.call_args[0][0]["html"], "<p>kit</p>")
+        record.save.assert_called_once_with(ignore_permissions=True)
 
 
 class OldLinkHookTests(unittest.TestCase):

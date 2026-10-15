@@ -81,13 +81,35 @@ def execute():
     print("bunood_theme print names:", moved or "nothing to rename")
 
 
+#: The module our Print Formats carry (printing/install.py stamps every one of them).
+MODULE = "Bunood Theme"
+
+
+def _ours(doctype: str, name: str) -> bool:
+    """Is the record already holding a new name ours to merge into? A Print Format says so by its
+    module. A Print Style or a Letter Head has no module, and the installer has not created the
+    new names yet when this patch runs: one already there is the tenant's."""
+    if not frappe.get_meta(doctype).has_field("module"):
+        return False
+    return frappe.db.get_value(doctype, name, "module") == MODULE
+
+
 def rename_all() -> list[str]:
-    """Apply RENAMES; return what moved, as «old → new (renamed|merged)» lines."""
+    """Apply RENAMES; return what moved, as «old → new (renamed|merged)» lines.
+
+    A tenant's own record under a new name is never merged into (the v0.60.0 review, finding 4):
+    merging would move our links — a POS Profile's receipt, a default print format — onto THEIR
+    record and delete ours. Ours then keeps its old name and its links, and the note says why."""
     moved = []
+    claimed = set()
     for doctype, old, new in RENAMES:
         if old == new or not frappe.db.exists(doctype, old):
             continue
         merge = bool(frappe.db.exists(doctype, new))
+        if merge and (doctype, new) not in claimed and not _ours(doctype, new):
+            print(f"bunood_theme print names: kept {doctype} {old!r}: {new!r} is the site's own record")
+            continue
+        claimed.add((doctype, new))
         if _only_single_links(doctype):
             _rename_single_linked(doctype, old, new, merge)
         else:
