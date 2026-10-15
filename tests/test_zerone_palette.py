@@ -153,12 +153,14 @@ class NoSecondLiteralTests(unittest.TestCase):
 
 	def test_the_customer_statement_names_no_colour_of_its_own(self):
 		# The print redesign moved the statement into the print kit (the v0.60.0 merge): its chrome
-		# and colours come from the kit's sheet (`ctx.open`), substituted per site at render.
-		html = (APP / "printing" / "formats" / "customer_statement.html").read_text(encoding="utf-8")
-		# `(?<!&)`: an HTML entity (`&#8201;`) is not a colour.
-		self.assertNotRegex(html, r"(?<!&)#[0-9a-fA-F]{3,8}\b", "the statement names no colour of its own")
-		self.assertNotIn("<style", html, "no sheet of its own: the kit's")
-		self.assertIn("ctx.open", html)
+		# and colours come from the kit's sheet (its `page` macro, on the server since the review's
+		# finding 2), substituted per site at render.
+		for html in ((APP / "printing" / "formats" / "customer_statement.html").read_text(encoding="utf-8"),
+				(APP / "templates" / "print" / "statement.html").read_text(encoding="utf-8")):
+			# `(?<!&)`: an HTML entity (`&#8201;`, `&#x20C1;`) is not a colour.
+			self.assertNotRegex(html, r"(?<!&)#[0-9a-fA-F]{3,8}\b", "the statement names no colour of its own")
+			self.assertNotIn("<style", html, "no sheet of its own: the kit's")
+		self.assertIn("call page(", html)
 		kit = (APP / "templates" / "print" / "print_kit.css").read_text(encoding="utf-8")
 		self.assertNotIn(OLD_GREEN, kit)
 		self.assertIn("var(--bnd-brand-solid)", kit)

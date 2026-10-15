@@ -11,7 +11,19 @@ from bunood_theme.printing.statement import MARKER as STATEMENT_MARKER
 
 
 @frappe.whitelist()
+@frappe.concurrent_limit()
 def report_to_pdf(html: str, orientation: str = "Landscape"):
+    if STATEMENT_MARKER in (html or ""):
+        from bunood_theme.printing.statement import filters_from
+
+        filters = filters_from(html)
+        if filters is not None:
+            # The print kit's statement of account is written for Chromium (logical CSS, the
+            # repeated head and foot, page numbers). Chromium fetches whatever a page names, and
+            # anyone signed in can post anything here: so the POSTED HTML is never rendered. The
+            # statement is built again on the server from the report's own data, permission-checked,
+            # and only the filters are read from what was posted (the v0.60.0 review, finding 2).
+            return _kit_report_pdf(filters)
     # nginx's $host drops the browser port. Same-origin POSTs carry Origin,
     # which keeps it; never trust a different hostname as the browser origin.
     browser_origin = frappe.request.host_url
@@ -24,20 +36,19 @@ def report_to_pdf(html: str, orientation: str = "Landscape"):
         get_url(allow_header_override=False),
         {bundled_asset("print.bundle.css", rtl=rtl) for rtl in (False, True)},
     )
-    if f'class="{STATEMENT_MARKER}"' in html:
-        # The print kit's statement of account is written for Chromium (logical CSS, the
-        # repeated head and foot, page numbers); wkhtmltopdf, Frappe's report engine, has none
-        # of that. Every other report keeps Frappe's own path.
-        return _kit_report_pdf(html)
+    # Every other report — and a statement that carries no filters — keeps Frappe's own path:
+    # wkhtmltopdf behind its dead proxy, which fetches only the site's own hosts.
     return native_report_to_pdf(html=html, orientation=orientation)
 
 
-def _kit_report_pdf(html: str):
+def _kit_report_pdf(filters: dict):
     from frappe.core.doctype.access_log.access_log import make_access_log
     from frappe.utils.pdf import get_chrome_pdf
 
     from bunood_theme.printing.names import STATEMENT_A4
+    from bunood_theme.printing.statement import document
 
+    html = document(filters)
     make_access_log(file_type="PDF", method="PDF", page=html)
     frappe.local.response.filename = "statement.pdf"
     frappe.local.response.filecontent = get_chrome_pdf(STATEMENT_A4, html, {}, None, "chrome")

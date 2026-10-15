@@ -1,0 +1,75 @@
+{#- ============================================================================
+    «كشف حساب - A4» — the statement of account, rendered on the SERVER from the
+    General Ledger's own rows (printing/statement.py `render`): the print
+    format's client-side shell prints this, and the PDF renders it again from
+    the same filters — never from the HTML a browser posts (the v0.60.0 review,
+    finding 2). `s` is statement_view(): the opening, the entries with each
+    document's name and «البيان», the totals, the closing, the aging, the party.
+    Every value is escaped here; the marker carries the filters for the PDF.
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import page -%}
+{%- set ar = bunood_print_language() == "ar" -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set ctx = s.ctx -%}
+{%- set sar = '<span class="sar">&#x20C1;</span>' -%}
+{%- call page(p, doc, no_letterhead=0, tax_document=True) %}
+<div class="zo-statement" data-zo-filters="{{ s.filters | e }}">
+  <table class="zo-title"><tr>
+    <td><div class="zo-title__name">{{ (ctx.title_ar or "كشف حساب") | e }}<span class="zo-title__sep">|</span><span class="en">Statement of Account</span></div></td>
+    <td class="zo-title__no"><small>الفترة · <span class="en">Period</span></small><b>{{ s.from_date }} — {{ s.to_date }}</b></td>
+  </tr></table>
+
+  <table class="zo-parties"><tr>
+    <td>{% if ctx.party_box %}{{ ctx.party_box }}{% else %}<div class="zo-party"><div class="zo-party__h">الطرف <span class="en">Party</span></div><div class="zo-party__n">{{ (s.parties | join("، ") if s.parties else ("جميع الأطراف" if ar else "All parties")) | e }}</div></div>{% endif %}</td>
+    <td class="gap"></td>
+    <td class="zo-statement__sum">
+      <table class="zo-meta zo-statement__cells"><tr>
+        <td><div class="zo-lbl">الرصيد الافتتاحي <span class="en">Opening</span></div><div class="zo-val num">{{ sar }}&#8201;{{ s.opening }}</div></td>
+        <td><div class="zo-lbl">إجمالي المدين <span class="en">Total debit</span></div><div class="zo-val num">{{ s.total_debit }}</div></td>
+      </tr><tr>
+        <td><div class="zo-lbl">إجمالي الدائن <span class="en">Total credit</span></div><div class="zo-val num">{{ s.total_credit }}</div></td>
+        <td class="zo-statement__closing"><div class="zo-lbl">الرصيد الختامي <span class="en">Closing</span></div><div class="zo-val num">{{ sar }}&#8201;{{ s.closing }}</div></td>
+      </tr></table>
+    </td>
+  </tr></table>
+
+  {%- if ctx.aging %}
+  <table class="zo-meta zo-statement__aging"><tr>
+    {%- for a in ctx.aging %}<td><div class="zo-lbl">{{ a.ar | e }} <span class="en">{{ a.en | e }}</span></div><div class="zo-val num">{{ a.amount }}</div></td>{% endfor %}
+  </tr></table>
+  {%- endif %}
+
+  <table class="zo-items">
+    <colgroup><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:23%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>
+    <thead><tr>
+      <th>التاريخ<span class="en">Date</span></th>
+      <th>النوع<span class="en">Type</span></th>
+      <th>الرقم<span class="en">Number</span></th>
+      <th>البيان<span class="en">Description</span></th>
+      <th class="n">مدين {{ sar }}<span class="en">Debit</span></th>
+      <th class="n">دائن {{ sar }}<span class="en">Credit</span></th>
+      <th class="n">الرصيد {{ sar }}<span class="en">Balance</span></th>
+    </tr></thead>
+    <tbody>
+      <tr class="zo-statement__opening"><td colspan="4">الرصيد الافتتاحي <span class="en">Opening balance</span></td><td class="n"><span class="num">{{ s.opening_debit }}</span></td><td class="n"><span class="num">{{ s.opening_credit }}</span></td><td class="n"><span class="num">{{ s.opening }}</span></td></tr>
+      {%- for row in s.entries %}
+      <tr>
+        <td><span class="num">{{ row.date }}</span></td>
+        <td>{{ (row.type_ar if ar else row.type_en) | e }}</td>
+        <td><span class="code">{{ row.number | e }}</span></td>
+        <td>{{ (row.note_ar if ar else row.note_en) | e }}{% if row.note_no %} <span class="code">{{ row.note_no | e }}</span>{% endif %}</td>
+        <td class="n"><span class="num">{{ row.debit }}</span></td>
+        <td class="n"><span class="num">{{ row.credit }}</span></td>
+        <td class="n"><span class="num">{{ row.balance }}</span></td>
+      </tr>
+      {%- endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="4">الإجمالي <span class="en">Total</span></td><td class="n"><span class="num">{{ s.total_debit }}</span></td><td class="n"><span class="num">{{ s.total_credit }}</span></td><td class="n"></td></tr>
+      <tr><td colspan="4">الرصيد الختامي <span class="en">Closing balance</span></td><td class="n"></td><td class="n"></td><td class="n"><span class="num">{{ s.closing }}</span></td></tr>
+    </tfoot>
+  </table>
+  <div class="zo-statement__note">الأرصدة الدائنة بين قوسين — <span class="en">Credit balances in brackets</span></div>
+  <div class="zo-statement__printed">طُبع في <span class="num">{{ (ctx.printed_at or "") | e }}</span> بواسطة {{ (ctx.printed_by or "") | e }} — <span class="en">Printed at <span class="num">{{ (ctx.printed_at or "") | e }}</span> by {{ (ctx.printed_by or "") | e }}</span></div>
+</div>
+{%- endcall %}

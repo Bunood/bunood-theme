@@ -196,7 +196,7 @@ class PrintEngineTests(unittest.TestCase):
 		sheet = (ROOT / "bunood_theme/templates/print/print_kit.css").read_text(encoding="utf-8")
 		# Every A4/A5 family draws its page through the kit's one `page` macro.
 		for family in ("sales_invoice_a4.html", "trade_a4.html", "voucher.html", "journal_a4.html",
-				"statement_shell.html"):
+				"statement_shell.html", "statement.html"):
 			template = (ROOT / "bunood_theme/templates/print" / family).read_text(encoding="utf-8")
 			with self.subTest(family=family):
 				self.assertIn("{%- call page(", template)
@@ -295,13 +295,16 @@ class PrintEngineTests(unittest.TestCase):
 		self.assertNotIn("'", markup)
 		for code in (part.split("%}", 1)[0] for part in template.split("{%")[1:]):
 			self.assertNotRegex(code, r"(?<![:\\])//", code[:60])
-		# The page (language, direction, head, foot) comes from the server's context, rendered by the
-		# kit's own `page` macro; the marker sends the PDF through Chromium.
-		self.assertIn('method: "bunood_theme.printing.statement.context"', template)
-		self.assertIn("{%= ctx.open", template)
-		self.assertIn("{%= ctx.close", template)
-		self.assertIn('<div class="zo-statement">', template)
-		self.assertIn("ar = (((frappe.boot && frappe.boot.lang)", template)
+		# A shell (the v0.60.0 review, finding 2): the report's filters go to the server, which runs
+		# the General Ledger and lays the statement out with the kit's `page` macro; the browser
+		# prints what comes back, and the PDF renders it again from the same filters.
+		self.assertIn('method: "bunood_theme.printing.statement.render"', template)
+		self.assertIn("filters: JSON.stringify(filters", template)
+		self.assertIn("{%= html %}", template)
+		self.assertNotIn("zo-statement", template.split("-->", 1)[1], "the markup is the server's")
+		server = (ROOT / "bunood_theme/templates/print/statement.html").read_text(encoding="utf-8")
+		self.assertIn("call page(", server)
+		self.assertIn('<div class="zo-statement" data-zo-filters="{{ s.filters | e }}">', server)
 
 
 if __name__ == "__main__":

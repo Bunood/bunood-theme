@@ -11,6 +11,7 @@ quantities, a voucher is A5 landscape, every figure column of a receipt has its 
 import ast
 from datetime import date
 import importlib.util
+import json
 from pathlib import Path
 import re
 import sys
@@ -343,34 +344,123 @@ class StatementTests(unittest.TestCase):
                          "the against document by its own kind")
         self.assertEqual(len(labels["JV-1"]["note_ar"]), 120)
 
-    def test_a_statement_prints_on_chromium_every_other_report_on_frappes_path(self):
+    def statement_module(self):
+        statement, frappe = load_with_view("isolated_statement_render", "printing/statement.py")
+        frappe.ValidationError = type("ValidationError", (Exception,), {})
+        frappe.PermissionError = type("PermissionError", (Exception,), {})
+        frappe.defaults = SimpleNamespace(get_user_default=lambda key: "C")
+        frappe._dict = lambda *a, **k: Doc(*a, **k)
+        return statement, frappe
+
+    def reports_module(self, statement):
         calls = []
         native = ModuleType("frappe.utils.print_format")
-        native.report_to_pdf = lambda html, orientation: calls.append(("native", orientation))
+        native.report_to_pdf = lambda html, orientation: calls.append(("native", html, orientation))
         pdf = ModuleType("frappe.utils.pdf")
-        pdf.get_chrome_pdf = lambda fmt, html, options, output, engine: calls.append(("chrome", fmt, engine)) or b"%PDF"
+        pdf.get_chrome_pdf = lambda fmt, html, options, output, engine: calls.append(("chrome", fmt, html, engine)) or b"%PDF"
         access = ModuleType("frappe.core.doctype.access_log.access_log")
         access.make_access_log = lambda **k: None
         assets = ModuleType("bunood_theme.printing.report_assets")
         assets.canonical_print_stylesheet = lambda html, *a: html
         globals_ = ModuleType("frappe.utils.jinja_globals")
         globals_.bundled_asset = lambda name, rtl=False: name
-        statement = ModuleType("bunood_theme.printing.statement")
-        statement.MARKER = "zo-statement"
         names = load_with_view("isolated_names_reports", "printing/names.py")[0]
-        reports, frappe = load_with_view("isolated_reports", "printing/reports.py", {
-            "frappe.utils.print_format": native, "frappe.utils.jinja_globals": globals_,
-            "bunood_theme.printing.report_assets": assets, "bunood_theme.printing.statement": statement})
-        frappe.utils.get_url = lambda **k: "http://site"
-        reports.get_url = frappe.utils.get_url
+        limited = []
+        printing = ModuleType("bunood_theme.printing")
+        package = ModuleType("bunood_theme")
+        package.printing = printing
+        modules = {"frappe.utils.print_format": native, "frappe.utils.jinja_globals": globals_,
+                   "bunood_theme": package, "bunood_theme.printing": printing,
+                   "bunood_theme.printing.report_assets": assets, "bunood_theme.printing.statement": statement}
+        frappe, _utils = fake_frappe()
+        frappe.whitelist = lambda *a, **k: (lambda fn: fn)
+        frappe.concurrent_limit = lambda *a, **k: (lambda fn: limited.append(fn.__name__) or fn)
+        spec = importlib.util.spec_from_file_location("isolated_reports", ROOT / "printing/reports.py")
+        reports = importlib.util.module_from_spec(spec)
+        with patch.dict(sys.modules, {"frappe": frappe, "frappe.utils": _utils, **modules}):
+            _utils.get_url = lambda **k: "http://site"
+            spec.loader.exec_module(reports)
         frappe.request = SimpleNamespace(host_url="http://site/", headers={})
         frappe.local = SimpleNamespace(response=SimpleNamespace())
-        with patch.dict(sys.modules, {"frappe.utils.pdf": pdf, "frappe.core.doctype.access_log.access_log": access,
-                                      "bunood_theme.printing.names": names, "frappe": frappe}):
-            reports.report_to_pdf('<div class="zo-statement">…</div>')
+        run = {"frappe.utils.pdf": pdf, "frappe.core.doctype.access_log.access_log": access,
+               "bunood_theme.printing.names": names, "bunood_theme.printing.statement": statement, "frappe": frappe}
+        return reports, frappe, calls, limited, run
+
+    def test_a_statement_pdf_never_renders_the_posted_html(self):
+        """Any signed-in user can POST to report_to_pdf, and Chromium fetches what a page names: a
+        posted statement's HTML is never rendered — only its filters are read, and the statement
+        is built again on the server from the report's own data (the v0.60.0 review, finding 2)."""
+        statement, _frappe = self.statement_module()
+        built = []
+        statement.document = lambda filters: built.append(filters) or "<html>the server's statement</html>"
+        reports, frappe, calls, limited, run = self.reports_module(statement)
+        probes = ('<img src="http://169.254.169.254/latest/meta-data/">'
+                  '<link rel="stylesheet" href="http://10.0.0.7:6379/x.css"><iframe src="file:///etc/passwd"></iframe>')
+        posted = ('<div class="zo-statement" data-zo-filters="{&quot;company&quot;:&quot;C&quot;,'
+                  '&quot;party_type&quot;:&quot;Customer&quot;,&quot;party&quot;:[&quot;Cust&quot;]}">' + probes + "</div>")
+        with patch.dict(sys.modules, run):
+            reports.report_to_pdf(posted)
+            reports.report_to_pdf('<div class="zo-statement">' + probes + "</div>")
+            reports.report_to_pdf('<div class="zo-statement" data-zo-filters="not json">' + probes + "</div>")
             reports.report_to_pdf("<table>a ledger</table>", "Portrait")
-        self.assertEqual(calls, [("chrome", "كشف حساب - A4", "chrome"), ("native", "Portrait")])
+        self.assertEqual(built, [{"company": "C", "party_type": "Customer", "party": ["Cust"]}])
+        chrome = [c for c in calls if c[0] == "chrome"]
+        self.assertEqual(len(chrome), 1)
+        self.assertEqual(chrome[0][1:], ("كشف حساب - A4", "<html>the server's statement</html>", "chrome"))
+        for url in ("169.254.169.254", "10.0.0.7", "file:///etc/passwd"):
+            self.assertNotIn(url, chrome[0][2], "Chromium never sees what was posted")
+        # No filters to rebuild from: Frappe's own path (wkhtmltopdf behind its dead proxy), never Chromium.
+        self.assertEqual([c[0] for c in calls], ["chrome", "native", "native", "native"])
+        self.assertEqual(calls[-1][2], "Portrait")
         self.assertEqual(frappe.local.response.type, "pdf")
+        self.assertEqual(limited, ["report_to_pdf"], "Frappe's concurrent limit stays on the override")
+
+    def test_the_statement_is_built_from_the_reports_own_rows(self):
+        statement, frappe = self.statement_module()
+        rows = [
+            {"account": "'Opening'", "debit": 1000, "credit": 0, "balance": 1000},
+            {"posting_date": "2026-10-01", "voucher_type": "Sales Invoice", "voucher_no": "SINV-1", "debit": 2300,
+             "credit": 0, "balance": 3300, "remarks": '<img src="http://evil.example/x.png">'},
+            {"posting_date": "2026-10-05", "voucher_type": "Payment Entry", "voucher_no": "PE-1", "debit": 0,
+             "credit": 4000, "balance": -700, "remarks": "No Remarks", "against_voucher_type": "Sales Invoice",
+             "against_voucher": "SINV-1"},
+            {"account": "'Total'", "debit": 2300, "credit": 4000, "balance": -1700},
+            {"account": "'Closing (Opening + Total)'", "debit": 3300, "credit": 4000, "balance": -700},
+        ]
+        asked = []
+        report = ModuleType("frappe.desk.query_report")
+        report.run = lambda name, filters=None, **k: asked.append((name, filters, k)) or {"result": rows}
+        statement.context = lambda **k: {
+            "title_ar": "كشف حساب عميل", "party_box": "", "aging": [], "printed_at": "2026-10-15 18:20",
+            "printed_by": "Cashier", "lines": statement.line_labels(json.loads(k["lines"]))}
+        frappe.get_all = lambda doctype, **k: []
+        frappe.get_meta = lambda doctype: SimpleNamespace(has_field=lambda field: False)
+        rendered = {}
+
+        def render_template(path, context):
+            rendered["path"] = path
+            rendered["html"] = env_render(path, context["doc"], s=context["s"]).decode()
+            return rendered["html"]
+
+        frappe.render_template = render_template
+        filters = '{"company": "C", "party_type": "Customer", "party": ["Cust"], "from_date": "2026-10-01", "to_date": "2026-10-31"}'
+        with patch.dict(sys.modules, {**VIEW_MODULES, "frappe.desk": ModuleType("frappe.desk"),
+                                      "frappe.desk.query_report": report}):
+            html = statement.render(filters)
+        self.assertEqual(asked[0][0], "General Ledger", "Frappe's own runner: the Report's roles and permissions")
+        self.assertEqual(asked[0][1]["party"], ["Cust"])
+        self.assertEqual(rendered["path"], "templates/print/statement.html")
+        page = BeautifulSoup(html, "html.parser")
+        marker = page.select_one(".zo-statement")
+        self.assertEqual(json.loads(marker["data-zo-filters"])["party"], ["Cust"], "the PDF rebuilds from these")
+        body = [[td.get_text(" ", strip=True) for td in tr.select("td")] for tr in page.select(".zo-items tbody tr")]
+        self.assertEqual(body[0][-3:], ["1,000.00", "", "1,000.00"], "the opening")
+        self.assertEqual(body[1][:3], ["2026-10-01", "فاتورة مبيعات", "SINV-1"])
+        self.assertEqual(body[2][2:], ["PE-1", "فاتورة مبيعات SINV-1", "—", "4,000.00", "(700.00)"])
+        self.assertIsNone(page.select_one(".zo-items img"), "a remark is text, never markup")
+        self.assertIn('&lt;img src="http://evil.example/x.png"&gt;', html)
+        foot = [td.get_text(" ", strip=True) for td in page.select(".zo-items tfoot tr")[1].select("td")]
+        self.assertEqual(foot[-1], "(700.00)", "the closing")
 
 
 if __name__ == "__main__":
