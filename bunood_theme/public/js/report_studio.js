@@ -2920,6 +2920,8 @@
 				for (const col of visible) {
 					const th = el("th", null, col.label);
 					if (["Currency", "Float", "Int", "Percent"].includes(col.fieldtype)) th.classList.add("is-num");
+					// Money columns share one width, so debit and credit read as a pair.
+					if (col.fieldtype === "Currency") th.classList.add("is-money");
 					headRow.append(th);
 				}
 				thead.append(headRow);
@@ -2992,6 +2994,9 @@
 							}
 							const td = el("td");
 							td.innerHTML = fmt(raw, col);
+							// A text cell keeps one line; its whole text is the title.
+							const whole = td.textContent.trim();
+							if (whole.length > 24) td.title = whole;
 							if (isTree && position === 0) {
 								td.style.paddingInlineStart =
 									"calc(var(--bnd-sp-3) + " + level + " * var(--bnd-sp-5))";
@@ -3010,6 +3015,7 @@
 							}
 							if (["Currency", "Float", "Int", "Percent"].includes(col.fieldtype)) {
 								td.classList.add("is-num");
+								if (col.fieldtype === "Currency") td.classList.add("is-money");
 								if (parseFloat(raw) < 0) td.classList.add("is-neg");
 							}
 							// خلية المرجع تفتح مستندها — كما في العرض التقليدي.
@@ -3082,8 +3088,10 @@
 						const td = el("td");
 						if (position === 0) td.textContent = __("Total");
 						else if (numericVisible.includes(col)) {
-							td.innerHTML = fmt(sumBy(agg.bodyRows, shape, col), col);
+							const sum = sumBy(agg.bodyRows, shape, col);
+							td.innerHTML = fmt(sum, col);
 							td.classList.add("is-num");
+							if (sum < 0) td.classList.add("is-neg");
 						}
 						tr.append(td);
 					});

@@ -32,6 +32,7 @@
 //   when the attribute is present; the usable base layout must not depend on it.
 // ============================================================================
 @use "../breakpoints" as bp;
+@use "../sheet";
 
 .bnd-studio {
 	--bnd-studio-cat: var(--bnd-brand);
@@ -816,88 +817,58 @@
 		font-variant-numeric: tabular-nums;
 	}
 
+	// The organised table (owner, 2026-10-15): the business app's shared table,
+	// through the one partial (_sheet.scss). The frame scrolls inside the card
+	// both ways; the header band sticks to its top.
 	.bnd-studio__tablewrap {
-		overflow: auto;
-		max-block-size: 60vh;
+		@include sheet.frame;
+		margin: var(--bnd-sp-3);
 	}
 
 	.bnd-studio__table {
-		inline-size: 100%;
-		border-collapse: collapse;
-		font-size: var(--bnd-text-sm);
+		@include sheet.table;
 
+		// A worksheet keeps every cell on one line; the frame scrolls sideways.
 		th,
 		td {
-			padding-block: var(--bnd-sp-2);
-			padding-inline: var(--bnd-sp-3);
-			text-align: start;
 			white-space: nowrap;
 		}
 
-		thead th {
-			position: sticky;
-			inset-block-start: 0;
-			background: var(--bnd-raised);
-			color: var(--bnd-ink-muted);
-			font-weight: var(--bnd-weight-medium);
-			font-size: var(--bnd-text-xs);
-			text-transform: none;
-			border-block-end: var(--bnd-line) solid var(--bnd-border-strong);
-			z-index: 1;
+		// A long text cell keeps one line and shows the rest in its title (the
+		// renderer sets it); a figure never clips.
+		td:not(.is-num) {
+			max-inline-size: 18rem;
+			overflow: hidden;
+			text-overflow: ellipsis;
 		}
 
-		tbody tr {
-			// --bnd-line is a WIDTH; the colour is --bnd-border. The old order
-			// (`1px solid var(--bnd-line)`) parsed invalid and the rule dropped —
-			// rows rendered unruled. Same fix in the tools bar and the print grid.
-			border-block-end: var(--bnd-line) solid var(--bnd-border);
-			transition: background var(--bnd-dur-fast) var(--bnd-ease);
+		// Row states paint the CELLS: the zebra is on the cells, so a state
+		// painted on the row would sit under it on every second row.
+		tbody tr:not(.is-total, .is-section, .is-spacer):hover > td {
+			background: var(--bnd-hover);
+		}
 
-			&:hover {
-				background: var(--bnd-hover);
-			}
+		// فاصل بصري بين أقسام القائمة (صفوف إرمبنكست الفارغة)
+		tbody tr.is-spacer > td {
+			padding: 0;
+			block-size: var(--bnd-sp-3);
+			border-block-end: 0;
+			background: var(--bnd-surface);
+		}
 
-			// عقدة مجموعة في شجرة القوائم المالية
-			&.is-group > td {
-				font-weight: var(--bnd-weight-medium);
-			}
+		// A return row wears a faint wash of the critical hue — visible in a
+		// scan, quiet enough not to shout over the figures.
+		tbody tr.is-return > td {
+			background: color-mix(in srgb, var(--bnd-critical) 5%, var(--bnd-surface));
+		}
 
-			// فاصل بصري بين أقسام القائمة (صفوف إرمبنكست الفارغة)
-			&.is-spacer {
-				border-block-end: none;
-
-				td {
-					padding: 0;
-					block-size: var(--bnd-sp-3);
-				}
-			}
-
-			// A return row wears a faint wash of the critical hue — visible in a
-			// scan, quiet enough not to shout over the figures.
-			&.is-return {
-				background: color-mix(in srgb, var(--bnd-critical) 5%, transparent);
-			}
-
-			&.is-total {
-				background: var(--bnd-pane);
-				font-weight: var(--bnd-weight-medium);
-			}
-
-			// عنوان قسم في ورقةٍ تصرّح صفوفها بطبيعتها (الإقرار الضريبي):
-			// شريط هادئ بلون فئة البطاقة يفصل المبيعات عن المشتريات عن الصافي.
-			&.is-section {
-				background: color-mix(in srgb, var(--bnd-studio-cat, var(--bnd-brand)) 8%, transparent);
-
-				> td {
-					padding-block: var(--bnd-sp-2);
-					font-size: var(--bnd-text-xs);
-					color: var(--bnd-ink);
-				}
-
-				&:hover {
-					background: color-mix(in srgb, var(--bnd-studio-cat, var(--bnd-brand)) 8%, transparent);
-				}
-			}
+		// عنوان قسم في ورقةٍ تصرّح صفوفها بطبيعتها (الإقرار الضريبي):
+		// شريط هادئ بلون فئة البطاقة يفصل المبيعات عن المشتريات عن الصافي.
+		tbody tr.is-section > td {
+			background: color-mix(in srgb, var(--bnd-studio-cat) 8%, var(--bnd-surface));
+			color: var(--bnd-ink);
+			font-size: var(--bnd-text-xs);
+			font-weight: 700;
 		}
 
 		.bnd-studio__caret {
@@ -933,22 +904,10 @@
 			}
 		}
 
-		td.is-num,
-		th.is-num {
-			text-align: end;
-			font-variant-numeric: tabular-nums;
-		}
-
-		td.is-neg {
-			color: var(--bnd-critical);
-		}
-
+		// The computed totals stay in view at the foot of the scrolling frame.
 		tfoot td {
 			position: sticky;
 			inset-block-end: 0;
-			background: var(--bnd-raised);
-			border-block-start: 2px solid var(--bnd-border-strong);
-			font-weight: var(--bnd-weight-medium);
 		}
 	}
 
@@ -1602,7 +1561,10 @@
 		}
 
 		// ── جدول محكم: شبكة كاملة، رأس يتكرر مع كل صفحة ─────────────────
+		// The organised table on paper (_sheet.scss): grey bands from black
+		// ink on white, the header on every page, whole rows.
 		.bnd-studio__table {
+			@include sheet.paper-table;
 			font-size: var(--bnd-text-xs);
 
 			thead {
@@ -1630,6 +1592,10 @@
 
 			td.is-num {
 				white-space: nowrap;
+			}
+
+			td:not(.is-num) {
+				max-inline-size: none;
 			}
 
 			tfoot td {
