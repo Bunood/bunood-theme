@@ -1319,7 +1319,17 @@ GROUNDS = {
 #: ``check_palette_catalogue`` re-derives each triple in both modes and re-measures
 #: the fill, its label and the ring. A palette the sweep does not carry would be
 #: coverage the gate claims and does not have.
+#:
+#: ZERO ONE IS THE IDENTITY, NOT A RADIX STEP (THE OWNER, 2026-10-15). The product is
+#: «زيرو ون» and the approved designs paint it in the logo's blue, #1d55c0, so the seed
+#: is the identity's own colour rather than a scale's. It needs no correction in light
+#: (the seed is the fill, the ink and the text, under white at 6.75:1); dark lifts it
+#: to the theme's fill floor like every other seed. The accent stays the shipped
+#: #0090ff, which clears every floor on the blue page. **Bunood** — the green that
+#: shipped before it — stays, under its own name, for a tenant who wants it back;
+#: ``patches/v0_60_0/zerone_palette`` moves only a site still on it unchanged.
 PALETTES = {
+    "Zero One": {"brand_color": "#1d55c0", "accent_color": "#0090ff", "ground": None},
     "Bunood":  {"brand_color": "#3d8150", "accent_color": "#0090ff", "ground": None},
     "Indigo":  {"brand_color": "#3e63dd", "accent_color": "#00a2c7", "ground": "slate"},
     "Blue":    {"brand_color": "#0090ff", "accent_color": "#ab4aba", "ground": "slate"},
@@ -1341,16 +1351,19 @@ PALETTES = {
 }
 
 #: ``ground: None`` means "mix the brand", which is what every desk did before
-#: item 37 — and it is why **Bunood** takes it. The shipped default must equal a
-#: palette exactly or a brand-new site reads "Custom" on the day it is installed,
-#: and shipping a neutral ground by default would repaint the page tint of every
-#: site that upgrades. The axis is offered, not imposed; the other sixteen carry a
-#: real neutral because that is the point of choosing one.
+#: item 37 — and it is why **Zero One** takes it, as **Bunood** did before it. The
+#: shipped default must equal a palette exactly or a brand-new site reads "Custom"
+#: on the day it is installed, and shipping a neutral ground by default would repaint
+#: the page tint of every site that upgrades. It is also the approved design: the
+#: mock's page and its active wash are the blue mixed into white. The axis is offered,
+#: not imposed; the sixteen Radix palettes carry a real neutral because that is the
+#: point of choosing one.
 
 #: The palette a fresh install gets. Named once: it seeds ``brand_color`` and
 #: ``accent_color`` in :mod:`setup`, and it is what the derived label must match
-#: or a brand-new site reads "Custom" on the day it is installed.
-DEFAULT_PALETTE = "Bunood"
+#: or a brand-new site reads "Custom" on the day it is installed. The looks that
+#: carry the shipped palette name THIS, not a palette, so they follow it.
+DEFAULT_PALETTE = "Zero One"
 
 
 def palette_seeds(name: str) -> dict:
@@ -1468,6 +1481,11 @@ THEME_AXES = _theme_axes()
 #: elevation, IBM Carbon's grid, Odoo's document sheet, shadcn's neutral — but every
 #: value is drawn from that field's own ``options`` list, so nothing here is a value
 #: the doctype would refuse.
+#:
+#: FOUR LOOKS NAME ``DEFAULT_PALETTE`` RATHER THAN A PALETTE: the product's own
+#: (Console, Night, Day) and Quiet, which stands everything down to the shipped
+#: palette. They named "Bunood" because it shipped; since the zerONE blue ships, a
+#: look left on the green would read "Custom" on every site the palette patch moves.
 THEME_PRESETS = {
     # Item 43's pick, named by the user (2026-09-08): the desk of the "Console"
     # look — full bleed, a brand-dark hero band with the record's facts and a
@@ -1477,11 +1495,11 @@ THEME_PRESETS = {
     # values are EMPTY because it IS the shipped default: every default map
     # above carries the pick, and _shipped_baseline() composes it.
     "Bunood Console": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
+        "layout": DEFAULT_DESK_LAYOUT, "palette": DEFAULT_PALETTE, "sidebar": "Bunood Night",
         "values": {},
     },
     "Bunood Night": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Bunood Night",
+        "layout": DEFAULT_DESK_LAYOUT, "palette": DEFAULT_PALETTE, "sidebar": "Bunood Night",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at
@@ -1496,7 +1514,7 @@ THEME_PRESETS = {
         # Rail + Flyout, declared: this card composed a Rail pane through its look while
         # declaring Unified Side Pane, and `layout_of()` then lit the wrong layout card
         # (the settings audit of 2026-09-21). The LAYOUT owns the pane state now.
-        "layout": "Rail + Flyout", "palette": "Bunood", "sidebar": "Bunood Light",
+        "layout": "Rail + Flyout", "palette": DEFAULT_PALETTE, "sidebar": "Bunood Light",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at
@@ -1685,7 +1703,7 @@ THEME_PRESETS = {
     # CAN stand down does, the three that cannot take their quietest pole, and the
     # picker's blurb says which three and why.
     "Quiet": {
-        "layout": DEFAULT_DESK_LAYOUT, "palette": "Bunood", "sidebar": "Ink",
+        "layout": DEFAULT_DESK_LAYOUT, "palette": DEFAULT_PALETTE, "sidebar": "Ink",
         "values": {
             # Item 43 (Bunood Console) moved the shipped defaults; this look keeps
             # the desk it had: the earlier list and sidebar, and every new axis at

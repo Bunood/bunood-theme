@@ -24,7 +24,8 @@
     "tokens, never raw hex" rule governs RULES in a stylesheet; this is an image
     asset, outside the palette derivation and outside the contrast gate, and a
     favicon is fetched with no site context, so there is no token to read here
-    even in principle. The shipped palette seed (#3d8150) is unchanged.
+    even in principle. The shipped palette ("Zero One", presets.PALETTES) is
+    seeded with this tile's #1d55c0, but a tenant's own seed never repaints it.
 
     WHY PATHS AND NOT `<text>`: an SVG favicon is rasterised by the browser with
     no guarantee about available fonts, and a splash renders before any webfont

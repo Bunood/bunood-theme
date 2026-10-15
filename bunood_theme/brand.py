@@ -50,6 +50,7 @@ import os
 import frappe
 
 from bunood_theme import palette
+from bunood_theme.presets import DEFAULT_PALETTE, PALETTES
 from bunood_theme.typography import DEFAULT_FACE, FACES, ARABIC_RANGE
 
 #: Subdirectory under the site's ``public/files``. Kept in its own folder so reaping
@@ -132,8 +133,13 @@ def render_brand_css(settings=None) -> str:
     """
     s = settings or frappe.get_single("Theme Settings")
 
-    brand = (getattr(s, "brand_color", None) or "#3d8150").strip()
-    accent = (getattr(s, "accent_color", None) or "#0090ff").strip()
+    # An empty seed falls back to the SHIPPED palette, read from the one catalogue.
+    # These were two hex literals — a second copy of the default that renders only
+    # when the field is empty, so no test that sets a seed ever saw it, and the
+    # zerONE blue would have left this sheet painting the retired green.
+    shipped = PALETTES[DEFAULT_PALETTE]
+    brand = (getattr(s, "brand_color", None) or shipped["brand_color"]).strip()
+    accent = (getattr(s, "accent_color", None) or shipped["accent_color"]).strip()
     # Empty dark seeds fall back to the light ones. That is deliberate: a customer who
     # has not thought about dark mode still gets a coherent (if less tuned) result,
     # rather than an unthemed one.

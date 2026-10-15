@@ -509,7 +509,9 @@ DARK_FILL_MIN_L = 62.0
 #: Seeds to check. The first is what ships; the rest are the colours a tenant
 #: plausibly picks, including the two GUIDELINES §2.2 measured as catastrophic.
 SEEDS = [
-    ("#3d8150", "shipped default"),
+    # The zerONE blue (palette Zero One, THE OWNER 2026-10-15). It took the first slot
+    # from #3d8150, which is still swept below as the kept "Bunood" palette.
+    ("#1d55c0", "shipped default"),
     ("#0090ff", "accent blue"),
     ("#c8923c", "gold"),
     ("#f5c542", "bright yellow"),
@@ -529,7 +531,8 @@ SEEDS = [
     # "a colour somebody might paste in" — it has to be swept like the shipped
     # default. `check_palette_catalogue` additionally re-derives each one as the
     # (brand, accent, ground) TRIPLE it actually ships; this list is what puts its
-    # brand through the full pair set. Bunood is already the shipped default above.
+    # brand through the full pair set. Zero One is already the shipped default above.
+    ("#3d8150", "palette Bunood"),
     ("#3e63dd", "palette Indigo"),
     ("#0090ff", "palette Blue"),
     ("#00a2c7", "palette Cyan"),

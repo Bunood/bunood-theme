@@ -653,8 +653,10 @@ def fill_pair(
         the case GUIDELINES §2.2 flags. Moving the fill a few percent closes it
         while leaving the colour recognisably the customer's.
 
-        The shipped seed is ``#3d8150`` now, which clears the band at 4.71 against
-        white and is therefore painted VERBATIM — the recalibration's whole point.
+        The recalibrated ``#3d8150`` cleared the band at 4.71 against white and was
+        painted VERBATIM — the recalibration's whole point. The zerONE blue that ships
+        now, ``#1d55c0``, sits further clear (6.75 against white) and is painted
+        verbatim too.
         The example is kept because the band did not go anywhere: it is where any
         mid-luminance customer seed still lands, and this branch is what catches it.
 
