@@ -32,17 +32,20 @@ test('it rides the signature row and carries no colour of its own', () => {
 });
 
 test('the tax invoice and the quotation close with the seal, above their signature lines', () => {
-	// The quotation keeps the shared macros until its redesign (the brief's Stage 2).
+	// Stage 2: the quotation is the trade family's (trade_a4.html); its signature row carries the
+	// seal in the seller's cell, the first (printing/documents.py SIGNATURES: labels, seal index).
 	const quotation = format('quotation_a4.html');
-	assert.match(quotation, /import [^%]*seal_row/, 'quotation_a4.html imports seal_row');
-	const at = quotation.indexOf('{{ seal_row(doc');
-	assert.ok(at > 0 && at < quotation.indexOf('{{ sig_row('), 'quotation: the seal comes before the signature lines');
+	assert.match(quotation, /\{% include "templates\/print\/trade_a4\.html" %\}/);
+	const trade = fs.readFileSync('bunood_theme/templates/print/trade_a4.html', 'utf8');
+	assert.match(trade, /\{\{ signatures\(p, v\.signatures, seal=v\.seal\) \}\}/);
+	const documents = fs.readFileSync('bunood_theme/printing/documents.py', 'utf8');
+	assert.match(documents, /"quotation": \(\[\("البائع", "Seller"\), \("قبول العميل", "Customer acceptance"\)\], 0\)/);
 	// The print kit (2026-10-15): the standard tax invoice's signature row carries the seal in the
 	// seller's cell — the company's signature, its stamp and its signatory, from the print profile,
 	// which inlines both private images (printing/profile.py `_image` → bunood_print_image_src).
 	const kit = fs.readFileSync('bunood_theme/templates/print/kit.html', 'utf8');
 	const sigs = kit.slice(kit.indexOf('{% macro signatures('), kit.indexOf('{%- endmacro %}', kit.indexOf('{% macro signatures(')));
-	assert.match(sigs, /\{% if loop\.first %\}\{% if p\.signature %\}<img src="\{\{ p\.signature \| e \}\}"/);
+	assert.match(sigs, /\{% if loop\.index0 == seal %\}\{% if p\.signature %\}<img src="\{\{ p\.signature \| e \}\}"/);
 	assert.match(sigs, /\{% if p\.stamp %\}<img src="\{\{ p\.stamp \| e \}\}"/);
 	assert.match(sigs, /p\.signatory/);
 	const profile = fs.readFileSync('bunood_theme/printing/profile.py', 'utf8');

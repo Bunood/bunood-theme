@@ -78,17 +78,32 @@ class PrintEngineTests(unittest.TestCase):
 			self.assertNotRegex(name, r"Bunood|بونود|بنود|زاتكا", name)
 		self.assertEqual(len(formats), len(self.install.FORMATS), "no name twice")
 
-	def test_formats_not_yet_redesigned_keep_their_engine(self):
-		"""Stage 2 of the redesign: renamed now, their files and engines unchanged."""
-		engines = {spec["name"]: spec.get("pdf_generator", "wkhtmltopdf") for spec in self.install.FORMATS}
+	def test_every_managed_format_is_the_kits_on_chromium(self):
+		"""Stage 2 of the redesign: every managed format is a kit family's, on the engine the kit is
+		written for; the sync writes that engine (a format left on wkhtmltopdf loses Cairo, the
+		riyal sign and the logical CSS)."""
 		n = self.names
-		for name in (n.TAX_RECEIPT_80, n.MATRIX_INVOICE, n.VOUCHER_A4, n.JOURNAL_A4):
+		formats = {spec["name"]: spec for spec in self.install.FORMATS}
+		for name, spec in formats.items():
+			with self.subTest(name=name):
+				self.assertEqual(spec.get("pdf_generator"), "chrome", name)
+				body = (ROOT / "bunood_theme/printing/formats" / spec["file"]).read_text(encoding="utf-8")
+				if not spec.get("report"):
+					self.assertRegex(body, r'\{% include "templates/print/[a-z0-9_]+\.html" %\}', name)
+		for name in (n.TAX_RECEIPT_80, n.MATRIX_INVOICE, n.VOUCHER_A4, n.VOUCHER_A5, n.JOURNAL_A4,
+				n.SHIFT_REPORT_80, n.STOCK_ENTRY_A4):
 			self.frappe.get_doc.reset_mock()
-			spec = next(item for item in self.install.FORMATS if item["name"] == name)
-			self.install._sync_format(spec)
-			self.assertEqual(self.frappe.get_doc.call_args.args[0]["pdf_generator"], "wkhtmltopdf", name)
-		for name in (n.PURCHASE_INVOICE_A4, n.QUOTATION_A4, n.STATEMENT_A4):
-			self.assertEqual(engines[name], "chrome", name)
+			self.install._sync_format(formats[name])
+			self.assertEqual(self.frappe.get_doc.call_args.args[0]["pdf_generator"], "chrome", name)
+		# The sales receipts have POS Invoice twins; a matrix head prints no QR, so it has none.
+		for name in (n.SIMPLIFIED_RECEIPT_58, n.TAX_RECEIPT_80, n.GIFT_RECEIPT_80):
+			self.assertEqual(formats[name + n.POS_SUFFIX]["doctype"], "POS Invoice", name)
+		self.assertNotIn(n.MATRIX_INVOICE + n.POS_SUFFIX, formats)
+		# The documents that are not invoices never say «فاتورة» in their names — except the proforma,
+		# whose title the brief fixes as «فاتورة مبدئية» and which prints «ليست فاتورة ضريبية».
+		for name in (n.QUOTATION_A4, n.SALES_ORDER_A4, n.DELIVERY_NOTE_A4, n.PURCHASE_ORDER_A4,
+				n.PURCHASE_RECEIPT_A4, n.STOCK_ENTRY_A4, n.VOUCHER_A5, n.SHIFT_REPORT_80, n.GIFT_RECEIPT_80):
+			self.assertNotIn("فاتورة", name)
 
 	def test_the_style_and_the_letter_head_take_their_new_names(self):
 		self.assertEqual(self.install.STYLE_NAME, "النمط الرسمي")
@@ -162,12 +177,17 @@ class PrintEngineTests(unittest.TestCase):
 		"""Frappe v16's Chromium overlay cannot number pages without print_designer's script,
 		and the .print-format margins it reads shift the overlay; the kit's A4 repeats its head
 		and foot with CSS and numbers the sheets with an @page margin box."""
-		template = (ROOT / "bunood_theme/templates/print/sales_invoice_a4.html").read_text(encoding="utf-8")
 		kit = (ROOT / "bunood_theme/templates/print/kit.html").read_text(encoding="utf-8")
 		sheet = (ROOT / "bunood_theme/templates/print/print_kit.css").read_text(encoding="utf-8")
-		self.assertNotIn('id="header-html"', template)
-		self.assertNotIn('id="footer-html"', template)
-		self.assertIn('<thead><tr><td><div class="zo-frame__head"></div></td></tr></thead>', template)
+		# Every A4/A5 family draws its page through the kit's one `page` macro.
+		for family in ("sales_invoice_a4.html", "trade_a4.html", "voucher.html", "journal_a4.html",
+				"statement_shell.html"):
+			template = (ROOT / "bunood_theme/templates/print" / family).read_text(encoding="utf-8")
+			with self.subTest(family=family):
+				self.assertIn("{%- call page(", template)
+				self.assertNotIn('id="header-html"', template)
+				self.assertNotIn('id="footer-html"', template)
+		self.assertIn('<thead><tr><td><div class="zo-frame__head"></div></td></tr></thead>', kit)
 		self.assertIn("@top-center", kit)
 		self.assertIn("counter(pages)", kit)
 		self.assertIn(".zo-chrome-head { position: fixed;", sheet)
@@ -215,39 +235,58 @@ class PrintEngineTests(unittest.TestCase):
 		self.assertEqual(fixture["state"]["print_title_lang"], "Follow print language")
 
 	def test_managed_customer_documents_declare_language_and_direction(self):
-		# The kit's families follow Print Language; each format file only sets switches.
+		# The kit's families follow Print Language; each format file only sets switches. The A4/A5
+		# families take their language and direction from the kit's `page` macro.
 		formats = ROOT / "bunood_theme/printing/formats"
-		template = (formats / "quotation_a4.html").read_text(encoding="utf-8")
-		self.assertIn("bunood_print_language()", template)
+		kit = (ROOT / "bunood_theme/templates/print/kit.html").read_text(encoding="utf-8")
+		self.assertIn('{%- set ar = bunood_print_language() == "ar" -%}', kit)
+		self.assertIn("lang=\"{{ 'ar' if ar else 'en' }}\"", kit)
 		for filename, family in (
 			("sales_invoice_tax_a4.html", "sales_invoice_a4.html"),
 			("sales_invoice_simplified_a4.html", "sales_invoice_a4.html"),
+			("quotation_a4.html", "trade_a4.html"),
+			("delivery_note_a4.html", "trade_a4.html"),
+			("payment_entry_voucher.html", "voucher.html"),
+			("payment_entry_voucher_a5.html", "voucher.html"),
+			("journal_entry_voucher.html", "journal_a4.html"),
 			("sales_invoice_simplified_thermal.html", "sales_receipt.html"),
+			("sales_invoice_tax_thermal.html", "sales_receipt.html"),
+			("sales_invoice_simplified_thermal_58.html", "sales_receipt.html"),
+			("gift_receipt_thermal.html", "sales_receipt.html"),
+			("pos_closing_shift_thermal.html", "shift_report.html"),
+			("sales_invoice_matrix.html", "matrix.html"),
 		):
 			template = (formats / filename).read_text(encoding="utf-8")
 			body = (ROOT / "bunood_theme/templates/print" / family).read_text(encoding="utf-8")
 			with self.subTest(filename=filename):
 				self.assertIn('{% include "templates/print/' + family + '" %}', template)
-				self.assertIn('bunood_print_language() == "ar"', body)
-				self.assertIn("lang=\"{{ 'ar' if ar else 'en' }}\"", body)
-		# Not redesigned yet (Stage 2): main's Arabic-first layouts, pinned RTL by print.scss.
-		for filename in ("payment_entry_voucher.html", "sales_invoice_tax_thermal.html"):
-			template = (formats / filename).read_text(encoding="utf-8")
-			with self.subTest(filename=filename):
-				self.assertIn('<div class="bnd-p bnd-p--', template)
-		sheet = (ROOT / "bunood_theme/public/scss/print/print.scss").read_text(encoding="utf-8")
-		self.assertRegex(sheet, r"(?m)^\.bnd-p \{\n\tdirection: rtl;\n\}")
+				self.assertNotIn('<div class="bnd-p bnd-p--', template)
+				if family in ("sales_receipt.html", "shift_report.html", "matrix.html"):
+					self.assertIn('bunood_print_language() == "ar"', body)
+					self.assertIn("lang=\"{{ 'ar' if ar else 'en' }}\"", body)
+				else:
+					self.assertIn("call page(", body)
 
 	def test_report_statement_uses_javascript_language_switch_without_jinja(self):
 		template = (
 			ROOT / "bunood_theme/printing/formats/customer_statement.html"
 		).read_text(encoding="utf-8")
 
-		self.assertIn("bndArabic", template)
-		self.assertIn('dir="{%= bndArabic ?', template)
-		self.assertIn('lang="{%= bndArabic ?', template)
+		# A client-side microtemplate: no Jinja, no line comments, no single quotes outside its code
+		# (Frappe's compiler turns `{{` into output tags and breaks on quotes in the markup).
 		self.assertNotIn("{{", template)
 		self.assertNotIn("frappe.local.lang", template)
+		markup = "".join(part.split("%}", 1)[-1] for part in template.split("{%"))
+		self.assertNotIn("'", markup)
+		for code in (part.split("%}", 1)[0] for part in template.split("{%")[1:]):
+			self.assertNotRegex(code, r"(?<![:\\])//", code[:60])
+		# The page (language, direction, head, foot) comes from the server's context, rendered by the
+		# kit's own `page` macro; the marker sends the PDF through Chromium.
+		self.assertIn('method: "bunood_theme.printing.statement.context"', template)
+		self.assertIn("{%= ctx.open", template)
+		self.assertIn("{%= ctx.close", template)
+		self.assertIn('<div class="zo-statement">', template)
+		self.assertIn("ar = (((frappe.boot && frappe.boot.lang)", template)
 
 
 if __name__ == "__main__":
