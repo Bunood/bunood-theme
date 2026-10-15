@@ -385,23 +385,27 @@ msgstr "نمط مسار التصفح"
 
 #. Option for 'Notification Style' in DocType 'Theme Settings'
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Inbox"
-msgstr "وارد بنود"
+msgstr "وارد زيرو ون"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Light"
-msgstr "بنود فاتح"
+msgstr "زيرو ون فاتح"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Night"
-msgstr "بنود ليلي"
+msgstr "زيرو ون ليلي"
 
 #. Option for 'Palette Style' in DocType 'Theme Settings'
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Palette"
-msgstr "لوحة بنود"
+msgstr "لوحة زيرو ون"
 
 #. Option for 'Sidebar Preset' in DocType 'Theme Settings'
 #. src: ai
@@ -2792,8 +2796,9 @@ msgstr "↑↓ تنقّل · ↵ فتح · e مقروء"
 
 #. Name of a DocType
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Translation Proposal"
-msgstr "مقترح ترجمة بنود"
+msgstr "مقترح ترجمة زيرو ون"
 
 #. Label of a Select field in DocType 'Bunood Translation Proposal'
 #. src: ai
@@ -2827,8 +2832,9 @@ msgstr "النص المقترح"
 
 #. Name of a DocType
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Translation Scan"
-msgstr "فحص ترجمة بنود"
+msgstr "فحص ترجمة زيرو ون"
 
 #. Option for 'Status' in DocType 'Bunood Translation Scan'
 #. src: ai
@@ -2917,8 +2923,9 @@ msgstr "الخطأ"
 
 #. Name of a DocType
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Translation Settings"
-msgstr "إعدادات ترجمة بنود"
+msgstr "إعدادات ترجمة زيرو ون"
 
 #. Label of a Section Break field in DocType 'Bunood Translation Settings'
 #. src: ai
@@ -3112,8 +3119,9 @@ msgstr "هذا المقترح لا نص فيه ليُقبل."
 
 #. In i18n/providers.py
 #. src: ai
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Translation Settings has no {0}."
-msgstr "إعدادات ترجمة بنود لا تحوي {0}."
+msgstr "إعدادات ترجمة زيرو ون لا تحوي {0}."
 
 #. In i18n/scan.py
 #. src: ai
@@ -5158,8 +5166,9 @@ msgid "Optional. What the desk's surfaces are mixed from. Empty means the brand,
 msgstr "اختياري. ما تُمزج منه أسطح المكتب. تركه فارغًا يعني لون العلامة التجارية، وهو ما كان عليه كل مكتب قبل وجود هذا الخيار — اختر لونًا محايدًا لمكتب رمادي تحت علامة ملوّنة."
 
 #. src: item37
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Day"
-msgstr "بنود نهاري"
+msgstr "زيرو ون نهاري"
 
 #. src: item37
 msgid "Focus"
@@ -7162,8 +7171,9 @@ msgstr "إجراءات المستند"
 
 #. src: ai
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Console"
-msgstr "بنود كونسول"
+msgstr "زيرو ون كونسول"
 
 #. src: ai
 #, fuzzy
@@ -9337,48 +9347,57 @@ msgstr "محظور: يشير هذا الموقع إلى قاعدة بيانات 
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Control Result"
-msgstr "نتيجة ضابط تسوية ترحيل بنود"
+msgstr "نتيجة ضابط تسوية ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Dataset"
-msgstr "مجموعة بيانات ترحيل بنود"
+msgstr "مجموعة بيانات ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Manager"
-msgstr "مدير ترحيل بنود"
+msgstr "مدير ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Reconciliation"
-msgstr "تسوية ترحيل بنود"
+msgstr "تسوية ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Rehearsal"
-msgstr "تجربة ترحيل بنود"
+msgstr "تجربة ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Rehearsal Result"
-msgstr "نتيجة تجربة ترحيل بنود"
+msgstr "نتيجة تجربة ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Migration Run"
-msgstr "تشغيل ترحيل بنود"
+msgstr "تشغيل ترحيل زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Readiness Review"
-msgstr "مراجعة جاهزية بنود"
+msgstr "مراجعة جاهزية زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Readiness Reviewer"
-msgstr "مراجع جاهزية بنود"
+msgstr "مراجع جاهزية زيرو ون"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
@@ -10821,8 +10840,9 @@ msgstr "بدأها"
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "State the professional, operational or owner authority used for this decision. The Bunood reviewer role alone is not qualification."
-msgstr "وضّح الأساس المهني أو التشغيلي أو صلاحية المالك التي يستند إليها القرار. دور مراجع جاهزية بنود وحده لا يُعد تأهيلًا."
+msgstr "وضّح الأساس المهني أو التشغيلي أو صلاحية المالك التي يستند إليها القرار. دور مراجع جاهزية زيرو ون وحده لا يُعد تأهيلًا."
 
 #. src: capability/onboarding-migration-core
 #, fuzzy
@@ -15098,13 +15118,15 @@ msgstr "الفواتير والمعاملات"
 
 #. src: immutable team Home or integration, Arabic proposal 2026-10-06
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Selling"
-msgstr "مبيعات بنود"
+msgstr "مبيعات زيرو ون"
 
 #. src: immutable team Home or integration, Arabic proposal 2026-10-06
 #, fuzzy
+#. zerONE brand 2026-10-15: the product word in the Arabic (the msgid names a record kept as is)
 msgid "Bunood Buying"
-msgstr "مشتريات بنود"
+msgstr "مشتريات زيرو ون"
 
 #. src: immutable team Home or integration, Arabic proposal 2026-10-06
 #, fuzzy
