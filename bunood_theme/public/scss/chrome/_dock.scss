@@ -91,18 +91,47 @@ html[data-theme] .bnd-dock-item {
   }
 }
 
-// Brand chip: the company mark; routes to the Desktop. Filled with the brand
-// colour so the dock carries identity now that the sidebar header is gone.
+// Brand chip: the company mark; routes to the Desktop. The dock carries identity
+// now that the sidebar header is gone.
+//
+// THE MARK FILLS THE CHIP, and the chip paints nothing of its own (the zerONE
+// brand, 2026-10-15). It used to be a brand-filled square holding the initial
+// letter; it now holds `brand_mark()` — the tenant's logo, else the vendor mark,
+// which carries its OWN rounded tile — so a fill here would box that tile a second
+// time. The chip's radius clips the mark (`border-radius: inherit`), the image is
+// `contain`ed so a wide tenant logo is never cropped, and hover keeps the old
+// brightness lift because a hover wash would sit hidden under the image. The
+// initial arm is the fallback for a boot with no logo at all, filled as before.
 html[data-theme] .bnd-dock-brand {
-  background: var(--bnd-brand-solid);
+  background: transparent;
   color: var(--bnd-on-brand);
   font-weight: var(--bnd-weight-medium);
   font-size: var(--bnd-text-md);
+  overflow: hidden;
 
   &:hover {
-    background: var(--bnd-brand-solid);
+    background: transparent;
     color: var(--bnd-on-brand);
     filter: brightness(1.08);
+  }
+
+  .bnd-sb-brand-mark {
+    display: grid;
+    place-items: center;
+    inline-size: 100%;
+    block-size: 100%;
+    border-radius: inherit;
+    overflow: hidden;
+  }
+
+  .bnd-sb-brand-logo {
+    inline-size: 100%;
+    block-size: 100%;
+    object-fit: contain;
+  }
+
+  .bnd-sb-brand-initial {
+    background: var(--bnd-brand-solid);
   }
 }
 

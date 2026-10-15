@@ -1178,6 +1178,12 @@ html[data-bnd-sb-color] .bnd-sb-brand {
   font-size: var(--bnd-text-base);
   font-weight: var(--bnd-weight-medium);
 
+  // THE TILE PAINTS NOTHING when it holds an image (zerONE, 2026-10-15): boot
+  // serves the vendor mark as `bnd_logo` on a site with no logo, and that file
+  // carries its own rounded tile, so a fill or padding here would box it twice.
+  // Its own corner (116/512 of the side, 9.1px at 40px) is within a pixel of this
+  // radius, so the clip takes nothing visible; a tenant's square logo is clipped
+  // to the tile exactly as before. Only the initial arm below is filled.
   .bnd-sb-brand-mark {
     display: grid;
     place-items: center;

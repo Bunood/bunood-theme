@@ -8689,6 +8689,8 @@ function bnd_identity_specimen(data) {
 	// <img> from boot), and captioning it "first letter — no logo" told an
 	// admin their SVG was unused on the one surface where it is used. The
 	// raster rule belongs to email and paper, and those cells carry it already.
+	// Since the zerONE brand the server sends the vendor mark when no logo is set
+	// (boot draws it in the pane), so the caption names which of the two it is.
 	const mark = !!s.sidebar.logo;
 	const dark = (document.documentElement.getAttribute("data-theme") || "").indexOf("dark") > -1;
 	const light = dark ? data.palette.dark : data.palette.light;
@@ -8701,13 +8703,13 @@ function bnd_identity_specimen(data) {
 		'<div class="bnd-idp-row">' +
 			(mark ? '<img class="bnd-idp-img" src="' + esc(s.sidebar.logo) + '" alt="">' : chip(light.fill, light.on_fill, s.sidebar.letter)) +
 			'<b>' + esc(s.sidebar.name) + "</b></div>",
-		mark ? __("your logo") : __("first letter — no logo")
+		mark ? (data.logo.value ? __("your logo") : __("the Zero One mark")) : __("first letter — no logo")
 	);
 	const tab = cell(
 		__("Browser tab"),
 		'<div class="bnd-idp-tab"><img class="bnd-idp-fav" src="' + esc(s.tab.favicon) + '" alt="">' +
 			"<span>" + esc(s.tab.title) + "</span></div>",
-		data.favicon.value ? __("your favicon") : (data.favicon.site ? __("Website Settings' favicon") : __("the Bunood mark"))
+		data.favicon.value ? __("your favicon") : (data.favicon.site ? __("Website Settings' favicon") : __("the Zero One mark"))
 	);
 	const email = cell(
 		__("Email header"),

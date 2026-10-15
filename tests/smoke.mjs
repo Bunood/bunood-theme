@@ -1918,7 +1918,7 @@ async function main() {
 				"company_name", "tagline", "logo", "favicon", "brand_color", "brand_color_dark",
 			]);
 			const residue =
-				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.(svg|png)|(bunood|zerone)-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
+				/smoke-|ACME Trading|bnd&spec|BND-SENTINEL|frappe-favicon\.(svg|png)|frappe-framework-logo\.(svg|png)|bunood-mark\.svg|files\/mark\.(png|svg)|#2b4fd8|#1a2f6e|#nope/i;
 			// MARKUP-SHAPED RESIDUE IS NEVER A TENANT'S REAL VALUE, and this arm
 			// is here because the fixture list above did not catch the one that
 			// mattered: an interrupted run left `company_name` holding an XSS
@@ -23359,9 +23359,11 @@ print("cleared")
 			// The pane's whole claim is that it shows FACTS it did not author —
 			// the specimen composes from `effective_identity`, which resolves the
 			// chains on the server. So the honest test is the item-32 shape:
-			// unset, the sidebar miniature shows the first-letter chip and says
-			// "no logo"; set to a raster, it shows the image; set to an SVG, the
-			// EMAIL miniature demonstrates the wordmark fallback with its badge.
+			// unset, the sidebar miniature shows the VENDOR MARK and names it (the
+			// zerONE brand: boot draws that mark in the pane when no logo is set,
+			// where it used to draw the first letter); set to a raster, it shows the
+			// tenant's image; set to an SVG, the EMAIL miniature demonstrates the
+			// wordmark fallback with its badge.
 			const openIdentity = async () => {
 				await goDesk("/desk/theme-settings", ".bnd-cbp", 4500);
 				await scrollToSettings("identity");
@@ -23385,15 +23387,18 @@ print("cleared")
 					return {
 						sidebarCap: sb.querySelector(".bnd-idp-cap").textContent,
 						hasImg: !!sb.querySelector("img.bnd-idp-img"),
+						imgSrc: (sb.querySelector("img.bnd-idp-img") || { getAttribute: () => "" }).getAttribute("src") || "",
 						svgBadge: /wordmark used/i.test(idp.textContent),
 					};
 				});
 			await openIdentity();
 			const unset = await read();
-			expect(/no logo/i.test(unset.sidebarCap), `unset, the sidebar caption says no logo ("${unset.sidebarCap}")`);
+			const V = vendor();
+			expect(!/your logo/i.test(unset.sidebarCap), `unset, the sidebar caption does not claim a logo ("${unset.sidebarCap}")`);
 			// The negative that proves the query CAN fail — without it the raster
-			// arm below is unfalsifiable.
-			expect(!unset.hasImg, "unset, the sidebar cell draws the monogram and no image");
+			// arm below is unfalsifiable: unset draws the VENDOR'S file, and only
+			// a set logo may change the src.
+			expectEq(unset.imgSrc, V.mark, "unset, the sidebar cell draws the vendor mark, as the pane does");
 			// A RASTER PATH THAT EXISTS. The first draft used
 			// `frappe-favicon.png` — frappe ships that mark as an SVG, so the
 			// specimen dutifully rendered an <img> at a 404 and the console-error
@@ -23403,10 +23408,13 @@ print("cleared")
 			await withBranding({ logo: "/assets/frappe/images/frappe-framework-logo.png" }, async () => {
 				await openIdentity();
 				const raster = await read();
-				expect(raster.hasImg, "a raster logo renders as an image in the sidebar cell");
+				expectEq(raster.imgSrc, "/assets/frappe/images/frappe-framework-logo.png", "a raster logo renders as the image in the sidebar cell");
+				expect(/your logo/i.test(raster.sidebarCap), `and is captioned as the tenant's ("${raster.sidebarCap}")`);
 				expect(!raster.svgBadge, "a raster logo shows no wordmark-fallback badge");
 			});
-			await withBranding({ logo: "/assets/bunood_theme/images/zerone-mark.svg" }, async () => {
+			// NOT the vendor's own file: with the vendor mark as the unset image, an
+			// SVG fixture equal to it could not tell "set" from "unset".
+			await withBranding({ logo: "/assets/frappe/images/frappe-framework-logo.svg" }, async () => {
 				await openIdentity();
 				const svg = await read();
 				expect(svg.svgBadge, "an SVG logo makes the email miniature demonstrate the wordmark fallback");
@@ -23414,7 +23422,7 @@ print("cleared")
 				// perfectly well, so captioning that cell "no logo" told an admin
 				// their mark was unused on the one surface that uses it. The raster
 				// rule belongs to email and paper, which say so themselves.
-				expect(svg.hasImg, "an SVG logo still renders in the sidebar cell, where the desk does render it");
+				expectEq(svg.imgSrc, "/assets/frappe/images/frappe-framework-logo.svg", "an SVG logo still renders in the sidebar cell, where the desk does render it");
 			});
 		});
 

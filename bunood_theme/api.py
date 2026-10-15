@@ -1116,7 +1116,9 @@ def effective_identity() -> dict:
         "favicon": {"value": favicon, "site": site_favicon, "vendor": VENDOR_MARK},
         "tagline": tagline,
         "surfaces": {
-            "sidebar": {"logo": logo, "name": name, "letter": (name[:1] or "B")},
+            # The tenant's logo, else the vendor mark: what boot serves the pane as
+            # `bnd_logo` since the zerONE brand, so the specimen draws what the desk does.
+            "sidebar": {"logo": logo or VENDOR_MARK, "name": name, "letter": name[:1]},
             "tab": {"favicon": favicon or site_favicon or VENDOR_MARK, "title": name},
             "email": {"mark": logo if _is_raster(logo) else "", "name": name, "svg_dropped": bool(logo) and not _is_raster(logo)},
             "paper": {"logo": logo if _is_raster(logo) else "", "name_en": company_en, "name_ar": company_ar, "svg_dropped": bool(logo) and not _is_raster(logo)},

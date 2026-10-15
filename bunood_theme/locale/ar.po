@@ -5032,8 +5032,9 @@ msgstr "أيقونة إعدادات الموقع"
 
 #. In theme_settings.js
 #. src: item36
-msgid "the Bunood mark"
-msgstr "علامة بنود"
+#. zerONE brand 2026-10-15: renamed from 'the Bunood mark'
+msgid "the Zero One mark"
+msgstr "علامة زيرو ون"
 
 #. In theme_settings.js
 #. src: item36

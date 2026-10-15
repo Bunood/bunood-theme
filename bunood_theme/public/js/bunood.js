@@ -3869,16 +3869,16 @@
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
-	/** The brand mark — logo, or the initial on the brand tile — for the pane's
-	 *  brand row, the page head's pill and the start pill. One builder; the
-	 *  third copy had drifted to a class no rule painted (_sidebar.scss). */
+	/** The brand mark — the logo, else the vendor mark (boot decides) — for the
+	 *  pane's brand row, the page head's pill, the start pill and the dock chip.
+	 *  One builder; the third copy had drifted to a class no rule painted. */
 	function brand_mark() {
 		const mark = el("span", "bnd-sb-brand-mark");
 		if (frappe.boot.bnd_logo) {
 			mark.appendChild(el("img", "bnd-sb-brand-logo", { src: frappe.boot.bnd_logo, alt: "" }));
 		} else {
 			mark.classList.add("bnd-sb-brand-initial");
-			mark.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+			mark.textContent = (frappe.boot.bnd_company || "").charAt(0).toUpperCase();
 		}
 		return mark;
 	}
@@ -7512,12 +7512,13 @@
 		const dock = el("div", "bnd-dock", { role: "navigation", "aria-label": __("Workspaces") });
 
 		// Brand chip -> Desktop. Carries identity now that the sidebar is gone.
+		const brand_label = frappe.boot.bnd_company + " — " + __("Desktop");
 		const brand = el("button", "bnd-dock-item bnd-dock-brand", {
 			type: "button",
-			title: (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
-			"aria-label": (frappe.boot.bnd_company || "Bunood") + " — " + __("Desktop"),
+			title: brand_label,
+			"aria-label": brand_label,
 		});
-		brand.textContent = (frappe.boot.bnd_company || "B").charAt(0).toUpperCase();
+		brand.appendChild(brand_mark());
 		brand.addEventListener("click", () => frappe.set_route(""));
 		dock.appendChild(brand);
 

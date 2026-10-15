@@ -371,13 +371,24 @@ def extend_bootinfo(bootinfo):
         #
         # Predates item 33: this is item 10's sidebar-brand value, and item 33's
         # own `app_name` seam is the sibling defect that led here.
-        bootinfo.bnd_company = _boot_text(settings.get("company_name"))
+        #
+        # NEVER EMPTY since the zerONE brand (2026-10-15): a cleared field falls back
+        # to the vendor's name, read from the seeder as every other seam reads it
+        # (`context._vendor_name`), so no script needs a brand literal of its own.
+        from bunood_theme.context import VENDOR_MARK, _vendor_name
+
+        bootinfo.bnd_company = _boot_text(settings.get("company_name")) or _boot_text(_vendor_name())
         # Branding for the sidebar's brand block (item 10): logo file URL as
         # stored on Theme Settings. The favicon stays with Frappe's native
         # Website Settings handling — see the header comment above. Same treatment:
         # an Attach value is still a tenant-controlled string on its way into that
         # same script block.
-        bootinfo.bnd_logo = _boot_text(settings.get("logo"))
+        #
+        # THE LOGO OR THE VENDOR MARK, never empty (zerONE): the owner wants the icon
+        # in the page header, so a site with no logo draws `VENDOR_MARK` — the tab's
+        # and the sign-in page's file — instead of an initial letter. Decided HERE,
+        # once, so every caller of `brand_mark()` and the bill's seal follow it.
+        bootinfo.bnd_logo = _boot_text(settings.get("logo")) or VENDOR_MARK
 
         # Command palette kit (item 12). A user-invoked overlay is pure
         # "construction" under the flash rule — nothing paints until opened.
