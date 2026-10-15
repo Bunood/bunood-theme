@@ -5613,6 +5613,256 @@ html[data-bnd-report][data-bnd-report-ckreveal] :is(.report-view, [id=page-query
     opacity: 1;
   }
 }
+html[data-bnd-desk] .datatable[dir=rtl] .dt-cell__content {
+  text-align: start;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl] :is(.dt-cell__content--header-0, .dt-cell__content--col-0),
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell--col-0 [type=checkbox]) :is(.dt-cell__content--header-1, .dt-cell__content--col-1) {
+  text-align: center;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl] .dt-cell__content div[style*="align: right"] {
+  text-align: inherit !important;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl] .dt-cell__content:has(div[style*="align: right"]) {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-1 div[style*="align: right"]) .dt-cell__content--header-1 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-2 div[style*="align: right"]) .dt-cell__content--header-2 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-3 div[style*="align: right"]) .dt-cell__content--header-3 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-4 div[style*="align: right"]) .dt-cell__content--header-4 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-5 div[style*="align: right"]) .dt-cell__content--header-5 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-6 div[style*="align: right"]) .dt-cell__content--header-6 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-7 div[style*="align: right"]) .dt-cell__content--header-7 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-8 div[style*="align: right"]) .dt-cell__content--header-8 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-9 div[style*="align: right"]) .dt-cell__content--header-9 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-10 div[style*="align: right"]) .dt-cell__content--header-10 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-11 div[style*="align: right"]) .dt-cell__content--header-11 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-12 div[style*="align: right"]) .dt-cell__content--header-12 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-13 div[style*="align: right"]) .dt-cell__content--header-13 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-14 div[style*="align: right"]) .dt-cell__content--header-14 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-15 div[style*="align: right"]) .dt-cell__content--header-15 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-16 div[style*="align: right"]) .dt-cell__content--header-16 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-17 div[style*="align: right"]) .dt-cell__content--header-17 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-18 div[style*="align: right"]) .dt-cell__content--header-18 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-19 div[style*="align: right"]) .dt-cell__content--header-19 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-20 div[style*="align: right"]) .dt-cell__content--header-20 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-21 div[style*="align: right"]) .dt-cell__content--header-21 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-22 div[style*="align: right"]) .dt-cell__content--header-22 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-23 div[style*="align: right"]) .dt-cell__content--header-23 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-24 div[style*="align: right"]) .dt-cell__content--header-24 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-25 div[style*="align: right"]) .dt-cell__content--header-25 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-26 div[style*="align: right"]) .dt-cell__content--header-26 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-27 div[style*="align: right"]) .dt-cell__content--header-27 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-28 div[style*="align: right"]) .dt-cell__content--header-28 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-29 div[style*="align: right"]) .dt-cell__content--header-29 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-30 div[style*="align: right"]) .dt-cell__content--header-30 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-31 div[style*="align: right"]) .dt-cell__content--header-31 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-32 div[style*="align: right"]) .dt-cell__content--header-32 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-33 div[style*="align: right"]) .dt-cell__content--header-33 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-34 div[style*="align: right"]) .dt-cell__content--header-34 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-35 div[style*="align: right"]) .dt-cell__content--header-35 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-36 div[style*="align: right"]) .dt-cell__content--header-36 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-37 div[style*="align: right"]) .dt-cell__content--header-37 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-38 div[style*="align: right"]) .dt-cell__content--header-38 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-39 div[style*="align: right"]) .dt-cell__content--header-39 {
+  text-align: end;
+}
+
+html[data-bnd-desk] .datatable[dir=rtl]:has(.dt-cell__content--col-40 div[style*="align: right"]) .dt-cell__content--header-40 {
+  text-align: end;
+}
+
+html[data-bnd-desk] [id=page-query-report] .datatable[dir=rtl] .bnd-report-number > .dt-cell__content[dir=ltr] {
+  text-align: start;
+}
+
+html[data-bnd-desk] .datatable .dt-header .dt-row-header,
+html[data-bnd-desk] .datatable .dt-header .dt-row-header .dt-cell--header {
+  height: auto;
+}
+
+html[data-bnd-desk] .datatable .dt-header .dt-cell--header .dt-cell__content {
+  white-space: normal;
+  overflow-wrap: break-word;
+  text-overflow: clip;
+  line-height: var(--bnd-leading-tight);
+}
+
+html[data-bnd-desk] .datatable .dt-scrollable .dt-row:has(.dt-tree-node__toggle) .dt-cell__content {
+  font-weight: 700;
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable {
+  --bnd-tbl-head: color-mix(in srgb, var(--bnd-brand) 9%, var(--bnd-surface));
+  --bnd-tbl-zebra: color-mix(in srgb, var(--bnd-ink) 2.5%, var(--bnd-surface));
+  --bnd-tbl-edge: color-mix(in srgb, var(--bnd-brand) 5%, var(--bnd-surface));
+  --dt-border-color: var(--bnd-border);
+  --dt-header-cell-bg: var(--bnd-tbl-head);
+  --dt-border-radius: var(--bnd-radius-md);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-header {
+  border-block-end: var(--bnd-line-strong) solid var(--bnd-border-strong);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-header .dt-row-header {
+  background-color: var(--bnd-tbl-head);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-header .dt-cell--header .dt-cell__content {
+  background-color: var(--bnd-tbl-head);
+  color: var(--bnd-ink);
+  font-weight: 700;
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-scrollable .dt-row:is([style*="1px"], [style*="3px"], [style*="5px"], [style*="7px"], [style*="9px"]) {
+  --dt-cell-bg: var(--bnd-tbl-zebra);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-footer .dt-row,
+html[data-bnd-desk]:not([data-bnd-report]) [id=page-query-report] .datatable .dt-row:is(.bnd-report-total-row, .bnd-report-section-row) {
+  --dt-cell-bg: var(--bnd-tbl-edge);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-footer .dt-cell,
+html[data-bnd-desk]:not([data-bnd-report]) [id=page-query-report] .datatable .dt-row.bnd-report-total-row .dt-cell {
+  border-block-start: var(--bnd-line-2) solid var(--bnd-border-strong);
+}
+
+html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-footer .dt-cell__content {
+  color: var(--bnd-ink);
+  font-weight: 700;
+}
+
+@media print {
+  html[data-bnd-desk]:not([data-bnd-report]) .datatable {
+    --bnd-tbl-head: color-mix(in srgb, var(--bnd-ink) 11%, var(--bnd-surface));
+    --bnd-tbl-zebra: var(--bnd-surface);
+    --bnd-tbl-edge: color-mix(in srgb, var(--bnd-ink) 6%, var(--bnd-surface));
+  }
+  html[data-bnd-desk]:not([data-bnd-report]) .datatable .dt-cell {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
 html[data-theme] .frappe-control input.form-control:not([type=checkbox]),
 html[data-theme] .frappe-control select.form-control {
   block-size: var(--bnd-control-h);
@@ -8148,21 +8398,72 @@ html[data-theme] .bnd-close__note, html[data-theme] .bnd-close__empty {
   line-height: 1.6;
 }
 html[data-theme] .bnd-close__table-wrap {
-  overflow-x: auto;
+  overflow: auto;
+  max-block-size: max(24rem, 100vh - 10rem);
+  border: var(--bnd-line-strong) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
 }
 html[data-theme] .bnd-close__table {
+  --bnd-tbl-head: color-mix(in srgb, var(--bnd-brand) 9%, var(--bnd-surface));
+  --bnd-tbl-zebra: color-mix(in srgb, var(--bnd-ink) 2.5%, var(--bnd-surface));
+  --bnd-tbl-edge: color-mix(in srgb, var(--bnd-brand) 5%, var(--bnd-surface));
   inline-size: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--bnd-text-base);
 }
 html[data-theme] .bnd-close__table th,
 html[data-theme] .bnd-close__table td {
-  padding: 0.8rem;
-  border-block-end: 1px solid var(--bnd-border);
+  padding-block: var(--bnd-sp-2);
+  padding-inline: var(--bnd-sp-3);
+  border-block-end: var(--bnd-line-strong) solid var(--bnd-border);
   text-align: start;
+  vertical-align: middle;
 }
-html[data-theme] .bnd-close__table th {
-  color: var(--bnd-ink-muted);
+html[data-theme] .bnd-close__table :is(th, td) + :is(th, td) {
+  border-inline-start: var(--bnd-line-strong) solid var(--bnd-border);
+}
+html[data-theme] .bnd-close__table thead th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  background: var(--bnd-tbl-head);
+  border-block-end-color: var(--bnd-border-strong);
+  color: var(--bnd-ink);
   font-size: var(--bnd-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+html[data-theme] .bnd-close__table > :last-child > tr:last-child > :is(th, td) {
+  border-block-end: 0;
+}
+html[data-theme] .bnd-close__table :where(tbody > tr:nth-child(even)) > td {
+  background: var(--bnd-tbl-zebra);
+}
+html[data-theme] .bnd-close__table :is(th, td).is-num {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: var(--bnd-numeric);
+}
+html[data-theme] .bnd-close__table .is-money {
+  inline-size: 9.5rem;
+}
+html[data-theme] .bnd-close__table .is-neg {
+  color: var(--bnd-critical);
+}
+html[data-theme] .bnd-close__table tr.is-group > td {
+  font-weight: 700;
+}
+html[data-theme] .bnd-close__table :is(tr.is-total, tfoot > tr) > :is(th, td) {
+  background: var(--bnd-tbl-edge);
+  font-weight: 700;
+}
+html[data-theme] .bnd-close__table :is(tbody > tr:not(.is-total) + tr.is-total, tfoot > tr:first-child) > :is(th, td) {
+  border-block-start: var(--bnd-line-2) solid var(--bnd-border-strong);
+}
+html[data-theme] .bnd-close__table td.is-date {
+  white-space: nowrap;
 }
 html[data-theme] .bnd-close__link {
   border: 0;

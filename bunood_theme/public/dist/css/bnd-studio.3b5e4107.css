@@ -962,65 +962,96 @@ html[data-bnd-motion=reduce] {
 }
 .bnd-studio .bnd-studio__tablewrap {
   overflow: auto;
-  max-block-size: 60vh;
+  max-block-size: max(24rem, 100vh - 10rem);
+  border: var(--bnd-line-strong) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+  margin: var(--bnd-sp-3);
 }
 .bnd-studio .bnd-studio__table {
+  --bnd-tbl-head: color-mix(in srgb, var(--bnd-brand) 9%, var(--bnd-surface));
+  --bnd-tbl-zebra: color-mix(in srgb, var(--bnd-ink) 2.5%, var(--bnd-surface));
+  --bnd-tbl-edge: color-mix(in srgb, var(--bnd-brand) 5%, var(--bnd-surface));
   inline-size: 100%;
-  border-collapse: collapse;
-  font-size: var(--bnd-text-sm);
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--bnd-text-base);
 }
 .bnd-studio .bnd-studio__table th,
 .bnd-studio .bnd-studio__table td {
   padding-block: var(--bnd-sp-2);
   padding-inline: var(--bnd-sp-3);
+  border-block-end: var(--bnd-line-strong) solid var(--bnd-border);
   text-align: start;
-  white-space: nowrap;
+  vertical-align: middle;
+}
+.bnd-studio .bnd-studio__table :is(th, td) + :is(th, td) {
+  border-inline-start: var(--bnd-line-strong) solid var(--bnd-border);
 }
 .bnd-studio .bnd-studio__table thead th {
   position: sticky;
   inset-block-start: 0;
-  background: var(--bnd-raised);
-  color: var(--bnd-ink-muted);
-  font-weight: var(--bnd-weight-medium);
-  font-size: var(--bnd-text-xs);
-  text-transform: none;
-  border-block-end: var(--bnd-line) solid var(--bnd-border-strong);
   z-index: 1;
+  background: var(--bnd-tbl-head);
+  border-block-end-color: var(--bnd-border-strong);
+  color: var(--bnd-ink);
+  font-size: var(--bnd-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
 }
-.bnd-studio .bnd-studio__table tbody tr {
-  border-block-end: var(--bnd-line) solid var(--bnd-border);
-  transition: background var(--bnd-dur-fast) var(--bnd-ease);
+.bnd-studio .bnd-studio__table > :last-child > tr:last-child > :is(th, td) {
+  border-block-end: 0;
 }
-.bnd-studio .bnd-studio__table tbody tr:hover {
+.bnd-studio .bnd-studio__table :where(tbody > tr:nth-child(even)) > td {
+  background: var(--bnd-tbl-zebra);
+}
+.bnd-studio .bnd-studio__table :is(th, td).is-num {
+  text-align: end;
+  white-space: nowrap;
+  font-variant-numeric: var(--bnd-numeric);
+}
+.bnd-studio .bnd-studio__table .is-money {
+  inline-size: 9.5rem;
+}
+.bnd-studio .bnd-studio__table .is-neg {
+  color: var(--bnd-critical);
+}
+.bnd-studio .bnd-studio__table tr.is-group > td {
+  font-weight: 700;
+}
+.bnd-studio .bnd-studio__table :is(tr.is-total, tfoot > tr) > :is(th, td) {
+  background: var(--bnd-tbl-edge);
+  font-weight: 700;
+}
+.bnd-studio .bnd-studio__table :is(tbody > tr:not(.is-total) + tr.is-total, tfoot > tr:first-child) > :is(th, td) {
+  border-block-start: var(--bnd-line-2) solid var(--bnd-border-strong);
+}
+.bnd-studio .bnd-studio__table th,
+.bnd-studio .bnd-studio__table td {
+  white-space: nowrap;
+}
+.bnd-studio .bnd-studio__table td:not(.is-num) {
+  max-inline-size: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bnd-studio .bnd-studio__table tbody tr:not(.is-total, .is-section, .is-spacer):hover > td {
   background: var(--bnd-hover);
 }
-.bnd-studio .bnd-studio__table tbody tr.is-group > td {
-  font-weight: var(--bnd-weight-medium);
-}
-.bnd-studio .bnd-studio__table tbody tr.is-spacer {
-  border-block-end: none;
-}
-.bnd-studio .bnd-studio__table tbody tr.is-spacer td {
+.bnd-studio .bnd-studio__table tbody tr.is-spacer > td {
   padding: 0;
   block-size: var(--bnd-sp-3);
+  border-block-end: 0;
+  background: var(--bnd-surface);
 }
-.bnd-studio .bnd-studio__table tbody tr.is-return {
-  background: color-mix(in srgb, var(--bnd-critical) 5%, transparent);
-}
-.bnd-studio .bnd-studio__table tbody tr.is-total {
-  background: var(--bnd-pane);
-  font-weight: var(--bnd-weight-medium);
-}
-.bnd-studio .bnd-studio__table tbody tr.is-section {
-  background: color-mix(in srgb, var(--bnd-studio-cat, var(--bnd-brand)) 8%, transparent);
+.bnd-studio .bnd-studio__table tbody tr.is-return > td {
+  background: color-mix(in srgb, var(--bnd-critical) 5%, var(--bnd-surface));
 }
 .bnd-studio .bnd-studio__table tbody tr.is-section > td {
-  padding-block: var(--bnd-sp-2);
-  font-size: var(--bnd-text-xs);
+  background: color-mix(in srgb, var(--bnd-studio-cat) 8%, var(--bnd-surface));
   color: var(--bnd-ink);
-}
-.bnd-studio .bnd-studio__table tbody tr.is-section:hover {
-  background: color-mix(in srgb, var(--bnd-studio-cat, var(--bnd-brand)) 8%, transparent);
+  font-size: var(--bnd-text-xs);
+  font-weight: 700;
 }
 .bnd-studio .bnd-studio__table .bnd-studio__caret {
   margin-inline-end: var(--bnd-sp-2);
@@ -1051,20 +1082,9 @@ html[data-bnd-motion=reduce] {
   background: color-mix(in srgb, var(--bnd-critical) 14%, transparent);
   color: var(--bnd-critical);
 }
-.bnd-studio .bnd-studio__table td.is-num,
-.bnd-studio .bnd-studio__table th.is-num {
-  text-align: end;
-  font-variant-numeric: tabular-nums;
-}
-.bnd-studio .bnd-studio__table td.is-neg {
-  color: var(--bnd-critical);
-}
 .bnd-studio .bnd-studio__table tfoot td {
   position: sticky;
   inset-block-end: 0;
-  background: var(--bnd-raised);
-  border-block-start: 2px solid var(--bnd-border-strong);
-  font-weight: var(--bnd-weight-medium);
 }
 .bnd-studio .bnd-studio__link {
   color: var(--bnd-brand-ink);
@@ -1550,6 +1570,24 @@ html[data-bnd-motion=reduce] {
     max-block-size: none;
   }
   .bnd-studio .bnd-studio__table {
+    --bnd-tbl-head: color-mix(in srgb, var(--bnd-ink) 11%, var(--bnd-surface));
+    --bnd-tbl-zebra: var(--bnd-surface);
+    --bnd-tbl-edge: color-mix(in srgb, var(--bnd-ink) 6%, var(--bnd-surface));
+  }
+  .bnd-studio .bnd-studio__table thead {
+    display: table-header-group;
+  }
+  .bnd-studio .bnd-studio__table thead th {
+    position: static;
+  }
+  .bnd-studio .bnd-studio__table tr {
+    break-inside: avoid;
+  }
+  .bnd-studio .bnd-studio__table :is(th, td) {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  .bnd-studio .bnd-studio__table {
     font-size: var(--bnd-text-xs);
   }
   .bnd-studio .bnd-studio__table thead {
@@ -1570,6 +1608,9 @@ html[data-bnd-motion=reduce] {
   }
   .bnd-studio .bnd-studio__table td.is-num {
     white-space: nowrap;
+  }
+  .bnd-studio .bnd-studio__table td:not(.is-num) {
+    max-inline-size: none;
   }
   .bnd-studio .bnd-studio__table tfoot td {
     position: static;
