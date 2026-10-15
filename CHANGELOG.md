@@ -24,6 +24,102 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.60.0] — 2026-10-15 — zerONE: the brand, the blue palette, every print redesigned and renamed, the organised table
+
+The owner, 2026-10-15: the product is renamed **Zero One** («زيرو ون», zerone-erp.com) with an icon
+of its own; «غير اسماء نماذج الطباعه الحين … اريد ان تعيد تصاميم كل انواع الطباعه»; every report
+reads like the business app's tables. Released on the owner's word: «Release what is ready».
+
+**The zerONE brand** (`docs/zerone-brand-report.md`)
+- The Zero One tile (`images/zerone-mark.svg`) is the vendor mark: tab favicon, desk splash, sign-in
+  logo, the pane's brand row, the page head's pill, the start pill and the dock chip. The old
+  `bunood-mark.svg` stays in the tree, retired.
+- The visible text says Zero One: `app_title` "Zero One Theme", publisher "Zero One"; the shipped
+  `company_name` default; "Zero One Home" and "Zero One POS" page titles; help texts, dialog titles
+  and messages; custom-field labels. `locale/ar.po` reads «زيرو ون». No identifier, DocType, field,
+  CSS class, translation context, module or stored record name is renamed.
+- The bill header's seal and wordmark come from boot (`bnd_logo`, `bnd_company`, never empty).
+- The sign-in: the zerONE tile at 56px, «استمر» in the brand colour, the subtitle in Arabic.
+
+**The zerONE blue palette**
+- A new palette "Zero One" (#1d55c0, accent #0090ff, ground the brand) is the shipped default
+  («زيرو ون»). The old green "Bunood" (#3d8150) stays in the catalogue, unrenamed.
+- The settings thumbnails and the customer statement follow the shipped seed, and the statement
+  takes its colours from the print kit.
+
+**Every print redesigned** (`docs/print-redesign-report.md`)
+- The print kit: one stylesheet substituted per site (`bunood_print_kit_css`), shared macros
+  (`templates/print/kit.html`) and one template per family. A bilingual header (Arabic right, logo
+  centre, English left, CR and VAT), page numbers, the national address and the contact methods in
+  the foot with the company policy, the small totals table physically right and the ZATCA QR
+  physically left, the amount in words, signatures, and a draft watermark with no QR.
+- The Company's print profile: «بيانات الطباعة» fields on Company (names in Arabic and English,
+  mobile, Instagram, X, Snapchat, TikTok, policy), read by a resolver with the buyer's profile.
+- Every document in the kit: the standard and simplified tax invoice A4, credit and debit notes, the
+  trade family (quotation, sales order, proforma, delivery note, purchase invoice and its return,
+  purchase order, goods receipt, stock transfer), the receipt and payment voucher (A5 landscape and
+  A4), the journal voucher, the 80 mm and 58 mm receipts, the B2B 80 mm receipt, the gift receipt,
+  the shift report, the dot-matrix invoice and the statement of account (rendered on Chromium, with
+  aging for customers and suppliers).
+- A reprinted invoice says «نسخة مكررة — Copy» with the print time (`bnd_print_count` on Sales and
+  POS Invoice). A counter whose POS Profile names no format prints the kit's receipt.
+- The letter head «الترويسة الرسمية» is rewritten in clean UTF-8 from the print profile.
+
+**Every print record renamed, with no brand** (`patches/v0_60_0/print_format_names.py`)
+- «فاتورة ضريبية - A4» (merges «بونود/بنود - فاتورة ضريبية (A4)» and "Bunood Sales Invoice (A4)"),
+  «فاتورة ضريبية مبسطة - A4», «فاتورة ضريبية مبسطة - حراري 80مم» (merges the ZATCA 80 mm),
+  «فاتورة ضريبية - حراري 80مم», «فاتورة - طابعة نقطية», «عرض سعر - A4», «سند قبض وصرف - A4»,
+  «سند قيد - A4», «كشف حساب - A4», «فاتورة مشتريات - A4» (was "Bunood Purchase Invoice (A4)") and
+  «فاتورة ضريبية - A4 - نقطة البيع». POS Invoice twins carry « - نقطة البيع».
+- The Print Style "Bunood" is «النمط الرسمي»; the Letter Head "Bunood" is «الترويسة الرسمية».
+- The defaults, POS Profiles, Print Settings and every link follow. An old format name in a kept
+  receipt link (`/printview`, `download_pdf`) still resolves (`printing/renames.py`).
+
+**The organised table**
+- One shared table partial (`_sheet.scss`) for the report studio and the finance workbench queues;
+  Frappe's DataTable (query reports, a list's Report view) in the same look: figures and their
+  headings at the end in Arabic, a header band, a grid, a zebra, banded totals.
+- Debit and credit read empty where nothing was posted. ERPNext's report columns say «دائن» and
+  «مدين».
+
+**The release review** (one per release; findings 1-8, each fixed with a test that fails without it)
+- VAT-inclusive prices print the exclusive unit price and no false discount (HIGH).
+- Receipt and dot-matrix totals read top to bottom; a cash discount prints after tax.
+- The statement PDF is built on the server from the report's own data, never from posted HTML (HIGH,
+  SSRF).
+- The reprint count is written after the response, in its own short transaction, and a print that
+  cannot be counted still prints and is logged at ERROR.
+- A tenant's own record under one of our print names is never taken over or merged into.
+- A Guest's print never raises the count.
+- The dot-matrix invoice is titled «فاتورة», never a tax invoice.
+- A journal voucher prints its rows in the company currency.
+- The kit stylesheet's cache follows the colour seeds.
+- The 80 mm receipt's «before discount» fits its line and its roll.
+
+**Upgrade notes**
+- `bench migrate` runs four patches, in order: `v0_60_0.zerone_brand` (the stored product name and
+  four insert-only field texts move only while they still read the old shipped text),
+  `v0_60_0.print_format_names` (the renames and merges above), `v0_60_0.zerone_palette` (a site
+  still on the exact shipped green moves to the blue; a tenant's own colour is never touched) and
+  `v0_60_0.sign_in_branded` (the sign-in button "Neutral" -> "Branded", once).
+  `heal_unknown_placements` stays last.
+- After migrate, the installer adds the Company print-profile fields and `bnd_print_count`.
+- The renamed print formats, the Print Style «النمط الرسمي» and the Letter Head «الترويسة
+  الرسمية»: anything outside these apps that names an old print record by name must use the new
+  one.
+- bunood_dining 0.10.0 requires this release (`bunood_theme >= 0.60.0`): its prints are laid out
+  in this kit. bunood_engineering 0.17.0 stays compatible: the print sheet still carries
+  `.bnd-p-items`, and Print Settings follows the Print Style rename.
+
+**Payload.** Ceilings raised for the organised table: desk CSS 41,100 -> 42,400, desk JS 202,700 ->
+203,400, studio CSS 6,800 -> 7,100, studio JS 39,050 -> 39,400 gzip bytes (recorded in
+`payload-budget.json`).
+
+Checks at the release commit, in the lab container (Node 24): the interface suite 308/308;
+`node build.mjs` with every guard green, its dist and `assets.py` byte-identical to the committed
+ones; `tools/i18n_po.mjs emit` unchanged and `tools/i18n.mjs check` complete (3,432 strings);
+`tools/contrast.mjs` 9,802 pairs pass; `tools/payload.mjs --check` within budget.
+
 ## [0.59.0] — 2026-10-14 — the owner's second review: the sheet, the foot, the next bill, no cancel
 
 The owner, 2026-10-14, with a customer's notes and a sample sales screen: «مهم جدا في الفواتير ... لازم
