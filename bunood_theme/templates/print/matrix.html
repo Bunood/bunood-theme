@@ -22,7 +22,10 @@
     <td style="text-align:left" dir="ltr">{{ p.name_en | e }}<br>VAT No.: {{ p.vat | e }}{% if p.cr %}<br>C.R.: {{ p.cr | e }}{% endif %}</td>
   </tr></table>
   <div class="zo-m-rule"></div>
-  <div class="zo-m-title">{{ v.title_ar }} / {{ v.title_en }}</div>
+  {#- No QR, so never a tax invoice (a simplified tax invoice must carry ZATCA's QR): it says
+      what it is, and the electronic copy is the tax document. -#}
+  <div class="zo-m-title">{{ "مرتجع مبيعات / Sales Return" if doc.get("is_return") else "فاتورة / Invoice" }}</div>
+  <div class="zo-m-note">ليست فاتورة ضريبية — <span dir="ltr">Not a tax invoice</span></div>
   {%- set copy = bunood_print_copy(doc) if bunood_print_copy is defined else {} %}
   {%- if copy %}<div class="zo-m-title">*** نسخة مكررة / COPY · <span class="num">{{ copy.at }}</span> ***</div>{% endif %}
   <table>

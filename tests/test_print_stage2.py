@@ -170,6 +170,21 @@ class TemplateTests(unittest.TestCase):
         self.assertIn("page-width: 210mm; page-height: 148mm;", style)
         self.assertIn("سند قبض", page.get_text())
 
+    def test_the_dot_matrix_is_never_titled_a_tax_invoice(self):
+        """A dot-matrix head prints no QR, so its paper is never a (simplified) tax invoice (the
+        v0.60.0 review, finding 6): «فاتورة» and «ليست فاتورة ضريبية»; the e-invoice is the tax document."""
+        from test_print_kit import view as kit_view
+
+        v = kit_view(title_ar="فاتورة ضريبية مبسطة", title_en="Simplified Tax Invoice")
+        for doc, title in ((Doc(doctype="Sales Invoice", name="SINV-1", docstatus=1), "فاتورة / Invoice"),
+                           (Doc(doctype="Sales Invoice", name="SINV-2", docstatus=1, is_return=1), "مرتجع مبيعات / Sales Return")):
+            with self.subTest(title=title):
+                page = env_render("templates/print/matrix.html", doc, bunood_invoice_view=lambda d, simplified=False: v)
+                self.assertEqual(page.select_one(".zo-m-title").get_text(strip=True), title)
+                self.assertNotIn("ضريبية مبسطة", page.get_text())
+                self.assertIn("ليست فاتورة ضريبية", page.select_one(".zo-m-note").get_text())
+                self.assertIsNone(page.select_one("img"))
+
     def receipt(self, width, gift=False, copy=None):
         v = {"title_ar": "فاتورة ضريبية مبسطة", "title_en": "Simplified Tax Invoice", "number": "SINV-1",
              "issued": "2026-10-15 10:42", "cashier": "", "branch": "", "reference": {}, "payments": [],
