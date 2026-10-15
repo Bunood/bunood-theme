@@ -539,14 +539,30 @@ def _adopt_letterhead_default():
     lh.save(ignore_permissions=True)
 
 
-def _sync_format(spec):
+#: A format authored in tokens. Its colours are substituted per site at sync, like the
+#: Letter Head's, because a print renders where no desk custom property resolves.
+_TOKEN_MARK = "var(--bnd-"
+
+
+def _format_html(spec) -> str:
+    return _read("formats", spec["file"], base=spec.get("dir", BASE))
+
+
+def _sync_format(spec, settings=None):
     is_report = bool(spec.get("report"))
     target = spec.get("report") if is_report else spec.get("doctype")
     target_type = "Report" if is_report else "DocType"
     if not target or not frappe.db.exists(target_type, target):
         return
 
-    html = _read("formats", spec["file"], base=spec.get("dir", BASE))
+    html = _format_html(spec)
+    if _TOKEN_MARK in html:
+        # The customer statement's colours (zerONE, 2026-10-15): it named a green of its
+        # own on every tenant. `substitute` THROWS on a token it cannot resolve, so the
+        # caller logs and the record keeps its last good HTML rather than a half-coloured one.
+        from bunood_theme.email import substitute, tokens
+
+        html = substitute(html, tokens("light", settings))
     values = {
         "print_format_for": "Report" if is_report else "DocType",
         # Report print formats use Frappe's client-side microtemplate engine;
@@ -615,10 +631,11 @@ def _sync_pdf_generator():
 def resync_print_brand(settings=None):
     """Re-substitute the two brand carriers after a Theme Settings save.
 
-    Narrower than :func:`sync_print_theme` on purpose: the format records
+    Narrower than :func:`sync_print_theme` on purpose: most format records
     carry no colour (their look lives in the Print Style), so a settings save
-    only needs the style sheet and the letterhead rewritten. Each step keeps
-    the same never-blocks guard the full sync has.
+    rewrites the style sheet, the letterhead and only the formats authored in
+    tokens (the customer statement). Each step keeps the same never-blocks
+    guard the full sync has.
     """
     try:
         _sync_style(settings)
@@ -634,3 +651,15 @@ def resync_print_brand(settings=None):
             title="bunood_theme: letterhead resync failed"[:140],
             message=frappe.get_traceback(),
         )
+    # The third carrier: a format authored in tokens holds this site's concrete colours,
+    # so a seed change re-papers it too. Formats without tokens carry no colour of the
+    # seed's and are left to the full sync.
+    for spec in FORMATS + zatca.FORMATS:
+        try:
+            if _TOKEN_MARK in _format_html(spec):
+                _sync_format(spec, settings)
+        except Exception:
+            frappe.log_error(
+                title=("bunood_theme: print format resync failed: " + spec["name"])[:140],
+                message=frappe.get_traceback(),
+            )

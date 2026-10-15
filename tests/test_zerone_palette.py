@@ -6,9 +6,10 @@ stays in the catalogue, untouched, and a site moves only while it still carries 
 exactly.
 
 Two halves. The catalogue, the derivation, the gate and the patch are site-free (the patch runs
-against a recording fake ``frappe``, the way ``test_zerone_brand.py`` runs its patch). The seeder
-and the brand sheet need ``frappe`` importable, so those classes skip on a host without it and run
-in the bench env (``env/bin/python -m unittest discover -s tests -p test_zerone_palette.py``).
+against a recording fake ``frappe``, the way ``test_zerone_brand.py`` runs its patch). The seeder,
+the brand sheet and the print installer need ``frappe`` importable, so those classes skip on a host
+without it and run in the bench env (``env/bin/python -m unittest discover -s tests -p
+test_zerone_palette.py``).
 """
 
 import ast
@@ -145,6 +146,16 @@ class NoSecondLiteralTests(unittest.TestCase):
 		for rel in ("brand.py", "email.py", "api.py", "setup.py"):
 			with self.subTest(file=rel):
 				self.assertFalse(OLD_GREEN in (APP / rel).read_text(encoding="utf-8"), rel)
+
+	def test_the_settings_thumbnails_fall_back_to_the_shipped_blue(self):
+		js = (APP / "bunood_theme" / "doctype" / "theme_settings" / "theme_settings.js").read_text(encoding="utf-8")
+		self.assertNotIn(OLD_GREEN, js)
+
+	def test_the_customer_statement_is_painted_from_tokens(self):
+		html = (APP / "printing" / "formats" / "customer_statement.html").read_text(encoding="utf-8")
+		style = html[html.index("<style>"):html.index("</style>")]
+		self.assertNotRegex(style, r"#[0-9a-fA-F]{3,8}\b", "the statement names no colour of its own")
+		self.assertIn("var(--bnd-brand-ink)", style)
 
 
 class FakeSingles:
@@ -292,6 +303,58 @@ class SiteDefaultTests(unittest.TestCase):
 		css = brand.render_brand_css(frappe._dict(brand_color="", accent_color=""))
 		self.assertIn(f"--bnd-brand: {ZERONE_BLUE};", css)
 		self.assertNotIn(OLD_GREEN, css)
+
+
+@unittest.skipUnless(HAVE_FRAPPE, "the print installer imports frappe; run in the bench env")
+class PrintCarrierTests(unittest.TestCase):
+	"""The customer statement's colours come from this site's seeds, at sync and on a save."""
+
+	def setUp(self):
+		from unittest.mock import Mock
+
+		from bunood_theme.printing import install
+
+		self.install = install
+		self.inserted = []
+		doc = Mock()
+		doc.insert = Mock()
+		self.fake = SimpleNamespace(
+			db=SimpleNamespace(exists=lambda doctype, name=None: doctype in {"Report", "Module Def"}),
+			get_doc=lambda values: self.inserted.append(values) or doc,
+			log_error=Mock(), get_traceback=lambda: "",
+		)
+		self.statement = next(s for s in install.FORMATS if s["name"] == install.CUSTOMER_STATEMENT_FORMAT)
+
+	def sync(self, brand):
+		settings = frappe._dict(brand_color=brand, accent_color="#0090ff")
+		with patch.object(self.install, "frappe", self.fake):
+			self.install._sync_format(self.statement, settings)
+		html = self.inserted[-1]["html"]
+		return html[html.index("<style>"):html.index("</style>")]
+
+	def test_the_statement_is_written_in_the_shipped_blue(self):
+		style = self.sync(ZERONE_BLUE)
+		self.assertNotIn("var(", style)
+		self.assertIn(f"h1 {{ color: {ZERONE_BLUE};", style)
+
+	def test_the_statement_follows_a_tenant_seed(self):
+		from bunood_theme import palette
+
+		style = self.sync("#ab4aba")
+		ink = palette.derive("#ab4aba", "#0090ff", "light")["--bnd-brand-ink"]
+		self.assertIn(f"h1 {{ color: {ink};", style)
+		self.assertNotIn(ZERONE_BLUE, style)
+
+	def test_a_settings_save_re_papers_only_the_token_formats(self):
+		from unittest.mock import Mock
+
+		synced = Mock()
+		with patch.object(self.install, "frappe", self.fake), \
+			patch.object(self.install, "_sync_style", Mock()), \
+			patch.object(self.install, "_sync_letterhead", Mock()), \
+			patch.object(self.install, "_sync_format", synced):
+			self.install.resync_print_brand("settings")
+		self.assertEqual([c.args for c in synced.call_args_list], [(self.statement, "settings")])
 
 
 if __name__ == "__main__":

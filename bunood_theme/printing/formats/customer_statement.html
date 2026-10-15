@@ -1,22 +1,25 @@
-<!-- Managed report print format. Frappe reports use JavaScript microtemplates. -->
+<!-- Managed report print format. Frappe reports use JavaScript microtemplates.
+     Colours are --bnd-* tokens, substituted with this site's concrete values when the
+     format is synced (printing/install.py), as the Letter Head is: a report print opens in
+     its own window, where no desk custom property resolves. -->
 {% var bndLanguage = (((frappe.boot && frappe.boot.lang) || frappe.lang || "en") + "").toLowerCase(); var bndArabic = bndLanguage.indexOf("ar") === 0; var bndText = bndArabic ? {title:"كشف حساب عميل",customer:"العميل",allCustomers:"جميع العملاء",period:"الفترة",company:"الشركة",currency:"العملة",date:"التاريخ",document:"المستند / البيان",debit:"مدين",credit:"دائن",balance:"الرصيد",closing:"الرصيد الختامي",total:"الإجمالي"} : {title:"CUSTOMER STATEMENT",customer:"Customer",allCustomers:"All customers",period:"Period",company:"Company",currency:"Currency",date:"Date",document:"Document / Description",debit:"Debit",credit:"Credit",balance:"Balance",closing:"Closing balance",total:"Total"}; %}
 <style>
-  .bnd-statement { font-family: Tajawal, Arial, sans-serif; color: #18221c; }
+  .bnd-statement { font-family: Tajawal, Arial, sans-serif; color: var(--bnd-ink); }
   .bnd-statement[dir="rtl"] { direction: rtl; text-align: right; }
   .bnd-statement[dir="ltr"] { direction: ltr; text-align: left; }
-  .bnd-statement h1 { color: #245736; font-size: 22px; margin: 0 0 16px; }
+  .bnd-statement h1 { color: var(--bnd-brand-ink); font-size: 22px; margin: 0 0 16px; }
   .bnd-statement__meta { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
   .bnd-statement__meta td { padding: 5px 8px; }
   .bnd-statement__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .bnd-statement__table th { background: #edf5ef; color: #245736; font-weight: 700; }
-  .bnd-statement__table th, .bnd-statement__table td { padding: 7px 8px; border-bottom: 1px solid #dfe7e1; }
+  .bnd-statement__table th { background: var(--bnd-pane); color: var(--bnd-brand-ink); font-weight: 700; }
+  .bnd-statement__table th, .bnd-statement__table td { padding: 7px 8px; border-bottom: 1px solid var(--bnd-border-strong); }
   .bnd-statement__table th:nth-child(1), .bnd-statement__table td:nth-child(1) { width: 14%; }
   .bnd-statement__table th:nth-child(2), .bnd-statement__table td:nth-child(2) { width: 38%; }
   .bnd-statement__table th:nth-child(n+3), .bnd-statement__table td:nth-child(n+3) { width: 16%; }
   .bnd-statement__num { direction: ltr; font-variant-numeric: tabular-nums; }
   .bnd-statement[dir="rtl"] .bnd-statement__num { text-align: left; }
   .bnd-statement[dir="ltr"] .bnd-statement__num { text-align: right; }
-  .bnd-statement__total td { font-weight: 700; background: #f6faf7; }
+  .bnd-statement__total td { font-weight: 700; background: var(--bnd-page); }
   @media print { @page { size: A4; margin: 12mm; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
 </style>
 <div class="bnd-statement" dir="{%= bndArabic ? "rtl" : "ltr" %}" lang="{%= bndArabic ? "ar" : "en" %}">
