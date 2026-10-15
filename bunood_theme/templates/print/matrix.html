@@ -23,6 +23,8 @@
   </tr></table>
   <div class="zo-m-rule"></div>
   <div class="zo-m-title">{{ v.title_ar }} / {{ v.title_en }}</div>
+  {%- set copy = bunood_print_copy(doc) if bunood_print_copy is defined else {} %}
+  {%- if copy %}<div class="zo-m-title">*** نسخة مكررة / COPY · <span class="num">{{ copy.at }}</span> ***</div>{% endif %}
   <table>
     <tr><td style="width:50%">رقم الفاتورة: <span class="num">{{ v.number | e }}</span></td><td>التاريخ: <span class="num">{{ v.issued }}</span></td></tr>
     <tr><td>العميل: {{ b.name | e }}</td><td>{% if b.vat %}الرقم الضريبي للعميل: <span class="num">{{ b.vat | e }}</span>{% endif %}</td></tr>

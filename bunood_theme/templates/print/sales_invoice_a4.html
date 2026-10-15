@@ -38,6 +38,8 @@
   {{ title_band(v.title_ar, v.title_en, v.number,
        "رقم الإشعار" if note else "رقم الفاتورة", "Note No." if note else "Invoice No.") }}
 
+  {%- set copy = bunood_print_copy(doc) if bunood_print_copy is defined else {} %}
+  {%- if copy %}<div class="zo-notice">نسخة مكررة — <span class="en">Copy</span> · طُبعت <span class="num">{{ copy.at }}</span></div>{% endif %}
   {%- if v.reference %}{{ ref_strip(v.reference) }}{% endif %}
 
   {%- if simplified %}

@@ -132,6 +132,7 @@ def sync_print_theme():
     try:
         _company_cr_field()
         _company_print_fields()
+        _reprint_fields()
         _sync_letterhead()
     except Exception:
         frappe.log_error(
@@ -547,6 +548,22 @@ PRINT_FIELDS = [
     {"fieldname": "bnd_print_policy", "fieldtype": "Small Text", "label": "Company Policy",
      "insert_after": "bnd_tiktok", "translatable": 0, "description": POLICY_HINT},
 ]
+
+
+#: A printed invoice's own print count (printing/reprint.py): its second and later prints say
+#: «نسخة مكررة». Hidden, read-only, never copied to a duplicate, an amendment or a return.
+REPRINT_FIELD = {"fieldname": "bnd_print_count", "fieldtype": "Int", "label": "Print Count", "default": "0",
+                 "insert_after": "amended_from", "read_only": 1, "hidden": 1, "no_copy": 1, "print_hide": 1,
+                 "allow_on_submit": 1, "report_hide": 1}
+REPRINT_DOCTYPES = ("Sales Invoice", "POS Invoice")
+
+
+def _reprint_fields():
+    """The print count on the invoices (additive; created and reconciled on every migrate)."""
+    from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
+
+    create_custom_fields({doctype: [dict(REPRINT_FIELD)] for doctype in REPRINT_DOCTYPES if frappe.db.exists("DocType", doctype)},
+                         ignore_validate=True, update=True)
 
 
 def _company_print_fields():

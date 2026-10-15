@@ -29,12 +29,14 @@
 {%- set x = bunood_receipt_extras(doc) -%}
 {%- set qr = (bunood_zatca_qr_src(doc) if doc.get("docstatus") != 0 else "") -%}
 {%- set t = v.totals -%}
+{#- A second or later print (printing/reprint.py); a gift receipt is a different paper, never marked. -#}
+{%- set copy = (bunood_print_copy(doc) if bunood_print_copy is defined else {}) if not gift else {} -%}
 {#- A roll has no length: the page is as long as the receipt, estimated generously from what it
     carries (a short estimate would split the receipt in two; the excess is blank paper). -#}
 {%- set height = (215 if narrow else 175) + (22 if p.logo else 0) + (v.lines | length) * (17 if narrow else 11)
       + ((v.payments | length) + (1 if v.totals.paid else 0) + (1 if v.totals.change else 0)) * 6
       + ((p.policy | length) // (24 if narrow else 36) + 1) * 4 + (60 if b2b else 0) + (14 if v.reference else 0)
-      + (10 if x.service else 0) - (95 if gift else 0) -%}
+      + (10 if x.service else 0) + (10 if copy else 0) - (95 if gift else 0) -%}
 <style>
 {{ bunood_print_kit_css() }}
 /* The PDF page: read by both engines from this rule (read_options_from_html); @page
@@ -57,6 +59,7 @@
   <div class="zo-rcpt__title"><b>إيصال هدية</b><span>Gift Receipt</span></div>
   {%- else %}
   <div class="zo-rcpt__title"><b>{{ v.title_ar | e }}</b><span>{{ v.title_en | e }}</span></div>
+  {%- if copy %}<div class="zo-rcpt__dup">نسخة مكررة — <span class="en">Copy</span> · <span class="num">{{ copy.at }}</span></div>{% endif %}
   {%- endif %}
 
   <table class="zo-rcpt-meta">
@@ -118,22 +121,24 @@
   {%- if gift %}
   <div class="zo-rcpt__note">إيصال للاستبدال بلا أسعار — <span class="en">An exchange receipt, without prices</span></div>
   {%- else %}
-  <div class="zo-rcpt__note">{{ "الأسعار شاملة ضريبة القيمة المضافة — Prices include VAT" if not b2b else "الأسعار قبل الضريبة، والإجمالي شامل الضريبة — Prices excl. VAT, totals incl. VAT" }}</div>
+  {#- 58 mm (48 mm of print) carries short Arabic labels and no English, so no label wraps. -#}
+  {%- macro k(ar, en, short) -%}{{ short if narrow else ar }}{% if not narrow %} <span class="en">{{ en }}</span>{% endif %}{%- endmacro %}
+  <div class="zo-rcpt__note">{{ "الأسعار شاملة الضريبة" if narrow else ("الأسعار شاملة ضريبة القيمة المضافة — Prices include VAT" if not b2b else "الأسعار قبل الضريبة، والإجمالي شامل الضريبة — Prices excl. VAT, totals incl. VAT") }}</div>
 
   <table class="zo-rcpt-tot">
-    <tr><td class="k">الإجمالي قبل الضريبة <span class="en">Subtotal</span></td><td class="v"><span class="num">{{ t.taxable }}</span></td></tr>
-    {%- if t.discount %}<tr><td class="k">الخصم <span class="en">Discount</span></td><td class="v"><span class="num">{{ t.discount }}</span></td></tr>{% endif %}
-    <tr><td class="k">ضريبة القيمة المضافة{% if t.vat_rate %} {{ t.vat_rate }}%{% endif %} <span class="en">VAT</span></td><td class="v"><span class="num">{{ t.vat }}</span></td></tr>
-    {%- if t.rounding %}<tr><td class="k">تسوية التقريب <span class="en">Rounding</span></td><td class="v"><span class="num">{{ t.rounding }}</span></td></tr>{% endif %}
-    <tr class="g"><td class="k">الإجمالي <span class="en">Total</span></td><td class="v"><span class="num">{{ cur(t.currency) }}&#8201;{{ t.grand }}</span></td></tr>
+    <tr><td class="k">{{ k("الإجمالي قبل الضريبة", "Subtotal", "قبل الضريبة") }}</td><td class="v"><span class="num">{{ t.taxable }}</span></td></tr>
+    {%- if t.discount %}<tr><td class="k">{{ k("الخصم", "Discount", "الخصم") }}</td><td class="v"><span class="num">{{ t.discount }}</span></td></tr>{% endif %}
+    <tr><td class="k">{{ k("ضريبة القيمة المضافة" ~ ((" " ~ t.vat_rate ~ "%") if t.vat_rate else ""), "VAT", "الضريبة" ~ ((" " ~ t.vat_rate ~ "%") if t.vat_rate else "")) }}</td><td class="v"><span class="num">{{ t.vat }}</span></td></tr>
+    {%- if t.rounding %}<tr><td class="k">{{ k("تسوية التقريب", "Rounding", "التقريب") }}</td><td class="v"><span class="num">{{ t.rounding }}</span></td></tr>{% endif %}
+    <tr class="g"><td class="k">{{ k("الإجمالي", "Total", "الإجمالي") }}</td><td class="v"><span class="num">{{ cur(t.currency) }}&#8201;{{ t.grand }}</span></td></tr>
   </table>
 
   {%- if v.payments or t.paid or t.change or t.remaining %}
   <table class="zo-rcpt-tot">
     {%- for pay in v.payments %}<tr><td class="k">{{ pay.method | e }}</td><td class="v"><span class="num">{{ pay.amount }}</span></td></tr>{% endfor %}
-    {%- if t.paid %}<tr><td class="k">المدفوع <span class="en">Paid</span></td><td class="v"><span class="num">{{ t.paid }}</span></td></tr>{% endif %}
-    {%- if t.change %}<tr><td class="k">الباقي <span class="en">Change</span></td><td class="v"><span class="num">{{ t.change }}</span></td></tr>{% endif %}
-    {%- if t.remaining %}<tr><td class="k"><b>المتبقي <span class="en">Balance due</span></b></td><td class="v"><span class="num">{{ t.remaining }}</span></td></tr>{% endif %}
+    {%- if t.paid %}<tr><td class="k">{{ k("المدفوع", "Paid", "المدفوع") }}</td><td class="v"><span class="num">{{ t.paid }}</span></td></tr>{% endif %}
+    {%- if t.change %}<tr><td class="k">{{ k("الباقي", "Change", "الباقي") }}</td><td class="v"><span class="num">{{ t.change }}</span></td></tr>{% endif %}
+    {%- if t.remaining %}<tr><td class="k"><b>{{ k("المتبقي", "Balance due", "المتبقي") }}</b></td><td class="v"><span class="num">{{ t.remaining }}</span></td></tr>{% endif %}
   </table>
   {%- endif %}
 

@@ -459,3 +459,15 @@ def bunood_print_setting(field: str):
 
     value = frappe.db.get_single_value("Theme Settings", field)
     return PRINT_DEFAULTS[field] if value in (None, "") else value
+
+
+def bunood_print_copy(doc):
+    """«نسخة مكررة — Copy» for a second or later print of an invoice ({} for the original):
+    printing/reprint.py."""
+    from bunood_theme.printing.reprint import mark
+
+    try:
+        return mark(doc)
+    except Exception:
+        frappe.log_error(title="bunood_theme: print copy mark failed"[:140])
+        return {}

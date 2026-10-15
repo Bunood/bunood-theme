@@ -182,13 +182,16 @@ doc_events = {
     },
     # A sales invoice is never cancelled, nor deleted once issued (owner, 2026-10-14: ZATCA's
     # rule, for every company, not only those on Phase 2). invoice_rules.py says why.
+    # Each print of an invoice is counted; the second and later say «نسخة مكررة» (printing/reprint.py).
     "Sales Invoice": {
         "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
         "on_trash": "bunood_theme.invoice_rules.refuse_delete",
+        "before_print": "bunood_theme.printing.reprint.before_print",
     },
     "POS Invoice": {
         "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
         "on_trash": "bunood_theme.invoice_rules.refuse_delete",
+        "before_print": "bunood_theme.printing.reprint.before_print",
     },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS
@@ -236,6 +239,7 @@ jinja = {
         "bunood_theme.printing.jinja.bunood_voucher_view",
         "bunood_theme.printing.jinja.bunood_journal_view",
         "bunood_theme.printing.jinja.bunood_shift_view",
+        "bunood_theme.printing.jinja.bunood_print_copy",
         "bunood_theme.printing.jinja.bunood_print_kit_css",
         # Item 34: the email stylesheet, substituted per site. Registered here
         # rather than delivered by Frappe's `email_css` hook because that hook is a
