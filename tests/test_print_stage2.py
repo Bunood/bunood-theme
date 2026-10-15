@@ -235,6 +235,10 @@ class StatementTests(unittest.TestCase):
         frappe.get_all = lambda *a, **k: rows
         aging = {row["key"]: row["amount"] for row in statement.aging("C", "Cust", "2026-10-31")}
         self.assertEqual(aging, {"current": "100.00", "1-30": "20.00", "31-60": "30.00", "61-90": "40.00", "90+": "50.00"})
+        # An unapplied credit note keeps its own (negative) outstanding: it counts, in brackets.
+        rows.append(SimpleNamespace(due_date=date(2026, 10, 20), posting_date=None, outstanding_amount=-45))
+        aging = {row["key"]: row["amount"] for row in statement.aging("C", "Cust", "2026-10-31")}
+        self.assertEqual(aging["1-30"], "(25.00)")
 
     def test_a_statement_prints_on_chromium_every_other_report_on_frappes_path(self):
         calls = []

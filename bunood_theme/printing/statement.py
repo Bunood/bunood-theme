@@ -74,12 +74,14 @@ BUCKETS = (("current", "غير مستحق", "Current"), ("1-30", "1-30 يوما�
 
 
 def aging(company, customer, to_date) -> list[dict]:
-    """A customer's outstanding sales invoices by days past due, as of the statement's end."""
+    """A customer's outstanding sales invoices by days past due, as of the statement's end. A credit
+    note that keeps its own outstanding (ERPNext's default since v15) counts too, negative, so the
+    strip adds up to what the customer owes."""
     as_of = getdate(to_date) if to_date else getdate()
     totals = {key: 0.0 for key, _ar, _en in BUCKETS}
     rows = frappe.get_all(
         "Sales Invoice",
-        filters={"company": company, "customer": customer, "docstatus": 1, "outstanding_amount": [">", 0],
+        filters={"company": company, "customer": customer, "docstatus": 1, "outstanding_amount": ["!=", 0],
                  "posting_date": ["<=", as_of]},
         fields=["due_date", "posting_date", "outstanding_amount"],
     )
@@ -88,5 +90,7 @@ def aging(company, customer, to_date) -> list[dict]:
         days = (as_of - due).days
         key = "current" if days <= 0 else "1-30" if days <= 30 else "31-60" if days <= 60 else "61-90" if days <= 90 else "90+"
         totals[key] += flt(row.outstanding_amount)
-    return [{"key": key, "ar": ar, "en": en, "amount": view.num(totals[key])} for key, ar, en in BUCKETS]
+    # A bucket the credits outweigh prints in brackets, as the ledger prints a credit balance.
+    signed = lambda value: f"({view.num(value)})" if value < -0.004 else view.num(value)
+    return [{"key": key, "ar": ar, "en": en, "amount": signed(totals[key])} for key, ar, en in BUCKETS]
 
