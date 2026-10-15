@@ -124,9 +124,24 @@ class PrintEngineTests(unittest.TestCase):
 			self.install._company_print_fields()
 		created.assert_called_once_with({"Company": self.install.PRINT_FIELDS}, ignore_validate=True, update=True)
 
+	def test_the_invoices_carry_their_own_print_count(self):
+		"""printing/reprint.py: a hidden, read-only Int that no duplicate, amendment or return copies."""
+		field = self.install.REPRINT_FIELD
+		self.assertEqual((field["fieldname"], field["fieldtype"]), ("bnd_print_count", "Int"))
+		self.assertTrue(field["no_copy"] and field["read_only"] and field["hidden"] and field["allow_on_submit"])
+		created = Mock()
+		module = SimpleNamespace(create_custom_fields=created)
+		self.frappe.db.exists = Mock(return_value=True)
+		with patch.dict(sys.modules, {"frappe.custom.doctype.custom_field.custom_field": module}):
+			self.install._reprint_fields()
+		created.assert_called_once_with({"Sales Invoice": [field], "POS Invoice": [field]}, ignore_validate=True, update=True)
+		hooks = (ROOT / "bunood_theme/hooks.py").read_text(encoding="utf-8")
+		self.assertEqual(hooks.count('"before_print": "bunood_theme.printing.reprint.before_print"'), 2)
+
 	def test_migrate_does_not_run_the_held_tenant_configuration(self):
 		"""Integration v0.48.0: engine, default formats and MVP fields are held."""
-		for name in ("_sync_style", "_company_cr_field", "_company_print_fields", "_sync_letterhead", "_sync_format"):
+		for name in ("_sync_style", "_company_cr_field", "_company_print_fields", "_reprint_fields", "_sync_letterhead",
+				"_sync_format"):
 			setattr(self.install, name, Mock())
 		held = {name: Mock() for name in (
 			"_sync_pdf_generator", "adopt_business_print_formats",

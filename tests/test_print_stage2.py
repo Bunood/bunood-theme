@@ -32,6 +32,7 @@ def load_with_view(name, relative, extra=None):
     frappe.get_meta = lambda doctype: SimpleNamespace(has_field=lambda field: field == "posting_date")
     utils.now_datetime = lambda: None
     utils.get_url = lambda **k: "http://site"
+    utils.cint = lambda value: int(value or 0)
     printing = ModuleType("bunood_theme.printing")
     printing.view = VIEW
     package = ModuleType("bunood_theme")
@@ -168,7 +169,7 @@ class TemplateTests(unittest.TestCase):
         self.assertIn("page-width: 210mm; page-height: 148mm;", style)
         self.assertIn("سند قبض", page.get_text())
 
-    def receipt(self, width, gift=False):
+    def receipt(self, width, gift=False, copy=None):
         v = {"title_ar": "فاتورة ضريبية مبسطة", "title_en": "Simplified Tax Invoice", "number": "SINV-1",
              "issued": "2026-10-15 10:42", "cashier": "", "branch": "", "reference": {}, "payments": [],
              "lines": [{"name": "ورق حراري 80×80 — كرتون 50 لفة", "qty": "2", "unit_incl": "212.75", "rate": "185.00",
@@ -177,7 +178,7 @@ class TemplateTests(unittest.TestCase):
                         "grand": "425.50", "currency": "SAR", "paid": "", "change": "", "remaining": ""}}
         doc = Doc(doctype="Sales Invoice", name="SINV-1", docstatus=1)
         return env_render("templates/print/sales_receipt.html", doc, zo_width=width, zo_b2b=False, zo_gift=gift,
-                          bunood_invoice_view=lambda d, simplified=False: v)
+                          bunood_invoice_view=lambda d, simplified=False: v, bunood_print_copy=lambda d: copy or {})
 
     def test_every_figure_column_has_its_own_width(self):
         for width, heads in ((80, ["الصنف", "الكمية", "السعر", "الإجمالي"]), (58, ["الصنف", "الكمية", "الإجمالي"])):
@@ -191,12 +192,76 @@ class TemplateTests(unittest.TestCase):
                 self.assertGreaterEqual(min(widths[1:]), 18, "«الكمية» needs its own room")
         self.assertIn("2 × 212.75", self.receipt(58).select_one(".zo-rcpt-items .unit").get_text())
 
+    def test_a_copy_says_so_except_on_a_gift_receipt(self):
+        copy = {"number": 2, "at": "2026-10-15 18:20"}
+        for width in (80, 58):
+            page = self.receipt(width, copy=copy)
+            self.assertIn("نسخة مكررة", page.select_one(".zo-rcpt__dup").get_text())
+            self.assertIn("2026-10-15 18:20", page.select_one(".zo-rcpt__dup").get_text())
+        self.assertIsNone(self.receipt(80).select_one(".zo-rcpt__dup"), "the original")
+        self.assertIsNone(self.receipt(80, gift=True, copy=copy).select_one(".zo-rcpt__dup"))
+
+    def test_58mm_totals_carry_short_labels(self):
+        labels = [td.get_text(" ", strip=True) for td in self.receipt(58).select(".zo-rcpt-tot td.k")]
+        self.assertEqual(labels[:3], ["قبل الضريبة", "الضريبة 15%", "الإجمالي"])
+        self.assertIsNone(self.receipt(58).select_one(".zo-rcpt-tot .en"))
+        self.assertIsNotNone(self.receipt(80).select_one(".zo-rcpt-tot .en"))
+
     def test_a_gift_receipt_has_no_prices_and_no_qr(self):
         page = self.receipt(80, gift=True)
         self.assertEqual([th.contents[0].strip() for th in page.select(".zo-rcpt-items thead th")], ["الصنف", "الكمية"])
         self.assertIsNone(page.select_one(".zo-rcpt-tot"))
         self.assertIsNone(page.select_one(".zo-rcpt__qr"))
         self.assertNotIn("425.50", page.get_text())
+
+
+class ReprintTests(unittest.TestCase):
+    """«نسخة مكررة — Copy»: a print raises the document's own count; the first print is the original."""
+
+    def setUp(self):
+        self.reprint, self.frappe = load_with_view("isolated_reprint", "printing/reprint.py")
+        self.reprint.now_datetime = lambda: SimpleNamespace(strftime=lambda fmt: "2026-10-15 18:20")
+        self.stored = {"SINV-1": 0}
+        self.frappe.get_meta = lambda doctype: SimpleNamespace(is_submittable=True, has_field=lambda f: f == "bnd_print_count")
+        self.frappe.db = SimpleNamespace(
+            get_value=lambda doctype, name, field: self.stored.get(name, 0),
+            sql=lambda query, name: self.stored.__setitem__(name, self.stored.get(name, 0) + 1))
+        self.request("/printview", {})
+
+    def request(self, path, form):
+        self.frappe.local = SimpleNamespace(request=SimpleNamespace(path=path), form_dict=form, flags=SimpleNamespace(commit=False))
+
+    def doc(self, **over):
+        return Doc(dict(doctype="Sales Invoice", name="SINV-1", docstatus=1), **over)
+
+    def test_what_counts_as_a_print(self):
+        for path, form, counted in (("/printview", {"trigger_print": "1"}, True), ("/printview", {}, False),
+                                    ("/api/method/frappe.utils.print_format.download_pdf", {}, True),
+                                    ("/api/method/frappe.utils.print_format.download_multi_pdf", {}, True),
+                                    ("/api/method/frappe.www.printview.get_html_and_style", {}, False),
+                                    ("/api/method/frappe.core.doctype.communication.email.make", {}, False)):
+            with self.subTest(path=path, form=form):
+                self.request(path, form)
+                self.assertEqual(self.reprint.counted_request(), counted)
+
+    def test_the_first_print_is_the_original_the_second_a_copy(self):
+        self.request("/printview", {"trigger_print": "1"})
+        self.assertEqual(self.reprint.record(self.doc()), 1)
+        self.assertEqual(self.reprint.mark(self.doc()), {}, "the original")
+        self.assertTrue(self.frappe.local.flags.commit, "a GET print commits its count")
+        self.request("/printview", {"trigger_print": "1"})
+        self.assertEqual(self.reprint.record(self.doc()), 2)
+        self.assertEqual(self.reprint.mark(self.doc()), {"number": 2, "at": "2026-10-15 18:20"})
+        # A preview counts nothing and shows what the next print would be.
+        self.request("/printview", {})
+        self.assertEqual(self.reprint.mark(self.doc()), {"number": 3, "at": "2026-10-15 18:20"})
+        self.assertEqual(self.stored["SINV-1"], 2)
+
+    def test_a_draft_is_never_marked_nor_counted(self):
+        self.request("/printview", {"trigger_print": "1"})
+        self.assertEqual(self.reprint.record(self.doc(docstatus=0)), 0)
+        self.assertEqual(self.reprint.mark(self.doc(docstatus=0)), {})
+        self.assertEqual(self.stored["SINV-1"], 0)
 
 
 def function_from(relative, name, namespace):
@@ -232,13 +297,51 @@ class StatementTests(unittest.TestCase):
                 SimpleNamespace(due_date=date(2026, 8, 15), posting_date=None, outstanding_amount=40),
                 SimpleNamespace(due_date=date(2026, 6, 1), posting_date=None, outstanding_amount=50)]
         statement, frappe = load_with_view("isolated_statement", "printing/statement.py")
-        frappe.get_all = lambda *a, **k: rows
-        aging = {row["key"]: row["amount"] for row in statement.aging("C", "Cust", "2026-10-31")}
+        asked = []
+        frappe.get_all = lambda doctype, **k: asked.append((doctype, sorted(k["filters"]))) or rows
+        aging = {row["key"]: row["amount"] for row in statement.aging("C", "Customer", "Cust", "2026-10-31")}
         self.assertEqual(aging, {"current": "100.00", "1-30": "20.00", "31-60": "30.00", "61-90": "40.00", "90+": "50.00"})
         # An unapplied credit note keeps its own (negative) outstanding: it counts, in brackets.
         rows.append(SimpleNamespace(due_date=date(2026, 10, 20), posting_date=None, outstanding_amount=-45))
-        aging = {row["key"]: row["amount"] for row in statement.aging("C", "Cust", "2026-10-31")}
+        aging = {row["key"]: row["amount"] for row in statement.aging("C", "Customer", "Cust", "2026-10-31")}
         self.assertEqual(aging["1-30"], "(25.00)")
+        # A supplier's statement ages what we owe: its purchase invoices.
+        statement.aging("C", "Supplier", "Sup", "2026-10-31")
+        self.assertEqual([d for d, _f in asked], ["Sales Invoice", "Sales Invoice", "Purchase Invoice"])
+        self.assertIn("supplier", asked[-1][1])
+
+    def test_each_line_names_its_document_and_says_what_it_was(self):
+        statement, frappe = load_with_view("isolated_statement_lines", "printing/statement.py")
+        frappe.get_meta = lambda doctype: SimpleNamespace(has_field=lambda field: field == "is_debit_note")
+        stored = {
+            "Sales Invoice": [SimpleNamespace(name="SINV-1", is_return=0, get=lambda f: 0),
+                              SimpleNamespace(name="SINV-2", is_return=1, get=lambda f: 0),
+                              SimpleNamespace(name="SINV-3", is_return=0, get=lambda f: 1)],
+            "Purchase Invoice": [SimpleNamespace(name="PINV-2", is_return=1, get=lambda f: 0)],
+            "Payment Entry": [SimpleNamespace(name="PE-1", payment_type="Receive"), SimpleNamespace(name="PE-2", payment_type="Pay")],
+        }
+        frappe.get_all = lambda doctype, **k: stored.get(doctype, [])
+        frappe._ = lambda text, *a, **k: text
+        labels = statement.line_labels([
+            ["Sales Invoice", "SINV-1", "No Remarks", "Sales Invoice", "SINV-1"],
+            ["Sales Invoice", "SINV-2", "", "Sales Invoice", "SINV-1"],
+            ["Sales Invoice", "SINV-3", "زيادة سعر\nسطر ثان", "", ""],
+            ["Purchase Invoice", "PINV-2", "", "", ""],
+            ["Payment Entry", "PE-1", "Amount SAR 8000 received from X", "Sales Invoice", "SINV-1"],
+            ["Payment Entry", "PE-2", "No Remarks", "Purchase Invoice", "PINV-2"],
+            ["Journal Entry", "JV-1", "x" * 200, "", ""],
+        ])
+        self.assertEqual([labels[n]["type_ar"] for n in ("SINV-1", "SINV-2", "SINV-3", "PINV-2", "PE-1", "PE-2", "JV-1")],
+                         ["فاتورة مبيعات", "إشعار دائن", "إشعار مدين", "مرتجع مشتريات", "سند قبض", "سند صرف", "سند قيد"])
+        self.assertEqual(labels["PE-1"]["type_en"], "Receipt voucher")
+        self.assertEqual(labels["SINV-1"]["note_ar"], "", "a line settling itself names nothing")
+        self.assertEqual((labels["SINV-2"]["note_ar"], labels["SINV-2"]["note_en"], labels["SINV-2"]["note_no"]),
+                         ("فاتورة مبيعات", "Sales invoice", "SINV-1"))
+        self.assertEqual(labels["SINV-3"]["note_ar"], "زيادة سعر", "the first line only")
+        self.assertEqual(labels["PE-1"]["note_ar"], "Amount SAR 8000 received from X")
+        self.assertEqual((labels["PE-2"]["note_ar"], labels["PE-2"]["note_no"]), ("مرتجع مشتريات", "PINV-2"),
+                         "the against document by its own kind")
+        self.assertEqual(len(labels["JV-1"]["note_ar"]), 120)
 
     def test_a_statement_prints_on_chromium_every_other_report_on_frappes_path(self):
         calls = []
