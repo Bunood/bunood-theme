@@ -1,0 +1,5 @@
+{#- The statement of account's page chrome, rendered on the server for the report's client-side
+    template (printing/statement.py): the kit's `page` around a marker the endpoint splits on. -#}
+{%- from "templates/print/kit.html" import page -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- call page(p, doc, no_letterhead=0, tax_document=True) -%}{{ content }}{%- endcall -%}

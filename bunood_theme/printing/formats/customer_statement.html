@@ -1,42 +1,63 @@
-<!-- Managed report print format. Frappe reports use JavaScript microtemplates. -->
-{% var bndLanguage = (((frappe.boot && frappe.boot.lang) || frappe.lang || "en") + "").toLowerCase(); var bndArabic = bndLanguage.indexOf("ar") === 0; var bndText = bndArabic ? {title:"كشف حساب عميل",customer:"العميل",allCustomers:"جميع العملاء",period:"الفترة",company:"الشركة",currency:"العملة",date:"التاريخ",document:"المستند / البيان",debit:"مدين",credit:"دائن",balance:"الرصيد",closing:"الرصيد الختامي",total:"الإجمالي"} : {title:"CUSTOMER STATEMENT",customer:"Customer",allCustomers:"All customers",period:"Period",company:"Company",currency:"Currency",date:"Date",document:"Document / Description",debit:"Debit",credit:"Credit",balance:"Balance",closing:"Closing balance",total:"Total"}; %}
-<style>
-  .bnd-statement { font-family: Tajawal, Arial, sans-serif; color: #18221c; }
-  .bnd-statement[dir="rtl"] { direction: rtl; text-align: right; }
-  .bnd-statement[dir="ltr"] { direction: ltr; text-align: left; }
-  .bnd-statement h1 { color: #245736; font-size: 22px; margin: 0 0 16px; }
-  .bnd-statement__meta { width: 100%; margin-bottom: 16px; border-collapse: collapse; }
-  .bnd-statement__meta td { padding: 5px 8px; }
-  .bnd-statement__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .bnd-statement__table th { background: #edf5ef; color: #245736; font-weight: 700; }
-  .bnd-statement__table th, .bnd-statement__table td { padding: 7px 8px; border-bottom: 1px solid #dfe7e1; }
-  .bnd-statement__table th:nth-child(1), .bnd-statement__table td:nth-child(1) { width: 14%; }
-  .bnd-statement__table th:nth-child(2), .bnd-statement__table td:nth-child(2) { width: 38%; }
-  .bnd-statement__table th:nth-child(n+3), .bnd-statement__table td:nth-child(n+3) { width: 16%; }
-  .bnd-statement__num { direction: ltr; font-variant-numeric: tabular-nums; }
-  .bnd-statement[dir="rtl"] .bnd-statement__num { text-align: left; }
-  .bnd-statement[dir="ltr"] .bnd-statement__num { text-align: right; }
-  .bnd-statement__total td { font-weight: 700; background: #f6faf7; }
-  @media print { @page { size: A4; margin: 12mm; } thead { display: table-header-group; } tr { page-break-inside: avoid; } }
-</style>
-<div class="bnd-statement" dir="{%= bndArabic ? "rtl" : "ltr" %}" lang="{%= bndArabic ? "ar" : "en" %}">
-  <h1>{%= bndText.title %}</h1>
-  <table class="bnd-statement__meta"><tr>
-    <td><strong>{%= bndText.customer %}:</strong> {%= (filters.party && filters.party.length ? filters.party.join(bndArabic ? "، " : ", ") : (filters.party_name || bndText.allCustomers)) %}</td>
-    <td><strong>{%= bndText.period %}:</strong> {%= frappe.datetime.str_to_user(filters.from_date) %} — {%= frappe.datetime.str_to_user(filters.to_date) %}</td>
-  </tr><tr><td><strong>{%= bndText.company %}:</strong> {%= filters.company || "" %}</td><td><strong>{%= bndText.currency %}:</strong> {%= filters.presentation_currency || "SAR" %}</td></tr></table>
-  <table class="bnd-statement__table">
-    <thead><tr><th>{%= bndText.date %}</th><th>{%= bndText.document %}</th><th>{%= bndText.debit %}</th><th>{%= bndText.credit %}</th><th>{%= bndText.balance %}</th></tr></thead>
+<!-- Managed by bunood_theme: «كشف حساب - A4» (General Ledger). A report prints through the client-side microtemplates of Frappe, so the page chrome (the kit stylesheet, head, foot, page number), the party box and the aging of a customer come from bunood_theme.printing.statement.context, rendered by the same macros as every kit document; this template lays out the ledger. Microtemplate rules: no line comments, no single quotes outside code. -->
+{% var ar = (((frappe.boot && frappe.boot.lang) || frappe.lang || "en") + "").toLowerCase().indexOf("ar") === 0; var ctx = {}; var parties = (filters.party && filters.party.length) ? filters.party : []; frappe.call({ method: "bunood_theme.printing.statement.context", type: "GET", async: false, args: { company: filters.company || "", party_type: filters.party_type || "", party: parties.length === 1 ? parties[0] : "", from_date: filters.from_date || "", to_date: filters.to_date || "" }, callback: function (r) { ctx = r.message || {}; } }); var esc = function (v) { return frappe.utils.escape_html(v === null || v === undefined ? "" : String(v)); }; var fmt = function (v) { var n = Math.abs(Number(v) || 0); return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ","); }; var bal = function (v) { if (v === null || v === undefined || v === "") { return ""; } return Number(v) < 0 ? "(" + fmt(v) + ")" : fmt(v); }; var day = function (v) { return v ? String(v).slice(0, 10) : ""; }; var summary = [], entries = []; for (var i = 0; i < data.length; i++) { if (data[i].posting_date) { entries.push(data[i]); } else { summary.push(data[i]); } } var opening = summary.length ? summary[0] : {}; var closing = summary.length > 1 ? summary[summary.length - 1] : {}; var totals = summary.length > 2 ? summary[summary.length - 2] : {}; var openingBalance = Number(opening.balance || 0) || (Number(opening.debit || 0) - Number(opening.credit || 0)); var closingBalance = (closing.balance === undefined || closing.balance === null) ? openingBalance + Number(totals.debit || 0) - Number(totals.credit || 0) : Number(closing.balance); var sar = "<span class=\"sar\">&#x20C1;</span>"; %}
+{%= ctx.open || "" %}
+<div class="zo-statement">
+  <table class="zo-title"><tr>
+    <td><div class="zo-title__name">{%= esc(ctx.title_ar || "كشف حساب") %}<span class="zo-title__sep">|</span><span class="en">Statement of Account</span></div></td>
+    <td class="zo-title__no"><small>الفترة · <span class="en">Period</span></small><b>{%= day(filters.from_date) %} — {%= day(filters.to_date) %}</b></td>
+  </tr></table>
+
+  <table class="zo-parties"><tr>
+    <td>{% if (ctx.party_box) { %}{%= ctx.party_box %}{% } else { %}<div class="zo-party"><div class="zo-party__h">الطرف <span class="en">Party</span></div><div class="zo-party__n">{%= esc(parties.length ? parties.join("، ") : (ar ? "جميع الأطراف" : "All parties")) %}</div></div>{% } %}</td>
+    <td class="gap"></td>
+    <td class="zo-statement__sum">
+      <table class="zo-meta zo-statement__cells"><tr>
+        <td><div class="zo-lbl">الرصيد الافتتاحي <span class="en">Opening</span></div><div class="zo-val num">{%= sar %}&#8201;{%= bal(openingBalance) %}</div></td>
+        <td><div class="zo-lbl">إجمالي المدين <span class="en">Total debit</span></div><div class="zo-val num">{%= fmt(totals.debit) %}</div></td>
+      </tr><tr>
+        <td><div class="zo-lbl">إجمالي الدائن <span class="en">Total credit</span></div><div class="zo-val num">{%= fmt(totals.credit) %}</div></td>
+        <td class="zo-statement__closing"><div class="zo-lbl">الرصيد الختامي <span class="en">Closing</span></div><div class="zo-val num">{%= sar %}&#8201;{%= bal(closingBalance) %}</div></td>
+      </tr></table>
+    </td>
+  </tr></table>
+
+  {% if (ctx.aging && ctx.aging.length) { %}
+  <table class="zo-meta zo-statement__aging"><tr>
+    {% for (var a = 0; a < ctx.aging.length; a++) { %}<td><div class="zo-lbl">{%= ctx.aging[a].ar %} <span class="en">{%= ctx.aging[a].en %}</span></div><div class="zo-val num">{%= ctx.aging[a].amount %}</div></td>{% } %}
+  </tr></table>
+  {% } %}
+
+  <table class="zo-items">
+    <colgroup><col style="width:11%"><col style="width:13%"><col style="width:17%"><col style="width:23%"><col style="width:12%"><col style="width:12%"><col style="width:12%"></colgroup>
+    <thead><tr>
+      <th>التاريخ<span class="en">Date</span></th>
+      <th>النوع<span class="en">Type</span></th>
+      <th>الرقم<span class="en">Number</span></th>
+      <th>البيان<span class="en">Description</span></th>
+      <th class="n">مدين {%= sar %}<span class="en">Debit</span></th>
+      <th class="n">دائن {%= sar %}<span class="en">Credit</span></th>
+      <th class="n">الرصيد {%= sar %}<span class="en">Balance</span></th>
+    </tr></thead>
     <tbody>
-    {% for (var i = 0; i < data.length; i++) { var row = data[i]; var entry = !!row.posting_date; var summary = row.account || (i === data.length - 1 ? bndText.closing : bndText.total); if (summary && summary.length > 1 && summary.charAt(0) === "'" && summary.charAt(summary.length - 1) === "'") { summary = summary.slice(1, -1); } %}
-      <tr class="{% if (!entry) { %}bnd-statement__total{% } %}">
-        <td>{% if (entry) { %}{%= frappe.datetime.str_to_user(row.posting_date) %}{% } %}</td>
-        <td>{% if (entry) { %}{%= ((row.voucher_type ? __(row.voucher_type) : "") + " " + (row.voucher_no || "")).trim() %}{% if (row.remarks && row.remarks !== "No Remarks") { %}<br>{%= row.remarks %}{% } %}{% } else { %}{%= summary %}{% } %}</td>
-        <td class="bnd-statement__num">{%= row.debit ? format_currency(row.debit, filters.presentation_currency) : "" %}</td>
-        <td class="bnd-statement__num">{%= row.credit ? format_currency(row.credit, filters.presentation_currency) : "" %}</td>
-        <td class="bnd-statement__num">{%= !is_null(row.balance) ? format_currency(row.balance, filters.presentation_currency) : "" %}</td>
+      <tr class="zo-statement__opening"><td colspan="4">الرصيد الافتتاحي <span class="en">Opening balance</span></td><td class="n"><span class="num">{%= opening.debit ? fmt(opening.debit) : "" %}</span></td><td class="n"><span class="num">{%= opening.credit ? fmt(opening.credit) : "" %}</span></td><td class="n"><span class="num">{%= bal(openingBalance) %}</span></td></tr>
+      {% for (var e = 0; e < entries.length; e++) { var row = entries[e]; var remark = (row.remarks && row.remarks !== "No Remarks") ? row.remarks : ""; %}
+      <tr>
+        <td><span class="num">{%= day(row.posting_date) %}</span></td>
+        <td>{%= esc(row.voucher_type ? __(row.voucher_type) : "") %}</td>
+        <td><span class="code">{%= esc(row.voucher_no || "") %}</span></td>
+        <td>{%= esc(remark.length > 90 ? remark.slice(0, 90) + "…" : remark) %}</td>
+        <td class="n"><span class="num">{%= row.debit ? fmt(row.debit) : "—" %}</span></td>
+        <td class="n"><span class="num">{%= row.credit ? fmt(row.credit) : "—" %}</span></td>
+        <td class="n"><span class="num">{%= bal(row.balance) %}</span></td>
       </tr>
-    {% } %}
+      {% } %}
     </tbody>
+    <tfoot>
+      <tr><td colspan="4">الإجمالي <span class="en">Total</span></td><td class="n"><span class="num">{%= fmt(totals.debit) %}</span></td><td class="n"><span class="num">{%= fmt(totals.credit) %}</span></td><td class="n"></td></tr>
+      <tr><td colspan="4">الرصيد الختامي <span class="en">Closing balance</span></td><td class="n"></td><td class="n"></td><td class="n"><span class="num">{%= bal(closingBalance) %}</span></td></tr>
+    </tfoot>
   </table>
+  <div class="zo-statement__note">الأرصدة الدائنة بين قوسين — <span class="en">Credit balances in brackets</span></div>
+  <div class="zo-statement__printed">طُبع في <span class="num">{%= esc(ctx.printed_at || "") %}</span> بواسطة {%= esc(ctx.printed_by || "") %} — <span class="en">Printed at <span class="num">{%= esc(ctx.printed_at || "") %}</span> by {%= esc(ctx.printed_by || "") %}</span></div>
 </div>
+{%= ctx.close || "" %}
