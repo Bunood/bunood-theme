@@ -122,7 +122,7 @@
 		const wrap = el("div", "bnd-close__table-wrap");
 		const table = el("table", "bnd-close__table");
 		const head = el("tr");
-		[__("Asset"), __("Category"), __("Lifecycle state"), __("Location or custodian"), __("Next depreciation"), __("Carrying value")].forEach((label) => head.append(el("th", "", label)));
+		[__("Asset"), __("Category"), __("Lifecycle state"), __("Location or custodian"), __("Next depreciation"), __("Carrying value")].forEach((label, at) => head.append(el("th", at === 5 ? "is-num is-money" : "", label)));
 		const thead = el("thead");
 		thead.append(head);
 		const body = el("tbody");
@@ -139,8 +139,8 @@
 				el("td", "", row.asset_category || "—"),
 				el("td", "", assetState(row.state)),
 				el("td", "", custody),
-				el("td", "", row.next_depreciation_date || "—"),
-				el("td", "", formatAmount(row.carrying_value, data.currency))
+				el("td", "is-date", row.next_depreciation_date || "—"),
+				el("td", "is-num", formatAmount(row.carrying_value, data.currency))
 			);
 			body.append(tr);
 		});
@@ -166,7 +166,7 @@
 		const wrap = el("div", "bnd-close__table-wrap");
 		const table = el("table", "bnd-close__table");
 		const head = el("tr");
-		[__("Schedule"), __("Asset"), __("Finance Book"), __("Method"), __("State"), __("Current scheduled value")].forEach((label) => head.append(el("th", "", label)));
+		[__("Schedule"), __("Asset"), __("Finance Book"), __("Method"), __("State"), __("Current scheduled value")].forEach((label, at) => head.append(el("th", at === 5 ? "is-num is-money" : "", label)));
 		const thead = el("thead");
 		thead.append(head);
 		const body = el("tbody");
@@ -177,7 +177,7 @@
 			link.type = "button";
 			link.addEventListener("click", () => frappe.set_route("Form", "Asset Depreciation Schedule", row.name));
 			nameCell.append(link);
-			tr.append(nameCell, el("td", "", row.asset || "—"), el("td", "", row.finance_book || data.finance_book || "—"), el("td", "", __(row.depreciation_method || "—")), el("td", "", documentState(row.docstatus, row.status)), el("td", "", formatAmount(row.value_after_depreciation, data.currency)));
+			tr.append(nameCell, el("td", "", row.asset || "—"), el("td", "", row.finance_book || data.finance_book || "—"), el("td", "", __(row.depreciation_method || "—")), el("td", "", documentState(row.docstatus, row.status)), el("td", "is-num", formatAmount(row.value_after_depreciation, data.currency)));
 			body.append(tr);
 		});
 		table.append(thead, body);
@@ -199,7 +199,7 @@
 		const wrap = el("div", "bnd-close__table-wrap");
 		const table = el("table", "bnd-close__table");
 		const head = el("tr");
-		[__("Document"), __("Type"), __("Date"), __("Asset or purpose"), __("State"), __("Amount")].forEach((label) => head.append(el("th", "", label)));
+		[__("Document"), __("Type"), __("Date"), __("Asset or purpose"), __("State"), __("Amount")].forEach((label, at) => head.append(el("th", at === 5 ? "is-num is-money" : "", label)));
 		const thead = el("thead");
 		thead.append(head);
 		const body = el("tbody");
@@ -210,7 +210,7 @@
 			link.type = "button";
 			link.addEventListener("click", () => frappe.set_route("Form", row.doctype, row.name));
 			nameCell.append(link);
-			tr.append(nameCell, el("td", "", __(row.doctype)), el("td", "", row.date || "—"), el("td", "", row.asset || row.title || "—"), el("td", "", documentState(row.docstatus, row.state)), el("td", "", formatAmount(row.amount, data.currency)));
+			tr.append(nameCell, el("td", "", __(row.doctype)), el("td", "is-date", row.date || "—"), el("td", "", row.asset || row.title || "—"), el("td", "", documentState(row.docstatus, row.state)), el("td", "is-num", formatAmount(row.amount, data.currency)));
 			body.append(tr);
 		});
 		table.append(thead, body);

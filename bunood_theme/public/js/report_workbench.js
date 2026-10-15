@@ -318,6 +318,24 @@
 		installTimer = setTimeout(tick, 0);
 	}
 
+	// Every query report, not only the seven: a debit or credit column reads EMPTY where
+	// nothing was posted, not 0.00 (owner, 2026-10-15); a balance keeps its 0.00. Keyed on
+	// what only QueryReport's own cell formatter passes (a DataTable column, which carries a
+	// colIndex, and for_print: false), so a form, a list or a print never meets it.
+	const SIDE_NAME = /^(?:opening_|closing_)?(?:debit|credit)(?:_in_[a-z_]+)?$/;
+	const SIDE_LABEL = /^(?:debit|credit|مدين|دائن)(?:\s*\(|$)/i;
+	const nativeFormat = frappe.format;
+	if (typeof nativeFormat === "function" && !nativeFormat._bnd_sides) {
+		frappe.format = function (value, df, options) {
+			if (df && df.colIndex !== undefined && options && options.for_print === false &&
+				(df.fieldtype === "Currency" || df.fieldtype === "Float") &&
+				value !== null && value !== "" && Number(value) === 0 &&
+				(SIDE_NAME.test(df.fieldname || "") || SIDE_LABEL.test(String(df.label || "").trim()))) return "";
+			return nativeFormat.apply(this, arguments);
+		};
+		frappe.format._bnd_sides = true;
+	}
+
 	window.bunood_theme = window.bunood_theme || {};
 	window.bunood_theme.report_workbench_loaded = true;
 	frappe.router?.on?.("change", scheduleInstall);

@@ -1,4 +1,5 @@
 @use "../breakpoints" as *;
+@use "../sheet";
 
 html[data-theme] .bnd-close {
 	display: grid;
@@ -141,14 +142,13 @@ html[data-theme] .bnd-close {
 	&__note,
 	&__empty { color: var(--bnd-ink-muted); line-height: 1.6; }
 
-	&__table-wrap { overflow-x: auto; }
+	// The workbench queues are ledgers too (a journal's debit, credit and
+	// difference; an asset's value): the organised table of _sheet.scss.
+	&__table-wrap { @include sheet.frame; }
 	&__table {
-		inline-size: 100%;
-		border-collapse: collapse;
+		@include sheet.table;
 
-		th,
-		td { padding: .8rem; border-block-end: 1px solid var(--bnd-border); text-align: start; }
-		th { color: var(--bnd-ink-muted); font-size: var(--bnd-text-sm); }
+		td.is-date { white-space: nowrap; }
 	}
 
 	&__link {

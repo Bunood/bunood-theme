@@ -120,7 +120,8 @@
 		const wrap = el("div", "bnd-close__table-wrap");
 		const table = el("table", "bnd-close__table");
 		const head = el("tr");
-		[__("Journal"), __("Posting date"), __("Entry type"), __("State"), __("Source"), __("Debit"), __("Credit"), __("Difference")].forEach((label) => head.append(el("th", "", label)));
+		// Debit, credit and difference are figures: end-aligned, one width each.
+		[__("Journal"), __("Posting date"), __("Entry type"), __("State"), __("Source"), __("Debit"), __("Credit"), __("Difference")].forEach((label, at) => head.append(el("th", at > 4 ? "is-num is-money" : "", label)));
 		const thead = el("thead");
 		thead.append(head);
 		const body = el("tbody");
@@ -133,13 +134,13 @@
 			documentCell.append(link);
 			tr.append(
 				documentCell,
-				el("td", "", row.posting_date || "—"),
+				el("td", "is-date", row.posting_date || "—"),
 				el("td", "", __(row.voucher_type)),
 				el("td", "", journalState(row.state)),
 				el("td", "", journalSource(row.source)),
-				el("td", "", formatAmount(row.total_debit, data.currency)),
-				el("td", "", formatAmount(row.total_credit, data.currency)),
-				el("td", "", formatAmount(row.difference, data.currency))
+				el("td", "is-num", formatAmount(row.total_debit, data.currency)),
+				el("td", "is-num", formatAmount(row.total_credit, data.currency)),
+				el("td", Number(row.difference) < 0 ? "is-num is-neg" : "is-num", formatAmount(row.difference, data.currency))
 			);
 			body.append(tr);
 		});

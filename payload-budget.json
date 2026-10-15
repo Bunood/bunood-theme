@@ -1,5 +1,6 @@
 {
 	"_readme": [
+		"2026-10-15: the organised table (owner: every report reads like the business app's tables) — the shared table partial (_sheet.scss) for the report studio and the finance workbench queues, Frappe's DataTable in the same look (figures under their headings at the end in Arabic, wrapped headings, header band, grid, zebra, banded totals) and a query report's debit and credit read empty where nothing was posted. Desk CSS measures 42,154 gzip bytes; ceiling 41,100 -> 42,400. Desk JS measures 203,116; ceiling 202,700 -> 203,400. Studio CSS 6,918; ceiling 6,800 -> 7,100. Studio JS 39,120; ceiling 39,050 -> 39,400.",
 		"2026-10-14: the counter names the cashier's shift on another screen with its date and a button to go there and close it (the restaurant cashier and the counter each sent the cashier to the other). POS JS measures 53,356 gzip bytes; ceiling 53,200 -> 53,500.",
 		"2026-10-14: the owner's second invoice review (v0.59.0) adds the coded sheet (a code column whose ready row is the scan box, a unit column that switches the line's UOM, before VAT on each line), the five-figure foot, «جديد» and «الفواتير» beside «حفظ», one message after a sale with the way back to it, a new bill after «حفظ» or «طباعة», one plain cancel question in place of Frappe's «إلغاء الكل», a due date that never refuses a bill, and no cancel at all on a sales invoice (ZATCA). Desk JS measures 202,333 gzip bytes (+7,182 over v0.58.0); ceiling 195,700 -> 202,700. Desk CSS measures 40,793 gzip bytes; ceiling 40,300 -> 41,100.",
 		"2026-10-12: the counter's settings gain the two site-wide stock choices (stock leaves at each sale or at closing; selling an item that ran out) and the grid reads again when the counter's tab comes back. POS JS measures 53,062 gzip bytes; ceiling 53,000 -> 53,200.",
@@ -229,12 +230,12 @@
 	"ceiling": {
 		"home_css_gzip": 5000,
 		"home_js_gzip": 9500,
-		"css_gzip": 41100,
-		"js_gzip": 202700,
-		"studio_js_gzip": 39050,
+		"css_gzip": 42400,
+		"js_gzip": 203400,
+		"studio_js_gzip": 39400,
 		"report_landing_css_gzip": 3100,
 		"report_landing_js_gzip": 2500,
-		"studio_css_gzip": 6800,
+		"studio_css_gzip": 7100,
 		"pos_css_gzip": 11000,
 		"pos_js_gzip": 53500,
 		"web_css_gzip": 4450,

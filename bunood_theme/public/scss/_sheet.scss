@@ -1,0 +1,150 @@
+// Copyright (c) 2026, Bunood and contributors
+// ============================================================================
+// THE ORGANISED TABLE — one look for every report and ledger table.
+//
+// WHY
+//   The owner, 2026-10-15, on the business app's new tables: «اكمل بقية
+//   التقارير كمان تكون بهذا الشكل منظمه ومرتبه» — finish the rest of the
+//   reports so they read the same way. The reference is the business app's
+//   shared table (bunood_business, trade/TradeApp.vue, the Tables section): a
+//   framed box that scrolls inside itself, a header band in ink, a grid of
+//   rules, a light zebra, every figure at the END under its heading, and banded
+//   edge rows (opening, totals, closing) with a strong rule above the totals.
+//   On paper: black on white, the header on every page, no row cut in half.
+//
+// WHO READS IT
+//   The theme's own tables (the report studio, the finance workbenches) use
+//   `table` and `frame` below; Frappe's DataTable (surfaces/_report.scss) has
+//   its own DOM and reads only the TONES. One copy of the three tones, so the
+//   band, the zebra and the edge rows cannot drift between the two.
+//
+// THE TONES ARE A WORKING SET, NOT BASE TOKENS
+//   They are declared under each consumer's own scope (never in _tokens.scss,
+//   whose :root the contrast gate parses). Each is a WASH, so it mixes
+//   --bnd-brand (the wash token — never the fill or the raw seed) or the ink
+//   into the surface, and follows dark mode and the tenant's seed with no
+//   block of its own. On paper the bands mix INK instead: the print sheet
+//   forces ink black and the surface white, so they print grey with no
+//   colour literal anywhere.
+// ============================================================================
+
+@mixin tones {
+  --bnd-tbl-head: color-mix(in srgb, var(--bnd-brand) 9%, var(--bnd-surface));
+  --bnd-tbl-zebra: color-mix(in srgb, var(--bnd-ink) 2.5%, var(--bnd-surface));
+  --bnd-tbl-edge: color-mix(in srgb, var(--bnd-brand) 5%, var(--bnd-surface));
+}
+
+@mixin paper-tones {
+  --bnd-tbl-head: color-mix(in srgb, var(--bnd-ink) 11%, var(--bnd-surface));
+  --bnd-tbl-zebra: var(--bnd-surface);
+  --bnd-tbl-edge: color-mix(in srgb, var(--bnd-ink) 6%, var(--bnd-surface));
+}
+
+// The box a table scrolls inside, both ways: the page never scrolls sideways
+// (390px included) and the sticky header band stays in view.
+@mixin frame {
+  overflow: auto;
+  max-block-size: max(24rem, calc(100vh - 10rem));
+  border: var(--bnd-line-strong) solid var(--bnd-border);
+  border-radius: var(--bnd-radius-md);
+  background: var(--bnd-surface);
+}
+
+// A theme-owned <table>. `$num` marks a figure's cells (its heading too),
+// `$neg` a negative figure, `$money` a money column (one width each, so debit
+// and credit read as a pair), `$edge` an opening / totals / closing row,
+// `$group` a group row. Every tfoot row is an edge row.
+@mixin table($num: "is-num", $neg: "is-neg", $money: "is-money", $edge: "is-total", $group: "is-group") {
+  @include tones;
+  inline-size: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--bnd-text-base);
+
+  th,
+  td {
+    padding-block: var(--bnd-sp-2);
+    padding-inline: var(--bnd-sp-3);
+    border-block-end: var(--bnd-line-strong) solid var(--bnd-border);
+    text-align: start;
+    vertical-align: middle;
+  }
+
+  :is(th, td) + :is(th, td) {
+    border-inline-start: var(--bnd-line-strong) solid var(--bnd-border);
+  }
+
+  thead th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 1;
+    background: var(--bnd-tbl-head);
+    border-block-end-color: var(--bnd-border-strong);
+    color: var(--bnd-ink);
+    font-size: var(--bnd-text-sm);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  // The frame draws the outer edge, so the last row carries no rule of its own.
+  > :last-child > tr:last-child > :is(th, td) {
+    border-block-end: 0;
+  }
+
+  // Zero weight, so every row state below (hover, edge, section) wins over it.
+  :where(tbody > tr:nth-child(even)) > td {
+    background: var(--bnd-tbl-zebra);
+  }
+
+  // A figure, its heading and its total all sit at the end, never wrapped.
+  :is(th, td).#{$num} {
+    text-align: end;
+    white-space: nowrap;
+    font-variant-numeric: var(--bnd-numeric);
+  }
+
+  .#{$money} {
+    inline-size: 9.5rem;
+  }
+
+  .#{$neg} {
+    color: var(--bnd-critical);
+  }
+
+  tr.#{$group} > td {
+    font-weight: 700;
+  }
+
+  :is(tr.#{$edge}, tfoot > tr) > :is(th, td) {
+    background: var(--bnd-tbl-edge);
+    font-weight: 700;
+  }
+
+  // The strong rule sits above the first edge row after the data (the totals),
+  // not above an opening balance and not between totals and the closing row.
+  :is(tbody > tr:not(.#{$edge}) + tr.#{$edge}, tfoot > tr:first-child) > :is(th, td) {
+    border-block-start: var(--bnd-line-2) solid var(--bnd-border-strong);
+  }
+}
+
+// On paper: grey bands, a black grid, the header on every page, whole rows.
+@mixin paper-table {
+  @include paper-tones;
+
+  thead {
+    display: table-header-group;
+  }
+
+  thead th {
+    position: static;
+  }
+
+  tr {
+    break-inside: avoid;
+  }
+
+  :is(th, td) {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
