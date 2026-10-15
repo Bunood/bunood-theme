@@ -257,7 +257,9 @@ class ReprintTests(unittest.TestCase):
             sql=self.sql, commit=lambda: self.log.append("commit"), rollback=lambda: self.log.append("rollback"))
         self.frappe.session = SimpleNamespace(user="cashier@example.com")
         self.warnings = []
-        self.frappe.logger = lambda name=None: SimpleNamespace(warning=lambda msg, **k: self.warnings.append(msg))
+        # Only what production keeps: Frappe's file loggers drop anything below ERROR there.
+        self.frappe.logger = lambda name=None: SimpleNamespace(error=lambda msg, **k: self.warnings.append(msg),
+                                                               warning=lambda msg, **k: None)
         self.request("/printview", {})
 
     def sql(self, query, name):

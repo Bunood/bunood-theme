@@ -155,8 +155,10 @@ def flush(pending: list, commit: bool = True) -> None:
 
 
 def _log(what: str, doc) -> None:
+    # ERROR: Frappe's file loggers keep only errors outside the dev server (frappe.utils.logger
+    # default_log_level), and a print that could not be counted must reach the log.
     try:
-        frappe.logger("bunood_theme").warning(
+        frappe.logger("bunood_theme").error(
             f"{what}: {getattr(doc, 'doctype', '')} {getattr(doc, 'name', '')}", exc_info=True
         )
     except Exception:
