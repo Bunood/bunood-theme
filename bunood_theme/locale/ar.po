@@ -19940,3 +19940,73 @@ msgstr "لم تُعتمد الفاتورة. اقرأ الرسالة ثم حاو�
 #, fuzzy
 msgid "This invoice gathers a shift's point-of-sale sales and is never cancelled: a ZATCA requirement. Record a counting difference with a journal entry, and goods or money given back with a return."
 msgstr "هذه الفاتورة تجمع مبيعات وردية نقطة البيع ولا تُلغى، وهذا من اشتراطات هيئة الزكاة والضريبة والجمارك. سجّل فرق العدّ بقيد يومية، وما يُرجع من بضاعة أو مال بمرتجع."
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Credit ({0})"
+msgstr "دائن ({0})"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Debit ({0})"
+msgstr "مدين ({0})"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Credit (Transaction)"
+msgstr "دائن (بعملة المعاملة)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Debit (Transaction)"
+msgstr "مدين (بعملة المعاملة)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Opening (Dr)"
+msgstr "الرصيد الافتتاحي (مدين)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Opening (Cr)"
+msgstr "الرصيد الافتتاحي (دائن)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Closing (Dr)"
+msgstr "الرصيد الختامي (مدين)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Closing (Cr)"
+msgstr "الرصيد الختامي (دائن)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Total (Credit)"
+msgstr "الإجمالي (دائن)"
+
+#. ERPNext's financial reports (General Ledger, Trial Balance, Balance Sheet): its Arabic
+#. reads «الائتمان» or leaves Dr/Cr in English; a ledger says «دائن» and «مدين».
+#. The same override lives in bunood_business, which loads after this app.
+#. src: owner 2026-10-15 (reports brief)
+msgid "Unclosed Fiscal Years Profit / Loss (Credit)"
+msgstr "أرباح وخسائر السنوات المالية غير المقفلة (دائن)"
