@@ -1,4 +1,4 @@
-# The print redesign — report (Stages 1 and 2)
+# The print redesign — report (Stages 1-3)
 
 The owner, 2026-10-15: «غير اسماء نماذج الطباعه الحين … اريد ان تعيد تصاميم كل انواع الطباعه …» —
 rename every print format now; items in a full table; under it a SMALL totals table on the physical
@@ -332,3 +332,131 @@ becomes `'class="zo zo-a4' in html and 'zo-title' in html`, as for the Sales Inv
 
 - Engineering's five formats and its per-company letter heads: the next wave.
 - Out of scope: PDF/A-3 with embedded XML, ESC/POS raster, the cheque layout, petty cash.
+
+## Fix pass and Stage 3 (2026-10-15)
+
+The lead's defaults for the owner, applied: the statement's names and «البيان», short 58 mm totals,
+reprints marked, a supplier's aging; the proforma keeps the order's number.
+
+### Commits
+
+| Repo | Commit | Subject |
+| --- | --- | --- |
+| theme | `70f4ddc` | fix(print): the statement names each line in Arabic and says what it was; a supplier's aging |
+| theme | `0b7922a` | feat(print): a reprinted invoice says «نسخة مكررة — Copy»; short totals on the 58 mm roll |
+| theme | `3b60f21` | test(print): the statement's names and notes, a supplier's aging, reprints, the 58 mm labels |
+| theme | `0ebe7ba` | feat(print): the kit's page can leave its watermark to the document |
+| dining | `6d57ead` | feat(print): a reprinted kitchen ticket says «إعادة طباعة»; the restaurant invoice «نسخة مكررة» |
+| dining | `ee76702` | test(print): a kitchen reprint; the floor's batch tests read the new state band |
+| engineering | `e1c2c25` | feat(print): the office's five documents without the product's name, inside the platform print kit's page |
+| engineering | `883eaec` | test(print): the office's documents under their new names and inside the kit's page |
+
+### The fixes
+
+- **Statement.** «النوع» names each line's document as the business app does, by kind: «فاتورة
+  مبيعات», «إشعار دائن», «إشعار مدين», «فاتورة مشتريات», «مرتجع مشتريات», «سند قبض» / «سند صرف»
+  / «تحويل داخلي», «سند قيد». An English print gets English names.
+  - «البيان» is the GL remark (its first line, up to 120 characters). Where ERPNext wrote "No
+    Remarks", it shows the settled document's name and number, with the number kept on one line.
+  - A supplier gets the aging strip too, over its purchase invoices.
+  - An unapplied credit note now counts in its bucket, in brackets, so the strip adds up to the
+    closing balance.
+  - The template sends its lines in one POST.
+- **58 mm.** The totals read «قبل الضريبة», «الضريبة 15%», «الإجمالي», «المدفوع», «الباقي», with
+  no English, and no label wraps.
+- **Reprints.**
+  - *The counter.* Frappe keeps no print count: its Access Log is a deferred insert, so a reprint
+    a minute later would not see the first print. So I added a counter:
+    - `bnd_print_count`, a hidden, read-only, no-copy custom field on Sales Invoice and POS
+      Invoice;
+    - `print_count` on the Dining Kitchen Ticket doctype.
+  - *What counts.* `/printview` with `trigger_print`, `download_pdf`, the bulk PDFs and
+    `print_by_server`; the count is committed even on a GET.
+  - *What does not count.* A preview, an e-mailed PDF and the customer's shared link count nothing
+    and show what the next print would be.
+  - *The marks.* The first print is the original; a draft is never marked. The receipt, the A4
+    invoice, the dot-matrix and the restaurant invoice print «نسخة مكررة — Copy» with the print
+    time. A gift receipt is never marked.
+  - *Kitchen tickets* print «إعادة طباعة» with the time, in a dashed box under the state band. In
+    «تذاكر المطبخ», the Dining Order's `before_print` counts every ticket of the job.
+  - *Proved over HTTP on the lab:*
+    - receipt: 1st print plain, 2nd print copy;
+    - preview: copy, with the count unchanged;
+    - `download_pdf`: the count +1;
+    - ticket: 1st print plain, 2nd print «إعادة طباعة»;
+    - batch: «إعادة طباعة» only on the reprinted ticket;
+    - restaurant invoice: 1st print plain, 2nd print copy.
+
+### Stage 3 — Engineering
+
+- **Names (no brand).**
+
+  | Old name | New name |
+  | --- | --- |
+  | Bunood Engineering Quotation | «عرض سعر هندسي - A4» |
+  | Bunood Engineering Contract | «عقد هندسي - A4» |
+  | Bunood Engineering Document | «مستند هندسي صادر - A4» |
+  | Bunood Engineering Receipt | «سند قبض هندسي - A4» |
+  | Bunood Engineering Transmittal | «خطاب إحالة - A4» |
+  | «{company} — Bunood» (letter heads) | «{company} — الترويسة» |
+
+  - The names live in one module, `pure/print_names`; every caller reads it.
+  - The standard records moved to their scrubbed folders.
+  - Patch `v0_18.print_format_names` runs *before* the model sync. It renames the records and merges
+    when both names exist, and every Link follows.
+- **The kit's page around the approved bodies** (`engine/print_kit`, Jinja `bnd_kit`):
+  - the bilingual header (AR right, logo centre, EN left, CR and VAT), the address-and-contacts
+    footer with the policy, and the page number at the top;
+  - Cairo and the riyal sign.
+  - The office's own facts (CR, address, English name) fill what the company's print profile leaves
+    empty.
+  - The quotation and contract keep their title block beside their heading. The receipt,
+    transmittal and issued document keep their bodies. None of them shows a watermark
+    (`marked=False`).
+  - All five print through Chromium.
+  - Without the theme, each prints its own masthead and footer as before.
+- **Colour.** The default «Green» now means the house colour: the tenant's brand colour, swatched on
+  the settings board as «لون الهوية». Navy and Gold print as chosen. The transmittal's green party
+  heading takes the brand colour too.
+- **Found and fixed on the way.**
+  - The shipped quotation printed «عرض سعر � …» (a U+FFFD) in its page-2 running header.
+  - The seeded letter heads print mojibake Arabic labels on this lab. They no longer print under
+    the kit.
+- **Images.** 33 quotation (2 pages), 34 contract (3 pages), 35 issued document, 36 receipt and
+  37 transmittal, for «مكتب المدار للاستشارات الهندسية», a demo office created through the app's own
+  flows on team-rc. The fix pass adds:
+  - 02b and 26b: copies;
+  - 27b: a kitchen reprint;
+  - 21: 58 mm with short labels;
+  - 32 and 32b: customer and supplier statements.
+
+### The lab is shared
+
+team-rc.localhost and its redis are shared by every builder's lab container, and Frappe keeps
+`app_hooks` in that redis. When a `clear-cache` runs, the next process to read the hooks stores its
+own container's version for every lab. A lab whose worktree lacks a function that the cached hooks
+name then fails to render (for example Stage 2's Jinja methods, or this pass's `before_print` and
+`bnd_kit`). The lab scripts now read their own hooks without writing them (`ZO_LOCAL_HOOKS=1`).
+
+Engineering was brought to the worktree's schema on team-rc by an engineering-only sync (its
+doctypes, fixtures and pending patches, nothing of any other app), from a new container
+`bunood-print-eng` that mounts `eng-zerone`.
+
+### Tests and gates (this pass)
+
+- Theme: `python -m unittest discover -s tests -p <file>`: test_print_stage2 21, test_print_engine 16,
+  test_print_kit 20 and the Stage-1 print files green; `node --test` (4 files) 123/123; `node build.mjs`,
+  `tools/payload.mjs --check`, `i18n_po.mjs emit` / `i18n.mjs check` green. A sabotage counting every
+  /printview as a print failed the reprint test; restored green.
+- Dining: `bench --site team-rc.localhost run-tests --module bunood_dining.tests.test_prints` 11/11;
+  `test_floor` («تذاكر المطبخ», 2 tests) 2/2; `test_print_format_names` 3/3.
+- Engineering: `ruff check` (one finding, SIM108 in `tests/pure/test_desk_navigation.py`, predates this
+  branch), `ruff format --check`, `mypy`, the eleven `scripts/checks` gates and `release.py check` green;
+  the pure print tests 61 pass by direct call (no pytest on this host or in the lab env, so
+  `tests/gates` did not run). Site, on team-rc: test_print_kit 4/4, test_payment_receipt 10/10,
+  test_transmittals 7/7, test_issued_documents 5/5. Failing for the lab, not for this change:
+  test_print_redesign's rounding case (team-rc does not round totals), test_architecture_isolation's
+  required_apps (dining requires the theme on this site), and wkhtmltopdf runs in test_print_branding (9)
+  and test_contract_letter_head (1), which reach the site on port 80, where nothing listens in the lab;
+  test_print_branding's two themeless-site assertions need a site without the theme (and the English
+  quotation's body there quotes the office's seeded Arabic template).
