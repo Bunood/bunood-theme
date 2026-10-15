@@ -3869,9 +3869,8 @@
 	 * and answers it wrongly on a quiet bench.
 	 * @returns {HTMLElement}
 	 */
-	/** The brand mark — the logo, else the vendor mark (boot decides) — for the
-	 *  pane's brand row, the page head's pill, the start pill and the dock chip.
-	 *  One builder; the third copy had drifted to a class no rule painted. */
+	/** The brand mark (boot's logo or vendor mark) for the pane's brand row, the
+	 *  page head's pill, the start pill and the dock chip. One builder. */
 	function brand_mark() {
 		const mark = el("span", "bnd-sb-brand-mark");
 		if (frappe.boot.bnd_logo) {
