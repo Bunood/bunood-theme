@@ -23431,8 +23431,11 @@ print("cleared")
 				await scrollToSettings("identity");
 				await page.waitForSelector(".bnd-idp", { timeout: 15000 });
 				await page.click('.bnd-idp .bnd-cbp-reset[data-field="company_name"]');
+				// The shipped name READ FROM THE PYTHON (`vendor()`), never spelt here: the
+				// literal "Bunood" this used to wait for went stale with the zerONE rename.
 				await page.waitForFunction(
-					() => window.cur_frm && window.cur_frm.doc.company_name === "Bunood",
+					(shipped) => window.cur_frm && window.cur_frm.doc.company_name === shipped,
+					V.name,
 					{ timeout: 15000 }
 				);
 				await page.waitForTimeout(1500);
