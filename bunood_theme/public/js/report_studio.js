@@ -669,6 +669,11 @@
 	// its fieldname or served label says so, in either language — including the
 	// dynamic per-account columns a register emits (Output VAT - ...).
 	const isTaxish = (col) => /tax|vat|ضريب/i.test(`${col.fieldname || ""} ${col.label || ""}`);
+	// A debit or credit column (its fieldname, or a label that says so): where nothing was
+	// posted its cell reads EMPTY, not 0.00 (owner, 2026-10-15); a balance keeps its 0.00.
+	const isSide = (col) => ["Currency", "Float"].includes(col.fieldtype) &&
+		(/^(?:opening_|closing_)?(?:debit|credit)(?:_in_[a-z_]+)?$/.test(col.fieldname || "") ||
+			/^(?:debit|credit|مدين|دائن)(?:\s*\(|$)/i.test(String(col.label || "").trim()));
 
 	function rowValue(row, column, index) {
 		if (Array.isArray(row)) return row[index];
@@ -2993,7 +2998,8 @@
 								raw = row.account_name;
 							}
 							const td = el("td");
-							td.innerHTML = fmt(raw, col);
+							const nothing = isSide(col) && raw !== null && raw !== "" && Number(raw) === 0;
+							td.innerHTML = nothing ? "" : fmt(raw, col);
 							// A text cell keeps one line; its whole text is the title.
 							const whole = td.textContent.trim();
 							if (whole.length > 24) td.title = whole;
