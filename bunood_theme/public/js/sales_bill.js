@@ -857,9 +857,10 @@
 			this.advancedButton = button(__("Advanced"), mode, () => this.fullInvoice());
 			const intro = node("header", "bnd-bill-intro", null, this.root);
 			const identity = node("div", "bnd-bill-identity", null, intro);
-			node("span", "bnd-bill-seal", "B", identity).setAttribute("aria-hidden", "true");
+			const seal = node("span", "bnd-bill-seal", null, identity); seal.setAttribute("aria-hidden", "true");
+			if (frappe.boot?.bnd_logo) Object.assign(node("img", "", null, seal), { src: frappe.boot.bnd_logo, alt: "" });
 			const heading = node("div", "", null, identity);
-			node("span", "bnd-bill-brand", "Bunood", heading);
+			node("span", "bnd-bill-brand", frappe.boot?.bnd_company || "", heading);
 			const title = node("div", "bnd-bill-title-row", null, heading);
 			node("h2", "", __(this.profile.title), title);
 			this.stateBadge = node("span", "bnd-document-state", "", title);

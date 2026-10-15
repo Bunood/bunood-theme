@@ -194,7 +194,13 @@ html[data-bnd-body-width] body:not(.full-width):is(
   border-block-end: var(--bnd-line) solid var(--bnd-border);
 }
 .bnd-bill-identity { display: flex; align-items: center; gap: var(--bnd-sp-3); min-inline-size: 0; }
-.bnd-bill-seal { display: grid; place-items: center; flex: none; inline-size: 2.5rem; block-size: 2.5rem; background: var(--bnd-brand-solid); color: var(--bnd-on-brand); border-radius: var(--bnd-radius-md); font-size: var(--bnd-text-lg); font-weight: 750; }
+// THE SEAL IS AN IMAGE since the zerONE brand (2026-10-15): boot's `bnd_logo`, the
+// tenant's logo or else the vendor mark — the pane's own tile — never a letter. It
+// paints no fill, because the vendor mark carries its own rounded tile and a fill
+// would box it twice; the image is contained so a wide tenant logo is not cropped.
+// The team design (`_invoice_team_design.scss`) hides the seal and the wordmark.
+.bnd-bill-seal { display: grid; place-items: center; flex: none; inline-size: 2.5rem; block-size: 2.5rem; border-radius: var(--bnd-radius-md); overflow: hidden; }
+.bnd-bill-seal img { inline-size: 100%; block-size: 100%; object-fit: contain; }
 .bnd-bill-brand { color: var(--bnd-brand-ink); font-size: var(--bnd-text-xs); font-weight: 700; }
 .bnd-bill-title-row,
 .bnd-simple-title-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--bnd-sp-2); }

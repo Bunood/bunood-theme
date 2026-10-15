@@ -35,6 +35,23 @@ test('sales bill mode switch follows the active view and exposes one selected st
   assert.match(css, /\.bnd-bill-mode > \.bnd-bill-button\[aria-pressed="true"\] \{[\s\S]*?color: var\(--bnd-on-deep\);[\s\S]*?background: var\(--bnd-brand-deep\)/);
 });
 
+test('the bill header takes the brand from boot: the mark as an image, the name as text (zerONE)', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  const head = source.slice(source.indexOf('const identity = node("div", "bnd-bill-identity"'), source.indexOf('this.stateBadge = node('));
+  assert.ok(head.length > 0 && head.length < 800, 'the header slice was found');
+  assert.match(head, /node\("span", "bnd-bill-seal", null, identity\)/, 'the seal holds no letter');
+  assert.match(head, /node\("img", "", null, seal\), \{ src: frappe\.boot\.bnd_logo, alt: "" \}/, 'the seal is boot\'s mark, decorative');
+  assert.match(head, /node\("span", "bnd-bill-brand", frappe\.boot\?\.bnd_company \|\| "", heading\)/, 'the wordmark is the boot name');
+  assert.doesNotMatch(head, /"B"|"Bunood"/, 'no brand literal in the header');
+  const seal = css.match(/\.bnd-bill-seal \{[^}]*\}/)[0];
+  assert.match(seal, /overflow: hidden;/);
+  assert.doesNotMatch(seal, /background/, 'no fill boxes the mark\'s own tile a second time');
+  assert.match(css, /\.bnd-bill-seal img \{[^}]*object-fit: contain;/);
+  const team = fs.readFileSync('bunood_theme/public/scss/surfaces/_invoice_team_design.scss', 'utf8');
+  assert.match(team, /\.bnd-bill-seal, \.bnd-bill-brand \{ display: none; \}/, 'the team design still hides both');
+});
+
 test('shared workbench keeps the party strip on one aligned row and items spreadsheet-first', () => {
   const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
   const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
