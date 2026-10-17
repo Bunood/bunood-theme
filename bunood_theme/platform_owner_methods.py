@@ -14,8 +14,8 @@ integration status) stay open.
 
 The platform owner's account (Frappe 16.36): API keys, a password-reset email or link, the OTP
 secret, impersonation and a login link by email are refused (or, where Frappe answers every caller
-the same way to hide who has an account, quietly not done) for a platform owner user, unless the
-one asking is the platform owner. ``platform_owner.on_login`` refuses every sign-in into that
+the same way to hide who has an account, quietly not done; a Guest's quiet refusal notifies nobody)
+for a platform owner user, unless the one asking is the platform owner. ``platform_owner.on_login`` refuses every sign-in into that
 account that is not the password and the code, whatever started it.
 """
 
@@ -148,6 +148,17 @@ def _protected(user: str | None) -> bool:
     return bool(user) and holds_role(user) and not is_platform_owner()
 
 
+def _quiet_refusal(what_ar: str, what_en: str, target: str | None) -> None:
+    """A refusal on an endpoint open to Guests, answered like any other call (no user
+    enumeration). A Guest's is not recorded: every recorded refusal is a Notification Log to every
+    platform owner, so anyone on the internet could flood them, one request each (the release
+    review's L1). A signed-in user's still is: it names someone on the site."""
+    user = frappe.session.user if getattr(frappe.local, "session", None) else "Guest"
+    if not user or user == "Guest":
+        return
+    record_refusal(what_ar, what_en, "User", target)
+
+
 @frappe.whitelist(methods=["POST"])
 def generate_keys(user: str):
     if _protected(_user_name(user)):
@@ -165,7 +176,7 @@ def reset_password(user: str) -> None:
 
     target = _user_name(user)
     if _protected(target):
-        record_refusal("طلب رابط إعادة تعيين كلمة مرور مالك المنصة", "request a password reset link for the platform owner", "User", target)
+        _quiet_refusal("طلب رابط إعادة تعيين كلمة مرور مالك المنصة", "request a password reset link for the platform owner", target)
         # Frappe's own answer for an account it never emails (Administrator): the same message,
         # the same rate limit, nothing sent.
         return original(user="Administrator")
@@ -211,7 +222,7 @@ def send_login_link(email: str):
     never for a platform owner. Quiet, as Frappe is for an unknown address."""
     target = _user_name(email)
     if target and holds_role(target):
-        record_refusal("طلب رابط دخول لحساب مالك المنصة", "request a login link for the platform owner's account", "User", target)
+        _quiet_refusal("طلب رابط دخول لحساب مالك المنصة", "request a login link for the platform owner's account", target)
         return None
     from frappe.www.login import send_login_link as original
 

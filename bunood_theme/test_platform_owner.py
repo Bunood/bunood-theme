@@ -474,6 +474,30 @@ class TestPlatformOwner(IntegrationTestCase):
         frappe.set_user("Guest")
         self.refused(methods.update_password, "Lab-only-throwaway-9!", 0, "lab-key")
 
+    def test_a_guest_cannot_flood_the_platform_owner(self):
+        # reset_password and send_login_link are open to Guests and answer every caller alike; a
+        # Guest's refusal is quietly not done and notifies nobody (release review L1), while a
+        # signed-in user's still reaches the platform owner.
+        frappe.set_user("Guest")
+        for _ in range(3):
+            methods.reset_password(self.platform)
+            self.assertIsNone(methods.send_login_link(self.platform))
+        self.assertEqual(getattr(frappe.local, po.PENDING), [])
+        self.assertEqual(po.write_refusals(), 0)
+        frappe.set_user("Administrator")
+        self.assertFalse(frappe.db.get_value("User", self.platform, "reset_password_key"))
+        self.assertFalse(frappe.db.exists("Notification Log", {"for_user": self.platform}))
+        # Signed in, the same calls name someone on the site: recorded, one each.
+        self.as_user(self.tenant)
+        methods.reset_password(self.platform)
+        self.assertIsNone(methods.send_login_link(self.platform))
+        self.assertEqual([row["user"] for row in getattr(frappe.local, po.PENDING)], [self.tenant, self.tenant])
+        frappe.set_user("Administrator")
+        self.assertEqual(po.write_refusals(), 2 * len(po.platform_users(enabled_only=True)))
+        subjects = frappe.get_all("Notification Log", filters={"for_user": self.platform, "from_user": self.tenant}, pluck="subject")
+        self.assertEqual(len(subjects), 2)
+        self.assertFalse(frappe.db.get_value("User", self.platform, "reset_password_key"))
+
     def test_tenant_cannot_change_the_role_record(self):
         self.as_user(self.tenant)
         role = frappe.get_doc("Role", po.ROLE)
