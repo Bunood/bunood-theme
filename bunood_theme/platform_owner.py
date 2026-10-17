@@ -33,6 +33,12 @@ Arabic first, then English, with a 403, and notifies the platform owner users (w
 on which site). An allowed change is recorded by Frappe's own Version where the DocType tracks
 changes, and by a Comment where it does not (Phase 1).
 
+WHAT THE LOCKS DO NOT COVER: raw SQL. A Query Report runs its SELECT straight on the database, past
+every doc_event and the User list's hiding (the ZATCA records, the platform owner's user and its
+roles are all readable that way), and Frappe lets a Script Manager save one. Raw-SQL Query Reports
+must stay Administrator-only: never give a tenant's user the Script Manager role, and keep a
+tenant's own reports to Report Builder (the release review's L3, informational).
+
 TESTS stand the locks aside under ``frappe.in_test`` unless a test asks for them
 (``frappe.flags.bnd_enforce_platform_owner``), as ``invoice_rules`` does: other apps' suites create
 companies and users freely. Production never runs in test mode.
