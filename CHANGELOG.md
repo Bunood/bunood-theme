@@ -24,6 +24,35 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — «مالك المنصة»: only the platform owner manages ZATCA Phase 2 and the company's VAT number, CR and legal names
+
+The owner, 2026-10-17: «اريد ان يكون معي مستخدم خاص بصاحب النظام … يدير الربط مع زاتكا للمرحله الثانيه
+… كمان تغيير الرقم الضريبي للشركه مايكون الا عن طريق هذا المستخدم». One user, the same on every tenant
+site (bunood_erpnext `ops/platform_owner.py`), above every tenant's System Manager.
+
+- **The role** `Platform Owner` («مالك المنصة»), two-factor on, made by the installer and the patch
+  `v0_61_0.platform_owner`; its rows on the ZATCA DocTypes leave a tenant's System Manager READ only on
+  Phase 2 and the devices (defence in depth only).
+- **`platform_owner.py`**: `is_platform_owner` (the role; Administrator only with no HTTP request and
+  no background job; install, migrate, patches and ksa_compliance's own jobs) and the server-side
+  locks, in doc_events: ZATCA Business Settings and ZATCA EGS (insert, delete, rename, any change,
+  the CRN rows included); Phase 1's VAT number (only ever the company's own); the Company's VAT
+  number, CR, registration details, legal names and name (set, change, clear or rename, on insert
+  too); the role, its holders, a job (Role Profile) that holds it, User Permissions on its holders,
+  and the System Settings that would switch its second factor off. A refusal is a 403, Arabic then
+  English, and a Notification Log to every platform owner (who, what, when, which site); an allowed
+  change is Frappe's Version, or a Comment on Phase 1.
+- **`platform_owner_methods.py`** wraps, by `override_whitelisted_methods`, ksa_compliance's onboard,
+  production CSID, new settings, revoke, compliance checks and CLI setup/checks, and Frappe's API
+  keys, password reset, reset key, OTP reset, impersonation and login link for a platform owner.
+- **Sign-in**: a platform owner signs in over HTTP only with the password AND the code (`on_login`);
+  impersonation, a login or reset link, a social or LDAP login are refused.
+- **The User list**: `permission_query_conditions` and `has_permission` leave the platform owner
+  users out of a tenant's lists, link searches, assignment and share pickers, and their record does
+  not open.
+- Tests: `test_platform_owner.py` (22 site tests; each guard proven by a sabotage run) and
+  `tools/platform_owner_probe.py` (HTTP, against a served lab site).
+
 ## [0.60.0] — 2026-10-15 — zerONE: the brand, the blue palette, every print redesigned and renamed, the organised table
 
 The owner, 2026-10-15: the product is renamed **Zero One** («زيرو ون», zerone-erp.com) with an icon
