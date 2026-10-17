@@ -24,6 +24,7 @@ See ARCHITECTURE.md sections 5, 6 and 7.
 """
 
 from bunood_theme.assets import THEME_CSS, THEME_JS, WEB_CSS
+from bunood_theme.platform_owner_methods import OVERRIDES as _PLATFORM_OWNER_OVERRIDES
 
 # ── Identity ────────────────────────────────────────────────────────────────────
 app_name = "bunood_theme"
@@ -145,6 +146,10 @@ override_whitelisted_methods = {
     "frappe.utils.print_format.report_to_pdf": "bunood_theme.printing.reports.report_to_pdf",
     "frappe.desk.query_report.run": "bunood_theme.report_compat.run",
     "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
+    # «مالك المنصة» (THE OWNER, 2026-10-17): ZATCA Phase 2's onboarding, CSID, revoke, compliance
+    # checks and CLI, and the platform owner's account (keys, reset, OTP, impersonation, login
+    # link) answer to the platform owner only. The list lives beside its wrappers.
+    **_PLATFORM_OWNER_OVERRIDES,
 }
 
 # «مالك المنصة»: the platform owner signs in with the password AND the code, never another way
