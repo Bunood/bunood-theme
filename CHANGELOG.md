@@ -24,34 +24,85 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — «مالك المنصة»: only the platform owner manages ZATCA Phase 2 and the company's VAT number, CR and legal names
+## [0.61.0] — 2026-10-17 — «مالك المنصة»: only the platform owner manages ZATCA Phase 2 and the company's VAT number, CR and legal names
 
 The owner, 2026-10-17: «اريد ان يكون معي مستخدم خاص بصاحب النظام … يدير الربط مع زاتكا للمرحله الثانيه
 … كمان تغيير الرقم الضريبي للشركه مايكون الا عن طريق هذا المستخدم». One user, the same on every tenant
-site (bunood_erpnext `ops/platform_owner.py`), above every tenant's System Manager.
+site (bunood_erpnext `ops/platform_owner.py`), above every tenant's System Manager. Released on the
+owner's authorisation of release 2, 2026-10-17.
 
 - **The role** `Platform Owner` («مالك المنصة»), two-factor on, made by the installer and the patch
   `v0_61_0.platform_owner`; its rows on the ZATCA DocTypes leave a tenant's System Manager READ only on
   Phase 2 and the devices (defence in depth only).
 - **`platform_owner.py`**: `is_platform_owner` (the role; Administrator only with no HTTP request and
-  no background job; install, migrate, patches and ksa_compliance's own jobs) and the server-side
-  locks, in doc_events: ZATCA Business Settings and ZATCA EGS (insert, delete, rename, any change,
-  the CRN rows included); Phase 1's VAT number (only ever the company's own); the Company's VAT
-  number, CR, registration details, legal names and name (set, change, clear or rename, on insert
-  too); the role, its holders, a job (Role Profile) that holds it, User Permissions on its holders,
-  and the System Settings that would switch its second factor off. A refusal is a 403, Arabic then
-  English, and a Notification Log to every platform owner (who, what, when, which site); an allowed
-  change is Frappe's Version, or a Comment on Phase 1.
+  no background job; install, migrate and patches; any background job, ksa_compliance's included,
+  counts as whoever queued it) and the server-side locks, in doc_events: ZATCA Business Settings and
+  ZATCA EGS (insert, delete, rename, any change, the CRN rows included); Phase 1's VAT number (only
+  ever the company's own); the Company's VAT number, CR, registration details, legal names and name
+  (set, change, clear or rename, on insert too); the role, its holders, a job (Role Profile) that
+  holds it, User Permissions on its holders, and the System Settings that would switch its second
+  factor off or skip it (two-factor on, its method, password sign-in, the restricted-IP bypass). A
+  refusal is a 403, Arabic then English, and a Notification Log to every platform owner (who, what,
+  when, which site); an allowed change is Frappe's Version, or a Comment on Phase 1.
 - **`platform_owner_methods.py`** wraps, by `override_whitelisted_methods`, ksa_compliance's onboard,
   production CSID, new settings, revoke, compliance checks and CLI setup/checks, and Frappe's API
-  keys, password reset, reset key, OTP reset, impersonation and login link for a platform owner.
+  keys, password reset, reset key, OTP reset, impersonation and login link for a platform owner. The
+  reset and the login link answer every caller alike; a Guest's refusal there notifies nobody.
 - **Sign-in**: a platform owner signs in over HTTP only with the password AND the code (`on_login`);
   impersonation, a login or reset link, a social or LDAP login are refused.
 - **The User list**: `permission_query_conditions` and `has_permission` leave the platform owner
   users out of a tenant's lists, link searches, assignment and share pickers, and their record does
   not open.
-- Tests: `test_platform_owner.py` (22 site tests; each guard proven by a sabotage run) and
-  `tools/platform_owner_probe.py` (HTTP, against a served lab site).
+- Tests: `test_platform_owner.py` (24 site tests; each guard proven by a sabotage run, each review
+  fix by a run without it) and `tools/platform_owner_probe.py` (HTTP, against a served lab site).
+
+**The release review** (a security review of the feature: no bypass found; its hardening findings,
+each fixed with a test that fails without the fix)
+- M1: a job whose method started with `ksa_compliance.` ran with every lock off, and a tenant can
+  queue ksa's jobs (the whitelisted `add_batch_to_background_queue`); a Server Script hung on what
+  such a job saves would have run unguarded. No job is exempt now: none of ksa's jobs writes a
+  guarded record.
+- L1: a Guest's refused password reset or login link for a platform owner's email wrote a
+  Notification Log to every platform owner (unauthenticated flooding); it is now quietly not done
+  and not recorded. A signed-in user's refusal still is.
+- L2 (bunood_business 0.21.0): «تطبيق» applies only the values the platform owner confirms on the
+  review screen, never the request's stored copy (a ToDo field the tenant can rewrite).
+- VL: `bypass_2fa_for_retricted_ip_users` (Frappe's spelling) joins the guarded System Settings.
+- L3 (informational): a Query Report's raw SQL reads past every lock; raw-SQL Query Reports must stay
+  Administrator-only and a tenant's user never gets Script Manager (`platform_owner.py`'s docstring).
+
+**Upgrade notes**
+- `bench migrate` runs one new patch, `v0_61_0.platform_owner`: the role (desk access, two-factor
+  on; an existing record is held to that), then, on each ZATCA DocType without a Platform Owner row,
+  the standard rows copied into Custom DocPerm, System Manager left READ only on ZATCA Business
+  Settings and ZATCA EGS, and the role's own row. `after_install`/`after_migrate` do the same, so a
+  site that gets ksa_compliance later gets the rows then. `heal_unknown_placements` stays last.
+- **The locks hold from the migrate on.** Until the platform owner's user exists on a site, nobody
+  there sets or changes a Company's VAT number, CR, registration details or legal names, renames a
+  company, or touches ZATCA Phase 2 or its devices over HTTP, Administrator included (over HTTP,
+  Administrator is a tenant here). So, right after migrate, make the user on every site from the
+  bench's `sites/` folder (bunood_erpnext's `ops/platform_owner.py`, in the image at
+  `/opt/bunood/ops`):
+  `../env/bin/python /opt/bunood/ops/platform_owner.py --email <platform owner's email> --sites all --enroll-2fa`
+  (the password is asked twice with getpass, never an argument and never logged; `--enroll-2fa`
+  stores the authenticator secret itself, one for every site, so Frappe never emails the QR code
+  through a tenant's mail; `--check` only reports; a second run changes nothing but the password).
+  The script switches System Settings' two-factor on directly, for this role only, so no tenant user
+  is forced into two-factor sign-in.
+- A tenant's System Manager keeps Phase 1 (activation, the address, the invoice types) and the
+  national address; Phase 1's VAT number must be the company's own. A tenant asks for the VAT
+  number, CR and names through bunood_business 0.21.0's «طلب إضافة/تعديل البيانات الضريبية».
+- bunood_business 0.21.0 requires this release (`bunood_theme >= 0.61.0`): «المنشأة»'s lock, the
+  request and «الربط مع زاتكا» ask `platform_owner.py`.
+
+**Payload.** No bundle source changed: the dist and `assets.py` are v0.60.0's, recorded as v0.61.0
+at +0 b in every bucket (`payload-budget.json`).
+
+Checks at the release commit, in the lab container (Node 24): the interface suite 308/308;
+`tools/i18n_po.mjs emit` unchanged and `tools/i18n.mjs check` complete (3,432 strings);
+`tools/payload.mjs --check` within budget. `node build.mjs` was not re-run (no bundle source
+changed since v0.60.0, and the lab has no node_modules); `tools/contrast.mjs` not run (no colour
+changed). Site: `test_platform_owner.py` 24/24 on a lab site with ksa_compliance 0.61.7.
 
 ## [0.60.0] — 2026-10-15 — zerONE: the brand, the blue palette, every print redesigned and renamed, the organised table
 
