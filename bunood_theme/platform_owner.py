@@ -22,9 +22,9 @@ WHO COUNTS (``is_platform_owner``)
       Import, a scheduled Notification that sets a field), so a job is not the console.
       The platform owner works under their own named user, never Administrator, so nothing they do
       depends on this branch.
-    - the framework's own passes: install, migrate, a patch (flags a request cannot set), and
-      ksa_compliance's own background jobs (none of them writes these records today; the exemption
-      keeps them working if one ever does).
+    - the framework's own passes: install, migrate, a patch (flags a request cannot set). No
+      background job is exempt, not even ksa_compliance's: a tenant can queue those too, and a job
+      counts as whoever queued it (none of ksa's jobs writes these records; ``_system_context``).
 
 THE LOCKS are server-side, so they hold against Role Permissions, the Desk, ``frappe.client.*`` and
 the REST API alike: doc_events here, the wrapped whitelisted methods in
@@ -100,12 +100,19 @@ def _job():
 
 
 def _system_context() -> bool:
-    """The framework's own passes, not a person editing."""
+    """The framework's own passes, not a person editing: flags a request cannot set.
+
+    No background job is one, ksa_compliance's included: a tenant queues ksa's jobs too (the
+    whitelisted ``add_batch_to_background_queue`` queues ``sync_e_invoices``), and anything a
+    tenant hangs on what such a job saves (a Server Script on its doc events, a Notification that
+    sets a field) runs inside it. A job counts as whoever queued it (``is_platform_owner``). None of
+    ksa's jobs writes a guarded record: they write Sales Invoice Additional Fields, the ZATCA
+    Integration Log and the invoice counter (ZATCA Invoice Counting Settings). If one ever must,
+    allow that exact method and only its fields, as ``guard_phase1`` allows only the VAT number."""
     flags = frappe.flags
-    if flags.in_install or flags.in_install_app or flags.in_install_db or flags.in_migrate or flags.in_patch or flags.in_uninstall:
-        return True
-    job = _job()
-    return bool(job and cstr(job.get("method")).startswith("ksa_compliance."))
+    return bool(
+        flags.in_install or flags.in_install_app or flags.in_install_db or flags.in_migrate or flags.in_patch or flags.in_uninstall
+    )
 
 
 def holds_role(user: str | None) -> bool:

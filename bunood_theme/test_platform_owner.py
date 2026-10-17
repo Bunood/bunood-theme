@@ -170,10 +170,13 @@ class TestPlatformOwner(IntegrationTestCase):
             self.assertFalse(po.is_platform_owner("Administrator"))
         frappe.local.job = frappe._dict(method="frappe.core.doctype.data_import.data_import.start_import")
         self.assertFalse(po.is_platform_owner("Administrator"))
-        # ksa_compliance's own jobs, and the framework's own passes, are not a person editing.
+        # A job is whoever queued it, ksa_compliance's too (a tenant queues those as well).
         frappe.local.job = frappe._dict(method="ksa_compliance.background_jobs.sync_e_invoices")
-        self.assertTrue(po.is_platform_owner(self.tenant))
+        self.assertFalse(po.is_platform_owner(self.tenant))
+        self.assertFalse(po.is_platform_owner("Administrator"))
+        self.assertTrue(po.is_platform_owner(self.platform))
         frappe.local.job = None
+        # The framework's own passes are not a person editing.
         frappe.flags.in_migrate = True
         self.assertTrue(po.is_platform_owner(self.tenant))
 
@@ -557,7 +560,9 @@ class TestPlatformOwner(IntegrationTestCase):
         doc.fatoora_server = "Simulation"
         doc.save()
         frappe.flags.in_migrate = False
-        frappe.local.job = frappe._dict(method="ksa_compliance.background_jobs.sync_e_invoices")
+        # A ksa_compliance job the platform owner queued runs as the platform owner.
+        self.as_user(self.platform)
+        frappe.local.job = frappe._dict(method="ksa_compliance.compliance_checks._perform_compliance_checks")
         doc = frappe.get_doc(po.PHASE2, settings.name)
         doc.fatoora_server = "Production"
         doc.save()
@@ -572,6 +577,39 @@ class TestPlatformOwner(IntegrationTestCase):
         doc = frappe.get_doc("Company", self.company)
         doc.tax_id = VAT_2
         doc.save()
+
+    def test_a_tenant_queued_ksa_job_is_still_the_tenant(self):
+        # A tenant queues ksa_compliance's jobs too (add_batch_to_background_queue is whitelisted),
+        # and what a tenant hangs on such a job's saves (a Server Script, a Notification) runs
+        # inside it: the job's namespace exempts nothing (release review M1).
+        self.ksa()
+        self.tenant_may_write_zatca()
+        settings = self.phase2()
+        frappe.db.set_value("Company", self.company, "tax_id", VAT)
+        meta = frappe.get_meta("Company")
+        self.as_user(self.tenant)
+        for method in ("ksa_compliance.background_jobs.sync_e_invoices", "ksa_compliance.compliance_checks._perform_compliance_checks"):
+            frappe.local.job = frappe._dict(method=method, user=self.tenant)
+            # The company's VAT number and CR.
+            for field, value in (("tax_id", VAT_2), ("bnd_commercial_registration", "2020202020"), ("registration_details", "CR 2020202020")):
+                if not meta.has_field(field):
+                    continue
+                doc = frappe.get_doc("Company", self.company)
+                doc.set(field, value)
+                self.refused(doc.save)
+            # The ZATCA Phase 2 settings, the CR copy included.
+            for field, value in (("vat_registration_number", VAT_2), ("fatoora_server", "Production"), ("seller_name", "غيره")):
+                doc = frappe.get_doc(po.PHASE2, settings.name)
+                doc.set(field, value)
+                self.refused(doc.save)
+            doc = frappe.get_doc(po.PHASE2, settings.name)
+            doc.other_ids[0].value = "2020202020"
+            self.refused(doc.save)
+        frappe.local.job = None
+        frappe.set_user("Administrator")
+        self.assertEqual(frappe.db.get_value("Company", self.company, "tax_id"), VAT)
+        self.assertEqual(frappe.db.get_value(po.PHASE2, settings.name, ["vat_registration_number", "fatoora_server"]), (VAT, "Sandbox"))
+        self.assertEqual(frappe.db.get_value("Additional Seller IDs", settings.other_ids[0].name, "value"), CR)
 
     # ── refusals reach the platform owner ───────────────────────────────────────
 
