@@ -20083,3 +20083,9 @@ msgstr "مرحباً بك! سجّل الدخول للمتابعة."
 #. src: owner 2026-10-15 (zerONE sign-in)
 msgid "Forgot password?"
 msgstr "نسيت كلمة المرور؟"
+
+#. The role above every tenant's System Manager: only it manages ZATCA Phase 2 and the
+#. company's VAT number, CR and legal names (platform_owner.py).
+#. src: owner 2026-10-17 («مالك المنصة»)
+msgid "Platform Owner"
+msgstr "مالك المنصة"

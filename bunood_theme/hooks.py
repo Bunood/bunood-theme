@@ -147,6 +147,16 @@ override_whitelisted_methods = {
     "frappe.desk.query_report.export_query": "bunood_theme.report_compat.export_query",
 }
 
+# «مالك المنصة»: the platform owner signs in with the password AND the code, never another way
+# (platform_owner.on_login); a refused attempt's notification is committed after the request.
+before_login = ["bunood_theme.platform_owner.before_login"]
+on_login = ["bunood_theme.platform_owner.on_login"]
+after_request = ["bunood_theme.platform_owner.after_request"]
+# The platform owner users are left out of a tenant's User lists, link searches and pickers, and
+# their records do not open for a tenant.
+permission_query_conditions = {"User": "bunood_theme.platform_owner.user_query_conditions"}
+has_permission = {"User": "bunood_theme.platform_owner.user_has_permission"}
+
 # An old print format name in a kept receipt link (/printview, download_pdf) reads as its new
 # name after the print redesign's rename (printing/renames.py). Two string checks on any other path.
 before_request = ["bunood_theme.printing.renames.map_old_format_name"]
@@ -192,6 +202,65 @@ doc_events = {
         "before_cancel": "bunood_theme.invoice_rules.refuse_cancel",
         "on_trash": "bunood_theme.invoice_rules.refuse_delete",
         "before_print": "bunood_theme.printing.reprint.before_print",
+    },
+    # «مالك المنصة» (THE OWNER, 2026-10-17): only the platform owner manages ZATCA Phase 2 (its
+    # settings and its devices: insert, delete, any change) and sets or changes the company's VAT
+    # number, CR and legal names; Phase 1's VAT number is only ever the company's own. The role and
+    # its holders are the platform owner's too. Server-side, so Role Permissions, the Desk and the
+    # REST API meet the same refusal (platform_owner.py). before_validate runs even under
+    # ignore_validate; on_update sees the record as saved.
+    "ZATCA Business Settings": {
+        "before_insert": "bunood_theme.platform_owner.guard_zatca_record",
+        "before_validate": "bunood_theme.platform_owner.guard_zatca_record",
+        "on_update": "bunood_theme.platform_owner.guard_zatca_record",
+        "on_trash": "bunood_theme.platform_owner.guard_zatca_record",
+        "before_rename": "bunood_theme.platform_owner.guard_zatca_record",
+    },
+    "ZATCA EGS": {
+        "before_insert": "bunood_theme.platform_owner.guard_zatca_record",
+        "before_validate": "bunood_theme.platform_owner.guard_zatca_record",
+        "on_update": "bunood_theme.platform_owner.guard_zatca_record",
+        "on_trash": "bunood_theme.platform_owner.guard_zatca_record",
+        "before_rename": "bunood_theme.platform_owner.guard_zatca_record",
+    },
+    "ZATCA Phase 1 Business Settings": {
+        "before_validate": "bunood_theme.platform_owner.guard_phase1",
+        "on_update": [
+            "bunood_theme.platform_owner.guard_phase1",
+            "bunood_theme.platform_owner.audit_phase1",
+        ],
+    },
+    "Company": {
+        "before_insert": "bunood_theme.platform_owner.guard_company",
+        "before_validate": "bunood_theme.platform_owner.guard_company",
+        "on_update": "bunood_theme.platform_owner.guard_company",
+        "before_rename": "bunood_theme.platform_owner.guard_company",
+    },
+    "User": {
+        "validate": "bunood_theme.platform_owner.guard_user",
+        "on_update": "bunood_theme.platform_owner.guard_user",
+        "on_trash": "bunood_theme.platform_owner.guard_user",
+        "before_rename": "bunood_theme.platform_owner.guard_user",
+    },
+    "Role": {
+        "before_validate": "bunood_theme.platform_owner.guard_role",
+        "on_update": "bunood_theme.platform_owner.guard_role",
+        "on_trash": "bunood_theme.platform_owner.guard_role",
+        "before_rename": "bunood_theme.platform_owner.guard_role",
+    },
+    "Role Profile": {
+        "validate": "bunood_theme.platform_owner.guard_role_profile",
+        "on_update": "bunood_theme.platform_owner.guard_role_profile",
+        "on_trash": "bunood_theme.platform_owner.guard_role_profile",
+    },
+    "User Permission": {
+        "before_validate": "bunood_theme.platform_owner.guard_user_permission",
+        "on_update": "bunood_theme.platform_owner.guard_user_permission",
+        "on_trash": "bunood_theme.platform_owner.guard_user_permission",
+    },
+    "System Settings": {
+        "before_validate": "bunood_theme.platform_owner.guard_system_settings",
+        "on_update": "bunood_theme.platform_owner.guard_system_settings",
     },
     # Integration v0.48.0: HELD -- pos-retail's validate hook
     # bunood_theme.rounding.enforce_exact_halalas on Sales, Purchase and POS

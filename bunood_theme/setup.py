@@ -593,6 +593,12 @@ def _ensure_onboarding_migration() -> None:
     ensure_migration_manager_role()
     ensure_readiness_work_fields()
     ensure_migration_data_import_fields()
+    # «مالك المنصة» (THE OWNER, 2026-10-17): the role (two-factor on), and its rows on the ZATCA
+    # DocTypes wherever ksa_compliance is, once per DocType (platform_owner.py). The patch
+    # v0_61_0.platform_owner does the same on a site that already ran this release's migrate.
+    from bunood_theme.platform_owner import install as install_platform_owner
+
+    install_platform_owner()
 
 
 def _seed_navbar_appearance_item() -> None:
