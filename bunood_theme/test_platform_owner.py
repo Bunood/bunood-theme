@@ -511,12 +511,17 @@ class TestPlatformOwner(IntegrationTestCase):
     def test_tenant_cannot_switch_two_factor_off(self):
         frappe.db.set_single_value("System Settings", "enable_two_factor_auth", 1)
         frappe.db.set_single_value("System Settings", "two_factor_method", "OTP App")
+        frappe.db.set_single_value("System Settings", "bypass_2fa_for_retricted_ip_users", 0)
         frappe.clear_cache()
         self.as_user(self.tenant)
-        for field, value in (("enable_two_factor_auth", 0), ("two_factor_method", "Email"), ("disable_user_pass_login", 1)):
+        for field, value in (("enable_two_factor_auth", 0), ("two_factor_method", "Email"), ("disable_user_pass_login", 1), ("bypass_2fa_for_retricted_ip_users", 1)):
             doc = frappe.get_doc("System Settings")
             doc.set(field, value)
             self.refused(doc.save)
+        self.assertEqual(set(po.SECURITY_SETTINGS) - set(frappe.get_meta("System Settings").get_valid_columns()), set())
+        frappe.set_user("Administrator")
+        self.assertEqual(frappe.db.get_single_value("System Settings", "bypass_2fa_for_retricted_ip_users"), 0)
+        self.as_user(self.tenant)
         # Other system settings stay the tenant's.
         doc = frappe.get_doc("System Settings")
         doc.session_expiry = "12:00"

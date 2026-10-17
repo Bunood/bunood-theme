@@ -71,8 +71,9 @@ COMPANY_LABELS = {
     "company_name": ("اسم الشركة", "the company name"),
 }
 #: System Settings that would switch the platform owner's second factor off, move its code to a
-#: channel the tenant reads (email, SMS through the tenant's gateway), or lock password sign-in out.
-SECURITY_SETTINGS = ("enable_two_factor_auth", "two_factor_method", "disable_user_pass_login")
+#: channel the tenant reads (email, SMS through the tenant's gateway), lock password sign-in out,
+#: or skip the code for a user signing in from an allowed IP (Frappe's own spelling, "retricted").
+SECURITY_SETTINGS = ("enable_two_factor_auth", "two_factor_method", "disable_user_pass_login", "bypass_2fa_for_retricted_ip_users")
 TITLE = "مالك المنصة فقط · Platform owner only"
 #: Field types that hold no value of their own.
 SKIP_TYPES = frozenset(no_value_fields) | frozenset(display_fieldtypes)
@@ -471,7 +472,9 @@ def guard_user_permission(doc, method=None, *args, **kwargs) -> None:
 
 def guard_system_settings(doc, method=None, *args, **kwargs) -> None:
     """While a platform owner exists, a tenant does not switch two-factor sign-in off, move its code
-    to email or SMS (channels the tenant reads), or switch password sign-in off (a lock-out)."""
+    to email or SMS (channels the tenant reads), switch password sign-in off (a lock-out), or switch
+    on «bypass two-factor for users signing in from a restricted IP address», which would let a
+    platform owner whose account carries an IP restriction in on the password alone."""
     if not _enforced() or is_platform_owner() or not platform_users():
         return
     before = doc.get_doc_before_save()
@@ -483,6 +486,15 @@ def guard_system_settings(doc, method=None, *args, **kwargs) -> None:
         refuse("تغيير طريقة التحقق بخطوتين", "change the two-factor method", "System Settings", "System Settings")
     if not cint(before.get("disable_user_pass_login")) and cint(doc.get("disable_user_pass_login")):
         refuse("إيقاف الدخول بكلمة المرور", "switch password sign-in off", "System Settings", "System Settings")
+    # (With two-factor off, Frappe's own validate clears the bypass again: nothing to refuse.)
+    bypass = "bypass_2fa_for_retricted_ip_users"
+    if cint(doc.get("enable_two_factor_auth")) and not cint(before.get(bypass)) and cint(doc.get(bypass)):
+        refuse(
+            "تخطي التحقق بخطوتين لمن يدخل من عنوان IP مقيَّد",
+            "switch on skipping two-factor sign-in for users restricted to an IP address",
+            "System Settings",
+            "System Settings",
+        )
 
 
 # --- the User list ----------------------------------------------------------------------------------------
