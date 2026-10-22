@@ -64,7 +64,7 @@ def _format_for(doc, context: dict, print_format: str | None = None) -> str:
 
     # A contracting invoice (bunood_business's «فاتورة مقاولات») prints its own format, Phase 2 or
     # not: it carries ksa_compliance's QR itself (zatca/delivery.py contracting_format).
-    own = contracting_format(doc)
+    own = contracting_format(doc) if getattr(doc, "bnd_is_progress", None) else ""
     if own:
         return own
     if context["regulated"]:

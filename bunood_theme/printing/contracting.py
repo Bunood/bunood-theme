@@ -15,6 +15,7 @@ breaks without it.
 import frappe
 from frappe.utils import cint, flt
 
+from bunood_theme.printing.jinja import bunood_amount_in_words
 from bunood_theme.printing.view import _is_vat, date, num, qty
 
 BEFORE, AFTER, PERCENT = "Before VAT", "After VAT", "Percent"
@@ -52,15 +53,15 @@ def _words_en(amount: float, currency: str) -> str:
     if fraction == 100:
         whole, fraction = whole + 1, 0
     main, small = ("Saudi riyals", "halalas") if (currency or "SAR") == "SAR" else (currency, "cents")
-    text = f"{num2words(whole, lang='en').replace(',', '')} {main}"
+    # As the owner's mock writes it: no commas, no «and» inside a number.
+    words = lambda value: num2words(value, lang="en").replace(",", "").replace(" and ", " ")
+    text = f"{words(whole)} {main}"
     if fraction:
-        text += f" and {num2words(fraction, lang='en')} {small}"
+        text += f" and {words(fraction)} {small}"
     return (text + " only")[:1].upper() + (text + " only")[1:]
 
 
 def _words_ar(amount: float, currency: str) -> str:
-    from bunood_theme.printing.jinja import bunood_amount_in_words
-
     text = (bunood_amount_in_words(abs(flt(amount)), currency or "SAR", 2) or "").strip()
     tail = " فقط لا غير"
     if text.endswith(tail):

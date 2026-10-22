@@ -647,7 +647,7 @@
 .zoc-works tbody tr { break-inside: avoid; page-break-inside: avoid; }
 /* The physical row: the QR left, the ladder right. */
 .zoc-sum { direction: ltr; table-layout: fixed; margin-block-start: 2.6mm; break-inside: avoid; page-break-inside: avoid; }
-.zoc-sum .s-qr { inline-size: 70mm; direction: rtl; text-align: left; }
+.zoc-sum .s-qr { inline-size: 44mm; direction: rtl; text-align: left; }
 .zoc-sum .s-gap { inline-size: 5mm; }
 .zoc-sum .s-tot { direction: rtl; }
 .zoc-sum .zo-qr img { inline-size: 35mm; block-size: 35mm; }
@@ -682,4 +682,4 @@
 .zoc-words .en { display: block; text-align: left; font-size: 7.8pt; color: #3a3f47; }
 .zoc-sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; margin-block-start: 12mm; break-inside: avoid; page-break-inside: avoid; }
 .zoc-sign div { border-block-start: 0.7pt solid #000; padding-block-start: 1.2mm; text-align: center; font-size: 8pt; font-weight: 800; }
-.zoc-sign div .en { font-weight: 600; color: #4a4f58; margin-inline-start: 1.6mm; font-size: 7.4pt; }
+.zoc-sign div .en { font-weight: 600; color: #4a4f58; margin-inline-end: 1.6mm; font-size: 7.4pt; }
