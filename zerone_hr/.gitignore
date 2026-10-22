@@ -1,0 +1,9 @@
+# Build output: `bench build` (or `yarn build` here) regenerates both.
+zerone_hr/public/frontend/
+zerone_hr/www/people.html
+node_modules
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.ruff_cache/

@@ -1,0 +1,167 @@
+@import 'frappe-ui/style.css';
+
+/*
+ * THE BRIDGE: frappe-ui's semantic variables pointed at bunood-theme's tokens.
+ *
+ * The page links the theme's web sheet and the site's brand sheet; both declare
+ * the `--bnd-*` tokens on `:root` and on `html[data-theme=dark]`, the same element
+ * and the same attribute frappe-ui flips for dark mode. So every alias below
+ * follows the mode by itself and no value is restated per mode.
+ *
+ * Scoped to `html[data-hr-theme='bunood']` (0,1,1), which outranks frappe-ui's own
+ * `:root` and `[data-theme="dark"]` blocks (0,1,0) whatever the order the sheets
+ * load in. Without the theme the attribute reads `frappe-ui`, nothing here
+ * matches, and the app renders on frappe-ui's defaults.
+ *
+ * Write frappe-ui's semantic classes in components (`bg-surface-gray-1`,
+ * `text-ink-gray-7`); never a raw palette step and never a literal colour.
+ * `tools/check_frontend.mjs` refuses both.
+ */
+html[data-hr-theme='bunood'] {
+  /* Grounds */
+  --surface-base: var(--bnd-surface);
+  --surface-elevation-1: var(--bnd-surface);
+  --surface-elevation-2: var(--bnd-surface);
+  --surface-elevation-3: var(--bnd-surface);
+  --surface-gray-1: var(--bnd-page);
+  --surface-gray-2: var(--bnd-hover);
+  --surface-gray-3: var(--bnd-active);
+  --surface-gray-4: var(--bnd-bone);
+  --surface-sidebar: var(--bnd-pane);
+
+  /* The primary button is the near-black ink with the surface as its label; it
+     turns light in dark mode because both tokens do. */
+  --surface-gray-10: var(--bnd-ink);
+  --surface-gray-9: color-mix(in srgb, var(--bnd-ink) 88%, var(--bnd-surface));
+  --surface-gray-8: color-mix(in srgb, var(--bnd-ink) 78%, var(--bnd-surface));
+  --ink-base: var(--bnd-surface);
+
+  /* Ink: three legible levels */
+  --ink-gray-9: var(--bnd-ink);
+  --ink-gray-8: var(--bnd-ink);
+  --ink-gray-7: var(--bnd-ink-muted);
+  --ink-gray-6: var(--bnd-ink-muted);
+  --ink-gray-5: var(--bnd-ink-subtle);
+  --ink-gray-4: var(--bnd-ink-subtle);
+  --ink-blue-link: var(--bnd-brand-ink);
+
+  /* Lines and focus */
+  --outline-gray-1: var(--bnd-border);
+  --outline-gray-2: var(--bnd-border-strong);
+  --outline-gray-3: var(--bnd-border-strong);
+  --outline-gray-4: var(--bnd-accent);
+  --focus-outline-default: 2px solid var(--bnd-accent);
+
+  /* Shape and depth */
+  --radius-1: var(--bnd-radius-sm);
+  --radius-2: var(--bnd-radius-sm);
+  --radius-3: var(--bnd-radius-md);
+  --radius-4: var(--bnd-radius-md);
+  --radius-5: var(--bnd-radius-lg);
+  --radius-6: var(--bnd-radius-lg);
+  --radius-7: var(--bnd-radius-xl);
+  --radius-8: var(--bnd-radius-xl);
+  --radius-9: var(--bnd-radius-pill);
+  --radius-full: var(--bnd-radius-pill);
+  --elevation-sm: var(--bnd-shadow-sm);
+  --elevation-base: var(--bnd-shadow-sm);
+  --elevation-md: var(--bnd-shadow-md);
+  --elevation-lg: var(--bnd-shadow-lg);
+
+  /* Status: frappe-ui's four hues mean the theme's four status tokens. Only the
+     steps a status is written in are re-pointed, as a ramp: 1-3 are 3, 5 and 7
+     per cent washes (a pill rests on 2), 6-7 the colour, 8-9 the colour moved
+     toward the ink so a hover only gains contrast, outline 1-3 a tinted border.
+     The solid steps (4-10) stay frappe-ui's. */
+  --surface-blue-1: color-mix(in srgb, var(--bnd-status-blue) 3%, var(--bnd-surface));
+  --surface-blue-2: color-mix(in srgb, var(--bnd-status-blue) 5%, var(--bnd-surface));
+  --surface-blue-3: color-mix(in srgb, var(--bnd-status-blue) 7%, var(--bnd-surface));
+  --ink-blue-6: var(--bnd-status-blue);
+  --ink-blue-7: var(--bnd-status-blue);
+  --ink-blue-8: color-mix(in srgb, var(--bnd-status-blue) 85%, var(--bnd-ink));
+  --ink-blue-9: color-mix(in srgb, var(--bnd-status-blue) 70%, var(--bnd-ink));
+  --outline-blue-1: color-mix(in srgb, var(--bnd-status-blue) 20%, var(--bnd-surface));
+  --outline-blue-2: color-mix(in srgb, var(--bnd-status-blue) 30%, var(--bnd-surface));
+  --outline-blue-3: color-mix(in srgb, var(--bnd-status-blue) 40%, var(--bnd-surface));
+
+  --surface-green-1: color-mix(in srgb, var(--bnd-good) 3%, var(--bnd-surface));
+  --surface-green-2: color-mix(in srgb, var(--bnd-good) 5%, var(--bnd-surface));
+  --surface-green-3: color-mix(in srgb, var(--bnd-good) 7%, var(--bnd-surface));
+  --ink-green-6: var(--bnd-good);
+  --ink-green-7: var(--bnd-good);
+  --ink-green-8: color-mix(in srgb, var(--bnd-good) 85%, var(--bnd-ink));
+  --ink-green-9: color-mix(in srgb, var(--bnd-good) 70%, var(--bnd-ink));
+  --outline-green-1: color-mix(in srgb, var(--bnd-good) 20%, var(--bnd-surface));
+  --outline-green-2: color-mix(in srgb, var(--bnd-good) 30%, var(--bnd-surface));
+  --outline-green-3: color-mix(in srgb, var(--bnd-good) 40%, var(--bnd-surface));
+
+  --surface-amber-1: color-mix(in srgb, var(--bnd-warn) 3%, var(--bnd-surface));
+  --surface-amber-2: color-mix(in srgb, var(--bnd-warn) 5%, var(--bnd-surface));
+  --surface-amber-3: color-mix(in srgb, var(--bnd-warn) 7%, var(--bnd-surface));
+  --ink-amber-6: var(--bnd-warn);
+  --ink-amber-7: var(--bnd-warn);
+  --ink-amber-8: color-mix(in srgb, var(--bnd-warn) 85%, var(--bnd-ink));
+  --ink-amber-9: color-mix(in srgb, var(--bnd-warn) 70%, var(--bnd-ink));
+  --outline-amber-1: color-mix(in srgb, var(--bnd-warn) 20%, var(--bnd-surface));
+  --outline-amber-2: color-mix(in srgb, var(--bnd-warn) 30%, var(--bnd-surface));
+  --outline-amber-3: color-mix(in srgb, var(--bnd-warn) 40%, var(--bnd-surface));
+
+  --surface-red-1: color-mix(in srgb, var(--bnd-critical) 3%, var(--bnd-surface));
+  --surface-red-2: color-mix(in srgb, var(--bnd-critical) 5%, var(--bnd-surface));
+  --surface-red-3: color-mix(in srgb, var(--bnd-critical) 7%, var(--bnd-surface));
+  --ink-red-6: var(--bnd-critical);
+  --ink-red-7: var(--bnd-critical);
+  --ink-red-8: color-mix(in srgb, var(--bnd-critical) 85%, var(--bnd-ink));
+  --ink-red-9: color-mix(in srgb, var(--bnd-critical) 70%, var(--bnd-ink));
+  --outline-red-1: color-mix(in srgb, var(--bnd-critical) 20%, var(--bnd-surface));
+  --outline-red-2: color-mix(in srgb, var(--bnd-critical) 30%, var(--bnd-surface));
+  --outline-red-3: color-mix(in srgb, var(--bnd-critical) 40%, var(--bnd-surface));
+
+  /* The done tone: the tenant's solid brand under its own label colour. */
+  --tone-done: var(--bnd-brand-solid);
+  --tone-on-done: var(--bnd-on-brand);
+
+  /* The brand sheet sets `body { font-family: "Bunood Riyal", var(--bnd-font-arabic),
+     var(--font-stack) }`. `--font-stack` is the Desk's variable and does not exist
+     on this page; an undefined var() would void the whole declaration and drop
+     the Arabic face with it, so it is defined here as frappe-ui's Latin face. */
+  --font-stack: InterVar, Inter, system-ui, sans-serif;
+}
+
+/* Without the theme, the done tone is frappe-ui's solid green. */
+:root {
+  --tone-done: var(--surface-green-7);
+  --tone-on-done: var(--ink-base);
+}
+
+html[data-hr-theme='bunood'] body {
+  background: var(--bnd-page);
+  color: var(--bnd-ink);
+}
+
+/* The drawer's backdrop: the theme's scrim, or frappe-ui's darkest gray at 45%. */
+.hr-scrim {
+  background: var(--bnd-scrim, color-mix(in srgb, var(--surface-gray-10) 45%, transparent));
+}
+
+/* Numbers: Latin digits, tabular, in a left-to-right island. */
+.hr-num {
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  direction: ltr;
+}
+
+/* The riyal sign is drawn by the theme's Bunood Riyal face, which the brand
+   sheet loads with a unicode-range for U+20C1 alone. */
+.hr-riyal {
+  font-family: 'Bunood Riyal', var(--bnd-font-arabic, inherit), inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+  }
+}

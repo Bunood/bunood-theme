@@ -1,0 +1,23 @@
+{
+  "name": "zerone-hr-ui",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "python3 ../tools/gates.py && vite build",
+    "gates": "python3 ../tools/gates.py"
+  },
+  "dependencies": {
+    "frappe-ui": "1.0.2",
+    "vue": "3.5.44",
+    "vue-router": "4.6.4"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "5.2.4",
+    "autoprefixer": "10.4.21",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.19",
+    "vite": "6.4.5"
+  }
+}

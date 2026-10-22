@@ -1,0 +1,54 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-10-22 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "document_type",
+  "document_number",
+  "expiry_date",
+  "attachment"
+ ],
+ "fields": [
+  {
+   "fieldname": "document_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Document Type",
+   "options": "Iqama\nWork Permit\nPassport\nNational ID\nSaudi Council of Engineers\nDriving License\nHealth Insurance\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "document_number",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Number"
+  },
+  {
+   "fieldname": "expiry_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Expiry Date"
+  },
+  {
+   "fieldname": "attachment",
+   "fieldtype": "Attach",
+   "in_list_view": 1,
+   "label": "Attachment"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-10-22 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Zero One HR",
+ "name": "Zero One Employee Document",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}
