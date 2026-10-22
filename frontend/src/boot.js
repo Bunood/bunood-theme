@@ -1,4 +1,4 @@
-// What the server rendered into the page (bunood_hr/www/people.py), with the
+// What the server rendered into the page (zerone_hr/www/people.py), with the
 // development server's stand-in when the page is served by Vite alone.
 const served = window.bnd_hr || {}
 

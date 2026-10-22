@@ -102,7 +102,7 @@ const date = ref(route.query.date || null)
 const show = ref(route.query.show || 'all')
 
 const sheet = createResource({
-  url: 'bunood_hr.api.day.get_attendance',
+  url: 'zerone_hr.api.day.get_attendance',
   makeParams: () => ({ company: boot.company, date: date.value }),
   auto: true,
 })

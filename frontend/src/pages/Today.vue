@@ -152,7 +152,7 @@ import { day, initials, money, weekday } from '@/format'
 import { __, count } from '@/i18n'
 
 const today = createResource({
-  url: 'bunood_hr.api.day.get_today',
+  url: 'zerone_hr.api.day.get_today',
   params: { company: boot.company },
   auto: true,
 })

@@ -1,9 +1,9 @@
-# Python packaging for the Bunood HR Frappe app.
+# Python packaging for the Zero One HR Frappe app.
 #
-# flit reads __version__ from bunood_hr/__init__.py, the single source of truth
+# flit reads __version__ from zerone_hr/__init__.py, the single source of truth
 # for the version; hooks.py imports it as app_version.
 [project]
-name = "bunood_hr"
+name = "zerone_hr"
 authors = [{ name = "Bunood", email = "sales@bunood.com" }]
 description = "Zero One HR: attendance, leave and Saudi payroll over Frappe HR"
 requires-python = ">=3.10"
@@ -12,7 +12,7 @@ dynamic = ["version"]
 dependencies = []
 
 [project.urls]
-Repository = "https://github.com/Bunood/bunood_hr"
+Repository = "https://github.com/zero-one-erp/zerone_hr"
 
 [build-system]
 requires = ["flit_core >=3.4,<4"]

@@ -1,4 +1,4 @@
-# Bunood HR — الموارد البشرية في زيرو ون
+# Zero One HR — الموارد البشرية في زيرو ون
 
 Zero One's HR app: the HR desk at `/people`, built with Vue and frappe-ui like the
 engineering office (`/engineering`) and the CRM (`/crm`), over Frappe HR's own data
@@ -13,10 +13,10 @@ The screens follow the v0.1 design canvas: *زيرو ون — الموارد ا�
 
 | Area | Where | State |
 | --- | --- | --- |
-| Saudi rules: GOSI, 30-day wages, overtime (Art. 107), Art. 92 instalment cap, end of service (Arts. 84, 85, 80, 87), leave encashment (Art. 111) | `bunood_hr/saudi/` | Pure Python, tested against the design's figures |
-| Where each employee stands today | `bunood_hr/logic/day.py` | Pure Python, tested |
-| APIs: today, attendance, employees | `bunood_hr/api/` | Integration-tested on a Frappe 16 bench |
-| Employee additions: nationality, dated documents (iqama, work permit, SCE membership …) | `install.py`, `Bunood Employee Document` | Custom fields, created on install and migrate |
+| Saudi rules: GOSI, 30-day wages, overtime (Art. 107), Art. 92 instalment cap, end of service (Arts. 84, 85, 80, 87), leave encashment (Art. 111) | `zerone_hr/saudi/` | Pure Python, tested against the design's figures |
+| Where each employee stands today | `zerone_hr/logic/day.py` | Pure Python, tested |
+| APIs: today, attendance, employees | `zerone_hr/api/` | Integration-tested on a Frappe 16 bench |
+| Employee additions: nationality, dated documents (iqama, work permit, SCE membership …) | `install.py`, `Zero One Employee Document` | Custom fields, created on install and migrate |
 | Screens: Today, Employees, Attendance, the shell and navigation | `frontend/` | Built; Arabic and English, light and dark |
 | Design gates and Arabic coverage | `tools/gates.py`, `tools/i18n.py` | In the test suite and the build |
 
@@ -27,7 +27,7 @@ employee's phone app.
 
 ## How it wears the theme
 
-The page (`bunood_hr/www/people.py`) links bunood-theme's web sheet and the site's brand
+The page (`zerone_hr/www/people.py`) links bunood-theme's web sheet and the site's brand
 sheet and stamps `data-hr-theme="bunood"` on `<html>`. `frontend/src/theme.css` points
 frappe-ui's semantic variables at the theme's tokens under that attribute, so the app
 takes the tenant's colours, Arabic face and riyal sign in both modes without a copy
@@ -41,8 +41,8 @@ own names; it runs before every build.
 
 ## Strings
 
-Sources are English, every one with the context `Bunood HR`
-(`__('Employees')`, `_("…", context="Bunood HR")`); `bunood_hr/locale/ar.po` is the
+Sources are English, every one with the context `Zero One HR`
+(`__('Employees')`, `_("…", context="Zero One HR")`); `zerone_hr/locale/ar.po` is the
 Arabic and the place to edit it. Counted strings use `count(n, '{0} employees')` and
 carry one translation per Arabic plural form (zero, one, two, few, many, other).
 `tools/i18n.py` lists what is missing; the suite fails on any gap.
@@ -53,10 +53,10 @@ carry one translation per Arabic plural form (zero, one, two, few, many, other).
 # Rules, logic, gates, Arabic coverage (no bench needed)
 python -m pytest -q
 
-# Front end: build into bunood_hr/public/frontend and bunood_hr/www/people.html
+# Front end: build into zerone_hr/public/frontend and zerone_hr/www/people.html
 cd frontend && yarn install && yarn build      # `yarn dev` proxies to a local bench
 
 # On a bench (Frappe 16, ERPNext, HRMS)
-bench get-app <this repo> && bench --site <site> install-app bunood_hr
-bench --site <site> run-tests --app bunood_hr
+bench get-app <this repo> && bench --site <site> install-app zerone_hr
+bench --site <site> run-tests --app zerone_hr
 ```

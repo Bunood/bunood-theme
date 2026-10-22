@@ -1,6 +1,6 @@
 """The endpoints against real Frappe HR records.
 
-Run on a bench: ``bench --site <site> run-tests --app bunood_hr``. Every record is
+Run on a bench: ``bench --site <site> run-tests --app zerone_hr``. Every record is
 created in the test's transaction and rolled back with it.
 
 The day under test is fixed (Thursday 22-10-2026, read at noon) so the outcome
@@ -13,13 +13,13 @@ from datetime import date, datetime
 import frappe
 from frappe.tests import IntegrationTestCase
 
-from bunood_hr.api import day as day_api
-from bunood_hr.api import employees as employees_api
-from bunood_hr.install import SAUDI_ARABIA
+from zerone_hr.api import day as day_api
+from zerone_hr.api import employees as employees_api
+from zerone_hr.install import SAUDI_ARABIA
 
 DAY = date(2026, 10, 22)
 NOON = datetime(2026, 10, 22, 12, 0)
-COMPANY = "Bunood HR Test Co"
+COMPANY = "Zero One HR Test Co"
 
 
 def _company():
@@ -103,7 +103,7 @@ def _employee(first_name, nationality=SAUDI_ARABIA, joined="2021-02-15", **extra
 			"date_of_joining": joined,
 			"status": "Active",
 			"default_shift": _shift(),
-			"bnd_nationality": nationality,
+			"zo_nationality": nationality,
 			**extra,
 		}
 	).insert()
@@ -219,7 +219,7 @@ class TestEmployees(IntegrationTestCase):
 		self.expat = _employee(
 			"BHR Expat",
 			nationality="India",
-			bnd_documents=[
+			zo_documents=[
 				{
 					"document_type": "Iqama",
 					"document_number": "2xxxxxxxx",

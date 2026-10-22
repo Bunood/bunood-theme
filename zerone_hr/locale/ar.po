@@ -1,624 +1,624 @@
-# Arabic for Bunood HR. The SOURCE of the Arabic: edit here.
-# Every msgid carries the context "Bunood HR"; counted strings carry
-# "Bunood HR count:<plural category>", one entry per Arabic form.
+# Arabic for Zero One HR. The SOURCE of the Arabic: edit here.
+# Every msgid carries the context "Zero One HR"; counted strings carry
+# "Zero One HR count:<plural category>", one entry per Arabic form.
 msgid ""
 msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Language: ar\n"
 "Plural-Forms: nplurals=6; plural=(n==0 ? 0 : n==1 ? 1 : n==2 ? 2 : n%100>=3 && n%100<=10 ? 3 : n%100>=11 ? 4 : 5);\n"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Absent"
 msgstr "غائب"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Active"
 msgstr "على رأس العمل"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Advance"
 msgstr "سلفة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "All"
 msgstr "الكل"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "All apps"
 msgstr "كل التطبيقات"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Approved duty request"
 msgstr "مهمة معتمدة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "At work"
 msgstr "في العمل"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "At work now"
 msgstr "في العمل الآن"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Attendance"
 msgstr "الحضور والانصراف"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Attendance correction"
 msgstr "تصحيح حضور"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Attendance device"
 msgstr "جهاز البصمة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Attendance list"
 msgstr "سجل الحضور"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Attendance now"
 msgstr "الحضور الآن"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Attendance — {0} {1}"
 msgstr "الحضور — {0} {1}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Back to today"
 msgstr "العودة إلى اليوم"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Basic salary"
 msgstr "الراتب الأساسي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Choose a company first."
 msgstr "يلزم اختيار الشركة أولًا."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Contract"
 msgstr "عقد العمل"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Day off"
 msgstr "يوم راحة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Deductions"
 msgstr "الخصومات"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Department"
 msgstr "القسم"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Documents expiring"
 msgstr "وثائق تنتهي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Documents expiring soon"
 msgstr "وثائق تنتهي قريبًا"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Draft"
 msgstr "مسودة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Driving License"
 msgstr "رخصة قيادة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Duty outside the office"
 msgstr "مهمة خارج المكتب"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Employee"
 msgstr "الموظف"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Employee list"
 msgstr "قائمة الموظفين"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Employees"
 msgstr "الموظفون"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Entered by HR"
 msgstr "أدخلته الموارد البشرية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Everyone is accounted for."
 msgstr "الجميع معروف مكانهم."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Expense claim"
 msgstr "مطالبة مصروف"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Expired"
 msgstr "انتهت"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "From"
 msgstr "من أين"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Good evening, {0}"
 msgstr "مساء الخير يا {0}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Good morning, {0}"
 msgstr "صباح الخير يا {0}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Health Insurance"
 msgstr "تأمين طبي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "HR"
 msgstr "الموارد البشرية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Human Resources"
 msgstr "الموارد البشرية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "In"
 msgstr "الدخول"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "In review"
 msgstr "قيد المراجعة"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "in {0} days"
 msgstr "بعد {0} أيام"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "in {0} days"
 msgstr "بعد {0} يومًا"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "in {0} days"
 msgstr "بعد يوم"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "in {0} days"
 msgstr "بعد {0} يوم"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "in {0} days"
 msgstr "بعد يومين"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "in {0} days"
 msgstr "اليوم"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Iqama"
 msgstr "إقامة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "It may have moved, or the link is incomplete."
 msgstr "ربما نُقلت، أو أن الرابط ناقص."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Joined"
 msgstr "المباشرة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Late"
 msgstr "متأخر"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Late today"
 msgstr "تأخروا اليوم"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Leave"
 msgstr "إجازة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Leave, attendance corrections, advances and expense claims appear here when employees send them."
 msgstr "تظهر هنا الإجازات وتصحيحات الحضور والسلف والمصروفات حين يرسلها الموظفون."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Left"
 msgstr "انتهت الخدمة"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "Longest {0} minutes"
 msgstr "أطولها {0} دقائق"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "Longest {0} minutes"
 msgstr "أطولها {0} دقيقة"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "Longest {0} minutes"
 msgstr "أطولها دقيقة واحدة"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "Longest {0} minutes"
 msgstr "أطولها {0} دقيقة"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "Longest {0} minutes"
 msgstr "أطولها دقيقتان"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "Longest {0} minutes"
 msgstr " "
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Manual check-in"
 msgstr "تسجيل يدوي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Menu"
 msgstr "القائمة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "My account"
 msgstr "حسابي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Name or employee ID"
 msgstr "الاسم أو الرقم الوظيفي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "National ID"
 msgstr "الهوية الوطنية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Nationality"
 msgstr "الجنسية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Needs a call now"
 msgstr "يحتاج اتصالًا الآن"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Net pay"
 msgstr "الصافي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "New employee"
 msgstr "موظف جديد"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "New payroll entry"
 msgstr "مسير جديد"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Next"
 msgstr "التالي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Next day"
 msgstr "اليوم التالي"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "No check-in yet"
 msgstr "لم يسجّل بعد"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "No employee matches “{0}”."
 msgstr "لا موظف يطابق «{0}»."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "No payroll for this month yet."
 msgstr "لا مسير لهذا الشهر بعد."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "No shift"
 msgstr "بلا وردية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Nobody in this list."
 msgstr "لا أحد في هذه القائمة."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Non-Saudi"
 msgstr "غير سعوديين"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Not checked in"
 msgstr "لم يسجّلوا حضورهم"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Not in yet"
 msgstr "لم يصل بعد"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Nothing expires in the next 45 days."
 msgstr "لا شيء ينتهي خلال 45 يومًا."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Nothing is waiting."
 msgstr "لا شيء بانتظار القرار."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "of {0}"
 msgstr "من {0}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "On duty"
 msgstr "في مهمة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "On leave"
 msgstr "في إجازة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "On leave or duty"
 msgstr "في إجازة أو مهمة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "On probation"
 msgstr "تحت التجربة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Only HR users can open this page."
 msgstr "هذه الصفحة لمستخدمي الموارد البشرية فقط."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Open the payroll entry"
 msgstr "فتح المسير"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Other"
 msgstr "أخرى"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Out"
 msgstr "الخروج"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Paid"
 msgstr "صُرف"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Passport"
 msgstr "جواز سفر"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Payroll this month"
 msgstr "مسير هذا الشهر"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Phone, with location"
 msgstr "الجوال مع الموقع"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Present"
 msgstr "حاضر"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Present {0}"
 msgstr "حاضر {0}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Previous"
 msgstr "السابق"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Previous day"
 msgstr "اليوم السابق"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Read from check-ins, approved leave and duty requests; refreshed when you open the page."
 msgstr "من تسجيلات الحضور والإجازات والمهمات المعتمدة، ويُحدَّث عند فتح الصفحة."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Review"
 msgstr "مراجعة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Saudi"
 msgstr "سعوديون"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Saudi Council of Engineers"
 msgstr "عضوية الهيئة السعودية للمهندسين"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Saudization {0}"
 msgstr "السعودة {0}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Search"
 msgstr "بحث"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Shift"
 msgstr "الوردية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Show"
 msgstr "عرض"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Showing {0} of {1}. What needs someone is at the top: absent, then late."
 msgstr "يظهر {0} من {1}. ما يحتاج تدخلًا في الأعلى: الغائبون ثم المتأخرون."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Showing {0}–{1} of {2}"
 msgstr "يظهر {0}–{1} من {2}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Start it when the attendance sheet is ready."
 msgstr "يبدأ حين يكتمل كشف الحضور."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Status"
 msgstr "الحالة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "This page could not load."
 msgstr "تعذّر تحميل الصفحة."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "This page does not exist."
 msgstr "هذه الصفحة غير موجودة."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Today"
 msgstr "اليوم"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Try again"
 msgstr "إعادة المحاولة"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Unknown list."
 msgstr "قائمة غير معروفة."
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Waiting for your decision"
 msgstr "بانتظار قرارك"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Work Permit"
 msgstr "رخصة عمل"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "Zero One"
 msgstr "زيرو ون"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "{0} days"
 msgstr "{0} أيام"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "{0} days"
 msgstr "{0} يومًا"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "{0} days"
 msgstr "يوم واحد"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "{0} days"
 msgstr "{0} يوم"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "{0} days"
 msgstr "يومان"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "{0} days"
 msgstr "لا أيام"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "{0} employees"
 msgstr "{0} موظفين"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "{0} employees"
 msgstr "{0} موظفًا"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "{0} employees"
 msgstr "موظف واحد"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "{0} employees"
 msgstr "{0} موظف"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "{0} employees"
 msgstr "موظفان"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "{0} employees"
 msgstr "لا موظفين"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "{0} expiring"
 msgstr "{0} تنتهي"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "{0} min late"
 msgstr "متأخر {0} دقائق"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "{0} min late"
 msgstr "متأخر {0} دقيقة"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "{0} min late"
 msgstr "متأخر دقيقة"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "{0} min late"
 msgstr "متأخر {0} دقيقة"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "{0} min late"
 msgstr "متأخر دقيقتين"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "{0} min late"
 msgstr "في الموعد"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "{0} on leave, {1} on duty"
 msgstr "{0} في إجازة، {1} في مهمة"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "{0} requests"
 msgstr "{0} طلبات"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "{0} requests"
 msgstr "{0} طلبًا"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "{0} requests"
 msgstr "طلب واحد"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "{0} requests"
 msgstr "{0} طلب"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "{0} requests"
 msgstr "طلبان"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "{0} requests"
 msgstr "لا طلبات"
 
-msgctxt "Bunood HR count:few"
+msgctxt "Zero One HR count:few"
 msgid "{0} still within the shift"
 msgstr "{0} ما زالوا ضمن وقت الوردية"
 
-msgctxt "Bunood HR count:many"
+msgctxt "Zero One HR count:many"
 msgid "{0} still within the shift"
 msgstr "{0} ما زالوا ضمن وقت الوردية"
 
-msgctxt "Bunood HR count:one"
+msgctxt "Zero One HR count:one"
 msgid "{0} still within the shift"
 msgstr "واحد ما زال ضمن وقت الوردية"
 
-msgctxt "Bunood HR count:other"
+msgctxt "Zero One HR count:other"
 msgid "{0} still within the shift"
 msgstr "{0} ما زالوا ضمن وقت الوردية"
 
-msgctxt "Bunood HR count:two"
+msgctxt "Zero One HR count:two"
 msgid "{0} still within the shift"
 msgstr "اثنان ما زالا ضمن وقت الوردية"
 
-msgctxt "Bunood HR count:zero"
+msgctxt "Zero One HR count:zero"
 msgid "{0} still within the shift"
 msgstr "لا أحد ضمن وقت الوردية"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "{0} to {1}"
 msgstr "من {0} إلى {1}"
 
-msgctxt "Bunood HR"
+msgctxt "Zero One HR"
 msgid "{0} until {1}"
 msgstr "{0} حتى {1}"

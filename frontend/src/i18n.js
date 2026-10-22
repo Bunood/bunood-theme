@@ -3,7 +3,7 @@ import { boot } from './boot'
 // Every string the app shows carries this context, so the word stays ours
 // whatever else the site has installed, and the page can send only its own
 // translations (`www/people.py::app_messages`).
-export const CONTEXT = 'Bunood HR'
+export const CONTEXT = 'Zero One HR'
 
 function fill(text, replace) {
   if (!replace) return text

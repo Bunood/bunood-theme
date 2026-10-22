@@ -1,8 +1,8 @@
-from bunood_hr import __version__
+from zerone_hr import __version__
 
 app_version = __version__
-app_name = "bunood_hr"
-app_title = "Bunood HR"
+app_name = "zerone_hr"
+app_title = "Zero One HR"
 app_publisher = "Bunood"
 app_description = "Zero One HR: attendance, leave and Saudi payroll over Frappe HR"
 app_email = "sales@bunood.com"
@@ -15,10 +15,10 @@ required_apps = ["frappe/erpnext", "frappe/hrms"]
 
 add_to_apps_screen = [
 	{
-		"name": "bunood_hr",
+		"name": "zerone_hr",
 		"title": "HR",
 		"route": "/people",
-		"has_permission": "bunood_hr.api.access.has_app_permission",
+		"has_permission": "zerone_hr.api.access.has_app_permission",
 	}
 ]
 
@@ -29,5 +29,5 @@ website_route_rules = [
 	{"from_route": "/people/<path:app_path>", "to_route": "people"},
 ]
 
-after_install = "bunood_hr.install.after_install"
-after_migrate = "bunood_hr.install.after_migrate"
+after_install = "zerone_hr.install.after_install"
+after_migrate = "zerone_hr.install.after_migrate"

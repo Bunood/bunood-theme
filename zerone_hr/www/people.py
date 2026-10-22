@@ -14,7 +14,7 @@ from frappe import _
 from frappe.sessions import get_csrf_token
 from frappe.translate import get_all_translations
 
-from bunood_hr.api.access import has_hr_role
+from zerone_hr.api.access import has_hr_role
 
 no_cache = 1
 
@@ -44,13 +44,13 @@ def theme_sheets() -> list[str]:
 		if brand:
 			sheets.append(brand)
 	except Exception:
-		frappe.log_error(title="Bunood HR: brand sheet unavailable")
+		frappe.log_error(title="Zero One HR: brand sheet unavailable")
 	return sheets
 
 
 #: Every string the app shows carries this translation context, so the page can
 #: send only its own messages instead of the whole bench's dictionary.
-CONTEXT = "Bunood HR"
+CONTEXT = "Zero One HR"
 
 
 def app_messages(lang: str) -> dict[str, str]:
@@ -72,7 +72,7 @@ def get_context(context):
 		frappe.local.flags.redirect_location = "/login?redirect-to=" + frappe.request.path
 		raise frappe.Redirect
 	if not has_hr_role():
-		frappe.throw(_("Only HR users can open this page.", context="Bunood HR"), frappe.PermissionError)
+		frappe.throw(_("Only HR users can open this page.", context="Zero One HR"), frappe.PermissionError)
 
 	lang = frappe.local.lang or "en"
 	sheets = theme_sheets()
@@ -84,7 +84,7 @@ def get_context(context):
 	desk_theme = frappe.db.get_value("User", frappe.session.user, "desk_theme")
 	context.theme = {"Dark": "dark", "Automatic": "automatic"}.get(desk_theme, "light")
 	context.theme_sheets = sheets
-	context.title = _("HR", context="Bunood HR")
+	context.title = _("HR", context="Zero One HR")
 	context.boot = {
 		"bnd_hr": {
 			"user": frappe.session.user,

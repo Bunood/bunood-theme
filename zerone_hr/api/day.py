@@ -2,7 +2,7 @@
 
 Every query goes through ``frappe.get_list`` so the reader's own permissions still
 apply behind :func:`require_hr`. The deciding is in
-:mod:`bunood_hr.logic.day`, which these endpoints feed and do not second-guess.
+:mod:`zerone_hr.logic.day`, which these endpoints feed and do not second-guess.
 """
 
 from datetime import date, datetime, time, timedelta
@@ -10,8 +10,8 @@ from datetime import date, datetime, time, timedelta
 import frappe
 from frappe.utils import add_days, get_datetime, getdate, now_datetime
 
-from bunood_hr.api.access import require_hr
-from bunood_hr.logic import day as logic
+from zerone_hr.api.access import require_hr
+from zerone_hr.logic import day as logic
 
 
 def _company(company: str | None) -> str:
@@ -20,7 +20,7 @@ def _company(company: str | None) -> str:
 	default has to be told which."""
 	if company:
 		if not frappe.has_permission("Company", "read", company):
-			frappe.throw(frappe._("Choose a company first.", context="Bunood HR"), frappe.PermissionError)
+			frappe.throw(frappe._("Choose a company first.", context="Zero One HR"), frappe.PermissionError)
 		return company
 	company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
 		"Global Defaults", "default_company"
@@ -30,7 +30,7 @@ def _company(company: str | None) -> str:
 	readable = frappe.get_list("Company", pluck="name", limit_page_length=2)
 	if len(readable) == 1:
 		return readable[0]
-	frappe.throw(frappe._("Choose a company first.", context="Bunood HR"))
+	frappe.throw(frappe._("Choose a company first.", context="Zero One HR"))
 
 
 def _as_time(value) -> time | None:
@@ -334,7 +334,7 @@ def collect_expiring(company: str, today: date, horizon: int = 90) -> list[dict]
 	# A child table is read with get_all: its rows carry no permissions of their
 	# own, and the parents were already narrowed by get_list above.
 	for d in frappe.get_all(
-		"Bunood Employee Document",
+		"Zero One Employee Document",
 		filters={
 			"parenttype": "Employee",
 			"parent": ["in", list(names)],

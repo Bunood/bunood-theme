@@ -10,9 +10,9 @@ from decimal import Decimal
 
 import pytest
 
-from bunood_hr.saudi import end_of_service as eos
-from bunood_hr.saudi import gosi, wages
-from bunood_hr.saudi.money import D
+from zerone_hr.saudi import end_of_service as eos
+from zerone_hr.saudi import gosi, wages
+from zerone_hr.saudi.money import D
 
 
 def money(s):

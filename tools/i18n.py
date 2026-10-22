@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """The app's translatable strings, and which of them ar.po does not cover.
 
-Sources are English and every one carries the context ``Bunood HR``; a string
-counted with ``count(n, '…')`` carries ``Bunood HR count:<category>`` and needs
+Sources are English and every one carries the context ``Zero One HR``; a string
+counted with ``count(n, '…')`` carries ``Zero One HR count:<category>`` and needs
 one translation per Arabic plural category (zero, one, two, few, many, other).
 
 ``python3 tools/i18n.py`` lists the strings with no Arabic translation.
@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-CONTEXT = "Bunood HR"
+CONTEXT = "Zero One HR"
 ARABIC_CATEGORIES = ("zero", "one", "two", "few", "many", "other")
 
 JS_STRING = r"""(?P<q>['"])(?P<s>(?:\\.|(?!(?P=q)).)*?)(?P=q)"""
@@ -40,7 +40,7 @@ def extract() -> set[tuple[str, str]]:
 		for m in JS_COUNT.finditer(text):
 			for cat in ARABIC_CATEGORIES:
 				found.add((_unescape(m.group("s")), f"{CONTEXT} count:{cat}"))
-	for path in (ROOT / "bunood_hr").rglob("*.py"):
+	for path in (ROOT / "zerone_hr").rglob("*.py"):
 		for m in PY_CALL.finditer(path.read_text(encoding="utf-8")):
 			found.add((_unescape(m.group("s")), CONTEXT))
 	# Values the UI passes to __() as data rather than literals: document types.
@@ -82,7 +82,7 @@ def _po(quoted: str) -> str:
 
 
 def missing(lang: str = "ar") -> list[tuple[str, str]]:
-	po = read_po(ROOT / "bunood_hr" / "locale" / f"{lang}.po")
+	po = read_po(ROOT / "zerone_hr" / "locale" / f"{lang}.po")
 	return sorted(k for k in extract() if not po.get(k))
 
 

@@ -7,14 +7,14 @@ occupational hazards alone, paid by the employer.
 The rates are DATA, not constants of the law: the new Social Insurance Law raises
 the annuities rate step by step for people registered under it for the first
 time, so a site carries more than one Saudi rate set at once. ``LEGACY_SAUDI`` and
-``NON_SAUDI`` are the defaults a site starts from; Bunood HR Settings is where a
+``NON_SAUDI`` are the defaults a site starts from; Zero One HR Settings is where a
 site edits them, and every call here takes the set to apply as an argument.
 """
 
 from dataclasses import dataclass
 from decimal import Decimal
 
-from bunood_hr.saudi.money import D, halala
+from zerone_hr.saudi.money import D, halala
 
 #: The contributory wage is capped at this amount a month.
 WAGE_CAP = Decimal("45000")

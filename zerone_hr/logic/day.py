@@ -4,7 +4,7 @@ Frappe HR marks Attendance in a scheduled job after the shift, so in the middle 
 the day most people have check-ins and no Attendance yet. This module reads both
 and decides the word the HR desk shows NOW: present, late, absent, not in yet, on
 leave, on duty, or off. It is free of Frappe so the decision can be tested alone;
-``bunood_hr.api.day`` gathers the rows and calls it.
+``zerone_hr.api.day`` gathers the rows and calls it.
 
 The order of precedence, first match wins:
 

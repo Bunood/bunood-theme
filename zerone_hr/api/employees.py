@@ -3,9 +3,9 @@
 import frappe
 from frappe.utils import add_days, getdate, now_datetime
 
-from bunood_hr.api.access import require_hr
-from bunood_hr.api.day import _company, collect_day, collect_expiring
-from bunood_hr.install import SAUDI_ARABIA
+from zerone_hr.api.access import require_hr
+from zerone_hr.api.day import _company, collect_day, collect_expiring
+from zerone_hr.install import SAUDI_ARABIA
 
 TABS = ("all", "saudi", "non_saudi", "probation", "documents", "left")
 
@@ -18,7 +18,7 @@ def _tab_of(e, today, flagged: set[str]) -> set[str]:
 	if e.status == "Left":
 		return {"left"}
 	tabs.add("all")
-	tabs.add("saudi" if e.bnd_nationality == SAUDI_ARABIA else "non_saudi")
+	tabs.add("saudi" if e.zo_nationality == SAUDI_ARABIA else "non_saudi")
 	if e.date_of_joining and getdate(e.date_of_joining) > add_days(today, -PROBATION_DAYS):
 		tabs.add("probation")
 	if e.name in flagged:
@@ -32,7 +32,7 @@ def get_employees(
 ) -> dict:
 	require_hr()
 	if tab not in TABS:
-		frappe.throw(frappe._("Unknown list.", context="Bunood HR"))
+		frappe.throw(frappe._("Unknown list.", context="Zero One HR"))
 	company = _company(company)
 	now = now_datetime()
 	today = now.date()
@@ -46,7 +46,7 @@ def get_employees(
 			"employee_name",
 			"designation",
 			"department",
-			"bnd_nationality",
+			"zo_nationality",
 			"date_of_joining",
 			"relieving_date",
 			"status",
@@ -102,8 +102,8 @@ def get_employees(
 				"employee_name": e.employee_name,
 				"designation": e.designation,
 				"department": e.department,
-				"nationality": e.bnd_nationality,
-				"saudi": e.bnd_nationality == SAUDI_ARABIA,
+				"nationality": e.zo_nationality,
+				"saudi": e.zo_nationality == SAUDI_ARABIA,
 				"date_of_joining": str(e.date_of_joining) if e.date_of_joining else None,
 				"relieving_date": str(e.relieving_date) if e.relieving_date else None,
 				"status": e.status,

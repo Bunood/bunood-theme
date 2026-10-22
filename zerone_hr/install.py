@@ -18,24 +18,24 @@ SAUDI_ARABIA = "Saudi Arabia"
 EMPLOYEE_FIELDS = {
 	"Employee": [
 		{
-			"fieldname": "bnd_nationality",
+			"fieldname": "zo_nationality",
 			"label": "Nationality",
 			"fieldtype": "Link",
 			"options": "Country",
 			"insert_after": "gender",
 		},
 		{
-			"fieldname": "bnd_documents_section",
+			"fieldname": "zo_documents_section",
 			"label": "Documents",
 			"fieldtype": "Section Break",
 			"insert_after": "place_of_issue",
 		},
 		{
-			"fieldname": "bnd_documents",
+			"fieldname": "zo_documents",
 			"label": "Documents",
 			"fieldtype": "Table",
-			"options": "Bunood Employee Document",
-			"insert_after": "bnd_documents_section",
+			"options": "Zero One Employee Document",
+			"insert_after": "zo_documents_section",
 		},
 	]
 }
@@ -47,3 +47,4 @@ def after_install():
 
 def after_migrate():
 	create_custom_fields(EMPLOYEE_FIELDS, update=True)
+

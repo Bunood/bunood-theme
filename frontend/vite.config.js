@@ -9,9 +9,9 @@ export default defineConfig({
       frappeProxy: true,
       jinjaBootData: true,
       buildConfig: {
-        outDir: '../bunood_hr/public/frontend',
-        indexHtmlPath: '../bunood_hr/www/people.html',
-        baseUrl: '/assets/bunood_hr/frontend/',
+        outDir: '../zerone_hr/public/frontend',
+        indexHtmlPath: '../zerone_hr/www/people.html',
+        baseUrl: '/assets/zerone_hr/frontend/',
       },
     }),
     vue(),

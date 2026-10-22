@@ -7,7 +7,7 @@ all share, so one constant holds it and nothing else divides by a month length.
 
 from decimal import Decimal
 
-from bunood_hr.saudi.money import D, halala
+from zerone_hr.saudi.money import D, halala
 
 MONTH_DAYS = 30
 DAY_HOURS = 8

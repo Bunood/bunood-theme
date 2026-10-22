@@ -119,7 +119,7 @@ const search = ref('')
 const start = ref(0)
 
 const list = createResource({
-  url: 'bunood_hr.api.employees.get_employees',
+  url: 'zerone_hr.api.employees.get_employees',
   makeParams: () => ({ company: boot.company, tab: tab.value, search: search.value, start: start.value, page_length: PAGE }),
   auto: true,
 })

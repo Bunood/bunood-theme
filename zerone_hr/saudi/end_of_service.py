@@ -19,8 +19,8 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from bunood_hr.saudi.money import D, halala
-from bunood_hr.saudi.wages import daily_wage
+from zerone_hr.saudi.money import D, halala
+from zerone_hr.saudi.wages import daily_wage
 
 TERMINATION = "termination"
 CONTRACT_END = "contract_end"

@@ -2,7 +2,7 @@
 
 from datetime import date, datetime, time
 
-from bunood_hr.logic import day as d
+from zerone_hr.logic import day as d
 
 TODAY = date(2026, 10, 22)
 OFFICE = d.Shift("Office", time(8, 0), time(17, 0), late_grace=15)

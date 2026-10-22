@@ -27,6 +27,6 @@ def require_hr() -> None:
 		raise frappe.AuthenticationError
 	if not has_hr_role():
 		frappe.throw(
-			frappe._("Only HR users can open this page.", context="Bunood HR"),
+			frappe._("Only HR users can open this page.", context="Zero One HR"),
 			frappe.PermissionError,
 		)

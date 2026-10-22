@@ -14,7 +14,7 @@ jobs:
           python-version: "3.12"
       - run: pip install pytest==8.4.2 ruff==0.17.1
       - name: Lint
-        run: ruff check bunood_hr tests tools && ruff format --check bunood_hr tests tools
+        run: ruff check zerone_hr tests tools && ruff format --check zerone_hr tests tools
       - name: Saudi rules, day logic, design gates, Arabic coverage
         run: python -m pytest -q
       - uses: actions/setup-node@v4
