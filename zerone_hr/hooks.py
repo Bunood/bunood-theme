@@ -31,3 +31,4 @@ website_route_rules = [
 
 after_install = "zerone_hr.install.after_install"
 after_migrate = "zerone_hr.install.after_migrate"
+before_uninstall = "zerone_hr.install.before_uninstall"

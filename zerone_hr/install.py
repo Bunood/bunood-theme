@@ -48,3 +48,18 @@ def after_install():
 def after_migrate():
 	create_custom_fields(EMPLOYEE_FIELDS, update=True)
 
+
+def before_uninstall():
+	"""Take the fields back off Employee.
+
+	Uninstalling drops this app's doctypes but leaves custom fields on another
+	app's doctype in place; measured on Frappe 16, the nationality and the section
+	break stayed behind on Employee after the app was gone.
+	"""
+	import frappe
+
+	for doctype, fields in EMPLOYEE_FIELDS.items():
+		for field in fields:
+			name = frappe.db.get_value("Custom Field", {"dt": doctype, "fieldname": field["fieldname"]})
+			if name:
+				frappe.delete_doc("Custom Field", name, ignore_permissions=True)
