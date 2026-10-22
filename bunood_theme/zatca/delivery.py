@@ -33,6 +33,22 @@ CUSTOMER_FORMATS = {
 ACCEPTED = frozenset({"Accepted", "Accepted with warnings"})
 
 
+def contracting_format(doc) -> str:
+    """The exception to Phase 2's own format: a contracting invoice (bunood_business's «فاتورة
+    مقاولات», not its credit note) prints «فاتورة ضريبية - مقاولات - A4», which carries
+    ksa_compliance's own QR (``bunood_zatca_qr_src``: Phase 2's stored artefact first, Phase 1's
+    TLV computed at print time otherwise). "" for every other invoice, and where the format is
+    missing or disabled."""
+    from bunood_theme.printing.contracting import is_contracting
+    from bunood_theme.printing.names import CONTRACTING_INVOICE_A4
+
+    if doc is None or getattr(doc, "doctype", None) != "Sales Invoice" or not is_contracting(doc):
+        return ""
+    if not frappe.db.exists("Print Format", {"name": CONTRACTING_INVOICE_A4, "doc_type": "Sales Invoice", "disabled": 0}):
+        return ""
+    return CONTRACTING_INVOICE_A4
+
+
 def classify_delivery(*, submitted: bool, regulated: bool, server: str = "",
                       invoice_type: str = "", integration_status: str = "",
                       has_xml: bool = False, has_qr: bool = False,
@@ -243,5 +259,7 @@ def before_print(doc, method=None, print_settings=None):
         return
     request = frappe.form_dict or {}
     selected = request.get("print_format") or request.get("format")
+    if selected and selected == contracting_format(doc):
+        return
     if selected != context["format"] and not getattr(frappe.flags, "bnd_zatca_delivery_print", False):
         frappe.throw(_("Use the ZATCA Phase 2 print format for this invoice."))

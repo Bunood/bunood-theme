@@ -55,18 +55,21 @@ def send_invoice_email(doctype: str, name: str, recipient: str, subject: str, me
 def _format_for(doc, context: dict, print_format: str | None = None) -> str:
     """The print format a delivery renders.
 
-    A ZATCA Phase 2 invoice prints only in Phase 2's own format. Any other takes
-    the one the reader chose on the invoice, else the document type's default
-    (the organisation's choice, a native Property Setter), else Bunood's own.
+    A contracting invoice prints in «فاتورة ضريبية - مقاولات - A4», with ksa_compliance's own QR
+    (Phase 2's stored artefact, else Phase 1's). Any other ZATCA Phase 2 invoice prints only in
+    Phase 2's own format. Any other takes the one the reader chose on the invoice, else the
+    document type's default (the organisation's choice, a native Property Setter), else Bunood's own.
     """
+    from bunood_theme.zatca.delivery import contracting_format
+
+    # A contracting invoice (bunood_business's «فاتورة مقاولات») prints its own format, Phase 2 or
+    # not: it carries ksa_compliance's QR itself (zatca/delivery.py contracting_format).
+    own = contracting_format(doc)
+    if own:
+        return own
     if context["regulated"]:
         return context["format"]
-    from bunood_theme.printing.names import PROGRESS_INVOICE_A4
-    from bunood_theme.printing.progress import is_progress
-
-    # A progress invoice (bunood_business's «فاتورة مستخلص») starts on its own format.
-    own = PROGRESS_INVOICE_A4 if not print_format and is_progress(doc) else None
-    for name in (print_format, own, frappe.get_meta(doc.doctype).default_print_format):
+    for name in (print_format, frappe.get_meta(doc.doctype).default_print_format):
         if name == "Standard":
             return name
         if name and frappe.db.exists("Print Format", {"name": name, "doc_type": doc.doctype, "disabled": 0}):

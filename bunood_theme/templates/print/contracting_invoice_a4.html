@@ -1,0 +1,96 @@
+{#- ============================================================================
+    «فاتورة ضريبية - مقاولات - A4» — a contractor's tax invoice, to the owner's
+    approved mock (print-a4, 2026-10-22). The owner's decisions over the mock:
+    the title is «فاتورة ضريبية / Tax Invoice» (the certificate number is a fact,
+    not the title); the amount in words is the net payable now; the QR stands
+    ALONE on the physical left, with its caption, nothing beside it.
+
+    The kit's page gives the chrome (the bilingual header with the larger logo,
+    the footer's address and contacts, the policy under it, the page number);
+    the body is the mock's: the title, the facts, the seller and the customer,
+    the scope, the works (Arabic + English lines, the VAT rate), the ladder on
+    the physical RIGHT, the words, and three signatures.
+    ============================================================================ -#}
+{%- from "templates/print/kit.html" import page, qr_block -%}
+{%- set p = bunood_print_profile(doc) -%}
+{%- set b = bunood_buyer_profile(doc) -%}
+{%- set c = bunood_contracting_view(doc) -%}
+{%- set qr = (bunood_zatca_qr_src(doc) if doc.get("docstatus") != 0 else "") -%}
+{%- macro amt(value, neg=False) -%}<span class="amt"><i class="sar">&#x20C1;</i><span class="fig{{ ' neg' if neg else '' }}">{{ value }}</span></span>{%- endmacro -%}
+{%- macro lbl(ar, en) -%}<div class="lbl"><span>{{ ar | e }}</span><span class="en">{{ en | e }}</span></div>{%- endmacro -%}
+{%- call page(p, doc, no_letterhead=no_letterhead, tax_document=True) %}
+<div class="zoc">
+  <table class="zoc-title"><tr>
+    <td><div class="t-name">فاتورة ضريبية<span class="bar">|</span><span class="en">Tax Invoice</span></div></td>
+    <td class="t-no"><small>رقم الفاتورة · <span class="en">Invoice No.</span></small><b class="num">{{ c.number | e }}</b></td>
+  </tr></table>
+  {%- set copy = bunood_print_copy(doc) if bunood_print_copy is defined else {} %}
+  {%- if copy %}<div class="zo-notice">نسخة مكررة — <span class="en">Copy</span> · طُبعت <span class="num">{{ copy.at }}</span></div>{% endif %}
+
+  <table class="zoc-facts">
+    <tr>
+      <td class="key">{{ lbl("رقم المستخلص", "Certificate No.") }}<div class="val num">{{ c.certificate | e }}</div></td>
+      <td>{{ lbl("تاريخ ووقت الإصدار", "Issued") }}<div class="val num">{{ c.issued }}</div></td>
+      <td>{{ lbl("رقم العقد / أمر الشراء", "Contract / PO No.") }}<div class="val num">{{ (c.po or "—") | e }}</div></td>
+    </tr><tr>
+      <td>{{ lbl("فترة الأعمال", "Period of works") }}<div class="val">{% if c.start or c.end %}<span class="num">{{ c.start }}</span> ← <span class="num">{{ c.end }}</span>{% else %}—{% endif %}</div></td>
+      <td>{{ lbl("المشروع", "Project") }}<div class="val">{{ (c.project or "—") | e }}</div></td>
+      <td>{{ lbl("تاريخ الاستحقاق", "Due date") }}<div class="val num">{{ c.due or "—" }}</div></td>
+    </tr>
+  </table>
+
+  <table class="zoc-parties"><tr>
+    <td><div class="party"><div class="ph"><span>البائع</span><span class="en">Seller</span></div><div class="pb">
+      <div class="pn">{{ (p.name_ar or p.name_en or p.name) | e }}</div><div class="pn-en">{{ (p.name_en if p.name_ar else "") | e }}&nbsp;</div>
+      <div class="cells">
+        {% if p.vat %}<div>{{ lbl("الرقم الضريبي", "VAT No.") }}<div class="val num">{{ p.vat | e }}</div></div>{% endif %}
+        {% if p.cr %}<div>{{ lbl("السجل التجاري", "C.R.") }}<div class="val num">{{ p.cr | e }}</div></div>{% endif %}
+        {% if p.address.city %}<div>{{ lbl("المدينة", "City") }}<div class="val">{{ p.address.city | e }}</div></div>{% endif %}
+      </div></div></div></td>
+    <td class="gap"></td>
+    <td><div class="party"><div class="ph"><span>العميل</span><span class="en">Customer</span></div><div class="pb">
+      <div class="pn">{{ (b.name or "—") | e }}</div><div class="pn-en">{{ (b.name_ar or "") | e }}&nbsp;</div>
+      <div class="cells">
+        {% if b.vat %}<div>{{ lbl("الرقم الضريبي", "VAT No.") }}<div class="val num">{{ b.vat | e }}</div></div>{% endif %}
+        {%- set place = [b.address.city, b.address.street] | select | join(" – ") %}
+        {% if place or b.address_text %}<div style="grid-column: span 2">{{ lbl("العنوان", "Address") }}<div class="val">{{ (place or b.address_text) | e }}</div></div>{% endif %}
+      </div></div></div></td>
+  </tr></table>
+
+  {%- if c.scope_ar or c.scope_en %}
+  <div class="zoc-scope"><div class="k">وصف الأعمال<span class="en">Scope of works</span></div><div class="v-ar">{{ c.scope_ar | e }}</div><div class="v-en en">{{ c.scope_en | e }}</div></div>
+  {%- endif %}
+
+  <table class="zoc-works">
+    <colgroup><col style="width:7mm"><col><col style="width:13mm"><col style="width:17mm"><col style="width:21mm"><col style="width:13mm"><col style="width:25mm"></colgroup>
+    <thead><tr><th class="c">#</th><th>البيان<span class="en">Description</span></th><th>الكمية<span class="en">Qty</span></th><th>الوحدة<span class="en">Unit</span></th>
+      <th>السعر<span class="en">Rate</span></th><th>الضريبة<span class="en">VAT</span></th><th>الإجمالي<span class="en">Amount excl. VAT</span></th></tr></thead>
+    <tbody>
+    {%- for w in c.works %}
+      <tr><td class="c" style="padding-top:2.1mm">{{ w.idx }}</td>
+        <td><div class="d-ar">{{ w.ar | e }}</div>{% if w.en %}<div class="d-en">{{ w.en | e }}</div>{% endif %}</td>
+        <td class="n num">{{ w.qty }}</td><td style="padding-top:2.1mm">{{ _(w.uom) | e }}</td>
+        <td class="n num">{{ w.rate }}</td><td class="n num">{{ w.vat or "—" }}</td><td class="n num" style="font-weight:800">{{ w.amount }}</td></tr>
+    {%- endfor %}
+    </tbody>
+    <tfoot><tr><td colspan="6">{{ lbl("إجمالي قيمة الأعمال", "Gross value of works") }}</td><td class="n num" style="padding-top:1.6mm">{{ c.gross }}</td></tr></tfoot>
+  </table>
+
+  <table class="zoc-sum"><tr>
+    <td class="s-qr">{{ qr_block(doc, qr) }}</td>
+    <td class="s-gap"></td>
+    <td class="s-tot">
+      <table class="lad"><colgroup><col><col style="width:31mm"></colgroup>
+      {%- for r in c.ladder %}
+        <tr class="{{ r.cls }}"{% if r.key %} data-row="{{ r.key }}"{% endif %}><td class="k">{{ lbl(r.ar, r.en) }}{% if r.sub %}<span class="sub" style="padding-inline-start:3mm">{{ r.sub | safe }}</span>{% endif %}</td><td class="v">{{ amt(r.amount, r.neg) }}</td></tr>
+      {%- endfor %}
+      </table>
+    </td>
+  </tr></table>
+
+  {%- if c.words_ar %}
+  <div class="zoc-words"><b>الصافي المستحق كتابةً:</b> {{ c.words_ar | e }}{% if c.words_en %}<span class="en">Net payable now in words: {{ c.words_en | e }}</span>{% endif %}</div>
+  {%- endif %}
+  <div class="zoc-sign"><div>المقاول<span class="en">Contractor</span></div><div>الاستشاري<span class="en">Consultant</span></div><div>العميل — الاستلام<span class="en">Client</span></div></div>
+</div>
+{%- endcall %}

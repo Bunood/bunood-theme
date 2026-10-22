@@ -361,12 +361,12 @@ def bunood_invoice_view(doc, simplified=False):
     return invoice_view(doc, simplified=bool(simplified), arabic=bunood_print_language() == "ar")
 
 
-def bunood_progress_view(doc):
-    """What «مستخلص - فاتورة ضريبية - A4» prints beyond the invoice's figures: the certificate and
-    the summary rows the invoice carries (printing/progress.py)."""
-    from bunood_theme.printing.progress import progress_view
+def bunood_contracting_view(doc):
+    """What «فاتورة ضريبية - مقاولات - A4» prints: the certificate, the works, the ladder and the net
+    payable now in words (printing/contracting.py)."""
+    from bunood_theme.printing.contracting import contracting_view
 
-    return progress_view(doc)
+    return contracting_view(doc)
 
 
 def bunood_trade_view(doc, kind):

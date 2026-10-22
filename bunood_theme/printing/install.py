@@ -37,7 +37,7 @@ from bunood_theme import zatca
 # so a migrate after that patch makes no duplicates. The names themselves are printing/names.py.
 from bunood_theme.printing.names import (  # noqa: E402
     DELIVERY_NOTE_A4, GIFT_RECEIPT_80, JOURNAL_A4, LETTERHEAD_NAME, MATRIX_INVOICE, POS_SUFFIX, PROFORMA_A4,
-    PROGRESS_INVOICE_A4, PURCHASE_INVOICE_A4, PURCHASE_ORDER_A4, PURCHASE_RECEIPT_A4, QUOTATION_A4, SALES_ORDER_A4,
+    CONTRACTING_INVOICE_A4, PURCHASE_INVOICE_A4, PURCHASE_ORDER_A4, PURCHASE_RECEIPT_A4, QUOTATION_A4, SALES_ORDER_A4,
     SHIFT_REPORT_80,
     SIMPLIFIED_INVOICE_A4, SIMPLIFIED_RECEIPT_58, SIMPLIFIED_RECEIPT_80, STATEMENT_A4, STOCK_ENTRY_A4, STYLE_NAME,
     TAX_INVOICE_A4, TAX_RECEIPT_80, VOUCHER_A4, VOUCHER_A5,
@@ -89,9 +89,9 @@ FORMATS = [
     *({"name": name, "doctype": "Sales Invoice", "file": file, "pdf_generator": "chrome"} for name, file in _SALES),
     *({"name": name + POS_SUFFIX, "doctype": "POS Invoice", "file": file, "pdf_generator": "chrome"}
       for name, file in _SALES if name != MATRIX_INVOICE),
-    # A progress invoice's own (bunood_business's «فاتورة مستخلص»); no POS twin: a counter never
+    # A contracting invoice's own (bunood_business's «فاتورة مقاولات»); no POS twin: a counter never
     # issues one.
-    {"name": PROGRESS_INVOICE_A4, "doctype": "Sales Invoice", "file": "sales_invoice_progress_a4.html", "pdf_generator": "chrome"},
+    {"name": CONTRACTING_INVOICE_A4, "doctype": "Sales Invoice", "file": "sales_invoice_contracting_a4.html", "pdf_generator": "chrome"},
     {"name": QUOTATION_A4, "doctype": "Quotation", "file": "quotation_a4.html", "pdf_generator": "chrome"},
     {"name": SALES_ORDER_A4, "doctype": "Sales Order", "file": "sales_order_a4.html", "pdf_generator": "chrome"},
     {"name": PROFORMA_A4, "doctype": "Sales Order", "file": "proforma_a4.html", "pdf_generator": "chrome"},

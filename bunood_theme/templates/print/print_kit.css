@@ -90,10 +90,12 @@
 }
 .zo-head__grid { table-layout: fixed; }
 .zo-head__grid td { vertical-align: middle !important; }
-.zo-head__en { inline-size: 42%; direction: ltr; text-align: left; }
-.zo-head__logo { inline-size: 16%; text-align: center; }
-.zo-head__ar { inline-size: 42%; direction: rtl; text-align: right; }
-.zo-head__logo img { max-block-size: 19mm; max-inline-size: 36mm; }
+/* The logo, larger in every kit print (the owner, 2026-10-22): 28 x 40 mm in a 22% cell on A4,
+   centred, the whole mark kept (object-fit). */
+.zo-head__en { inline-size: 39%; direction: ltr; text-align: left; }
+.zo-head__logo { inline-size: 22%; text-align: center; }
+.zo-head__ar { inline-size: 39%; direction: rtl; text-align: right; }
+.zo-head__logo img { block-size: 28mm; inline-size: auto; max-inline-size: 40mm; object-fit: contain; display: inline-block; vertical-align: middle; }
 .zo-head__name-ar { font-size: 15pt; font-weight: 800; line-height: 1.3; }
 .zo-head__name-en { font-size: 11pt; font-weight: 700; line-height: 1.3; }
 .zo-head__id { font-size: 8.5pt; line-height: 1.55; }
@@ -357,9 +359,9 @@
 	   selector Frappe's option parser does not read. */
 	html .print-format,
 	html body .print-format { margin: 0 !important; padding: 0 !important; max-inline-size: none !important; }
-	.zo-chrome-head { position: fixed; inset-block-start: 0; inset-inline: 0; block-size: 25mm; overflow: hidden; }
+	.zo-chrome-head { position: fixed; inset-block-start: 0; inset-inline: 0; block-size: 34mm; overflow: hidden; }
 	.zo-chrome-foot { position: fixed; inset-block-end: 0; inset-inline: 0; }
-	.zo-frame__head { block-size: 27mm; }
+	.zo-frame__head { block-size: 36mm; }
 	.zo-frame__foot { block-size: 13mm; }
 	.zo-frame__foot--policy { block-size: 19mm; }
 }
@@ -383,7 +385,9 @@
 .zo-rcpt .c { text-align: center; }
 .zo-rcpt .e { text-align: end; }
 .zo-rcpt__logo { text-align: center; margin-block-end: 1.2mm; }
-.zo-rcpt__logo img { max-inline-size: 40mm; max-block-size: 15mm; }
+/* 80 mm: the logo 20 x 50 mm; 58 mm: 15 x 38 mm (the owner, 2026-10-22). */
+.zo-rcpt__logo img { block-size: 20mm; inline-size: auto; max-inline-size: 50mm; object-fit: contain; }
+.zo-rcpt--58 .zo-rcpt__logo img { block-size: 15mm; max-inline-size: 38mm; }
 .zo-rcpt__name-ar { font-size: 12.5pt; font-weight: 800; line-height: 1.3; }
 .zo-rcpt__name-en { font-size: 9.5pt; font-weight: 700; line-height: 1.3; direction: ltr; }
 .zo-rcpt--58 .zo-rcpt__name-en { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 8.5pt; }
@@ -527,7 +531,7 @@
 .zo-a5 .zo-head__name-ar { font-size: 12.5pt; }
 .zo-a5 .zo-head__name-en { font-size: 9.5pt; }
 .zo-a5 .zo-head__id { font-size: 7.6pt; line-height: 1.45; }
-.zo-a5 .zo-head__logo img { max-block-size: 13mm; }
+.zo-a5 .zo-head__logo img { block-size: 19mm; max-inline-size: 27mm; }
 .zo-a5 .zo-head__rule { margin-block-start: 1.4mm; }
 .zo-a5 .zo-title__name { font-size: 13pt; }
 .zo-a5 .zo-title__no b { font-size: 12pt; }
@@ -539,8 +543,8 @@
 .zo-a5 .zo-sigs--images .zo-sigs__img { block-size: 13mm; }
 .zo-a5 .zo-sigs--images .zo-sigs__img img { max-block-size: 13mm; }
 @media print {
-	.zo-a5 .zo-chrome-head { block-size: 19mm; }
-	.zo-a5 .zo-frame__head { block-size: 21mm; }
+	.zo-a5 .zo-chrome-head { block-size: 24mm; }
+	.zo-a5 .zo-frame__head { block-size: 26mm; }
 	.zo-a5 .zo-frame__foot { block-size: 10mm; }
 	.zo-a5 .zo-frame__foot--policy { block-size: 14mm; }
 }
@@ -585,3 +589,97 @@
 .zo-items tr.zo-statement__opening td { font-weight: 700; background: var(--bnd-page); }
 .zo-statement__note { margin-block-start: 1.4mm; font-size: 7.4pt; color: var(--bnd-ink-muted); }
 .zo-statement__printed { margin-block-start: 3mm; font-size: 7.6pt; color: var(--bnd-ink-muted); text-align: center; }
+
+/* ============================================================================
+   «فاتورة ضريبية - مقاولات - A4» (templates/print/contracting_invoice_a4.html): the
+   owner's approved mock (2026-10-22), under .zoc. The kit's page gives the chrome;
+   the QR stands alone on the physical left (the owner: nothing beside it).
+   ============================================================================ */
+.zoc .en { direction: ltr; unicode-bidi: isolate; }
+.zoc .num { direction: ltr; unicode-bidi: isolate; white-space: nowrap; font-variant-numeric: tabular-nums lining-nums; }
+.zoc table { border-collapse: collapse; border-spacing: 0; inline-size: 100%; }
+.zoc td, .zoc th { padding: 0 !important; vertical-align: top !important; font-weight: inherit; }
+.zoc .lbl { display: flex; justify-content: space-between; align-items: baseline; gap: 2mm; font-size: 7.6pt; color: #4a4f58; line-height: 1.3; white-space: nowrap; }
+.zoc .lbl .en { font-size: 6.9pt; }
+.zoc .val { font-size: 9.6pt; font-weight: 700; line-height: 1.4; margin-block-start: 0.6mm; white-space: nowrap; }
+.zoc-title { margin: 1mm 0 2.2mm; }
+.zoc-title td { vertical-align: bottom !important; }
+.zoc .t-name { font-size: 17pt; font-weight: 800; line-height: 1.15; }
+.zoc .t-name .bar { color: var(--bnd-brand-solid); font-weight: 400; padding: 0 2mm; }
+.zoc .t-name .en { font-size: 11.5pt; font-weight: 600; color: #4a4f58; }
+.zoc .t-no { text-align: left; white-space: nowrap; }
+.zoc .t-no small { display: block; font-size: 7.4pt; color: #4a4f58; }
+.zoc .t-no b { font-size: 13pt; font-weight: 800; }
+.zoc-facts { table-layout: fixed; border: 0.6pt solid #8a8f98; margin-block-end: 2.4mm; }
+.zoc-facts td { padding: 1.1mm 2.4mm 1.2mm !important; border-inline-start: 0.5pt solid #c4c8cf; border-block-start: 0.5pt solid #c4c8cf; }
+.zoc-facts tr:first-child td { border-block-start: 0; }
+.zoc-facts td:first-child { border-inline-start: 0; }
+.zoc-facts td.key { background: color-mix(in srgb, var(--bnd-brand) 7%, #fff); }
+.zoc-facts td.key .val { font-size: 12pt; color: var(--bnd-brand-deep); font-weight: 800; line-height: 1.2; }
+.zoc-parties { table-layout: fixed; margin-block-end: 2.4mm; }
+.zoc-parties > tbody > tr > td.gap { inline-size: 3mm; }
+.zoc .party { border: 0.6pt solid #8a8f98; }
+.zoc .party .ph { display: flex; justify-content: space-between; align-items: baseline; padding: 1mm 2.4mm; background: color-mix(in srgb, var(--bnd-brand) 7%, #fff); border-block-end: 0.5pt solid #c4c8cf; font-size: 8pt; font-weight: 800; }
+.zoc .party .ph .en { font-weight: 600; font-size: 7.2pt; color: #4a4f58; }
+.zoc .party .pb { padding: 1.2mm 2.4mm 1.6mm; }
+.zoc .party .pn { font-size: 10.5pt; font-weight: 800; line-height: 1.35; }
+.zoc .party .pn-en { font-size: 8.6pt; font-weight: 600; direction: ltr; text-align: right; color: #2b2f36; }
+.zoc .party .cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.4mm 3mm; margin-block-start: 1.1mm; }
+.zoc .party .cells .val { font-size: 8.8pt; margin-block-start: 0.2mm; }
+.zoc-scope { display: flex; align-items: baseline; gap: 3mm; padding: 1.6mm 2.4mm; border: 0.6pt solid #8a8f98; border-inline-start: 2.2pt solid var(--bnd-brand-solid); margin-block-end: 2.4mm; }
+.zoc-scope .k { font-size: 7.8pt; font-weight: 800; white-space: nowrap; }
+.zoc-scope .k .en { display: block; font-weight: 600; color: #4a4f58; font-size: 6.9pt; text-align: right; }
+.zoc-scope .v-ar { font-size: 10pt; font-weight: 800; }
+.zoc-scope .v-en { margin-inline-start: auto; font-size: 8.8pt; font-weight: 700; color: #2b2f36; }
+.zoc-works { table-layout: fixed; border: 0.6pt solid #8a8f98; }
+.zoc-works th { background: color-mix(in srgb, var(--bnd-brand) 9%, #fff); text-align: right; vertical-align: bottom !important; padding: 1.4mm 2mm 1.2mm !important; font-size: 8pt; font-weight: 800; line-height: 1.25; border-block-end: 0.6pt solid #8a8f98; white-space: nowrap; }
+.zoc-works th .en { display: block; font-size: 6.6pt; font-weight: 600; color: #4a4f58; text-align: right; }
+.zoc-works th + th, .zoc-works td + td { border-inline-start: 0.5pt solid #c4c8cf; }
+.zoc-works td { padding: 1.2mm 2mm !important; border-block-start: 0.5pt solid #c4c8cf; font-size: 9pt; }
+.zoc-works tbody tr:first-child td { border-block-start: 0; }
+.zoc-works td.c, .zoc-works th.c { text-align: center; }
+.zoc-works td.n { text-align: right; padding-block-start: 1.7mm !important; }
+.zoc-works .d-ar { font-weight: 700; font-size: 9.2pt; line-height: 1.4; }
+.zoc-works .d-en { font-size: 7.8pt; color: #3a3f47; direction: ltr; text-align: right; line-height: 1.35; }
+.zoc-works tfoot td { border-block-start: 0.6pt solid #8a8f98; background: color-mix(in srgb, var(--bnd-brand) 5%, #fff); font-weight: 800; padding: 1.6mm 2mm !important; }
+.zoc-works tfoot .lbl { font-size: 8.8pt; color: #000; font-weight: 800; }
+.zoc-works tfoot .lbl .en { font-size: 7.6pt; font-weight: 600; color: #4a4f58; }
+.zoc-works tbody tr { break-inside: avoid; page-break-inside: avoid; }
+/* The physical row: the QR left, the ladder right. */
+.zoc-sum { direction: ltr; table-layout: fixed; margin-block-start: 2.6mm; break-inside: avoid; page-break-inside: avoid; }
+.zoc-sum .s-qr { inline-size: 70mm; direction: rtl; text-align: left; }
+.zoc-sum .s-gap { inline-size: 5mm; }
+.zoc-sum .s-tot { direction: rtl; }
+.zoc-sum .zo-qr img { inline-size: 35mm; block-size: 35mm; }
+.zoc-sum .zo-qr__cap { font-size: 7pt; color: #4a4f58; margin-block-start: 1mm; }
+.zoc .lad { border: 0.6pt solid #8a8f98; table-layout: fixed; }
+.zoc .lad td { padding: 1mm 2.4mm !important; border-block-start: 0.5pt solid #c4c8cf; vertical-align: middle !important; }
+.zoc .lad tr:first-child td { border-block-start: 0; }
+.zoc .lad td.v { inline-size: 31mm; border-inline-start: 0.5pt solid #c4c8cf; }
+.zoc .lad .lbl { font-size: 8.8pt; color: #000; }
+.zoc .lad .lbl .en { font-size: 7.3pt; color: #4a4f58; }
+.zoc .lad .sub { display: block; font-size: 6.9pt; color: #4a4f58; margin-block-start: 0.2mm; }
+.zoc .amt { display: flex; justify-content: space-between; align-items: baseline; direction: ltr; white-space: nowrap; font-size: 9.4pt; font-weight: 700; }
+.zoc .amt .sar { font-style: normal; color: #5a5f68; font-size: 0.9em; }
+.zoc .amt .fig { padding-inline-end: 0.36em; }
+.zoc .amt .fig.neg { padding-inline-end: 0; }
+.zoc .lad tr.ded .lbl > span:first-child { padding-inline-start: 3mm; }
+.zoc .lad tr.ded .amt { font-weight: 600; }
+.zoc .lad tr.tot td { background: color-mix(in srgb, var(--bnd-brand) 4%, #fff); border-block-start: 0.6pt solid #8a8f98; }
+.zoc .lad tr.tot .lbl > span:first-child, .zoc .lad tr.tot .amt { font-weight: 800; }
+.zoc .lad tr.inv td { background: color-mix(in srgb, var(--bnd-brand) 9%, #fff); border-block-start: 0.6pt solid #8a8f98; }
+.zoc .lad tr.inv .lbl > span:first-child { font-weight: 800; font-size: 9.4pt; }
+.zoc .lad tr.inv .amt { font-weight: 800; font-size: 10pt; }
+.zoc .lad tr.net td { background: var(--bnd-brand-deep); color: #fff; border-block-start: 0; padding-block: 1.9mm !important; }
+.zoc .lad tr.net .lbl { color: #fff; }
+.zoc .lad tr.net .lbl > span:first-child { font-size: 11.5pt; font-weight: 800; }
+.zoc .lad tr.net .lbl .en { color: rgba(255, 255, 255, 0.85); font-size: 8pt; }
+.zoc .lad tr.net .amt { font-size: 13pt; font-weight: 800; }
+.zoc .lad tr.net .amt .sar { color: rgba(255, 255, 255, 0.8); }
+.zoc .lad tr.net td.v { border-inline-start-color: rgba(255, 255, 255, 0.25); }
+.zoc-words { margin-block-start: 2.6mm; border: 0.6pt solid #8a8f98; padding: 1.2mm 2.4mm; font-size: 8.8pt; line-height: 1.5; }
+.zoc-words b { font-weight: 800; }
+.zoc-words .en { display: block; text-align: left; font-size: 7.8pt; color: #3a3f47; }
+.zoc-sign { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8mm; margin-block-start: 12mm; break-inside: avoid; page-break-inside: avoid; }
+.zoc-sign div { border-block-start: 0.7pt solid #000; padding-block-start: 1.2mm; text-align: center; font-size: 8pt; font-weight: 800; }
+.zoc-sign div .en { font-weight: 600; color: #4a4f58; margin-inline-start: 1.6mm; font-size: 7.4pt; }
