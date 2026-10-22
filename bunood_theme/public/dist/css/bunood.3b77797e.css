@@ -9101,6 +9101,16 @@ html[data-bnd-body-width] body:not(.full-width):is([data-route^="Form/Sales Invo
   min-inline-size: 0;
 }
 
+.bnd-bill-sections {
+  display: grid;
+  gap: var(--bnd-sp-4);
+  min-inline-size: 0;
+}
+
+.bnd-bill-sections:empty {
+  display: none;
+}
+
 .bnd-bill-panel {
   padding-block: var(--bnd-sp-3);
   border-block-end: var(--bnd-line) solid var(--bnd-border);
