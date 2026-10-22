@@ -24,7 +24,7 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — v0.62.0 — «مستخلص - فاتورة ضريبية - A4» and the sales bill's sections for another app
+## [0.62.0] — 2026-10-22 — «مستخلص - فاتورة ضريبية - A4» and the sales bill's sections for another app
 
 The owner, 2026-10-22: a contractor's progress invoice «زي النموذج بالضبط» (his HVAC sample, PC09),
 «ديناميك»: every row added by hand, a row not added printed nowhere. bunood_business v0.23.0 owns the
