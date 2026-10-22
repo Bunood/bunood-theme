@@ -24,6 +24,37 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — v0.62.0 — «مستخلص - فاتورة ضريبية - A4» and the sales bill's sections for another app
+
+The owner, 2026-10-22: a contractor's progress invoice «زي النموذج بالضبط» (his HVAC sample, PC09),
+«ديناميك»: every row added by hand, a row not added printed nowhere. bunood_business v0.23.0 owns the
+fields and the money (`bnd_is_progress`, `bnd_progress_adjustments`, …); this release prints them and
+gives its screen a place in the sales bill. Every read of a business field is guarded by
+`meta.has_field`, so the theme never breaks without it.
+
+- **«مستخلص - فاتورة ضريبية - A4»** (`printing/names.py` `PROGRESS_INVOICE_A4`, Sales Invoice only, no
+  POS twin): the kit's page (the bilingual header with the CR and VAT numbers, the footer with the
+  address and contacts, the policy under it), the title band, the dates and the certificate (رقم
+  المستخلص، أمر الشراء، المشروع، فترة التوريد), the seller and the customer, «وصف الأعمال», the items,
+  and the summary in the sample's order on the physical RIGHT with the ZATCA QR on the physical
+  LEFT: قيمة المستخلص، استرداد الدفعة المقدمة، خصم (with its reason)، الإجمالي الخاضع للضريبة، ضريبة القيمة
+  المضافة 15%، إجمالي الفاتورة شامل الضريبة، محتجز ضمان التنفيذ، الصافي المستحق الآن. Only the rows the
+  invoice carries print; without a retention the invoice total is last (`printing/progress.py`,
+  `bunood_progress_view`, `templates/print/progress_invoice_a4.html`). Measured on the lab: the HVAC
+  sample prints 58,475.00 · (5,847.50) · (6,909.01) · 45,718.49 · 6,857.77 · 52,576.26 · (2,923.75) ·
+  49,652.51, one A4 page on Chromium.
+- **A progress invoice starts on it:** the sales bill's print format follows the invoice
+  (`syncPrintFormat`, the name through boot as `bnd_progress_format`) unless the reader picked one, and
+  a delivery without a chosen format renders it (`invoice_delivery._format_for`). Every other invoice
+  keeps the organisation's default. A ZATCA Phase 2 invoice still prints only in Phase 2's own format.
+- **The sales bill's sections:** `window.bunood_theme.sales_bill_sections` (a Map) lets another app
+  draw a section after the party strip ("head") or after the items ("foot"), refreshed on every
+  render, with a host that binds a native field as the bill binds its own and queues a change with
+  the bill's. An empty slot takes no row of the grid; a failing section is logged, never fatal.
+- Desk JS grows 828 gzip bytes; its ceiling moves 203,400 → 204,200 (payload-budget.json).
+- Tests: `tests/test_print_progress.py` (4: the order, the dynamic rows, no business fields, the
+  physical sides) and two in `tests/sales_bill.test.cjs` (117 pass).
+
 ## [0.61.0] — 2026-10-17 — «مالك المنصة»: only the platform owner manages ZATCA Phase 2 and the company's VAT number, CR and legal names
 
 The owner, 2026-10-17: «اريد ان يكون معي مستخدم خاص بصاحب النظام … يدير الربط مع زاتكا للمرحله الثانيه

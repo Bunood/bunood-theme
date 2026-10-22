@@ -11467,6 +11467,10 @@
 				this.invoiceNumberValue = node("output", "bnd-bill-static-value", "", invoiceNumber);
 				this.invoiceNumberValue.dir = "auto";
 			}
+			// Another app's sections (bunood_business's «فاتورة مستخلص»), registered on
+			// window.bunood_theme.sales_bill_sections: "head" ones after the party strip, "foot"
+			// ones after the items. Each draws itself on every render (renderSections).
+			this.sectionSlots = { head: node("div", "bnd-bill-sections bnd-bill-sections-head", null, main) };
 			const items = node("section", "bnd-bill-panel bnd-bill-items", null, main);
 			const itemsHead = node("header", "bnd-bill-items-head", null, items);
 			node("h3", "", __("Items"), itemsHead);
@@ -11546,6 +11550,7 @@
 			this.vatApplyButton.hidden = true;
 			this.amountBreakdown = node("dl", coded ? "bnd-bill-amount-breakdown bnd-bill-foot" : "bnd-bill-amount-breakdown", null, this.amountSummary);
 			this.amountGrand = node("div", "bnd-bill-amount-grand", null, this.amountSummary);
+			this.sectionSlots.foot = node("div", "bnd-bill-sections bnd-bill-sections-foot", null, main);
 			let popupWasOpen = false;
 			this.root.addEventListener("keydown", e => { if (e.key === "Escape") popupWasOpen = !!this.root.querySelector('[aria-expanded="true"]'); }, true);
 			this.root.addEventListener("keydown", e => {
@@ -11821,8 +11826,46 @@
 			const select = this.printFormatSelect = node("select", "form-control bnd-bill-print-select", null, field);
 			select.id = label.htmlFor = `bnd-bill-print-${++controlId}`;
 			for (const name of formats) node("option", "", __(name), select).value = name;
-			select.value = this.printFormat = preferred.find(name => name && formats.includes(name)) || formats[0];
-			select.addEventListener("change", () => { this.printFormat = select.value; });
+			select.value = this.printFormat = this.defaultPrintFormat = preferred.find(name => name && formats.includes(name)) || formats[0];
+			select.addEventListener("change", () => { this.printFormat = select.value; this.printFormatChosen = true; });
+		}
+		// A progress invoice («فاتورة مستخلص», bunood_business) starts on its own format,
+		// «مستخلص - فاتورة ضريبية - A4» (printing/names.py, through boot); any other bill on
+		// the organisation's default. A format the reader picked stays picked.
+		syncPrintFormat() {
+			const select = this.printFormatSelect;
+			if (!select || this.printFormatChosen) return;
+			const progress = !!frappe.meta.has_field?.(this.frm.doctype, "bnd_is_progress") && !!Number(this.doc.bnd_is_progress) && !Number(this.doc.is_return);
+			const own = progress ? frappe.boot?.bnd_progress_format : "";
+			const target = own && [...select.options].some(option => option.value === own) ? own : this.defaultPrintFormat;
+			if (target && select.value !== target) select.value = this.printFormat = target;
+		}
+		// What another app's section may use of the bill: its form, a native field bound as the
+		// bill binds its own, a change queued with the bill's, a re-render and the status line.
+		sectionHost(key) {
+			this.sectionHosts = this.sectionHosts || new Map();
+			if (!this.sectionHosts.has(key)) this.sectionHosts.set(key, {
+				key, frm: this.frm,
+				field: (parent, fieldname, label) => {
+					const source = this.frm.fields_dict[fieldname];
+					if (!source) return null;
+					return this.bindControl(parent, label ? { df: { ...source.df, label }, get_status: () => source.get_status() } : source, this.doc);
+				},
+				change: action => this.change(action),
+				render: () => this.render(),
+				message: (text, error = false) => this.message(text, error),
+			});
+			return this.sectionHosts.get(key);
+		}
+		renderSections() {
+			const sections = api.sales_bill_sections;
+			if (!this.sectionSlots || !sections?.size) return;
+			for (const [key, section] of sections) {
+				if (section.doctype && section.doctype !== this.frm.doctype) continue;
+				const slot = this.sectionSlots[section.place === "foot" ? "foot" : "head"];
+				try { section.render?.(this.sectionHost(key), slot); }
+				catch (error) { console.error(`sales bill section ${key}`, error); }
+			}
 		}
 		currentWarehouse() {
 			return this.doc.set_warehouse || (this.doc.items || []).find(row => row.warehouse)?.warehouse || "";
@@ -12830,6 +12873,8 @@
 			}
 			if (rows.length) this.setExpandedLine(this.mobileExpanded);
 			this.renderAmountSummary();
+			this.renderSections();
+			this.syncPrintFormat();
 			const totalName = totalField(frm);
 			const totalControl = frm.fields_dict[totalName];
 			this.mobileTotalValue.replaceChildren();

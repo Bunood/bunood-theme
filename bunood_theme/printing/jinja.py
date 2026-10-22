@@ -361,6 +361,14 @@ def bunood_invoice_view(doc, simplified=False):
     return invoice_view(doc, simplified=bool(simplified), arabic=bunood_print_language() == "ar")
 
 
+def bunood_progress_view(doc):
+    """What «مستخلص - فاتورة ضريبية - A4» prints beyond the invoice's figures: the certificate and
+    the summary rows the invoice carries (printing/progress.py)."""
+    from bunood_theme.printing.progress import progress_view
+
+    return progress_view(doc)
+
+
 def bunood_trade_view(doc, kind):
     """What the trade family prints (printing/documents.py): quotation, orders, delivery note,
     purchase invoice, goods receipt, stock entry."""
