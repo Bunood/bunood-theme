@@ -238,6 +238,10 @@ html[data-bnd-body-width] body:not(.full-width):is(
 .bnd-bill-editor { border: 0; padding: 0; margin: 0; min-inline-size: 0; }
 .bnd-bill-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: var(--bnd-sp-4); align-items: start; }
 .bnd-bill-main { display: grid; gap: var(--bnd-sp-4); min-inline-size: 0; }
+// Another app's sections (sales_bill.js renderSections): empty, they take no row of the grid, so
+// a bill without them lays out exactly as before.
+.bnd-bill-sections { display: grid; gap: var(--bnd-sp-4); min-inline-size: 0; }
+.bnd-bill-sections:empty { display: none; }
 .bnd-bill-panel { padding-block: var(--bnd-sp-3); border-block-end: var(--bnd-line) solid var(--bnd-border); min-inline-size: 0; }
 .bnd-bill-section-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--bnd-sp-3); }
 .bnd-bill-party { padding-block: var(--bnd-sp-2) var(--bnd-sp-3); }

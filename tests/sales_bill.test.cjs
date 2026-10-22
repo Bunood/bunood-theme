@@ -1793,3 +1793,27 @@ test('a line VAT split adds up to the tax row, as ERPNext splits it over the ite
     assert.equal(lineTaxes({ doc: { items, taxes: [vat] }, cscript: {} }), null);
   } finally { context.frappe.meta = previousMeta; }
 });
+
+test('another app draws its sections in the bill: after the party strip or after the items, and an empty slot takes no row', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const css = fs.readFileSync('bunood_theme/public/scss/surfaces/_sales_bill.scss', 'utf8');
+  const head = source.indexOf('this.sectionSlots = { head: node("div", "bnd-bill-sections bnd-bill-sections-head", null, main) };');
+  const items = source.indexOf('const items = node("section", "bnd-bill-panel bnd-bill-items", null, main);');
+  const foot = source.indexOf('this.sectionSlots.foot = node("div", "bnd-bill-sections bnd-bill-sections-foot", null, main);');
+  assert.ok(head > 0 && head < items && items < foot, 'head slot before the items, foot slot after them');
+  assert.match(source, /const sections = api\.sales_bill_sections;/);
+  assert.match(source, /section\.render\?\.\(this\.sectionHost\(key\), slot\)/);
+  assert.match(source, /this\.renderAmountSummary\(\);\n\t\t\tthis\.renderSections\(\);/, 'sections draw after the totals, on every render');
+  assert.match(source, /catch \(error\) \{ console\.error\(`sales bill section \$\{key\}`, error\); \}/, 'a failing section never breaks the bill');
+  assert.match(css, /\.bnd-bill-sections:empty \{ display: none; \}/);
+});
+
+test('a progress invoice starts on its own print format unless the reader picked one', () => {
+  const source = fs.readFileSync('bunood_theme/public/js/sales_bill.js', 'utf8');
+  const sync = source.slice(source.indexOf('syncPrintFormat() {'), source.indexOf('sectionHost(key) {'));
+  assert.match(sync, /if \(!select \|\| this\.printFormatChosen\) return;/);
+  assert.match(sync, /frappe\.meta\.has_field\?\.\(this\.frm\.doctype, "bnd_is_progress"\)/, 'guarded: the field is bunood_business\'s');
+  assert.match(sync, /frappe\.boot\?\.bnd_progress_format/, 'the name comes from printing/names.py through boot');
+  assert.match(sync, /: this\.defaultPrintFormat;/, 'any other bill keeps the organisation\'s default');
+  assert.match(source, /select\.addEventListener\("change", \(\) => \{ this\.printFormat = select\.value; this\.printFormatChosen = true; \}\);/);
+});
