@@ -1,9 +1,9 @@
 {#- ============================================================================
     «فاتورة ضريبية - مقاولات - A4» — a contractor's tax invoice, to the owner's
     approved mock (print-a4, 2026-10-22). The owner's decisions over the mock:
-    the title is «فاتورة ضريبية / Tax Invoice» (the certificate number is a fact,
-    not the title); the amount in words is the net payable now; the QR stands
-    ALONE on the physical left, with its caption, nothing beside it.
+    the title is «فاتورة ضريبية — مستخلص رقم (n)» (2026-10-24; it was «فاتورة
+    ضريبية / Tax Invoice»); the amount in words is the net payable now; the QR
+    stands ALONE on the physical left, with no caption and nothing beside it.
 
     The kit's page gives the chrome (the bilingual header with the larger logo,
     the footer's address and contacts, the policy under it, the page number);
@@ -21,7 +21,7 @@
 {%- call page(p, doc, no_letterhead=no_letterhead, tax_document=True) %}
 <div class="zoc">
   <table class="zoc-title"><tr>
-    <td><div class="t-name">فاتورة ضريبية<span class="bar">|</span><span class="en">Tax Invoice</span></div></td>
+    <td><div class="t-name">فاتورة ضريبية{% if c.certificate %} — مستخلص رقم (<span class="num">{{ c.certificate | e }}</span>){% endif %}<span class="bar">|</span><span class="en">Tax Invoice{% if c.certificate %} — Certificate No. (<span class="num">{{ c.certificate | e }}</span>){% endif %}</span></div></td>
     <td class="t-no"><small>رقم الفاتورة · <span class="en">Invoice No.</span></small><b class="num">{{ c.number | e }}</b></td>
   </tr></table>
   {%- set copy = bunood_print_copy(doc) if bunood_print_copy is defined else {} %}
