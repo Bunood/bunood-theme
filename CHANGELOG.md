@@ -24,7 +24,7 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
-## [Unreleased] — v0.63.0 — «فاتورة ضريبية - مقاولات - A4» to the owner's approved mock, and a larger logo across the kit
+## [0.63.0] — 2026-10-24 — «فاتورة ضريبية - مقاولات - A4» to the owner's approved mock, and a larger logo across the kit
 
 The owner, 2026-10-22, after rejecting v0.62.0's look: «فاتورة مقاولات · Contracting Invoice» is its own
 screen in bunood_business v0.24.0, and its print follows the approved mock (`print-a4.html`). Two owner
