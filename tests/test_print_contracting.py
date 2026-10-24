@@ -1,6 +1,6 @@
 """«فاتورة ضريبية - مقاولات - A4» (the owner's approved mock, 2026-10-22), computed and rendered without a
 site: printing/contracting.py against a fake `frappe`, the template with plain Jinja2 (test_print_kit's
-harness). Pinned: the title «فاتورة ضريبية — مستخلص رقم (n) / Tax Invoice», no ZATCA word, the ladder in the screen's order with
+harness). Pinned: the title «فاتورة ضريبية / Tax Invoice», no ZATCA word, the ladder in the screen's order with
 only the rows the invoice carries, the net payable now in words (Arabic and English), the QR alone on
 the physical LEFT and the ladder on the physical RIGHT, the business fields read through
 `meta.has_field`, the contracting format's exception to Phase 2's own format, and the kit's larger logo.
@@ -131,20 +131,19 @@ class ContractingTemplateTests(unittest.TestCase):
             self.assertNotIn(words, qr_cell.get_text(), "nothing beside the QR (the owner, 2026-10-22)")
         self.assertEqual([(tr.get("class") or [""])[0] for tr in cells[2].select(".lad tr")], ["tot", "ded", "ded", "tot", "", "inv", "ded", "net"])
 
-    def test_the_title_names_the_certificate_and_no_zatca_word_prints(self):
-        # Owner 2026-10-24: «فاتورة ضريبية — مستخلص رقم (n)», and no ZATCA word on a customer's paper;
-        # the QR stays (it is the law), alone, with no caption.
+    def test_the_title_is_the_tax_invoice_alone_and_no_zatca_word_prints(self):
+        # Owner 2026-10-24: the title stays «فاتورة ضريبية» (the certificate number is in the facts),
+        # and no ZATCA word on a customer's paper; the QR stays (it is the law), alone, uncaptioned.
         for qr in ("data:image/png;base64,QR", ""):
             for docstatus in (1, 0):
                 page = self.render(sample(docstatus=docstatus), qr=qr)
                 title = page.select_one(".t-name").get_text()
-                self.assertIn("مستخلص رقم (PC09)", title)
-                self.assertIn("Certificate No. (PC09)", title)
+                self.assertEqual(title.replace(" ", ""), "فاتورةضريبية|TaxInvoice")
+                self.assertIn("PC09", page.select_one(".zoc-facts").get_text())
                 text = page.get_text(" ")
                 for word in ("ZATCA", "زاتكا", "Zatca"):
                     self.assertNotIn(word, text)
                 self.assertIsNone(page.select_one(".zo-qr__cap"))
-        self.assertNotIn("مستخلص رقم", self.render(sample(bnd_certificate_no="")).select_one(".t-name").get_text())
 
     def test_the_facts_the_works_the_words_and_three_signatures(self):
         page = self.render(sample())
