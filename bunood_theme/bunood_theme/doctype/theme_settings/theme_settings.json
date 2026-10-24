@@ -845,7 +845,7 @@
    "options": "Follow print language\nBoth\nArabic only\nEnglish only"
   },
   {
-   "description": "Set by the picker above. The ZATCA QR on the Zero One formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
+   "description": "Set by the picker above. The invoice QR code on the Zero One formats. Hide applies only where the QR is optional - a simplified tax invoice keeps its QR and its missing-QR warning regardless, because a togglable legal mandate is a defect.",
    "fieldname": "print_qr",
    "fieldtype": "Select",
    "hidden": 1,

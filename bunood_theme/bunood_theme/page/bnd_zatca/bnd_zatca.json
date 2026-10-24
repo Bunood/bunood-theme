@@ -5,17 +5,16 @@
  "doctype": "Page",
  "icon": "shield",
  "idx": 0,
- "modified": "2026-09-29 00:00:00.000000",
+ "modified": "2026-10-24 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Bunood Theme",
  "name": "bnd-zatca",
  "owner": "Administrator",
  "page_name": "bnd-zatca",
  "roles": [
-  {"role": "Accounts User"},
-  {"role": "Accounts Manager"},
-  {"role": "Auditor"},
-  {"role": "System Manager"}
+  {
+   "role": "Platform Owner"
+  }
  ],
  "script": null,
  "standard": "Yes",

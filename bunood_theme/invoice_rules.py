@@ -25,11 +25,11 @@ def refuse_cancel(doc, method=None) -> None:
     if doc.get("is_consolidated"):
         # The invoice that gathers a shift's POS sales (cancelling its POS Closing Entry asks for it).
         frappe.throw(
-            _("This invoice gathers a shift's point-of-sale sales and is never cancelled: a ZATCA requirement. Record a counting difference with a journal entry, and goods or money given back with a return."),
+            _("This invoice gathers a shift's point-of-sale sales and is never cancelled: a legal requirement. Record a counting difference with a journal entry, and goods or money given back with a return."),
             title=_("This invoice cannot be cancelled"),
         )
     frappe.throw(
-        _("A sales invoice is never cancelled once it is submitted: a ZATCA requirement. To give money or goods back, make a return (a credit note)."),
+        _("A sales invoice is never cancelled once it is submitted: a legal requirement. To give money or goods back, make a return (a credit note)."),
         title=_("This invoice cannot be cancelled"),
     )
 
@@ -42,6 +42,6 @@ def refuse_delete(doc, method=None) -> None:
     if not _enforced() or not doc.docstatus:
         return
     frappe.throw(
-        _("A sales invoice is never deleted once it is submitted: a ZATCA requirement."),
+        _("A sales invoice is never deleted once it is submitted: a legal requirement."),
         title=_("This invoice cannot be deleted"),
     )

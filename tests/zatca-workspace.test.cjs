@@ -13,7 +13,8 @@ const workspace = JSON.parse(read("bunood_theme/bunood_theme/workspace/reports/r
 
 test("ZATCA is a permissioned route with isolated, content-hashed assets", () => {
 	assert.equal(page.name, "bnd-zatca");
-	assert.deepEqual(page.roles.map((row) => row.role).sort(), ["Accounts Manager", "Accounts User", "Auditor", "System Manager"]);
+	// The platform owner's alone (owner 2026-10-24: no ZATCA word or screen for tenants).
+	assert.deepEqual(page.roles.map((row) => row.role).sort(), ["Platform Owner"]);
 	assert.match(read("build.mjs"), /key: "bnd-zatca", src: "zatca_workspace\.scss", pyid: "ZATCA_CSS"/);
 	assert.match(read("build.mjs"), /key: "bnd-zatca", src: "zatca_workspace\.js", pyid: "ZATCA_JS"/);
 	assert.match(read("bunood_theme/boot.py"), /bootinfo\.bnd_zatca_css = ZATCA_CSS[\s\S]*bootinfo\.bnd_zatca_js = ZATCA_JS/);

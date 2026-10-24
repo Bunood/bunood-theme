@@ -165,7 +165,7 @@
 	function refuseCancel() {
 		frappe.msgprint({
 			title: __("This invoice cannot be cancelled"),
-			message: __("A sales invoice is never cancelled once it is submitted: a ZATCA requirement. To give money or goods back, make a return (a credit note)."),
+			message: __("A sales invoice is never cancelled once it is submitted: a legal requirement. To give money or goods back, make a return (a credit note)."),
 			indicator: "orange",
 		});
 	}
@@ -590,6 +590,9 @@
 		const query = new URLSearchParams({ doctype: doc.doctype, name: doc.name, file_type: "pdf" });
 		return `/api/method/bunood_theme.invoice_delivery.download_customer_invoice?${query}`;
 	}
+	function platformOwner() {
+		return Boolean(frappe.boot?.bnd_platform_owner);
+	}
 	function invoiceXmlUrl(doc) {
 		const query = new URLSearchParams({ doctype: doc.doctype, name: doc.name, file_type: "xml" });
 		return `/api/method/bunood_theme.invoice_delivery.download_customer_invoice?${query}`;
@@ -641,7 +644,7 @@
 				...(canEmail ? [
 					{ fieldtype: "Column Break" },
 					{ fieldtype: "Data", fieldname: "recipient", label: __("Customer email"), options: "Email", default: doc.contact_email || "" },
-					{ fieldtype: "Button", fieldname: "email", label: readiness.regulated ? __("Email with PDF and XML") : __("Email with PDF"), click: async () => {
+					{ fieldtype: "Button", fieldname: "email", label: readiness.regulated && platformOwner() ? __("Email with PDF and XML") : __("Email with PDF"), click: async () => {
 						const recipient = String(dialog.get_value("recipient") || "").trim();
 						if (!recipient) { frappe.msgprint(__("Enter the customer's email.")); return; }
 						const send = dialog.fields_dict.email.$input;
@@ -650,7 +653,7 @@
 							await frappe.call({ method: "bunood_theme.invoice_delivery.send_invoice_email", type: "POST",
 								args: { doctype: doc.doctype, name: doc.name, recipient,
 									subject: __("Invoice {0}", [doc.name]), message: __("Please find your invoice attached.") } });
-							frappe.show_alert({ message: readiness.regulated
+							frappe.show_alert({ message: readiness.regulated && platformOwner()
 								? __("Invoice email queued with its PDF and ZATCA XML.")
 								: __("Invoice email queued with its PDF."), indicator: "green" });
 						} catch (_) { /* Frappe displays the server-side error; the screen stays. */ }
@@ -667,10 +670,11 @@
 		dialog.$wrapper?.on("hidden.bs.modal", () => dialog.$wrapper.remove());
 		const help = dialog.fields_dict.help.$wrapper?.[0];
 		if (help) {
-			node("p", "bnd-invoice-delivery-help", readiness.regulated
+			// The XML and ZATCA's name are the platform owner's (owner 2026-10-24); a tenant reads the PDF only.
+			node("p", "bnd-invoice-delivery-help", readiness.regulated && platformOwner()
 				? __("WhatsApp opens the chat with the customer; attach the ZATCA XML there yourself. The email carries the PDF and the XML.")
 				: __("WhatsApp opens the chat with the customer; attach the PDF there yourself. The email carries the PDF."), help);
-			if (readiness.regulated) button(__("Download ZATCA XML"), help,
+			if (readiness.regulated && platformOwner()) button(__("Download ZATCA XML"), help,
 				() => window.open(invoiceXmlUrl(doc), "_blank", "noopener"));
 		}
 		dialog.show();
@@ -796,13 +800,13 @@
 			if (readiness.can_preview_sandbox) {
 				previewInvoice(frm.doctype, frm.doc.name);
 			} else {
-				frappe.msgprint(readiness.state === "sandbox_only" ? __("The signed ZATCA XML or QR code is not ready yet.") : (readiness.reason || __("Invoice delivery is not ready.")));
+				frappe.msgprint(readiness.state === "sandbox_only" ? __("The invoice is not ready to share yet; try again in a moment.") : (readiness.reason || __("Invoice delivery is not ready.")));
 			}
 			return;
 		}
 		// A ZATCA Phase 2 invoice prints only in Phase 2's own format (the server holds to it).
 		if (readiness.regulated && printFormat && printFormat !== readiness.format) {
-			frappe.show_alert({ message: __("A ZATCA invoice prints in the ZATCA format."), indicator: "blue" });
+			frappe.show_alert({ message: __("This invoice prints in its approved format."), indicator: "blue" });
 		}
 		previewInvoice(frm.doctype, frm.doc.name, false, autoPrint, printFormat);
 	}

@@ -33,7 +33,7 @@ app_publisher = "Zero One"
 app_description = "Modern white-label theme for Frappe/ERPNext v16"
 app_email = "main@bunood.co"
 app_license = "MIT"
-app_version = "0.63.0"
+app_version = "0.63.1"
 
 required_apps = []
 

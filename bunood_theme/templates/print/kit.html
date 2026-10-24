@@ -216,14 +216,16 @@
 {%- endmacro %}
 
 {#- ===== THE QR — no QR on a draft (its watermark says why); a submitted tax
-    document without one says so instead of printing silence. -#}
+    document without one says so instead of printing silence. The QR prints
+    alone, with no caption: no ZATCA word on a customer's paper (owner,
+    2026-10-24). -#}
 {% macro qr_block(doc, qr, size_class="") -%}
 {%- if qr -%}
-<div class="zo-qr"><img src="{{ qr | e }}" alt="رمز الاستجابة السريعة للفاتورة — Invoice QR code"><div class="zo-qr__cap">رمز التحقق — <span class="en">ZATCA</span></div></div>
+<div class="zo-qr"><img src="{{ qr | e }}" alt="رمز الاستجابة السريعة للفاتورة — Invoice QR code"></div>
 {%- elif doc.get("docstatus") == 0 -%}
-<div class="zo-qr__missing">مسودة — يُصدر رمز التحقق عند اعتماد الفاتورة<br><span class="en">Draft — the ZATCA QR is issued on submission</span></div>
+<div class="zo-qr__missing">مسودة — يظهر رمز التحقق عند إصدار الفاتورة<br><span class="en">Draft — the QR code shows once the invoice is issued</span></div>
 {%- else -%}
-<div class="zo-qr__missing">رمز التحقق غير متوفر — راجع إعداد الربط مع زاتكا<br><span class="en">ZATCA QR not available — review the e-invoicing setup</span></div>
+<div class="zo-qr__missing">رمز التحقق غير متوفر<br><span class="en">QR code not available</span></div>
 {%- endif -%}
 {%- endmacro %}
 

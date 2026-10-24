@@ -24,6 +24,16 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [0.63.1] — 2026-10-24 — no ZATCA word, screen or e-invoicing term for tenants
+
+The owner's rule (2026-10-24): customers never read «زاتكا»/ZATCA anywhere; only the platform
+owner does. The `bnd-zatca` workspace, its links on the reports landing and the home, the team
+home's ZATCA item and the sales bill's XML button are the platform owner's alone; tenant-facing
+wording (cancel/delete refusals, delivery reasons, the POS held-sales note, readiness, the Theme
+Settings picker) no longer names ZATCA. Prints keep the QR with no ZATCA caption; the contracting
+invoice keeps «فاتورة ضريبية» as its title, the certificate number in its details. Goes with
+bunood_business v0.24.2.
+
 ## [0.63.0] — 2026-10-24 — «فاتورة ضريبية - مقاولات - A4» to the owner's approved mock, and a larger logo across the kit
 
 The owner, 2026-10-22, after rejecting v0.62.0's look: «فاتورة مقاولات · Contracting Invoice» is its own
