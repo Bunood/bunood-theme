@@ -198,11 +198,12 @@ def delivery_context(doc) -> dict:
 
 _REASONS = {
     "not_submitted": "Submit the invoice before sharing or printing it.",
-    "sandbox_only": "ZATCA Sandbox documents cannot be delivered to customers.",
-    "unknown_type": "The ZATCA invoice type is missing or unrecognized.",
-    "not_signed": "The signed ZATCA XML or QR code is not ready yet.",
-    "awaiting_clearance": "Wait for ZATCA clearance before delivering this tax invoice.",
-    "reporting_exception": "Review the simplified invoice's ZATCA reporting status before delivery.",
+    # Plain words: a tenant reads these (owner 2026-10-24: no ZATCA word, no e-invoicing term).
+    "sandbox_only": "Test invoices cannot be delivered to customers.",
+    "unknown_type": "The invoice type is missing or unrecognized.",
+    "not_signed": "The invoice is not ready to share yet; try again in a moment.",
+    "awaiting_clearance": "Wait until the invoice is approved before delivering it.",
+    "reporting_exception": "Review the invoice's status before delivering it.",
 }
 
 

@@ -286,6 +286,11 @@ def extend_bootinfo(bootinfo):
         site = frappe.get_cached_doc("Theme Settings")
         settings, personal_state = resolve_for_user(site)
 
+        # Who may read ZATCA's own words (the XML, the workspace): the platform owner alone
+        # (owner 2026-10-24). bunood_business sets the same key the same way.
+        from bunood_theme.platform_owner import is_platform_owner
+        bootinfo.bnd_platform_owner = is_platform_owner()
+
         # RTL language set (item 7 follow-up). A pure constant — no Theme
         # Settings read, no per-user variance — so it is the cheapest thing
         # this function adds. bunood.js reads it to correct

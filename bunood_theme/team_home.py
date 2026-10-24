@@ -373,7 +373,11 @@ def get_home_dashboard(company=None, period=None, sales_person=None, view=None):
     due_rows=None if purchases is None else [r for r in purchases if float(r["outstanding_amount"] or 0)>0 and r["due_date"] and today<=getdate(r["due_date"])<=today+timedelta(days=7)]
     due_amount=_sum_outstanding(due_rows,currency,errors,"Purchase Invoice")
     result["attention"].append({"key":"payables_due","label":"Payables due soon","doctype":"Purchase Invoice","filters":due_filters,"count":len(due_rows) if due_amount is not None else None,"amount":due_amount,"available":due_amount is not None})
-    result["attention"].extend((_stock_attention(selected,errors),_zatca_attention(selected,team,errors)))
+    result["attention"].append(_stock_attention(selected,errors))
+    # ZATCA's integration log is the platform owner's (owner 2026-10-24).
+    from bunood_theme.platform_owner import is_platform_owner
+    if is_platform_owner():
+        result["attention"].append(_zatca_attention(selected,team,errors))
     if "System Manager" in frappe.get_roles():
         result["admin_health"]={}
         for dt,key,label,filters in (("Scheduled Job Log","failed_jobs_today","Failed scheduled jobs",{"status":"Failed","creation":[">=",today.isoformat()]}),("Error Log","error_logs_today","Error logs",{"creation":[">=",today.isoformat()]})):

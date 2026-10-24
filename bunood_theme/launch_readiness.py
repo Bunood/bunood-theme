@@ -32,7 +32,7 @@ LAUNCH_CHECK_POLICIES = (
 LAUNCH_CHECK_TITLES = {
     "company": "Company identity and fiscal setup",
     "accounting": "Accounts and dimensions",
-    "tax_zatca": "VAT, ZATCA and legal output",
+    "tax_zatca": "VAT, invoice QR code and legal output",
     "stock": "Warehouse, stock and valuation",
     "commercial": "Items, prices and commercial policy",
     "parties": "Customers, suppliers and terms",

@@ -30,12 +30,20 @@ SECRET_KEY = re.compile(
 RAW_DOCUMENT = re.compile(r"(?i)<\?xml\b|<Invoice\b|<cbc:|<cac:|-----BEGIN [A-Z ]+-----")
 
 
+def _platform_owner() -> bool:
+    """The ZATCA workspace is the platform owner's alone (owner 2026-10-24: no ZATCA word or screen
+    for tenants); bunood_theme.platform_owner decides who that is."""
+    from bunood_theme.platform_owner import is_platform_owner
+
+    return is_platform_owner()
+
+
 def _deny(message: str) -> None:
     frappe.throw(_(message), frappe.PermissionError)
 
 
 def _company(company: str) -> str:
-    if not WORKSPACE_ROLES.intersection(frappe.get_roles()):
+    if not (WORKSPACE_ROLES.intersection(frappe.get_roles()) and _platform_owner()):
         _deny("You do not have access to the ZATCA workspace.")
     if not company or not frappe.get_list(
         "Company", filters={"name": company}, fields=["name"], limit_page_length=1

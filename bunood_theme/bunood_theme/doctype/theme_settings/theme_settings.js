@@ -7570,7 +7570,7 @@ const BND_PRINT_GROUPS = [
 	},
 	{
 		field: "print_qr",
-		title: () => __("ZATCA QR"),
+		title: () => __("Invoice QR code"),
 		desc: () => __("Hide applies only where the QR is optional — a simplified tax invoice keeps its QR and its warning regardless."),
 	},
 	{

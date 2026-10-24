@@ -38,6 +38,8 @@ class MonitorTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.monitor = load_module()
+        # The platform owner reads the monitor (owner 2026-10-24); each test that asks otherwise says so.
+        cls.monitor._platform_owner = lambda: True
 
     def context(self):
         fake = self.monitor.frappe
@@ -47,6 +49,15 @@ class MonitorTests(unittest.TestCase):
         fake.db = types.SimpleNamespace(table_exists=lambda doctype: True)
         fake.has_permission = lambda doctype, action: True
         return fake
+
+    def test_rejects_everyone_but_the_platform_owner(self):
+        self.context()
+        self.monitor._platform_owner = lambda: False
+        try:
+            with self.assertRaises(PermissionError):
+                self.monitor.list_invoices("ACME")
+        finally:
+            self.monitor._platform_owner = lambda: True
 
     def test_rejects_other_roles_and_inaccessible_companies(self):
         fake = self.context()

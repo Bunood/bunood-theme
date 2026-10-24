@@ -3224,7 +3224,7 @@
 		function renderHeldView() {
 			const rows = state.held || [];
 			fill(listView, h("div", { class: "bnd-pos__list" },
-				h("div", { class: "bnd-pos__list-head" }, h("h2", null, __("Held sales", null, "Bunood POS")), h("span", { class: "bnd-pos__muted" }, __("A held sale is a draft: it takes no stock and is not reported to ZATCA until it is paid.", null, "Bunood POS"))),
+				h("div", { class: "bnd-pos__list-head" }, h("h2", null, __("Held sales", null, "Bunood POS")), h("span", { class: "bnd-pos__muted" }, __("A held sale is a draft: it takes no stock and is not issued until it is paid.", null, "Bunood POS"))),
 				rows.length ? h("div", { class: "bnd-pos__cards" }, rows.map((row) => h("article", { class: "bnd-pos__card" },
 					h("div", { class: "bnd-pos__card-top" }, h("strong", null, row.customer_name || row.customer), h("b", null, ltr(money(row.grand_total)))),
 					h("span", { class: "bnd-pos__muted" }, ltr(row.name), " · ", __("Pieces: {0}", [round(row.total_qty || 0, 2)]), " · ", frappe.datetime?.prettyDate ? frappe.datetime.prettyDate(row.modified) : ""),

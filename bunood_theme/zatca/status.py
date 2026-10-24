@@ -22,6 +22,14 @@ INVOICE_DOCTYPES = {"Sales Invoice", "POS Invoice"}
 WORKSPACE_ROLES = {"Accounts User", "Accounts Manager", "Auditor", "System Manager"}
 
 
+def _platform_owner() -> bool:
+    """The ZATCA workspace is the platform owner's alone (owner 2026-10-24: no ZATCA word or screen
+    for tenants); bunood_theme.platform_owner decides who that is."""
+    from bunood_theme.platform_owner import is_platform_owner
+
+    return is_platform_owner()
+
+
 def classify_status(
     *,
     installed: bool,
@@ -316,8 +324,9 @@ def _recent_evidence(company: str) -> list[dict[str, Any]]:
 
 @frappe.whitelist(methods=["GET"])
 def get_workspace(company: str | None = None) -> dict[str, Any]:
-    """Read-only ZATCA control desk. No secrets, onboarding or transmission."""
-    if not WORKSPACE_ROLES.intersection(frappe.get_roles()):
+    """Read-only ZATCA control desk. No secrets, onboarding or transmission. The platform owner's
+    alone (owner 2026-10-24: no ZATCA word or screen for tenants)."""
+    if not (WORKSPACE_ROLES.intersection(frappe.get_roles()) and _platform_owner()):
         frappe.throw(_("You do not have access to the ZATCA workspace."), frappe.PermissionError)
     companies = [row.name for row in frappe.get_list(
         "Company", fields=["name"], order_by="name asc", limit_page_length=0,

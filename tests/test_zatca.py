@@ -28,6 +28,8 @@ class ZatcaStateTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.zatca = load_module()
+        # The platform owner reads the workspace (owner 2026-10-24); a test that asks otherwise says so.
+        cls.zatca._platform_owner = lambda: True
 
     def state(self, **changes):
         values = dict(
@@ -98,6 +100,17 @@ class ZatcaStateTests(unittest.TestCase):
                     delattr(fake, name)
                 else:
                     setattr(fake, name, value)
+
+    def test_workspace_denies_everyone_but_the_platform_owner(self):
+        fake = self.zatca.frappe
+        deny = lambda message, exception=PermissionError: (_ for _ in ()).throw(exception(message))
+        self.zatca._platform_owner = lambda: False
+        try:
+            with patch.object(fake, "get_roles", return_value=["Accounts Manager", "System Manager"], create=True),                  patch.object(fake, "throw", side_effect=deny, create=True):
+                with self.assertRaisesRegex(PermissionError, "ZATCA workspace"):
+                    self.zatca.get_workspace("ACME")
+        finally:
+            self.zatca._platform_owner = lambda: True
 
     def test_workspace_denies_other_roles_and_inaccessible_companies(self):
         fake = self.zatca.frappe
