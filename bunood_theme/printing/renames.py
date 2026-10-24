@@ -35,8 +35,11 @@ def mapped(name) -> str:
     if not name or not isinstance(name, str):
         return ""
     from bunood_theme.patches.v0_60_0.print_format_names import FORMAT_RENAMES
+    from bunood_theme.patches.v0_63_0.contracting_format_name import (
+        FORMAT_RENAMES as CONTRACTING,
+    )
 
-    new = FORMAT_RENAMES.get(name)
+    new = FORMAT_RENAMES.get(name) or CONTRACTING.get(name)
     if not new or frappe.db.exists("Print Format", name) or not frappe.db.exists("Print Format", new):
         return ""
     return new

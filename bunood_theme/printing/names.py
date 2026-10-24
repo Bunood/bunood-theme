@@ -17,8 +17,9 @@ TAX_RECEIPT_80 = "فاتورة ضريبية - حراري 80مم"
 SIMPLIFIED_RECEIPT_58 = "فاتورة ضريبية مبسطة - حراري 58مم"
 GIFT_RECEIPT_80 = "إيصال هدية - حراري 80مم"
 MATRIX_INVOICE = "فاتورة - طابعة نقطية"
-#: A contractor's progress invoice (bunood_business's «فاتورة مستخلص»), the format it prints with.
-PROGRESS_INVOICE_A4 = "مستخلص - فاتورة ضريبية - A4"
+#: A contractor's tax invoice (bunood_business's «فاتورة مقاولات»), the format it prints with. It took
+#: the place of v0.62.0's «مستخلص - فاتورة ضريبية - A4» (patches/v0_63_0/contracting_format_name).
+CONTRACTING_INVOICE_A4 = "فاتورة ضريبية - مقاولات - A4"
 
 #: A POS Invoice twin carries its Sales Invoice sibling's name with this suffix.
 POS_SUFFIX = " - نقطة البيع"

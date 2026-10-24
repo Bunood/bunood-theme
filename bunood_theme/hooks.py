@@ -307,8 +307,8 @@ jinja = {
         "bunood_theme.printing.jinja.bunood_print_profile",
         "bunood_theme.printing.jinja.bunood_buyer_profile",
         "bunood_theme.printing.jinja.bunood_invoice_view",
-        # «مستخلص - فاتورة ضريبية - A4»: a progress invoice's certificate and summary rows.
-        "bunood_theme.printing.jinja.bunood_progress_view",
+        # «فاتورة ضريبية - مقاولات - A4»: a contracting invoice's certificate, works and ladder.
+        "bunood_theme.printing.jinja.bunood_contracting_view",
         "bunood_theme.printing.jinja.bunood_receipt_extras",
         "bunood_theme.printing.jinja.bunood_trade_view",
         "bunood_theme.printing.jinja.bunood_party_profile",

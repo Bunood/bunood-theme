@@ -24,6 +24,41 @@ to work order on 2026-08-13; entries here keep the numbers that were current whe
 shipped, and are never rewritten to match. See `ROADMAP.md`'s old→new table to resolve
 an "item N" cited below against today's numbering.
 
+## [Unreleased] — v0.63.0 — «فاتورة ضريبية - مقاولات - A4» to the owner's approved mock, and a larger logo across the kit
+
+The owner, 2026-10-22, after rejecting v0.62.0's look: «فاتورة مقاولات · Contracting Invoice» is its own
+screen in bunood_business v0.24.0, and its print follows the approved mock (`print-a4.html`). Two owner
+overrides on the mock: the title is «فاتورة ضريبية / Tax Invoice» (the certificate number is a fact, not
+the title), and NOTHING stands beside the QR («الكلام الي بجانب الباركود مافي داعي له»): no status badge,
+UUID, ICV or clearance time on paper; the screen's ZATCA panel keeps them.
+
+- **«فاتورة ضريبية - مقاولات - A4»** (`printing/names.py` `CONTRACTING_INVOICE_A4`) takes the place of
+  «مستخلص - فاتورة ضريبية - A4»: the patch `v0_63_0.contracting_format_name` renames the record (and
+  `printing/renames.py` maps a request that still names the old one). The kit's page; the title band
+  with the invoice number; the facts (certificate as the key cell, issue date, PO and supply period,
+  project, due date); seller and customer; the scope in Arabic and English; the works (seven columns,
+  each line in Arabic over English, with its VAT rate) and their total; the ladder on the physical right
+  in the screen's order: the gross value of works, the before-VAT rows as entered, the taxable total,
+  the VAT, «إجمالي الفاتورة شامل الضريبة» (what ZATCA's XML and QR carry), the after-VAT rows with
+  their due date, the advance paid, «الصافي المستحق الآن»; the QR alone on the physical left; the net
+  payable now in words, Arabic and English; three signatures (`printing/contracting.py`,
+  `bunood_contracting_view`, `templates/print/contracting_invoice_a4.html`, the `.zoc` block in
+  `print_kit.css`). Only the rows the invoice carries print.
+- **A contracting invoice prints it, Phase 2 or not** (`zatca/delivery.contracting_format`): it carries
+  ksa_compliance's own QR (`bunood_zatca_qr_src`: Phase 2's stored artefact first, Phase 1's TLV
+  otherwise), so Phase 2's format pin lets it through and a delivery renders it
+  (`invoice_delivery._format_for`). Its credit note and every other invoice are unchanged.
+- **The kit's logo is larger** (the owner): A4 28 × 40 mm in a 22% header cell, centred (the side
+  cells 39%); A5 19 × 27 mm; thermal 80 mm 20 × 50 mm, 58 mm 15 × 38 mm; the print chrome and its
+  frame spacer grow with it (A4 34/36 mm, A5 24/26 mm). Measured on the lab: the A4 tax invoice, the
+  A5 voucher and the contracting invoice stay one page each.
+- Removed: `printing/progress.py`, `templates/print/progress_invoice_a4.html`, its format file and
+  `tests/test_print_progress.py`. The sales bill's section slots (v0.62.0) stay, empty: bunood_business
+  v0.24.0 no longer draws progress sections in the ordinary bill.
+- Tests: `tests/test_print_contracting.py` (11: the ladder's order and classes, the words in both
+  languages, the dynamic rows, no business fields, the credit note, the template's title and QR-alone
+  column, the facts, works and signatures, the format pin and the QR source, the kit's logo sizes).
+
 ## [0.62.0] — 2026-10-22 — «مستخلص - فاتورة ضريبية - A4» and the sales bill's sections for another app
 
 The owner, 2026-10-22: a contractor's progress invoice «زي النموذج بالضبط» (his HVAC sample, PC09),

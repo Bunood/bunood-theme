@@ -26,6 +26,8 @@ def load_module():
     doc = SimpleNamespace(doctype="Sales Invoice", name="SINV-TEST", docstatus=1, company="COMPANY",
                           check_permission=Mock())
     delivery.CUSTOMER_FORMATS = {"Sales Invoice": "فاتورة ضريبية - A4"}
+    # A contracting invoice's own format (the exception to Phase 2's): none for these invoices.
+    delivery.contracting_format = Mock(return_value="")
     delivery._settings = Mock(return_value=SimpleNamespace(fatoora_server="Sandbox",enable_zatca_integration=1))
     delivery._latest_record = Mock(return_value=SimpleNamespace(qr_code="native-qr", uuid="test",
                                   check_permission=Mock(),get_signed_xml=lambda: "<Invoice/>"))
